@@ -1,0 +1,1534 @@
+/*!
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+
+*/
+/*!
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+
+*/
+.km-hide-title {
+  display: none;
+}
+.km-show-title:after {
+  display: block;
+  content: "\a0";
+  height: 0;
+}
+.km-fill-title:after {
+  height: auto;
+}
+.km-footer .km-show-title:after {
+  display: inline-block;
+}
+.km-view-title,
+.km-dialog-title {
+  position: relative;
+  visibility: visible;
+  text-align: center;
+  font-size: 1.4em;
+  line-height: 2.3em;
+  margin-left: auto;
+  margin-right: auto;
+}
+.km-view-title:before,
+.km-dialog-title:before {
+  content: "";
+  display: inline-block;
+  width: 0;
+}
+.km-horizontal .km-view-title {
+  line-height: 2em;
+}
+.km-root .k-toolbar,
+.km-navbar {
+  padding: 0;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: block;
+  border-width: 0 0 1px 0;
+  background-color: #fff;
+}
+.k-ff.km-root .k-toolbar,
+.k-ff .km-navbar {
+  overflow: visible;
+}
+.km-navbar .km-button {
+  margin-top: .5rem;
+  margin-bottom: .5rem;
+}
+.km-navbar .km-no-title {
+  padding-top: .7rem;
+  padding-bottom: .7rem;
+}
+.km-horizontal .km-navbar .km-button {
+  margin-top: .3rem;
+  margin-bottom: .3rem;
+}
+.km-horizontal .km-navbar .km-no-title {
+  padding-top: .5rem;
+  padding-bottom: .5rem;
+}
+.km-tablet.km-root .km-no-title {
+  padding-top: .55rem;
+  padding-bottom: .55rem;
+}
+.km-tablet .km-navbar .km-button {
+  margin-top: .45rem;
+  margin-bottom: .45rem;
+}
+.km-root .km-pane .km-navbar .km-no-title {
+  visibility: visible;
+  line-height: 0;
+}
+.km-on-ios.km-black-translucent-status-bar.km-app .km-header .km-navbar {
+  padding-top: 1.4em;
+  background-clip: border-box;
+}
+.km-on-ios.km-ios5.km-cordova .km-header .km-navbar,
+.km-on-ios.km-ios6.km-cordova .km-header .km-navbar {
+  padding-top: 0;
+}
+.km-leftitem,
+.km-rightitem {
+  z-index: 1;
+  position: absolute;
+  right: .5em;
+}
+.km-popup .km-rightitem {
+  right: 0;
+}
+.km-leftitem {
+  left: .5em;
+  right: auto;
+}
+.km-popup .km-leftitem {
+  left: 0;
+}
+.km-leftitem,
+.km-rightitem {
+  height: 100%;
+}
+.km-on-ios.km-black-translucent-status-bar.km-app .km-leftitem,
+.km-on-ios.km-black-translucent-status-bar.km-app .km-rightitem {
+  height: auto;
+}
+.km-leftitem > *,
+.km-rightitem > * {
+  display: inline-block;
+  vertical-align: middle;
+}
+.km-leftitem:before,
+.km-rightitem:before {
+  content: "\a0";
+  display: inline-block;
+  height: 100%;
+  width: 0;
+  vertical-align: middle;
+}
+/*!
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+
+*/
+/*!
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+
+*/
+/*!
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+
+*/
+@-ms-viewport {
+  width: device-width;
+  user-zoom: fixed;
+  max-zoom: 1;
+  min-zoom: 1;
+}
+@media (orientation: landscape) {
+  .km-tablet .km-on-ios.km-horizontal.km-web:not(.km-ios-chrome) {
+    position: fixed;
+    bottom: 0;
+  }
+}
+.km-root {
+  font-size: .92em;
+}
+.km-root.km-retina input,
+.km-root.km-retina select,
+.km-root.km-retina textarea {
+  font-size: 1em;
+}
+.km-root a:not(.k-button) {
+  color: inherit;
+}
+.km-tablet {
+  font-size: 1em;
+}
+.km-root *:focus {
+  outline-width: 0;
+}
+.km-root,
+.km-pane,
+.km-pane-wrapper {
+  width: 100%;
+  height: 100%;
+  -ms-touch-action: none;
+  -ms-content-zooming: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+  text-size-adjust: none;
+  overflow-x: hidden;
+}
+.km-pane-wrapper {
+  position: absolute;
+}
+.km-pane,
+.km-shim {
+  font-family: sans-serif;
+}
+.km-pane {
+  overflow-x: hidden;
+  position: relative;
+}
+.km-vertical .km-collapsible-pane {
+  position: absolute;
+  z-index: 2 !important;
+  transition: transform 350ms ease-out;
+  transform: translatex(-100%);
+}
+.km-vertical .km-expanded-splitview .km-collapsible-pane {
+  transform: translatex(0);
+}
+.km-expanded-pane-shim {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+.km-expanded-splitview .km-expanded-pane-shim {
+  display: block;
+  z-index: 1;
+}
+.km-root > * {
+  margin: 0;
+  padding: 0;
+}
+.km-root * {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+.km-content {
+  display: block;
+}
+.km-view,
+.km-split-content {
+  top: 0;
+  left: 0;
+  position: absolute;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  align-content: stretch;
+  vertical-align: top;
+}
+.k-ff .km-view,
+.k-ff .km-pane {
+  overflow: hidden;
+}
+.k-ff18 .km-view,
+.k-ff18 .km-pane,
+.k-ff19 .km-view,
+.k-ff19 .km-pane,
+.k-ff20 .km-view,
+.k-ff20 .km-pane,
+.k-ff21 .km-view,
+.k-ff21 .km-pane {
+  position: relative;
+}
+.k-ff .km-view {
+  display: -moz-inline-box;
+  display: inline-flex;
+}
+.km-content {
+  min-height: 1px;
+  flex: 1;
+  flex-align: stretch;
+  width: auto;
+  overflow: hidden;
+  position: relative;
+}
+.km-content p,
+.km-content h1,
+.km-content h2,
+.km-content h3,
+.km-content h4,
+.km-content h5,
+.km-content h6 {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+.km-header,
+.km-footer {
+  display: block;
+  display: -moz-box;
+  flex-direction: column;
+  width: 100%;
+}
+.km-header {
+  padding: 0;
+}
+.km-footer {
+  background: #1a1a1a;
+}
+[data-role="layout"] {
+  display: none;
+}
+[data-role="view"],
+.km-drawer,
+kendo-mobile-view,
+kendo-mobile-split-view,
+kendo-mobile-drawer {
+  visibility: hidden;
+}
+.km-view,
+.k-view {
+  visibility: visible;
+}
+.km-header,
+.km-footer {
+  position: relative;
+  z-index: 1;
+}
+@media all and (-webkit-min-device-pixel-ratio: 10000), not all and (-webkit-min-device-pixel-ratio: 0) {
+  .km-view {
+    display: table;
+  }
+  .km-header,
+  .km-footer,
+  .km-content {
+    display: table-row;
+  }
+  .km-header,
+  .km-footer {
+    height: 1px;
+  }
+}
+.km-root .k-toolbar,
+.km-navbar,
+.km-button,
+.km-buttongroup,
+.km-tabstrip,
+.km-blackberry li.km-actionsheet-cancel > a {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-origin: border-box;
+  position: relative;
+  display: inline-block;
+  padding: .4em .7em;
+  margin: .1rem;
+  overflow: visible;
+  text-decoration: none;
+}
+.km-tabstrip,
+.km-root .k-toolbar,
+.km-navbar {
+  display: block;
+  padding: .8em;
+  margin: 0;
+  width: 100%;
+  border-width: 0;
+  box-sizing: border-box;
+}
+.km-native-scroller {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  -ms-touch-action: pan-x pan-y;
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+  -ms-scroll-snap-type: proximity;
+}
+.km-default-content {
+  padding: 1em;
+}
+.km-shim {
+  left: 0;
+  bottom: 0;
+  position: fixed;
+  width: 100%;
+  height: 100% !important;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10001;
+  box-sizing: border-box;
+}
+.km-root .km-shim {
+  position: absolute;
+}
+.km-shim:before {
+  content: "\a0";
+  height: 100%;
+  width: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+.km-shim .k-animation-container {
+  box-shadow: none;
+  border: 0;
+  width: auto;
+}
+.km-loader {
+  top: 50%;
+  left: 50%;
+  width: 180px;
+  height: 130px;
+  z-index: 100000;
+  padding: 30px 30px;
+  position: absolute;
+  margin-top: -70px;
+  margin-left: -90px;
+  box-sizing: border-box;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+.km-loader h1 {
+  font-size: 1rem;
+  color: white;
+  text-align: center;
+  vertical-align: middle;
+}
+.km-loader .km-loading,
+.km-load-more .km-icon,
+.km-scroller-refresh .km-icon {
+  animation: km-spin 1s infinite linear;
+  display: block;
+  margin: 0 auto;
+  width: 35px;
+  height: 35px;
+  font-size: 35px;
+}
+.km-loader .km-loading:after,
+.km-load-more .km-icon:after {
+  color: #ccc;
+}
+.km-loading-left,
+.km-loading-right {
+  display: none;
+}
+@-webkit-keyframes km-spin {
+  from {
+    -webkit-transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(360deg);
+  }
+}
+@-moz-keyframes km-spin {
+  from {
+    -moz-transform: rotate(0deg);
+  }
+  to {
+    -moz-transform: rotate(360deg);
+  }
+}
+@-ms-keyframes km-spin {
+  from {
+    -ms-transform: rotate(0deg);
+  }
+  to {
+    -ms-transform: rotate(360deg);
+  }
+}
+@-o-keyframes km-spin {
+  from {
+    -o-transform: rotate(0deg);
+  }
+  to {
+    -o-transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes km-ios-spin {
+  from {
+    -webkit-transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes km-ios-spin1 {
+  from {
+    -webkit-transform: rotate(-135deg);
+  }
+  to {
+    -webkit-transform: rotate(225deg);
+  }
+}
+@-moz-keyframes km-ios-spin {
+  from {
+    -moz-transform: rotate(0deg);
+  }
+  to {
+    -moz-transform: rotate(360deg);
+  }
+}
+@-moz-keyframes km-ios-spin1 {
+  from {
+    -moz-transform: rotate(-135deg);
+  }
+  to {
+    -moz-transform: rotate(225deg);
+  }
+}
+@keyframes km-ios-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes km-ios-spin1 {
+  from {
+    transform: rotate(-135deg);
+  }
+  to {
+    transform: rotate(225deg);
+  }
+}
+.km-stretched-view {
+  display: flex;
+}
+.km-stretched-view > * {
+  width: 100%;
+}
+.km-stretched-view > .km-pane-wrapper {
+  position: static;
+}
+.km-stretched-view > .km-pane-wrapper > .km-pane {
+  position: static;
+}
+.km-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  z-index: 100000;
+}
+.km-root.km-native-scrolling,
+.km-root.km-native-scrolling .km-view,
+.km-root.km-native-scrolling .km-splitview .km-pane {
+  min-height: 100%;
+  height: auto;
+  -webkit-transform: none;
+  overflow-x: visible;
+}
+.km-native-scrolling,
+.km-native-scrolling .km-pane,
+.km-native-scrolling .km-view {
+  -ms-touch-action: auto;
+}
+.km-native-scrolling .km-pane,
+.km-native-scrolling .km-view {
+  display: block;
+}
+.km-native-scrolling .km-content {
+  -ms-flex: auto;
+}
+.km-native-scrolling .km-blackberry .km-content {
+  min-height: auto;
+}
+.km-native-scrolling .km-splitview {
+  position: absolute;
+}
+.km-native-scrolling .km-header {
+  position: fixed;
+  top: 0;
+}
+.km-native-scrolling .km-android .km-header {
+  top: auto;
+  bottom: 0;
+}
+.km-native-scrolling .km-footer {
+  position: fixed;
+  bottom: 0;
+}
+.km-native-scrolling .km-android .km-footer {
+  top: 0;
+  bottom: auto;
+}
+.km-native-scrolling .km-badge {
+  z-index: auto;
+}
+.km-native-scrolling .km-splitview .km-header,
+.km-native-scrolling .km-splitview .km-footer,
+.km-native-scrolling .km-popup.km-pane .km-header,
+.km-native-scrolling .km-popup.km-pane .km-footer {
+  position: absolute;
+}
+.km-native-scrolling .km-modalview .km-header,
+.km-native-scrolling .km-modalview .km-footer {
+  position: relative;
+}
+.km-native-scrolling .km-content {
+  width: 100%;
+}
+.km-native-scrolling .km-shim,
+.km-native-scrolling .km-popup-overlay {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  height: auto !important;
+}
+.km-native-scrolling .km-drawer {
+  position: fixed;
+  top: 0;
+  height: 100% !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+.km-native-scrolling > .km-pane > .km-loader {
+  position: fixed;
+}
+.km-native-scrolling .km-header,
+.km-native-scrolling .km-footer {
+  z-index: 2;
+}
+.km-state-disabled {
+  opacity: 0.5;
+}
+.km-office365 {
+  font: normal 1.14em "HelveticaNeue Light", "Roboto Light", "Slate Light", "Segoe WP", sans-serif;
+}
+.km-root .km-office365.km-pane,
+.km-root .km-office365 .km-view,
+.km-root .km-office365 .km-slider,
+.km-root .km-office365 .km-switch,
+.km-root .km-office365 .km-group-title,
+.km-root .km-office365 .km-filter-reset,
+.km-root .km-office365 .km-shim .k-animation-container {
+  -webkit-transform: none;
+}
+.km-office365,
+.km-office365 * {
+  box-sizing: border-box;
+  background-clip: border-box;
+}
+.km-office365 [class^=k-] {
+  box-sizing: content-box;
+}
+.km-office365 .km-tabstrip .km-button {
+  background: none;
+}
+.km-office365 .km-popup .k-popup {
+  font-size: 1em !important;
+}
+.km-office365 .km-popup .k-item,
+.km-office365 .km-actionsheet > li > a {
+  text-decoration: none;
+  padding: .688em 1em;
+  border-radius: 0;
+  border-width: 0 0 1px;
+  border-style: solid;
+  box-sizing: border-box;
+}
+.km-office365 .km-popup {
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box;
+}
+.km-office365 .km-popup .k-list-container {
+  width: 100% !important;
+  height: auto !important;
+  padding: 0;
+}
+.km-office365 .km-actionsheet,
+.km-office365 .km-popup .k-list-container {
+  max-height: 80%;
+}
+.km-office365 .km-actionsheet-wrapper,
+.km-office365 .km-popup .k-list-container {
+  bottom: 0;
+  border-width: 1px 0 0;
+  border-style: solid;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+.km-office365 .km-shim .k-animation-container {
+  left: 0;
+  top: auto;
+  bottom: 0;
+}
+.km-office365 .km-popup-wrapper {
+  padding: 15px;
+}
+.km-office365 .km-view-title,
+.km-office365 .km-dialog-title {
+  font-size: 1.125em;
+  line-height: 2.78em;
+}
+/*!
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+                                                                                                                                                                                                       
+
+*/
+.km-office365,
+.km-office365 .km-view {
+  background-color: #fff;
+}
+.km-office365 {
+  color: #333;
+}
+.km-office365 .k-toolbar,
+.km-office365 .km-navbar,
+.km-office365 .km-navbar .km-view-title {
+  color: #fff;
+  background-color: #0072c6;
+}
+.km-office365 .km-popup .km-navbar,
+.km-office365 .km-modalview .km-navbar {
+  border-color: #fff;
+}
+.km-office365 .km-popup .km-navbar,
+.km-office365 .km-popup .km-navbar .km-view-title {
+  color: #333;
+  background-color: #fff;
+}
+.km-office365 .km-modalview .km-header .km-navbar,
+.km-office365 .km-modalview .km-header .km-navbar .km-view-title {
+  color: #666666;
+  background-color: #fff;
+}
+.km-office365 .km-modalview .km-footer .km-rightitem {
+  color: #333;
+  background-color: #f4f4f4;
+}
+.km-office365 .km-modalview .km-footer .km-rightitem .km-button:first-child,
+.km-office365 .km-modalview .km-footer .km-button.km-state-active {
+  color: #fff;
+  background-color: #0072c6;
+}
+.km-office365 .km-navbar .km-leftitem .km-button {
+  border-color: #fff;
+}
+.km-office365 .km-navbar .km-leftitem .km-button.km-state-active {
+  border-color: #004578;
+}
+.km-office365 .km-navbar .km-state-active.km-back:before,
+.km-office365 .k-toolbar .km-state-active.km-back:before,
+.km-office365 .km-state-active .km-drawer-button:after {
+  color: #004578;
+}
+.km-office365 .km-actionsheet > li > a {
+  background: #fff;
+  color: #333;
+  border-top-color: #e5e5e5;
+  border-image: linear-gradient(to right, transparent 1em, #e5e5e5 1em, #e5e5e5 100%) 1 stretch;
+}
+.km-office365 .km-actionsheet > li:nth-last-child(2) > a {
+  border-image: none;
+}
+.km-office365 .km-footer .km-tabstrip .km-button:hover,
+.km-office365 .km-actionsheet > li > a:active {
+  background: #fff;
+}
+.km-office365 .km-footer .km-tabstrip .km-button,
+.km-office365 .km-actionsheet > li > a {
+  border-color: #e5e5e5;
+}
+.km-office365 .km-actionsheet > .km-actionsheet-cancel > a {
+  color: #fff;
+  background: #0072c6;
+}
+.km-office365 .km-tabstrip,
+.km-office365 .km-button {
+  background: #f4f4f4;
+  border-color: #f4f4f4;
+}
+.km-office365 .km-tabstrip .km-button,
+.km-office365 .km-tabstrip .km-state-active {
+  color: #666666;
+}
+.km-office365 .km-tabstrip .km-state-active .km-icon {
+  color: #004578;
+}
+.km-office365 .km-buttongroup .km-button.km-state-active {
+  box-shadow: 0 0 0 1px #0072c6;
+  z-index: 1;
+}
+.km-office365 .km-widget.km-navbar .km-buttongroup .km-button {
+  border-color: #fff;
+}
+.km-office365 .km-buttongroup .km-button:last-child {
+  border-left-color: #f4f4f4;
+}
+.km-office365 .km-widget.km-navbar .km-buttongroup .km-state-active {
+  color: #0072c6;
+  background-color: #fff;
+  box-shadow: 0 0 0 1px #fff;
+}
+.km-office365 .km-button:hover,
+.km-office365 .km-footer .km-tabstrip .km-button:hover {
+  background: #eaeaea;
+}
+.km-office365 .km-button.km-state-active {
+  background: #0072c6;
+  border-color: #0072c6;
+}
+.km-office365 .km-detail,
+.km-office365 .k-toolbar {
+  border-color: #f4f4f4;
+}
+.km-office365 .km-switch-off .km-switch-wrapper {
+  background-color: #f4f4f4;
+}
+.km-modalview {
+  background: #fff;
+}
+.km-office365 .km-switch-handle {
+  background: #666666;
+  border-color: #666666;
+}
+.km-office365 .km-switch-off .km-switch-handle:after,
+.km-office365 .km-switch-on .km-switch-handle:after,
+.km-office365 .km-switch-off .km-switch-handle:before,
+.km-office365 .km-switch-on .km-switch-handle:before {
+  background-color: #fff;
+}
+.km-office365 .km-switch-container,
+.km-office365 .km-switch-wrapper {
+  border-color: #c8c8c8;
+}
+.km-office365 .km-list > li {
+  background: #fff;
+  border-color: #f4f4f4;
+  border-top-color: #e5e5e5;
+  border-image: linear-gradient(to right, transparent 1em, #e5e5e5 1em, #e5e5e5 100%) 1 stretch;
+}
+.km-office365 .km-list > li:hover {
+  background-color: #fff;
+}
+.km-office365 .km-listinset > li:first-child,
+.km-office365 .km-listgroupinset .km-list > li:first-child {
+  border-color: #f4f4f4;
+}
+.km-office365 .km-listinset > li:last-child,
+.km-office365 .km-listgroupinset .km-list > li:last-child {
+  border-color: #f4f4f4;
+}
+.km-office365 .km-list > li:last-child {
+  box-shadow: inset 0 -1px 0 #bababa;
+}
+.km-office365 .km-listview-link:after,
+.km-office365 .km-state-active .km-listview-link:after {
+  color: #808080;
+  border-color: currentcolor;
+}
+.km-office365 .km-group-title,
+.km-office365 .km-list fieldset legend {
+  background: #f7f7f7;
+  border-color: #f7f7f7 #bababa #bababa;
+  color: #6d6d72;
+}
+.km-office365 .km-buttongroup {
+  border-color: #bababa;
+}
+.km-office365 .km-listview .km-state-active > .km-listview-link {
+  color: #333;
+}
+.km-office365 .km-filter-wrap:before,
+.km-office365 .km-filter-reset .km-clear {
+  color: #333;
+}
+.km-office365 .km-filter-wrap > input {
+  color: #333;
+  border-color: #f4f4f4;
+}
+.km-office365 .km-filter-wrap > input:focus {
+  border-color: #000;
+}
+.km-office365 .km-legend-button {
+  color: #0072c6;
+}
+.km-office365 .km-pages li {
+  background: #f4f4f4;
+  border-color: #bababa;
+}
+.km-office365 .km-label-above,
+.km-office365 .km-icon-label,
+.km-office365 .km-list > li label,
+.km-office365 .km-list fieldset textarea,
+.km-office365 .km-list fieldset input,
+.km-office365 .km-checkbox-label,
+.km-office365 .km-radio-label {
+  color: #6d6d72;
+}
+.km-office365 input.km-checkbox:checked + .km-checkbox-label:after,
+.km-office365 input.km-radio:checked + .km-radio-label:after {
+  background-color: #6d6d72;
+}
+.km-office365 .km-list input[type=password],
+.km-office365 .km-list input[type=search],
+.km-office365 .km-list input[type=number],
+.km-office365 .km-list input[type=tel],
+.km-office365 .km-list input[type=url],
+.km-office365 .km-list input[type=email],
+.km-office365 .km-list input[type=month],
+.km-office365 .km-list input[type=color],
+.km-office365 .km-list input[type=week],
+.km-office365 .km-list input[type=date],
+.km-office365 .km-list input[type=time],
+.km-office365 .km-list input[type=datetime],
+.km-office365 .km-list input[type=datetime-local],
+.km-office365 .km-list input[type=text]:not(.k-input),
+.km-office365 .km-list select:not([multiple]),
+.km-office365 .km-list .k-dropdown-wrap,
+.km-office365 .km-list textarea,
+.km-office365 .km-list .k-dropdown-wrap .k-input {
+  color: #333;
+  border-color: #bababa;
+}
+.km-office365 .km-list select:not([multiple]) option {
+  color: #333;
+}
+.km-office365 .km-listview-label input[type=radio],
+.km-office365 .km-listview-label input[type=checkbox] {
+  border-color: #666666;
+  background: #fff;
+}
+.km-office365 input:checked,
+.km-office365 .km-listview-label input[type=checkbox]:checked:after {
+  color: #666666;
+}
+.km-office365 .km-listview-label input[type=radio]:checked:after {
+  background-color: #666666;
+}
+.km-office365 .km-shim,
+.km-phone .km-office365 .km-actionsheet-wrapper,
+.km-office365 .km-actionsheet-root {
+  background: rgba(0, 0, 0, 0.4);
+}
+.km-office365 .km-popup {
+  background: rgba(64, 70, 75, 0.48);
+  box-shadow: 0 0 10px 5px rgba(0, 0, 0, 0.18);
+}
+.km-office365 .km-actionsheet-wrapper,
+.km-office365 .km-popup .k-list-container {
+  background: #fff;
+  border-top-color: #fff;
+}
+.km-office365 .km-popup.km-pane,
+.km-tablet .km-office365 .km-actionsheet-wrapper {
+  background-color: #fff;
+}
+.km-office365 .km-popup-arrow:after {
+  border-color: #fff transparent;
+}
+.km-office365 .km-actionsheet-root .km-popup-arrow:after {
+  border-color: transparent #fff transparent;
+}
+.km-office365 .km-loader {
+  background: rgba(0, 0, 0, 0.05);
+}
+.km-office365 .km-loader h1 {
+  color: #333;
+}
+.km-office365 .km-state-active[style*=background] {
+  box-shadow: inset 0 0 0 1000px rgba(0, 0, 0, 0.2);
+}
+.km-office365 .km-badge,
+.km-office365 .km-rowinsert,
+.km-office365 .km-rowdelete,
+.km-office365 .km-state-active,
+.km-office365 .km-switch-label-on,
+.km-office365 .km-switch-label-off,
+.km-office365 .k-slider .k-draghandle,
+.km-office365 .k-slider .k-draghandle:hover,
+.km-office365 .km-popup.km-pane .km-navbar,
+.km-office365 .km-popup.km-pane .k-toolbar,
+.km-office365 .km-popup.km-pane .km-tabstrip,
+.km-office365 .km-popup .k-state-hover,
+.km-office365 .km-popup .k-state-focused,
+.km-office365 .km-popup .k-state-selected,
+.km-office365 li.km-state-active .km-listview-link,
+.km-office365 li.km-state-active .km-listview-label {
+  color: #fff;
+}
+.km-office365 .km-scroller-pull .km-icon {
+  color: #0072c6;
+}
+.km-office365 .km-popup .k-item {
+  color: #333;
+  border-bottom-color: #bababa;
+}
+.km-office365 .km-popup .k-state-selected.k-item {
+  color: #fff;
+}
+.km-office365 .km-filter-wrap > input,
+.km-office365 .km-switch-handle.km-state-active {
+  background: #0072c6;
+}
+.km-office365 .km-switch-handle,
+.km-office365 .k-slider-selection {
+  color: #0072c6;
+}
+.km-office365 .km-switch-background {
+  color: #0072c6;
+}
+.km-office365 .km-switch-off .km-switch-background {
+  color: #f4f4f4;
+}
+.km-office365 a.km-widget.km-rowinsert,
+.km-office365 a.km-widget.km-rowdelete,
+.km-office365 .km-state-active,
+.km-office365 .km-loader:before,
+.km-office365 .k-slider-selection,
+.km-office365 .km-touch-scrollbar,
+.km-office365 .km-pages .km-current-page,
+.km-office365 .k-slider .k-draghandle,
+.km-office365 .k-slider .k-draghandle:hover,
+.km-office365 .km-scroller-refresh.km-load-more,
+.km-office365 .km-popup .k-state-selected,
+.km-office365 li.km-state-active .km-listview-label {
+  background: #0072c6;
+  border-color: #0072c6;
+}
+.km-office365 .km-detail.km-state-active,
+.km-office365 .km-state-active .km-detail,
+.km-office365 a.km-listview-link:active,
+.km-office365 .km-state-active a.km-listview-link,
+.km-office365 .km-list > li:active,
+.km-office365 .km-tabstrip .km-state-active {
+  background: #cde6f7;
+}
+.km-office365 .km-state-active .km-detail,
+.km-office365 .km-detail.km-state-active {
+  color: #333;
+  border-color: #333;
+}
+.km-office365 .km-state-active .km-rowinsert,
+.km-office365 .km-rowinsert.km-state-active,
+.km-office365 .km-state-active .km-rowdelete,
+.km-office365 .km-rowdelete.km-state-active {
+  color: #fff;
+  border-color: #0072c6;
+}
+.km-office365 .km-filter-wrap > input:focus {
+  border-color: #0072c6;
+}
+.km-office365 .km-badge,
+.km-office365 .km-rowdelete {
+  background: #0072c6;
+}
+.km-office365 label.km-required:after {
+  color: #f44336;
+}
+.km-office365 .km-list fieldset legend,
+.km-office365 .km-list fieldset .km-inline-field {
+  border-color: #e5e5e5;
+}
+.km-tablet .km-office365.km-horizontal .km-navbar .km-button,
+.km-tablet .km-office365.km-horizontal .km-toolbar .km-button {
+  margin-top: .2rem;
+  margin-bottom: .2rem;
+}
+.km-office365 .km-icon:before,
+.km-office365 .km-contactadd:before,
+.km-office365 .km-rowdelete:before,
+.km-office365 .km-rowinsert:before,
+.km-office365 .km-detaildisclose:before {
+  margin-top: 0;
+}
+.km-office365 .km-load-more {
+  height: 3.4em;
+}
+.km-office365 .km-load-more .km-button {
+  margin: 0 .8em;
+  display: block;
+}
+.km-office365 .km-scroller-refresh.km-load-more,
+.km-office365 .km-scroller-pull {
+  border-radius: 50%;
+  overflow: visible;
+}
+.km-office365 .km-loader {
+  left: 45%;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: none;
+}
+.km-office365 .km-loader .km-loading {
+  animation: none;
+  display: none;
+}
+.km-office365 .km-loading-left,
+.km-office365 .km-loading-right {
+  background: none;
+}
+.km-office365 .km-loading-left,
+.km-office365 .km-loading-right,
+.km-office365 .km-scroller-refresh .km-icon {
+  position: absolute;
+  top: 50%;
+  left: 45%;
+}
+.km-office365 .km-scroller-pull .km-loading-left,
+.km-office365 .km-scroller-pull .km-loading-right,
+.km-office365 .km-scroller-refresh > .km-icon {
+  display: none;
+}
+.km-office365 .km-scroller-refresh .km-loading-left,
+.km-office365 .km-scroller-refresh .km-loading-right {
+  display: block;
+}
+.km-office365 .km-scroller-refresh .km-loading-left,
+.km-office365 .km-scroller-refresh .km-loading-right,
+.km-office365 .km-scroller-refresh .km-icon {
+  top: 0;
+  left: 0;
+}
+.km-office365 .km-scroller-refresh .km-icon:before {
+  content: "\a0";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 50%;
+}
+.km-root .km-office365 .km-scroller-pull .km-icon {
+  -webkit-background-clip: inherit;
+  background-size: inherit;
+  border-radius: 50%;
+}
+.km-office365 .km-loading:after {
+  display: none;
+}
+.km-office365 .km-scroller-refresh.km-load-more {
+  padding: 0;
+  position: relative;
+  margin: auto;
+}
+.km-office365 .km-scroller-refresh.km-load-more,
+.km-office365 .km-scroller-pull {
+  font-size: 1em;
+  width: 2.5em;
+  height: 2.5em;
+  top: .25em;
+  white-space: nowrap;
+}
+.km-office365 .km-scroller-pull {
+  left: 50%;
+  margin: 0 0 0 -90px;
+}
+.km-office365 .km-loader h1 {
+  display: none;
+  font-size: 1em;
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  top: 55%;
+}
+.km-office365 .km-scroller-pull .km-template {
+  position: absolute;
+  line-height: 2em;
+  font-size: 1.2em;
+  min-width: 0;
+  top: 0;
+  left: 3em;
+}
+.km-office365 .km-scroller-pull .km-icon {
+  margin-right: 0;
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-left: -1rem;
+  margin-top: -1rem;
+}
+.km-office365 .km-scroller-pull .km-icon:after {
+  content: "\e012";
+  margin-left: -3px;
+}
+.km-office365 .km-scroller-refresh .km-icon {
+  display: none;
+}
+.km-office365 .km-load-more .km-icon,
+.km-office365 .km-scroller-pull .km-icon {
+  transform: rotate(0deg);
+  transition: none;
+}
+.km-office365 .km-load-more .km-icon:after,
+.km-office365 .km-scroller-pull .km-icon:after {
+  transform: rotate(0deg);
+  transform-origin: 62% 50%;
+  transition: transform 300ms linear;
+}
+.km-office365 .km-scroller-release .km-icon:after {
+  transform: rotate(180deg);
+}
+.km-office365 .km-scroller-refresh .km-icon:after {
+  transition: none;
+}
+.km-office365 .km-loading-left:before,
+.km-office365 .km-loading-right:before {
+  content: " ";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: block;
+  border: 4px dotted #bababa;
+}
+.km-office365 .km-loading-left,
+.km-office365 .km-loading-right,
+.km-office365 .km-loading-left:after,
+.km-office365 .km-loading-right:after {
+  left: 0;
+  top: 0;
+  display: block;
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  clip: rect(0px, 20px, 40px, 0px);
+}
+.km-office365 .km-loading-left:after,
+.km-office365 .km-loading-right:after {
+  content: " ";
+  background-color: #fff;
+  animation: rotate_left_sector 4s linear infinite;
+}
+.km-office365 .km-loading-right {
+  left: 0;
+  -moz-transform: rotate(180deg);
+  -webkit-transform: rotate(180deg);
+  -ms-transform: rotate(180deg);
+  transform: rotate(180deg);
+}
+.km-office365 .km-loading-right:after {
+  animation: rotate_right_sector 4s linear infinite;
+}
+@-moz-keyframes rotate_left_sector {
+  0% {
+    -moz-transform: rotate(0deg);
+  }
+  25% {
+    -moz-transform: rotate(0deg);
+  }
+  50% {
+    -moz-transform: rotate(180deg);
+  }
+  75% {
+    -moz-transform: rotate(180deg);
+  }
+  100% {
+    -moz-transform: rotate(360deg);
+  }
+}
+@-moz-keyframes rotate_right_sector {
+  0% {
+    -moz-transform: rotate(0deg);
+  }
+  25% {
+    -moz-transform: rotate(180deg);
+  }
+  50% {
+    -moz-transform: rotate(180deg);
+  }
+  75% {
+    -moz-transform: rotate(360deg);
+  }
+  100% {
+    -moz-transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes rotate_left_sector {
+  0% {
+    -webkit-transform: rotate(0deg);
+  }
+  25% {
+    -webkit-transform: rotate(0deg);
+  }
+  50% {
+    -webkit-transform: rotate(180deg);
+  }
+  75% {
+    -webkit-transform: rotate(180deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
+}
+@-webkit-keyframes rotate_right_sector {
+  0% {
+    -webkit-transform: rotate(0deg);
+  }
+  25% {
+    -webkit-transform: rotate(180deg);
+  }
+  50% {
+    -webkit-transform: rotate(180deg);
+  }
+  75% {
+    -webkit-transform: rotate(360deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
+}
+@-ms-keyframes rotate_left_sector {
+  0% {
+    -ms-transform: rotate(0deg);
+  }
+  25% {
+    -ms-transform: rotate(0deg);
+  }
+  50% {
+    -ms-transform: rotate(180deg);
+  }
+  75% {
+    -ms-transform: rotate(180deg);
+  }
+  100% {
+    -ms-transform: rotate(360deg);
+  }
+}
+@-ms-keyframes rotate_right_sector {
+  0% {
+    -ms-transform: rotate(0deg);
+  }
+  25% {
+    -ms-transform: rotate(180deg);
+  }
+  50% {
+    -ms-transform: rotate(180deg);
+  }
+  75% {
+    -ms-transform: rotate(360deg);
+  }
+  100% {
+    -ms-transform: rotate(360deg);
+  }
+}
+@keyframes rotate_left_sector {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  25% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  50% {
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
+  }
+  75% {
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes rotate_right_sector {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  25% {
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
+  }
+  50% {
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
+  }
+  75% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+.km-office365 .km-navbar {
+  border: 1px solid #0072c6;
+}
+.km-office365 .km-header .km-navbar {
+  border-width: 0 0 1px;
+}
+.km-office365 .km-footer .km-navbar {
+  border-width: 1px 0 0;
+}
+.km-office365 .km-modalview .km-footer .km-navbar {
+  border-top: 0;
+}
+.km-office365 .km-toolbar,
+.km-office365 .km-navbar,
+.km-office365 .km-tabstrip,
+.km-office365 .km-tabstrip .km-button {
+  border-radius: 0;
+}
+.km-office365 .km-navbar .km-icon + .km-text {
+  display: none;
+}
+.km-office365 .km-leftitem .km-button,
+.km-office365 .km-rightitem .km-button {
+  border: 0;
+  padding: .5em 0;
+  margin-top: .125em;
+  margin-bottom: 0;
+}
+.km-office365 .km-popup .km-navbar .km-view-title,
+.km-office365 .km-modalview .km-header .km-navbar .km-view-title {
+  text-align: left;
+  padding-left: .73em;
+}
+.km-office365 .km-modalview .km-footer .km-rightitem {
+  width: 100%;
+  right: 0;
+}
+.km-office365 .km-modalview .km-footer .km-rightitem .km-button {
+  width: 50%;
+  height: 100%;
+  border-radius: 0;
+  margin: 0;
+  padding: .882em 1.25em;
+}
+.km-office365 .km-navbar .km-no-title {
+  padding-top: .45rem;
+  padding-bottom: .4rem;
+}

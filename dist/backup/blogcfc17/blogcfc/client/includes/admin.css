@@ -1,0 +1,274 @@
+/* color palette 
+ * Dark 	7d8524
+ * 			bbc737
+ * 			e4e8af
+ * 			edf0c9
+ * Light  	f6f7e4
+ */
+body{
+	background: url('../images/leftnav.png') no-repeat 20px 5px;
+	padding: 1em;
+	margin: 0 0 0 0;
+	font-family: Tahoma, Arial;
+	height:100%
+}
+a {
+	color:#7d8524;
+	text-decoration:none;
+}
+a:hover {
+	color:#bbc737;
+	text-decoration:underline;
+}
+#blogTitle {
+	font-size: 22px;
+	color:#7d8524;
+	padding:0 0 6px 0;
+	border-bottom:1px solid #e4e8af;
+}
+#header {
+	font-size: 22px;
+	margin:20px 0 0 0;
+	color:#444;
+}
+
+#menu {
+	float:left;
+	margin:55px 0 0 5px;
+	padding: 10px;
+	font-family: Arial;
+	font-size:15px;
+	width: 200px;
+}
+
+#menu ul {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	border-top: 1px solid #fff;
+	border-bottom: 1px solid #bbc737;
+}
+
+#menu a {
+	color: #333;
+	text-decoration: none;
+	display: block;
+	width: 190px;
+	padding: 5px 5px 5px 5px;
+}
+
+#menu a:hover {
+	border: 1px solid #bbc737;
+	color: #7d8524;
+	padding: 4px 4px 4px 4px;
+}
+
+#content {
+	margin: 0px 5px 0 270px;
+	font-family: Arial;
+	overflow:auto;
+}
+
+.txtField {
+	width: 400px;
+}
+
+.txtFieldShort {
+	width: 200px;
+}
+
+.txtArea {
+	width: 100%;
+	height: 300px;
+}
+
+.txtAreaShort {
+	width: 500px;
+	height: 100px;
+}
+
+.txtDropdown {
+	width: 100%;
+}
+
+.errors {
+	font-weight: bold;
+	color: red;
+	border: 1px solid #999;
+	margin-top: 10px;
+	padding: 10px;
+	margin-bottom: 10px;
+}
+
+.message {
+	font-weight: bold;
+	border: 1px solid #999;
+	margin-top: 10px;
+	padding: 10px;
+	margin-bottom: 10px;
+}	
+
+.previewEntry {
+	border: 1px solid #999;
+	margin-top: 10px;
+	padding: 10px;
+	margin-bottom: 10px;
+	
+	font-family: "Trebuchet MS", verdana, arial, sans-serif;
+ 	font-size: .7em;
+ 	color: #000000;
+ 	margin-left: 0px;
+
+}	
+
+.adminListHeader {
+	background-color:white;
+	color:#7d8524;
+	font-weight: bold;
+}
+.adminListHeader a { 
+	color:#7d8524;
+}
+.adminListHeader a:hover { 
+	color:#bbc737;
+}
+.adminListTable{
+	width:98%;
+	}
+
+.adminListTable {
+	border: 1px solid #edf0c9;
+	color:#444;
+}
+.adminListTable td {
+	
+}
+
+.adminList0 {
+	background-color: #f6f7e4;
+}
+
+.adminList1 {
+	background-color: #edf0c9;
+}
+
+.button {
+	text-decoration:none;
+	background:#fff;
+	border:1px solid #edf0c9;
+	margin: 0 0 0 0;
+	padding: 0 .2em 0 .2em;
+}
+.button:hover {
+	text-decoration:none;
+	background:#f6f7e4;
+	border:1px solid #e4e8af;
+	margin: 0 0 0 0;
+	padding: 0 .2em 0 .2em;
+}
+.buttonbar {
+	margin:1em 1.2em 1em 0;
+	text-align:right;
+}
+
+/* login screen */
+	#login {
+		background-image:url('../images/login.png');
+		background-repeat:no-repeat;
+		background-position:center;
+		position: fixed;
+		top: 40%;
+		left: 50%;
+		margin-top: -135px;
+		margin-left: -250px;
+	}
+	
+/* Hack to make the login display correctly in IE7 as it doesn't support padding on tables */
+html>body #login { *padding: 8em 8em 3em 8em; }
+
+	#logintable {
+		color: #7d8524;
+		font-size: 12px;
+		padding:8em 8em 3em 8em;
+	}
+	#logintable tr td a {
+		text-decoration: none;
+	}
+	#loginfooter {
+		padding:3em 0 0 0;
+		text-align:right;
+		font-size:9px;
+		color:#000;
+	}
+	#loginfooter a {
+		margin:1em;
+		color:#7d8524;
+	}
+	#loginfooter a:hover {
+		margin:1em;
+		color:#bbc737;
+	}
+	#username {
+		width:15em;
+	}
+	#password {
+		width:15em;
+	}
+	#about {
+		background:white;
+		border:1px solid #edf0c9;
+		padding: 10px 10px 10px 10px;
+		position: fixed;
+		top: 40%;
+		left: 50%;
+		width:413px;
+		margin-top: 60px;
+		margin-left: -234px;
+		display:none;
+	}
+
+/* Fieldset styles */
+	#editForm fieldset {
+		margin: 1.5em 0 0 0;   
+		padding: .3em; 
+		border:none;
+		max-width:800px;
+	}  
+
+	fieldset {
+		margin: 1.5em 0 0 0;   
+		padding: .3em; 
+		border:1px dotted #e4e8af;
+		max-width:800px;
+	}  
+	legend {   
+		margin-left: 1em;   
+		color: #7d8524;   
+		font-weight: bold;  
+		background-color:white;
+	}  
+	fieldset ul {   
+		padding: 1em 1em 0 1em;
+		margin:0;  
+		list-style: none;  
+	}  
+	fieldset li {   
+		padding-bottom: .5em;  
+	}  
+	fieldset.submit {   
+		border-style: none;  
+	}
+	label {    
+		float: left;    
+		width: 10em;    
+		margin-right: 1em;    
+		text-align: right;
+	}
+
+/* hacks for IE 7 */
+	select {
+		min-width : 220px;
+	}
+	option {
+		min-width : 220px;
+	}
