@@ -2930,7 +2930,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			</p>
 			<h4>Version:</h4>
 			<p>
-				Gregory's Blog Version #application.blog.getVersion()# July 25th, 2019.
+				Gregory's Blog Version <cfoutput>#application.blog.getVersion()#</cfoutput> July 25th, 2019.
 			</p>
 		</span>
 	</div>
