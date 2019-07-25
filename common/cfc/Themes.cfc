@@ -3,6 +3,186 @@
 	<!---*****************************************************************************************************************************************  
 	Theme related functions
 	***************************************************************************************************************************************** --->
+	
+	<!--- Get the theme Id --->
+	<cffunction name="getThemeIdByTheme" access="remote" returntype="numeric">
+		<cfargument name="baseKendoTheme"  required="true" hint="Pass in the Kendo theme name."/>
+		<cfswitch expression="#baseKendoTheme#">
+			<cfcase value="black"><cfset themeId = 1></cfcase>
+			<cfcase value="blueOpal"><cfset themeId = 2></cfcase>
+			<cfcase value="default"><cfset themeId = 3></cfcase>
+			<cfcase value="fiori"><cfset themeId = 4></cfcase>
+			<cfcase value="flat"><cfset themeId = 5></cfcase>
+			<cfcase value="highcontrast"><cfset themeId = 6></cfcase>
+			<cfcase value="material"><cfset themeId = 7></cfcase>
+			<cfcase value="materialblack"><cfset themeId = 8></cfcase>
+			<cfcase value="metro"><cfset themeId = 9></cfcase>
+			<cfcase value="moonlight"><cfset themeId = 10></cfcase>
+			<cfcase value="nova"><cfset themeId = 11></cfcase>
+			<cfcase value="office365"><cfset themeId = 12></cfcase>
+			<cfcase value="silver"><cfset themeId = 13></cfcase>
+			<cfcase value="uniform"><cfset themeId = 14></cfcase>
+		</cfswitch>
+		<!--- Safety check --->
+		<cfif not isDefined("themeId")>
+			<cfset themeId = 9>
+		</cfif>
+		<cfreturn themeId>
+	</cffunction>
+			
+	<!--- Note: we are no longer using this function. It is too slow due to the large amount of stuff in the array.
+	This function is consumed on the admin settings page in order to get all of the settings. --->
+	<cffunction name="getThemeSettingValueFromArray" returnType="string" access="public" hint="This function will create a theme array in the application scope that will retain our theme variables.">
+		<cfargument name="uiTheme"  required="true" hint="Pass in the theme name."/>
+		<cfargument name="uiSetting"  required="true" hint="Pass in the theme name."/>
+		
+		<!--- We need to access the array with the themeId and the settingId. Get these values. --->
+		<cfset themeId = getThemeIdByTheme(arguments.uiTheme)>
+		<cfset settingId = getThemeSettingIdBySetting(arguments.uiSetting)>
+		
+		<!--- Grab the value inside our array. --->
+		<cfset arrayValue = application.themeSettingsArray[themeId][settingId]>
+			
+		<!--- Return it. --->
+		<cfreturn arrayValue>
+			
+	</cffunction>
+			
+	<cffunction name="getThemeSettingIdBySetting" access="remote" returnType="numeric" output="false" hint="Returns an Id of a theme setting. This is  used to find the index of the setting in the arrThemeSettingsFromIniStore array.">
+		<cfargument name="themeSetting" type="string" required="true">
+
+		<!--- Find the id --->
+		<cfswitch expression="#arguments.themeSetting#">
+			<cfcase value="useCustomTheme">
+				<cfset themeSettingId = 1>
+			</cfcase>
+			<cfcase value="customThemeName">
+				<cfset themeSettingId = 2>
+			</cfcase>
+			<cfcase value="darkTheme">
+				<cfset themeSettingId = 3>
+			</cfcase>
+			<cfcase value="contentWidth">
+				<cfset themeSettingId = 4>
+			</cfcase>
+			<cfcase value="mainContainerWidth">
+				<cfset themeSettingId = 5>
+			</cfcase>
+			<cfcase value="sideBarContainerWidth">
+				<cfset themeSettingId = 6>
+			</cfcase>
+			<cfcase value="siteOpacity">
+				<cfset themeSettingId = 7>
+			</cfcase>
+			<cfcase value="blogBackgroundImage">
+				<cfset themeSettingId = 8>
+			</cfcase>
+			<cfcase value="blogBackgroundImageRepeat">
+				<cfset themeSettingId = 9>
+			</cfcase>
+			<cfcase value="blogBackgroundImagePosition">
+				<cfset themeSettingId = 10>
+			</cfcase>
+			<cfcase value="stretchHeaderAcrossPage">
+				<cfset themeSettingId = 11>
+			</cfcase>
+			<cfcase value="alignBlogMenuWithBlogContent">
+				<cfset themeSettingId = 12>
+			</cfcase>
+			<cfcase value="topMenuAlign">
+				<cfset themeSettingId = 13>
+			</cfcase>
+			<cfcase value="headerBackgroundImage">
+				<cfset themeSettingId = 14>
+			</cfcase>
+			<cfcase value="menuBackgroundImage">
+				<cfset themeSettingId = 15>
+			</cfcase>
+			<cfcase value="coverKendoMenuWithMenuBackgroundImage">
+				<cfset themeSettingId = 16>
+			</cfcase>
+			<cfcase value="logoImageMobile">
+				<cfset themeSettingId = 17>
+			</cfcase>
+			<cfcase value="logoMobileWidth">
+				<cfset themeSettingId = 18>
+			</cfcase>
+			<cfcase value="logoImage">
+				<cfset themeSettingId = 19>
+			</cfcase>
+			<cfcase value="logoPaddingTop">
+				<cfset themeSettingId = 20>
+			</cfcase>
+			<cfcase value="logoPaddingRight">
+				<cfset themeSettingId = 21>
+			</cfcase>
+			<cfcase value="logoPaddingLeft">
+				<cfset themeSettingId = 22>
+			</cfcase>
+			<cfcase value="logoPaddingBottom">
+				<cfset themeSettingId = 23>
+			</cfcase>
+			<cfcase value="blogNameTextColor">
+				<cfset themeSettingId = 24>
+			</cfcase>
+			<cfcase value="headerBodyDividerImage">
+				<cfset themeSettingId = 25>
+			</cfcase>
+			<cfcase value="kendoThemeCssFileLocation">
+				<cfset themeSettingId = 26>
+			</cfcase>
+			<cfcase value="kendoThemeMobileCssFileLocation">
+				<cfset themeSettingId = 27>
+			</cfcase>
+			<cfcase value="breakpoint">
+				<cfset themeSettingId = 28>
+			</cfcase>
+			<cfcase value="customCoreLogicTemplate">
+				<cfset themeSettingId = 29>
+			</cfcase>
+			<cfcase value="customHeadTemplate">
+				<cfset themeSettingId = 30>
+			</cfcase>
+			<cfcase value="customBodyString">
+				<cfset themeSettingId = 31>
+			</cfcase>
+			<cfcase value="customFontCssTemplate">
+				<cfset themeSettingId = 32>
+			</cfcase>
+			<cfcase value="customGlobalAndBodyCssTemplate">
+				<cfset themeSettingId = 33>
+			</cfcase>
+			<cfcase value="customTopMenuCssTemplate">
+				<cfset themeSettingId = 34>
+			</cfcase>
+			<cfcase value="customTopMenuHtmlTemplate">
+				<cfset themeSettingId = 35>
+			</cfcase>
+			<cfcase value="customTopMenuJsTemplate">
+				<cfset themeSettingId = 36>
+			</cfcase>
+			<cfcase value="customBlogContentCssTemplate">
+				<cfset themeSettingId = 37>
+			</cfcase>
+			<cfcase value="customBlogJsContentTemplate">
+				<cfset themeSettingId = 38>
+			</cfcase>
+			<cfcase value="customBlogContentHtmlTemplate">
+				<cfset themeSettingId = 39>
+			</cfcase>
+			<cfcase value="customFooterHtmlTemplate">
+				<cfset themeSettingId = 40>
+			</cfcase>
+		</cfswitch>
+
+		<!---Return the themeSettingId.--->
+		<cfreturn themeSettingId>
+	</cffunction>
+
+	<!--- Default base kendo themes. --->
+	<cffunction name="getDefaultThemes" access="remote" returntype="string">
+		<cfreturn "default,black,blueOpal,flat,highcontrast,material,materialblack,metro,moonlight,office365,silver,silver,uniform,nova">
+	</cffunction>
 
 	<!--- This function is consumed on the admin settings page in order to get all of the settings --->
 	<cffunction name="initThemes" access="public" hint="This function will create a theme array in the application scope that will retain our theme variables. It is to be used during the initialization of the applicatoin.">
@@ -44,18 +224,19 @@
 		<cfset application.themeSettingsArray[1][25] = trim(getSettingsByTheme('black').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[1][26] = trim(getSettingsByTheme('black').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[1][27] = trim(getSettingsByTheme('black').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[1][28] = trim(getSettingsByTheme('black').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[1][29] = trim(getSettingsByTheme('black').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[1][30] = trim(getSettingsByTheme('black').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[1][31] = trim(getSettingsByTheme('black').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[1][32] = trim(getSettingsByTheme('black').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[1][33] = trim(getSettingsByTheme('black').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[1][34] = trim(getSettingsByTheme('black').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[1][35] = trim(getSettingsByTheme('black').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[1][36] = trim(getSettingsByTheme('black').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[1][37] = trim(getSettingsByTheme('black').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[1][38] = trim(getSettingsByTheme('black').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[1][39] = trim(getSettingsByTheme('black').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[1][28] = trim(getSettingsByTheme('black').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[1][29] = trim(getSettingsByTheme('black').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[1][30] = trim(getSettingsByTheme('black').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[1][31] = trim(getSettingsByTheme('black').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[1][32] = trim(getSettingsByTheme('black').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[1][33] = trim(getSettingsByTheme('black').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[1][34] = trim(getSettingsByTheme('black').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[1][35] = trim(getSettingsByTheme('black').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[1][36] = trim(getSettingsByTheme('black').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[1][37] = trim(getSettingsByTheme('black').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[1][38] = trim(getSettingsByTheme('black').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[1][39] = trim(getSettingsByTheme('black').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[1][40] = trim(getSettingsByTheme('black').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* blueOpal theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[2][1] = trim(getSettingsByTheme('blueOpal').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[2][2] = trim(getSettingsByTheme('blueOpal').customThemeName)><!--- customThemeName --->
@@ -84,18 +265,19 @@
 		<cfset application.themeSettingsArray[2][25] = trim(getSettingsByTheme('blueOpal').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[2][26] = trim(getSettingsByTheme('blueOpal').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[2][27] = trim(getSettingsByTheme('blueOpal').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[2][28] = trim(getSettingsByTheme('blueOpal').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[2][29] = trim(getSettingsByTheme('blueOpal').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[2][30] = trim(getSettingsByTheme('blueOpal').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[2][31] = trim(getSettingsByTheme('blueOpal').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[2][32] = trim(getSettingsByTheme('blueOpal').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[2][33] = trim(getSettingsByTheme('blueOpal').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[2][34] = trim(getSettingsByTheme('blueOpal').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[2][35] = trim(getSettingsByTheme('blueOpal').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[2][36] = trim(getSettingsByTheme('blueOpal').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[2][37] = trim(getSettingsByTheme('blueOpal').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[2][38] = trim(getSettingsByTheme('blueOpal').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[2][39] = trim(getSettingsByTheme('blueOpal').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[2][28] = trim(getSettingsByTheme('blueOpal').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[2][29] = trim(getSettingsByTheme('blueOpal').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[2][30] = trim(getSettingsByTheme('blueOpal').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[2][31] = trim(getSettingsByTheme('blueOpal').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[2][32] = trim(getSettingsByTheme('blueOpal').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[2][33] = trim(getSettingsByTheme('blueOpal').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[2][34] = trim(getSettingsByTheme('blueOpal').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[2][35] = trim(getSettingsByTheme('blueOpal').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[2][36] = trim(getSettingsByTheme('blueOpal').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[2][37] = trim(getSettingsByTheme('blueOpal').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[2][38] = trim(getSettingsByTheme('blueOpal').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[2][39] = trim(getSettingsByTheme('blueOpal').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[2][40] = trim(getSettingsByTheme('blueOpal').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* default theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[3][1] = trim(getSettingsByTheme('default').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[3][2] = trim(getSettingsByTheme('default').customThemeName)><!--- customThemeName --->
@@ -124,18 +306,19 @@
 		<cfset application.themeSettingsArray[3][25] = trim(getSettingsByTheme('default').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[3][26] = trim(getSettingsByTheme('default').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[3][27] = trim(getSettingsByTheme('default').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[3][28] = trim(getSettingsByTheme('default').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[3][29] = trim(getSettingsByTheme('default').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[3][30] = trim(getSettingsByTheme('default').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[3][31] = trim(getSettingsByTheme('default').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[3][32] = trim(getSettingsByTheme('default').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[3][33] = trim(getSettingsByTheme('default').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[3][34] = trim(getSettingsByTheme('default').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[3][35] = trim(getSettingsByTheme('default').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[3][36] = trim(getSettingsByTheme('default').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[3][37] = trim(getSettingsByTheme('default').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[3][38] = trim(getSettingsByTheme('default').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[3][39] = trim(getSettingsByTheme('default').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[3][28] = trim(getSettingsByTheme('default').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[3][29] = trim(getSettingsByTheme('default').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[3][30] = trim(getSettingsByTheme('default').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[3][31] = trim(getSettingsByTheme('default').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[3][32] = trim(getSettingsByTheme('default').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[3][33] = trim(getSettingsByTheme('default').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[3][34] = trim(getSettingsByTheme('default').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[3][35] = trim(getSettingsByTheme('default').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[3][36] = trim(getSettingsByTheme('default').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[3][37] = trim(getSettingsByTheme('default').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[3][38] = trim(getSettingsByTheme('default').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[3][39] = trim(getSettingsByTheme('default').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[3][40] = trim(getSettingsByTheme('default').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* fiori theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[4][1] = trim(getSettingsByTheme('fiori').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[4][2] = trim(getSettingsByTheme('fiori').customThemeName)><!--- customThemeName --->
@@ -164,18 +347,19 @@
 		<cfset application.themeSettingsArray[4][25] = trim(getSettingsByTheme('fiori').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[4][26] = trim(getSettingsByTheme('fiori').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[4][27] = trim(getSettingsByTheme('fiori').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[4][28] = trim(getSettingsByTheme('fiori').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[4][29] = trim(getSettingsByTheme('fiori').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[4][30] = trim(getSettingsByTheme('fiori').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[4][31] = trim(getSettingsByTheme('fiori').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[4][32] = trim(getSettingsByTheme('fiori').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[4][33] = trim(getSettingsByTheme('fiori').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[4][34] = trim(getSettingsByTheme('fiori').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[4][35] = trim(getSettingsByTheme('fiori').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[4][36] = trim(getSettingsByTheme('fiori').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[4][37] = trim(getSettingsByTheme('fiori').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[4][38] = trim(getSettingsByTheme('fiori').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[4][39] = trim(getSettingsByTheme('fiori').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[4][28] = trim(getSettingsByTheme('fiori').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[4][29] = trim(getSettingsByTheme('fiori').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[4][30] = trim(getSettingsByTheme('fiori').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[4][31] = trim(getSettingsByTheme('fiori').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[4][32] = trim(getSettingsByTheme('fiori').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[4][33] = trim(getSettingsByTheme('fiori').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[4][34] = trim(getSettingsByTheme('fiori').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[4][35] = trim(getSettingsByTheme('fiori').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[4][36] = trim(getSettingsByTheme('fiori').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[4][37] = trim(getSettingsByTheme('fiori').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[4][38] = trim(getSettingsByTheme('fiori').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[4][39] = trim(getSettingsByTheme('fiori').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[4][40] = trim(getSettingsByTheme('fiori').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* flat theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[5][1] = trim(getSettingsByTheme('flat').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[5][2] = trim(getSettingsByTheme('flat').customThemeName)><!--- customThemeName --->
@@ -204,18 +388,19 @@
 		<cfset application.themeSettingsArray[5][25] = trim(getSettingsByTheme('flat').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[5][26] = trim(getSettingsByTheme('flat').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[5][27] = trim(getSettingsByTheme('flat').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[5][28] = trim(getSettingsByTheme('flat').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[5][29] = trim(getSettingsByTheme('flat').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[5][30] = trim(getSettingsByTheme('flat').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[5][31] = trim(getSettingsByTheme('flat').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[5][32] = trim(getSettingsByTheme('flat').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[5][33] = trim(getSettingsByTheme('flat').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[5][34] = trim(getSettingsByTheme('flat').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[5][35] = trim(getSettingsByTheme('flat').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[5][36] = trim(getSettingsByTheme('flat').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[5][37] = trim(getSettingsByTheme('flat').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[5][38] = trim(getSettingsByTheme('flat').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[5][39] = trim(getSettingsByTheme('flat').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[5][28] = trim(getSettingsByTheme('flat').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[5][29] = trim(getSettingsByTheme('flat').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[5][30] = trim(getSettingsByTheme('flat').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[5][31] = trim(getSettingsByTheme('flat').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[5][32] = trim(getSettingsByTheme('flat').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[5][33] = trim(getSettingsByTheme('flat').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[5][34] = trim(getSettingsByTheme('flat').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[5][35] = trim(getSettingsByTheme('flat').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[5][36] = trim(getSettingsByTheme('flat').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[5][37] = trim(getSettingsByTheme('flat').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[5][38] = trim(getSettingsByTheme('flat').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[5][39] = trim(getSettingsByTheme('flat').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[5][40] = trim(getSettingsByTheme('flat').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* highcontrast theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[6][1] = trim(getSettingsByTheme('highcontrast').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[6][2] = trim(getSettingsByTheme('highcontrast').customThemeName)><!--- customThemeName --->
@@ -244,18 +429,19 @@
 		<cfset application.themeSettingsArray[6][25] = trim(getSettingsByTheme('highcontrast').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[6][26] = trim(getSettingsByTheme('highcontrast').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[6][27] = trim(getSettingsByTheme('highcontrast').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[6][28] = trim(getSettingsByTheme('highcontrast').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[6][29] = trim(getSettingsByTheme('highcontrast').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[6][30] = trim(getSettingsByTheme('highcontrast').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[6][31] = trim(getSettingsByTheme('highcontrast').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[6][32] = trim(getSettingsByTheme('highcontrast').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[6][33] = trim(getSettingsByTheme('highcontrast').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[6][34] = trim(getSettingsByTheme('highcontrast').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[6][35] = trim(getSettingsByTheme('highcontrast').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[6][36] = trim(getSettingsByTheme('highcontrast').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[6][37] = trim(getSettingsByTheme('highcontrast').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[6][38] = trim(getSettingsByTheme('highcontrast').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[6][39] = trim(getSettingsByTheme('highcontrast').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[6][28] = trim(getSettingsByTheme('highcontrast').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[6][29] = trim(getSettingsByTheme('highcontrast').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[6][30] = trim(getSettingsByTheme('highcontrast').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[6][31] = trim(getSettingsByTheme('highcontrast').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[6][32] = trim(getSettingsByTheme('highcontrast').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[6][33] = trim(getSettingsByTheme('highcontrast').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[6][34] = trim(getSettingsByTheme('highcontrast').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[6][35] = trim(getSettingsByTheme('highcontrast').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[6][36] = trim(getSettingsByTheme('highcontrast').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[6][37] = trim(getSettingsByTheme('highcontrast').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[6][38] = trim(getSettingsByTheme('highcontrast').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[6][39] = trim(getSettingsByTheme('highcontrast').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[6][40] = trim(getSettingsByTheme('highcontrast').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* material theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[7][1] = trim(getSettingsByTheme('material').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[7][2] = trim(getSettingsByTheme('material').customThemeName)><!--- customThemeName --->
@@ -284,18 +470,19 @@
 		<cfset application.themeSettingsArray[7][25] = trim(getSettingsByTheme('material').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[7][26] = trim(getSettingsByTheme('material').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[7][27] = trim(getSettingsByTheme('material').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[7][28] = trim(getSettingsByTheme('material').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[7][29] = trim(getSettingsByTheme('material').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[7][30] = trim(getSettingsByTheme('material').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[7][31] = trim(getSettingsByTheme('material').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[7][32] = trim(getSettingsByTheme('material').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[7][33] = trim(getSettingsByTheme('material').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[7][34] = trim(getSettingsByTheme('material').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[7][35] = trim(getSettingsByTheme('material').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[7][36] = trim(getSettingsByTheme('material').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[7][37] = trim(getSettingsByTheme('material').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[7][38] = trim(getSettingsByTheme('material').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[7][39] = trim(getSettingsByTheme('material').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[7][28] = trim(getSettingsByTheme('material').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[7][29] = trim(getSettingsByTheme('material').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[7][30] = trim(getSettingsByTheme('material').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[7][31] = trim(getSettingsByTheme('material').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[7][32] = trim(getSettingsByTheme('material').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[7][33] = trim(getSettingsByTheme('material').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[7][34] = trim(getSettingsByTheme('material').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[7][35] = trim(getSettingsByTheme('material').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[7][36] = trim(getSettingsByTheme('material').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[7][37] = trim(getSettingsByTheme('material').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[7][38] = trim(getSettingsByTheme('material').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[7][39] = trim(getSettingsByTheme('material').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[7][40] = trim(getSettingsByTheme('material').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* materialblack theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[8][1] = trim(getSettingsByTheme('materialblack').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[8][2] = trim(getSettingsByTheme('materialblack').customThemeName)><!--- customThemeName --->
@@ -324,18 +511,19 @@
 		<cfset application.themeSettingsArray[8][25] = trim(getSettingsByTheme('materialblack').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[8][26] = trim(getSettingsByTheme('materialblack').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[8][27] = trim(getSettingsByTheme('materialblack').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[8][28] = trim(getSettingsByTheme('materialblack').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[8][29] = trim(getSettingsByTheme('materialblack').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[8][30] = trim(getSettingsByTheme('materialblack').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[8][31] = trim(getSettingsByTheme('materialblack').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[8][32] = trim(getSettingsByTheme('materialblack').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[8][33] = trim(getSettingsByTheme('materialblack').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[8][34] = trim(getSettingsByTheme('materialblack').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[8][35] = trim(getSettingsByTheme('materialblack').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[8][36] = trim(getSettingsByTheme('materialblack').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[8][37] = trim(getSettingsByTheme('materialblack').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[8][38] = trim(getSettingsByTheme('materialblack').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[8][39] = trim(getSettingsByTheme('materialblack').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[8][28] = trim(getSettingsByTheme('materialblack').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[8][29] = trim(getSettingsByTheme('materialblack').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[8][30] = trim(getSettingsByTheme('materialblack').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[8][31] = trim(getSettingsByTheme('materialblack').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[8][32] = trim(getSettingsByTheme('materialblack').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[8][33] = trim(getSettingsByTheme('materialblack').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[8][34] = trim(getSettingsByTheme('materialblack').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[8][35] = trim(getSettingsByTheme('materialblack').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[8][36] = trim(getSettingsByTheme('materialblack').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[8][37] = trim(getSettingsByTheme('materialblack').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[8][38] = trim(getSettingsByTheme('materialblack').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[8][39] = trim(getSettingsByTheme('materialblack').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[8][40] = trim(getSettingsByTheme('materialblack').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* metro theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[9][1] = trim(getSettingsByTheme('metro').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[9][2] = trim(getSettingsByTheme('metro').customThemeName)><!--- customThemeName --->
@@ -364,18 +552,19 @@
 		<cfset application.themeSettingsArray[9][25] = trim(getSettingsByTheme('metro').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[9][26] = trim(getSettingsByTheme('metro').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[9][27] = trim(getSettingsByTheme('metro').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[9][28] = trim(getSettingsByTheme('metro').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[9][29] = trim(getSettingsByTheme('metro').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[9][30] = trim(getSettingsByTheme('metro').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[9][31] = trim(getSettingsByTheme('metro').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[9][32] = trim(getSettingsByTheme('metro').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[9][33] = trim(getSettingsByTheme('metro').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[9][34] = trim(getSettingsByTheme('metro').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[9][35] = trim(getSettingsByTheme('metro').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[9][36] = trim(getSettingsByTheme('metro').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[9][37] = trim(getSettingsByTheme('metro').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[9][38] = trim(getSettingsByTheme('metro').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[9][39] = trim(getSettingsByTheme('metro').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[9][28] = trim(getSettingsByTheme('metro').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[9][29] = trim(getSettingsByTheme('metro').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[9][30] = trim(getSettingsByTheme('metro').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[9][31] = trim(getSettingsByTheme('metro').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[9][32] = trim(getSettingsByTheme('metro').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[9][33] = trim(getSettingsByTheme('metro').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[9][34] = trim(getSettingsByTheme('metro').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[9][35] = trim(getSettingsByTheme('metro').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[9][36] = trim(getSettingsByTheme('metro').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[9][37] = trim(getSettingsByTheme('metro').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[9][38] = trim(getSettingsByTheme('metro').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[9][39] = trim(getSettingsByTheme('metro').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[9][40] = trim(getSettingsByTheme('metro').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* moonlight theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[10][1] = trim(getSettingsByTheme('moonlight').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[10][2] = trim(getSettingsByTheme('moonlight').customThemeName)><!--- customThemeName --->
@@ -404,18 +593,19 @@
 		<cfset application.themeSettingsArray[10][25] = trim(getSettingsByTheme('moonlight').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[10][26] = trim(getSettingsByTheme('moonlight').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[10][27] = trim(getSettingsByTheme('moonlight').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[10][28] = trim(getSettingsByTheme('moonlight').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[10][29] = trim(getSettingsByTheme('moonlight').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[10][30] = trim(getSettingsByTheme('moonlight').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[10][31] = trim(getSettingsByTheme('moonlight').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[10][32] = trim(getSettingsByTheme('moonlight').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[10][33] = trim(getSettingsByTheme('moonlight').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[10][34] = trim(getSettingsByTheme('moonlight').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[10][35] = trim(getSettingsByTheme('moonlight').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[10][36] = trim(getSettingsByTheme('moonlight').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[10][37] = trim(getSettingsByTheme('moonlight').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[10][38] = trim(getSettingsByTheme('moonlight').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[10][39] = trim(getSettingsByTheme('moonlight').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[10][28] = trim(getSettingsByTheme('moonlight').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[10][29] = trim(getSettingsByTheme('moonlight').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[10][30] = trim(getSettingsByTheme('moonlight').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[10][31] = trim(getSettingsByTheme('moonlight').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[10][32] = trim(getSettingsByTheme('moonlight').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[10][33] = trim(getSettingsByTheme('moonlight').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[10][34] = trim(getSettingsByTheme('moonlight').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[10][35] = trim(getSettingsByTheme('moonlight').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[10][36] = trim(getSettingsByTheme('moonlight').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[10][37] = trim(getSettingsByTheme('moonlight').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[10][38] = trim(getSettingsByTheme('moonlight').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[10][39] = trim(getSettingsByTheme('moonlight').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[10][40] = trim(getSettingsByTheme('moonlight').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* nova theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[11][1] = trim(getSettingsByTheme('nova').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[11][2] = trim(getSettingsByTheme('nova').customThemeName)><!--- customThemeName --->
@@ -444,18 +634,19 @@
 		<cfset application.themeSettingsArray[11][25] = trim(getSettingsByTheme('nova').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[11][26] = trim(getSettingsByTheme('nova').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[11][27] = trim(getSettingsByTheme('nova').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[11][28] = trim(getSettingsByTheme('nova').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[11][29] = trim(getSettingsByTheme('nova').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[11][30] = trim(getSettingsByTheme('nova').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[11][31] = trim(getSettingsByTheme('nova').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[11][32] = trim(getSettingsByTheme('nova').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[11][33] = trim(getSettingsByTheme('nova').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[11][34] = trim(getSettingsByTheme('nova').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[11][35] = trim(getSettingsByTheme('nova').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[11][36] = trim(getSettingsByTheme('nova').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[11][37] = trim(getSettingsByTheme('nova').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[11][38] = trim(getSettingsByTheme('nova').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[11][39] = trim(getSettingsByTheme('nova').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[11][28] = trim(getSettingsByTheme('nova').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[11][29] = trim(getSettingsByTheme('nova').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[11][30] = trim(getSettingsByTheme('nova').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[11][31] = trim(getSettingsByTheme('nova').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[11][32] = trim(getSettingsByTheme('nova').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[11][33] = trim(getSettingsByTheme('nova').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[11][34] = trim(getSettingsByTheme('nova').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[11][35] = trim(getSettingsByTheme('nova').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[11][36] = trim(getSettingsByTheme('nova').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[11][37] = trim(getSettingsByTheme('nova').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[11][38] = trim(getSettingsByTheme('nova').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[11][39] = trim(getSettingsByTheme('nova').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[11][40] = trim(getSettingsByTheme('nova').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* office365 theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[12][1] = trim(getSettingsByTheme('office365').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[12][2] = trim(getSettingsByTheme('office365').customThemeName)><!--- customThemeName --->
@@ -484,18 +675,19 @@
 		<cfset application.themeSettingsArray[12][25] = trim(getSettingsByTheme('office365').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[12][26] = trim(getSettingsByTheme('office365').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[12][27] = trim(getSettingsByTheme('office365').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[12][28] = trim(getSettingsByTheme('office365').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[12][29] = trim(getSettingsByTheme('office365').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[12][30] = trim(getSettingsByTheme('office365').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[12][31] = trim(getSettingsByTheme('office365').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[12][32] = trim(getSettingsByTheme('office365').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[12][33] = trim(getSettingsByTheme('office365').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[12][34] = trim(getSettingsByTheme('office365').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[12][35] = trim(getSettingsByTheme('office365').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[12][36] = trim(getSettingsByTheme('office365').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[12][37] = trim(getSettingsByTheme('office365').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[12][38] = trim(getSettingsByTheme('office365').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[12][39] = trim(getSettingsByTheme('office365').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[12][28] = trim(getSettingsByTheme('office365').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[12][29] = trim(getSettingsByTheme('office365').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[12][30] = trim(getSettingsByTheme('office365').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[12][31] = trim(getSettingsByTheme('office365').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[12][32] = trim(getSettingsByTheme('office365').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[12][33] = trim(getSettingsByTheme('office365').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[12][34] = trim(getSettingsByTheme('office365').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[12][35] = trim(getSettingsByTheme('office365').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[12][36] = trim(getSettingsByTheme('office365').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[12][37] = trim(getSettingsByTheme('office365').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[12][38] = trim(getSettingsByTheme('office365').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[12][39] = trim(getSettingsByTheme('office365').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[12][40] = trim(getSettingsByTheme('office365').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* silver theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[13][1] = trim(getSettingsByTheme('silver').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[13][2] = trim(getSettingsByTheme('silver').customThemeName)><!--- customThemeName --->
@@ -524,18 +716,19 @@
 		<cfset application.themeSettingsArray[13][25] = trim(getSettingsByTheme('silver').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[13][26] = trim(getSettingsByTheme('silver').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[13][27] = trim(getSettingsByTheme('silver').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[13][28] = trim(getSettingsByTheme('silver').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[13][29] = trim(getSettingsByTheme('silver').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[13][30] = trim(getSettingsByTheme('silver').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[13][31] = trim(getSettingsByTheme('silver').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[13][32] = trim(getSettingsByTheme('silver').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[13][33] = trim(getSettingsByTheme('silver').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[13][34] = trim(getSettingsByTheme('silver').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[13][35] = trim(getSettingsByTheme('silver').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[13][36] = trim(getSettingsByTheme('silver').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[13][37] = trim(getSettingsByTheme('silver').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[13][38] = trim(getSettingsByTheme('silver').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[13][39] = trim(getSettingsByTheme('silver').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[13][28] = trim(getSettingsByTheme('silver').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[13][29] = trim(getSettingsByTheme('silver').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[13][30] = trim(getSettingsByTheme('silver').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[13][31] = trim(getSettingsByTheme('silver').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[13][32] = trim(getSettingsByTheme('silver').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[13][33] = trim(getSettingsByTheme('silver').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[13][34] = trim(getSettingsByTheme('silver').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[13][35] = trim(getSettingsByTheme('silver').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[13][36] = trim(getSettingsByTheme('silver').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[13][37] = trim(getSettingsByTheme('silver').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[13][38] = trim(getSettingsByTheme('silver').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[13][39] = trim(getSettingsByTheme('silver').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[13][40] = trim(getSettingsByTheme('silver').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<!--- ************************************************************* uniform theme settings. ************************************************************* --->
 		<cfset application.themeSettingsArray[14][1] = trim(getSettingsByTheme('uniform').useCustomTheme)><!--- useCustomTheme --->
 		<cfset application.themeSettingsArray[14][2] = trim(getSettingsByTheme('uniform').customThemeName)><!--- customThemeName --->
@@ -564,18 +757,19 @@
 		<cfset application.themeSettingsArray[14][25] = trim(getSettingsByTheme('uniform').headerBodyDividerImage)><!--- headerBodyDividerImage --->
 		<cfset application.themeSettingsArray[14][26] = trim(getSettingsByTheme('uniform').kendoThemeCssFileLocation)><!--- kendoThemeCssFileLocation --->
 		<cfset application.themeSettingsArray[14][27] = trim(getSettingsByTheme('uniform').kendoThemeMobileCssFileLocation)><!--- kendoThemeMobileCssFileLocation --->
-		<cfset application.themeSettingsArray[14][28] = trim(getSettingsByTheme('uniform').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
-		<cfset application.themeSettingsArray[14][29] = trim(getSettingsByTheme('uniform').customHeadTemplate)><!--- customHeadTemplate --->
-		<cfset application.themeSettingsArray[14][30] = trim(getSettingsByTheme('uniform').customBodyString)><!--- customBodyString --->
-		<cfset application.themeSettingsArray[14][31] = trim(getSettingsByTheme('uniform').customFontCssTemplate)><!--- customFontCssTemplate --->
-		<cfset application.themeSettingsArray[14][32] = trim(getSettingsByTheme('uniform').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
-		<cfset application.themeSettingsArray[14][33] = trim(getSettingsByTheme('uniform').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
-		<cfset application.themeSettingsArray[14][34] = trim(getSettingsByTheme('uniform').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
-		<cfset application.themeSettingsArray[14][35] = trim(getSettingsByTheme('uniform').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
-		<cfset application.themeSettingsArray[14][36] = trim(getSettingsByTheme('uniform').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
-		<cfset application.themeSettingsArray[14][37] = trim(getSettingsByTheme('uniform').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
-		<cfset application.themeSettingsArray[14][38] = trim(getSettingsByTheme('uniform').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
-		<cfset application.themeSettingsArray[14][39] = trim(getSettingsByTheme('uniform').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
+		<cfset application.themeSettingsArray[14][28] = trim(getSettingsByTheme('uniform').breakpoint)><!--- breakpoint --->
+		<cfset application.themeSettingsArray[14][29] = trim(getSettingsByTheme('uniform').customCoreLogicTemplate)><!--- customCoreLogicTemplate --->
+		<cfset application.themeSettingsArray[14][30] = trim(getSettingsByTheme('uniform').customHeadTemplate)><!--- customHeadTemplate --->
+		<cfset application.themeSettingsArray[14][31] = trim(getSettingsByTheme('uniform').customBodyString)><!--- customBodyString --->
+		<cfset application.themeSettingsArray[14][32] = trim(getSettingsByTheme('uniform').customFontCssTemplate)><!--- customFontCssTemplate --->
+		<cfset application.themeSettingsArray[14][33] = trim(getSettingsByTheme('uniform').customGlobalAndBodyCssTemplate)><!--- customGlobalAndBodyCssTemplate --->
+		<cfset application.themeSettingsArray[14][34] = trim(getSettingsByTheme('uniform').customTopMenuCssTemplate)><!--- customTopMenuCssTemplate --->
+		<cfset application.themeSettingsArray[14][35] = trim(getSettingsByTheme('uniform').customTopMenuHtmlTemplate)><!--- customTopMenuHtmlTemplate --->
+		<cfset application.themeSettingsArray[14][36] = trim(getSettingsByTheme('uniform').customTopMenuJsTemplate)><!--- customTopMenuJsTemplate --->
+		<cfset application.themeSettingsArray[14][37] = trim(getSettingsByTheme('uniform').customBlogContentCssTemplate)><!--- customBlogContentCssTemplate --->
+		<cfset application.themeSettingsArray[14][38] = trim(getSettingsByTheme('uniform').customBlogJsContentTemplate)><!--- customBlogJsContentTemplate --->
+		<cfset application.themeSettingsArray[14][39] = trim(getSettingsByTheme('uniform').customBlogContentHtmlTemplate)><!--- customBlogContentHtmlTemplate --->
+		<cfset application.themeSettingsArray[14][40] = trim(getSettingsByTheme('uniform').customFooterHtmlTemplate)><!--- customFooterHtmlTemplate --->
 		<cfset application.themeSettingsArray[15][1] = now()>
 		<!--- Drop a cookie with the data so we can inspect when the initialization took place. --->
 		<cfcookie name="themeVarsInitialized" value="#now()#"/>
@@ -671,6 +865,9 @@
 			<cfcase value="kendoThemeMobileCssFileLocation">
 				<cfset setting = setProfileString("#application.iniFile#", "#arguments.themeId#", "kendoThemeMobileCssFileLocation", arguments.themeValue)>
 			</cfcase>
+			<cfcase value="breakpoint">
+				<cfset setting = setProfileString("#application.iniFile#", "#arguments.themeId#", "breakpoint", arguments.themeValue)>
+			</cfcase>
 			<cfcase value="customCoreLogicTemplate">
 				<cfset setting = setProfileString("#application.iniFile#", "#arguments.themeId#", "customCoreLogicTemplate", arguments.themeValue)>
 			</cfcase>
@@ -746,6 +943,7 @@
 		<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css" />
 		<cfset kendoThemeCssFileLocation = getProfileString("#application.iniFile#", "#arguments.themeId#", "kendoThemeCssFileLocation") />
 		<cfset kendoThemeMobileCssFileLocation = getProfileString("#application.iniFile#", "#arguments.themeId#", "kendoThemeMobileCssFileLocation") />
+		<cfset breakpoint = getProfileString("#application.iniFile#", "#arguments.themeId#", "breakpoint") />
 		<cfset customCoreLogicTemplate = getProfileString("#application.iniFile#", "#arguments.themeId#", "customCoreLogicTemplate") />
 		<cfset customHeadTemplate = getProfileString("#application.iniFile#", "#arguments.themeId#", "customHeadTemplate") />
 		<cfset customBodyString = getProfileString("#application.iniFile#", "#arguments.themeId#", "customBodyString") />
@@ -788,6 +986,7 @@
 			   kendoCommonCssFileLocation=#kendoCommonCssFileLocation#,
 			   kendoThemeCssFileLocation=#kendoThemeCssFileLocation#,
 			   kendoThemeMobileCssFileLocation=#kendoThemeMobileCssFileLocation#,
+			   breakpoint=#breakpoint#,
 			   customCoreLogicTemplate=#customCoreLogicTemplate#,
 			   customHeadTemplate=#customHeadTemplate#,
 			   customBodyString=#customBodyString#,
@@ -892,6 +1091,8 @@
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<!--- Where is the mobile specific theme based less css file? Only change this setting if you have created a custom theme. --->
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<!--- The breakpoint determines the amount of pixels in screen width is needed to hide the side bar container. You can hide it at any setting, and always hide it with a higher value in order to always hide it. If you want to maximize your post content, set this quite high, for example 10,00 pixels (I don't know of any screen right now that matches that). If you always want the sidebar shown on the desktop, leve it as is, or set it low, such as 980 (px). You may want to consider keeping the default setting low at 1300 if you want to display advertisements. Note: mobile always eliminates the side bar- there is just not enough room for it. --->
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="highcontrast">
 				<cfset useCustomTheme = false>
@@ -923,6 +1124,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="black">
 				<cfset useCustomTheme = false>
@@ -954,6 +1156,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="blueOpal">
 				<cfset useCustomTheme = false>
@@ -985,6 +1188,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="flat">
 				<cfset useCustomTheme = false>
@@ -1016,6 +1220,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="material">
 				<cfset useCustomTheme = false>
@@ -1047,6 +1252,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="materialblack">
 				<cfset useCustomTheme = false>
@@ -1078,6 +1284,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common-material.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="metro">
 				<cfset useCustomTheme = false>
@@ -1109,6 +1316,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="moonlight">
 				<cfset useCustomTheme = false>
@@ -1140,6 +1348,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="office365">
 				<cfset useCustomTheme = false>
@@ -1172,6 +1381,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common-office365.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="silver">
 				<cfset useCustomTheme = false>
@@ -1203,6 +1413,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="uniform">
 				<cfset useCustomTheme = false>
@@ -1234,6 +1445,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfcase value="nova">
 				<cfset useCustomTheme = false>
@@ -1265,6 +1477,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfcase>
 			<cfdefaultcase>
 				<cfset useCustomTheme = false>
@@ -1296,6 +1509,7 @@
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
 				<cfset kendoThemeMobileCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".mobile.min.css">
+				<cfset breakpoint = "1300">
 			</cfdefaultcase>
 		</cfswitch>
 			
@@ -1343,6 +1557,7 @@
 			   kendoCommonCssFileLocation=#kendoCommonCssFileLocation#,
 			   kendoThemeCssFileLocation=#kendoThemeCssFileLocation#,
 			   kendoThemeMobileCssFileLocation=#kendoThemeMobileCssFileLocation#,
+			   breakpoint=#breakpoint#,
 			   customCoreLogicTemplate=#customCoreLogicTemplate#,
 			   customHeadTemplate=#customHeadTemplate#,
 			   customBodyString=#customBodyString#,
@@ -1375,181 +1590,5 @@
 		<cfreturn serializedResponse>
 
 	</cffunction>
-			
-	<!--- Note: we are no longer using this function. It is too slow due to the large amount of stuff in the array.
-	This function is consumed on the admin settings page in order to get all of the settings. --->
-	<cffunction name="getThemeSettingValueFromArray" returnType="string" access="public" hint="This function will create a theme array in the application scope that will retain our theme variables.">
-		<cfargument name="uiTheme"  required="true" hint="Pass in the theme name."/>
-		<cfargument name="uiSetting"  required="true" hint="Pass in the theme name."/>
-		
-		<!--- We need to access the array with the themeId and the settingId. Get these values. --->
-		<cfset themeId = getThemeIdByTheme(arguments.uiTheme)>
-		<cfset settingId = getThemeSettingIdBySetting(arguments.uiSetting)>
-		
-		<!--- Grab the value inside our array. --->
-		<cfset arrayValue = application.themeSettingsArray[themeId][settingId]>
-			
-		<!--- Return it. --->
-		<cfreturn arrayValue>
-			
-	</cffunction>
-			
-<cffunction name="getThemeIdByTheme" access="remote" returntype="numeric">
-	<cfargument name="baseKendoTheme"  required="true" hint="Pass in the Kendo theme name."/>
-	<cfswitch expression="#baseKendoTheme#">
-		<cfcase value="black"><cfset themeId = 1></cfcase>
-		<cfcase value="blueOpal"><cfset themeId = 2></cfcase>
-		<cfcase value="default"><cfset themeId = 3></cfcase>
-		<cfcase value="fiori"><cfset themeId = 4></cfcase>
-		<cfcase value="flat"><cfset themeId = 5></cfcase>
-		<cfcase value="highcontrast"><cfset themeId = 6></cfcase>
-		<cfcase value="material"><cfset themeId = 7></cfcase>
-		<cfcase value="materialblack"><cfset themeId = 8></cfcase>
-		<cfcase value="metro"><cfset themeId = 9></cfcase>
-		<cfcase value="moonlight"><cfset themeId = 10></cfcase>
-		<cfcase value="nova"><cfset themeId = 11></cfcase>
-		<cfcase value="office365"><cfset themeId = 12></cfcase>
-		<cfcase value="silver"><cfset themeId = 13></cfcase>
-		<cfcase value="uniform"><cfset themeId = 14></cfcase>
-	</cfswitch>
-	<!--- Safety check --->
-	<cfif not isDefined("themeId")>
-		<cfset themeId = 9>
-	</cfif>
-	<cfreturn themeId>
-</cffunction>
-			
-<cffunction name="getThemeSettingIdBySetting" access="remote" returnType="numeric" output="false" hint="Returns an Id of a theme setting. This is  used to find the index of the setting in the arrThemeSettingsFromIniStore array.">
-	<cfargument name="themeSetting" type="string" required="true">
-	
-	<!--- Find the id --->
-	<cfswitch expression="#arguments.themeSetting#">
-		<cfcase value="useCustomTheme">
-			<cfset themeSettingId = 1>
-		</cfcase>
-		<cfcase value="customThemeName">
-			<cfset themeSettingId = 2>
-		</cfcase>
-		<cfcase value="darkTheme">
-			<cfset themeSettingId = 3>
-		</cfcase>
-		<cfcase value="contentWidth">
-			<cfset themeSettingId = 4>
-		</cfcase>
-		<cfcase value="mainContainerWidth">
-			<cfset themeSettingId = 5>
-		</cfcase>
-		<cfcase value="sideBarContainerWidth">
-			<cfset themeSettingId = 6>
-		</cfcase>
-		<cfcase value="siteOpacity">
-			<cfset themeSettingId = 7>
-		</cfcase>
-		<cfcase value="blogBackgroundImage">
-			<cfset themeSettingId = 8>
-		</cfcase>
-		<cfcase value="blogBackgroundImageRepeat">
-			<cfset themeSettingId = 9>
-		</cfcase>
-		<cfcase value="blogBackgroundImagePosition">
-			<cfset themeSettingId = 10>
-		</cfcase>
-		<cfcase value="stretchHeaderAcrossPage">
-			<cfset themeSettingId = 11>
-		</cfcase>
-		<cfcase value="alignBlogMenuWithBlogContent">
-			<cfset themeSettingId = 12>
-		</cfcase>
-		<cfcase value="topMenuAlign">
-			<cfset themeSettingId = 13>
-		</cfcase>
-		<cfcase value="headerBackgroundImage">
-			<cfset themeSettingId = 14>
-		</cfcase>
-		<cfcase value="menuBackgroundImage">
-			<cfset themeSettingId = 15>
-		</cfcase>
-		<cfcase value="coverKendoMenuWithMenuBackgroundImage">
-			<cfset themeSettingId = 16>
-		</cfcase>
-		<cfcase value="logoImageMobile">
-			<cfset themeSettingId = 17>
-		</cfcase>
-		<cfcase value="logoMobileWidth">
-			<cfset themeSettingId = 18>
-		</cfcase>
-		<cfcase value="logoImage">
-			<cfset themeSettingId = 19>
-		</cfcase>
-		<cfcase value="logoPaddingTop">
-			<cfset themeSettingId = 20>
-		</cfcase>
-		<cfcase value="logoPaddingRight">
-			<cfset themeSettingId = 21>
-		</cfcase>
-		<cfcase value="logoPaddingLeft">
-			<cfset themeSettingId = 22>
-		</cfcase>
-		<cfcase value="logoPaddingBottom">
-			<cfset themeSettingId = 23>
-		</cfcase>
-		<cfcase value="blogNameTextColor">
-			<cfset themeSettingId = 24>
-		</cfcase>
-		<cfcase value="headerBodyDividerImage">
-			<cfset themeSettingId = 25>
-		</cfcase>
-		<cfcase value="kendoThemeCssFileLocation">
-			<cfset themeSettingId = 26>
-		</cfcase>
-		<cfcase value="kendoThemeMobileCssFileLocation">
-			<cfset themeSettingId = 27>
-		</cfcase>
-		<cfcase value="customCoreLogicTemplate">
-			<cfset themeSettingId = 28>
-		</cfcase>
-		<cfcase value="customHeadTemplate">
-			<cfset themeSettingId = 29>
-		</cfcase>
-		<cfcase value="customBodyString">
-			<cfset themeSettingId = 30>
-		</cfcase>
-		<cfcase value="customFontCssTemplate">
-			<cfset themeSettingId = 31>
-		</cfcase>
-		<cfcase value="customGlobalAndBodyCssTemplate">
-			<cfset themeSettingId = 32>
-		</cfcase>
-		<cfcase value="customTopMenuCssTemplate">
-			<cfset themeSettingId = 33>
-		</cfcase>
-		<cfcase value="customTopMenuHtmlTemplate">
-			<cfset themeSettingId = 34>
-		</cfcase>
-		<cfcase value="customTopMenuJsTemplate">
-			<cfset themeSettingId = 35>
-		</cfcase>
-		<cfcase value="customBlogContentCssTemplate">
-			<cfset themeSettingId = 36>
-		</cfcase>
-		<cfcase value="customBlogJsContentTemplate">
-			<cfset themeSettingId = 37>
-		</cfcase>
-		<cfcase value="customBlogContentHtmlTemplate">
-			<cfset themeSettingId = 38>
-		</cfcase>
-		<cfcase value="customFooterHtmlTemplate">
-			<cfset themeSettingId = 39>
-		</cfcase>
-	</cfswitch>
-
-	<!---Return the themeSettingId.--->
-	<cfreturn themeSettingId>
-</cffunction>
-
-<!--- Default base kendo themes. --->
-<cffunction name="getDefaultThemes" access="remote" returntype="string">
-	<cfreturn "default,black,blueOpal,flat,highcontrast,material,materialblack,metro,moonlight,office365,silver,silver,uniform,nova">
-</cffunction>
 			
 </cfcomponent>

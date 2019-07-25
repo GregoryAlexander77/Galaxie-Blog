@@ -34,7 +34,7 @@ order by views desc
 	<cfoutput>
 	<script>
 	$(document).ready(function() {
-		$("##latestversioncheck").html("<p>Checking to see if your blog is up to date. Please stand by...</p>").load("latestversioncheck.cfm")
+		$("##latestversioncheck").html("<p>Checking to see if your blog is up to date. Please stand by...</p>").load("latestversioncheck.cfm?version=#application.blog.getVersion()#")
 	})
 	</script>
 	</cfoutput>
@@ -51,9 +51,9 @@ order by views desc
 	<cfoutput>
 	<h3>About</h3>
 	<p>
-	Welcome to the Gregory's Bllog adminstration interface. You are running BlogCFC version #application.blog.getVersion()#. This blog is named
-	#htmlEditFormat(application.blog.getProperty("blogtitle"))#. For more information, please visit Gregory's Blog site at <a href="http://www.gregorysblog.org">http://www.gregorysblog.org</a>.
-		Gregory's Blog was created by <a href="http://www.gregoryalexander.com">Gregory Alexander</a>, and the is a complete re-write of BlogCfc. BlogCFC was created by <a href="http://www.coldfusionjedi.com">Raymond Camden</a>. For support, please visit <a href="www.gregorysblog.org">www.gregorysblog.org,</a>, or the original BlogCfc group at, <a href="http://groups.google.com/group/blogcfc">listserv</a>
+	Welcome to the Gregory's Blog adminstration interface. You are running Gregory's Blog version #application.blog.getVersion()#. This blog is named
+	#htmlEditFormat(application.blog.getProperty("blogtitle"))#. For more information, please visit Gregory's Blog site at <a href="http://www.gregoryalexander.com/blog/">http://www.gregoryalexander.com/blog/</a>.
+	Gregory's Blog was created by <a href="http://www.gregoryalexander.com">Gregory Alexander</a>, and the is a complete re-write of BlogCfc. BlogCFC was created by <a href="http://www.coldfusionjedi.com">Raymond Camden</a>. For support, please visit <a href="www.gregorysblog.org">www.gregorysblog.org,</a>, or the original BlogCfc group at, <a href="http://groups.google.com/group/blogcfc">listserv</a>
 	or send Gregory an <a href="mailto:gregory@gregoryalexander.com">email</a>.
 	</p>
 
@@ -74,8 +74,7 @@ order by views desc
 
 	<h3>Credits</h3>
 	<p>
-	BlogCFC has had the support and active help of <i>many</i> people. I'd like to especially thank Scott Stroz, Jeff Coughlin, Charlie Griefer, and Paul Hastings. BlogCFC
-	makes use of <a href="http://lyla.maestropublishing.com/">Lyla Captcha</a> from Peter Farrell. Default spam protection provided by <a href="http://cfformprotect.riaforge.org/">CFFormProtect</a> by Jake Munson.
+	This blog would not have been possible without Raymond Camden. Raymond developed BlogCfc, on which this platform was originally based. Raymond is a ColdFusion enthusiast who authored thousands of ColdFusion related posts on the internet. Like every senior ColdFusion web developer; I have found his posts invaluable and have based many of my own ColdFusion libraries based upon his approach.
 	</p>
 
 	<h3>Support Gregory's Blog Development!</h3>

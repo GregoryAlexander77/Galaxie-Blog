@@ -7,9 +7,9 @@
 <cfprocessingdirective pageencoding="utf-8">
 <!---
 	Name         : Index
-	Author       : Raymond Camden 
+	Author       : Gregory Alexander/Raymond Camden 
 	Created      : February 10, 2003
-	Last Updated : June 24 2019
+	Last Updated : July 25 2019
 				 :  -------- Original history --------
 	History      : Reset history for version 5.0
 				 : Link for more entries fixed (rkc 6/25/06)
@@ -77,7 +77,7 @@
 //****************************************************************************************************************************************************--->
 		
 <!--- Hardcoded image paths (TODO make this a variable that can be set on the settings page.) --->
-<cfset application.defaultLogoImageForSocialMediaShare = "/images/logo/gregoryAlexanderSocialMediaShare.png">
+<cfset application.defaultLogoImageForSocialMediaShare = "/images/logo/gregorysBlogSocialMediaShare2.png">
 	
 <!--- Include the displayAndThemes template. This contains display and theme related functions. --->
 <cfinclude template="#application.baseUrl#/common/function/displayAndTheme.cfm">
@@ -176,10 +176,11 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <cfset kendoCommonCssFileLocation = trim(getSettingsByTheme(kendoTheme).kendoCommonCssFileLocation)>
 <cfset kendoThemeCssFileLocation = application.themeSettingsArray[themeId][26]>
 <cfset kendoThemeMobileCssFileLocation = application.themeSettingsArray[themeId][27]>
+<cfset breakPoint = application.themeSettingsArray[themeId][28]>
 	
 <!--- Optional libraries --->
 <!--- GSAP and scrollMagie allows for animations and parallax effects in the blog entries. Don't include by default. --->
-<cfset includeGsap = true>
+<cfset includeGsap = false>
 	
 <!--- //**************************************************************************************************************************************************
 			Custom plugins and strings
@@ -194,29 +195,29 @@ for this new functionality that should be available in an upcoming version. At l
 toes with future updates.
 --->	
 <!--- Core logic below this section. Deals with the getMode and entry logic. Include the full path of the logical template (ie #application.baseUrl#/plugin/coreLogic.cfm) --->
-<cfset customCoreLogicTemplate = application.themeSettingsArray[themeId][28]>
+<cfset customCoreLogicTemplate = application.themeSettingsArray[themeId][29]>
 <!--- Content between the head tags can be customized with a custom template. Indicate the full path and the name of the custom template here. --->
-<cfset customHeadTemplate = application.themeSettingsArray[themeId][29]>
+<cfset customHeadTemplate = application.themeSettingsArray[themeId][30]>
 <!--- Setting to replace the default body string. This should be a <body .... > string. --->
-<cfset customBodyString = application.themeSettingsArray[themeId][30]>
+<cfset customBodyString = application.themeSettingsArray[themeId][31]>
 <!--- Template to include fonts. --->
-<cfset customFontCssTemplate = application.themeSettingsArray[themeId][31]>
+<cfset customFontCssTemplate = application.themeSettingsArray[themeId][32]>
 <!---Global css variables and the css for the body--->
-<cfset customGlobalAndBodyCssTemplate = application.themeSettingsArray[themeId][32]>
+<cfset customGlobalAndBodyCssTemplate = application.themeSettingsArray[themeId][33]>
 <!--- Template to include css rules for the top menu. --->
-<cfset customTopMenuCssTemplate = application.themeSettingsArray[themeId][33]>
+<cfset customTopMenuCssTemplate = application.themeSettingsArray[themeId][34]>
 <!--- Template to include the html for the top menu. --->
-<cfset customTopMenuHtmlTemplate = application.themeSettingsArray[themeId][34]>
+<cfset customTopMenuHtmlTemplate = application.themeSettingsArray[themeId][35]>
 <!--- Template to include the javascript for the top menu. Note: this template is within the code region of the customTopMenuHtmlTemplate. --->
-<cfset customTopMenuJsTemplate = application.themeSettingsArray[themeId][35]>
+<cfset customTopMenuJsTemplate = application.themeSettingsArray[themeId][36]>
 <!--- Template to include the css rules for the blog content (blog entries). --->
-<cfset customBlogContentCssTemplate = application.themeSettingsArray[themeId][36]>
+<cfset customBlogContentCssTemplate = application.themeSettingsArray[themeId][37]>
 <!--- Template to include Kendo's widget and UI javascripts for the main blog (not the header script) --->
-<cfset customBlogJsContentTemplate = application.themeSettingsArray[themeId][37]>
+<cfset customBlogJsContentTemplate = application.themeSettingsArray[themeId][38]>
 <!--- Template to include blog content HTML (blog entries). This is a rather intensive bit of code that will be broken down further in a later version. --->
-<cfset customBlogContentHtmlTemplate = application.themeSettingsArray[themeId][38]>
+<cfset customBlogContentHtmlTemplate = application.themeSettingsArray[themeId][39]>
 <!--- Template to include a custom footer. --->
-<cfset customFooterHtmlTemplate = application.themeSettingsArray[themeId][39]>
+<cfset customFooterHtmlTemplate = application.themeSettingsArray[themeId][40]>
 
 <!--- //**************************************************************************************************************************************************
 			Load coldfish. This is not dependent upon a theme setting right now (but it may be if I can get around to using prism).
@@ -377,6 +378,13 @@ before in other projects. I suspect that it is reading the entire object when it
 	<!--- Added by Gregory to simplify the code on the client. --->
 	<cfset descriptionMetaTagValue = application.blog.getProperty("blogDescription") & additionalTitle>
 	<cfset titleMetaTagValue = htmlEditFormat(application.blog.getProperty("blogTitle"))>
+		
+	<!--- Gregory added to get the proper image when sharing. We want the default image that is set when there are multiple entries, but the image that we used for the enclosure when there is only one post. --->
+	<cfif url.mode is "entry" and articleData.totalEntries is 1 and (entry.enclosure contains '.jpg' or entry.enclosure contains '.gif' or entry.enclosure contains '.png' or entry.enclosure contains '.mp3')>
+		<cfset imageMetaTagValue = application.rootUrl & "/enclosures/" & getFileFromPath(entry.enclosure)>
+	<cfelse>
+		<cfset imageMetaTagValue = application.rootUrl & application.defaultLogoImageForSocialMediaShare>
+	</cfif>
 <cfelse>
 	<cfmodule template="#customCoreLogicTemplate#" />
 </cfif>
@@ -397,12 +405,13 @@ before in other projects. I suspect that it is reading the entire object when it
 	<meta name="twitter:site" content="@gregoryalexander.com">
 	<meta name="twitter:title" content="#descriptionMetaTagValue#">
 	<meta name="twitter:description" content="#descriptionMetaTagValue#">
-	<meta name="twitter:image" content="#application.defaultLogoImageForSocialMediaShare#">
+	<meta name="twitter:image" content="#imageMetaTagValue#">
 	<!-- Open graph meta tags for Facebook. See notes. -->
-	<meta property="og:image" content="#application.defaultLogoImageForSocialMediaShare#">
+	<meta property="og:image" content="#imageMetaTagValue#">
 	<meta property="og:site_name" content="#htmlEditFormat(application.blog.getProperty("blogTitle"))#" />
-	<meta property="og:image:width" content="600" />
-	<meta property="og:image:height" content="600" />
+	<!--- As of 7/19/19, 1200 x 630 creates a full size image on facebook. However, we want to keep the width and height in the meta tags aat 1200x1200 in order to keep the facebook image at full screen. --->
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="1200" />
 	<meta property="og:title" content="#descriptionMetaTagValue#" />
 	<meta property="og:description" content="#descriptionMetaTagValue#" />
 	<meta property="og:type" content="blog" />
@@ -457,6 +466,8 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	
 	// Set global vars. This is determined by the server (for now).
 	isMobile = <cfoutput>#session.isMobile#</cfoutput>;
+	// Get the breakpoint. This will be used to hide or show the side bar container ast the right of the page once the breakpoint value has been exceeded. The breakpoint can be set on the admin settings page. Note: the breakpoint is always set high on mobile as we don't have room for the sidebar.
+	breakpoint = <cfoutput><cfif session.isMobile>50000<cfelse>#breakpoint#</cfif></cfoutput>;
 	
 	// Call the method on page load.
 	setScreenProperties();
@@ -1653,12 +1664,12 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 						<!---elimnate hardcoded width below. change logo to around 80 to 120px. maybe make new row.--->
 						<cfoutput><img src="#logoSourcePath#" style="padding-left: 20px;" align="left" valign="center" /></cfoutput>
 					</td>
-					<td colspan="2" id="blogNameContainer">
+					<td id="blogNameContainer">
 						<cfoutput>#htmlEditFormat(application.blog.getProperty("blogTitle"))#</cfoutput>
 					</td>
 				</tr>
 				<tr>
-					<td id="topMenuContainer" height="55px"><!-- Holds the menu. -->
+				  <td id="topMenuContainer" height="55px"><!-- Holds the menu. -->
 					  <ul id="topMenu">
 						<cfsilent>
 						<!---//**************************************************************************************************************************************************
@@ -1672,18 +1683,11 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 							<cfmodule template="#customTopMenuJsTemplate#" />
 						</cfif>	
 					  </ul>
-					</td>
-					<td>	
-						<span id="siteSearchButton" class="k-icon k-i-search" style="padding-left: 10px;" onclick="createSearchWindow();"></span>
-					</td>
+				 </td>
 			  </tr>
 			</table>
 			</td>
 			<td>
-				<span style="float:right; padding:15px;">
-					<!-- toggle icon, .k-rpanel-toggle hides it on page width > breakpoint -->
-					<button class="k-rpanel-toggle"><i class="k-icon k-i-menu"></i></button>
-				</span>
 			</td>
 		  </tr>
 		  <tr>
@@ -2790,7 +2794,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<script>
 		$("#sidebarPanel").kendoResponsivePanel({
 			// On mobile devices, always achieve the breakpoint (50,000 pixels should do it!), otherwise, activate the panel at 1300 pixels. Note: in this implementation, if this screen size matches the breakpoint, the responsive panel is open by default which looks really odd. I am choosing a screen size that is not normal here, ie 1300.
-			breakpoint: <cfif session.isMobile>50000<cfelse>1300</cfif>,
+			breakpoint: breakpoint,
 			orientation: "left",
 			autoClose: true,
 			open: onSidebarOpen,
@@ -2866,10 +2870,10 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			}
 			
 			// Now that the padding is set, activate the sideBarPanel and open it.
-			if (getSidebarPanelState() == 'closed'){ 
-					$("#sidebarPanel").kendoResponsivePanel("open");
-			} else { //if ($('#sidebarPanel').css('display') == 'none'){ 
+			if (getSidebarPanelState() == 'open'){ 
 					$("#sidebarPanel").kendoResponsivePanel("close");
+			} else { //if ($('#sidebarPanel').css('display') == 'none'){ 
+					$("#sidebarPanel").kendoResponsivePanel("open");
 			}//if ($('#sidebarPanel').css('display') == 'none'){ 
 		}
 
@@ -2888,7 +2892,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		$(".k-rpanel-toggle").on("click", function(e) { 
 			setTimeout(function() {
 				toggleSideBarPanel('topMenu');
-			}, 500);
+			}, 100);
 		});
 
 	</script>
@@ -2926,7 +2930,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			</p>
 			<h4>Version:</h4>
 			<p>
-				Gregory's Blog Version 1.1 July 14th, 2019.
+				Gregory's Blog Version #application.blog.getVersion()# July 25th, 2019.
 			</p>
 		</span>
 	</div>

@@ -9,9 +9,9 @@ Debugging
 --->
 <!---
 	Name         : /client/admin/index.cfm
-	Author       : Raymond Camden / Gregory Alexander
+	Author       :  : Gregory Alexander/Raymond Camden 
 	Created      : 04/12/06
-	Last Updated : 6/7/2019
+	Last Updated : July 25 2019
 	History      : Various changes, forgotten keys, new keys (rkc 9/5/06)
 				 : Comment moderation support (tr 12/7/06)
 				 : support new properties (rkc 12/14/06)
@@ -192,7 +192,7 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 		<cfset themeLoopCount = 1>
 		<!--- Set the theme string that is expected in the ini file. --->
 		<cfset themeIdString = 'theme' & themeId>
-		<cfset themeKeyList = "useCustomTheme,customThemeName,darkTheme,contentWidth,mainContainerWidth,sideBarContainerWidth,siteOpacity,blogBackgroundImage,blogBackgroundImageRepeat,blogBackgroundImagePosition,stretchHeaderAcrossPage,alignBlogMenuWithBlogContent,topMenuAlign,headerBackgroundImage,menuBackgroundImage,coverKendoMenuWithMenuBackgroundImage,logoImageMobile,logoMobileWidth,logoImage,logoPaddingTop,logoPaddingRight,logoPaddingLeft,logoPaddingBottom,blogNameTextColor,headerBodyDividerImage,kendoThemeCssFileLocation,kendoThemeMobileCssFileLocation,customCoreLogicTemplate,customHeadTemplate,customBodyString,customFontCssTemplate,customGlobalAndBodyCssTemplate,customTopMenuCssTemplate,customTopMenuHtmlTemplate,customTopMenuJsTemplate,customBlogContentCssTemplate,customBlogJsContentTemplate,customBlogContentHtmlTemplate,customFooterHtmlTemplate">
+		<cfset themeKeyList = "useCustomTheme,customThemeName,darkTheme,contentWidth,mainContainerWidth,sideBarContainerWidth,siteOpacity,blogBackgroundImage,blogBackgroundImageRepeat,blogBackgroundImagePosition,stretchHeaderAcrossPage,alignBlogMenuWithBlogContent,topMenuAlign,headerBackgroundImage,menuBackgroundImage,coverKendoMenuWithMenuBackgroundImage,logoImageMobile,logoMobileWidth,logoImage,logoPaddingTop,logoPaddingRight,logoPaddingLeft,logoPaddingBottom,blogNameTextColor,headerBodyDividerImage,kendoThemeCssFileLocation,kendoThemeMobileCssFileLocation,breakpoint,customCoreLogicTemplate,customHeadTemplate,customBodyString,customFontCssTemplate,customGlobalAndBodyCssTemplate,customTopMenuCssTemplate,customTopMenuHtmlTemplate,customTopMenuJsTemplate,customBlogContentCssTemplate,customBlogJsContentTemplate,customBlogContentHtmlTemplate,customFooterHtmlTemplate">
 			
 		<cfloop index="key" list="#trim(themeKeylist)#">
 			<cfif structKeyExists(form, key)>
@@ -212,7 +212,7 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
   
 <cfmodule template="../tags/adminlayout.cfm" title="Settings">
 	
-	<cfoutput>rootUrl: #application.baseUrl# loggedIn: #isLoggedIn()# isAdmin: #cookie.isAdmin#</cfoutput>
+	<!---<cfoutput>rootUrl: #application.baseUrl# loggedIn: #isLoggedIn()# isAdmin: #cookie.isAdmin#</cfoutput>--->
 	
 	<cfif settingsUpdated>
 		<cfoutput>
@@ -223,6 +223,56 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 	</cfif>
 		
 	<script>
+		// Determine if the particular theme has been modified. For efficiency, we will be using ColdFusion application variables to output the results for javascript.
+		function isThemeModified(themeId){
+			// Get the custom name
+			switch(themeId) {
+				case 1:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[1][1]#</cfoutput>;
+				break;	
+				case 2:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[2][1]#</cfoutput>;
+				break;
+				case 3:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[3][1]#</cfoutput>;
+				break;
+				case 4:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[4][1]#</cfoutput>;
+				break;
+				case 5:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[5][1]#</cfoutput>;
+				break;
+				case 6:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[6][1]#</cfoutput>;		  
+				break;
+				case 7:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[7][1]#</cfoutput>;  
+				break;
+				case 8:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[8][1]#</cfoutput>;  
+				break;
+				case 9:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[9][1]#</cfoutput>;	  
+				break;
+				case 10:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[10][1]#</cfoutput>;		  
+				break;
+				case 11:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[11][1]#</cfoutput>;	  
+				break;
+				case 12:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[12][1]#</cfoutput>;	  
+				break;
+				case 13:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[13][1]#</cfoutput>;  
+				break;
+				case 14:
+					var themeWasModified = <cfoutput>#application.themeSettingsArray[14][1]#</cfoutput>;		  
+				break;
+			}//.. switch
+			return themeWasModified;
+		}//.. function
+		
 		// Populate the theme settings.
 		$(document).ready(function() {
 			getThemeSettingsFromProperStore();
@@ -230,12 +280,15 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 		
 		// Determine if we should get the default theme settings, or the settings that are store in the ini config file. This is necessary as many users won't change the theme settings at all. 
 		function getThemeSettingsFromProperStore(){
-			var themesWereModified = <cfif getProfileString(application.iniFile, "default", "modifyDefaultThemes") eq true>true<cfelse>false</cfif>;
+			// Get the selected theme.
 			var uiTheme = $('#defaultTheme').val();
+			// Get the themeId
 			var themeId = 'theme' + getThemeIdByTheme(uiTheme);
+			// Also determine if the selected theme has been modified. Whenever a theme has been modified, the useCustomTheme setting will be set to true (this fixes a bug found in version 1.1).
+			var thisThemeWasModified = isThemeModified(themeId);
 
-			// See if the themes were previously modified, or that the modifyDefaultThemes button was just checked. 
-			if (themesWereModified){
+			// See if the selected theme was modified. 
+			if (thisThemeWasModified){
 				// Call the getAllThemeSettingsFromIniStore method to populate the initial form
 				getAllThemeSettingsFromIniStore(themeId);//The theme id is actually a string and is a section in the config file. 'theme3' is the default Kendo theme.
 			} else {
@@ -283,6 +336,7 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 					$("#headerBodyDividerImage").removeAttr("disabled");
 					$("#kendoThemeCssFileLocation").removeAttr("disabled");
 					$("#kendoThemeMobileCssFileLocation").removeAttr("disabled");
+					$("#breakpoint").removeAttr("disabled");
 					$("#customCoreLogicTemplate").removeAttr("disabled");
 					$("#customHeadTemplate").removeAttr("disabled");
 					$("#customBodyString").removeAttr("disabled");
@@ -324,6 +378,7 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 					$("#headerBodyDividerImage").attr("disabled", true);
 					$("#kendoThemeCssFileLocation").attr("disabled", true);
 					$("#kendoThemeMobileCssFileLocation").attr("disabled", true);
+					$("#breakpoint").attr("disabled", true);
 					$("#customCoreLogicTemplate").attr("disabled", true);
 					$("#customHeadTemplate").attr("disabled", true);
 					$("#customBodyString").attr("disabled", true);
@@ -394,6 +449,7 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 			var headerBodyDividerImageValue = response.headerBodyDividerImage;
 			var kendoThemeCssFileLocationValue = response.kendoThemeCssFileLocation;
 			var kendoThemeMobileCssFileLocationValue = response.kendoThemeMobileCssFileLocation;
+			var breakpoint = response.breakpoint;
 			var customCoreLogicTemplateValue = response.customCoreLogicTemplate;
 			var customHeadTemplateValue = response.customHeadTemplate;
 			var customBodyStringValue = response.customBodyString;
@@ -478,6 +534,7 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 			$( "#headerBodyDividerImage" ).val( headerBodyDividerImageValue );
 			$( "#kendoThemeCssFileLocation" ).val( kendoThemeCssFileLocationValue );
 			$( "#kendoThemeMobileCssFileLocation" ).val( kendoThemeMobileCssFileLocationValue );
+			$( "#breakpoint" ).val( breakpoint );
 			$( "#customCoreLogicTemplate" ).val( customCoreLogicTemplateValue );
 			$( "#customHeadTemplate" ).val( customHeadTemplateValue );
 			$( "#customBodyString" ).val( customBodyStringValue );
@@ -547,6 +604,7 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 			var headerBodyDividerImageValue = response.headerBodyDividerImage;
 			var kendoThemeCssFileLocationValue = response.kendoThemeCssFileLocation;
 			var kendoThemeMobileCssFileLocationValue = response.kendoThemeMobileCssFileLocation;
+			var breakpoint = response.breakpoint;
 			var customCoreLogicTemplateValue = response.customCoreLogicTemplate;
 			var customHeadTemplateValue = response.customHeadTemplate;
 			var customBodyStringValue = response.customBodyString;
@@ -633,6 +691,7 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 			$( "#headerBodyDividerImage" ).val( headerBodyDividerImageValue );
 			$( "#kendoThemeCssFileLocation" ).val( kendoThemeCssFileLocationValue );
 			$( "#kendoThemeMobileCssFileLocation" ).val( kendoThemeMobileCssFileLocationValue );
+			$( "#breakpoint" ).val( breakpoint );
 			$( "#customCoreLogicTemplate" ).val( customCoreLogicTemplateValue );
 			$( "#customHeadTemplate" ).val( customHeadTemplateValue );
 			$( "#customBodyString" ).val( customBodyStringValue );
@@ -894,6 +953,9 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 					<option value="#i#">#i#%</option>
 				</cfloop>
 				</select>
+			</li><br/>
+			<li><label for="breakpoint">Breakpoint:</label>
+				<input type="text" name="breakpoint" id="breakpoint" value="" class="txtField" maxlength="255">px</li><br/>
 			<li><label for="siteOpacity">Opacity:</label>
 				<select id="siteOpacity" name="siteOpacity">
 					<cfloop from="80" to="100" index="i">

@@ -219,6 +219,9 @@ Notes: Gregory's home page design would have the following settings
 		<cfcase value="kendoThemeMobileCssFileLocation">
 			<cfset setting = getProfileString("#application.iniFile#", "#arguments.themeId#", "kendoThemeMobileCssFileLocation")>
 		</cfcase>
+		<cfcase value="breakpoint">
+			<cfset setting = getProfileString("#application.iniFile#", "#arguments.themeId#", "breakpoint")>
+		</cfcase>
 		<cfcase value="customCoreLogicTemplate">
 			<cfset setting = getProfileString("#application.iniFile#", "#arguments.themeId#", "customCoreLogicTemplate")>
 		</cfcase>

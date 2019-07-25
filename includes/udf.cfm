@@ -57,7 +57,7 @@ len(listGetAt(arguments.str, 2, "@")) LTE 255) IS 1;
  * @author Ben Forta (ben@forta.com) 
  * @version 3, June 26, 2002 
  */
-function ParagraphFormat2(str) {
+function paragraphFormat2(str) {
 	//first make Windows style into Unix style
 	str = replace(str,chr(13)&chr(10),chr(10),"ALL");
 	//now make Macintosh style into Unix style

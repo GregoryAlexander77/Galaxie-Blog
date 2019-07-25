@@ -83,7 +83,7 @@ Take 1000 on social media sharing. I am wrong again! Suprise! Facebook does not 
 <cfset kendoThemeCssFileLocation = application.themeSettingsArray[themeId][26]>
 <cfset kendoThemeMobileCssFileLocation = application.themeSettingsArray[themeId][27]>
 	
-<!---Is 'www.' in the CGI Server_Name var? Facebook wants this.--->
+<!--- Is 'www.' in the CGI Server_Name var? Facebook wants this.--->
 <cfif CGI.Server_Name contains 'www.'>
 	<cfset serverNamePrefix = "http://" & cgi.server_name>
 <cfelse>
@@ -93,10 +93,13 @@ Take 1000 on social media sharing. I am wrong again! Suprise! Facebook does not 
 <!--- Determine if there is an associated image with the post --->
 <cfif entry.enclosure contains '.jpg' or entry.enclosure contains '.gif' or entry.enclosure contains '.png' or entry.enclosure contains '.mp3'>
 	<!--- This is identical logic found in the renderEntry method in blog.cfc --->
-	<cfset imgURL = serverNamePrefix & application.baseURL & "/enclosures/#getFileFromPath(entry.enclosure)#">
+	<cfset imgURL = serverNamePrefix & application.baseURL & "/enclosures/" & getFileFromPath(entry.enclosure)>
 <cfelse>
-	<!---Pass in the blog's logo. --->
-	<cfset imgURL = application.themeSettingsArray[themeId][19]> <!---Original code: serverNamePrefix & trim(getSettingsByTheme(kendoTheme).logoImage). This works, but I am hardcoding this line as it is much quicker. --->
+	<!--- Use the default image for sharing. --->
+	<cfset imgURL = serverNamePrefix & application.baseURL & application.defaultLogoImageForSocialMediaShare>
+	<!--- Pass in the blog's logo. 
+	<cfset imgURL = application.themeSettingsArray[themeId][19]>
+	--->
 </cfif>
 	
 <!--- //**************************************************************************************************************************************************
@@ -151,22 +154,26 @@ I have redesigned the page from here to include the entire logic for the present
 	<meta name="keywords" content="#encodeForHTML(application.blog.getProperty("blogKeywords"))#" />
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1"><!---<meta name="viewport" content="968"><meta name="viewport" content="1280">--->
+	<!-- Twitter meta tags. -->
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:site" content="@gregoryalexander.com">
+	<meta name="twitter:title" content="#descriptionMetaTagValue#">
+	<meta name="twitter:description" content="#descriptionMetaTagValue#">
+	<meta name="twitter:image" content="#imgURL#">
 	<!-- Open graph meta tags for Facebook. See notes. -->
-	<cfif entry.enclosure contains ".mp3" or entry.enclosure contains ".mp4" or entry.enclosure contains ".ogv" or entry.enclosure contains ".webm">
-	<meta property="og:video:type" content="<cfif entry.enclosure contains ".mp3">application/x-shockwave-flash<cfelse>video/mp4</cfif>" />
-	<meta property="og:video" content="#application.baseUrl#/enclosures/#getFileFromPath(entry.enclosure)#" />
-	<meta property="og:video:width" content="600" />
-	<meta property="og:video:height" content="600" />
-	<meta property="og:video:type" content="application/x-shockwave-flash" />
-	<cfelse>
 	<meta property="og:image" content="#imgURL#">
 	<meta property="og:site_name" content="#htmlEditFormat(application.blog.getProperty("blogTitle"))#" />
-	<meta property="og:image:width" content="600" />
-	<meta property="og:image:height" content="600" />
-	</cfif>
-	<meta property="og:title" content="#encodeForHTML(entry.title)#" />
+	<!--- As of 7/19/19, 1200 x 630 creates a full size image on facebook. However, we want to keep the width and height in the meta tags aat 1200x1200 in order to keep the facebook image at full screen. --->
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="1200" />
+	<meta property="og:title" content="#descriptionMetaTagValue#" />
 	<meta property="og:description" content="#descriptionMetaTagValue#" />
 	<meta property="og:type" content="blog" />
+<cfif entry.enclosure contains ".mp3" or entry.enclosure contains ".mp4" or entry.enclosure contains ".ogv" or entry.enclosure contains ".webm">
+	<meta property="og:video:type" content="<cfif entry.enclosure contains ".mp3">application/x-shockwave-flash<cfelse>video/mp4</cfif>" />
+	<meta property="og:video" content="#application.baseUrl#/enclosures/#getFileFromPath(entry.enclosure)#" />
+	<meta property="og:video:type" content="application/x-shockwave-flash" />
+</cfif>
 	<!-- I am not sure why- but using the URL meta tag eliminates the image and the description. Don't use it here. -->
 	<!---Rss--->
  	<link rel="alternate" type="application/rss+xml" title="RSS" href="#application.rooturl#/rss.cfm?mode=full" />
