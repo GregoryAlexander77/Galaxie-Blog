@@ -53,7 +53,7 @@
 		</cfif>
 		<tr class="#iif(currentRow MOD 2,DE('k-content'),DE('k-alt'))#">
 		<cfif currentRow eq 1><td valign="top"><cfelse><td align="left" valign="top" class="border"></cfif>
-			<a href="#application.blog.makeCategoryLink(tags.categoryid)#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#lcase(tags.tag)# (#tags.tagCount#)</a>
+			<a href="#application.blog.makeCategoryLink(tags.categoryid)#" aria-label="#lcase(tags.tag)# (#tags.tagCount#)" <cfif darkTheme>style="color:whitesmoke"</cfif>>#lcase(tags.tag)# (#tags.tagCount#)</a>
 		</td>
 	</tr>
    </cfoutput>

@@ -16,6 +16,8 @@
 <cfset numComments = 5>
 <cfset lenComment = 100>
 	
+<!---Include the UDF (Raymonds code) --->
+<cfinclude template="#application.baseUrl#/includes/udf.cfm">
 <!--- This template is needed in order to secure the admin portions of the site. Note: the cflogin code below the udf was coded by Raymond and is essentially unchanged. --->
 <!---Include the resource bundle.--->
 <cfset getResourceBundle = application.utils.getResource>
@@ -50,8 +52,8 @@
 							</cfinvoke>	
 							<!--- Note: Raymond is hiding the URL arguments. See notes above the showComment function on index.cfm template for more information. 
 							Bugs?: the alias appears to be wrong on several occasions. Not sure why. --->
-							<a href="#application.blog.makeLink(getComments.entryID)#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#getComments.title#</a>:<br/>
-							<a href="#application.blog.makeLink(getComments.entryID)###c#getComments.id#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#getComments.name# #application.resourceBundle.getResource("said")#: #formattedComment#<cfif len(comment) gt lenComment>...</cfif></a>
+							<a href="#application.blog.makeLink(getComments.entryID)#" aria-label="#application.blog.makeLink(getComments.entryID)#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#getComments.title#</a>:<br/>
+							<a href="#application.blog.makeLink(getComments.entryID)###c#getComments.id#" aria-label="#application.blog.makeLink(getComments.entryID)###c#getComments.id#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#getComments.name# #application.resourceBundle.getResource("said")#: #formattedComment#<cfif len(comment) gt lenComment>...</cfif></a>
 							</td>
 						</tr>	
 						</cfoutput>

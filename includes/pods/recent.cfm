@@ -36,7 +36,7 @@
 						<cfelse>
 							<td align="left" class="border" height="20px">
 						</cfif>
-						<a href="#application.blog.makeLink(id)#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#title#</a>
+						<a href="#application.blog.makeLink(id)#" aria-label="#title#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#title#</a>
 						</td>
 					</tr>	
 					</cfoutput>

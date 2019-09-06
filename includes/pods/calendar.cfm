@@ -80,7 +80,7 @@ This should look like: selectDates: [new Date(2018, 10, 10), new Date(2018, 10, 
 <!--- Kendo calendar container. Note: to align the container, we must use 'text-align: center'. I understand that this is counter-intuitive. --->
 <div id="<cfoutput>#calendarDivName#</cfoutput>"></div>
 
-<script>
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
 	$(document).ready(function() {
 		// Create a var of dates that will be highlighted on the Kendo calendar control
 		<cfoutput>#jsDateString#</cfoutput>
@@ -96,16 +96,7 @@ This should look like: selectDates: [new Date(2018, 10, 10), new Date(2018, 10, 
 			// Convert the value of the selected date into the format that BlogCfc expects to navigate to a new URL.
 			var selectedCalendarDate = kendo.toString(this.value(), "yyyy/MM/dd/");
 			// Redirect to the index.cfm page like so: window.location.href = "index.cfm/2011/11/3"
-        	window.location.href = "<cfoutput>#application.baseUrl#</cfoutput>/" + selectedCalendarDate; 
+        	window.location.href = "<cfoutput>#application.baseUrl#</cfoutput>index.cfm/" + selectedCalendarDate; 
     	});
 	});
 </script>
-
-
-
-
-
-
-       
-       
-        

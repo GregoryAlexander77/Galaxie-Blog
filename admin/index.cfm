@@ -51,9 +51,9 @@ order by views desc
 	<cfoutput>
 	<h3>About</h3>
 	<p>
-	Welcome to the Gregory's Blog adminstration interface. You are running Gregory's Blog version #application.blog.getVersion()#. This blog is named
-	#htmlEditFormat(application.blog.getProperty("blogtitle"))#. For more information, please visit Gregory's Blog site at <a href="http://www.gregoryalexander.com/blog/">http://www.gregoryalexander.com/blog/</a>.
-	Gregory's Blog was created by <a href="http://www.gregoryalexander.com">Gregory Alexander</a>, and the is a complete re-write of BlogCfc. BlogCFC was created by <a href="http://www.coldfusionjedi.com">Raymond Camden</a>. For support, please visit <a href="www.gregorysblog.org">www.gregorysblog.org,</a>, or the original BlogCfc group at, <a href="http://groups.google.com/group/blogcfc">listserv</a>
+	Welcome to the Galaxie Blog adminstration interface. You are running Galaxie Blog version #application.blog.getVersion()#. This blog is named
+	#htmlEditFormat(application.blog.getProperty("blogtitle"))#. For more information, please visit Galaxie Blog site at <a href="http://www.gregoryalexander.com/blog/">http://www.gregoryalexander.com/blog/</a>.
+	Galaxie Blog was created by <a href="http://www.gregoryalexander.com">Gregory Alexander</a>, and the is a complete re-write of BlogCfc. BlogCFC was created by <a href="http://www.coldfusionjedi.com">Raymond Camden</a>. For support, please visit <a href="www.gregorysblog.org">www.gregorysblog.org,</a>, or the original BlogCfc group at, <a href="http://groups.google.com/group/blogcfc">listserv</a>
 	or send Gregory an <a href="mailto:gregory@gregoryalexander.com">email</a>.
 	</p>
 
@@ -77,7 +77,7 @@ order by views desc
 	This blog would not have been possible without Raymond Camden. Raymond developed BlogCfc, on which this platform was originally based. Raymond is a ColdFusion enthusiast who authored thousands of ColdFusion related posts on the internet. Like every senior ColdFusion web developer; I have found his posts invaluable and have based many of my own ColdFusion libraries based upon his approach.
 	</p>
 
-	<h3>Support Gregory's Blog Development!</h3>
+	<h3>Support Galaxie Blog Development!</h3>
 	<p>
 	<!---If you find this blog useful, please consider visiting my <a href="http://www.amazon.com/o/registry/2TCL1D08EZEYE">wishlist</a>.--->
 	</p>

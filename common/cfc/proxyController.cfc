@@ -389,7 +389,7 @@
 					<cfset application.utils.mail(
 						to="#application.blog.getProperty('owneremail')#",
 						from="#application.blog.getProperty('owneremail')#",
-						subject="Message sent via Gregory's Blog",
+						subject="Message sent via Galaxie Blog",
 						body="#body#",
 						mailserver="#application.blog.getProperty('mailserver')#",
 						mailusername="#application.blog.getProperty('mailusername')#",

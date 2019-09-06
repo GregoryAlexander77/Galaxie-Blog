@@ -31,44 +31,50 @@
 		<cfset kendoButtonStyle = "width:125px; font-size:0.875em;">
 	</cfif>
 </cfif><!---<cfif kendoTheme contains 'material'>--->
+			
+<!--- Set the name of the form and the text element. This template is used in two different places and I want to have unique element id's. --->
+<cfif sideBarType eq "div">
+	<cfset subscribeFormId = "subscribeViaDiv">
+<cfelse>
+	<cfset subscribeFormId = "subscribeViaPanel">
+</cfif>
 </cfsilent>
-					<script>
+					<script type="<cfoutput>#scriptTypeString#</cfoutput>">
 						// Invoked when the submit button is clicked. Instead of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
-						var subscribeSubmit = $('#subscribeSubmit');
-						subscribeSubmit.on('click', function(e){      
+						var subscribeSubmit = $('#<cfoutput>#subscribeFormId#Submit</cfoutput>');
+						subscribeSubmit.on('click', function(e){   
 							// Prevent any other action.
 							e.preventDefault();     
 							// Call the validator if the form is not valid.
-							if (subscribeFormValidator.validate()) {
+							if (<cfoutput>#subscribeFormId#</cfoutput>FormValidator.validate()) {
 								// submit the form.
 								// Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post.
-								// alert('posting');
-								subscribeToBlog();
-							} else {//..if (addCommentFormValidator.validate()) {
+								//alert('posting');
+								subscribeToBlog('<cfoutput>#sideBarType#</cfoutput>');
+							} else {//..if (<cfoutput>#subscribeFormId#</cfoutput>FormValidator.validate())
 								// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
 								$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "A valid email address is required. Please correct the highlighted fields and try again.", icon: "k-ext-warning", width: "425px", height: "140px" }) // or k-ext-error, k-ext-question
 									).done(function () {
 									// Do nothing
 								});//..$.when(kendo.ui.ExtAlertDialog.show...
-							}//..if (addCommentFormValidator.validate()) {
+							}//..if (<cfoutput>#subscribeFormId#</cfoutput>FormValidator.validate())
 						});//..addCommentSubmit.on('click', function(e){ 
 						
 						$(document).ready(function() {
 							// Note: there are no custom rules on this form. This is an empty validator.
-							subscribeFormValidator = $("#subscribe").kendoValidator().data("kendoValidator");
-
+							<cfoutput>#subscribeFormId#</cfoutput>FormValidator = $("#<cfoutput>#subscribeFormId#Form</cfoutput>").kendoValidator().data("kendoValidator");
 						});//..document.ready
 					</script>
 					
 					<cfoutput>
 					#application.resourceBundle.getResource("subscribeblog")#
-					<form id="subscribe" name="subscribe" action="#chr(35)#" method="post" data-role="validator">
+					<form id="#subscribeFormId#Form" name="#subscribeFormId#Form" action="#chr(35)#" method="post" data-role="validator">
 						<!--- Note that this forms type is 'email'. This is an HTML5 attribute and it will automatically be validated. --->
-						<input type="email" id="subscriberEmail" name="subscriberEmail" value="" class="k-textbox" 
+						<input type="email" id="#subscribeFormId#" name="#subscribeFormId#" value="" class="k-textbox" 
 							   required validationMessage="Email is required"
 							   data-email-msg="Email is not valid" />
 						<br/>
-						<input type="button" id="subscribeSubmit" name="subscribeSubmit" value="Subscribe" class="k-button k-primary" style="<cfoutput>#kendoButtonStyle#</cfoutput>">
+						<input type="button" id="#subscribeFormId#Submit" name="#subscribeFormId#Submit" value="Subscribe" class="k-button k-primary" style="<cfoutput>#kendoButtonStyle#</cfoutput>">
 					</form>
 					</cfoutput>
 					

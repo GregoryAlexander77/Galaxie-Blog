@@ -25,7 +25,7 @@
 		<cfelse>
 			<td align="left" class="border" height="20px">
 		</cfif>
-		<a href="#application.rootURL#/index.cfm?mode=month&amp;month=#previousmonths#&amp;year=#previousyears#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#monthAsString(previousmonths)# #previousyears# (#entryCount#)</a>
+		<a href="#application.rootURL#/index.cfm?mode=month&amp;month=#previousmonths#&amp;year=#previousyears#" aria-label="#monthAsString(previousmonths)# #previousyears# (#entryCount#)" <cfif darkTheme>style="color:whitesmoke"</cfif>>#monthAsString(previousmonths)# #previousyears# (#entryCount#)</a>
 		</td>
 	</tr>	
 	</cfoutput>

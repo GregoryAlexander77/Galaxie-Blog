@@ -1050,21 +1050,7 @@
      * ExtEditor
      *
      */
-
-    var ExtEditor = kendo.ui.Editor.extend({
-        init: function (element, options) {
-            var that = this;
-
-            kendo.ui.Editor.fn.init.call(that, element, options);
-            $(element).data("kendoEditor", that);
-        },
-
-        options: {
-            name: "ExtEditor"
-        }
-    });
-    kendo.ui.plugin(ExtEditor);
-
+	/* Gregory Alexander removed this. The Kendo editor is not in the core library. */
 
 
     /*

@@ -23,7 +23,7 @@ $(document).ready(function(){
 </script>
 <p>
 In this step we are going to fill in some basic settings. Some of these are optional and any setting can be changed later. For a full list of settings, log on
-to your Gregory's Blog Administrator and use the Settings link.
+to your Galaxie Blog Administrator and use the Settings link.
 </p>
 
 <form method="post" id="settingForm">

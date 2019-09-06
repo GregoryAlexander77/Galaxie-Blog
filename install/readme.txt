@@ -1,7 +1,7 @@
 LICENSE 
 BlogCfc code:
 Copyright 2008-2012 Raymond Camden
-Gregory's Blog code:
+Galaxie Blog code:
 Copyright 2019 Gregory Alexander
 
    Licensed under the Apache License, Version 2.0 (the "License");

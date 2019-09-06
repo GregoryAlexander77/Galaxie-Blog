@@ -1,47 +1,64 @@
-<cfsilent><!--- Cache this stuff --->
-<cfheader name="filesMatch" value="<filesMatch '.(css|jpg|jpeg|png|gif|js|ico)$'>">
-<cfheader name="cache-control" value="Cache-Control: max-age=31536000, public">
-</cfsilent><!doctype html><!---Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/2018)---> 
+<!doctype html><!---Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/2018)---> 
 <cfprocessingdirective suppressWhiteSpace="true">
-<cfsilent>
 <cfprocessingdirective pageencoding="utf-8">
+<cfsilent>
+	
 <!---
 	Name         : Index
 	Author       : Gregory Alexander/Raymond Camden 
 	Created      : February 10, 2003
 	Last Updated : July 25 2019
-				 :  -------- Original history --------
-	History      : Reset history for version 5.0
-				 : Link for more entries fixed (rkc 6/25/06)
-				 : Gravatar support (rkc 7/8/06)
-				 : Cleanup of area shown when no entries exist (rkc 7/15/06)
-				 : Use of rb(), use of icons, other small mods (rkc 8/20/06)
-				 ----------------------------------------------------------------
-				 Gregory's architecture elboration: the 'rb()' funcion is shorthand for 'application.resourceBundle.getResource'
-                 This is Raymond's shorthand notation according to the documentation. In the next version, I will likely rename this from 'rb' to simply getResource().
-				 ---------------------------------------------------------------- End Gregory's elaboration
-				 : Change how categories are handled (rkc 9/17/06)
-				 : Big change to cut down on whitespace (rkc 11/30/06)
-				 ----------------------------------------------------------------
-				 Gregory removed Raymond's white space approach. I am using cfsilent instead as I don't like to wrap a cfoutput around my javascript code (too many issues with # signs and other stuff.)
-                 ----------------------------------------------------------------
-				 : comment mod support (rkc 12/7/06)
-				 : gravatar fix, thanks Pete F (rkc 12/26/06)
-				 : use app.maxentries, digg link (rkc 2/28/07)
-				 : fix bug where 11 items showed up, not 10 (rkc 5/18/07)
-				 : Purpose: Blog home page
-				 	
-				 -------- New Kendo redesign history (Gregory Alexander) --------
-				 -------------- Kendo Blog Cfc (Gregory Alexander) --------------
-				 Re-engineered the code to make it better compatible with as single page application and completely redesigned the page. I want to strip out all styling in order to have the default kendo .css control the page. I also had to eliminate some of the orginal features, such as 'AddThis' as it was using old jQuery libraries and was not compabitle with either the newest version of jQuery, or Kendo. 
+		 	
+	 -------- New Kendo redesign history (Gregory Alexander) --------
+	 -------------- Kendo Blog Cfc (Gregory Alexander) --------------
+	 Re-engineered the code to make it better compatible with as single page application and completely redesigned the page. I want to strip out all styling in order to have the default kendo .css control the page. I also had to eliminate some of the orginal features, such as 'AddThis' as it was using old jQuery libraries and was not compabitle with either the newest version of jQuery, or Kendo. 
 
 --->
 	
 <!--- //**************************************************************************************************************************************************
-			Global settings.
+			User defined settings (these will be put in a database in the next major version).
 //****************************************************************************************************************************************************--->
+	
+<!--- Optional libraries --->
+<!--- GSAP and scrollMagie allows for animations and parallax effects in the blog entries. Don't include by default. --->
+<cfset includeGsap = true>
+<!--- Setting to determine whether to defer the scripts and css. This is a setting as I need to quickly debug to see if the defer is working, but you should leave this at true as it provides a better google speed score. --->
+<cfset deferScriptsAndCss = true>
+<!--- Set the type string --->
+<cfif deferScriptsAndCss>
+	<!--- Defers the loading of the script and css using the deferjs library. --->
+	<cfset scriptTypeString = "deferjs">
+<cfelse>
+	<cfset scriptTypeString = "text/javascript">
+</cfif>
+<!--- Do you want the page to automatically redirect using SSL? We are going to read the users setting set in the administrative interface (site URL) to determine if ssl should be enforced. It is is, we will use a server side redirect. You can change this by removing this code and setting useSsl to false.  --->
+<cfif findNoCase("https", application.rooturl) eq 1>
+	<cfset useSsl = true>
+<cfelse>
+	<cfset useSsl = false>
+</cfif>
+	
+<!--- //**************************************************************************************************************************************************
+			Global path and URL settings.
+//****************************************************************************************************************************************************--->
+	
+<!--- Helper function to get the base URL. This was found at https://blog.pengoworks.com/index.cfm/2008/5/8/Getting-the-URLweb-folder-path-in-ColdFusion  --->
+<cffunction name="getWebPath" access="public" output="false" returntype="string" hint="Gets the absolute path to the current web folder.">
+	<cfargument name="url" required="false" default="#getPageContext().getRequest().getRequestURI()#" hint="Defaults to the current path_info" />
+	<cfargument name="ext" required="false" default="\.(cfml?.*|html?.*|[^.]+)" hint="Define the regex to find the extension. The default will work in most cases, unless you have really funky urls like: /folder/file.cfm/extra.path/info" />
+
+	<!---// trim the path to be safe //--->
+	<cfset var sPath = trim(arguments.url) />
+	<!---// find the where the filename starts (should be the last wherever the last period (".") is) //--->
+	<cfset var sEndDir = reFind("/[^/]+#arguments.ext#$", sPath) />
+
+	<cfreturn left(sPath, sEndDir) />
+</cffunction>
+	
 <!--- Get the file path of the current directory--->
 <cfset currentDir = getDirectoryFromPath(getCurrentTemplatePath())>
+<!---Get the base URL (this used to be set in the Application.cfc template, however as of version 1.3, I removed this setting on the index page and am getting it via function here). --->
+<cfset application.baseUrl = getWebPath()>
 	
 <!--- //**************************************************************************************************************************************************
 			Load common cfc objects and set encryption and service keys.
@@ -75,13 +92,27 @@
 <!--- //**************************************************************************************************************************************************
 			Global and common params
 //****************************************************************************************************************************************************--->
-		
+
+<!--- Determine if the http accept header contains webp. The getHttpRequestData().headers is a structure and we are targetting the accept element in the array. Note: nearly all modern browsers will include this if the browser supports the webp next gen image. --->
+<cfset acceptHeader = getHttpRequestData().headers["accept"]>
+<!--- Does the header accept webp? --->
+<cfif findNoCase("webp", acceptHeader) gt 0>
+	<cfset clientAcceptsWebP = true>
+<cfelse>
+	<cfset clientAcceptsWebP = false>
+</cfif>
+<!--- The logic to determine if the server has the necessary webp mime type was done in the application.cfc template. We will use the application.serverSupportsWebP variable that the mime type is installed on the server. Of course, both the client and the server need to support webp images before we can deliver them.---> 
+<cfif application.serverSupportsWebP and clientAcceptsWebP>
+	<cfset webpImageSupported = true>
+<cfelse>
+	<cfset webpImageSupported = false>
+</cfif>
+
 <!--- Hardcoded image paths (TODO make this a variable that can be set on the settings page.) --->
 <cfset application.defaultLogoImageForSocialMediaShare = "/images/logo/gregorysBlogSocialMediaShare2.png">
-	
+
 <!--- Include the displayAndThemes template. This contains display and theme related functions. --->
-<cfinclude template="#application.baseUrl#/common/function/displayAndTheme.cfm">
-	
+<cfinclude template="#application.baseUrl#common/function/displayAndTheme.cfm">
 <!--- Get the current theme --->
 <cfset kendoTheme = trim(getKendoTheme())>
 <!--- Get the themeId. We have a lot of theme variables stuck in an application array, and we need to get the indexes so that we can get the information in the array quickly. --->
@@ -122,7 +153,7 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <!--- The site opacity will make the blog content semi-transparent so that you can see the background image. If you change this, be sure to set this between 80 and 100 as this will impact the readability of the entire site. Site opacity settings show the background image underneath. Each setting is individually set by the theme to ensure better readability. ---> 
 <cfset siteOpacity = application.themeSettingsArray[themeId][7]>
 <!--- What image do you want displayed as the background? --->
-<cfset blogBackgroundImage = application.themeSettingsArray[themeId][8]>
+<cfset blogBackgroundImage = application.baseUrl & application.themeSettingsArray[themeId][8]>
 <!--- Do you want the blogBackgroundImage to repeat at the end of the image? The dafualt value is false. --->
 <cfset blogBackgroundImageRepeat = application.themeSettingsArray[themeId][9]>
 <!--- Set the background image position. See https://www.w3schools.com/cssref/pr_background-position.asp for a full description. --->
@@ -142,15 +173,24 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <!--- Top menu alignment. This affects the menu placement *within* the header. The top menu contains the logo as well as the menu scripts and search button. Accepted values are left, center, and right. Unlike the alignBlogMenuWithBlogContent argument, this affects the outer container which will be aligned. --->
 <cfset topMenuAlign = application.themeSettingsArray[themeId][13]><!---Either left, center, or right--->
 <!--- The header background image. You can also leave this blank if you want the blogBackgroundImage to be shown instead of a colored banner on the header. If you choose to leave this blank and not display a colored banner, also leave the menuBackgroundImage blank, otherwise, a colored bar will be displayed. Note: I put a gradient on the banner image, however, the top of the image, which is darker than the bottom, can't be used for the menu as it will look off. So I am separating the background images for the banner and the menu. --->
-<cfset headerBackgroundImage = application.themeSettingsArray[themeId][14]>
+<cfset headerBackgroundImage = application.baseUrl & application.themeSettingsArray[themeId][14]>
+<cfif webpImageSupported>
+	<!---Overwrite the headerBodyDividerImage var and change the extension to .webp--->
+	<cfset headerBackgroundImage = replaceNoCase(headerBackgroundImage, '.png', '.webp')>
+</cfif>
 <!--- The background image for the top menu. This should be a consistent color and not gradiated. --->
-<cfset menuBackgroundImage = application.themeSettingsArray[themeId][15]>	
+<cfset menuBackgroundImage = application.baseUrl & application.themeSettingsArray[themeId][15]>	
+<!--- We will try to substitute a webp image here. --->
+<cfif webpImageSupported>
+	<!---Overwrite the headerBodyDividerImage var and change the extension to .webp--->
+	<cfset menuBackgroundImage = replaceNoCase(menuBackgroundImage, '.png', '.webp')>
+</cfif>
 <!--- This setting determines if the whole image should be shown on screen, or if the image should be captured from the left until the image is cut off at the end of the screen. Essentially, setting this to true set the image width t0 be 100%, whereas setting this to false will left justify the image and cut off any overflow. The resolution is quite high, so setting this to false will cut off the right part of most of the images. --->
 <cfset coverKendoMenuWithMenuBackgroundImage = application.themeSettingsArray[themeId][16]>
 <!--- Both desktop and mobile logos. The mobile logo should be smaller than the desktop obviously. --->
-<cfset logoImageMobile = application.themeSettingsArray[themeId][17]>
+<cfset logoImageMobile = application.baseUrl & application.themeSettingsArray[themeId][17]>
 <cfset logoMobileWidth = application.themeSettingsArray[themeId][18]>
-<cfset logoImage = application.themeSettingsArray[themeId][19]>
+<cfset logoImage = application.baseUrl & application.themeSettingsArray[themeId][19]>
 
 <!--- Generic Logo Properties.--->
 <!--- Padding. The most important setting here is logoPaddingRight which gives space between the logo and the blog text and menu. I have designed the logo image with padding on the right to take care of this without applying this setting. Padding left and bottom can be used to fine tune the placement of the logo but I am not using them currently in my theme designs. --->
@@ -169,18 +209,67 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 </cfif>
 	
 <!--- The divider between the header and body --->
-<cfset headerBodyDividerImage = application.themeSettingsArray[themeId][25]>
+<cfset headerBodyDividerImage = application.baseUrl & application.themeSettingsArray[themeId][25]>
+<!--- See if we can use a webp image instead of the default png. --->
+<cfif webpImageSupported>
+	<!---Overwrite the headerBodyDividerImage var and change the extension to .webp--->
+	<cfset headerBodyDividerImage = replaceNoCase(headerBodyDividerImage, '.png', '.webp')>
+</cfif>
 			
 <!--- Kendo file locations. --->
 <!--- Todo: this is missing in the array. --->
 <cfset kendoCommonCssFileLocation = trim(getSettingsByTheme(kendoTheme).kendoCommonCssFileLocation)>
 <cfset kendoThemeCssFileLocation = application.themeSettingsArray[themeId][26]>
 <cfset kendoThemeMobileCssFileLocation = application.themeSettingsArray[themeId][27]>
-<cfset breakPoint = application.themeSettingsArray[themeId][28]>
 	
-<!--- Optional libraries --->
-<!--- GSAP and scrollMagie allows for animations and parallax effects in the blog entries. Don't include by default. --->
-<cfset includeGsap = false>
+<!--- //**************************************************************************************************************************************************
+			Logic to set vars for the client
+//****************************************************************************************************************************************************--->	
+<cfset breakPoint = application.themeSettingsArray[themeId][28]>
+<!--- TODO Find out why this broke on the default theme. 
+Safety check --->
+<cfif not isNumeric(breakPoint) or breakpoint eq "">
+	<cfset breakPoint = 1300>
+</cfif>
+	
+<!--- Determine if the blog background image has been changed by the blog owner. If the image is the default image that comes with the installation package, we are going to modify the image if the browser can handle the new webP image format, and change the blog background image depending upon if the client is mobile or desktop. --->
+<cfinvoke component="#ThemesObj#" method="getDefaultBlogBackgroundImageByTheme" returnvariable="defaultBlogImageBackground">
+	<cfinvokeargument name="uiTheme" value="#kendoTheme#">
+</cfinvoke>
+<!--- Set a var. We'll use this in javascript in the setCssVars function below. --->
+<cfif application.themeSettingsArray[themeId][8] eq defaultBlogImageBackground>
+	<cfset defaultBlogImage = true>
+<cfelse>
+	<cfset defaultBlogImage = false>
+</cfif>
+	
+<!--- Logic to modify the default background image string to specify the webp image extension and determine the mobile version (which is smaller). I am not storing these extra strings in the ini file right now. That must wait until I use a database. --->
+<!--- Is this the default blog background image. --->
+<cfif defaultBlogImage>
+	<cfset blogBackgroundImageWebP = replaceNoCase(blogBackgroundImage, '.jpg', '.webp')>
+	<cfset blogBackgroundImageMobileWebP = replaceNoCase(blogBackgroundImage, '.jpg', 'Mobile.webp')>
+	<!--- The non-webp desktop image is the default blog backgound image (either selected by the user or the default blog background image set in Themes.cfc). --->
+	<cfset blogBackgroundImageMobileJpg = replaceNoCase(blogBackgroundImage, '.jpg', 'Mobile.jpg')>
+
+	<!--- Is webp in the accpet header? --->
+	<cfif webpImageSupported>
+		<!--- Use the webp image. First, we need to check to see whether the client is mobile or desktop. I scaled the mobile background image down quite a bit. We don't need to have a large image on mobile clients. --->
+		<cfif session.isMobile>
+			<cfset blogBackgroundImage = blogBackgroundImageMobileWebP>
+		<cfelse>
+			<cfset blogBackgroundImage = blogBackgroundImageWebP>
+		</cfif>
+	<cfelse><!---<cfif webpImageSupported>--->
+		<!--- Use a jpg. --->
+		<cfif session.isMobile>
+			<!--- Use the default blog background image (which is a jpg). --->
+			<cfset blogBackgroundImage = blogBackgroundImageMobileJpg>
+		<cfelse>
+			<cfset blogBackgroundImage = blogBackgroundImage>
+		</cfif>
+	</cfif><!---<cfif webpImageSupported>---> 
+
+</cfif><!---<cfif defaultBlogImage>--->
 	
 <!--- //**************************************************************************************************************************************************
 			Custom plugins and strings
@@ -189,12 +278,12 @@ Notes: I am planning on incorporating a full plugin structure, however, this wil
 1st version of this blog. For the first version of this software, I want to make minimal changes to the structure, other than to code a new
 Kendo interface and make it themeable, in order to keep this version accessible to the current BlogCfc base. For now, if you want to make changes
 or to create a new 'plug-in', copy and paste this 'custom' setting logic into a new template and include it either using a cfinclude or a cfmodule 
-template in a new folder or a template name that will not be overridden wwen a new version of this software is created ((ie #application.baseUrl#/customTemplateSetting.cfm)'. 
+template in a new folder or a template name that will not be overridden wwen a new version of this software is created ((ie #application.baseUrl#customTemplateSetting.cfm)'. 
 In the next x versions, I want to use the datatabase to store plugins and custom templates, but I am not there yet. However, I am coding this logic in order to 'set the stage' 
 for this new functionality that should be available in an upcoming version. At least we can have a general framework how to include custom code and not step on each others 
 toes with future updates.
 --->	
-<!--- Core logic below this section. Deals with the getMode and entry logic. Include the full path of the logical template (ie #application.baseUrl#/plugin/coreLogic.cfm) --->
+<!--- Core logic below this section. Deals with the getMode and entry logic. Include the full path of the logical template (ie #application.baseUrl#plugin/coreLogic.cfm) --->
 <cfset customCoreLogicTemplate = application.themeSettingsArray[themeId][29]>
 <!--- Content between the head tags can be customized with a custom template. Indicate the full path and the name of the custom template here. --->
 <cfset customHeadTemplate = application.themeSettingsArray[themeId][30]>
@@ -340,13 +429,69 @@ before in other projects. I suspect that it is reading the entire object when it
 
 	<!--- The original include to the layout.cfm template was done here. This include contained logic for the header, the includes, stylesheets, and pods, and then the layout.cfm logic ended. Older logic for the actual posts were resumed after the layout.cfm template include.
 	I have redesigned the page from here to include the entire logic for the presentation, including the logic found on the old layout.cfm template. I will be resuing Raymond's server side and ColdFusion functions, but the page has been vastly redesigned. --->
-
+			
+	<!--- //**************************************************************************************************************************************************
+			Functions to inspect the post content for certain XML strings embedded within a post. 
+	//****************************************************************************************************************************************************--->
+			
+	<!--- We can now use cfincludes and other stuff in the post entry itself. I put this into a function as I anticipate that this methodology will be used for other purposes other than a cfinclude.  --->
+	<cffunction name="inspectPostContentForXmlKeywords" access="public" returntype="string" hint="Determines if there is any action needed if the post content contains certain keywords. Returns a list of keywords if the xml keyword has been found.">
+		<cfargument name="postContent" required="yes" hint="The post content is typically 'application.blog.renderEntry(body,false,enclosure)'.">
+		
+		<!--- Preset the var as an empty string. --->
+		<cfset xmlKeyWords="">
+		
+		<!--- Search to determine if we need to use a cfinclude. --->
+		<cfif arguments.postContent contains "<cfincludeTemplate:">
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "cfincludeTemplate">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "cfincludeTemplate">
+			</cfif>
+		</cfif>
+			
+		<!--- Return it. --->
+		<cfreturn xmlKeyWords>
+			
+	</cffunction>
+		
+	<cffunction name="getXmlKeywordValue" access="public" output="true" returntype="string" hint="Gets the variable stuck in one of our xml strings.">
+		<cfargument name="postContent" required="yes" hint="The post content is typically 'application.blog.renderEntry(body,false,enclosure)'.">
+		<cfargument name="xmlKeyword" required="yes" hint="Grab the keyword from the inspectPostContent function.">
+			
+		<cfparam name="keyWordValue" default="">
+		
+		<!--- Set the strings that we're searching for. --->
+		<cfset keyWordStartString = "<" & arguments.xmlKeyword & ":">
+		<cfset keyWordEndString = "</" & arguments.xmlKeyword & ">">
+			
+		<!--- Find the start and end position of the keywords. --->
+		<cfset keyWordStartPos = findNoCase(keyWordStartString, arguments.postContent)>
+		<cfset keyWordEndPos = findNoCase(keyWordEndString, arguments.postContent)>
+		<!--- Add the lengh of the keyword to get the proper start position. --->
+		<cfset keyWordValueStartPos = keyWordStartPos + len(keyWordStartString)>
+		<!--- And determine the count --->
+		<cfset valueCount = keyWordEndPos - keyWordValueStartPos>
+		<!---<cfoutput>#keyWordStartString# #keyWordEndString# StartPos:#keyWordValueStartPos# EndPos:#keyWordEndPos# count:#valueCount#</cfoutput>--->
+		<!--- Get the value in the xml string. --->
+		<cfset keyWordValue = mid(arguments.postContent, keyWordValueStartPos, valueCount-1)>
+		<!---<cfoutput>keyWordValue:#keyWordValue#</cfoutput>--->
+			
+		<!--- Return the value --->
+		<cfreturn keyWordValue>
+			
+	</cffunction>
+			
+	<!--- //**************************************************************************************************************************************************
+			Set meta tags and other SEO property values
+	//****************************************************************************************************************************************************--->
+			
 	<!--- TODO <cfif thisTag.executionMode is "start">--->
-
 	<cfif isDefined("attributes.title")>
 		<cfset additionalTitle = ": " & attributes.title>
 	<cfelse>	
 		<cfset additionalTitle = "">
+		<!--- Categories. --->
 		<cfif isDefined("url.mode") and url.mode is "cat">
 			<!--- can be a list --->
 			<cfset additionalTitle = "">
@@ -356,7 +501,7 @@ before in other projects. I suspect that it is reading the entire object when it
 				<cfcatch></cfcatch>
 			</cftry>
 			</cfloop>
-
+		<!--- We're reading a single entry --->
 		<cfelseif isDefined("url.mode") and url.mode is "entry">
 			<cftry>
 				<!---
@@ -374,6 +519,15 @@ before in other projects. I suspect that it is reading the entire object when it
 			</cftry>
 		</cfif>
 	</cfif>
+						
+	<!--- //**************************************************************************************************************************************************
+			Meta tags and cononical url's
+	//****************************************************************************************************************************************************--->
+						
+	<!--- Get the logic to determine the alias link. This is Raymond's module to inspect the URL.--->
+	<cfmodule template="tags/getmode.cfm" r_params="params"/>
+						
+	<!--- Determine if we need to redirect to use SSL.--->
 	
 	<!--- Added by Gregory to simplify the code on the client. --->
 	<cfset descriptionMetaTagValue = application.blog.getProperty("blogDescription") & additionalTitle>
@@ -385,24 +539,64 @@ before in other projects. I suspect that it is reading the entire object when it
 	<cfelse>
 		<cfset imageMetaTagValue = application.rootUrl & application.defaultLogoImageForSocialMediaShare>
 	</cfif>
+		
+	<!--- Gregory added the following code to create a proper canonical rel tag and other SEO's --->
+	<!--- Set default params --->
+	<cfparam name="noIndex" default="false" type="boolean">
+	<cfparam name="canonicalUrl" default="#application.rootUrl#" type="string">
+	<cfparam name="addSocialMediaUnderEntry" default="false" type="boolean">
+		
+	<!--- Write a <meta name="robots" content="noindex"> tag for categories, postedBy, month and day in order to eliminate any duplicate content. --->
+	<cfif isDefined("url.mode") and (url.mode is "cat" or url.mode is "postedBy" or url.mode is "month" or url.mode is "day")>
+		<cfset noIndex = true>
+	</cfif>
+			
+	<!--- Handle URL's that have arguments (theme, etc) --->
+	<!--- Set the canonicalUrl to point to the correct URL (this is a single page app and there will be duplicate pages found in the crawl unfortunately). --->
+	<cfif URL.mode eq "alias">
+		<cfset canonicalUrl  = application.blog.makeLink(articles.id[1])>
+		<cfset addSocialMediaUnderEntry = true>
+	</cfif>
+		
 <cfelse>
 	<cfmodule template="#customCoreLogicTemplate#" />
 </cfif>
+		
+<!--- //**************************************************************************************************************************************************
+			Header properties and redirects.
+//****************************************************************************************************************************************************--->
+<!--- Cache this stuff --->
+<cfheader name="filesMatch" value="<filesMatch '.(css|jpg|jpeg|png|gif|js|ico)$'>">
+<cfheader name="Expires" value="#GetHttpTimeString(dateAdd('m', 1, Now()))#">
+<cfheader name="cache-control" value="Cache-Control: max-age=31536000, public">
+
+<!--- Enforce ssl if necessary. --->
+<cfif useSsl and (CGI.https eq "off")>
+	<cfheader statuscode="308" statustext="Moved permanently">
+	<!--- Determine the proper URL. We need to use the alias in the URL property if it exists. --->
+	<cfif URL.mode eq "alias">
+		<cfheader name="Location" value="#application.blog.makeLink(articles.id[1])#">
+	<cfelse><!---<cfif URL.mode eq "alias">--->
+		<cfheader name="Location" value="https://#cgi.http_host##cgi.script_name#?#cgi.query_string#">
+	</cfif><!---<cfif URL.mode eq "alias">--->
+</cfif><!---<cfif useSsl and (CGI.https eq "off")>--->
+
 <!--- //**************************************************************************************************************************************************
 			Page output
-//****************************************************************************************************************************************************--->					
-</cfsilent>
-<cfoutput>
-<head>
+//****************************************************************************************************************************************************--->	
+</cfsilent>	
+<html lang="en-US"><head><cfoutput>
 <cfif customHeadTemplate eq ""> 
 	<title>#htmlEditFormat(application.blog.getProperty("blogTitle"))##additionalTitle#</title>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="title" content="#descriptionMetaTagValue#" />
 	<meta name="description" content="#descriptionMetaTagValue#" />
 	<meta name="keywords" content="#application.blog.getProperty("blogKeywords")#" />
-	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<link rel="canonical" href="#canonicalUrl#" />
+	<cfif noIndex><meta name="robots" content="noindex"></cfif>
 	<!-- Twitter meta tags. -->
 	<meta name="twitter:card" content="summary_large_image">
-	<meta name="twitter:site" content="@gregoryalexander.com">
+	<meta name="twitter:site" content="@#application.rooturl#">
 	<meta name="twitter:title" content="#descriptionMetaTagValue#">
 	<meta name="twitter:description" content="#descriptionMetaTagValue#">
 	<meta name="twitter:image" content="#imageMetaTagValue#">
@@ -415,32 +609,78 @@ before in other projects. I suspect that it is reading the entire object when it
 	<meta property="og:title" content="#descriptionMetaTagValue#" />
 	<meta property="og:description" content="#descriptionMetaTagValue#" />
 	<meta property="og:type" content="blog" />
-	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1"><!---<meta name="viewport" content="968"><meta name="viewport" content="1280">--->
  	<link rel="alternate" type="application/rss+xml" title="RSS" href="#application.rooturl#/rss.cfm?mode=full" />
- 	<!--- Kendo scripts (GA 10/25/2018)--->
+	<!--- Load resources and scripts. --->
+	<script>
+		/* Script to defer script resources. See https://appseeds.net/defer.js/demo.html. 
+		// @shinsenter/defer.js */
+		!function(e,o,t,n,i,r){function c(e,t){r?n(e,t||32):i.push(e,t)}function f(e,t,n,i){return t&&o.getElementById(t)||(i=o.createElement(e||'SCRIPT'),t&&(i.id=t),n&&(i.onload=n),o.head.appendChild(i)),i||{}}r=/p/.test(o.readyState),e.addEventListener('on'+t in e?t:'load',function(){for(r=t;i[0];)c(i.shift(),i.shift())}),c._=f,e.defer=c,e.deferscript=function(t,n,e,i){c(function(e){f(0,n,i).src=t},e)}}(this,document,'pageshow',setTimeout,[]),function(u,n){var a='IntersectionObserver',d='src',l='lazied',h='data-',p=h+l,y='load',m='forEach',r='appendChild',b='getAttribute',c=n.head,g=Function(),v=u.defer||g,f=v._||g;function I(e,t){return[].slice.call((t||n).querySelectorAll(e))}function e(s){return function(e,t,o,r,c,f){v(function(n,t){function i(n){!1!==(r||g).call(n,n)&&(I('SOURCE',n)[m](i),(f||['srcset',d,'style'])[m](function(e,t){(t=n[b](h+e))&&(n[e]=t)}),y in n&&n[y]()),n.className+=' '+(o||l)}t=a in u?(n=new u[a](function(e){e[m](function(e,t){e.isIntersecting&&(t=e.target)&&(n.unobserve(t),i(t))})},c)).observe.bind(n):i,I(e||s+'['+h+d+']:not(['+p+'])')[m](function(e){e[b](p)||(e.setAttribute(p,s),t(e))})},t)}}function t(){v(function(t,n,i,o){t=[].concat(I((i='script[type=deferjs]')+':not('+(o='[async]')+')'),I(i+o)),function e(){if(0!=t){for(o in n=f(),(i=t.shift()).parentNode.removeChild(i),i.removeAttribute('type'),i)'string'==typeof i[o]&&n[o]!=i[o]&&(n[o]=i[o]);n[d]&&!n.hasAttribute('async')?(n.onload=n.onerror=e,c[r](n)):(c[r](n),v(e,.1))}}()},4)}t(),u.deferstyle=function(t,n,e,i){v(function(e){(e=f('LINK',n,i)).rel='stylesheet',e.href=t},e)},u.deferimg=e('IMG'),u.deferiframe=e('IFRAME'),v.all=t}(this,document);
+	</script>
+	
+	<script>
+		// WebP support detection. Revised a script found on stack overflow: https://stackoverflow.com/questions/5573096/detecting-webp-support. It is the quickest loading script to determine webP that I have found so far.
+		function webPImageSupport() {
+			// Detemine if the webp mime type is on the server. This is saved as a ColdFusion application variable.
+			var serverSupportsWebP = <cfoutput>#application.serverSupportsWebP#</cfoutput>;
+    		var elem = document.createElement('canvas');
+			
+    		if (serverSupportsWebP && !!(elem.getContext && elem.getContext('2d'))) {
+        		// Is able to get WebP representation?
+        		return elem.toDataURL('image/webp').indexOf('data:image/webp') == 0;
+    		}
+    		// Canvas is not supported on older browsers such as IE.
+    		return false;
+		}
+	</script>
+ 	<!--- The jQuery script can't be defered as the Kendo controls won't work. Wa're using jQuery 1.2. Later jQuery versions don't work with Kendo UI core unfortunately. --->
     <script src="#application.kendoSourceLocation#/js/jquery.min.js"></script>
-	<script src="#application.kendoSourceLocation#/js/<cfif application.kendoCommercial>kendo.all.min<cfelse>kendo.ui.core.min</cfif>.js"></script>
-	<!--- Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings. --->
-	<link href="#kendoCommonCssFileLocation#" rel="stylesheet">
-	<!--- Less based theme css files. --->
-	<link href="#kendoThemeCssFileLocation#" rel="stylesheet">
-	<!-- Mobile less based theme file. -->
-	<link rel="stylesheet" href="#kendoThemeMobileCssFileLocation#" />
+	<!--- Small library that fixes the Chrome "Added non-passive event listener to a scroll-blocking 'touchstart' event" errors. --->
+	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/passiveScrollEvent/index.js"></script>
+	<!--- Kendo scripts (GA 10/25/2018)--->
+	<script type="#scriptTypeString#" src="#application.kendoSourceLocation#/js/<cfif application.kendoCommercial>kendo.all.min<cfelse>kendo.ui.core.min</cfif>.js"></script>
+	<!--- Defer the Kendo style sheets. --->
+	<script type="#scriptTypeString#">
+		// Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings.
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#kendoCommonCssFileLocation#') );
+		// Less based theme css files.
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#kendoThemeCssFileLocation#') );
+		// Mobile less based theme file.
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#kendoThemeMobileCssFileLocation#') );
+	</script>
 	<!--- Other  libraries  --->
 	<!--- Kendo extended API (used for confirm and other dialogs) --->
-	<script src="#application.kendoUiExtendedLocation#/js/kendo.web.ext.js"></script>
-	<link href="#application.kendoUiExtendedLocation#/styles/#kendoTheme#.kendo.ext.css" rel="stylesheet">
-	<!--- Notification .css  --->
-	<link type="text/css" rel="stylesheet" href="#application.jQueryNotifyLocation#/ui.notify.css">
-	<link type="text/css" rel="stylesheet" href="#application.jQueryNotifyLocation#/notify.css">
+	<script type="#scriptTypeString#" src="#application.kendoUiExtendedLocation#/js/kendo.web.ext.js"></script>
+	<!--- Defer the extended scripts along with my notification library. --->
+	<script type="#scriptTypeString#">
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.kendoUiExtendedLocation#/styles/#kendoTheme#.kendo.ext.css') );
+		// Notification .css 
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/ui.notify.css') );
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/notify.css') );
+	</script>
 	<!--- Optional libs --->
 	<!--- Fontawesome --->
-	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+	<script type="#scriptTypeString#">
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://use.fontawesome.com/releases/v5.5.0/css/all.css') );
+	</script>
 	<!--- Fancy box (version 2). --->
-	<script type="text/javascript" src="#application.baseUrl#/common/libs/fancyBox/v2/source/jquery.fancybox.js"></script>
-	<link rel="stylesheet" type="text/css" href="#application.baseUrl#/common/libs/fancyBox/v2/source/jquery.fancybox.css" media="screen">
-	<!--- Optional libraries are included at the tail end of the page. --->
+	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/fancyBox/v2/source/jquery.fancybox.js"></script>
+	<!--- Defer the extended scripts along with my notification library. --->
+	<script type="#scriptTypeString#">
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#common/libs/fancyBox/v2/source/jquery.fancybox.css') );
+	</script>
+	<cfif addSocialMediaUnderEntry><!-- Go to www.addthis.com/dashboard to customize your tools --> 
+	<script type="#scriptTypeString#" src="//s7.addthis.com/js/300/addthis_widget.js#chr(35)#pubid=#application.addThisApiKey#"></script></cfif>
+	<!-- Scroll magic and other green sock plugins. -->
+<cfif includeGsap>
+	<!---<cfset scriptTypeString = "text/javascript">--->
+	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/greenSock/src/uncompressed/TweenMax.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/scrollMagic/scrollmagic/uncompressed/ScrollMagic.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/scrollMagic/scrollmagic/uncompressed/plugins/animation.gsap.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/greenSock/src/uncompressed/plugins/ScrollToPlugin.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/scrollMagic/scrollmagic/uncompressed/plugins/debug.addIndicators.js"></script>
+</cfif>	
+	<!--- Some optional libraries are included at the tail end of the page. --->
 	<cfsilent>
 	<!---
 	Removed jQuery include as they are now included in the application in the kendoScripts.cfm template (ga 10/27/2018).
@@ -461,7 +701,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 --->
 </cfsilent>
 </cfoutput>
-<!--Script to adjust properties depending upon the device screen size. I am putting the javascript and css front and center here in order to show exactly what I am doing. One of my main goals is to educate, and I don't want to obsufacte the code. -->
+<!-- Script to adjust properties depending upon the device screen size. I am putting the javascript and css front and center here in order to show exactly what I am doing. One of my main goals is to educate, and I don't want to obsfucate the code. -->
 <script>
 	
 	// Set global vars. This is determined by the server (for now).
@@ -469,7 +709,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	// Get the breakpoint. This will be used to hide or show the side bar container ast the right of the page once the breakpoint value has been exceeded. The breakpoint can be set on the admin settings page. Note: the breakpoint is always set high on mobile as we don't have room for the sidebar.
 	breakpoint = <cfoutput><cfif session.isMobile>50000<cfelse>#breakpoint#</cfif></cfoutput>;
 	
-	// Call the method on page load.
+	// Adjust the screen properties immediately.
 	setScreenProperties();
 	
 	// Set the content width depending upon the screen size.
@@ -506,7 +746,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			return <cfoutput>"#contentWidth#%"</cfoutput>;
 		}
 	}
-	
+																   
 	// Match everything up....
 	function setScreenProperties(){
 		var desiredContentWidth = <cfoutput>#contentWidth#</cfoutput>;
@@ -517,9 +757,9 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		var mainContainerWidth =  calculatePercent(mainContainerWidth, getContentPixelWidth())+"px"
 		
 		/* Notes:
-		1) This will be converted into media queries in the next version.
+		1) This may be converted into media queries in an upcoming version.
 		2) This function will be invoked twice. Once upon page load, and then again when the body detects a resize. 
-		3) This was designed to maximize the size of the background image when the desktop or tablet has a wide screen size.
+		3) This was designed to chose the appropriate image and maximize the size of the background image when the desktop or tablet has a wide screen size.
 		
 		The contentWidth applies to the header, and the outer container that holds the mainContainer and sidebar container elements. 
 		Using contentWidth of 66% looks good when the screen width is at least 1600x900, which is the size of a 20 inch monitor.
@@ -529,26 +769,19 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		*/
 		
 		// Handle the sidebar and the sideBarPanels
-		if (windowWidth <= 1280){
+		if (windowWidth <= breakpoint){
 			// Hide the sidepanel (the responsive panel will takeover here).
 			$( "#sidebar" ).hide();
 			// Show the responsive panel
 			$("#sidebarPanel").show(); 
 			// Display the hamburger in the menu (the 5th node).
-			$(".k-menu > li:eq(4)").show();
+			//$(".k-menu > li:eq(4)").show();
 		} else {
 			// Is the sidebar hidden?
 			if ($("#sidebar").is(":hidden")){
 				// Display the sidebar. This should only happen when someone is readjusting their screen sizes.
 				$( "#sidebar" ).show();
 			}
-			// If this is a desktop device, remove the hamburger icon.
-			if (!isMobile){
-				// remove the hamburger in the menu (the 5th node)..
-				$(".k-menu > li:eq(4)").hide();
-			}
-			// If the sidebarPanel responsive panel is open, hide it if the browser was readjusted to a screen size larger than 1280 pixels. Otherwise, the sidebarPanel will be stuck on the left of the desktop screen with no way to close it.
-			$("#sidebarPanel").hide(); 
 		}
 		
 		// Change to root css contentWidth propery to match the desired content width (the percentage that the blog overlay will consume on the screen). */
@@ -576,8 +809,9 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		var headerContainerWidth = $( "#headerContainer" ).width();
 		//alert('contentWidthValue: ' + contentWidthValue + ' parentContainerWidth: ' + parentContainerWidth + ' headerContainerWidth: ' + headerContainerWidth);
 		
-		// If both the parent and header container widths are not null (when this function first loads), and the header does not match the width of the parent container, resize the header. The sizes are not identical as the padding expands the parent container. I will fix this in an upcoming version.
-		if ((!!parentContainerWidth && !!headerContainerWidth) && parentContainerWidth != headerContainerWidth){
+		// If both the parent and header container widths are not null (when this function first loads), and the header does not match the width of the parent container, resize the header. The sizes may not identical as the padding expands the parent container by 20 (mobile) or 40 (desktop) pixels. I will fix this in an upcoming version.
+		if (!!parentContainerWidth && !!headerContainerWidth && parentContainerWidth != headerContainerWidth){
+			// alert('parentContainerWidth:' + parentContainerWidth + 'headerContainerWidth:' + headerContainerWidth);
 		<cfif headerBannerWidth eq '100%'>// The header, fixedNav header, and footer are set to stretch accross the page
 		<cfelse>$( "#headerContainer" ).width(parentContainerWidth + "px");
 			// Resize the width of the header elements.
@@ -585,6 +819,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			$( "#footerDiv" ).width(parentContainerWidth + "px");
 		</cfif>
 		}
+		
 	}
 	
 	// Function to determine if the browser supports global css vars. The else block is used for IE 11 which returns undefined. 
@@ -650,7 +885,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		
 		// Close the menu that is calling this function (I would do it in the menu, but I can only call a simple function from there).
 		// Get a reference to the menu widget
-    	var menu = $("#fixedNavHeader").data("kendoMenu");
+    	var menu = $("#fixedNavMenu").data("kendoMenu");
     	// Close it.
     	menu.close();
 
@@ -665,12 +900,23 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		
 		// Close the menu that is calling this function (I would do it in the menu, but I can only call a simple function from there).
 		// Get a reference to the menu widget
-    	var menu = $("#fixedNavHeader").data("kendoMenu");
+    	var menu = $("#fixedNavMenu").data("kendoMenu");
     	// Close it.
     	menu.close();
 
 		return false;
 	}
+	
+	// Lazy loading images and media.
+    // Define a callback function
+    // to add a 'shown' class into the element when it is loaded
+    var media_loaded = function (media) {
+        media.className += ' shown';
+    }
+
+    // Then call the deferimg and deferiframe methods
+    deferimg('img.fade', 300, 'lazied', media_loaded);
+    deferiframe('iframe.fade', 300, 'lazied', media_loaded);
 	
 	// Listeners 
 	// Script to show the sticky header when a certain scroll position has been reached (i.e. the navigation menu that is shown at the top of the page when you scroll down a little bit).
@@ -704,7 +950,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	</cfsilent>	
 </script>
 
-<cfif customBodyString eq ""><body onload="if(top != self) top.location.replace(self.location.href); setScreenProperties();" onresize="setScreenProperties()"><cfelse><cfoutput>#customBodyString#</cfoutput></cfif>
+<cfif customBodyString eq ""><body onload="if(top != self) top.location.replace(self.location.href); setScreenProperties()" onresize="setScreenProperties()"><cfelse><cfoutput>#customBodyString#</cfoutput></cfif>
 	<cfsilent>
 	<!---
 	Testing carriage.
@@ -716,31 +962,40 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	</cfsilent>
 	
 <cfif customFontCssTemplate eq "">
-	<style><cfoutput>
+	<cfsilent>
+	<!--- If the server has the woff2 mime type setup, we will use the next gen font format, otherwise we will fallback to the woff font. --->
+	<cfif  application.serverSupportsWoff2>
+		<cfset fontExtension = "woff2">
+	<cfelse>
+		<cfset fontExtension = "woff">
+	</cfif>
+	</cfsilent>
+	<!--- Preload the fonts (note: this only works with woff2 fonts and probably will not work here). --->
+	<style rel="preload" as="font"><cfoutput>
 		/* Special fonts */
 		@font-face {
 			font-family: "Eras Light";
-			src: url(#application.baseUrl#/common/fonts/erasLight.woff) format("woff");
+			src: url(#application.baseUrl#common/fonts/erasLight.#fontExtension#) format("#fontExtension#");
 		}
 		@font-face {
 			font-family: "Eras Book";
-			src: url(#application.baseUrl#/common/fonts/erasBook.woff) format("woff");
+			src: url(#application.baseUrl#common/fonts/erasBook.#fontExtension#) format("#fontExtension#");
 		}
 		@font-face {
 			font-family: "Eras Bold";
-			src: url(#application.baseUrl#/common/fonts/erasBold.woff) format("woff");
+			src: url(#application.baseUrl#common/fonts/erasBold.#fontExtension#) format("#fontExtension#");
 		}			
 		@font-face {
 			font-family: "Eras Demi";
-			src: url(#application.baseUrl#/common/fonts/erasDemi.woff) format("woff");
+			src: url(#application.baseUrl#common/fonts/erasDemi.#fontExtension#) format("#fontExtension#");
 		}
 		@font-face {
 			font-family: "Eras Med";
-			src: url(#application.baseUrl#/common/fonts/erasMed.woff) format("woff");
+			src: url(#application.baseUrl#common/fonts/erasMed.#fontExtension#) format("#fontExtension#");
 		}
 		@font-face {
 			font-family: "Kaufmann Script Bold";
-			src: url(#application.baseUrl#/common/fonts/kaufmannScriptBold.woff) format("woff");
+			src: url(#application.baseUrl#common/fonts/kaufmannScriptBold.#fontExtension#) format("#fontExtension#");
 		}
 	</style></cfoutput>
 <cfelse>
@@ -775,7 +1030,9 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			width: 100%;
 			height: 100%;
 			z-index: -10;
-			background: url(<cfoutput>#blogBackgroundImage#</cfoutput>) <cfoutput>#blogBackgroundImageRepeat# #blogBackgroundImagePosition#</cfoutput>;
+			background-image: url(<cfoutput>#blogBackgroundImage#</cfoutput>);
+			background-repeat: <cfoutput>#blogBackgroundImageRepeat#</cfoutput>;
+			background-position: <cfoutput>#blogBackgroundImagePosition#</cfoutput>; /* Center the image */
 			-webkit-background-size: cover;
 			-moz-background-size: cover;
 			-o-background-size: cover;
@@ -789,7 +1046,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		}
 			
 		<cfelse>body {
-			background-image: url("<cfoutput>#blogBackgroundImage#</cfoutput>");
+			background-image: url(<cfoutput>#blogBackgroundImage#</cfoutput>);
 			background-repeat: <cfoutput>#blogBackgroundImageRepeat#</cfoutput>;
 			background-position: <cfoutput>#blogBackgroundImagePosition#</cfoutput>; /* Center the image */
 			<cfif blogBackgroundImageRepeat eq "no-repeat">background-size: cover;</cfif>
@@ -800,6 +1057,11 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			/* Set the global font size. */
 			font-size: 16pt;
 		}</cfif><!---<cfif session.isMobile>--->
+				
+		/* Decrease the size of the h1 tag */
+		h1 {
+			font-size: <cfif session.isMobile>14<cfelse>18</cfif>pt;
+		}
 		
 		/* Set links */	
 		a {
@@ -892,7 +1154,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		/* Fixed navigation menu at the top of the page when the user scrolls down */
 		#fixedNavHeader {
 			position: fixed;
-			display: none;
+			display: none; /*Hidden does not work */
 			top: 0px;
 			height: <cfif kendoTheme contains 'materialblack'><cfif session.isMobile>55<cfelse>65</cfif><cfelse><cfif session.isMobile>35<cfelse>45</cfif></cfif>px;
 			width: <cfif headerBannerWidth eq '100%' or session.isMobile>100%<cfelse>var(--contentWidth)</cfif>;
@@ -914,7 +1176,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			z-index: 1;
 		}
 		<cfsilent>
-		<!--- TODO This needs to be in a function. Logic to determine what side the padding should occur when the alignBlogMenuWithBlogContent argument is true. --->
+		<!--- Logic to determine what side the padding should occur when the alignBlogMenuWithBlogContent argument is true. --->
 		<!--- Don't set any padding unless the stretchHeaderAcrossPage is true. Otherwise the header will be scrunched up in the center of the page. --->
 		<cfif stretchHeaderAcrossPage and alignBlogMenuWithBlogContent>
 			<cfif topMenuAlign eq 'left'>
@@ -938,6 +1200,11 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			/* Note: if the headerBackgroundImage is not specified, we will not use a drop shadow here */
 			<!--- If the headerBannerWidth is 100%, hard code the width value, otherwise, use the content width value --->
 			width: <cfif headerBannerWidth eq '100%'>100%<cfelse>var(--contentWidth)</cfif>;
+			/* Todo: fix the padding issue. This code does not work as the blogContent is padded which stretches the mainPanel container.
+			Match the padding of the parent container (20 or 40 pixels). 
+			padding-left: <cfif session.isMobile>20<cfelse>40</cfif>px;
+			padding-right: <cfif session.isMobile>20<cfelse>40</cfif>px;
+			*/
 			<cfif headerBackgroundImage neq ''>
 			/* Subtle drop shadow on the header banner that stretches across the page. */
 			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
@@ -969,6 +1236,8 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		/* Menu's */
 		/* the top menu is 60 pixels in height. */
 		#topMenu {	
+			/* Hide the menu on page load */
+			visibility: hidden;
 			<cfif menuBackgroundImage neq "">
 			background-color: transparent !important;
 			background-image: url('<cfoutput>#menuBackgroundImage#</cfoutput>');/* Without this, there is a white ghosting around this div. */
@@ -983,21 +1252,33 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			/* Note: an incorrect width setting will stretch the table container and skew the center allignment if not set properly. */
 		}
 		
-		#siteSearchButton {
-			/* Set the site search icon to match the blog text color */
-			color: <cfoutput>#blogNameTextColor#</cfoutput>; /* Plain white has too high of a contrast imo. */
+		/* Apply a little bit of padding to the bars icon */
+		.toggleSidebarPanelButton {
+			padding-left: 7px;
+		}
+		
+		.siteSearchButton {
+			/* Set the site search icon to match the blog text color 
+			color: <cfoutput>#blogNameTextColor#</cfoutput>; 
+			*/
 		}
 		
 		/* Remove the vertical border. The borders display a vertical line between the menu items and since we have custom images and colors on the banners, I want to remove these. */
 		.k-widget.k-menu-horizontal>.k-item {
 		  border: 0;
 		}
-				
+			
+		/* Fixed nav menu */
+		#fixedNavMenu {
+			/* Hide the menu on page load */
+			visibility: hidden;
+		}
+		
 	<cfif kendoTheme eq 'default' or kendoTheme eq 'highcontrast' or kendoTheme eq 'material' or kendoTheme eq 'silver'><!--- Both default and high contrast have the same header. Material needs to have a darker text when selecting a menu item--->
-		/* fixedNavHeader states. */
-		#fixedNavHeader.k-menu .k-state-hover,
-		#fixedNavHeader.k-menu .k-state-hover .k-link,
-		#fixedNavHeader.k-menu .k-state-border-down
+		/* fixedNavMenu states. */
+		#fixedNavMenu.k-menu .k-state-hover,
+		#fixedNavMenu.k-menu .k-state-hover .k-link,
+		#fixedNavMenu.k-menu .k-state-border-down
 		 /* 
 		.k-menu .k-state-hover, (background and selected item when hovering)
 		.k-menu .k-state-hover .k-link (background and selected item with a link when hovering)
@@ -1028,6 +1309,12 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		/* Remove the vertical border. The borders display a vertical line between the menu items and since we have custom images and colors on the banners, I want to remove these. */
 		.k-widget.k-menu-horizontal>.k-item {
 		  border: 0;
+		}
+		
+		/* Adjust the padding of the menu to try to evenly distribute the search and hamburger icons across devices. */
+		.k-menu .k-item>.k-link {
+			padding-left: <cfif session.isMobile>.7em<cfelse>1.1</cfif>;/* The default Kendo setting is 1.1em */
+			padding-right: <cfif session.isMobile>.7em<cfelse>1.1</cfif>;
 		}
 		
 		#logo {
@@ -1129,7 +1416,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		}
 
 		/* The next three classes will be used to create a calendar date placard */
-		#blogPost p.postDate {
+		.blogPost p.postDate {
 		  position: relative;
 		  width: 38px;
 		  /* The dark theme height must be increased with the dark themes otherwise the line at the bottom will not be displayed. */
@@ -1144,7 +1431,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		  border: 1px solid #fff;
 		}
 
-		#blogPost p.postDate span.month {
+		.blogPost p.postDate span.month {
 		  position: absolute;
 		  /* Set the font size to 14px */
 		  font-size: <cfif session.isMobile>0.55em<cfelse>0.70em</cfif>;
@@ -1159,7 +1446,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		  padding: 2px;
 		}
 
-		#blogPost p.postDate span.day {
+		.blogPost p.postDate span.day {
 		  /* Set the font size to 14px */
 		  font-size: <cfif session.isMobile>0.60em<cfelse>0.75em</cfif>;
 		  /* Note: the additional 'k-alt' kendo class attached to the span will set the background. The calendar image is rather dificult to control. I would not adjust these settings much. It took me a long time to get it right. */
@@ -1175,12 +1462,12 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		  position: absolute;
 		}
 
-		#blogPost p.postAuthor span.info {
+		.blogPost p.postAuthor span.info {
 		  /* margin-top: 10px; */
 		  display: block;
 		}
 
-		#blogPost p.postAuthor {
+		.blogPost p.postAuthor {
 		  /*background: transparent url(images/post-info.png) no-repeat left top;*/
 		  margin: 0 0 0 43px;
 		  padding: 0 12px;
@@ -1194,26 +1481,15 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		  line-height: 100%;
 		}
 				
-		#innerContentContainer {
+		.innerContentContainer {
 			/* Apply padding to all of the elements within a blog post. */
 			margin-top: 5px; 
 			padding-left: <cfif session.isMobile>10<cfelse>20</cfif>px; 
 			padding-right: <cfif session.isMobile>10<cfelse>20</cfif>px;
 			display:block;
 		}
-		
-		/* The calendar should have minimal padding */
-		#calendarInnerContentContainer {
-			/* Center the calendar widget */
-			text-align: center;
-			/* Apply padding to all of the elements within a blog post. */
-			margin-top:5px; 
-			margin-bottom:20px; 
-			padding-right:2px;
-			display:block;
-		}
 
-		#postContent {
+		.postContent {
 			/* Apply padding to post content. */
 			margin-top: 5px; 
 			display: block;
@@ -1221,14 +1497,29 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		
 		/* Constraining images to a max width so that they don't push the content containers out to the right */
 		.entryImage img {
-			width: 100%;
+			max-width: 100%;
 			/* Subtle drop shadow on the image layer */
 			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 		}
+		
+		/* Lazy loading image classes */
+		/* hide the element with opacity is set to 0 */
+		.fade {
+			transition: opacity 500ms ease-in-out;
+			opacity: 0;
+		}
 
+		/* show it with the 'shown' class */
+		.fade.shown {
+			opacity: 1;
+			background: 0 0;
+		}
+		
+		/* Sidebar elements */
 		#sidebar {
 			/* We are going to eliminate this sidebar for small screen sizes and mobile. */
-			display: table-cell;
+			/* todo hide this on mobile. */
+			display: <cfif session.isMobile>none<cfelse>table-cell</cfif>;
 			margin: 0;
 			/* Apply less padding to the left to keep things uniform. On mobile devices, cut the padding in half as screen real estate is not cheap. */
 			padding-top: 20px;
@@ -1243,14 +1534,14 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		
 		/* The side bar panel is essentially a duplicate of the sidbar div, however, it is a responsive panel used when the screen size gets small. */
 		#sidebarPanel {
-			/* We need to hide the sidebarPanel if the device is not mobile. Otherwise, the sidebarPanel is a flex container. */
-			display: <cfif session.isMobile>flex<cfelse>none</cfif>;
+			/* Hide the sidebarPanel */
+			visibility: hidden;
 			flex-direction: column;
 		<cfif not session.isMobile>/* On desktop, we want the sidebar panel to also scroll with the page. Otherwise, the padding that places it underneath the header is disruped and it looks wierd. */
 			position: absolute;
 		</cfif>
     		height: 100%;
-    		width: <cfif session.isMobile>275px<cfelse>40%</cfif>;
+    		width: <cfif session.isMobile>275px<cfelse>425px</cfif>;
 			-webkit-touch-overflow: scroll;
 			/* Note: the panel will not scroll with the blog content unless there is a css position: absolute. */
 			z-index: 5;
@@ -1541,6 +1832,11 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			width: 100%;
 		}
 		
+		/* Used to force a cell to only use the space that is necessary to fit it's content */
+		td.fitwidth {
+			width: 1%;
+			white-space: nowrap;
+		}
 		
 	</style>
 	<cfsilent>
@@ -1602,15 +1898,17 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	</cfsilent>
 <cfif customTopMenuHtmlTemplate eq "">
 	<header>
+	
 	<!--- This container will be displayed when the user scrolls down past the header. It is intended to allow for navigation when the user is down the page.--->
 	<div id="fixedNavHeader">
 		<cfif customTopMenuJsTemplate eq "">
-			<cfset divName = "fixedNavHeader">
+			<cfset divName = "fixedNavMenu">
 			<cfinclude template="includes/layers/topMenu.cfm">
 		<cfelse>
 			<cfmodule template="#customTopMenuJsTemplate#" />
 		</cfif>	
 	</div>
+				
 	<cfif session.isMobile>
 		<table id="headerContainer" cellpadding="0" cellspacing="0" background="<cfoutput>#headerBackgroundImage#</cfoutput>" align="center" class="flexHeader">
 		  <tr>
@@ -1620,7 +1918,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				<tr valign="middle">
 					<td id="logo" name="logo" valign="middle" width="<cfoutput>#logoMobileWidth#</cfoutput>">
 						<!---elimnate hardcoded width below. change logo to around 80 to 120px. maybe make new row.--->
-						<cfoutput><img src="#logoSourcePath#" style="padding-left: 10px;" align="left" valign="center" /></cfoutput>
+						<cfoutput><img src="#logoSourcePath#" style="padding-left: 10px;" align="left" valign="center" alt="Header Logo"/></cfoutput>
 					</td>
 					<td id="blogNameContainer">
 						<cfoutput>#htmlEditFormat(application.blog.getProperty("blogTitle"))#</cfoutput>
@@ -1628,20 +1926,17 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				</tr>
 				<tr>
 					<td id="topMenuContainer" colspan="2"><!-- Holds the menu. -->
-					  <ul id="topMenu">
-						<cfsilent>
-						<!---//**************************************************************************************************************************************************
-									Top menu javascript (controls the menu at the top of the page)
-						//***************************************************************************************************************************************************--->
-						</cfsilent>
-						<cfif customTopMenuJsTemplate eq "">
-							<cfset divName = "topMenu">
-							<cfinclude template="includes/layers/topMenu.cfm">
-							<!---<span id="siteSearchButton" class="k-icon k-i-search" style="padding-left: 10px; color: whitesmoke;" onclick="createSearchWindow();"></span>--->
-						<cfelse>
-							<cfmodule template="#customTopMenuJsTemplate#" />
-						</cfif>	
-					  </ul>
+					<cfsilent>
+					<!---//**************************************************************************************************************************************************
+								Top menu javascript (controls the menu at the top of the page)
+					//***************************************************************************************************************************************************--->
+					</cfsilent>
+					<cfif customTopMenuJsTemplate eq "">
+						<cfset divName = "topMenu">
+						<cfinclude template="includes/layers/topMenu.cfm">
+					<cfelse>
+						<cfmodule template="#customTopMenuJsTemplate#" />
+					</cfif>	
 					</td>
 			  </tr>
 			</table>
@@ -1662,7 +1957,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 					<!-- Give sufficient room for a logo. This row will bleed into the next row (rowspan="2") -->
 					<td id="logo" name="logo"  valign="middle" rowspan="2">
 						<!---elimnate hardcoded width below. change logo to around 80 to 120px. maybe make new row.--->
-						<cfoutput><img src="#logoSourcePath#" style="padding-left: 20px;" align="left" valign="center" /></cfoutput>
+						<cfoutput><img src="#logoSourcePath#" style="padding-left: 20px;" align="left" valign="center" alt="Logo"/></cfoutput>
 					</td>
 					<td id="blogNameContainer">
 						<cfoutput>#htmlEditFormat(application.blog.getProperty("blogTitle"))#</cfoutput>
@@ -1670,19 +1965,17 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				</tr>
 				<tr>
 				  <td id="topMenuContainer" height="55px"><!-- Holds the menu. -->
-					  <ul id="topMenu">
-						<cfsilent>
-						<!---//**************************************************************************************************************************************************
-									Top menu javascript (controls the menu at the top of the page)
-						//***************************************************************************************************************************************************--->
-						</cfsilent>
-						<cfif customTopMenuJsTemplate eq "">
-							<cfset divName = "topMenu">
-							<cfinclude template="includes/layers/topMenu.cfm">
-						<cfelse>
-							<cfmodule template="#customTopMenuJsTemplate#" />
-						</cfif>	
-					  </ul>
+					<cfsilent>
+					<!---//**************************************************************************************************************************************************
+								Top menu javascript (controls the menu at the top of the page)
+					//***************************************************************************************************************************************************--->
+					</cfsilent>
+					<cfif customTopMenuJsTemplate eq "">
+						<cfset divName = "topMenu">
+						<cfinclude template="includes/layers/topMenu.cfm">
+					<cfelse>
+						<cfmodule template="#customTopMenuJsTemplate#" />
+					</cfif>	
 				 </td>
 			  </tr>
 			</table>
@@ -1709,7 +2002,8 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	</cfsilent>
 	
 <cfif customBlogJsContentTemplate eq "">
-	<script>	
+	<!---Defer this script --->
+	<script type="<Cfoutput>#scriptTypeString#</cfoutput>">	
 		//**************************************************************************************************************************************************
 		// Kendo window scripts
 		//**************************************************************************************************************************************************
@@ -1729,7 +2023,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			} else if (Id == 2){
 				var windowTitle = "About Gregory Alexander";//TODO put in an owner name in the admin section.
 			} else if (Id == 3){
-				var windowTitle = "Download Gregory's Blog";
+				var windowTitle = "Download Galaxie Blog";
 			}
 
 			// Typically we would use a div outside of the script to attach the window to, however, since this is inside of a function call, we are going to dynamically create a div via the append js method. If we were to use a div outside of this script, lets say underneath the 'mainBlog' container, it would cause wierd problems, such as the page disappearing behind the window.
@@ -1745,7 +2039,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: '85%',// We must leave room if the user wants to select a bunch of categories.
 				iframe: false, // Don't use iframes unless it is content derived outside of your own site. 
-				content: "<cfoutput>#application.baseUrl#</cfoutput>/about.cfm?aboutWhat=" + Id,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>about.cfm?aboutWhat=" + Id,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -1784,6 +2078,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			// Typically we would use a div outside of the script to attach the window to, however, since this is inside of a function call, we are going to dynamically create a div via the append js method. If we were to use a div outside of this script, lets say underneath the 'mainBlog' container, it would cause wierd problems, such as the page disappearing behind the window.
 			$(document.body).append('<div id="searchWindow"></div>');
 			$('#searchWindow').kendoWindow({
+
 				title: "Search",
 				// The search window can't be set to full screen per design.
 				actions: [<cfoutput>#kendoWindowIcons#</cfoutput>],
@@ -1794,7 +2089,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: '315px',// We must leave room if the user wants to select a bunch of categories.
 				iframe: false, // Don't use iframes unless it is content derived outside of your own site. 
-				content: "<cfoutput>#application.baseUrl#</cfoutput>/search.cfm",// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>search.cfm",// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -1841,7 +2136,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: "85%",
 				iframe: false, // Don't use iframes unless it is content derived outside of your own site. 
-				content: "<cfoutput>#application.baseUrl#</cfoutput>/searchResults.cfm?searchTerm=" + searchTerm + "&category=" + category,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>searchResults.cfm?searchTerm=" + searchTerm + "&category=" + category,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -1916,7 +2211,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: windowHeight,
 				iframe: false, // Don't use iframes unless it is content derived outside of your own site. 
-				content: "<cfoutput>#application.baseUrl#</cfoutput>/addCommentSubscribe.cfm?id=" + Id + '&uiElement=' + uiElement,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>addCommentSubscribe.cfm?id=" + Id + '&uiElement=' + uiElement,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -1962,7 +2257,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: "66%",
 				iframe: true, // We must use an iframe to include the addthis library. Don't use iframes unless absolutely necessary as is the case here.
-				content: "<cfoutput>#application.baseUrl#</cfoutput>/addThis.cfm?id=" + Id,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>addThis.cfm?id=" + Id,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -2102,7 +2397,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		}//..function checkCaptcha(captchaText, captchaHash){
 
 		// Post Comment ----------------------------------------------------------------------------------------------------------------------------------------------
-		// Invoked via the addCommentSubscribe.cfm kenow window after Kendo validation occurs.
+		// Invoked via the addCommentSubscribe.cfm window after Kendo validation occurs.
 		function postCommentSubscribe(entryId, uiInterface){
 			//alert(uiInterface);
 			// Note: the subscribe functionality uses the same logic as postComment with an empty comment and a comment only flag.
@@ -2241,11 +2536,16 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		}//..function postCommentSubscribeResponse(response, uiInterface){
 						  
 		// Subscribe to the blog.  ----------------------------------------------------------------------------------------------------------------------------------------------
-		// Invoked via the addCommentSubscribe.cfm kenow window after Kendo validation occurs.
-		function subscribeToBlog(){
-			
+		// Invoked via the addCommentSubscribe.cfm window after Kendo validation occurs.
+		function subscribeToBlog(sideBarType){
+			if (sideBarType == 'div'){
+				subscribeFormName = 'subscribeViaDiv';
+			} else {
+				subscribeFormName = 'subscribeViaPanel';
+			}
+
 			// Get the email address that was typed in.
-			var email = $( "#subscriberEmail" ).val();
+			var email = $( "#" + subscribeFormName ).val();
 			// alert(email);
 			// Submit form via AJAX.
 			$.ajax({
@@ -2362,7 +2662,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<a class="fancybox-effects" href="/blog/doc/addThis/2addNewTool.png" data-fancybox-group="steps12" title="Add New Tool"><img src="/blog/doc/addThis/2addNewToolThumb.png" alt="" /></a>
 	I may build this functionality in with a new editor (one of these years...).
 	--->
-	<script type="text/javascript">
+	<script type="<Cfoutput>#scriptTypeString#</cfoutput>">
 		$(document).ready(function() {
 			
 			// Load fancyBox */
@@ -2449,7 +2749,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<div id="mainBlog" class="k-alt">
 		
 		<!--- Forms that hold state. --->
-		<!---This is the sidebar responsive navigation panel that is triggered when the screen gets to a certain size. It is a duplidate of the sidebar div above, however, I can't properly style the sidebar the way that I want to within the blog content, so it is duplicated withoout the styles here. --->
+		<!--- This is the sidebar responsive navigation panel that is triggered when the screen gets to a certain size. It is a duplicate of the sidebar div above, however, I can't properly style the sidebar the way that I want to within the blog content, so it is duplicated withoout the styles here. --->
 		<input type="hidden" id="sidebarPanelState" name="sidebarPanelState" value="initial"/>
 		
 		<div id="mainPanel" class="flexParent">
@@ -2466,11 +2766,11 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				<cfoutput query="articles">
                		<cfsilent><!---Set the entryId. We will use this to identify the rows.---></cfsilent>
                 	<cfset entryid = id>
-					<div id="blogPost" class="widget k-content">
-						<span id="innerContentContainer">
-							<h3 class="topContent">
-								<a href="#application.blog.makeLink(id)#" class="k-content">#title#</a>
-							</h3>
+					<div class="blogPost widget k-content">
+						<span class="innerContentContainer">
+							<h1 class="topContent">
+								<a href="#application.blog.makeLink(id)#" aria-label="#title#" class="k-content">#title#</a>
+							</h1>
 
 							<p class="postDate">
 								<!-- We are using Kendo's 'k-primary' class to render the primary accent color background. The primay color is set by the theme that is declared. -->
@@ -2480,42 +2780,45 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 
 							<p class="postAuthor">
 								<span class="info">
-									<cfif len(name)>by <a href="#application.blog.makeUserLink(name)#" class="k-content">#name#</a></cfif> 
+									<cfif len(name)>by <a href="#application.blog.makeUserLink(name)#" aria-label="#application.blog.makeUserLink(name)#" class="k-content">#name#</a></cfif> 
 									<cfset lastid = listLast(structKeyList(categories))>
 									<cfloop item="catid" collection="#categories#">
-									<a href="#application.blog.makeCategoryLink(catid)#" class="k-content">#categories[currentRow][catid]#</a><cfif catid is not lastid>, </cfif>
+									<a href="#application.blog.makeCategoryLink(catid)#" aria-label="#application.blog.makeCategoryLink(catid)#" class="k-content">#categories[currentRow][catid]#</a><cfif catid is not lastid>, </cfif>
 									</cfloop>
 								</span>
 							</p>
 
 							<!-- Post content --> 
-							<span id="postContent">		
-							<!--- Only constrain the blog body on mobile. --->
-							<cfif session.isMobile>
-								#application.blog.renderEntry(body,false,enclosure)#
-							<cfelse><!---<cfif session.isMobile>--->
-								<!--- Blog post (Don't use the constrainer table here- it causes problems. --->
-								#application.blog.renderEntry(body,false,enclosure)#
-							</cfif><!---<cfif session.isMobile>--->
+							<span class="postContent">	
+							<!--- Inspect the post entry  for reserved xmlKeywords. --->
+							<cfset xmlKeywords = inspectPostContentForXmlKeywords(#application.blog.renderEntry(body,false,enclosure)#)>
+							<cfif findNoCase("cfincludeTemplate", xmlKeywords) gt 0>
+								<!--- Get the path that is in the xml in the post. --->
+								<cfset cfincludeTemplatePath = getXmlKeywordValue(application.blog.renderEntry(body,false,enclosure), 'cfincludeTemplate')>
+								<!--- Include the specified template. --->
+								<cfinclude template="#cfincludeTemplatePath#">
+							</cfif>
+							<!-- And render the entry. -->
+							#application.blog.renderEntry(body,false,enclosure)#
 								
-							<!--- Handle any posts that have the content broken into two sections written in the entry editor using the '</more>' tag. This is a neat feature allows the administrator to condense the entry for the front page and create a link to the full post. --->
+							<!-- Handle any posts that have the content broken into two sections written in the entry editor using the '</more>' tag. This is a neat feature allows the administrator to condense the entry for the front page and create a link to the full post. -->
 							<cfif len(morebody) and url.mode is not "entry">
 								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#application.blog.makeLink(id)###more';">
 									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
 									<i class="fas fa-chevron-circle-down" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;More...
 								</button>
-							<!---We are looking at the actual post.--->
+							<!-- We are looking at the actual post. -->
 							<cfelseif len(morebody)>
 								#application.blog.renderEntry(morebody)#
 							</cfif>
-							</span><!--<span id="postContent">-->
+							</span><!--<span class="postContent">-->
 
 							<!---***************************************************************** Media *****************************************************************--->
 							<!--- HTML5 supported media will be handled by the jQjuery Kendo video player. Supported formats are mp4, ogv, and webm. Note: the Kendo media player is only availabe in the proffesional edition. --->
 							<cfif application.kendoCommercial and (enclosure contains ".mp4" or enclosure contains ".ogv" or enclosure contains ".webm")>
 								<div class="k-content wide">
 									<div id="mediaplayer#currentRow#" class="mediaPlayer"></div>
-									<script>
+									<script type="#scriptTypeString#">
 										$(document).ready(function () {
 
 											$("#chr(35)#mediaplayer#currentRow#").kendoMediaPlayer({
@@ -2523,7 +2826,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 												navigatable: true,
 												media: {
 													title: "#title#",
-													source: "#application.baseUrl#/enclosures/#getFileFromPath(enclosure)#"
+													source: "#application.baseUrl#enclosures/#getFileFromPath(enclosure)#"
 												}
 											});
 										});
@@ -2538,7 +2841,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 									<div id="#alternative#" class="audioPlayer">
 									</div>
 								</div>
-								<script type="text/javascript">
+								<script type="#scriptTypeString#">
 									// <![CDATA[
 										var flashvars = {};
 										// unique ID
@@ -2571,12 +2874,13 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
 									<i class="fas fa-envelope-open-text" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Subscribe
 								</button>
-
+								<cfif not addSocialMediaUnderEntry>
+								<!--- Don't display the share button when reading a single entry. --->
 								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
 									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
 									<i class="fas fa-share" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Share
 								</button>
-										
+								</cfif>		
 								<!-- The print button is not needed for mobile.-->
 								<cfif not session.isMobile>
 								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#application.rooturl#/print.cfm?id=#id#';">
@@ -2587,7 +2891,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 										
 								<p></p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
 								There are currently <cfif commentCount is "">0<cfelse>#commentCount#</cfif> comments. 
-								<cfif len(enclosure)><a href="#application.rooturl#/enclosures/#urlEncodedFormat(getFileFromPath(enclosure))#" class="k-content">Download attachment.</a></cfif>
+								<cfif len(enclosure)><a href="#application.rooturl#/enclosures/#urlEncodedFormat(getFileFromPath(enclosure))#" aria-label="Download attachment" class="k-content">Download attachment.</a></cfif>
 								<!--- Span to hold the little arrow. Note: the order of the spans in the code are different than the actual display. We need to reverse the order for proper display. We are not going to display this if there are no comments. --->
 								<cfif len(commentCount) gt 0><span id="commentControl#entryId#" class="collapse k-icon k-i-sort-desc-sm"></span>&nbsp;&nbsp;Show Comments</cfif>
 							</p> 
@@ -2610,9 +2914,9 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								 <!---Note: the URL is appended with an extra 'c' in front of the commentId.--->
 								 <tr id="c#id#" name="" class="<cfif currentRow mod 2>k-content<cfelse>k-alt</cfif>">
 								  <td class="fixedCommentTableContent">
-									 <a class="comment-id" href="#application.blog.makeLink(entryid)###c#id#" class="k-content">###currentRow#</a> by <b>
+									 <a class="comment-id" href="#application.blog.makeLink(entryid)###c#id#" aria-label="Comment by #name#" class="k-content">###currentRow#</a> by <b>
 									 <cfif len(comments.website)>
-										<a href="#comments.website#" rel="nofollow">#name#</a>
+										<a href="#comments.website#" aria-label="#name#" rel="nofollow">#name#</a>
 									 <cfelse>
 										#name#
 									 </cfif></b> 
@@ -2620,7 +2924,8 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								  </td>
 								 <tr class="<cfif currentRow mod 2>k-content<cfelse>k-alt</cfif>">
 									<td>
-										<img src="http://www.gravatar.com/avatar/#lcase(hash(lcase(email)))#?s=64&amp;r=pg&amp;d=#application.rooturl#/images/defaultAvatar.gif" title="#name#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"/>
+
+										<img src="http://www.gravatar.com/avatar/#lcase(hash(lcase(email)))#?s=64&amp;r=pg&amp;d=#application.rooturl#/images/defaultAvatar.gif" title="#name#'s Gravatar" alt="#name#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"  />
 										#paragraphFormat2(replaceLinks(comment))#
 									</td>
 								 </tr>
@@ -2653,16 +2958,28 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 							<h3 class="topContent">Related Entries</h3>
 							<ul id="relatedEntriesList">
 							<cfloop query="qRelatedBlogEntries">
-							<li><a href="#application.blog.makeLink(entryId=qRelatedBlogEntries.id)#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#qRelatedBlogEntries.title#</a></li>
+							<li><a href="#application.blog.makeLink(entryId=qRelatedBlogEntries.id)#" aria-label="#qRelatedBlogEntries.title#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#qRelatedBlogEntries.title#</a></li>
 							</cfloop>			
 							</ul>
 							</div>
 						</cfif>
 
-						</span><!---<span id="innerContentContainer">--->
-					</div><!---<div id="blogPost">--->
+						</span><!---<span class="innerContentContainer">--->
+					</div><!---<div class="blogPost">--->
 				</cfoutput><!---<cfoutput query="articles">--->
-				<a href="#chr(35)#" id="pagerAnchor"></a>
+				<a href="#chr(35)#" id="pagerAnchor" aria-label="Pager+"></a>
+				<cfsilent>
+				<!--- ***********************************************************************************************************
+					Add social media icons when there is only one entry
+				*************************************************************************************************************--->
+				</cfsilent>
+				<cfif addSocialMediaUnderEntry>
+				<p class="bottomContent">
+					<!-- Go to www.addthis.com/dashboard to customize your tools --> 
+					<script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=<cfoutput>#application.addThisApiKey#</cfoutput>"></script>
+					<div class="addthis_inline_share_toolbox"></div>
+				</p>
+				</cfif>
 				<cfsilent>
 				<!--- ***********************************************************************************************************
 					Pagination
@@ -2694,7 +3011,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 					</cfsilent>
 					<cfoutput>
 						<div id="pager" data-role="pager" class="k-pager-wrap k-widget k-floatwrap k-pager-lg">
-						<script>
+						<script  type="#scriptTypeString#">
 							// Create the datasource with the URL
 							var pagerDataSource = new kendo.data.DataSource({
 							data: [<cfset thisStartRow = 0><!--- Loop through the pages. ---><cfloop from="1" to="#totalPages#" index="page"><cfset thisLink = queryString & "&startRow=" & thisStartRow & "&page=" & page>
@@ -2728,18 +3045,17 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 							}
 						</script>
     					</div>
-				
 					</cfoutput>
 				</cfif>
 				
 				<!--- ***************************** Logic to display content when no data is found (ie when a user clicks on the wrong date) *****************************--->
 				<cfif articles.recordcount eq 0>
-					<div id="blogPost" class="widget k-content" style="font-weight: bold;">
-						<span id="innerContentContainer">
-							<h3 class="topContent">
+					<div class="blogPost widget k-content" style="font-weight: bold;">
+						<span class="innerContentContainer">
+							<h1 class="topContent">
 								No Entries
-							</h3> 
-							<span id="postContent">
+							</h1> 
+							<span class="postContent">
 							<cfif url.mode is "day">
 								There are no entries for the selected dates. Please select a highlighted date in the calendar control.
 								<!---Kind of a hack. Fill the div, otherwise the side content will push to the left (see float left comment near the top of the page.)--->
@@ -2759,17 +3075,15 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 							</cfif>
 							<br/><br/>
 							</span>
-						</span><!---<span id="innerContentContainer">--->
-					</div><!---<div id="blogPost">--->
+						</span><!---<span class="innerContentContainer">--->
+					</div><!---<div class="blogPost">--->
 				</cfif><!---<cfif articles.recordcount eq 0>--->
-
 			</div><!---blogContent--->
 			
 			<!--- Side bar is to the right of the main panel container. It is also used as a responsive panel below when the screen size is small. --->
 			<div id="sidebar">
 				<!---Suppply the sideBarType argument before loading the side bar--->
-				<cfset sideBarType = "div">
-				<cfinclude template="includes/layers/sidebar.cfm">
+				<cfmodule template="includes/layers/sidebar.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#" kendoTheme="#kendoTheme#" darkTheme="#darktheme#">
 			</div><!---<nav id="sidebar">--->
 			
 		</div><!---<div class="mainPanel hiddenOnNarrow">--->
@@ -2785,39 +3099,64 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<nav id="sidebarPanel" class="k-content">
 		<div id="sidebarPanelWrapper" name="sidebarPanelWrapper" class="flexScroll">
 			<!---Suppply the sideBarType argument before loading the side bar--->
-			<cfset sideBarType = "panel">
-			<cfinclude template="includes/layers/sidebar.cfm">
+			<cfmodule template="includes/layers/sidebar.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#" kendoTheme="#kendoTheme#" darkTheme="#darktheme#">
 		</div>
 	</nav><!---<nav id="sidebar">--->
 
 	<!--- This script must be placed underneath the layer that is being used in order to effectively work as a flyout menu.--->
-	<script>
-		$("#sidebarPanel").kendoResponsivePanel({
-			// On mobile devices, always achieve the breakpoint (50,000 pixels should do it!), otherwise, activate the panel at 1300 pixels. Note: in this implementation, if this screen size matches the breakpoint, the responsive panel is open by default which looks really odd. I am choosing a screen size that is not normal here, ie 1300.
-			breakpoint: breakpoint,
-			orientation: "left",
-			autoClose: true,
-			open: onSidebarOpen,
-			close: onSidbarClose
-		})
-		//.on("click", "a", function(e) {
-			//$("#sidebarPanel").kendoResponsivePanel("close");
-		//});
+	<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+		$(document).ready(function() {	
+			$("#sidebarPanel").kendoResponsivePanel({
+				// On mobile devices, always achieve the breakpoint (50,000 pixels should do it!), otherwise, use the breakpoint setting that is defined in the administrative interface.
+				breakpoint: breakpoint,
+				orientation: "left",
+				autoClose: false,// Note: autoclose true will yield unexpected results as it will take over the manually coded logic to close. 
+				open: onSidebarOpen,
+				close: onSidbarClose
+			})
+		});//..document.ready
 		
 		function onSidebarOpen(){
 			// Change the value of the hidden input field to keep track of the state. We need some lag time and need to wait half of a second in order to allow the form to be changed, otherwise, we can't keep an accurate state and the panel will always think that the panel is closed and always open when you click on the button.
-			setTimeout(function() {
-			  $('#sidebarPanelState').val("open");
-			}, 500);
+			// Display the sidebar 
+			$('#sidebarPanel').fadeTo(0, 500, function(){
+				$('#sidebarPanel').css('visibility','visible'); 
+				// Set the state
+				$('#sidebarPanelState').val("open");
+			}); // duration, opacity, callback
 		}
-		// Event handler for close event
+		
+		// Event handler for close event for mobile devices. Note: this is not consumed with desktop devices.
 		function onSidbarClose(){
-			// Change the value of the hidden input field to keep track of the state.
-			setTimeout(function() {
-			  $('#sidebarPanelState').val("closed");
-			}, 500);
+			// Hide the sideBar
+			$('sidebarPanel').css("visibility", "hidden"); 
+			$('#sidebarPanel').fadeTo(500, 0, function(){
+				// Change the value of the hidden input field to keep track of the state.
+				$('#sidebarPanelState').val("closed");
+			}); // duration, opacity, callback
 		};
 
+		// Function to open the side bar panel. We need to have the name of the div that is consuming this in order to adjust the top padding.
+		function toggleSideBarPanel(layer){
+			// Determine if we should open or close the sidebar.
+			if (getSidebarPanelState() == 'open'){
+				// On desktop, set visibility to hidden, otherwise there will be an animation on desktop devices that just looks wierd.
+				if (!isMobile){
+					$('#sidebarPanel').css("visibility", "hidden"); 
+				}
+				// Close the sidebar
+				$("#sidebarPanel").kendoResponsivePanel("close");
+				// Change the value of the hidden input field to keep track of the state.
+				$('#sidebarPanelState').val("closed");
+			} else { //if ($('#sidebarPanel').css('display') == 'none'){ 
+				// Set the padding.
+				setSidebarPadding(layer);
+				// Open the sidebar
+				$("#sidebarPanel").kendoResponsivePanel("open");
+			}//if ($('#sidebarPanel').css('display') == 'none'){ 
+		}
+		
+		// Sidebar helper functions.
 		function getSidebarPanelState(){
 			// Note: There is no way to automatically get the state, so I am toggling a hidden form with the state using the onSideBarOpen and close. Also, when the user clicks on the button the first time, there will be an error 'Uncaught TypeError: Cannot read property 'style' of undefined', so we will put this in a try block and iniitialize the panel if there is an error. 
 			
@@ -2836,9 +3175,8 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			}
 			return sidebarPanelState;
 		}
-
-		// Function to open the side bar panel. We need to have the name of the div that is consuming this in order to adjust the top padding.
-		function toggleSideBarPanel(layer){
+		
+		function setSidebarPadding(layer){
 			if (layer == 1){// The topMenu element is invoking this method.
 				// Set the margin (its different between mobile and desktop).
 				if (isMobile){
@@ -2868,32 +3206,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				// Set the margin-top css property. We want this underneath the calling menu.
 				$('#sidebarPanel').css('margin-top', marginTop);
 			}
-			
-			// Now that the padding is set, activate the sideBarPanel and open it.
-			if (getSidebarPanelState() == 'open'){ 
-					$("#sidebarPanel").kendoResponsivePanel("close");
-			} else { //if ($('#sidebarPanel').css('display') == 'none'){ 
-					$("#sidebarPanel").kendoResponsivePanel("open");
-			}//if ($('#sidebarPanel').css('display') == 'none'){ 
-		}
-
-		// Important note: this is a workaround with a google chrome bug and mobile devices. 
-		// This prevents the following error: "Intervention] Unable to preventDefault inside passive event listener due to target being treated as passive."
-		// See https://github.com/telerik/kendo-ui-core/issues/3556
-		$(".k-rpanel-toggle").on("touchstart", function(e) { 
-			e.preventDefault();
-		});
-		
-		$(".k-rpanel-toggle").on("touchend", function(e) { 
-			e.preventDefault();
-		});
-
-		// This is only used on the desktop app for now.
-		$(".k-rpanel-toggle").on("click", function(e) { 
-			setTimeout(function() {
-				toggleSideBarPanel('topMenu');
-			}, 100);
-		});
+		}//..function setSidebarPadding(layer){
 
 	</script>
 
@@ -2912,25 +3225,25 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<br/><br/><br/>
 	<div id="footerDiv" name="footerDiv" class="k-content">
 		<span id="footerInnerContainer">
-			<img src="<cfoutput>#application.baseUrl#</cfoutput>/images/logo/gregoryAlexanderLogo125_190.png" />
+			<img src="<cfoutput>#application.baseUrl#</cfoutput>images/logo/gregoryAlexanderLogo125_190.png" alt="Footer Logo"/>
 			
 			<h4 style="display: block; margin-left: auto; margin-right: auto;">Your input and contributions are welcomed!</h4>
 			<p>If you have an idea, BlogCfc based code, or a theme that you have built using this site that you want to share, please contribute by making a post here or share it by contacting us! This community can only thrive if we continue to work together.</p>
 
 			<h4>Images and Photography:</h4>
-			<p>Gregory Alexander either owns the copyright, or has the rights to use, all images and photographs on the site. If an image is not part of the "Gregory's Blog" open sourced distribution package, and instead is part of a personal blog post or a comment, please contact us and the author of the post or comment to obtain permission if you would like to use a personal image or photograph found on this site.</p>
+			<p>Gregory Alexander either owns the copyright, or has the rights to use, all images and photographs on the site. If an image is not part of the "Galaxie Blog" open sourced distribution package, and instead is part of a personal blog post or a comment, please contact us and the author of the post or comment to obtain permission if you would like to use a personal image or photograph found on this site.</p>
 			
 			<h4>Credits:</h4>
 			<p>
-				Portions of Gregory's Blog are powered on the server side by BlogCfc, an open source blog developed by <a href="https://www.raymondcamden.com/" <cfif darkTheme>style="color:whitesmoke"</cfif>>Raymond Camden</a>. Revitalizing BlogCfc was a part of my orginal inspiration that prompted me to design this site. Some of the major open source contributers to BlogCfc include:
+				Portions of Galaxie Blog are powered on the server side by BlogCfc, an open source blog developed by <a href="https://www.raymondcamden.com/" <cfif darkTheme>style="color:whitesmoke"</cfif>>Raymond Camden</a>. Revitalizing BlogCfc was a part of my orginal inspiration that prompted me to design this site. Some of the major open source contributers to BlogCfc include:
 				<ol>
 					<li>Peter Farrell: the author of 'Lyla Captcha' that is used on this blog.</li>
-					<li><a href="https://www.petefreitag.com/" <cfif darkTheme>style="color:whitesmoke"</cfif>>Pete Freitag</a>: the author of the 'ColdFish' code formatter that is also used on this blog. </li>
+					<li><a href="https://www.petefreitag.com/" aria-label="Pete Freitag and ColdFish" <cfif darkTheme>style="color:whitesmoke"</cfif>>Pete Freitag</a>: the author of the 'ColdFish' code formatter that is also used on this blog. </li>
 				</ol>
 			</p>
 			<h4>Version:</h4>
 			<p>
-				Gregory's Blog Version <cfoutput>#application.blog.getVersion()#</cfoutput> July 25th, 2019.
+				Galaxie Blog Version <cfoutput>#application.blog.getVersion()#</cfoutput>
 			</p>
 		</span>
 	</div>
@@ -2945,21 +3258,30 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 <br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>
 			
 <!--- Include tail end scripts. --->
-<!-- Scroll magic and other green sock plugins. -->
-<cfif includeGsap>
-<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/greenSock/src/uncompressed/TweenMax.js"></script>
-<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/scrollMagic/scrollmagic/uncompressed/ScrollMagic.js"></script>
-<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/scrollMagic/scrollmagic/uncompressed/plugins/animation.gsap.js"></script>
-<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/greenSock/src/uncompressed/plugins/ScrollToPlugin.js"></script>
-<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/scrollMagic/scrollmagic/uncompressed/plugins/debug.addIndicators.js"></script>
-</cfif>
+<script>
+	// Lazy load the images.
+	deferimg('img.fade', 100, 'lazied', function(img) {
+		img.onload = function() {
+			img.className+=' shown';
+		}
+	});
+</script>
+						
+<!--- When the page has been loaded, fade in the menu's. --->
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+	setTimeout(function() {
+		$('#topMenu').css('visibility', 'visible');
+		// And show the fixed nav menu
+		$('#fixedNavMenu').css('visibility', 'visible');
+	}, 500);
+</script>
 <cfsilent>
 <!-- Custom sroll magic js (and custom kendo notifications from my extended notification UI library) -->
 <!---<script src="/common/js/scrollMagic/mainSceneNew.js"></script>--->
 <!--- The delicate arch script --->
 <!---<script src="/common/js/scrollMagic/delicateArch.js"></script>--->
 <!--- Prism is intended to be our new code renderer in a later version. 
-<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/prism/prism.js"></script>
+<script src="<cfoutput>#application.baseUrl#</cfoutput>common/libs/prism/prism.js"></script>
 --->
 </cfsilent>
 </body>

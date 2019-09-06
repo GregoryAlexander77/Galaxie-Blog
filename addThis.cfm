@@ -283,6 +283,13 @@ I have redesigned the page from here to include the entire logic for the present
 		display:block;
 	}
 	
+	/* Constraining images to a max width so that they don't push the content containers out to the right */
+	.entryImage img {
+		max-width: 100%;
+		/* Subtle drop shadow on the image layer */
+		box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+	}
+	
 	/* mainBlog title bar */
 	.widget h3.topContent {
 		padding-top: 0px;

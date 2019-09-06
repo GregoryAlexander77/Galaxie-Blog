@@ -1,7 +1,7 @@
 <cf_layout title="Welcome!">
 
 <p>
-Welcome to the Gregory's Blog Installer. This application will attempt to setup Gregory's Blog so you can immediately begin using it. Before getting started, there are a few things you should know:
+Welcome to the Galaxie Blog Installer. This application will attempt to setup Galaxie Blog so you can immediately begin using it. Before getting started, there are a few things you should know:
 </p>
 
 <p>
@@ -9,12 +9,12 @@ First, the installer will not be able to create the DSN or database for you. You
 </>
 
 <p>
-After the installer creates or selects the DSN, it will then attempt to run the install SQL script. If you have existing tables in the database this might create a conflict. In general you should install Gregory's Blog into an empty database.
+After the installer creates or selects the DSN, it will then attempt to run the install SQL script. If you have existing tables in the database this might create a conflict. In general you should install Galaxie Blog into an empty database.
 </p>
 
 <p>
 The last thing the installer will do is prompt you for some basic settings, like your email address, the name of the blog, etc. Once done with this step the installer is going to edit itself so it cannot be run again. <b>This is intentional.</b> Instructions
-on how to run the installer again may be found in the core Gregory's Blog documentation.
+on how to run the installer again may be found in the core Galaxie Blog documentation.
 </p>
 
 <p>

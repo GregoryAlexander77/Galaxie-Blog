@@ -1,0 +1,28 @@
+@charset "utf-8";
+/* CSS Document */
+/* Special fonts */
+@font-face {
+	font-family: "Eras Light";
+	src: url(#application.baseUrl#/common/fonts/erasLight.woff) format("woff");
+}
+@font-face {
+	font-family: "Eras Book";
+	src: url(#application.baseUrl#/common/fonts/erasBook.woff) format("woff");
+}
+@font-face {
+	font-family: "Eras Bold";
+	src: url(#application.baseUrl#/common/fonts/erasBold.woff) format("woff");
+}			
+@font-face {
+	font-family: "Eras Demi";
+	src: url(#application.baseUrl#/common/fonts/erasDemi.woff) format("woff");
+}
+@font-face {
+	font-family: "Eras Med";
+	src: url(#application.baseUrl#/common/fonts/erasMed.woff) format("woff");
+}
+@font-face {
+	font-family: "Kaufmann Script Bold";
+	src: url(#application.baseUrl#/common/fonts/kaufmannScriptBold.woff) format("woff");
+}
+

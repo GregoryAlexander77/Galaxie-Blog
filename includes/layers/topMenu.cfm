@@ -1,94 +1,73 @@
 							<cfsilent><!--- 
 							Needed arguments: session.isMobile (true/false)
-							divName: either topMenu or fixedNavHeader
+							divName: either topMenu or fixedNavMenu
 							This menu is used on two different div's, and each div has a different menu script for mobile and desktop. 
-							We need to set a numeric value to determine what div is calling the toggleSideBarPanel javascript menu as our "javascript:toggleSideBarPanel('divName'); statement is failing with a single qouted string. Send 1 for topManu, and 2 for the fixedNavHeader.
+							We need to set a numeric value to determine what div is calling the toggleSideBarPanel javascript menu as our "javascript:toggleSideBarPanel('divName'); statement is failing with a single qouted string. Send 1 for topManu, and 2 for the fixedNavMenu.
 							--->
 							<cfif divName eq 'topMenu'>
 								<cfset layerNumber = 1>
-							<cfelseif divName eq 'fixedNavHeader'>
+							<cfelseif divName eq 'fixedNavMenu'>
 								<cfset layerNumber = 2>
 							</cfif>
 							</cfsilent>
-							<script>
-								// Convert the ColdFusion divName variable into something that we can use in javascript. We'll use this to determine what icons to place in the menu.
-								topMenuDivName = "#<cfoutput>#divName#</cfoutput>";
-								
-								// Mobile clients will have the search and hamburger icons automatically whereas the desktop clients will only show the hamburger icon when the screen width exceeds the breakpoint value.
-								if (isMobile || $(window).width() <= breakpoint){
-									
-									$("#<cfoutput>#divName#</cfoutput>").kendoMenu({
-										dataSource: [
-											// Note: the first menu option should not have spaces if you want the menu to be aligned with the blog text.
-											{
-												text: "Menu",
-												items: [
-													<cfif divName eq 'fixedNavHeader'>{ text: "Top", spriteCssClass: "fa fa-arrow-circle-up", url: "javascript:scrollToTop();" },</cfif>
-													{ text: "<cfoutput>#htmlEditFormat(application.blog.getProperty("blogTitle"))#</cfoutput>", url: "<cfoutput>#application.rootUrl#</cfoutput>" }<cfif application.parentSiteName neq '' and application.parentSiteLink neq ''></cfif>,
-													<cfif application.parentSiteName neq '' and application.parentSiteLink neq ''>{ text: "<cfoutput>#application.parentSiteName#</cfoutput>", url: "<cfoutput>#application.parentSiteLink#</cfoutput>" },</cfif>
-													{ text: "Contact", url: "<cfoutput>#application.baseUrl#</cfoutput>/?contact"}<cfif divName eq 'fixedNavHeader'>,</cfif>
-													<cfif divName eq 'fixedNavHeader'>{ text: "Bottom", spriteCssClass: "fa fa-arrow-circle-down", url: "javascript:scrollToBottom();" }</cfif>
-												]
-											},
-											{
-												text: "About", 
-												items: [
-													{ text: "About this Blog", url: "javascript:createAboutWindow(1);" },
-													{ text: "Personal Biography", url: "javascript:createAboutWindow(2);" },
-													{ text: "Download", url: "javascript:createAboutWindow(3);" },
-												]
-											},
-											{
-												text: "Themes",
-												items: [
-													<cfset themeLoopCount=1><cfloop list="#application.defaultKendoThemes#" index="defaultKendoTheme"><cfoutput>
-													{ text: "#listGetAt(application.customThemeNames,themeLoopCount)#", url: "#application.baseUrl#?theme=#defaultKendoTheme#"},<cfset themeLoopCount=themeLoopCount+1></cfoutput></cfloop>
-												]
-											},
-											{ text: "", spriteCssClass: "fa fa-search", url: "javascript:createSearchWindow();"},
-											{ text: "", spriteCssClass: "fa fa-bars", url: "javascript:toggleSideBarPanel(<cfoutput>#layerNumber#</cfoutput>);" }
-										]//..dataSource: [
-									});//..$("#topMenu").kendoMenu({
-																				   
-								} else { //..if (isMobile || $(window).width() <= breakpoint){
-
-									$("#<cfoutput>#divName#</cfoutput>").kendoMenu({
-										dataSource: [
-											// Note: the first menu option should not have spaces if you want the menu to be aligned with the blog text.
-											{
-												text: "Menu",
-												items: [
-													<cfif divName eq 'fixedNavHeader'>{ text: "Top", spriteCssClass: "fa fa-arrow-circle-up", url: "javascript:scrollToTop();" },</cfif>
-													{ text: "<cfoutput>#htmlEditFormat(application.blog.getProperty("blogTitle"))#</cfoutput>", url: "<cfoutput>#application.rootUrl#</cfoutput>" }<cfif application.parentSiteName neq '' and application.parentSiteLink neq ''></cfif>,
-													<cfif application.parentSiteName neq '' and application.parentSiteLink neq ''>{ text: "<cfoutput>#application.parentSiteName#</cfoutput>", url: "<cfoutput>#application.parentSiteLink#</cfoutput>" },</cfif>
-													{ text: "Contact", url: "<cfoutput>#application.baseUrl#</cfoutput>/?contact"}<cfif divName eq 'fixedNavHeader'>,</cfif>
-													<cfif divName eq 'fixedNavHeader'>{ text: "Bottom", spriteCssClass: "fa fa-arrow-circle-down", url: "javascript:scrollToBottom();" }</cfif>
-												]
-											},
-											{
-												text: "About", 
-												items: [
-													{ text: "About this Blog", url: "javascript:createAboutWindow(1);" },
-													{ text: "Personal Biography", url: "javascript:createAboutWindow(2);" },
-													{ text: "Download", url: "javascript:createAboutWindow(3);" },
-												]
-											},
-											{
-												text: "Themes",
-												items: [
-													<cfset themeLoopCount=1><cfloop list="#application.defaultKendoThemes#" index="defaultKendoTheme"><cfoutput>
-													{ text: "#listGetAt(application.customThemeNames,themeLoopCount)#", url: "#application.baseUrl#?theme=#defaultKendoTheme#"},<cfset themeLoopCount=themeLoopCount+1></cfoutput></cfloop>
-												]
-											}<cfif divName eq 'fixedNavHeader'>,
-											{ text: "", spriteCssClass: "fa fa-search", url: "javascript:createSearchWindow();"},
-											{ text: "", spriteCssClass: "fa fa-bars", url: "javascript:toggleSideBarPanel(<cfoutput>#layerNumber#</cfoutput>);" }
-											</cfif>
-										]//..dataSource: [
-									});//..$("#topMenu").kendoMenu({
-	
-								}//..if (isMobile || $(window).width() <= breakpoint){
+								<ul id="<cfoutput>#divName#</cfoutput>">
+								<li class="toggleSidebarPanelButton">
+									<a href="javascript:toggleSideBarPanel(<cfoutput>#layerNumber#</cfoutput>)" aria-label="Menu"><span class="fa fa-bars"></span></a>
+								</li>
+								<li>
+									Menu
+									<ul>
+										<!--- Note: the first menu option should not have spaces if you want the menu to be aligned with the blog text. --->
+										<cfif divName eq 'fixedNavMenu'><li onclick="javascript:scrollToTop();"><span class="fa fa-arrow-circle-up"></span> Top</li></cfif>
+										<li><a href="http://www.gregoryalexander.com/blog/">Gregory's Blog</a></li>
+										<li><a href="http://www.gregoryalexander.com/">Gregory Alexander Web Design</a></li>
+										<li><a href="http://www.gregoryalexander.com/blog/?contact">Contact</a></li>
+										<cfif divName eq 'fixedNavMenu'><li onclick="javascript:scrollToBottom();"><span class="fa fa-arrow-circle-down"></span> Bottom</li></cfif>
+									</ul>
+								</li>
+								<li>
+									About
+									<ul>
+										
+										<li><a href="javascript:createAboutWindow(1);">About this Blog</a></li>
+										<li><a href="javascript:createAboutWindow(2);">Personal Biography</a></li>
+										<li><a href="javascript:createAboutWindow(3);">Download</a></li>
+									</ul>
+								</li>
+								<li>
+									Themes
+									<ul>
+										<cfset themeLoopCount=1><cfloop list="#application.defaultKendoThemes#" index="defaultKendoTheme"><cfoutput><li><a href="#application.baseUrl#?theme=#defaultKendoTheme#">#listGetAt(application.customThemeNames,themeLoopCount)#</a></li>
+									<cfset themeLoopCount=themeLoopCount+1></cfoutput></cfloop>
+									</ul>
+								</li>
+								<li class="siteSearchButton">
+									<cfsilent>
+									<!--- Set the font size of the search and menu icons. This logic sets the icons to be (2 for desktop, 0 for mobile) tenths of a percentage less than the font size of the menu font's above. --->
+									<cfif kendoTheme eq 'office365'>
+										<cfif session.isMobile>
+											<cfset searchAndMenuFontSize = ".75em">
+										<cfelse>
+											<cfset searchAndMenuFontSize = ".8em">
+										</cfif>
+									<cfelse>
+										<cfif session.isMobile>
+											<cfset searchAndMenuFontSize = "1em">
+										<cfelse>
+											<cfset searchAndMenuFontSize = ".8em">
+										</cfif>
+									</cfif>
+									</cfsilent>
+									<a href="javascript:createSearchWindow();" aria-label="Search"><span class="fa fa-search" style="font-size:<cfoutput>#searchAndMenuFontSize#</cfoutput>"></span></a>
+								</li>
+							</ul>
+							<script type="<Cfoutput>#scriptTypeString#</cfoutput>">
+								$(document).ready(function() {	
+									$("#<cfoutput>#divName#</cfoutput>").kendoMenu();
+								});//..document.ready
 							</script>
-							<cfif session.isMobile or divName eq 'fixedNavHeader'>							
+
+							<cfif session.isMobile or divName eq 'fixedNavMenu'>							
 							<style>
 							  .k-sprite {
 								text-indent: 0;

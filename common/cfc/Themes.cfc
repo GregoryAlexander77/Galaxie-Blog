@@ -1054,7 +1054,7 @@
 				<!--- The sidebar is where the BlogCfc 'pods' are (calendar, subscribe, etc). The sidebar container width does not exist in the mobile design. Instead, it is a responsive panel. --->
 				<cfset sideBarContainerWidth = "35">
 				<!--- What is the base url path to the themes background image? Note: this can also be blank if you don't want to assign an image. --->
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/gregoryAlexander/weepingRock" & backgroundImageResolution & ".jpg">
+				<cfset blogBackgroundImage= "images/background/gregoryAlexander/weepingRock" & backgroundImageResolution & ".jpg">
 				<!--- Do you want the blogBackgroundImage to repeat across the screen? The default value is false, however, you may set this to true if you want to assign a small background as a pattern. See https://www.w3schools.com/cssref/pr_background-repeat.asp. --->
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<!--- Set the background image position. See https://www.w3schools.com/cssref/pr_background-position.asp for a full description. --->
@@ -1066,15 +1066,15 @@
 				<!--- Top menu alignment. This aligns the menu *inside* of the header. The top menu contains the logo as well as the menu scripts and search button. Accepted values are left, center, and right.--->
 				<cfset topMenuAlign = "left"><!---Either left, center, or right--->
 				<!--- The header background image. You can also leave this blank if you want the blogBackgroundImage to be shown instead of a colored banner on the header. If you choose to leave this blank and not display a colored banner, also leave the menuBackgroundImage blank, otherwise, a ghosted colored bar will be displayed. Note: I put a gradient on the banner image, however, the top of the image, which is darker than the bottom, can't be used for the menu as it will look off. So I am separating the background images for the banner and the menu. --->
-				<cfset headerBackgroundImage = application.baseUrl & "/images/bg/redSatinSmallGradient130.png">
+				<cfset headerBackgroundImage = "images/bg/redSatinSmallGradient130.png">
 				<!--- The background image for the top menu. This should be a consistent color and not gradiated. --->
-				<cfset menuBackgroundImage = application.baseUrl & "/images/bg/redSatinSmall130.png">
+				<cfset menuBackgroundImage = "images/bg/redSatinSmall130.png">
 				<!--- This setting determines if the whole image should be shown on screen, or if the image should be captured from the left until the image is cut off at the end of the screen. Essentially, setting this to true set the image width to be 100%, whereas setting this to false will left justify the image and cut off any overflow. The resolution is quite high, so setting this to false will cut off the right part of most of the images. --->
 				<cfset coverKendoMenuWithMenuBackgroundImage = true>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoZionMobileTheme.gif"><!---newMountainMobile.gif, logoOrangeBgMobile.gif--->
+				<cfset logoImageMobile = "images/logo/logoZionMobileTheme.gif"><!---newMountainMobile.gif, logoOrangeBgMobile.gif--->
 				<!--- What is the width of the mobile logo? Set as narrow as possible in order to fit the blog name text to the right of the logo. --->
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoZionThemeOs.gif">
+				<cfset logoImage = "images/logo/logoZionThemeOs.gif">
 				<!--- Logo Padding. The most important setting here is logoPaddingRight which gives space between the logo and the blog text and menu. I have designed the logo image with padding on the right to take care of this without applying this setting. Padding top left and bottom can be used to fine tune the placement of the logo but I am not using them currently in my theme designs. --->
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
@@ -1083,7 +1083,7 @@
 				<!--- The color of the blog name that is shown (ie 'Gregory's Blog'). The color may be different than white when you use a light custom header. This setting also affects the menu text color. --->
 				<cfset blogNameTextColor = "whitesmoke">
 				<!--- This is the divider between the header and the body. It is an optional argument. --->
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. You should *not* change these settings unless you have created a custom kendo theme (you can create one easily enough using the Kendo theme builder at https://demos.telerik.com/kendo-ui/themebuilder/). --->
 				<!--- Where is the Kendo common css file located? Note: other than material black, office 365, and fiori, all of the the other less based themes are included in the common.min.css file. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
@@ -1102,24 +1102,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/nasa/orionNebula" & backgroundImageResolution & ".jpg">
+				<cfset blogBackgroundImage= "images/background/nasa/orionNebula" & backgroundImageResolution & ".jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center center">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = true>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/bg/redSatinSmallGradient130.png">
-				<cfset menuBackgroundImage = application.baseUrl & "/images/bg/redSatinSmall130.png">
+				<cfset headerBackgroundImage = "images/bg/redSatinSmallGradient130.png">
+				<cfset menuBackgroundImage = "images/bg/redSatinSmall130.png">
 				<cfset coverKendoMenuWithMenuBackgroundImage = true>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoHighContrastMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoHighContrastMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoHighConstrastThemeOs.gif">
+				<cfset logoImage = "images/logo/logoHighConstrastThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1134,24 +1134,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/hubble/pillarsOfCreation" & backgroundImageResolution & ".jpg">
+				<cfset blogBackgroundImage= "images/background/hubble/pillarsOfCreation" & backgroundImageResolution & ".jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center center">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = false>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/pillarsSmallGradient140.png">
+				<cfset headerBackgroundImage = "images/header/pillarsSmallGradient140.png">
 				<cfset menuBackgroundImage = "">
 				<cfset coverKendoMenuWithMenuBackgroundImage = false>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoBlackMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoBlackMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoBlackThemeOs.gif">
+				<cfset logoImage = "images/logo/logoBlackThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1166,24 +1166,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/nasa/bluePlanet" & backgroundImageResolution & ".jpg">
+				<cfset blogBackgroundImage= "images/background/nasa/bluePlanet" & backgroundImageResolution & ".jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center top">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = true>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/midnightBlueSmallGradient130.png">
+				<cfset headerBackgroundImage = "images/header/midnightBlueSmallGradient130.png">
 				<cfset menuBackgroundImage = "">
 				<cfset coverKendoMenuWithMenuBackgroundImage = false>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoBlueOpalMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoBlueOpalMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoBlueOpalThemeOs.gif">
+				<cfset logoImage = "images/logo/logoBlueOpalThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1198,24 +1198,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/nasa/bahamaBank" & backgroundImageResolution & ".jpg">
+				<cfset blogBackgroundImage= "images/background/nasa/bahamaBank" & backgroundImageResolution & ".jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center top">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = false>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/midnightBlueSmallGradient130.png">
+				<cfset headerBackgroundImage = "images/header/midnightBlueSmallGradient130.png">
 				<cfset menuBackgroundImage = "">
 				<cfset coverKendoMenuWithMenuBackgroundImage = false>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoFlatMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoFlatMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoFlatThemeOs.gif">
+				<cfset logoImage = "images/logo/logoFlatThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1230,24 +1230,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/gregoryalexander/purchased/blueWave" & backgroundImageResolution & ".jpg">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/purchased/blueWave" & backgroundImageResolution & ".jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center center">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = false>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/BlueWaveSmallGradient140.png">
-				<cfset menuBackgroundImage = application.baseUrl & "/images/header/blueWaveLightMenuBackgroundImage.png">
+				<cfset headerBackgroundImage = "images/header/BlueWaveSmallGradient140.png">
+				<cfset menuBackgroundImage = "images/header/blueWaveLightMenuBackgroundImage.png">
 				<cfset coverKendoMenuWithMenuBackgroundImage = true>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoMaterialMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoMaterialMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoMaterialThemeOs.gif">
+				<cfset logoImage = "images/logo/logoMaterialThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1262,24 +1262,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/gregoryalexander/purchased/blueWave" & backgroundImageResolution & ".jpg">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/purchased/blueWave" & backgroundImageResolution & ".jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center center">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = false>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/midnightBlueSmallGradient147.png"><!---Note: the kendo menu for material black is 7 pixels larger than the rest of the themes and it uses a larger background image to deal with the extra height. --->
+				<cfset headerBackgroundImage = "images/header/midnightBlueSmallGradient147.png"><!---Note: the kendo menu for material black is 7 pixels larger than the rest of the themes and it uses a larger background image to deal with the extra height. --->
 				<cfset menuBackgroundImage = "">
 				<cfset coverKendoMenuWithMenuBackgroundImage = false>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoMaterialBlackMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoMaterialBlackMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoMaterialBlackThemeOs.gif">
+				<cfset logoImage = "images/logo/logoMaterialBlackThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Locations. The css file for the material black theme is found in a separate location. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common-material.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1294,24 +1294,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/gregoryalexander/grandTeton" & backgroundImageResolution & ".jpg">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/grandTeton" & backgroundImageResolution & ".jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center top">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = false>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/white160.png">
+				<cfset headerBackgroundImage = "images/header/white160.png">
 				<cfset menuBackgroundImage = "">
 				<cfset coverKendoMenuWithMenuBackgroundImage = false>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/gregorysBlogMobile.png">
+				<cfset logoImageMobile = "images/logo/gregorysBlogMobile.png">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/gregorysBlogLogo.gif">
+				<cfset logoImage = "images/logo/gregorysBlogLogo.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "#chr(35)#698A50">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1326,24 +1326,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/gregoryalexander/yellowStone" & backgroundImageResolution & ".jpg">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/yellowStone" & backgroundImageResolution & ".jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center center">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = false>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/midnightBlueSmallGradient140.png">
+				<cfset headerBackgroundImage = "images/header/midnightBlueSmallGradient140.png">
 				<cfset menuBackgroundImage = "">
 				<cfset coverKendoMenuWithMenuBackgroundImage = false>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoMoonlightMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoMoonlightMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoMoonlightThemeOs.gif">
+				<cfset logoImage = "images/logo/logoMoonlightThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1358,24 +1358,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/gregoryalexander/mukilteoBeach" & backgroundImageResolution & ".jpg">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/mukilteoBeach" & backgroundImageResolution & ".jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "left top">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = false>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/midnightBlueSmallGradient140.png">
+				<cfset headerBackgroundImage = "images/header/midnightBlueSmallGradient140.png">
 				<cfset menuBackgroundImage = "">
 				<cfset coverKendoMenuWithMenuBackgroundImage = false>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoOfficeMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoOfficeMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoOfficeThemeOs.gif">
+				<cfset logoImage = "images/logo/logoOfficeThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Locations --->
 				<!--- The css file for Office 365 is in its own location. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common-office365.min.css">
@@ -1391,24 +1391,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/gregoryalexander/purchased/depositPhotos/silver.jpg">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/purchased/depositPhotos/silver.jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center center">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = false>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/BlueWaveSmallGradient140.png">
-				<cfset menuBackgroundImage = application.baseUrl & "/images/header/blueWaveLightMenuBackgroundImage.png">
+				<cfset headerBackgroundImage = "images/header/BlueWaveSmallGradient140.png">
+				<cfset menuBackgroundImage = "images/header/blueWaveLightMenuBackgroundImage.png">
 				<cfset coverKendoMenuWithMenuBackgroundImage = true>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoSilverMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoSilverMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoSilverThemeOs.gif">
+				<cfset logoImage = "images/logo/logoSilverThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1423,24 +1423,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/gregoryalexander/purchased/depositPhotos/chrome.jpg">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/purchased/depositPhotos/chrome.jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center center">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = false>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/midnightBlueSmallGradient140.png">
+				<cfset headerBackgroundImage = "images/header/midnightBlueSmallGradient140.png">
 				<cfset menuBackgroundImage = "">
 				<cfset coverKendoMenuWithMenuBackgroundImage = false>
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoUniformMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoUniformMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoUniformThemeOs.gif">
+				<cfset logoImage = "images/logo/logoUniformThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1455,24 +1455,24 @@
 				<cfset contentWidth = "66">
 				<cfset mainContainerWidth = "65">
 				<cfset sideBarContainerWidth = "35">
-				<cfset blogBackgroundImage= application.baseUrl & "/images/background/gregoryalexander/purchased/depositPhotos/sunrise.jpg">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/purchased/depositPhotos/sunrise.jpg">
 				<cfset blogBackgroundImageRepeat = "no-repeat">
 				<cfset blogBackgroundImagePosition = "center center">
 				<cfset stretchHeaderAcrossPage = false>
 				<cfset alignBlogMenuWithBlogContent = false>
 				<cfset topMenuAlign = "left">
-				<cfset headerBackgroundImage = application.baseUrl & "/images/header/novaSmallGradient140.png">
+				<cfset headerBackgroundImage = "images/header/novaSmallGradient140.png">
 				<cfset menuBackgroundImage = "">
 				<cfset coverKendoMenuWithMenuBackgroundImage = false>
-				<cfset logoImageMobile = application.baseUrl & "/images/logo/logoNovaMobileTheme.gif">
+				<cfset logoImageMobile = "images/logo/logoNovaMobileTheme.gif">
 				<cfset logoMobileWidth = "60">
-				<cfset logoImage = application.baseUrl & "/images/logo/logoNovaThemeOs.gif">
+				<cfset logoImage = "images/logo/logoNovaThemeOs.gif">
 				<cfset logoPaddingTop = "0px">
 				<cfset logoPaddingRight = "0px">
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1504,7 +1504,7 @@
 				<cfset logoPaddingLeft = "0px">
 				<cfset logoPaddingBottom = "0px">
 				<cfset blogNameTextColor = "whitesmoke">
-				<cfset headerBodyDividerImage = application.baseUrl & "/images/divider/headerBodyDivider.png">
+				<cfset headerBodyDividerImage = "images/divider/headerBodyDivider.png">
 				<!--- Kendo File locations. --->
 				<cfset kendoCommonCssFileLocation = application.kendoSourceLocation & "/styles/kendo.common.min.css">
 				<cfset kendoThemeCssFileLocation = application.kendoSourceLocation & "/styles/kendo." & arguments.uiTheme & ".min.css">
@@ -1588,6 +1588,62 @@
 		<cfset serializedResponse = serializeJSON( themeSettings ) />
 		<!--- Send the response back to the client. --->
 		<cfreturn serializedResponse>
+
+	</cffunction>
+			
+	<!--- Provides the default theme settings for version 1. --->
+	<cffunction name="getDefaultBlogBackgroundImageByTheme" returntype="string" access="remote" hint="Determines what the default background is for a given theme. This is needed to determine when we can modify the images and use next gen formats.">
+		<cfargument name="uiTheme" required="true" hint="Pass in the Kendo theme name."/>
+		<!--- This setting allows me to use different resolution for the background images. It is intended to be used in later versions when I create the new interface that is similiar to my home site at gregoryalexander.com. --->
+		<cfset backgroundImageResolution = "LowRes">
+
+		<cfswitch expression="#arguments.uiTheme#">
+			<cfcase value="default">
+				<cfset blogBackgroundImage= "images/background/gregoryAlexander/weepingRock" & backgroundImageResolution & ".jpg">
+			</cfcase>
+			<cfcase value="highcontrast">
+				<cfset blogBackgroundImage= "images/background/nasa/orionNebula" & backgroundImageResolution & ".jpg">
+			</cfcase>
+			<cfcase value="black">
+				<cfset blogBackgroundImage= "images/background/hubble/pillarsOfCreation" & backgroundImageResolution & ".jpg">
+			</cfcase>
+			<cfcase value="blueOpal">
+				<cfset blogBackgroundImage= "images/background/nasa/bluePlanet" & backgroundImageResolution & ".jpg">
+			</cfcase>
+			<cfcase value="flat">
+				<cfset blogBackgroundImage= "images/background/nasa/bahamaBank" & backgroundImageResolution & ".jpg">
+			</cfcase>
+			<cfcase value="material">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/purchased/blueWave" & backgroundImageResolution & ".jpg">
+			</cfcase>
+			<cfcase value="materialblack">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/purchased/blueWave" & backgroundImageResolution & ".jpg">
+			</cfcase>
+			<cfcase value="metro">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/grandTeton" & backgroundImageResolution & ".jpg">
+			</cfcase>
+			<cfcase value="moonlight">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/yellowStone" & backgroundImageResolution & ".jpg">
+			</cfcase>
+			<cfcase value="office365">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/mukilteoBeach" & backgroundImageResolution & ".jpg">
+			</cfcase>
+			<cfcase value="silver">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/purchased/depositPhotos/silver.jpg">
+			</cfcase>
+			<cfcase value="uniform">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/purchased/depositPhotos/chrome.jpg">
+			</cfcase>
+			<cfcase value="nova">
+				<cfset blogBackgroundImage= "images/background/gregoryalexander/purchased/depositPhotos/sunrise.jpg">
+			</cfcase>
+			<cfdefaultcase>
+				<cfset blogBackgroundImage = "">
+			</cfdefaultcase>
+		</cfswitch>
+					
+		<!--- Send the response back to the client. --->
+		<cfreturn blogBackgroundImage>
 
 	</cffunction>
 			

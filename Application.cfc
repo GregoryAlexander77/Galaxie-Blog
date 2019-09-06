@@ -24,6 +24,11 @@
 		<cfset application.rootURL = reReplace(application.rootURL, "(.*)/index.cfm", "\1")>
 		<!--- Gregory added the following vars to point to various new cfc's. Note: my original code, reReplace(getPageContext().getRequest().getRequestURI(), "(.*)/index.cfm", "\1"), does not work with blogCfc after you click on a link. The link abstraction technique that Raymond employs breaks this logic. --->
 			
+		<!--- Check to see if the server is set up with the webp mime type. If so, we will deliver images via webp, which is a next gen image format. --->
+		<cfset application.serverSupportsWebP = serverSupportsWebP()>
+		<!--- Does the server have the woff2 mime type for woff2 fonts? --->
+		<cfset  application.serverSupportsWoff2 = serverSupportsWoff2()>
+			
 		<!---//**************************************************************************************************************************************************
 						File locations and URL settings
 		//***************************************************************************************************************************************************--->
@@ -72,16 +77,25 @@
 		<!--- Gregory's json wrapper.--->
 		<cfset application.jsonArray = application.baseUrl & '/common/cfc/cfJson.cfc' / >
 
+		<!--- Kendo version (is Kendo the open source or commercial version?) default on the open source blog is true. --->
+		<cfset application.kendoOpensource = "true">
+		<!--- Logic to quickly change from Kendo commericial to kendo core. --->
+		<cfif application.kendoOpensource>
+			<cfset application.kendoCommercial = "false">
+			<cfset kendoSourceLocation = application.baseUrl & "/common/libs/kendoCore">
+		<cfelse>
+			<cfset application.kendoCommercial = "true">
+			<!--- This is my location, change to point to your own.  --->
+			<cfset kendoSourceLocation = "/common/libs/kendo">
+		</cfif>
+		
 		<!--- Kendo library locations --->
 		<!--- Note: we are using an open source version of the Kendo library, Kendo Core. It does not have all of the bells and whistles of the comercial licence of course. --->
-		<cfset application.kendoSourceLocation = application.baseUrl & "/common/libs/kendoCore"><!---Commercial /common/libs/kendo--->
+		<cfset application.kendoSourceLocation = kendoSourceLocation><!--- Commercial: /common/libs/kendo (without  application.baseUrl &). Open source: application.baseUrl & "/common/libs/kendoCore" --->
 		<cfset application.kendoUiExtendedLocation = application.baseUrl & "/common/libs/kendoUiExtended">
 		<cfset application.jQueryNotifyLocation = application.baseUrl & "/common/libs/jQuery/jQueryNotify">
 		<!--- Note: the original blogCfc came with an older jQuery UI than the one that I am using and it is creating conflicts. We need to have two different jQuery incluedes, one for the administration part of the site, and the newer jquery UI for the new blogCfc.--->
 		<cfset application.adminjQueryUiPath = application.baseUrl & "/includes/jqueryui/jqueryui.js">
-		<!--- Kendo version (is Kendo the open source or commercial version?) --->
-		<cfset application.kendoOpensource = "true">
-		<cfset application.kendoCommercial = "false">
 			
 		<!---//**************************************************************************************************************************************************
 				Administative section variables.
@@ -311,6 +325,46 @@
 
 		<cfreturn true>
 		<!---Exit the function.--->
+	</cffunction>
+	
+	<!---//**************************************************************************************************************************************************
+				Helper functions
+				Determine if the server supports webp images and .woff2 fonts.
+	//***************************************************************************************************************************************************--->
+	<!--- Determine if the server supports webp images and .woff2 fonts. --->
+			
+	<!--- Determine if the webP mime type is set up on the server. --->
+	<cffunction name="serverSupportsWebP" access="public" returntype="boolean" output="yes">
+		<!--- Note: we need to eliminate https from the root URL if it exists. I ran into errors trying this with https (a cryptic certificate error). --->
+		<cfset thisUrl = replaceNoCase(application.rootUrl, "https", "http")>
+		<!--- The headerBodyDivider image is a tiny .webp image (around 1k). We are going to read this, and if it was found and the mime type is correct, we will assumed that the mime type is correct. Otherwise, we will determine that the server does not support the webp mime type. --->
+		<cfhttp method="get" URL="#thisUrl#/images/divider/headerBodyDivider.webp">
+			
+		<!--- Was the webp image found? --->
+		<cfif cfhttp.mimeType contains 'webp'>
+			<cfset webp = true>
+		<cfelse>
+			<cfset webp = false>
+		</cfif>
+		<!--- Return it. --->
+		<cfreturn webp>
+	</cffunction>
+			
+	<!--- Determine if the woff2 mime type is set up on the server. --->
+	<cffunction name="serverSupportsWoff2" access="public" returntype="boolean" output="yes">
+		<!--- Note: we need to eliminate https from the root URL if it exists. I ran into errors trying this with https (a cryptic certificate error). --->
+		<cfset thisUrl = replaceNoCase(application.rootUrl, "https", "http")>
+		<!--- The headerBodyDivider image is a tiny .webp image (around 1k). We are going to read this, and if it was found and the mime type is correct, we will assumed that the mime type is correct. Otherwise, we will determine that the server does not support the webp mime type. --->
+		<cfhttp method="get" URL="#thisUrl#/common/fonts/erasDemi.woff2">
+			
+		<!--- Was the woff2 font found? --->
+		<cfif cfhttp.mimeType contains 'woff2'>
+			<cfset woff2 = true>
+		<cfelse>
+			<cfset woff2 = false>
+		</cfif>
+		<!--- Return it. --->
+		<cfreturn woff2>
 	</cffunction>
 	
 </cfcomponent>

@@ -6,6 +6,9 @@
 	<cfinclude template="../../../includes/udf.cfm">
 
 	<cfset variables.roles = structNew()>
+		
+	<!--- Current blog version (GA) --->
+	<cfset version = "1.30 August 31 2019" />
 
 	<!--- Require 6.1 or higher --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>
@@ -20,9 +23,6 @@
 
 	<!--- Valid database types --->
 	<cfset validDBTypes = "MSACCESS,MYSQL,MSSQL,ORACLE">
-
-	<!--- current version --->
-	<cfset version = "1.15" />
 
 	<!--- cfg file --->
 	<cfset variables.cfgFile = "#getDirectoryFromPath(GetCurrentTemplatePath())#/blog.ini.cfm">
@@ -2563,8 +2563,10 @@ To unsubscribe, please go to this URL:
 					<cfset counter = 0>
 				</cfif>
 			</cfloop>
-		<cfelseif findNoCase("<attachScript>",arguments.string) and findNoCase("</attachScript>",arguments.string)>
-		<!--- Gregory's code. I need to allow users to include script tags in the blog entry. My current provider, Hostek, has 'enable global script protection' turned on creating an invalidTag response when submitting code that includes scripts. The following code injects the script tags if the user entered in the folllowing tag: <attachScript>> </attachScript> --->
+		</cfif><!---<cfif findNoCase("<code>",arguments.string) and findNoCase("</code>",arguments.string)>--->
+						
+		<cfif findNoCase("<attachScript",arguments.string) and findNoCase("</attachScript>",arguments.string)>
+		<!--- Gregory's code. I need to allow users to include script tags in the blog entry. My current provider, Hostek, has 'enable global script protection' turned on creating an invalidTag response when submitting code that includes scripts. The following code injects the script tags if the user entered in the folllowing tag: <attachScript> </attachScript>. You can also use <attachScript type="deferjs"> to defer the script. --->
 			<cfset arguments.string = replaceNoCase(arguments.string, "attachScript", "script", "all")>	
 		</cfif>
 		
@@ -2579,12 +2581,12 @@ To unsubscribe, please go to this URL:
 			<cfset arguments.string = newstring>
 		</cfloop>
 
-		<!--- New enclosure support. If enclose if a jpg, png, or gif, put it on top, aligned left. --->
-		<cfif len(arguments.enclosure) and listFindNoCase("gif,jpg,png", listLast(arguments.enclosure, "."))>
+		<!--- New enclosure support. If enclose if a jpg, png, or gif, put it on top, aligned left (added webp support (GA). --->
+		<cfif len(arguments.enclosure) and listFindNoCase("gif,jpg,png,webp", listLast(arguments.enclosure, "."))>
 			<cfset rootURL = replace(instance.blogURL, "index.cfm", "")>
 			<cfset imgURL = "#rootURL#enclosures/#urlEncodedFormat(getFileFromPath(enclosure))#">
-			<!---Gregory renamed the autoImage div to entryImage. I did not see any autoImage classes elsewhere and want the name to be related to a blog post. I am constraining the image with .css. --->
-			<cfset arguments.string = "<div class=""entryImage""><img src=""#imgURL#""></div>" & arguments.string>
+			<!--- Gregory renamed the autoImage div to entryImage. I did not see any autoImage classes elsewhere and want the name to be related to a blog post. I am also lazy loading this now and constraining the image with .css. Note: I am decoding the image URL as it won't work with the lazy loading approach if it is encoded. --->
+			<cfset arguments.string = "<div class=""entryImage""><img class=""fade"" data-src=""#urlDecode(imgURL)#"" alt=""""></div>" & arguments.string>
 		<!--- bmeloche - 06/13/2008 - Adding podcast support. --->
 		<cfelseif len(arguments.enclosure) and listFindNoCase("mp3", listLast(arguments.enclosure, "."))>
 			<cfset rootURL = replace(instance.blogURL, "index.cfm", "")>

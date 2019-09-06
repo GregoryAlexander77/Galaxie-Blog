@@ -29,7 +29,7 @@ $(document).ready(function(){
 </script>
 
 <p>
-In this step I need you to provide the name of the DSN and database type you will be using with Gregory's Blog. <b>Ensure this DSN and database exists!</b>
+In this step I need you to provide the name of the DSN and database type you will be using with Galaxie Blog. <b>Ensure this DSN and database exists!</b>
 If your DSN requires a username and password, be sure to include that as well.
 </p>
 

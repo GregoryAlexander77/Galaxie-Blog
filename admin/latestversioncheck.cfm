@@ -18,14 +18,14 @@
 			<cfoutput>
 			<div style="margin: 15px 0; padding: 15px; border: 5px solid ##ffff00;; background-color: ##e4e961;">
 			<p>
-			<b>Your Gregory's Blog installation may be out of the date!</b><br/>
-			The latest released version of Gregory's Blog is <b>#latestVersion#</b> updated on <b>#dateFormat(latestUpdate, 'long')#</b>.
+			<b>Your Galaxie Blog installation may be out of the date!</b><br/>
+			The latest released version of Galaxie Blog is <b>#latestVersion#</b> updated on <b>#dateFormat(latestUpdate, 'long')#</b>.
 			<p><b>Updates for this version include:</b></p>
 			#latestDescription#
 			</p>
 			</cfoutput>
 		<cfelse>
-			<cfoutput><p>Your Gregory's Blog install is up to date!</p></cfoutput>
+			<cfoutput><p>Your Galxie Blog install is up to date!</p></cfoutput>
 		</cfif>
 
 	<!--- Version 1.15- provides more detail --->
@@ -48,8 +48,8 @@
 			<cfif latestVersion neq application.blog.getVersion()>
 				<cfoutput>
 				<div style="margin: 15px 0; padding: 15px; border: 5px solid ##ffff00;; background-color: ##e4e961;">
-				<p><b>Your Gregory's Blog version #application.blog.getVersion()# installation may be out of the date!</b><br/>
-				The latest released version of Gregory's Blog is <b>#latestVersion#</b> updated on <b>#dateFormat(latestUpdate, 'long')#</b>.</p>
+				<p><b>Your Galaxie Blog version #application.blog.getVersion()# installation may be out of the date!</b><br/>
+				The latest released version of Galaxie Blog is <b>#latestVersion#</b> updated on <b>#dateFormat(latestUpdate, 'long')#</b>.</p>
 				<p><b>Updates for this version include:</b></p>
 				<p>#latestDescription#</p>
 				<cfif bugFix neq "">
@@ -82,7 +82,7 @@
 				</cfif>
 				</cfoutput>
 			<cfelse>
-				<cfoutput><p>Your Gregory's Blog install is up to date!</p></cfoutput>
+				<cfoutput><p>Your Galaxie Blog install is up to date!</p></cfoutput>
 			</cfif>
 					
 		</cfif>
