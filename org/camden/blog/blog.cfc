@@ -2569,7 +2569,12 @@ To unsubscribe, please go to this URL:
 		<!--- Gregory's code. I need to allow users to include script tags in the blog entry. My current provider, Hostek, has 'enable global script protection' turned on creating an invalidTag response when submitting code that includes scripts. The following code injects the script tags if the user entered in the folllowing tag: <attachScript> </attachScript>. You can also use <attachScript type="deferjs"> to defer the script. --->
 			<cfset arguments.string = replaceNoCase(arguments.string, "attachScript", "script", "all")>	
 		</cfif>
-		
+			
+		<!--- Grrgory's code. Fix the invalidTag issue. This occurs on hostek servers (they have a setting not to allow scripts to be submitted via a form) --->
+		<cfif findNoCase("InvalidTag",arguments.string)>
+			<cfset arguments.string = replaceNoCase(arguments.string, "InvalidTag", "script", "all")>
+		</cfif>
+			
 		<!--- Don't put in paragraphs if the style sheet was attached (Gregory's logic.) --->
 		<cfif findNoCase("<style>",arguments.string) and findNoCase("</style>",arguments.string)>
 			<cfset arguments.ignoreParagraphFormat = true>
