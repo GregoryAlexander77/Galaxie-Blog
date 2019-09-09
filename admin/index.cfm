@@ -34,7 +34,8 @@ order by views desc
 	<cfoutput>
 	<script>
 	$(document).ready(function() {
-		$("##latestversioncheck").html("<p>Checking to see if your blog is up to date. Please stand by...</p>").load("latestversioncheck.cfm?version=#application.blog.getVersion()#")
+		// latestversioncheck.cfm?version=#application.blog.getVersion()#
+		$("##latestversioncheck").html("<p>Checking to see if your blog is up to date. Please stand by...</p>").load("latestversioncheck.cfm?version=1")
 	})
 	</script>
 	</cfoutput>
@@ -46,8 +47,6 @@ order by views desc
 			</div>
 		</cfoutput>
 	</cfif>
-
-
 	<cfoutput>
 	<h3>About</h3>
 	<p>

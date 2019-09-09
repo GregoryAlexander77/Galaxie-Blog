@@ -9,9 +9,9 @@ Debugging
 --->
 <!---
 	Name         : /client/admin/index.cfm
-	Author       :  : Gregory Alexander/Raymond Camden 
+	Author       : Gregory Alexander/Raymond Camden 
 	Created      : 04/12/06
-	Last Updated : July 25 2019
+	Last Updated : July 25th 2019
 	History      : Various changes, forgotten keys, new keys (rkc 9/5/06)
 				 : Comment moderation support (tr 12/7/06)
 				 : support new properties (rkc 12/14/06)
@@ -119,11 +119,11 @@ http://blogcfc.riaforge.org/index.cfm?event=page.issue&issueid=4CEC3A8A-C919-ED1
 
 	</cfif>
 
-	<cfif len(trim(form.commentsfrom)) and not isEmail(form.commentsfrom)>
+	<cfif len(trim(form.commentsfrom)) and not isValid("email", form.commentsfrom)>
 		<cfset arrayAppend(errors, "The commentsfrom setting must be a valid email address.")>
 	</cfif>
 
-	<cfif len(trim(form.failto)) and not isEmail(form.failto)>
+	<cfif len(trim(form.failto)) and not IsValid("email", form.failto)>
 		<cfset arrayAppend(errors, "The failto setting must be a valid email address.")>
 	</cfif>
 

@@ -101,7 +101,7 @@
 				Administative section variables.
 		//***************************************************************************************************************************************************--->
 		<!--- There are two coldfusion application templates that I use in the administrative page, the legacy application.cfm template, and the modern application.cfc template. I am having problems with the cfc template as it requires a hard coded mapping. There are ways around this, but for this particular version, its easier just to use the original application.cfm extension until I can re-write the administrative section. This is a workaround. However, I need to set a applicationTemplateType flag in order to still use the application.cfc template for my own personal debugging (my hosting provider requires it). --->
-		<cfset application.adminApplicationTemplateType = "cfm"><!---Note: the default installation value is "cfm"--->
+		<cfset application.adminApplicationTemplateType = "cfm"><!---Note: the default installation value is "cfm". On my personal blog this is set to cfc. --->
 		
 		<!---//**************************************************************************************************************************************************
 				Initialize the application and set core application vars.

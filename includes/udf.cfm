@@ -179,7 +179,8 @@ Request.getRelativePath = getRelativePath;
             if (len(targetLinkName) GTE targetNameMax) {
                 targetLinkName = left(targetLinkName,targetNameMax) & "...";
             }
-            inputReturn = replace(inputReturn,urlMatches[i],'<a href="#urlMatches[i]#" target="_blank">#targetLinkName#</a>',"all");
+			// Added a no rel tag (GA).
+            inputReturn = replace(inputReturn,urlMatches[i],'<a href="#urlMatches[i]#" target="_blank" rel="noopener">#targetLinkName#</a>',"all");
         }
     </cfscript>
     <cfreturn inputReturn>

@@ -8,7 +8,7 @@
 	<cfset variables.roles = structNew()>
 		
 	<!--- Current blog version (GA) --->
-	<cfset version = "1.30 August 31 2019" />
+	<cfset version = "1.35 September 6 2019" />
 
 	<!--- Require 6.1 or higher --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>

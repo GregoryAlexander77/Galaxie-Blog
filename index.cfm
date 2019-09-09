@@ -577,7 +577,11 @@ before in other projects. I suspect that it is reading the entire object when it
 	<cfif URL.mode eq "alias">
 		<cfheader name="Location" value="#application.blog.makeLink(articles.id[1])#">
 	<cfelse><!---<cfif URL.mode eq "alias">--->
-		<cfheader name="Location" value="https://#cgi.http_host##cgi.script_name#?#cgi.query_string#">
+		<cfif len(cgi.query_string) gt 0>
+			<cfheader name="Location" value="https://#cgi.http_host##cgi.script_name#?#cgi.query_string#">
+		<cfelse>
+			<cfheader name="Location" value="https://#cgi.http_host##cgi.script_name#">
+		</cfif>
 	</cfif><!---<cfif URL.mode eq "alias">--->
 </cfif><!---<cfif useSsl and (CGI.https eq "off")>--->
 
@@ -1598,6 +1602,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		
 		.calendarWidget div {
 			padding: 0px;
+
 		}
 		
 		/* widget class (the panels) */
@@ -2925,7 +2930,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								 <tr class="<cfif currentRow mod 2>k-content<cfelse>k-alt</cfif>">
 									<td>
 
-										<img src="http://www.gravatar.com/avatar/#lcase(hash(lcase(email)))#?s=64&amp;r=pg&amp;d=#application.rooturl#/images/defaultAvatar.gif" title="#name#'s Gravatar" alt="#name#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"  />
+										<img src="https://www.gravatar.com/avatar/#lcase(hash(lcase(email)))#?s=64&amp;r=pg&amp;d=#application.rooturl#/images/defaultAvatar.gif" title="#name#'s Gravatar" alt="#name#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"  />
 										#paragraphFormat2(replaceLinks(comment))#
 									</td>
 								 </tr>
@@ -3243,7 +3248,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			</p>
 			<h4>Version:</h4>
 			<p>
-				Galaxie Blog Version <cfoutput>#application.blog.getVersion()#</cfoutput>
+				Galaxie Blog Version <cfoutput>#application.blog.getVersion()# #application.blog.getVersionDate()#</cfoutput>
 			</p>
 		</span>
 	</div>
