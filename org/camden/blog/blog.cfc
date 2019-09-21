@@ -2554,7 +2554,7 @@ To unsubscribe, please go to this URL:
 						<cfif arguments.printformat>
 							<cfset result = "<br/><pre class='codePrint'>#trim(htmlEditFormat(codeportion))#</pre><br/>">
 						<cfelse>
-							<!---Invoke ColdFish (GA)--->
+							<!--- Invoke ColdFish (ga) --->
 							<cfset result = variables.codeRenderer.formatString(trim(codeportion))>
 							<!--- Note: Delmore's code formatter is not mobile friendly and it does not use responsive design. This table will constrain the content to a certain variable size (GA). --->
 							<cfset result = "<div class='code'><table class='constrainerTable constrainContent'><tr><td>#result#</td></tr></table></div>">
