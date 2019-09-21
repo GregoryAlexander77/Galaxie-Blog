@@ -23,7 +23,7 @@ Notes: Gregory's home page design would have the following settings
 	<cfelseif isDefined("cookie.kendoTheme")>
 		<cfset kendoTheme = cookie.kendoTheme>
 	<cfelse>
-		<cfset kendoTheme = "metro">
+		<cfset kendoTheme = getThemeByDay()>
 	</cfif>
 	
 	<!--- Safety check in case something goes wrong. --->
@@ -33,6 +33,40 @@ Notes: Gregory's home page design would have the following settings
 		
 	<!---Return it--->
 	<cfreturn kendoTheme>
+</cffunction>
+
+<!--- Since I have a bunch of different themes, I am going to show a diffeent theme each day to keep the site looking new. --->
+<cffunction name="getThemeByDay" access="public" returntype="string">
+	<!--- The blogNow() will return the current date minus the offset. --->
+	<cfset thisDay = day(application.blog.blogNow())>
+	<cfif thisDay eq 1 or thisDay eq 14 or thisDay eq thisDay eq 27>
+		<cfset theme = "default">
+	<cfelseif thisDay eq 2 or thisDay eq 15 or thisDay eq thisDay eq 28>
+		<cfset theme = "black">
+	<cfelseif thisDay eq 3 or thisDay eq 16 or thisDay eq thisDay eq 29>
+		<cfset theme = "blueOpal">
+	<cfelseif thisDay eq 4 or thisDay eq 17 or thisDay eq thisDay eq 30>
+		<cfset theme = "flat">
+	<cfelseif thisDay eq 5 or thisDay eq 18 or thisDay eq thisDay eq 31>		
+		<cfset theme = "highcontrast">
+	<cfelseif thisDay eq 6 or thisDay eq 19>		
+		<cfset theme = "material">
+	<cfelseif thisDay eq 7 or thisDay eq 20>		
+		<cfset theme = "materialblack">
+	<cfelseif thisDay eq 8 or thisDay eq 21>		
+		<cfset theme = "metro">
+	<cfelseif thisDay eq 9 or thisDay eq 22>		
+		<cfset theme = "moonlight">
+	<cfelseif thisDay eq 10 or thisDay eq 23>		
+		<cfset theme = "office365">
+	<cfelseif thisDay eq 11 or thisDay eq 24>		
+		<cfset theme = "silver">
+	<cfelseif thisDay eq 12 or thisDay eq 25>		
+		<cfset theme = "cobalt">
+	<cfelseif thisDay eq 13 or thisDay eq 26>		
+		<cfset theme = "sunrise">
+	</cfif>
+	<cfreturn theme>
 </cffunction>
 
 <!--- Themes --->

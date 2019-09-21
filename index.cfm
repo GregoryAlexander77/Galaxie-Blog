@@ -638,7 +638,21 @@ before in other projects. I suspect that it is reading the entire object when it
 		}
 	</script>
  	<!--- The jQuery script can't be defered as the Kendo controls won't work. Wa're using jQuery 1.2. Later jQuery versions don't work with Kendo UI core unfortunately. --->
-    <script src="#application.kendoSourceLocation#/js/jquery.min.js"></script>
+<cfif application.kendoCommercial>
+	<!--- Use the 3.4.1 version if using commercial. --->
+	<script src="/common/libs/jQuery/jquery-3.4.1.min.js"></script>
+	<cfsilent><!---
+	Via CDN:
+	<script
+	  src="https://code.jquery.com/jquery-3.4.1.min.js"
+	  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+	  crossorigin="anonymous"></script>
+	--->
+	</cfsilent>
+<cfelse>
+		<!--- Otherwise, use the jQuery version embedded in Kendo.core. --->
+	<script src="#application.kendoSourceLocation#/js/jquery.min.js"></script>
+</cfif>
 	<!--- Small library that fixes the Chrome "Added non-passive event listener to a scroll-blocking 'touchstart' event" errors. --->
 	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/passiveScrollEvent/index.js"></script>
 	<!--- Kendo scripts (GA 10/25/2018)--->
@@ -1497,6 +1511,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			/* Apply padding to post content. */
 			margin-top: 5px; 
 			display: block;
+
 		}
 		
 		/* Constraining images to a max width so that they don't push the content containers out to the right */
@@ -1810,7 +1825,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		
 		/* Utility classes */
 		/* The constrainer table will constrain one or many different div's and spans to a certain size. It is handy to use when you are trying to contain the size of elements created by an older libary that does not use responsive design. */
-		#constrainerTable {
+		.constrainerTable {
 			/* The parent element (this table) should be positioned relatively. */
 			position: relative;
 			/* Now that the parent element has a width setting, make sure that the width does not ever exceed this */
@@ -1818,17 +1833,17 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		}	
 		
 		/* Helper function to the constrainerTable to break the text when it exceeds the table dimensions */
-		#constrainerTable .constrainContent {
+		.constrainerTable .constrainContent {
 			/* Use the root width var */
 			width: var(--contentWidth);
 			max-width: 100%
 		}
 		
-		#constrainerTable th {
+		.constrainerTable th {
 			max-width: var(--contentWidth);
 		}
 		
-		#constrainerTable td {
+		.constrainerTable td {
 			word-break: break-word;
 		}
 		
@@ -2294,14 +2309,18 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		function showComment(entryId){
 			// Get the name of the element that we want to change.
 			openComment = setTimeout(function(){ 
-
-				var spanElement = "#commentControl" + entryId;
-				// Remove the down arrow.
-				$(spanElement).removeClass("k-i-sort-desc-sm").addClass('k-i-sort-asc-sm');
-				// Add the up arrow.
-				$(spanElement).addClass("k-i-sort-asc-sm").addClass('k-i-sort-asc-sm');
-				// Expand the table. See 'fx effects' on the Terlik website.
-				kendo.fx($("#comment" + entryId)).expand("vertical").play();
+				// Use a try block. 
+				try {
+					var spanElement = "#commentControl" + entryId;
+					// Remove the down arrow.
+					$(spanElement).removeClass("k-i-sort-desc-sm").addClass('k-i-sort-asc-sm');
+					// Add the up arrow.
+					$(spanElement).addClass("k-i-sort-asc-sm").addClass('k-i-sort-asc-sm');
+					// Expand the table. See 'fx effects' on the Terlik website.
+					kendo.fx($("#comment" + entryId)).expand("vertical").play();
+				} catch(e){
+					// Do nothing. There is a style error that occurs on rare occassions but it does not affect the functionality of the site ('Cannot read property 'style' of undefined').
+				}
 			}, 500);
 
 			// Get the URL fragment in the url. The fragment is the id of the comment.
@@ -2959,9 +2978,9 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 						</cfsilent>
 						<cfset qRelatedBlogEntries = application.blog.getRelatedBlogEntries(entryId=id,bDislayFutureLinks=true) />	
 						<cfif qRelatedBlogEntries.recordCount>
-							<div id="relatedentries">
+							<div name="relatedentries">
 							<h3 class="topContent">Related Entries</h3>
-							<ul id="relatedEntriesList">
+							<ul name="relatedEntriesList">
 							<cfloop query="qRelatedBlogEntries">
 							<li><a href="#application.blog.makeLink(entryId=qRelatedBlogEntries.id)#" aria-label="#qRelatedBlogEntries.title#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#qRelatedBlogEntries.title#</a></li>
 							</cfloop>			
@@ -3279,6 +3298,9 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		// And show the fixed nav menu
 		$('#fixedNavMenu').css('visibility', 'visible');
 	}, 500);
+	
+	// Check the alignment of the page containers again and reset if necessary
+	setScreenProperties();
 </script>
 <cfsilent>
 <!-- Custom sroll magic js (and custom kendo notifications from my extended notification UI library) -->
