@@ -34,7 +34,6 @@
 						<h3 class="topContent"><i class="fas fa-comments"></i> Recent Comments</h3>
 						<!---Problems with the recent comments code.--->
 						<cfinclude template="#application.baseUrl#/includes/pods/recentcomments.cfm">
-
 					</span>	
 				</div>
 				

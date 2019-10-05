@@ -4,12 +4,13 @@
 	Name         : page.cfm
 	Author       : Raymond Camden
 	Created      : July 8, 2006
-	Last Updated : July 15, 2006
+	Last Updated : 9 17 2019
 	History      : New logic to get path (rkc 7/15/06)
 	Purpose		 : Page render
 --->
 
 <cfset pageAlias = listLast(cgi.path_info, "/")>
+
 
 <cfif not len(pageAlias)>
 	<cflocation url="#application.rooturl#/index.cfm" addToken="false">

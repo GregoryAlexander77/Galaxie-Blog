@@ -22,6 +22,8 @@
 <!--- Optional libraries --->
 <!--- GSAP and scrollMagie allows for animations and parallax effects in the blog entries. Don't include by default. --->
 <cfset includeGsap = true>
+<!--- Determine whether to include the disqus commenting system. If you set this to true, you must also set the optional disqus settings that are right below. Note: this is an application var so that the recentcomments.cfm can access these settings. That template is invoked via a cfmodule tag. --->
+<cfset application.includeDisqus = true>
 <!--- Setting to determine whether to defer the scripts and css. This is a setting as I need to quickly debug to see if the defer is working, but you should leave this at true as it provides a better google speed score. --->
 <cfset deferScriptsAndCss = true>
 <!--- Set the type string --->
@@ -37,6 +39,18 @@
 <cfelse>
 	<cfset useSsl = false>
 </cfif>
+<!--- The addThis toolbox string changes depending upon the site and the configuration. --->
+<cfset addThisToolboxString = "addthis_inline_share_toolbox"><!---Typically 'addthis_inline_share_toolbox'--->
+
+<!--- //**************************************************************************************************************************************************
+			Optional disqus settings. Set these if you set includeDisqus to true. The first setting is required, the rest are optional settings.
+//****************************************************************************************************************************************************--->
+<cfset application.disqusBlogIdentifier = "gregorys-blog"><!--- Required if you're using Disqus. Note: this is intentionally set as an application var. ---> 
+<cfset application.disqusApiKey = "EhY9pmLkruL5Jj7cGVO3eab3cWVBFWLTPSmqADfe8tZhLamRpz8YiE7wQk4ta2hf"><!--- Optional if you're using Disqus - if you do not have an API key, leave this blank. Note: this is intentionally set as an application var. --->
+<cfset disqusApiSecret = "xxdWJxzwFoSGPUddksrU9mtBQU45hgtSLeIqwnSXpauir5Hsp0gsx1gfDj0m9NtW"><!--- Optional if you're using Disqus - if you do not have an API Secret, leave this blank. --->
+<cfset disqusAuthTokenKey = "08c0241af97d4ce7813c22085e61fea2"><!--- Optional if you're using Disqus - if you do not have an API Secret, leave this blank. --->
+<cfset disqusAuthUrl = "https://disqus.com/api/oauth/2.0/authorize/"><!--- Leave this alone unless you konw what you're doing. --->
+<cfset disqusAuthTokenUrl = "https://disqus.com/api/oauth/2.0/access_token/"><!--- Leave this alone unless you konw what you're doing. --->
 	
 <!--- //**************************************************************************************************************************************************
 			Global path and URL settings.
@@ -657,8 +671,8 @@ before in other projects. I suspect that it is reading the entire object when it
 	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/passiveScrollEvent/index.js"></script>
 	<!--- Kendo scripts (GA 10/25/2018)--->
 	<script type="#scriptTypeString#" src="#application.kendoSourceLocation#/js/<cfif application.kendoCommercial>kendo.all.min<cfelse>kendo.ui.core.min</cfif>.js"></script>
-	<!--- Defer the Kendo style sheets. --->
-	<script type="#scriptTypeString#">
+	<!--- Note: the Kendo stylesheets are critical to the look of the site and I am not deferring them. --->
+	<script type="text/javascript">
 		// Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings.
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#kendoCommonCssFileLocation#') );
 		// Less based theme css files.
@@ -671,7 +685,7 @@ before in other projects. I suspect that it is reading the entire object when it
 	<script type="#scriptTypeString#" src="#application.kendoUiExtendedLocation#/js/kendo.web.ext.js"></script>
 	<!--- Defer the extended scripts along with my notification library. --->
 	<script type="#scriptTypeString#">
-		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.kendoUiExtendedLocation#/styles/#kendoTheme#.kendo.ext.css') );
+		<cfif kendoTheme neq 'blueOpal'>$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.kendoUiExtendedLocation#/styles/#kendoTheme#.kendo.ext.css') );</cfif>
 		// Notification .css 
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/ui.notify.css') );
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/notify.css') );
@@ -1029,10 +1043,13 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<style><cfoutput>
 		
 		/* ------------------------------------------------------------------------------------------------------------
+
 		Global CSS vars and body.
 		Create a content width global css var. We will change this with Javascript depending upon the screen resolution 
 		--------------------------------------------------------------------------------------------------------------*/
 		:root {
+
+
 			-- contentWidth: <cfoutput>#contentWidth#</cfoutput>%;
 			-- contentPaddingPercent: <cfoutput>#round((contentWidth/2)/2)#</cfoutput>%;
 			-- mainContainerWidth: <cfoutput>#mainContainerWidth#</cfoutput>%;
@@ -1236,6 +1253,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			/* The container may need to have some padding as the menu underneath it is not going to left align with the text since the menu is going to start prior to the first text item. */
 			padding-left: 13px; 
 			text-shadow: 0px 4px 8px rgba(0, 0, 0, 0.19); /* The drop shadow should closely mimick the shadow on the main blog layer.*/
+
 			color: <cfoutput>#blogNameTextColor#</cfoutput>; /* Plain white has too high of a contrast imo. */
 			vertical-align: center;
 		}
@@ -1717,7 +1735,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 
 		/* Other than the recent comment pod, don't wrap pod content, and if the text exceeds the size of the html tables, ellipsis the text (like so 'and...')  */
 		.fixedPodTable td {
-			color: whitesmoke;
+			color: <cfif darkTheme>whitesmoke<cfelse>#2e2e2e</cfif>;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
@@ -1725,7 +1743,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 
 		/* Other than the recent comment pod, don't wrap pod content, and if the text exceeds the size of the html tables, ellipsis the text (like so 'and...')  */
 		.fixedPodTableWithWrap td {
-			color: whitesmoke;
+			color: <cfif darkTheme>whitesmoke<cfelse>#2e2e2e</cfif>;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
@@ -1803,6 +1821,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			text-align: left;
 		}
 
+
 		/* Footer main content */
 		#footerInnerContainer p {
 			padding-top: 10px;
@@ -1858,6 +1877,12 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			white-space: nowrap;
 		}
 		
+		/* Remove the padding of the li elements when using the disqus recent comments widget. */
+		#removeUlPadding ul  {
+			padding: 0;
+			list-style-type: none;
+		}
+		
 	</style>
 	<cfsilent>
 	<!---//**************************************************************************************************************************************************
@@ -1906,6 +1931,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			  -ms-transform: translate(-50%,-50%);
 				  transform: translate(-50%,-50%);
 		}
+		
 	</style>
 	
 <cfelse>
@@ -2095,6 +2121,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				$("#searchWindow").parent().remove();
 			}
 
+
 			// Typically we would use a div outside of the script to attach the window to, however, since this is inside of a function call, we are going to dynamically create a div via the append js method. If we were to use a div outside of this script, lets say underneath the 'mainBlog' container, it would cause wierd problems, such as the page disappearing behind the window.
 			$(document.body).append('<div id="searchWindow"></div>');
 			$('#searchWindow').kendoWindow({
@@ -2183,7 +2210,56 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				error = 'window no longer initialized';
 			}
 		}
+		
+		// Note: comments are either provided with the Galaxi Blog interface, or disqus. We need to open up new kendo windows for each interface.
+	<cfif application.includeDisqus>
+		// Disqus comment window ---------------------------------------------------------------------------------------------------------------------------------
+		function createDisqusWindow(Id, alias, url) {
 
+			// Remove the window if it already exists
+			if ($("#disqusWindow").length > 0) {
+				$("#disqusWindow").parent().remove();
+			}
+
+
+			// Typically we would use a div outside of the script to attach the window to, however, since this is inside of a function call, we are going to dynamically create a div via the append js method. If we were to use a div outside of this script, lets say underneath the 'mainBlog' container, it would cause wierd problems, such as the page disappearing behind the window.
+			$(document.body).append('<div id="disqusWindow"></div>');
+			$('#disqusWindow').kendoWindow({
+				title: "Comments",
+				actions: [<cfoutput>#kendoWindowIcons#</cfoutput>],
+				modal: false,
+				resizable: <cfif session.isMobile>false<cfelse>true</cfif>,
+				draggable: <cfif session.isMobile>false<cfelse>true</cfif>,
+				// For desktop, we are subtracting 5% off of the content width setting found near the top of this template.
+				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
+				height: "<cfif session.isMobile>95<cfelse>60</cfif>%",
+				iframe: false, // Don't use iframes unless it is content derived outside of your own site. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>disqus.cfm?id=" + Id + '&alias=' + alias + '&url=' + url,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+			<cfif session.isMobile>
+				animation: {
+					close: {
+						effects: "slideIn:right",
+						reverse: true,
+						duration: 500
+					},
+				}
+			<cfelse>
+				close: function() {
+					$('#disqusWindow').kendoWindow('destroy');
+				}
+			</cfif>
+			}).data('kendoWindow').center();
+		}//..function createDisqusWindow(Id, alias, url) {
+		
+		// The mobile app has a dedicated button to close the window as the x at the top of the window is small and hard to see 
+		function closeDisqusWindow(){
+			$("#disqusWindow").kendoWindow();
+			var disqusWindow = $("#disqusWindow").data("kendoWindow");
+			setTimeout(function() {
+			  disqusWindow.destroy();
+			}, 500);
+		}
+	<cfelse><!---<cfif application.includeDisqus>--->
 		// Add comment window ---------------------------------------------------------------------------------------------------------------------------------
 		function createAddCommentSubscribeWindow(Id, uiElement, isMobile) {
 
@@ -2256,6 +2332,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			  addCommentWindow.destroy();
 			}, 500);
 		}
+	</cfif><!---<cfif application.includeDisqus>--->
 		
 		// Share media window ---------------------------------------------------------------------------------------------------------------------------------
 		function createMediaShareWindow(Id) {
@@ -2885,19 +2962,37 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 										swfobject.embedSWF("#application.rooturl#/includes/audio-player/player.swf", "#alternative#", "470", "24", "8.0.0","/includes/audio-player/expressinstall.swf", flashvars, params, attributes);
 									// ]]>
 								</script>
-							</cfif><!---<cfif enclosure contains "mp3">--->                  
-
+							</cfif><!---<cfif enclosure contains "mp3">--->  
+									
 							<p class="bottomContent">
+					<cfif application.includeDisqus>
+						<cfif url.mode neq "alias">
+								<button id="disqusCommentButton" class="k-button" style="#kendoButtonStyle#" onClick="createDisqusWindow('#entryId#', '#alias#', '#application.blog.makeLink(id)#')">
+									<i class="fas fa-comments" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Comment
+								</button>
+									  
+							<cfif not addSocialMediaUnderEntry>
+								<!--- Don't display the share button when reading a single entry. --->
+								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
+									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+									<i class="fas fa-share" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Share
+								</button>
+							</cfif><!---<cfif not addSocialMediaUnderEntry>--->
+						</cfif><!---<cfif url.mode neq "alias">--->
+								<!--- The number of comments will be provided with the code below. --->
+								<p><span class="disqus-comment-count" data-disqus-url="#application.blog.makeLink(id)#"></span></p>
+					<cfelse><!---<cfif application.includeDisqus>--->
 								<!-- Button navigation. -->
 								<!-- Set a smaller font in the kendo buttons. Note: adjusting the .k-button class alone also adjusts the k-input in the multi-select so we will set it here.-->
 								<button id="addCommentButton" class="k-button" style="#kendoButtonStyle#" onClick="createAddCommentSubscribeWindow('#id#', 'addComment', #session.isMobile#)">
 									<i class="fas fa-comments" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Comment
 								</button>
-								
+							
 								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createAddCommentSubscribeWindow('#id#', 'subscribe', #session.isMobile#)">
 									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
 									<i class="fas fa-envelope-open-text" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Subscribe
 								</button>
+								
 								<cfif not addSocialMediaUnderEntry>
 								<!--- Don't display the share button when reading a single entry. --->
 								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
@@ -2912,20 +3007,46 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 									<i class="fas fa-print" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Print
 								</button>
 								</cfif><!---<cfif not session.isMobile>--->
-										
-								<p></p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
-								There are currently <cfif commentCount is "">0<cfelse>#commentCount#</cfif> comments. 
+								<p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
+								<p>There are currently <cfif commentCount is "">0<cfelse>#commentCount#</cfif> comments.</p> 
 								<cfif len(enclosure)><a href="#application.rooturl#/enclosures/#urlEncodedFormat(getFileFromPath(enclosure))#" aria-label="Download attachment" class="k-content">Download attachment.</a></cfif>
 								<!--- Span to hold the little arrow. Note: the order of the spans in the code are different than the actual display. We need to reverse the order for proper display. We are not going to display this if there are no comments. --->
 								<cfif len(commentCount) gt 0><span id="commentControl#entryId#" class="collapse k-icon k-i-sort-desc-sm"></span>&nbsp;&nbsp;Show Comments</cfif>
-							</p> 
-							
-							<cfsilent>
-							<!--- ***********************************************************************************************************
-								Comments interface.
-							*************************************************************************************************************--->
-							</cfsilent>
-						<cfif len(commentCount) gt 0>
+						</cfif><!---<cfif application.includeDisqus>---> 	
+						<cfsilent>
+						<!--- ***********************************************************************************************************
+							Disqus - load disqus if we are in looking at an individual entry
+						*************************************************************************************************************--->
+						</cfsilent>
+						<cfif application.includeDisqus and url.mode eq "alias">
+							<div id="disqus_thread"></div>
+							<script type="deferjs">
+								/**
+								*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+								*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#chr(35)#configuration-variables*/
+								/*
+								var disqus_config = function () {
+								var disqus_shortname = '#alias#';
+								this.page.url = #application.blog.makeLink(id)#;  // Replace PAGE_URL with your page's canonical URL variable
+								this.page.identifier = #entryId#; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+								};
+								*/
+								(function() { // DON'T EDIT BELOW THIS LINE
+									var d = document, s = d.createElement('script');
+									s.src = 'https://gregorys-blog.disqus.com/embed.js';
+									s.setAttribute('data-timestamp', +new Date());
+									(d.head || d.body).appendChild(s);
+								})();
+							</script>
+						</cfif>	
+
+						
+						<cfsilent>
+						<!--- ***********************************************************************************************************
+							Original comments interface (non Disqus).
+						*************************************************************************************************************--->
+						</cfsilent>
+						<cfif len(commentCount) gt 0 and not application.includeDisqus>
 							<!-- Comments that are shown when the user clicks on the arrow button to open the container. -->
 							<div id="comment#entryId#" class="widget k-content" style="display:none;">
 								<h3 class="topContent">Comments</h3>          
@@ -2937,18 +3058,17 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								 <cfloop query="comments">
 								 <!---Note: the URL is appended with an extra 'c' in front of the commentId.--->
 								 <tr id="c#id#" name="" class="<cfif currentRow mod 2>k-content<cfelse>k-alt</cfif>">
-								  <td class="fixedCommentTableContent">
-									 <a class="comment-id" href="#application.blog.makeLink(entryid)###c#id#" aria-label="Comment by #name#" class="k-content">###currentRow#</a> by <b>
-									 <cfif len(comments.website)>
-										<a href="#comments.website#" aria-label="#name#" rel="nofollow">#name#</a>
-									 <cfelse>
-										#name#
-									 </cfif></b> 
-									 on #application.localeUtils.dateLocaleFormat(posted,"short")# - #application.localeUtils.timeLocaleFormat(posted)#</p>
-								  </td>
+								  	<td class="fixedCommentTableContent">
+										 <a class="comment-id" href="#application.blog.makeLink(entryid)###c#id#" aria-label="Comment by #name#" class="k-content">###currentRow#</a> by <b>
+										 <cfif len(comments.website)>
+											<a href="#comments.website#" aria-label="#name#" rel="nofollow">#name#</a>
+										 <cfelse>
+											#name#
+										 </cfif></b> 
+										 on #application.localeUtils.dateLocaleFormat(posted,"short")# - #application.localeUtils.timeLocaleFormat(posted)#</p>
+								  	</td>
 								 <tr class="<cfif currentRow mod 2>k-content<cfelse>k-alt</cfif>">
 									<td>
-
 										<img src="https://www.gravatar.com/avatar/#lcase(hash(lcase(email)))#?s=64&amp;r=pg&amp;d=#application.rooturl#/images/defaultAvatar.gif" title="#name#'s Gravatar" alt="#name#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"  />
 										#paragraphFormat2(replaceLinks(comment))#
 									</td>
@@ -2959,18 +3079,19 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 									<td class="border"></td>
 								 </tr>
 							 </cfif>
-								 </cfloop>
-								 <cfcatch type="any">
-									<tr>
-										<td>
-											#cfcatch.detail#
-										</td>
-									</tr>
-								 </cfcatch>
-								 </cftry>
-								</table>
-							</div><!---<div id="comment#entryId#" class="widget k-content" style="display:none;">--->
-						</cfif><!---<cfif len(commentCount) gt 0>--->
+							 </cfloop>
+							 <cfcatch type="any">
+								<tr>
+									<td>
+										#cfcatch.detail#
+									</td>
+								</tr>
+							 </cfcatch>
+							 </cftry>
+							</table>
+						</div><!---<div id="comment#entryId#" class="widget k-content" style="display:none;">--->
+					</cfif><!---<cfif len(commentCount) gt 0>--->
+						
 						<cfsilent>
 						<!--- ***********************************************************************************************************
 							Related entries
@@ -3001,7 +3122,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				<p class="bottomContent">
 					<!-- Go to www.addthis.com/dashboard to customize your tools --> 
 					<script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=<cfoutput>#application.addThisApiKey#</cfoutput>"></script>
-					<div class="addthis_inline_share_toolbox"></div>
+					<div class="<cfoutput>#addThisToolboxString#</cfoutput>"></div>
 				</p>
 				</cfif>
 				<cfsilent>
@@ -3112,7 +3233,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			
 		</div><!---<div class="mainPanel hiddenOnNarrow">--->
 		
-	</div><!--- <div id="mainBlog"> --->					
+	</div><!--- <div id="mainBlog"> --->	
 	<cfsilent>
 	<!---//**************************************************************************************************************************************************
 				Sidebar panel
@@ -3134,7 +3255,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				// On mobile devices, always achieve the breakpoint (50,000 pixels should do it!), otherwise, use the breakpoint setting that is defined in the administrative interface.
 				breakpoint: breakpoint,
 				orientation: "left",
-				autoClose: false,// Note: autoclose true will yield unexpected results as it will take over the manually coded logic to close. 
+				autoClose: true,// Note: autoclose true will cause the panel to fly off to the left. It looks a bit funny, but it works.. 
 				open: onSidebarOpen,
 				close: onSidbarClose
 			})
@@ -3302,6 +3423,10 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	// Check the alignment of the page containers again and reset if necessary
 	setScreenProperties();
 </script>
+
+<!--- Disqus tail end script to enable the number of vpage iews and the comment count. --->
+<script id="dsq-count-scr" type="<cfoutput>#scriptTypeString#</cfoutput>" src="//gregorys-blog.disqus.com/count.js" async></script>
+			
 <cfsilent>
 <!-- Custom sroll magic js (and custom kendo notifications from my extended notification UI library) -->
 <!---<script src="/common/js/scrollMagic/mainSceneNew.js"></script>--->

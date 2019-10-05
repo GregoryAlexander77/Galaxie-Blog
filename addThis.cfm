@@ -476,7 +476,7 @@ I have redesigned the page from here to include the entire logic for the present
 	<!---<cftry>--->
 		<!-- Go to www.addthis.com/dashboard to customize your tools --> 
 		<script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=<cfoutput>#application.addThisApiKey#</cfoutput>"></script>
-		<div class="addthis_inline_share_toolbox_zyuh"></div>
+		<div class="<cfoutput>#addThisToolboxString#</cfoutput>"></div>
 		<!---<cfcatch type="any">
 			The addThis.com server may be down.
 		</cfcatch>

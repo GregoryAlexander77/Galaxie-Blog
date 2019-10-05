@@ -39,15 +39,17 @@ Notes: Gregory's home page design would have the following settings
 <cffunction name="getThemeByDay" access="public" returntype="string">
 	<!--- The blogNow() will return the current date minus the offset. --->
 	<cfset thisDay = day(application.blog.blogNow())>
-	<cfif thisDay eq 1 or thisDay eq 14 or thisDay eq thisDay eq 27>
+	<cfset theme = "">
+		
+	<cfif thisDay eq 1 or thisDay eq 14 or thisDay eq 27>
 		<cfset theme = "default">
-	<cfelseif thisDay eq 2 or thisDay eq 15 or thisDay eq thisDay eq 28>
+	<cfelseif thisDay eq 2 or thisDay eq 15 or thisDay eq 28>
 		<cfset theme = "black">
-	<cfelseif thisDay eq 3 or thisDay eq 16 or thisDay eq thisDay eq 29>
+	<cfelseif thisDay eq 3 or thisDay eq 16 or thisDay eq 29>
 		<cfset theme = "blueOpal">
-	<cfelseif thisDay eq 4 or thisDay eq 17 or thisDay eq thisDay eq 30>
+	<cfelseif thisDay eq 4 or thisDay eq 17 or thisDay eq 30>
 		<cfset theme = "flat">
-	<cfelseif thisDay eq 5 or thisDay eq 18 or thisDay eq thisDay eq 31>		
+	<cfelseif thisDay eq 5 or thisDay eq 18 or thisDay eq 31>		
 		<cfset theme = "highcontrast">
 	<cfelseif thisDay eq 6 or thisDay eq 19>		
 		<cfset theme = "material">
