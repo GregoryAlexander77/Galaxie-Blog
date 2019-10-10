@@ -214,6 +214,7 @@ I have redesigned the page from here to include the entire logic for the present
 	
 	/* The next three classes will be used to create a calendar date placard */
 	#blogPost p.postDate {
+
 	  width: 38px;
 	  height: 38px;
 	  display: block;

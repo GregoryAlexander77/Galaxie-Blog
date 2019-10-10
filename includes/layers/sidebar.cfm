@@ -4,14 +4,38 @@
 				<cfset scriptTypeString = attributes.scriptTypeString>
 				<cfset kendoTheme = attributes.kendoTheme>
 				<cfset darkTheme = attributes.darktheme>
+				
+				<!--- Set the button styles for the pods. --->
+				<cfif kendoTheme contains 'material'>
+					<cfif session.isMobile>
+						<cfset kendoButtonStyle = "width:90px; font-size:0.55em;">
+					<cfelse>	
+						<cfset kendoButtonStyle = "width:125px; font-size:0.70em;">
+					</cfif>
+				<cfelse><!---<cfif kendoTheme contains 'material'>--->
+					<cfif session.isMobile>
+						<cfset kendoButtonStyle = "width:90px; font-size:0.75em;">
+					<cfelse>	
+						<cfset kendoButtonStyle = "width:125px; font-size:0.875em;">
+					</cfif>
+				</cfif><!---<cfif kendoTheme contains 'material'>--->
 				</cfsilent>
 				<!--- We need a sideBarType argument supplied prior to the include of this template. --->
+		
+				<div class="widget k-content flexItem">
+					<span class="innerContentContainer">
+						<h3 class="topContent"><i class="fas fa-file-download"></i> Download Galaxie Blog</h3>
+						<cfinclude template="#application.baseUrl#/includes/pods/download.cfm">
+					</span>
+				</div>
+					
 				<div class="widget k-content flexItem">
 					<span class="innerContentContainer">
 						<h3 class="topContent"><i class="fas fa-envelope-open-text"></i> Subscribe</h3>
 						<div class="calendar">
 							<cfinclude template="#application.baseUrl#/includes/pods/subscribe.cfm">
 						</div>
+						<br/>
 					</span>
                </div>
 					
@@ -34,6 +58,7 @@
 						<h3 class="topContent"><i class="fas fa-comments"></i> Recent Comments</h3>
 						<!---Problems with the recent comments code.--->
 						<cfinclude template="#application.baseUrl#/includes/pods/recentcomments.cfm">
+
 					</span>	
 				</div>
 				
@@ -70,6 +95,7 @@
 					
 				<!---Put some white space underneath the calendar.--->
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>

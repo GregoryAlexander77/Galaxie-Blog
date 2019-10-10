@@ -8,8 +8,8 @@
 	<cfset variables.roles = structNew()>
 		
 	<!--- Current blog version (GA) --->
-	<cfset version = "1.35" />
-	<cfset versionDate = "September 6 2019">
+	<cfset version = "1.45" />
+	<cfset versionDate =  "October 9 2019"> 
 
 
 	<!--- Require 6.1 or higher --->
@@ -2554,7 +2554,7 @@ To unsubscribe, please go to this URL:
 						<cfif arguments.printformat>
 							<cfset result = "<br/><pre class='codePrint'>#trim(htmlEditFormat(codeportion))#</pre><br/>">
 						<cfelse>
-							<!--- Invoke ColdFish (ga) --->
+							<!---Invoke ColdFish (GA)--->
 							<cfset result = variables.codeRenderer.formatString(trim(codeportion))>
 							<!--- Note: Delmore's code formatter is not mobile friendly and it does not use responsive design. This table will constrain the content to a certain variable size (GA). --->
 							<cfset result = "<div class='code'><table class='constrainerTable constrainContent'><tr><td>#result#</td></tr></table></div>">

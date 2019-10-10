@@ -21,7 +21,7 @@
 	
 <!--- Optional libraries --->
 <!--- GSAP and scrollMagie allows for animations and parallax effects in the blog entries. Don't include by default. --->
-<cfset includeGsap = true>
+<cfset includeGsap = false>
 <!--- Determine whether to include the disqus commenting system. If you set this to true, you must also set the optional disqus settings that are right below. Note: this is an application var so that the recentcomments.cfm can access these settings. That template is invoked via a cfmodule tag. --->
 <cfset application.includeDisqus = true>
 <!--- Setting to determine whether to defer the scripts and css. This is a setting as I need to quickly debug to see if the defer is working, but you should leave this at true as it provides a better google speed score. --->
@@ -683,9 +683,9 @@ before in other projects. I suspect that it is reading the entire object when it
 	<!--- Other  libraries  --->
 	<!--- Kendo extended API (used for confirm and other dialogs) --->
 	<script type="#scriptTypeString#" src="#application.kendoUiExtendedLocation#/js/kendo.web.ext.js"></script>
-	<!--- Defer the extended scripts along with my notification library. --->
+	<!--- Defer the extended scripts along with my notification library. Note: the blueopal and material black themes are not in the extended lib. --->
 	<script type="#scriptTypeString#">
-		<cfif kendoTheme neq 'blueOpal'>$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.kendoUiExtendedLocation#/styles/#kendoTheme#.kendo.ext.css') );</cfif>
+		<cfif kendoTheme neq 'blueOpal' and kendoTheme neq 'materialBlack'>$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.kendoUiExtendedLocation#/styles/#kendoTheme#.kendo.ext.css') );</cfif>
 		// Notification .css 
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/ui.notify.css') );
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/notify.css') );
@@ -1043,7 +1043,6 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<style><cfoutput>
 		
 		/* ------------------------------------------------------------------------------------------------------------
-
 		Global CSS vars and body.
 		Create a content width global css var. We will change this with Javascript depending upon the screen resolution 
 		--------------------------------------------------------------------------------------------------------------*/
@@ -1253,7 +1252,6 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			/* The container may need to have some padding as the menu underneath it is not going to left align with the text since the menu is going to start prior to the first text item. */
 			padding-left: 13px; 
 			text-shadow: 0px 4px 8px rgba(0, 0, 0, 0.19); /* The drop shadow should closely mimick the shadow on the main blog layer.*/
-
 			color: <cfoutput>#blogNameTextColor#</cfoutput>; /* Plain white has too high of a contrast imo. */
 			vertical-align: center;
 		}
@@ -1821,7 +1819,6 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			text-align: left;
 		}
 
-
 		/* Footer main content */
 		#footerInnerContainer p {
 			padding-top: 10px;
@@ -2120,7 +2117,6 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			if ($("#searchWindow").length > 0) {
 				$("#searchWindow").parent().remove();
 			}
-
 
 			// Typically we would use a div outside of the script to attach the window to, however, since this is inside of a function call, we are going to dynamically create a div via the append js method. If we were to use a div outside of this script, lets say underneath the 'mainBlog' container, it would cause wierd problems, such as the page disappearing behind the window.
 			$(document.body).append('<div id="searchWindow"></div>');
@@ -2903,7 +2899,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 							#application.blog.renderEntry(body,false,enclosure)#
 								
 							<!-- Handle any posts that have the content broken into two sections written in the entry editor using the '</more>' tag. This is a neat feature allows the administrator to condense the entry for the front page and create a link to the full post. -->
-							<cfif len(morebody) and url.mode is not "entry">
+							<cfif len(morebody) and url.mode is not "alias"><!--- Chjanged logic. Old logic prior to version 1.45 was: and url.mode is not "entry"--->
 								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#application.blog.makeLink(id)###more';">
 									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
 									<i class="fas fa-chevron-circle-down" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;More...
@@ -2979,8 +2975,9 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								</button>
 							</cfif><!---<cfif not addSocialMediaUnderEntry>--->
 						</cfif><!---<cfif url.mode neq "alias">--->
+								<p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
 								<!--- The number of comments will be provided with the code below. --->
-								<p><span class="disqus-comment-count" data-disqus-url="#application.blog.makeLink(id)#"></span></p>
+								<p><a class="disqus-comment-count" data-disqus-url="#application.blog.makeLink(id)#" onClick="createDisqusWindow('#entryId#', '#alias#', '#application.blog.makeLink(id)#')"></a></p>
 					<cfelse><!---<cfif application.includeDisqus>--->
 								<!-- Button navigation. -->
 								<!-- Set a smaller font in the kendo buttons. Note: adjusting the .k-button class alone also adjusts the k-input in the multi-select so we will set it here.-->
@@ -3370,7 +3367,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<br/><br/><br/>
 	<div id="footerDiv" name="footerDiv" class="k-content">
 		<span id="footerInnerContainer">
-			<img src="<cfoutput>#application.baseUrl#</cfoutput>images/logo/gregoryAlexanderLogo125_190.png" alt="Footer Logo"/>
+			<img src="<cfoutput>#application.baseUrl#</cfoutput>/images/logo/gregoryAlexanderLogo125_190.png" alt="Footer Logo"/>
 			
 			<h4 style="display: block; margin-left: auto; margin-right: auto;">Your input and contributions are welcomed!</h4>
 			<p>If you have an idea, BlogCfc based code, or a theme that you have built using this site that you want to share, please contribute by making a post here or share it by contacting us! This community can only thrive if we continue to work together.</p>

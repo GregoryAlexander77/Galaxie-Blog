@@ -17,20 +17,6 @@
 <cfset qs = reReplace(cgi.query_string, "<.*?>", "", "all")>
 <cfset qs = reReplace(qs, "[\<\>]", "", "all")>
 <cfset qs = reReplace(qs, "&", "&amp;", "all")>
-	
-<cfif kendoTheme contains 'material'>
-	<cfif session.isMobile>
-		<cfset kendoButtonStyle = "width:90px; font-size:0.55em;">
-	<cfelse>	
-		<cfset kendoButtonStyle = "width:125px; font-size:0.70em;">
-	</cfif>
-<cfelse><!---<cfif kendoTheme contains 'material'>--->
-	<cfif session.isMobile>
-		<cfset kendoButtonStyle = "width:90px; font-size:0.75em;">
-	<cfelse>	
-		<cfset kendoButtonStyle = "width:125px; font-size:0.875em;">
-	</cfif>
-</cfif><!---<cfif kendoTheme contains 'material'>--->
 			
 <!--- Set the name of the form and the text element. This template is used in two different places and I want to have unique element id's. --->
 <cfif sideBarType eq "div">
