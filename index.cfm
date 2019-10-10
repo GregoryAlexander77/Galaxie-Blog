@@ -40,7 +40,7 @@
 	<cfset useSsl = false>
 </cfif>
 <!--- The addThis toolbox string changes depending upon the site and the configuration. --->
-<cfset addThisToolboxString = "addthis_inline_share_toolbox"><!---Typically 'addthis_inline_share_toolbox'--->
+<cfset addThisToolboxString = "addthis_inline_share_toolbox_zyuh"><!---Typically 'addthis_inline_share_toolbox'--->
 
 <!--- //**************************************************************************************************************************************************
 			Optional disqus settings. Set these if you set includeDisqus to true. The first setting is required, the rest are optional settings.
@@ -3367,7 +3367,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<br/><br/><br/>
 	<div id="footerDiv" name="footerDiv" class="k-content">
 		<span id="footerInnerContainer">
-			<img src="<cfoutput>#application.baseUrl#</cfoutput>/images/logo/gregoryAlexanderLogo125_190.png" alt="Footer Logo"/>
+			<img src="<cfoutput>#application.rootUrl#</cfoutput>/images/logo/gregoryAlexanderLogo125_190.png" alt="Footer Logo"/>
 			
 			<h4 style="display: block; margin-left: auto; margin-right: auto;">Your input and contributions are welcomed!</h4>
 			<p>If you have an idea, BlogCfc based code, or a theme that you have built using this site that you want to share, please contribute by making a post here or share it by contacting us! This community can only thrive if we continue to work together.</p>
