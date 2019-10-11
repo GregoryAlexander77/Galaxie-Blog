@@ -21,7 +21,8 @@
 										<cfif divName eq 'fixedNavMenu'><li onclick="javascript:scrollToTop();"><span class="fa fa-arrow-circle-up"></span> Top</li></cfif>
 										<li><a href="http://www.gregoryalexander.com/blog/">Gregory's Blog</a></li>
 										<li><a href="http://www.gregoryalexander.com/">Gregory Alexander Web Design</a></li>
-										<li><a href="http://www.gregoryalexander.com/blog/?contact">Contact</a></li>
+										<li><a href="javascript:createAddCommentSubscribeWindow('', 'contact', <cfoutput>#session.isMobile#</cfoutput>);">Contact</a></li>
+										<!---<li><a href="http://www.gregoryalexander.com/blog/?contact">Contact</a></li>--->
 										<cfif divName eq 'fixedNavMenu'><li onclick="javascript:scrollToBottom();"><span class="fa fa-arrow-circle-down"></span> Bottom</li></cfif>
 									</ul>
 								</li>

@@ -21,7 +21,7 @@
 	
 <!--- Optional libraries --->
 <!--- GSAP and scrollMagie allows for animations and parallax effects in the blog entries. Don't include by default. --->
-<cfset includeGsap = false>
+<cfset includeGsap = true>
 <!--- Determine whether to include the disqus commenting system. If you set this to true, you must also set the optional disqus settings that are right below. Note: this is an application var so that the recentcomments.cfm can access these settings. That template is invoked via a cfmodule tag. --->
 <cfset application.includeDisqus = true>
 <!--- Setting to determine whether to defer the scripts and css. This is a setting as I need to quickly debug to see if the defer is working, but you should leave this at true as it provides a better google speed score. --->
@@ -685,7 +685,7 @@ before in other projects. I suspect that it is reading the entire object when it
 	<script type="#scriptTypeString#" src="#application.kendoUiExtendedLocation#/js/kendo.web.ext.js"></script>
 	<!--- Defer the extended scripts along with my notification library. Note: the blueopal and material black themes are not in the extended lib. --->
 	<script type="#scriptTypeString#">
-		<cfif kendoTheme neq 'blueOpal' and kendoTheme neq 'materialBlack'>$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.kendoUiExtendedLocation#/styles/#kendoTheme#.kendo.ext.css') );</cfif>
+		<cfif kendoTheme neq 'blueOpal' and kendoTheme neq 'materialBlack' and kendoTheme neq 'office365'>$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.kendoUiExtendedLocation#/styles/#kendoTheme#.kendo.ext.css') );</cfif>
 		// Notification .css 
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/ui.notify.css') );
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/notify.css') );
@@ -2255,8 +2255,8 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			  disqusWindow.destroy();
 			}, 500);
 		}
-	<cfelse><!---<cfif application.includeDisqus>--->
-		// Add comment window ---------------------------------------------------------------------------------------------------------------------------------
+	</cfif><!---<cfif application.includeDisqus>--->
+		// Add comment window (note: even when including Disqus, this must be here as it is used for the contact form. ------------------------------------------------
 		function createAddCommentSubscribeWindow(Id, uiElement, isMobile) {
 
 			// Remove the window if it already exists
@@ -2328,7 +2328,6 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			  addCommentWindow.destroy();
 			}, 500);
 		}
-	</cfif><!---<cfif application.includeDisqus>--->
 		
 		// Share media window ---------------------------------------------------------------------------------------------------------------------------------
 		function createMediaShareWindow(Id) {
@@ -3367,7 +3366,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<br/><br/><br/>
 	<div id="footerDiv" name="footerDiv" class="k-content">
 		<span id="footerInnerContainer">
-			<img src="<cfoutput>#application.rootUrl#</cfoutput>/images/logo/gregoryAlexanderLogo125_190.png" alt="Footer Logo"/>
+			<img src="<cfoutput>#application.baseUrl#</cfoutput>/images/logo/gregoryAlexanderLogo125_190.png" alt="Footer Logo"/>
 			
 			<h4 style="display: block; margin-left: auto; margin-right: auto;">Your input and contributions are welcomed!</h4>
 			<p>If you have an idea, BlogCfc based code, or a theme that you have built using this site that you want to share, please contribute by making a post here or share it by contacting us! This community can only thrive if we continue to work together.</p>
