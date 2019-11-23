@@ -42,7 +42,7 @@ Notes: Gregory's home page design would have the following settings
 	<cfset theme = "">
 		
 	<cfif thisDay eq 1 or thisDay eq 14 or thisDay eq 27>
-		<cfset theme = "default">
+		<cfset theme = "default"><!---default--->
 	<cfelseif thisDay eq 2 or thisDay eq 15 or thisDay eq 28>
 		<cfset theme = "black">
 	<cfelseif thisDay eq 3 or thisDay eq 16 or thisDay eq 29>
@@ -64,9 +64,9 @@ Notes: Gregory's home page design would have the following settings
 	<cfelseif thisDay eq 11 or thisDay eq 24>		
 		<cfset theme = "silver">
 	<cfelseif thisDay eq 12 or thisDay eq 25>		
-		<cfset theme = "cobalt">
+		<cfset theme = "uniform">
 	<cfelseif thisDay eq 13 or thisDay eq 26>		
-		<cfset theme = "sunrise">
+		<cfset theme = "nova">
 	</cfif>
 	<cfreturn theme>
 </cffunction>
@@ -142,7 +142,7 @@ Notes: Gregory's home page design would have the following settings
 		<cfset modifyDefaultThemes = false>
 	</cfif>
 	<!--- Ditto for the useCustomTheme var --->
-	<cfif useCustomTheme or useCustomTheme eq 'yes' or useCustomTheme eq 1>
+	<cfif isBoolean("useCustomTheme") and useCustomTheme or useCustomTheme eq 'yes' or useCustomTheme eq 1>
 		<cfset useCustomTheme = true>
 	<cfelse>
 		<cfset useCustomTheme = false>

@@ -4,6 +4,13 @@
 				<cfset scriptTypeString = attributes.scriptTypeString>
 				<cfset kendoTheme = attributes.kendoTheme>
 				<cfset darkTheme = attributes.darktheme>
+					
+				<!--- Is there a URL rewrite rule in place? If so, we need to eliminate the 'index.cfm' string from all of our links. A rewrite rule on the server allows the blog owners to to obsfucate the 'index.cfm' string from the URL. This setting is in the application.cfc template. --->
+				<cfif application.serverRewriteRuleInPlace>
+					<cfset thisUrl = replaceNoCase(application.rootURL, '/index.cfm', '')>
+				<cfelse>
+					<cfset thisUrl = application.rootURL>
+				</cfif>
 				
 				<!--- Set the button styles for the pods. --->
 				<cfif kendoTheme contains 'material'>

@@ -4,7 +4,7 @@
 	Name         : recent.cfm
 	Author       : Raymond Camden 
 	Created      : October 29, 2003
-	Last Updated : November 4 2018
+	Last Updated : 10/23/19
 	History      : added processingdir (rkc 11/10/03)
 				   New link code (rkc 7/12/05)
 				   Hide future entries (rkc 6/1/07)
@@ -19,7 +19,7 @@
 <cfset entryData = application.blog.getEntries(duplicate(params))>
 <cfset entries = entryData.entries>
 </cfsilent>
-				<table align="center" class="k-content fixedPodTable" width="100%" cellpadding="0" cellspacing="0">
+				<table align="center" class="k-content fixedPodTableWithWrap" width="100%" cellpadding="7" cellspacing="0">
 					<cfif not entries.recordCount>
 						<tr>
 							<td class="k-header">
@@ -28,6 +28,13 @@
 						</tr>
 					</cfif>
 					<cfoutput query="entries">
+					<cfsilent>
+					<cfif application.serverRewriteRuleInPlace>
+						<cfset entryLink = replaceNoCase(application.blog.makeLink(id), '/index.cfm', '')>
+					<cfelse>
+						<cfset entryLink = application.blog.makeLink(id)>
+					</cfif>
+					</cfsilent>
 					<tr class="#iif(currentRow MOD 2,DE('k-content'),DE('k-alt'))#">
 						<!---Create alternating rows in the table. The Kendo classes which we will use are k-alt and k-content.
 						We will create a border between the rows if the current row is not the first row. --->
@@ -36,7 +43,7 @@
 						<cfelse>
 							<td align="left" class="border" height="20px">
 						</cfif>
-						<a href="#application.blog.makeLink(id)#" aria-label="#title#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#title#</a>
+						<a href="#entryLink#" aria-label="#title#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#title#</a>
 						</td>
 					</tr>	
 					</cfoutput>

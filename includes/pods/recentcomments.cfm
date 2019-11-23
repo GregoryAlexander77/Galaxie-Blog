@@ -31,10 +31,8 @@
 	<!--- Set the name of the element that will contain the recent disqus comments. --->
 	<cfif sideBarType eq "div">
 		<cfset recentCommentsElementId="recentCommentsDiv">
-		<cfset disqusCommentElementId="disqusCommentDiv">
 	<cfelse>
 		<cfset recentCommentsElementId="recentCommentsPanel">
-		<cfset disqusCommentElementId="disqusCommentPanel">
 	</cfif>
 	<!--- Set the padding for the avatar. Mobile is smaller than desktop. --->
 	<cfif session.isMobile>
@@ -56,13 +54,14 @@
 				}
 
 				img.disqusAvatar {
-					width: 64px;
-					height: 64px;
+					width: <cfif session.isMobile>32<cfelse>64</cfif>px;
+					height: <cfif session.isMobile>32<cfelse>64</cfif>px;
 					float: left;
 					position: relative;
 					z-index: 99;
 					border: 0px;
-					margin: 0px;
+					/* Pad the content to the right of the image */
+					margin-right: 5px;
 					/* The padding needs to be uniform, otherwise the avatar circle will be elongated */
 					padding: <cfoutput>#avatarPadding#</cfoutput>;
 					-moz-border-radius: 50%;
@@ -73,19 +72,11 @@
 					overflow: hidden;
 				}
 
-				#disqusCommentDiv a {
+				#disqusComment a {
 					overflow: hidden; /* Prevent wrapping */
 				}
 
-				#disqusCommentDiv p {
-					display: inline; /* Prevent wrapping */
-				}
-				
-				#disqusCommentPanel a {
-					overflow: hidden; /* Prevent wrapping */
-				}
-
-				#disqusCommentPanel p {
+				#disqusComment p {
 					display: inline; /* Prevent wrapping */
 				}
 
@@ -137,8 +128,6 @@
 						var post = data.response[i];
 						// Set a current row value from our index. I need a whole number to determine the alternating row color. I could just use [i]+1, but I am setting this for readability.
 						var row = parseInt([i]);
-						// Set a unique ID for the disqus comment element that we will write out on the screen.
-						var disqusCommentElementId = '<cfoutput>#disqusCommentElementId#</cfoutput>' + row;
 						// Get the data for the post.
 						var authorName = post.author.name;
 						var authorProfileUrl = post.author.profileUrl;
@@ -156,7 +145,7 @@
 						// Create the HTML. We will try to keep this nearly identical to the recent comment widget, but put in our own kendo classes here.
 						// Crete the table on the first row.
 						if (row == 0){
-							html += '<table id="' + disqusCommentElementId + '" align="center" class="k-content fixedPodTableWithWrap" width="100%" cellpadding="0" cellspacing="0">';
+							html += '<table id="disqusComment" align="center" class="k-content fixedPodTableWithWrap" width="100%" cellpadding="7" cellspacing="0">';
 						}
 						// Create the row and alternate the k-content and k-alt class.
 						if (isOdd(row)){
@@ -171,13 +160,13 @@
 							html += '<td align="left" valign="top" class="border userProfile">';
 						}
 						// Wrap the avatar with the authors profile link
-						html += '<br/><a href="' + authorProfileUrl + '" aria-label="Profile for ' + authorName + '" rel="nofollow noopener">' + authorName;
+						html += '<a href="' + authorProfileUrl + '" aria-label="Profile for ' + authorName + '" rel="nofollow noopener">' + authorName;
 						// Place the avatar into the cell and close the anchor link.
-						html += '<img class="disqusAvatar" src="' + authorAvatarUrl + '" aria-label="Profile for ' + authorName + '"></a>';
+						html += '<img class="disqusAvatar" src="' + authorAvatarUrl + '" aria-label="Profile for ' + authorName + '"></a><br/>';
 						// Add the comment. The comment is already wrapped with a paragraph tag.
-						html += '<br/>' + truncateString(comment, <cfoutput>#lenComment#</cfoutput>);
+						html += truncateString(comment, <cfoutput>#lenComment#</cfoutput>) + '<br/>';
 						// Create the HTML to insert into the page title.
-						html += '<a href="' + pageLink + '" aria-label="' + pageLink + '">' + pageTitle + '</a><br/>';
+						html += '<a href="' + pageLink + '" aria-label="' + pageLink + '">' + pageTitle + '</a> - ';
 						// Add the timestamp to quickly identify how recent the post is.
 						html += timeSince(new Date(created)) + ' ago<br/>';
 						// Close the cell and the row.

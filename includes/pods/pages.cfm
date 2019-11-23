@@ -15,10 +15,10 @@
 
    
 <cfmodule template="../../tags/podlayout.cfm" title="NAVIGATION">
-	<cfoutput><a href="#application.rootURL#" class="k-content">Home</a><br /></cfoutput>
+	<cfoutput><a href="#thisUrl#" class="k-content">Home</a><br /></cfoutput>
 
 	<cfloop query="pages_qry">
-		<cfoutput><a href="#application.rootURL#/page.cfm/#alias#" class="k-content">#title#</a><br /></cfoutput>
+		<cfoutput><a href="#thisUrl#/page.cfm/#alias#" class="k-content">#title#</a><br /></cfoutput>
 	</cfloop>
       
 </cfmodule>

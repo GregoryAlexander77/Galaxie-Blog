@@ -1,4 +1,4 @@
-<cfsetting enablecfoutputonly=true>
+<cfsetting enablecfoutputonly=false>
 <cfprocessingdirective pageencoding="utf-8">
 <!---
 	Name         : C:\projects\blogcfc5\client\admin\entry.cfm
@@ -10,6 +10,9 @@
 				   Delete cookies on cancel (rkc 5/18/07)
 				   Yet another date fix (rkc 1/14/08)
 --->
+	
+<!--- The Themes component interacts with the Blog themes. --->
+<cfobject component="#application.imageComponentPath#" name="ImageObj">
 
 <cftry>
 	<cfif url.id neq 0>
@@ -46,7 +49,7 @@
 		</cfif>
 		
 		
-	<cfelse>
+	<cfelse><!---<cfif url.id neq 0>--->
 	
 		<!--- look for savedtitle, savedbody from cookie, but only if not POSTing --->
 		<cfif not structKeyExists(form, "title") and structKeyExists(cookie, "savedtitle")>
@@ -75,7 +78,7 @@
 		<cfparam name="form.summary" default="">
 		<cfparam name="form.relatedEntries" default="">
 		<cfparam name="form.sendemail" default="true">
-	</cfif>
+	</cfif><!---<cfif url.id neq 0>--->
 	<cfcatch>
 		<!--- <cflocation url="entries.cfm" addToken="false"> --->
 		<cfrethrow>
@@ -110,18 +113,42 @@
 Enclosure logic move out to always run. Thinking is that it needs to run on preview.
 --->
 <cfif isDefined("form.enclosure") and len(trim(form.enclosure))>
+	
+	<!--- Gregory rewrote this to be able to manipulate the enclosure for social media sharing. ---> 
+	<!--- Set the destination. --->
 	<cfset destination = expandPath("../enclosures")>
+		
 	<!--- first off, potentially make the folder --->
 	<cfif not directoryExists(destination)>
 		<cfdirectory action="create" directory="#destination#">
 	</cfif>
 	
+	<!--- Upload it (GA) --->
 	<cffile action="upload" filefield="enclosure" destination="#destination#" nameconflict="makeunique">
+	
+	<cftry>
+		<!--- And manipulate the image and save it in the social media sharing folders --->
+		<cfset socialMediaImagePath = destination & "\" & cffile.serverFile>
+		<!--- createSocialMediaImages(socialMediaImagePath, socialMediaImageType) --->
+		<!--- Create a social media sharing image for Facebook --->
+		<cfset ImageObj.createSocialMediaImages(socialMediaImagePath, 'facebook', '')>
+		<!--- Twiter... --->
+		<cfset ImageObj.createSocialMediaImages(socialMediaImagePath, 'twitter', '')>
+		<!--- and Google --->
+		<cfset ImageObj.createSocialMediaImages(socialMediaImagePath, 'google', 'google16_9Image')>
+		<cfset ImageObj.createSocialMediaImages(socialMediaImagePath, 'google', 'google4_3Image')>
+		<cfset ImageObj.createSocialMediaImages(socialMediaImagePath, 'google', 'google1_1Image')>
+		<cfcatch type="any">
+			<cfset errorMessage = "Error creating social media images">
+		</cfcatch>
+	</cftry>
+	
 	<cfif cffile.filewassaved>
 		<cfset form.oldenclosure = cffile.serverDirectory & "/" & cffile.serverFile>
 		<cfset form.oldfilesize = cffile.filesize>
 		<cfset form.oldmimetype = cffile.contenttype & "/" & cffile.contentsubtype>
 	</cfif>
+			
 <cfelseif isDefined("form.manualenclosure") and len(trim(form.manualenclosure))>
 	<cfset destination = expandPath("../enclosures")>
 	<!--- first off, potentially make the folder --->

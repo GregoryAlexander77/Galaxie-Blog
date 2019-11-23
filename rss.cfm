@@ -4,7 +4,7 @@
 	Name         : RSS
 	Author       : Raymond Camden 
 	Created      : March 12, 2003
-	Last Updated : May 18, 2007
+	Last Updated : October 11 2019
 	History      : Reset history for version 5.0
 				 : Note that I'm not doing RSS feeds by day or month anymore, so that code is marked for removal (maybe)
 				 : Added additionalTitle support for cats
@@ -73,9 +73,12 @@
 </cfif>
 
 <cfsavecontent variable="variables.feedXML">
+	
+<!--- Note: this is being cached. I typically removed all of the caching features that were in the initial blog, but I like this one... it gives me time to think about things and perfect the post once it is released. Comment out this code and uncomment the line below it to see a realtime feed (GA). --->
 <cfmodule template="tags/scopecache.cfm" cachename="#cachename#" scope="application" timeout="#application.timeout#" disabled="#disabled#">
 	<cfoutput>#application.blog.generateRSS(mode=mode,params=params,version=version,additionalTitle=additionalTitle)#</cfoutput>
 </cfmodule>
+<!--- <cfoutput>#application.blog.generateRSS(mode=mode,params=params,version=version,additionalTitle=additionalTitle)#</cfoutput> --->
 </cfsavecontent>
 
 <cfset variables.lastModified = XMLSearch ( XMLParse ( variables.feedXML ), '//item[1]/pubDate' ) />

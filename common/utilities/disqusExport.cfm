@@ -1,9 +1,9 @@
 <cfscript>
-datasource="gregorysBlog";
-siteUrl="gregorysblog.org"
+datasource="BlogCfc";
+siteUrl="www.gregoryalexander.com/blog";
 	
 query function getCommentsForEntry(required string id) {
-	return queryExecute("select comment, email, entryidfk, id, name, posted, website from tblblogcomments where entryidfk = :id order by posted asc", {id=id}, {datasource="#datasource#"});
+	return queryExecute("select comment, email, entryidfk, id, name, posted, website from tblblogcomments where entryidfk = :id and comment is not null  order by posted asc", {id=id}, {datasource="#datasource#"});
 }
 
 string function getLink(required struct entry) {
@@ -64,48 +64,50 @@ start = 5003;
 // Specifies number of rows to process
 total = 2000;
 
-entries = queryExecute("select body, alias, id, posted, title from tblblogentries where released = 1 order by posted asc", {}, {datasource="gregorysBlog"});
+entries = queryExecute("select body, alias, id, posted, title from tblblogentries where released = 1 order by posted asc", {}, {datasource="#datasource#"});
 //writeDump(entries);
 
 items = "";
 commentCount = 0;
 
 for(i=1; i<=entries.recordCount; i++) {
-	entry = entries.getRow(i);
-	if(i == 1) {
-		firstEntry = entry.title;
-		firstPost = entry.posted;
+	if(len(comment.comment) > 0){
+		entry = entries.getRow(i);
+			if(i == 1) {
+				firstEntry = entry.title;
+				firstPost = entry.posted;
+			}
+			if(i == entries.recordCount) { 
+				lastEntry = entry.title;
+				lastPost = entry.posted;
+			}
+
+			//writeDump(entry);
+			comments = getCommentsForEntry(entry.id);
+			commentCount += comments.recordCount;
+			//writeDump(comments);
+			itemString = generateItemXML(entry, comments);
+			//probably bad string perf here, don't care
+			items &= itemString;
+		}
+
+		prefix = '<?xml version="1.0" encoding="UTF-8"?>
+		<rss version="2.0"
+		  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+		  xmlns:dsq="http://www.disqus.com/"
+		  xmlns:dc="http://purl.org/dc/elements/1.1/"
+		  xmlns:wp="http://wordpress.org/export/1.0/"
+		>
+		  <channel>';
+		postfix = '</channel></rss>';
+
+		finalContent = prefix & items & postfix;
+
+		//writeoutput(htmlcodeformat(finalContent));
+		//filename is based on start_count
+		filename = expandPath("./comments_#start#_#total#.xml");
+		fileWrite(filename, finalContent);
+		writeoutput("Wrote #entries.recordCount# entries/#commentCount# comments to #filename#<br/>");
+		writeoutput("First entry was #firstEntry# on #dateFormat(firstPost)#<br/>Last was #lastEntry# on #dateFormat(lastPost)#<br/>");
 	}
-	if(i == entries.recordCount) { 
-		lastEntry = entry.title;
-		lastPost = entry.posted;
-	}
-	
-	//writeDump(entry);
-	comments = getCommentsForEntry(entry.id);
-	commentCount += comments.recordCount;
-	//writeDump(comments);
-	itemString = generateItemXML(entry, comments);
-	//probably bad string perf here, don't care
-	items &= itemString;
-}
-
-prefix = '<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0"
-  xmlns:content="http://purl.org/rss/1.0/modules/content/"
-  xmlns:dsq="http://www.disqus.com/"
-  xmlns:dc="http://purl.org/dc/elements/1.1/"
-  xmlns:wp="http://wordpress.org/export/1.0/"
->
-  <channel>';
-postfix = '</channel></rss>';
-
-finalContent = prefix & items & postfix;
-
-//writeoutput(htmlcodeformat(finalContent));
-//filename is based on start_count
-filename = expandPath("./comments_#start#_#total#.xml");
-fileWrite(filename, finalContent);
-writeoutput("Wrote #entries.recordCount# entries/#commentCount# comments to #filename#<br/>");
-writeoutput("First entry was #firstEntry# on #dateFormat(firstPost)#<br/>Last was #lastEntry# on #dateFormat(lastPost)#<br/>");
 </cfscript>

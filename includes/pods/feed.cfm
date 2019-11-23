@@ -14,7 +14,7 @@
 	on the type of RSS feed you are using.
 --->
 </cfsilent>
-<table align="center" class="k-content fixedPodTableWithWrap" width="100%" cellpadding="0" cellspacing="0">
+<table align="center" class="k-content fixedPodTableWithWrap" width="100%" cellpadding="7" cellspacing="0">
 <cftry>
 	<cfsilent>
 	<cfset theURL = "http://www.coldfusionbloggers.org/rss.cfm">
@@ -44,6 +44,7 @@
 			</cfif>
 				<!--Display the content.-->
 				<cfoutput>
+				#item.creator.xmlText#<br/> 
 				<a href="#item.link.xmlText#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#item.title.xmlText#</a><br />
 				</cfoutput>
 			</td>

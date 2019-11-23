@@ -1,16 +1,15 @@
 <cfcomponent displayName="Blog" output="no" hint="BlogCFC by Raymond Camden">
 
 	<!--- Load utils immidiately. --->
-	<cfset variables.utils = createObject("component", "utils")>
+	<cfset variables.utils = createObject("component", "utils")> 
 	<!--- Include the UDF (Raymond's code) --->
 	<cfinclude template="../../../includes/udf.cfm">
-
+	<!--- Roles --->
 	<cfset variables.roles = structNew()>
 		
 	<!--- Current blog version (GA) --->
-	<cfset version = "1.45" />
-	<cfset versionDate =  "October 9 2019"> 
-
+	<cfset version = "1.50" />
+	<cfset versionDate =  "November 22 2019">  
 
 	<!--- Require 6.1 or higher --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>
@@ -813,13 +812,25 @@
 
 			<cfsavecontent variable="items">
 			<cfloop query="articles">
+			<!--- Get the category (GA) --->
+			<!--- Note: categories are held in an array. The Category is the 2nd element in the array (GA). --->
+			<!--- We need to remove the 'index.cfm' string when a rewrite rule is in place. (GA) --->
+			<cfif application.serverRewriteRuleInPlace>
+				<cfset xmlLink = xmlFormat(replaceNoCase(xmlFormat(makeLink(id)), '/index.cfm', ''))>
+			<cfelse>
+				<cfset xmlLink = xmlFormat(makeLink(id))>
+			</cfif>
+			<cfloop item="catid" collection="#categories#">
+				<cfset category = categories[currentRow][catid]>
+			</cfloop>
+			<cfif listFindNoCase(application.eliminateCategoryListInMainFeed, category) eq 0><!---GA--->
 			<cfset dateStr = dateFormat(posted,"yyyy-mm-dd")>
 			<cfset dateStr = dateStr & "T" & timeFormat(posted,"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & ":00">
 			<cfoutput>
-		  	<item rdf:about="#xmlFormat(makeLink(id))#">
+		  	<item rdf:about="#xmlLink#">
 			<title>#xmlFormat(title)#</title>
 			<description><cfif arguments.mode is "short" and len(REReplaceNoCase(body,"<[^>]*>","","ALL")) gte arguments.excerpt>#xmlFormat(left(REReplaceNoCase(body,"<[^>]*>","","ALL"),arguments.excerpt))#...<cfelse>#xmlFormat(body & morebody)#</cfif></description>
-			<link>#xmlFormat(makeLink(id))#</link>
+			<link>#xmlLink#</link>
 			<dc:date>#dateStr#</dc:date>
 			<cfloop item="catid" collection="#categories#">
 				<cfset catlist = listAppend(catlist, xmlFormat(categories[currentRow][catid]))>
@@ -827,6 +838,7 @@
 			<dc:subject>#xmlFormat(catlist)#</dc:subject>
 			</item>
 			</cfoutput>
+			</cfif><!---<cfif listFindNoCase(application.eliminateCategoryListInMainFeed, category) eq 0>--->
 		 	</cfloop>
 			</cfsavecontent>
 
@@ -882,11 +894,23 @@
 
 			<cfsavecontent variable="items">
 			<cfloop query="articles">
+			<!--- Get the category (GA) --->
+			<!--- Note: categories are held in an array. The Category is the 2nd element in the array (GA). --->
+			<!--- We need to remove the 'index.cfm' string when a rewrite rule is in place. (GA) --->
+			<cfif application.serverRewriteRuleInPlace>
+				<cfset xmlLink = xmlFormat(replaceNoCase(xmlFormat(makeLink(id)), '/index.cfm', ''))>
+			<cfelse>
+				<cfset xmlLink = xmlFormat(makeLink(id))>
+			</cfif>
+			<cfloop item="catid" collection="#categories#">
+				<cfset category = categories[currentRow][catid]>
+			</cfloop>
+			<cfif listFindNoCase(application.eliminateCategoryListInMainFeed, category) eq 0><!---GA--->
 			<cfset dateStr = dateFormat(posted,"ddd, dd mmm yyyy") & " " & timeFormat(posted,"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & "00">
 			<cfoutput>
 			<item>
 				<title>#xmlFormat(title)#</title>
-				<link>#xmlFormat(makeLink(id))#</link>
+				<link>#xmlLink#</link>
 				<description>
 				<!--- Regex operation removes HTML code from blog body output --->
 				<cfif arguments.mode is "short" and len(REReplaceNoCase(body,"<[^>]*>","","ALL")) gte arguments.excerpt>
@@ -898,7 +922,7 @@
 				<category>#xmlFormat(categories[currentRow][catid])#</category>
 				</cfloop>
 				<pubDate>#dateStr#</pubDate>
-				<guid>#xmlFormat(makeLink(id))#</guid>
+				<guid>#xmlLink#</guid>
 				<!---
 				<author>
 				<name>#xmlFormat(name)#</name>
@@ -918,6 +942,7 @@
 				</cfif>
 			</item>
 			</cfoutput>
+			</cfif><!---<cfif listFindNoCase(application.eliminateCategoryListInMainFeed, category) eq 0><!---GA--->--->
 		 	</cfloop>
 			</cfsavecontent>
 
@@ -2555,9 +2580,15 @@ To unsubscribe, please go to this URL:
 							<cfset result = "<br/><pre class='codePrint'>#trim(htmlEditFormat(codeportion))#</pre><br/>">
 						<cfelse>
 							<!---Invoke ColdFish (GA)--->
-							<cfset result = variables.codeRenderer.formatString(trim(codeportion))>
-							<!--- Note: Delmore's code formatter is not mobile friendly and it does not use responsive design. This table will constrain the content to a certain variable size (GA). --->
-							<cfset result = "<div class='code'><table class='constrainerTable constrainContent'><tr><td>#result#</td></tr></table></div>">
+							<cftry>
+								<cfset result = variables.codeRenderer.formatString(trim(codeportion))>
+								<!--- Note: Delmore's code formatter is not mobile friendly and it does not use responsive design. This table will constrain the content to a certain variable size (GA). --->
+								<cfset result = "<div class='code'><table class='constrainerTable constrainContent'><tr><td>#result#</td></tr></table></div>">
+								<cfcatch type="any">
+									<!--- Some devices, like iPad Air don't support Java and error out. --->
+									<br/><pre class='codePrint'>#trim(htmlEditFormat(codeportion))#</pre><br/> 
+								</cfcatch>
+							</cftry>
 						</cfif>
 					<cfelse>
 						<cfset result = "">
@@ -2578,7 +2609,7 @@ To unsubscribe, please go to this URL:
 			<cfset arguments.string = replaceNoCase(arguments.string, "attachScript", "script", "all")>	
 		</cfif>
 			
-		<!--- Grrgory's code. Fix the invalidTag issue. This occurs on hostek servers (they have a setting not to allow scripts to be submitted via a form) --->
+		<!--- Grrgory's code. Fix the invalidTag issue. This generally is a substitution of 'invaligTag' when a script tag is use, but it could be caused with a meta tag too. This occurs on hostek servers (they have a setting not to allow scripts to be submitted via a form) --->
 		<cfif findNoCase("InvalidTag",arguments.string)>
 			<cfset arguments.string = replaceNoCase(arguments.string, "InvalidTag", "script", "all")>
 		</cfif>
@@ -2594,12 +2625,13 @@ To unsubscribe, please go to this URL:
 			<cfset arguments.string = newstring>
 		</cfloop>
 
-		<!--- New enclosure support. If enclose if a jpg, png, or gif, put it on top, aligned left (added webp support (GA). --->
+		<!--- New enclosure support. If enclose if a jpg, png, or gif, put it on top, aligned left (added webp support (GA). Note: this needs to be recoded using a database. --->
 		<cfif len(arguments.enclosure) and listFindNoCase("gif,jpg,png,webp", listLast(arguments.enclosure, "."))>
 			<cfset rootURL = replace(instance.blogURL, "index.cfm", "")>
 			<cfset imgURL = "#rootURL#enclosures/#urlEncodedFormat(getFileFromPath(enclosure))#">
 			<!--- Gregory renamed the autoImage div to entryImage. I did not see any autoImage classes elsewhere and want the name to be related to a blog post. I am also lazy loading this now and constraining the image with .css. Note: I am decoding the image URL as it won't work with the lazy loading approach if it is encoded. --->
 			<cfset arguments.string = "<div class=""entryImage""><img class=""fade"" data-src=""#urlDecode(imgURL)#"" alt=""""></div>" & arguments.string>
+			
 		<!--- bmeloche - 06/13/2008 - Adding podcast support. --->
 		<cfelseif len(arguments.enclosure) and listFindNoCase("mp3", listLast(arguments.enclosure, "."))>
 			<cfset rootURL = replace(instance.blogURL, "index.cfm", "")>
@@ -3054,5 +3086,42 @@ To unsubscribe, please go to this URL:
 		<cfset var sEndDir = reFind("/[^/]+#arguments.ext#$", sPath) />
 		<cfreturn left(sPath, sEndDir) />
 	</cffunction>
+			
+	<cffunction name="getImageInfo" access="public" output="false" returntype="struct" hint="Provides information about an image using the built in ColdFusion cfimage function.">
+    	<cfargument name="imageUrl" type="string" required="yes" hint="provide the full path to the image.">
+		
+	
+		<cfimage 
+			action = "info"
+			source = "#arguments.imageUrl#"
+			structname="imageInfo"> 
+		
+		<!--- Return the structure. --->
+		<cfreturn imageInfo>
+		
+	</cffunction>
+			
+	<cffunction name="getImageOrientation" access="public" output="false" returntype="string" hint="Returns a string which will be either landscape or portrait.">
+		<cfargument name="imageUrl" type="string" required="yes" hint="provide the full path to the image.">
+
+		<cfimage 
+			action = "info"
+			source = "#arguments.imageUrl#"
+			structname="imageInfo"> 
+
+		<cfif imageInfo.width gt imageInfo.height>
+			<cfset orientation = "landscape">
+		<cfelseif imageInfo.width lt imageInfo.height>
+			<cfset orientation = "portrait">
+		<cfelse>
+			<cfset orientation = "portrait">
+		</cfif>
+
+		<!--- Return the orientation. --->
+		<cfreturn orientation>
+
+	</cffunction>
+			
+	
 
 </cfcomponent>

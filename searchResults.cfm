@@ -1,4 +1,5 @@
 <cfprocessingdirective pageencoding="utf-8">
+<cfsilent>
 
 <!---
 	Name         : searchResults.cfm
@@ -14,7 +15,6 @@
 <!--- Include the UDF (this is not automatically included when using an application.cfc) --->
 <cfinclude template="includes/udf.cfm">
 
-<!--- Set default params --->
 <cfparam name="URL.searchTerm" default="">
 <cfparam name="URL.category" default="">
 <cfparam name="URL.start" default="1">
@@ -45,65 +45,35 @@
 
 <cfset title = getResourceBundle("search")>
 	
-<!---
-<script>
-	
-	function postSearchTerm(){
-		// Get the value of the forms
-		var searchTerm = $( "#siteSearchField" ).val();
-		var category = $( "#category" ).val();
-		var startRow = $( "#startRow" ).val();
-		var maxEntries = <cfoutput>#application.maxEntries#</cfoutput>;
+<cffunction name="removePostData" access="public" output="true" returntype="string" hint="Removes everything between data found in the post content. Used by the search results template.">
+	<cfargument name="postContent" required="yes" hint="The post content is typically 'application.blog.renderEntry(body,false,enclosure)'.">
 
-		// Submit form via AJAX.
-		$.ajax({
-			type: 'post', 
-			// This posts to the proxy controller as it needs to have session vars and performs client side operations.
-			url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=getSiteSearchResults",
-			data: {
-				searchTerm: searchTerm,
-				category: category,
-				startRow: startRow,
-				endRow: startRow+25
-			},//..data: {
-			dataType: "json",
-			cache: false,
-			success: function(data) {
-				setTimeout(function () {
-					searchResult(data);
-				}, 500);//..setTimeout(function () {
-			}//..success: function(data) {
-		});//..$.ajax({
+	<!--- Set the strings that we're searching for. --->
+	<cfset keyWordStartString = "<postData>">
+	<cfset keyWordEndString = "</postData>">
 
-		// Open the plese wait window. Note: the ExtWaitDialog's are mine and not a part of the Kendo official library. I designed them as I prefer my own dialog design over Kendo's dialog offerings.
-		$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Searching.", icon: "k-ext-information" }));
-		// Use a quick set timeout in order for the data to load.
-		setTimeout(function() {
-			// Close the wait window that was launched in the calling function.
-			kendo.ui.ExtWaitDialog.hide();
-		}, 500);
-		// Get a reference to the add comment window
-		var searchWindow = $("#searchWindow").data("kendoWindow");
-		// Close the add comment window
-		searchWindow.close();
-		// Return false in order to prevent any potential redirection.
-		return false;
-	}//..function postSearchTerm(){
-	
-	function searchResults(){
-		
-	}
+	<!--- Find the start and end position of the keywords. --->
+	<cfset postDataStartPos = findNoCase(keyWordStartString, arguments.postContent)>
+	<cfset postDataEndPos = findNoCase(keyWordEndString, arguments.postContent)>
 
-	$(document).ready(function() {
-		
-		// create MultiSelect from select HTML element
-        var categoryMultiselect = $("#category").kendoMultiSelect().data("kendoMultiSelect");
-		
-	});//..document.ready
+	<!--- Add the lengh of the keyword to get the proper start position. --->
+	<cfset keyWordValueStartPos = postDataStartPos + len(postDataStartPos)>
+	<!--- And determine the count --->
+	<cfset valueCount = postDataEndPos - postDataStartPos>
+	<!--- Get the value in the xml string. --->
+	<cfset postData = mid(arguments.postContent, keyWordValueStartPos, valueCount)>
 
-</script>
---->
-	
+	<!--- Strip it out. --->
+	<cfset strippedPostContent = replaceNoCase(arguments.postContent, postData, "", "all")>
+	<!--- Rip out the '</postData>' tag --->
+	<cfset strippedPostContent = replaceNoCase(strippedPostContent, "</postData>", "", "all")>
+
+	<!--- Return new post content --->
+	<cfreturn strippedPostContent>
+
+</cffunction>
+</cfsilent>
+			
 <script>
 	$(document).ready(function() {
 		
@@ -123,8 +93,10 @@ There  <cfif results.totalEntries is 1>was one result<cfelse>were #numberFormat(
 <cfif results.entries.recordCount>
 	<cfloop query="results.entries">
 		<cfsilent>
-		<!--- remove html from result. --->
-		<cfset newbody = rereplace(body, "<.*?>", "", "all")>
+		<!--- Remove the XML and google structured content from the post. --->
+		<cfset newBody = removePostData(body)>
+		<!--- Now, remove the html from result. --->
+		<cfset newbody = reReplace(newBody, "<.*?>", "", "all")>	
 		<!--- highlight search terms --->
 		<!--- Raymonds comments: Before we "highlight" our matches in the body, we need to find the first match. We will create an except that begins 250 before and ends 250 after. This will give us slightly different sized excerpts, but between you, me, and the door, I think thats ok. It is also possible the match isn't in the entry but just the title. --->
 		<cfset match = findNoCase(searchTerm, newbody)>
@@ -148,13 +120,13 @@ There  <cfif results.totalEntries is 1>was one result<cfelse>were #numberFormat(
 
 		<!---
 		We switched to regular expressions to highlight our search terms. However, it is possible for someone to search 
-		for a string that isn't a valid regex. So if we fail, we just don't bother highlighting.
+		for a string that isn't a valid regex. So if we fail, we just don't bother highlighting. (RC)
 		--->
 		<cftry>
 			<cfset excerpt = reReplaceNoCase(excerpt, "(#searchTerm#)", "<span class='k-primary'>\1</span>","all")>
 			<cfset newtitle = reReplaceNoCase(title, "(#searchTerm#)", "<span class='k-primary'>\1</span>","all")>
 			<cfcatch>
-				<!--- only need to set newtitle, excerpt already exists. --->
+				<!--- only need to set newtitle, excerpt already exists (RC). --->
 				<cfset newtitle = title>
 			</cfcatch>
 		</cftry>
@@ -234,8 +206,6 @@ There  <cfif results.totalEntries is 1>was one result<cfelse>were #numberFormat(
 </cfif>
 	
 </cfif>
-
-	
 </cfoutput>
 	
 

@@ -43,6 +43,14 @@
 
    <table align="center" class="k-content fixedPodTableWithWrap" width="100%" cellpadding="0" cellspacing="0">
    <cfoutput query="tags">
+	<cfsilent>
+	<!--- We need to perform the same logic for the post author (remove the 'index.cfm' string when a rewrite rule is in place). --->
+	<cfif application.serverRewriteRuleInPlace>
+		<cfset categoryTagLink = replaceNoCase(application.blog.makeCategoryLink(tags.categoryid), '/index.cfm', '')>
+	<cfelse>
+		<cfset categoryTagLink = application.blog.makeCategoryLink(tags.categoryid)>
+	</cfif>
+	</cfsilent>
 	<tr class="#iif(currentRow MOD 2,DE('k-content'),DE('k-alt'))#">
 		<!--- Create alternating rows in the table. The Kendo classes which we will use are k-alt and k-content.
 		We will create a border between the rows if the current row is not the first row. --->
@@ -53,7 +61,7 @@
 		</cfif>
 		<tr class="#iif(currentRow MOD 2,DE('k-content'),DE('k-alt'))#">
 		<cfif currentRow eq 1><td valign="top"><cfelse><td align="left" valign="top" class="border"></cfif>
-			<a href="#application.blog.makeCategoryLink(tags.categoryid)#" aria-label="#lcase(tags.tag)# (#tags.tagCount#)" <cfif darkTheme>style="color:whitesmoke"</cfif>>#lcase(tags.tag)# (#tags.tagCount#)</a>
+			<a href="#categoryTagLink#" aria-label="#lcase(tags.tag)# (#tags.tagCount#)" <cfif darkTheme>style="color:whitesmoke"</cfif>>#lcase(tags.tag)# (#tags.tagCount#)</a>
 		</td>
 	</tr>
    </cfoutput>

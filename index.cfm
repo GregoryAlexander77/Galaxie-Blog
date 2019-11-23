@@ -21,9 +21,11 @@
 	
 <!--- Optional libraries --->
 <!--- GSAP and scrollMagie allows for animations and parallax effects in the blog entries. Don't include by default. --->
-<cfset includeGsap = true>
+<cfset includeGsap = false>
+	
 <!--- Determine whether to include the disqus commenting system. If you set this to true, you must also set the optional disqus settings that are right below. Note: this is an application var so that the recentcomments.cfm can access these settings. That template is invoked via a cfmodule tag. --->
 <cfset application.includeDisqus = true>
+	
 <!--- Setting to determine whether to defer the scripts and css. This is a setting as I need to quickly debug to see if the defer is working, but you should leave this at true as it provides a better google speed score. --->
 <cfset deferScriptsAndCss = true>
 <!--- Set the type string --->
@@ -33,24 +35,42 @@
 <cfelse>
 	<cfset scriptTypeString = "text/javascript">
 </cfif>
+	
 <!--- Do you want the page to automatically redirect using SSL? We are going to read the users setting set in the administrative interface (site URL) to determine if ssl should be enforced. It is is, we will use a server side redirect. You can change this by removing this code and setting useSsl to false.  --->
 <cfif findNoCase("https", application.rooturl) eq 1>
 	<cfset useSsl = true>
 <cfelse>
 	<cfset useSsl = false>
 </cfif>
+	
+<!--- Is there a URL rewrite rule in place? If so, we need to eliminate the 'index.cfm' string from all of our links. A rewrite rule on the server allows the blog owners to to obsfucate the 'index.cfm' string from the URL. This setting is in the application.cfc template. --->
+<cfif application.serverRewriteRuleInPlace>
+	<cfset thisUrl = replaceNoCase(application.rootURL, '/index.cfm', '')>
+	<!--- Create a blogUrl var. The thisUrl variable will be overwritten depending upon the page that is being viewed. --->
+	<cfset blogUrl = thisUrl>
+<cfelse>
+	<cfset thisUrl = application.rootURL>
+	<cfset blogUrl = thisUrl>
+</cfif>
+		
+<!---Video player settings. We have several options. Our default player is plyr. It is a full featured HTML5 media player, however, it does not play flash video. This should not be a problem as flash is soon to be depracated. Optionally, we can use the Kendo UI video player if you have a full Kendo license. The original flash player will take over for .flv videos, but will be depracated in 2020. --->
+<cfset defaultMediaPlayer = 'plyr'><!---You can optionally choose 'KendoUiPlayer' if you have the full lisence. However, the Kendo Media player is lacks quite a few plyr features. The Kendo player is useful if you want the video player to take on the theme that you are using. --->
+	
 <!--- The addThis toolbox string changes depending upon the site and the configuration. --->
 <cfset addThisToolboxString = "addthis_inline_share_toolbox_zyuh"><!---Typically 'addthis_inline_share_toolbox'--->
 
 <!--- //**************************************************************************************************************************************************
 			Optional disqus settings. Set these if you set includeDisqus to true. The first setting is required, the rest are optional settings.
 //****************************************************************************************************************************************************--->
+	
 <cfset application.disqusBlogIdentifier = "gregorys-blog"><!--- Required if you're using Disqus. Note: this is intentionally set as an application var. ---> 
 <cfset application.disqusApiKey = "EhY9pmLkruL5Jj7cGVO3eab3cWVBFWLTPSmqADfe8tZhLamRpz8YiE7wQk4ta2hf"><!--- Optional if you're using Disqus - if you do not have an API key, leave this blank. Note: this is intentionally set as an application var. --->
 <cfset disqusApiSecret = "xxdWJxzwFoSGPUddksrU9mtBQU45hgtSLeIqwnSXpauir5Hsp0gsx1gfDj0m9NtW"><!--- Optional if you're using Disqus - if you do not have an API Secret, leave this blank. --->
 <cfset disqusAuthTokenKey = "08c0241af97d4ce7813c22085e61fea2"><!--- Optional if you're using Disqus - if you do not have an API Secret, leave this blank. --->
 <cfset disqusAuthUrl = "https://disqus.com/api/oauth/2.0/authorize/"><!--- Leave this alone unless you konw what you're doing. --->
 <cfset disqusAuthTokenUrl = "https://disqus.com/api/oauth/2.0/access_token/"><!--- Leave this alone unless you konw what you're doing. --->
+<!--- Facebook Id --->
+<cfset facebookAppId = "252557132092698">
 	
 <!--- //**************************************************************************************************************************************************
 			Global path and URL settings.
@@ -238,12 +258,13 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 	
 <!--- //**************************************************************************************************************************************************
 			Logic to set vars for the client
-//****************************************************************************************************************************************************--->	
+//****************************************************************************************************************************************************--->
+	
 <cfset breakPoint = application.themeSettingsArray[themeId][28]>
 <!--- TODO Find out why this broke on the default theme. 
 Safety check --->
 <cfif not isNumeric(breakPoint) or breakpoint eq "">
-	<cfset breakPoint = 1300>
+	<cfset breakPoint = 1921><!---Was 1300--->
 </cfif>
 	
 <!--- Determine if the blog background image has been changed by the blog owner. If the image is the default image that comes with the installation package, we are going to modify the image if the browser can handle the new webP image format, and change the blog background image depending upon if the client is mobile or desktop. --->
@@ -341,6 +362,7 @@ toes with future updates.
 <!--- //**************************************************************************************************************************************************
 			Kendo window settings
 //****************************************************************************************************************************************************--->
+	
 <!--- Window settings --->
 <cfif session.isMobile>
 	<cfset kendoWindowIcons = '"Close"'>
@@ -376,6 +398,7 @@ toes with future updates.
 <!--- //**************************************************************************************************************************************************
 			Check for theme settings issues. 
 //****************************************************************************************************************************************************--->
+			
 <!--- There are often wierd problems when checking for null values right after a value has been set from a short hand structure. Putting this code right 
 after the menuBackgroundImage setting causes an error. Not sure if it is a ColdFusion bug or not, but I have encountered it several times
 before in other projects. I suspect that it is reading the entire object when it is set? --->
@@ -393,9 +416,47 @@ before in other projects. I suspect that it is reading the entire object when it
 <!--- //**************************************************************************************************************************************************
 			Core logic
 //****************************************************************************************************************************************************--->
-<cfif customCoreLogicTemplate eq "">	
+	
+<cfif customCoreLogicTemplate eq "">
+	
 	<!--- Raymond's module to inspect the URL to determine what to pass to the getEntries method. --->
 	<cfmodule template="tags/getmode.cfm" r_params="params"/>
+	
+	<!--- Get the page mode which depends upon what the page is rendering. The page mode on the index.cfm page is 'blog', when the user is reading a post, the pageMode is post, etc.--->
+	<cffunction name="getPageMode" access="public" output="false" returntype="string" hint="Determines what the page is rendering.">
+		
+		<cfif not isDefined(URL.mode)>
+			<cfset pageMode = "blog">	
+		<cfelseif URL.mode eq "">
+			<cfset pageMode = "blog">
+		<cfelse>
+			<cfswitch expression="#URL.mode#">
+				<cfcase value="alias">
+					<cfset pageMode = "post">
+				</cfcase>
+				<cfcase value="entry">
+					<cfset pageMode = "post">
+				</cfcase>
+				<cfcase value="cat">
+					<cfset pageMode = "category">
+				</cfcase>
+				<cfcase value="postedBy">
+					<cfset pageMode = "postedBy">
+				</cfcase>
+				<cfcase value="month">
+					<cfset pageMode = "month">
+				</cfcase>
+				<cfcase value="day">
+					<cfset pageMode = "month">
+				</cfcase>
+				
+			</cfswitch>
+		</cfif>
+			
+		<!--- Return the value --->
+		<cfreturn pageMode>
+			
+	</cffunction>
 	
 	<!--- Raymond's comment: Only cache on home page --->
 	<cfset disabled = false>
@@ -455,12 +516,191 @@ before in other projects. I suspect that it is reading the entire object when it
 		<!--- Preset the var as an empty string. --->
 		<cfset xmlKeyWords="">
 		
-		<!--- Search to determine if we need to use a cfinclude. --->
+		<!--- Use a cfinclude. --->
 		<cfif arguments.postContent contains "<cfincludeTemplate:">
 			<cfif xmlKeyWords eq "">
 				<cfset xmlKeyWords = "cfincludeTemplate">
 			<cfelse>
 				<cfset xmlKeyWords = xmlKeyWords & "," & "cfincludeTemplate">
+			</cfif>
+		</cfif>
+					
+		<!--- Meta tags. --->
+		<cfif arguments.postContent contains "<titleMetaTag:">
+			<!--- Get the social media image description if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "titleMetaTag">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "titleMetaTag">
+			</cfif>
+		</cfif>
+		<cfif arguments.postContent contains "<descMetaTag:">
+			<!--- Get the social media image description if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "descMetaTag">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "descMetaTag">
+			</cfif>
+		</cfif>
+					
+		<!--- Social media sharing. --->
+		<!--- Images --->
+		<cfif arguments.postContent contains "<facebookImageUrlMetaData:">
+			<!--- Get the social media image description if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "facebookImageUrlMetaData">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "facebookImageUrlMetaData">
+			</cfif>
+		</cfif>
+		<cfif arguments.postContent contains "<twitterImageUrlMetaData:">
+			<!--- Get the social media image description if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "twitterImageUrlMetaData">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "twitterImageUrlMetaData">
+			</cfif>
+		</cfif>	
+					
+		<!--- Media --->
+		<cfif arguments.postContent contains "<facebookVideoUrlMetaData:">
+			<!--- Get the facebook video url if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "facebookVideoUrlMetaData">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "facebookVideoUrlMetaData">
+			</cfif>
+		</cfif>
+		<cfif arguments.postContent contains "<twitterVideoUrlMetaData:">
+			<!--- Get the twitter video url if available. If this argument is set, the twitter card will change from 'summary_large_image' to 'player'. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "twitterVideoUrlMetaData">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "twitterVideoUrlMetaData">
+			</cfif>
+		</cfif>	
+		
+		<!--- Custom social media description (I am not using this in Gregory's Blog yet) --->
+		<cfif arguments.postContent contains "<socialMediaDescMetaData:">
+			<!--- Get the social media image description if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "socialMediaDescMetaData">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "socialMediaDescMetaData">
+			</cfif>
+		</cfif>
+					
+		<!--- Media player arguments --->
+		<cfif arguments.postContent contains "<videoType:">
+			<!--- The video type will be either video/mp4, video/webm, audio/mp3, audio/ogg, YouTube, or Vimeo --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "videoType">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "videoType">
+			</cfif>
+		</cfif>
+		<!--- The image on top of the video when it does not play. --->
+		<cfif arguments.postContent contains "<videoPosterImageUrl:">
+			<!--- Get the social media image description if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "videoPosterImageUrl">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "videoPosterImageUrl">
+			</cfif>
+		</cfif>
+		<cfif arguments.postContent contains "<smallVideoSourceUrl:">
+			<!--- We are supplying different sizes to fit the device. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "smallVideoSourceUrl">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "smallVideoSourceUrl">
+			</cfif>
+		</cfif>
+		<cfif arguments.postContent contains "<mediumVideoSourceUrl:">
+			<!--- We are supplying different sizes to fit the device. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "mediumVideoSourceUrl">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "mediumVideoSourceUrl">
+			</cfif>
+		</cfif>
+		<cfif arguments.postContent contains "<largeVideoSourceUrl:">
+			<!--- We are supplying different sizes to fit the device. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "largeVideoSourceUrl">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "largeVideoSourceUrl">
+			</cfif>
+		</cfif>
+		<!--- Video captions --->
+		<cfif arguments.postContent contains "<videoCaptionsUrl:">
+			<!--- Supply the link to the WebVTT file --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "videoCaptionsUrl">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "videoCaptionsUrl">
+			</cfif>
+		</cfif>
+		<!--- Set videoCrossOrigin to true when using media outside of your own site. --->
+		<cfif arguments.postContent contains "<videoCrossOrigin:">
+			<!--- Supply the link to the WebVTT file --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "videoCrossOrigin">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "videoCrossOrigin">
+			</cfif>
+		</cfif>
+					
+		<!--- The next two blocks, videoWidthMetaData and videoHeightMetaData, apply to both facebook and twitter. --->		
+		<cfif arguments.postContent contains "<videoWidthMetaData:">
+			<!--- Get the social media image description if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "videoWidthMetaData">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "videoWidthMetaData">
+			</cfif>
+		</cfif>
+		<cfif arguments.postContent contains "<videoHeightMetaData:">
+			<!--- Get the social media image description if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "videoHeightMetaData">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "videoHeightMetaData">
+			</cfif>
+		</cfif>			
+					
+		<!--- Structured data (Not used yet) --->
+		<cfif arguments.postContent contains "<articleStructuredOrgLogoUrl:">
+			<!--- Include the full path to the org logo. The org logo should be 112x112px at a minimum. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "articleStructuredOrgLogoUrl">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "articleStructuredOrgLogoUrl">
+			</cfif>
+		</cfif>
+		<!--- Google prefers to have 3 images: a 16/9 image, 4/3 and a 1/1.  --->
+		<cfif arguments.postContent contains "<includeGoogleStructuredImage16_9:">
+			<!--- The 16x9 image is 1200 pixels wide and 675 wide. The Image.cfc will autormatically create this image when making a post and save it to the /enclosures/google/16_9 directory if it can.  --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "includeGoogleStructuredImage16_9">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "includeGoogleStructuredImage16_9">
+			</cfif>
+		</cfif>
+		<cfif arguments.postContent contains "<includeGoogleStructuredImage4_3:">
+			<!--- The 16x9 image is 1100 pixels wide and 825 wide. The Image.cfc will autormatically create this image when making a post and save it to the /enclosures/google/4_3 directory if it can.  --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "includeGoogleStructuredImage4_3">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "includeGoogleStructuredImage4_3">
+			</cfif>
+		</cfif>
+		<cfif arguments.postContent contains "<includeGoogleStructuredImage1_1:">
+			<!--- The 16x9 image is 630 pixels wide and 630 wide. The Image.cfc will autormatically create this image when making a post and save it to the /enclosures/google/1_1 directory if it can.  --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "includeGoogleStructuredImage1_1">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "includeGoogleStructuredImage1_1">
 			</cfif>
 		</cfif>
 			
@@ -469,38 +709,154 @@ before in other projects. I suspect that it is reading the entire object when it
 			
 	</cffunction>
 		
-	<cffunction name="getXmlKeywordValue" access="public" output="true" returntype="string" hint="Gets the variable stuck in one of our xml strings.">
+	<cffunction name="getXmlKeywordValue" access="public" output="true" returntype="string" hint="Gets the variable stuck in one of our xml strings. Note: this is a temporary function and it will be replaced once I redesign the database. This is a temporary workaround.">
 		<cfargument name="postContent" required="yes" hint="The post content is typically 'application.blog.renderEntry(body,false,enclosure)'.">
 		<cfargument name="xmlKeyword" required="yes" hint="Grab the keyword from the inspectPostContent function.">
 			
 		<cfparam name="keyWordValue" default="">
-		
-		<!--- Set the strings that we're searching for. --->
-		<cfset keyWordStartString = "<" & arguments.xmlKeyword & ":">
-		<cfset keyWordEndString = "</" & arguments.xmlKeyword & ">">
 			
-		<!--- Find the start and end position of the keywords. --->
-		<cfset keyWordStartPos = findNoCase(keyWordStartString, arguments.postContent)>
-		<cfset keyWordEndPos = findNoCase(keyWordEndString, arguments.postContent)>
-		<!--- Add the lengh of the keyword to get the proper start position. --->
-		<cfset keyWordValueStartPos = keyWordStartPos + len(keyWordStartString)>
-		<!--- And determine the count --->
-		<cfset valueCount = keyWordEndPos - keyWordValueStartPos>
-		<!---<cfoutput>#keyWordStartString# #keyWordEndString# StartPos:#keyWordValueStartPos# EndPos:#keyWordEndPos# count:#valueCount#</cfoutput>--->
-		<!--- Get the value in the xml string. --->
-		<cfset keyWordValue = mid(arguments.postContent, keyWordValueStartPos, valueCount-1)>
-		<!---<cfoutput>keyWordValue:#keyWordValue#</cfoutput>--->
+		<cftry>
+		
+			<!--- Set the strings that we're searching for. --->
+			<cfset keyWordStartString = "<" & arguments.xmlKeyword & ":">
+			<cfset keyWordEndString = "</" & arguments.xmlKeyword & ">">
+
+			<!--- Find the start and end position of the keywords. --->
+			<cfset keyWordStartPos = findNoCase(keyWordStartString, arguments.postContent)>
+			<cfset keyWordEndPos = findNoCase(keyWordEndString, arguments.postContent)>
+			<!--- Add the lengh of the keyword to get the proper start position. --->
+			<cfset keyWordValueStartPos = keyWordStartPos + len(keyWordStartString)>
+			<!--- And determine the count --->
+			<cfset valueCount = keyWordEndPos - keyWordValueStartPos>
+			<!---<cfoutput>#keyWordStartString# #keyWordEndString# StartPos:#keyWordValueStartPos# EndPos:#keyWordEndPos# count:#valueCount#</cfoutput>--->
+			<!--- Get the value in the xml string. --->
+			<cfset keyWordValue = mid(arguments.postContent, keyWordValueStartPos, valueCount-1)>
+			<!---<cfoutput>keyWordValue:#keyWordValue#</cfoutput>--->
+			
+			<cfcatch type="any">
+				<cfset error = cfcatch.detail>
+			</cfcatch>
+				
+		</cftry>
 			
 		<!--- Return the value --->
 		<cfreturn keyWordValue>
 			
 	</cffunction>
 			
-	<!--- //**************************************************************************************************************************************************
-			Set meta tags and other SEO property values
-	//****************************************************************************************************************************************************--->
+	<!--- Structured data functions --->
+	<cffunction name="removeMainEntityOfPageFromPostContent" required="yes"  hint="Removes the mainEntityOfPage block from the ld json string. This is used when the blog owner (like me) hardcodes ld json, but needs to remove the mainEntityOfPage block of code when the blog is showing multipe posts (ie the homepage of the blog) as we can't have two different main identities.">
+		<cfargument name="postContent" required="yes" hint="Supply the post content.">
+
+		<!--- Set the strings that we're searching for. --->
+		<cfset mainEntityStartString = '"mainEntityOfPage": {'>
+		<cfset mainEntityEndString = "},">
+
+		<!--- Find the start and end position of the mainEntityOfPage block. --->
+		<cfset startPos = findNoCase(mainEntityStartString, arguments.postContent)>
+		<cfset endPos = findNoCase(mainEntityEndString, arguments.postContent)>
+
+		<!--- And determine the count --->
+		<cfset mainEntityValueCount = endPos - startPos>
+		<!--- Get the value in the string. --->
+		<cfset mainEntityStringValue = mid(arguments.postContent, startPos, mainEntityValueCount+len(mainEntityEndString))>
+		<!--- Remove the mainEntityOfPage code block from the string --->
+		<cfset newJsonLdString = replaceNoCase(arguments.postContent, mainEntityStringValue, '')>
+
+		<!--- Return it. --->
+		<cfreturn newJsonLdString>
+	</cffunction>
 			
-	<!--- TODO <cfif thisTag.executionMode is "start">--->
+	<!--- Function to remove the 'quasi' xml keywords from the post content. Note: this is an ugly hack and will go away once I redesign the database. ---> 
+	<cffunction name="removeXmlKeyWordContentFromPost" access="public" returntype="string" hint="Removes the vaarious 'qausi' xml that I am stuffing into an individual post. This will go away once I develop the new database">
+		<cfargument name="postContent" required="yes" hint="The post content is typically 'application.blog.renderEntry(body,false,enclosure)'.">
+		<cfargument name="xmlKeywords" required="yes" hint="Supply all of the xmlKeywords.">
+		
+		<!--- Preset our newPostContent content. --->
+		<cfset newPostContent = arguments.postContent>
+			
+		<!--- Loop through the xml keywords --->
+		<cfloop list="#arguments.xmlKeywords#" index="i">
+			
+			<!--- Put this in a try block. --->
+			<cftry>
+			
+				<!--- Isolate the keyword --->
+				<cfset thisKeyword = i>
+
+				<!--- Find the start and end position of the keywords. --->
+				<cfset keyWordStartString = "<" & thisKeyword & ":">
+				<cfset keyWordEndString = "</" & thisKeyword & ">">
+
+				<!--- Find the start and end position of the keywords. --->
+				<cfset postDataStartPos = findNoCase(keyWordStartString, newPostContent)>
+				<cfset postDataEndPos = findNoCase(keyWordEndString, newPostContent)>
+
+				<!--- And determine the count --->
+				<cfset valueCount = postDataEndPos - postDataStartPos>
+				<!--- Get the value in the xml string. --->
+				<cfset xmlBody = mid(newPostContent, postDataStartPos, valueCount)>
+
+				<!--- Strip the content. --->
+				<cfset strippedPostContent = replaceNoCase(newPostContent, xmlBody, "", "all")>
+				<!--- Strip the start of the tag --->
+				<cfset strippedPostContent = replaceNoCase(strippedPostContent, keyWordStartString, "", "all")>
+				<!--- And finally, strip the ending tag --->
+				<cfset strippedPostContent = replaceNoCase(strippedPostContent, keyWordEndString, "", "all")>
+
+				<!--- Return new post content --->
+				<cfset newPostContent = strippedPostContent>
+
+				<cfcatch type="any">
+					<cfset error = cfcatch.detail>
+				</cfcatch>
+			</cftry>
+				
+		</cfloop>
+			
+		<!--- Return it. --->
+		<cfreturn newPostContent>
+			
+	</cffunction>
+				
+	<cffunction name="replaceStringInContent" access="public" output="true" returntype="string" hint="Removes everything between data found in the post content. Used by the search results template.">
+		<cfargument name="content" required="yes" hint="What is the content that we need to search and replace?">
+		<cfargument name="startString" required="yes" hint="What is the string that we are looking for?">
+		<cfargument name="endString" required="yes" hint="And what is the end of the string?">
+		<cfargument name="replaceValueWith" required="no" default="" hint="What do you want to replace the string that is found between the start and end positions with? If you leave this blank, it will remove the content that is found.">
+
+		<cftry>
+			<!--- Find the start and end position of the mainEntityOfPage block. --->
+			<cfset startPos = findNoCase(arguments.startString, arguments.content)>
+			<cfset endPos = findNoCase(arguments.endString, arguments.content)>
+
+			<!--- And determine the count --->
+			<cfset valueCount = endPos - startPos>
+			<!--- Get the value in the string. --->
+			<cfset stringValue = mid(arguments.content, startPos, valueCount+len(arguments.endString))>
+			<!--- Remove the ld json code block from the string --->
+			<cfset newString = replaceNoCase(arguments.content, stringValue, replaceValueWith)>
+				
+			<cfcatch type="any">
+				<!--- The string was not found. --->
+				<cfset newString = arguments.content>
+			</cfcatch>
+		</cftry>
+
+		<!--- Return new post content --->
+		<cfreturn newString>
+
+	</cffunction>
+						
+	<!--- //**************************************************************************************************************************************************
+			SEO: Meta tags, social media sharing, and cononical url's
+	//****************************************************************************************************************************************************--->
+						
+	<!--- The title will be overwritten by the description if the blog is in entry mode. --->
+	<cfset titleMetaTagValue = htmlEditFormat(application.blog.getProperty("blogTitle"))>
+	<cfset descriptionMetaTagValue = application.blog.getProperty("blogDescription")>
+			
+	<!--- Add short strings to the title when the user selected category. --->
 	<cfif isDefined("attributes.title")>
 		<cfset additionalTitle = ": " & attributes.title>
 	<cfelse>	
@@ -511,11 +867,17 @@ before in other projects. I suspect that it is reading the entire object when it
 			<cfset additionalTitle = "">
 			<cfloop index="cat" list="#url.catid#">
 			<cftry>
-				<cfset additionalTitle = additionalTitle & " : " & application.blog.getCategory(cat).categoryname>
+				<cfset additionalTitle = additionalTitle & ": " & application.blog.getCategory(cat).categoryname>
 				<cfcatch></cfcatch>
 			</cftry>
 			</cfloop>
-		<!--- We're reading a single entry --->
+			
+			<!--- Add the short category to the Title if the user is viewing the categories --->
+			<cfif additionalTitle neq "">
+				<cfset titleMetaTagValue = titleMetaTagValue & ": " & additionalTitle>
+			</cfif>
+		
+		<!--- We're reading a single entry. We're going to change the title to be the title of the entry here.  --->
 		<cfelseif isDefined("url.mode") and url.mode is "entry">
 			<cftry>
 				<!---
@@ -528,36 +890,142 @@ before in other projects. I suspect that it is reading the entire object when it
 					<cfset session.viewedpages[url.entry] = 1>
 				</cfif>
 				<cfset entry = application.blog.getEntry(url.entry,dontLog)>
-				<cfset additionalTitle = ": #entry.title#">
+				<!--- On individual entry pages, the title of the page is the title of the post. --->
+				<cfset titleMetaTagValue = entry.title>
 				<cfcatch></cfcatch>
 			</cftry>
 		</cfif>
 	</cfif>
 						
-	<!--- //**************************************************************************************************************************************************
-			Meta tags and cononical url's
-	//****************************************************************************************************************************************************--->
-						
-	<!--- Get the logic to determine the alias link. This is Raymond's module to inspect the URL.--->
-	<cfmodule template="tags/getmode.cfm" r_params="params"/>
-						
-	<!--- Determine if we need to redirect to use SSL.--->
-	
-	<!--- Added by Gregory to simplify the code on the client. --->
-	<cfset descriptionMetaTagValue = application.blog.getProperty("blogDescription") & additionalTitle>
-	<cfset titleMetaTagValue = htmlEditFormat(application.blog.getProperty("blogTitle"))>
-		
-	<!--- Gregory added to get the proper image when sharing. We want the default image that is set when there are multiple entries, but the image that we used for the enclosure when there is only one post. --->
-	<cfif url.mode is "entry" and articleData.totalEntries is 1 and (entry.enclosure contains '.jpg' or entry.enclosure contains '.gif' or entry.enclosure contains '.png' or entry.enclosure contains '.mp3')>
-		<cfset imageMetaTagValue = application.rootUrl & "/enclosures/" & getFileFromPath(entry.enclosure)>
+	<!--- Get all of the keywords that may be enclosed in the post. The articles body may not be defined when looking at a post that contains the more tag when in blog mode. --->
+	<cfif isDefined("articles.body")>
+		<cfset xmlKeywords = inspectPostContentForXmlKeywords(articles.body)>
 	<cfelse>
-		<cfset imageMetaTagValue = application.rootUrl & application.defaultLogoImageForSocialMediaShare>
+		<cfset xmlKeywords = "">
+	</cfif>
+						
+	<!--- Preset the social media description variable. It may be overwritten later if the social media description is embedded in the xml within a post like so: '<socialMediaDescMetaData:this description></socialMediaDescMetaData>'. --->
+	<cfset socialMediaDescMetaTagValue = descriptionMetaTagValue>
+		
+	<!--- Preset the default social media image URLs. We will overwrite these later if they're available. --->
+	<cfset facebookImageMetaTagValue = thisUrl & application.defaultLogoImageForSocialMediaShare>
+	<cfset twitterImageMetaTagValue = thisUrl & application.defaultLogoImageForSocialMediaShare>
+		
+	<!--- Default twitter card type. We will rewrite this if the twitterMediaUrlMetaData is defined. --->
+	<cfset twitterCardType = "summary_large_image">
+	
+	<!--- Is this page displaying a single post?--->
+	<cfif getPageMode() eq 'post'>
+								
+		<!--- //**************************************************************************************************************************************************
+		Post Images
+		//****************************************************************************************************************************************************--->
+		<!--- Determine if there is an enclosure, and if the social media images exist for this enclosure. We may over-ride these variables later if the social media images are embedded in xml in the post. --->
+		<cfif (entry.enclosure contains '.jpg' or entry.enclosure contains '.gif' or entry.enclosure contains '.png' or entry.enclosure contains '.webp')>
+		
+			<!--- If social media images are uploaded when an entry is made, use the social media URL. --->
+			<cfset facebookImageUrl = thisUrl & "/enclosures/facebook/" & getFileFromPath(entry.enclosure)>
+			<cfset twitterImageUrl = thisUrl & "/enclosures/twitter/" & getFileFromPath(entry.enclosure)>
+
+			<!--- If they exist, overwrite the meta tag vars. --->
+			<cfif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & getFileFromPath(entry.enclosure)))>
+				<cfset facebookImageMetaTagValue = facebookImageUrl>
+			</cfif>
+			<cfif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & getFileFromPath(entry.enclosure)))>
+				<cfset twitterImageMetaTagValue = twitterImageUrl>
+			</cfif>
+
+		</cfif><!---<cfif (entry.enclosure contains '.jpg' or entry.enclosure contains '.gif' or entry.enclosure contains '.png' or entry.enclosure contains '.mp3')>--->
+			
+		<!--- SEO Meta tags. --->
+		<cfif findNoCase("titleMetaTag", xmlKeywords) gt 0> 
+			<!--- Overwrite the titleMetaTagValue variable. --->
+			<cfset titleMetaTagValue = getXmlKeywordValue(articles.body, 'titleMetaTag')>
+		</cfif>
+		<cfif findNoCase("descMetaTag", xmlKeywords) gt 0> 
+			<!--- Overwrite the descriptionMetaTagValue variable. --->
+			<cfset descriptionMetaTagValue = getXmlKeywordValue(articles.body, 'descMetaTag')>
+		</cfif>
+		<!--- Check to see if there is a social media description. in the post body --->
+		<cfif findNoCase("socialMediaDescMetaData", xmlKeywords) gt 0> 
+			<!--- Overwrite the socialMediaDescMetaTagValue variable. --->
+			<cfset socialMediaDescMetaTagValue = getXmlKeywordValue(articles.body, 'socialMediaDescMetaData')>
+		</cfif>
+		
+		<!--- Social Media Sharing for Images. --->
+		<!--- Overwrite the facebookImageMetaTagValue variable --->
+		<cfif findNoCase("facebookImageUrlMetaData", xmlKeywords) gt 0> 
+			<!--- See if there is meta data inside of the blog post. --->
+			<cfset facebookImageMetaTagValue = getXmlKeywordValue(articles.body, 'facebookImageUrlMetaData')>
+		</cfif>
+		<!--- Overwrite the twitterImageMetaTagValue --->
+		<cfif findNoCase("twitterImageUrlMetaData", xmlKeywords) gt 0> 
+			<!--- See if there is meta data inside of the blog post. --->
+			<cfset twitterImageMetaTagValue = getXmlKeywordValue(articles.body, 'twitterImageUrlMetaData')>
+		</cfif>
+		
+	</cfif><!---<cfif isDefined("URL.mode") and (URL.mode is "entry" or URL.mode eq 'alias')>--->
+			
+	<!--- //**************************************************************************************************************************************************
+	Video and Audio Content
+	//****************************************************************************************************************************************************--->
+	<cfparam name="videoType" default="" type="string">
+	<cfparam name="videoPosterImageUrl" default="" type="string">
+	<cfparam name="smallVideoSourceUrl" default="" type="string">
+	<cfparam name="mediumVideoSourceUrl" default="" type="string">
+	<cfparam name="largeVideoSourceUrl" default="" type="string">
+	<cfparam name="videoCaptionsUrl" default="" type="string">
+
+	<!--- Overwrite the vars if the proper xml is embedded in the post. The xml keyword thing is temporary and will be put into the database in the future. --->
+	<cfif findNoCase("videoType", xmlKeywords) gt 0> 
+		<cfset videoType = getXmlKeywordValue(articles.body, 'videoType')>
+	</cfif>
+	<cfif findNoCase("videoPosterImageUrl", xmlKeywords) gt 0> 
+		<cfset videoPosterImageUrl = getXmlKeywordValue(articles.body, 'videoPosterImageUrl')>
+	</cfif>	
+	<cfif findNoCase("smallVideoSourceUrl", xmlKeywords) gt 0> 
+		<cfset smallVideoSourceUrl = getXmlKeywordValue(articles.body, 'smallVideoSourceUrl')>
+	</cfif>
+	<cfif findNoCase("mediumVideoSourceUrl", xmlKeywords) gt 0> 
+		<cfset mediumVideoSourceUrl = getXmlKeywordValue(articles.body, 'mediumVideoSourceUrl')>
+	</cfif>
+	<cfif findNoCase("largeVideoSourceUrl", xmlKeywords) gt 0> 
+		<cfset largeVideoSourceUrl = getXmlKeywordValue(articles.body, 'largeVideoSourceUrl')>
+	</cfif>
+	<cfif findNoCase("videoCaptionsUrl", xmlKeywords) gt 0> 
+		<cfset videoCaptionsUrl = getXmlKeywordValue(articles.body, 'videoCaptionsUrl')>
+	</cfif>
+	<cfif findNoCase("videoCrossOrigin", xmlKeywords) gt 0> 
+		<cfset videoCrossOrigin = getXmlKeywordValue(articles.body, 'videoCrossOrigin')>
 	</cfif>
 		
+	<!--- Create the video meta tags --->
+	<!--- Preset the open graph default values. --->
+	<cfset ogVideo = "">
+	<cfset ogVideoSecureUrl = "">
+	<cfset ogVideoWidth = "">
+	<cfset ogVideoHeight = "">
+	
+	<!--- If the video type is defined, and this page displaying a single post, create the video meta tags. --->
+	<cfif videoType neq "" and getPageMode() eq 'post'>
+		<!--- Facebook currently recommends mp4 video at 720p. --->
+		<cfset ogVideo = mediumVideoSourceUrl>
+		<!--- Both Facebook and Twitter also recommends 1280 x 720 (2048K bitrate). --->
+		<cfset ogVideoWidth = "1280">
+		<cfset ogVideoHeight = "720">
+		<!--- Twitter --->
+		<!--- Note: the twitter video length must be under 140 seconds. --->
+		<!--- Change the twitter card to player --->
+		<cfset twitterCardType = "player">
+	</cfif>
+		
+	<!--- //**************************************************************************************************************************************************
+	SEO: no index and canonical Url
+	//****************************************************************************************************************************************************--->
 	<!--- Gregory added the following code to create a proper canonical rel tag and other SEO's --->
 	<!--- Set default params --->
 	<cfparam name="noIndex" default="false" type="boolean">
-	<cfparam name="canonicalUrl" default="#application.rootUrl#" type="string">
+	<cfparam name="canonicalUrl" default="#thisUrl#" type="string">
 	<cfparam name="addSocialMediaUnderEntry" default="false" type="boolean">
 		
 	<!--- Write a <meta name="robots" content="noindex"> tag for categories, postedBy, month and day in order to eliminate any duplicate content. --->
@@ -567,8 +1035,12 @@ before in other projects. I suspect that it is reading the entire object when it
 			
 	<!--- Handle URL's that have arguments (theme, etc) --->
 	<!--- Set the canonicalUrl to point to the correct URL (this is a single page app and there will be duplicate pages found in the crawl unfortunately). --->
-	<cfif URL.mode eq "alias">
+	<cfif (URL.mode is "entry" or URL.mode eq 'alias')>
 		<cfset canonicalUrl  = application.blog.makeLink(articles.id[1])>
+		<!--- Check to see if there is a URL rewrite rule in place. If a rewrite rule is in place, remove the 'index.cfm' from teh cannonicalUrl string. --->
+		<cfif application.serverRewriteRuleInPlace>
+			<cfset canonicalUrl = replaceNoCase(canonicalUrl, '/index.cfm', '')>
+		</cfif>
 		<cfset addSocialMediaUnderEntry = true>
 	</cfif>
 		
@@ -602,33 +1074,80 @@ before in other projects. I suspect that it is reading the entire object when it
 <!--- //**************************************************************************************************************************************************
 			Page output
 //****************************************************************************************************************************************************--->	
-</cfsilent>	
+</cfsilent>
 <html lang="en-US"><head><cfoutput>
 <cfif customHeadTemplate eq ""> 
-	<title>#htmlEditFormat(application.blog.getProperty("blogTitle"))##additionalTitle#</title>
+	<title>#htmlEditFormat(titleMetaTagValue)#</title>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
-	<meta name="title" content="#descriptionMetaTagValue#" />
+	<meta name="title" content="#titleMetaTagValue#" />
 	<meta name="description" content="#descriptionMetaTagValue#" />
 	<meta name="keywords" content="#application.blog.getProperty("blogKeywords")#" />
 	<link rel="canonical" href="#canonicalUrl#" />
-	<cfif noIndex><meta name="robots" content="noindex"></cfif>
-	<!-- Twitter meta tags. -->
-	<meta name="twitter:card" content="summary_large_image">
-	<meta name="twitter:site" content="@#application.rooturl#">
-	<meta name="twitter:title" content="#descriptionMetaTagValue#">
+	<meta name="robots" content="<cfif noIndex>noindex<cfelse>index, follow</cfif>" />
+	<!-- Twitter meta tags. -->			
+	<meta name="twitter:card" content="#twitterCardType#">
+	<meta name="twitter:site" content="@#thisUrl#">
+	<meta name="twitter:title" content="#titleMetaTagValue#">
 	<meta name="twitter:description" content="#descriptionMetaTagValue#">
-	<meta name="twitter:image" content="#imageMetaTagValue#">
+	<meta name="twitter:image" content="#twitterImageMetaTagValue#?id=#createUuid()#">
+<cfif videoType neq "" and getPageMode() eq 'post'>
+	<!-- Twitter player card meta types -->
+	<!-- The twitter video must be on a mimimal page that just includes the video, and nothing else. -->
+	<meta property="twitter:player" content="https://gregoryalexander.com/blog/videoPlayer.cfm?videoUrl=#ogVideo#&poster=#twitterImageMetaTagValue#&id=#createUuid()#">
+	<meta property="twitter:player:width" content="#ogVideoWidth#">	
+	<meta property="twitter:player:height" content="#ogVideoHeight#">	
+</cfif>
 	<!-- Open graph meta tags for Facebook. See notes. -->
-	<meta property="og:image" content="#imageMetaTagValue#">
+	<meta property="og:image" content="#facebookImageMetaTagValue#"> 
 	<meta property="og:site_name" content="#htmlEditFormat(application.blog.getProperty("blogTitle"))#" />
-	<!--- As of 7/19/19, 1200 x 630 creates a full size image on facebook. However, we want to keep the width and height in the meta tags aat 1200x1200 in order to keep the facebook image at full screen. --->
-	<meta property="og:image:width" content="1200" />
-	<meta property="og:image:height" content="1200" />
-	<meta property="og:title" content="#descriptionMetaTagValue#" />
+	<meta property="og:url" content="#canonicalUrl#" />
+	<meta property="og:title" content="#titleMetaTagValue#" />
 	<meta property="og:description" content="#descriptionMetaTagValue#" />
-	<meta property="og:type" content="blog" />
+	<meta property="fb:app_id" content="#facebookAppId#">
+<cfif videoType neq "" and getPageMode() eq 'post'>
+	<!-- Video meta types -->
+	<meta property="og:type" content="video.movie">
+	<meta property="og:video:type" content="video/mp4"><!---RFC 4337 § 2, video/mp4 should be the correct Content-Type for MPEG-4 video.--->
+	<meta property="og:video" content="#ogVideo#">
+	<meta property="og:video:url" content="#ogVideo#">
+	<meta property="og:video:secure_url" content="#ogVideo#">
+	<meta property="og:video:width" content="#ogVideoWidth#">	
+	<meta property="og:video:height" content="#ogVideoHeight#">
+</cfif>
+	<!--TODO <meta property="og:type" content="blog" />-->
 	<meta name="viewport" content="width=device-width, initial-scale=1"><!---<meta name="viewport" content="968"><meta name="viewport" content="1280">--->
- 	<link rel="alternate" type="application/rss+xml" title="RSS" href="#application.rooturl#/rss.cfm?mode=full" />
+ 	<link rel="alternate" type="application/rss+xml" title="RSS" href="#thisUrl#/rss.cfm?mode=full" />
+	<cfsilent>
+	<!--- We are only including the top level ld json when we are not in blog mode. The ld json will be in the body of the post.  ---->
+	<cfif getPageMode() neq 'blog'>
+		<cfset struturedDataMainEntityOfPage = "Blog"><!--- The URL of a page on which the thing is the main entity. --->
+		<cfset struturedDataMainEntityOfPageUrl = blogUrl>
+	<cfelse>
+		<cfset struturedDataMainEntityOfPage = "BlogPosting"><!--- The URL of a page on which the thing is the main entity. --->
+		<cfset struturedDataMainEntityOfPageUrl = canonicalUrl>
+	</cfif>
+	</cfsilent>
+<cfif getPageMode() neq 'post'>
+	<!-- Structured data (see schema.org). -->
+	<script type="application/ld+json">
+	{
+		"@context": "http://schema.org",
+		"@type": "Blog",
+		"name": "#htmlEditFormat(application.blog.getProperty("blogTitle"))#",
+		"url": "#struturedDataMainEntityOfPageUrl#",
+		"mainEntityOfPage": {
+			  "@type": "#struturedDataMainEntityOfPage#",
+			  "@id": "#struturedDataMainEntityOfPageUrl#"
+		},
+		"description": "#descriptionMetaTagValue#",
+		"publisher": {
+			"@type": "Organization",
+			"name": "#htmlEditFormat(application.blog.getProperty("blogTitle"))#"
+		}
+	}
+	</script>
+</cfif>
+	
 	<!--- Load resources and scripts. --->
 	<script>
 		/* Script to defer script resources. See https://appseeds.net/defer.js/demo.html. 
@@ -667,11 +1186,11 @@ before in other projects. I suspect that it is reading the entire object when it
 		<!--- Otherwise, use the jQuery version embedded in Kendo.core. --->
 	<script src="#application.kendoSourceLocation#/js/jquery.min.js"></script>
 </cfif>
-	<!--- Small library that fixes the Chrome "Added non-passive event listener to a scroll-blocking 'touchstart' event" errors. --->
+	<!-- Small library that fixes the Chrome "Added non-passive event listener to a scroll-blocking 'touchstart' event" errors. -->
 	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/passiveScrollEvent/index.js"></script>
-	<!--- Kendo scripts (GA 10/25/2018)--->
+	<!-- Kendo scripts -->
 	<script type="#scriptTypeString#" src="#application.kendoSourceLocation#/js/<cfif application.kendoCommercial>kendo.all.min<cfelse>kendo.ui.core.min</cfif>.js"></script>
-	<!--- Note: the Kendo stylesheets are critical to the look of the site and I am not deferring them. --->
+	<!-- Note: the Kendo stylesheets are critical to the look of the site and I am not deferring them. -->
 	<script type="text/javascript">
 		// Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings.
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#kendoCommonCssFileLocation#') );
@@ -680,26 +1199,32 @@ before in other projects. I suspect that it is reading the entire object when it
 		// Mobile less based theme file.
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#kendoThemeMobileCssFileLocation#') );
 	</script>
-	<!--- Other  libraries  --->
-	<!--- Kendo extended API (used for confirm and other dialogs) --->
+	<!-- Other  libraries  -->
+	<!-- Kendo extended API (used for confirm and other dialogs) -->
 	<script type="#scriptTypeString#" src="#application.kendoUiExtendedLocation#/js/kendo.web.ext.js"></script>
-	<!--- Defer the extended scripts along with my notification library. Note: the blueopal and material black themes are not in the extended lib. --->
+	<!-- Defer the extended scripts along with my notification library. Note: the blueopal and material black themes are not in the extended lib. -->
 	<script type="#scriptTypeString#">
 		<cfif kendoTheme neq 'blueOpal' and kendoTheme neq 'materialBlack' and kendoTheme neq 'office365'>$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.kendoUiExtendedLocation#/styles/#kendoTheme#.kendo.ext.css') );</cfif>
 		// Notification .css 
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/ui.notify.css') );
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/notify.css') );
 	</script>
-	<!--- Optional libs --->
-	<!--- Fontawesome --->
+	<!-- Optional libs -->
+	<!-- Fontawesome css -->
 	<script type="#scriptTypeString#">
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://use.fontawesome.com/releases/v5.5.0/css/all.css') );
 	</script>
-	<!--- Fancy box (version 2). --->
+	<!-- Fancy box (version 2). -->
 	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/fancyBox/v2/source/jquery.fancybox.js"></script>
-	<!--- Defer the extended scripts along with my notification library. --->
+	<!-- Defer the fancyBox css. -->
 	<script type="#scriptTypeString#">
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#common/libs/fancyBox/v2/source/jquery.fancybox.css') );
+	</script>
+	<!-- Plyr (our HTML5 media player) -->
+	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/plyr/plyr.js"></script>
+	<!-- Defer the plyr css. -->
+	<script type="#scriptTypeString#">
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#common/libs/plyr/themeCss/#kendoTheme#.css') );
 	</script>
 	<cfif addSocialMediaUnderEntry><!-- Go to www.addthis.com/dashboard to customize your tools --> 
 	<script type="#scriptTypeString#" src="//s7.addthis.com/js/300/addthis_widget.js#chr(35)#pubid=#application.addThisApiKey#"></script></cfif>
@@ -1097,6 +1622,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			font-size: <cfif session.isMobile>14<cfelse>18</cfif>pt;
 		}
 		
+
 		/* Set links */	
 		a {
 		<cfif darkTheme>color: whitesmoke;
@@ -1533,6 +2059,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		/* Constraining images to a max width so that they don't push the content containers out to the right */
 		.entryImage img {
 			max-width: 100%;
+			height: auto; 
 			/* Subtle drop shadow on the image layer */
 			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 		}
@@ -1639,6 +2166,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		/* widget class (the panels) */
 		.widget {
 			margin-top: 0px;
+
 			margin-right: 0px;
 			margin-bottom: 20px;
 			margin-left: 0px;
@@ -1708,6 +2236,11 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			overflow: hidden;
 			/* The players z-index must be set lower than the rest of the elements, or the media player will bleed through the other elements that should be on top of this */
 			z-index: 0;
+		}
+		
+		video {
+		  max-width: 100%;
+		  height: auto;
 		}
 
 		.fixedCommentTable {
@@ -2176,6 +2709,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				resizable: true,
 				draggable: true,
 				// For desktop, we are subtracting 5% off of the content width setting found near the top of this template.
+
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: "85%",
 				iframe: false, // Don't use iframes unless it is content derived outside of your own site. 
@@ -2860,12 +3394,29 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				<cfsilent><!--- Loop thru the articles. ---></cfsilent>
 				<cfset lastDate = "">
 				<cfoutput query="articles">
-               		<cfsilent><!---Set the entryId. We will use this to identify the rows.---></cfsilent>
+               		<cfsilent>
+					<!--- If the application.serverRewriteRuleInPlace variable has been set to true, we need to eliminate 'index.cfm' from the blog post link. --->
+					<cfif application.serverRewriteRuleInPlace>
+						<cfset entryLink = replaceNoCase(application.blog.makeLink(id), '/index.cfm', '')>
+					<cfelse>
+						<cfset entryLink = application.blog.makeLink(id)>
+					</cfif>
+						
+					<!--- We need to perform the same logic for the post author (remove the 'index.cfm' string when a rewrite rule is in place). --->
+					<cfif application.serverRewriteRuleInPlace>
+						<cfset userLink = replaceNoCase(application.blog.makeUserLink(name), '/index.cfm', '')>
+					<cfelse>
+						<cfset userLink = application.blog.makeUserLink(name)>
+					</cfif>
+						
+					<!--- Set the entryId. We will use this to identify the rows.--->
                 	<cfset entryid = id>
+						
+					</cfsilent>
 					<div class="blogPost widget k-content">
 						<span class="innerContentContainer">
 							<h1 class="topContent">
-								<a href="#application.blog.makeLink(id)#" aria-label="#title#" class="k-content">#title#</a>
+								<a href="#entryLink#" aria-label="#title#" class="k-content">#title#</a>
 							</h1>
 
 							<p class="postDate">
@@ -2876,42 +3427,100 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 
 							<p class="postAuthor">
 								<span class="info">
-									<cfif len(name)>by <a href="#application.blog.makeUserLink(name)#" aria-label="#application.blog.makeUserLink(name)#" class="k-content">#name#</a></cfif> 
+									<cfif len(name)>by <a href="#userLink#" aria-label="#userLink#" class="k-content">#name#</a></cfif> 
 									<cfset lastid = listLast(structKeyList(categories))>
 									<cfloop item="catid" collection="#categories#">
-									<a href="#application.blog.makeCategoryLink(catid)#" aria-label="#application.blog.makeCategoryLink(catid)#" class="k-content">#categories[currentRow][catid]#</a><cfif catid is not lastid>, </cfif>
+									<cfsilent>
+									<!--- We need to perform the same logic for the post author (remove the 'index.cfm' string when a rewrite rule is in place). --->
+									<cfif application.serverRewriteRuleInPlace>
+										<cfset categoryLink = replaceNoCase(application.blog.makeCategoryLink(catid), '/index.cfm', '')>
+									<cfelse>
+										<cfset categoryLink = application.blog.makeCategoryLink(catid)>
+									</cfif>
+									</cfsilent>
+									<a href="#categoryLink#" aria-label="#categoryLink#" class="k-content">#categories[currentRow][catid]#</a><cfif catid is not lastid>, </cfif>
 									</cfloop>
 								</span>
 							</p>
-
+										
 							<!-- Post content --> 
 							<span class="postContent">	
-							<!--- Inspect the post entry  for reserved xmlKeywords. --->
-							<cfset xmlKeywords = inspectPostContentForXmlKeywords(#application.blog.renderEntry(body,false,enclosure)#)>
-							<cfif findNoCase("cfincludeTemplate", xmlKeywords) gt 0>
-								<!--- Get the path that is in the xml in the post. --->
-								<cfset cfincludeTemplatePath = getXmlKeywordValue(application.blog.renderEntry(body,false,enclosure), 'cfincludeTemplate')>
+							<cfsilent>
+								<!--- Inspect the post entry  for reserved xmlKeywords. --->
+								<cfset xmlKeywords = inspectPostContentForXmlKeywords(#application.blog.renderEntry(body,false,enclosure)#)>
+								<!--- //**************************************************************************************************************************************************
+								Use a cfinclude
+								//****************************************************************************************************************************************************--->
+								<!--- Use a cfinclude if the include xml keyword is present. --->
+								<cfif findNoCase("cfincludeTemplate", xmlKeywords) gt 0>
+									<cfset includeTemplate = true>
+									<!--- Get the path that is in the xml in the post. --->
+									<cfset cfincludeTemplatePath = getXmlKeywordValue(application.blog.renderEntry(body,false,enclosure), 'cfincludeTemplate')>
+								<cfelse>
+									<cfset includeTemplate = false>
+								</cfif>
+								<!--- //**************************************************************************************************************************************************
+								Video and Audio Content
+								//****************************************************************************************************************************************************--->
+								<cfparam name="videoType" default="" type="string">
+								<cfparam name="videoPosterImageUrl" default="" type="string">
+								<cfparam name="smallVideoSourceUrl" default="" type="string">
+								<cfparam name="mediumVideoSourceUrl" default="" type="string">
+								<cfparam name="largeVideoSourceUrl" default="" type="string">
+								<cfparam name="videoCaptionsUrl" default="" type="string">
+
+								<!--- Overwrite the vars if the proper xml is embedded in the post. The xml keyword thing is temporary and will be put into the database in the future. --->
+								<cfif findNoCase("videoType", xmlKeywords) gt 0> 
+									<cfset videoType = getXmlKeywordValue(articles.body, 'videoType')>
+								</cfif>
+								<cfif findNoCase("videoPosterImageUrl", xmlKeywords) gt 0> 
+									<cfset videoPosterImageUrl = getXmlKeywordValue(articles.body, 'videoPosterImageUrl')>
+								</cfif>	
+								<cfif findNoCase("smallVideoSourceUrl", xmlKeywords) gt 0> 
+									<cfset smallVideoSourceUrl = getXmlKeywordValue(articles.body, 'smallVideoSourceUrl')>
+								</cfif>
+								<cfif findNoCase("mediumVideoSourceUrl", xmlKeywords) gt 0> 
+									<cfset mediumVideoSourceUrl = getXmlKeywordValue(articles.body, 'mediumVideoSourceUrl')>
+								</cfif>
+								<cfif findNoCase("largeVideoSourceUrl", xmlKeywords) gt 0> 
+									<cfset largeVideoSourceUrl = getXmlKeywordValue(articles.body, 'largeVideoSourceUrl')>
+								</cfif>
+								<cfif findNoCase("videoCaptionsUrl", xmlKeywords) gt 0> 
+									<cfset videoCaptionsUrl = getXmlKeywordValue(articles.body, 'videoCaptionsUrl')>
+								</cfif>
+								<cfif findNoCase("videoCrossOrigin", xmlKeywords) gt 0> 
+									<cfset videoCrossOrigin = getXmlKeywordValue(articles.body, 'videoCrossOrigin')>
+								</cfif>
+							</cfsilent>
+							<cfif includeTemplate>
 								<!--- Include the specified template. --->
 								<cfinclude template="#cfincludeTemplatePath#">
 							</cfif>
-							<!-- And render the entry. -->
-							#application.blog.renderEntry(body,false,enclosure)#
-								
-							<!-- Handle any posts that have the content broken into two sections written in the entry editor using the '</more>' tag. This is a neat feature allows the administrator to condense the entry for the front page and create a link to the full post. -->
-							<cfif len(morebody) and url.mode is not "alias"><!--- Chjanged logic. Old logic prior to version 1.45 was: and url.mode is not "entry"--->
-								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#application.blog.makeLink(id)###more';">
-									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
-									<i class="fas fa-chevron-circle-down" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;More...
-								</button>
-							<!-- We are looking at the actual post. -->
-							<cfelseif len(morebody)>
-								#application.blog.renderEntry(morebody)#
-							</cfif>
-							</span><!--<span class="postContent">-->
+							<cfsilent>
+								<!--- Reset the includeTempate var--->
+								<cfset includeTemplate = false>
+								<cfset cfincludeTemplatePath = "">
+								<!--- Check to see if we need to modify remove hard coded mainEntityOfPage code blocks when in blog mode. We don't want the mainEnityOfPage there unless we are reading a single post. --->
+							
+								<!--- Set our blog content. We need to remove all of the quasi xml ---> 
+								<cfset postContent = removeXmlKeyWordContentFromPost(application.blog.renderEntry(body,false,enclosure), xmlKeywords)>
+							
+								<!--- See if we need to eliminate the indivual post ld json scripts when in blog mode. This is necessary as there will be multiple posts that will conflict with the blog ld script. I have tested verarious methods and found out that this is necessary, otherwise you might have a rich google snippet that has no relation to the blog page (such as a recipe rich snippet being made on a blog post). This is what yoast does on their main blog page. --->
+								<cfif getPageMode() eq 'blog' and postContent contains 'application/ld+json'>
+									<cfset postContent = replaceStringInContent(postContent, '<script type="application/ld+json">', '</script>')>
+								</cfif>
 
-							<!---***************************************************************** Media *****************************************************************--->
-							<!--- HTML5 supported media will be handled by the jQjuery Kendo video player. Supported formats are mp4, ogv, and webm. Note: the Kendo media player is only availabe in the proffesional edition. --->
-							<cfif application.kendoCommercial and (enclosure contains ".mp4" or enclosure contains ".ogv" or enclosure contains ".webm")>
+								<!---//**************************************************************************************************************************************************
+											Media Player
+								//*******************************************************************************************************************************************************
+								HTML5 supported media will be handled by plyr by default, or the jQjuery Kendo video player. Supported formats are mp3, mp4, ogg, ogv, and webm. Note: the Kendo media player is only availabe in the proffesional edition.
+								--->
+								</cfsilent>
+							
+							<cfif (enclosure contains ".mp3" or enclosure contains ".mp4" or enclosure contains ".ogg" or enclosure contains ".ogv" or enclosure contains ".webm"
+								  or videoType contains ".mp3" or videoType contains ".mp4" or videoType contains ".ogg" or videoType contains ".ogv" or videoType contains ".webm")>
+								<br/>	
+								<cfif application.kendoCommercial and defaultMediaPlayer eq 'KendoUiPlayer'>
 								<div class="k-content wide">
 									<div id="mediaplayer#currentRow#" class="mediaPlayer"></div>
 									<script type="#scriptTypeString#">
@@ -2922,188 +3531,253 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 												navigatable: true,
 												media: {
 													title: "#title#",
-													source: "#application.baseUrl#enclosures/#getFileFromPath(enclosure)#"
+													source: "#application.baseUrl#enclosures/#getFileFromPath(enclosure)#" 
 												}
 											});
 										});
 									</script>
 								</div><!---<div class="k-content">--->
-							</cfif>
-							
-							<!--- MP3'S will be handled by Flash. This code is intact from the original BlogCfc. --->
-							<cfif enclosure contains "mp3">
-								<cfset alternative=replace(getFileFromPath(enclosure),".mp3","") />
-								<div class="audioPlayerParent">
-									<div id="#alternative#" class="audioPlayer">
-									</div>
+								<cfelse><!---<cfif application.kendoCommercial and defaultMediaPlayer eq 'KendoUiPlayer'>--->
+								<cfsilent>
+								<!--- Preset the videoCrossOrigin var to false if it is not already set. --->
+								<cfif not isDefined("videoCrossOrigin")>
+									<cfset videoCrossOrigin = false>
+								<cfelseif videoCrossOrigin eq "true">
+									<cfset videoCrossOrigin = true>
+								<cfelse>
+									<cfset videoCrossOrigin = false>
+								</cfif>
+								</cfsilent>
+								<div id="mediaplayer#currentRow#" class="mediaPlayer">
+									<video
+										controls
+										<cfif videoCrossOrigin>crossorigin</cfif>
+										playsinline
+										<cfif videoPosterImageUrl neq ''>poster="#videoPosterImageUrl#"</cfif>
+										id="player#currentRow#"
+										class="lazy">
+										<!-- Video files -->
+										<cfif smallVideoSourceUrl neq "">
+										<source
+											src="#smallVideoSourceUrl#"
+											type="video/mp4"
+											size="576"
+										/>
+										</cfif>
+										<cfif mediumVideoSourceUrl neq "">
+										<source
+											src="#mediumVideoSourceUrl#"
+											type="video/mp4"
+											size="720"
+										/>
+										</cfif>
+										<cfif largeVideoSourceUrl neq "">
+										<source
+											src="#largeVideoSourceUrl#"
+											type="video/mp4"
+											size="1080"
+										/>
+										</cfif>
+										<cfif videoCaptionsUrl neq "">
+										<!-- Caption files -->
+										<track
+											kind="captions"
+											label="English"
+											srclang="en"
+											src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.en.vtt"
+											default
+										/>
+										</cfif>
+										<cfif smallVideoSourceUrl neq "">
+										<!-- Fallback for browsers that don't support the <video> element -->
+										<a href="#smallVideoSourceUrl#" download
+											>Download</a
+										>
+										</cfif>
+									</video>
 								</div>
-								<script type="#scriptTypeString#">
-									// <![CDATA[
-										var flashvars = {};
-										// unique ID
-										flashvars.playerID = "#alternative#";
-										// load the file
-										flashvars.soundFile= "#application.rooturl#/enclosures/#getFileFromPath(enclosure)#";
-										// Load width and Height again to fix IE bug
-										flashvars.width = "470";
-										flashvars.height = "24";
-										// Add custom variables
-										var params = {};
-										params.allowScriptAccess = "sameDomain";
-										params.quality = "high";
-										params.allowfullscreen = "true";
-										params.wmode = "transparent";
-										var attributes = false;
-										swfobject.embedSWF("#application.rooturl#/includes/audio-player/player.swf", "#alternative#", "470", "24", "8.0.0","/includes/audio-player/expressinstall.swf", flashvars, params, attributes);
-									// ]]>
-								</script>
-							</cfif><!---<cfif enclosure contains "mp3">--->  
+								<!--- Reset the video type arg. --->
+								<cfset videoType = "">
+								</cfif><!---<cfif application.kendoCommercial and defaultMediaPlayer eq 'KendoUiPlayer'>--->
+							</cfif><!---<cfif (enclosure contains ".mp3" or enclosure contains ".mp4" or enclosure contains ".ogg" or enclosure contains ".ogv" or enclosure contains ".webm")>--->
+							<cfsilent>
+							<!---//**************************************************************************************************************************************************
+											Render Post Content
+							//***************************************************************************************************************************************************--->
+							</cfsilent>
+							#postContent#
+									
+							<!-- Handle any posts that have the content broken into two sections written in the entry editor using the '</more>' tag. This is a neat feature allows the administrator to condense the entry for the front page and create a link to the full post. -->
+							<cfif len(morebody) and getPageMode() neq 'post'><!--- Chjanged logic. Old logic prior to version 1.45 was: and url.mode is not "entry"--->
+								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#entryLink###more';">
+									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+									<i class="fas fa-chevron-circle-down" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;More...
+								</button>
+							<!-- We are looking at the actual post. -->
+							<cfelseif len(morebody)>
+								#application.blog.renderEntry(morebody)#
+							</cfif>
+							</span><!--<span class="postContent">--> 
 									
 							<p class="bottomContent">
-					<cfif application.includeDisqus>
-						<cfif url.mode neq "alias">
-								<button id="disqusCommentButton" class="k-button" style="#kendoButtonStyle#" onClick="createDisqusWindow('#entryId#', '#alias#', '#application.blog.makeLink(id)#')">
-									<i class="fas fa-comments" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Comment
-								</button>
-									  
-							<cfif not addSocialMediaUnderEntry>
-								<!--- Don't display the share button when reading a single entry. --->
-								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
-									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
-									<i class="fas fa-share" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Share
-								</button>
-							</cfif><!---<cfif not addSocialMediaUnderEntry>--->
-						</cfif><!---<cfif url.mode neq "alias">--->
-								<p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
-								<!--- The number of comments will be provided with the code below. --->
-								<p><a class="disqus-comment-count" data-disqus-url="#application.blog.makeLink(id)#" onClick="createDisqusWindow('#entryId#', '#alias#', '#application.blog.makeLink(id)#')"></a></p>
-					<cfelse><!---<cfif application.includeDisqus>--->
-								<!-- Button navigation. -->
-								<!-- Set a smaller font in the kendo buttons. Note: adjusting the .k-button class alone also adjusts the k-input in the multi-select so we will set it here.-->
-								<button id="addCommentButton" class="k-button" style="#kendoButtonStyle#" onClick="createAddCommentSubscribeWindow('#id#', 'addComment', #session.isMobile#)">
-									<i class="fas fa-comments" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Comment
-								</button>
-							
-								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createAddCommentSubscribeWindow('#id#', 'subscribe', #session.isMobile#)">
-									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
-									<i class="fas fa-envelope-open-text" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Subscribe
-								</button>
 								
+							<cfsilent>
+							<!--- ***********************************************************************************************************
+								Related entries
+							*************************************************************************************************************--->
+							</cfsilent>
+							<cfset qRelatedBlogEntries = application.blog.getRelatedBlogEntries(entryId=id,bDislayFutureLinks=true) />	
+							<cfif qRelatedBlogEntries.recordCount>
+								<div name="relatedentries">
+								<h3 class="topContent">Related Entries</h3>
+								<ul name="relatedEntriesList">
+								<cfloop query="qRelatedBlogEntries">
+								<cfsilent>
+								<!--- Is there a URL rewrite rule in place? If so, we need to eliminate the 'index.cfm' string from all of our links. A rewrite rule on the server allows the blog owners to to obsfucate the 'index.cfm' string from the URL. This setting is in the application.cfc template. --->
+								<cfif application.serverRewriteRuleInPlace>
+									<cfset relatedEntryUrl = replaceNoCase(application.blog.makeLink(entryId=qRelatedBlogEntries.id), '/index.cfm', '')>
+								<cfelse>
+									<cfset relatedEntryUrl = application.blog.makeLink(entryId=qRelatedBlogEntries.id)>
+								</cfif>
+								</cfsilent>
+								<li><a href="#relatedEntryUrl#" aria-label="#qRelatedBlogEntries.title#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#qRelatedBlogEntries.title#</a></li>
+								</cfloop>			
+								</ul>
+								</div>
+							</cfif>
+						<cfsilent>
+						<!--- ***********************************************************************************************************
+							Comment interfaces (Disqus and Galaxie Blog)
+						*************************************************************************************************************--->
+						</cfsilent>
+						<h3 class="topContent">Comments</h3>
+						<cfif application.includeDisqus>
+							<cfif url.mode neq "alias">
+									<button id="disqusCommentButton" class="k-button" style="#kendoButtonStyle#" onClick="createDisqusWindow('#entryId#', '#alias#', '#entryLink#')">
+										<i class="fas fa-comments" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Comment
+									</button>
+
 								<cfif not addSocialMediaUnderEntry>
-								<!--- Don't display the share button when reading a single entry. --->
-								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
-									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
-									<i class="fas fa-share" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Share
-								</button>
-								</cfif>		
-								<!-- The print button is not needed for mobile.-->
-								<cfif not session.isMobile>
-								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#application.rooturl#/print.cfm?id=#id#';">
-									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
-									<i class="fas fa-print" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Print
-								</button>
-								</cfif><!---<cfif not session.isMobile>--->
-								<p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
-								<p>There are currently <cfif commentCount is "">0<cfelse>#commentCount#</cfif> comments.</p> 
-								<cfif len(enclosure)><a href="#application.rooturl#/enclosures/#urlEncodedFormat(getFileFromPath(enclosure))#" aria-label="Download attachment" class="k-content">Download attachment.</a></cfif>
-								<!--- Span to hold the little arrow. Note: the order of the spans in the code are different than the actual display. We need to reverse the order for proper display. We are not going to display this if there are no comments. --->
-								<cfif len(commentCount) gt 0><span id="commentControl#entryId#" class="collapse k-icon k-i-sort-desc-sm"></span>&nbsp;&nbsp;Show Comments</cfif>
-						</cfif><!---<cfif application.includeDisqus>---> 	
-						<cfsilent>
-						<!--- ***********************************************************************************************************
-							Disqus - load disqus if we are in looking at an individual entry
-						*************************************************************************************************************--->
-						</cfsilent>
-						<cfif application.includeDisqus and url.mode eq "alias">
-							<div id="disqus_thread"></div>
-							<script type="deferjs">
-								/**
-								*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
-								*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#chr(35)#configuration-variables*/
-								/*
-								var disqus_config = function () {
-								var disqus_shortname = '#alias#';
-								this.page.url = #application.blog.makeLink(id)#;  // Replace PAGE_URL with your page's canonical URL variable
-								this.page.identifier = #entryId#; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
-								};
-								*/
-								(function() { // DON'T EDIT BELOW THIS LINE
-									var d = document, s = d.createElement('script');
-									s.src = 'https://gregorys-blog.disqus.com/embed.js';
-									s.setAttribute('data-timestamp', +new Date());
-									(d.head || d.body).appendChild(s);
-								})();
-							</script>
-						</cfif>	
+									<!--- Don't display the share button when reading a single entry. --->
+									<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
+										<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+										<i class="fas fa-share" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Share
+									</button>
+								</cfif><!---<cfif not addSocialMediaUnderEntry>--->
+							</cfif><!---<cfif url.mode neq "alias">--->
+									<p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
+									<!--- The number of comments will be provided with the code below. --->
+									<p><a class="disqus-comment-count" data-disqus-url="#entryLink#" onClick="createDisqusWindow('#entryId#', '#alias#', '#entryLink#')"></a></p>
+						<cfelse><!---<cfif application.includeDisqus>--->
+									<!-- Button navigation. -->
+									<!-- Set a smaller font in the kendo buttons. Note: adjusting the .k-button class alone also adjusts the k-input in the multi-select so we will set it here.-->
+									<button id="addCommentButton" class="k-button" style="#kendoButtonStyle#" onClick="createAddCommentSubscribeWindow('#id#', 'addComment', #session.isMobile#)">
+										<i class="fas fa-comments" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Comment
+									</button>
 
-						
-						<cfsilent>
-						<!--- ***********************************************************************************************************
-							Original comments interface (non Disqus).
-						*************************************************************************************************************--->
-						</cfsilent>
-						<cfif len(commentCount) gt 0 and not application.includeDisqus>
-							<!-- Comments that are shown when the user clicks on the arrow button to open the container. -->
-							<div id="comment#entryId#" class="widget k-content" style="display:none;">
-								<h3 class="topContent">Comments</h3>          
+									<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createAddCommentSubscribeWindow('#id#', 'subscribe', #session.isMobile#)">
+										<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+										<i class="fas fa-envelope-open-text" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Subscribe
+									</button>
 
-								<table cellpadding="3" cellspacing="0" border="0" class="fixedCommentTable">
-								 <tr width="100%">
-								 <cftry>
-								 <cfset comments = application.blog.getComments(id)>
-								 <cfloop query="comments">
-								 <!---Note: the URL is appended with an extra 'c' in front of the commentId.--->
-								 <tr id="c#id#" name="" class="<cfif currentRow mod 2>k-content<cfelse>k-alt</cfif>">
-								  	<td class="fixedCommentTableContent">
-										 <a class="comment-id" href="#application.blog.makeLink(entryid)###c#id#" aria-label="Comment by #name#" class="k-content">###currentRow#</a> by <b>
-										 <cfif len(comments.website)>
-											<a href="#comments.website#" aria-label="#name#" rel="nofollow">#name#</a>
-										 <cfelse>
-											#name#
-										 </cfif></b> 
-										 on #application.localeUtils.dateLocaleFormat(posted,"short")# - #application.localeUtils.timeLocaleFormat(posted)#</p>
-								  	</td>
-								 <tr class="<cfif currentRow mod 2>k-content<cfelse>k-alt</cfif>">
-									<td>
-										<img src="https://www.gravatar.com/avatar/#lcase(hash(lcase(email)))#?s=64&amp;r=pg&amp;d=#application.rooturl#/images/defaultAvatar.gif" title="#name#'s Gravatar" alt="#name#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"  />
-										#paragraphFormat2(replaceLinks(comment))#
-									</td>
-								 </tr>
-								 <!---If the number of records is even, create the bottom border.--->
-							 <cfif comments.recordcount mod 2 is 0>
-								 <tr class="<cfif currentRow mod 2>k-alt<cfelse>k-content</cfif>">
-									<td class="border"></td>
-								 </tr>
-							 </cfif>
-							 </cfloop>
-							 <cfcatch type="any">
-								<tr>
-									<td>
-										#cfcatch.detail#
-									</td>
-								</tr>
-							 </cfcatch>
-							 </cftry>
-							</table>
-						</div><!---<div id="comment#entryId#" class="widget k-content" style="display:none;">--->
-					</cfif><!---<cfif len(commentCount) gt 0>--->
-						
-						<cfsilent>
-						<!--- ***********************************************************************************************************
-							Related entries
-						*************************************************************************************************************--->
-						</cfsilent>
-						<cfset qRelatedBlogEntries = application.blog.getRelatedBlogEntries(entryId=id,bDislayFutureLinks=true) />	
-						<cfif qRelatedBlogEntries.recordCount>
-							<div name="relatedentries">
-							<h3 class="topContent">Related Entries</h3>
-							<ul name="relatedEntriesList">
-							<cfloop query="qRelatedBlogEntries">
-							<li><a href="#application.blog.makeLink(entryId=qRelatedBlogEntries.id)#" aria-label="#qRelatedBlogEntries.title#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#qRelatedBlogEntries.title#</a></li>
-							</cfloop>			
-							</ul>
-							</div>
-						</cfif>
+									<cfif not addSocialMediaUnderEntry>
+									<!--- Don't display the share button when reading a single entry. --->
+									<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
+										<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+										<i class="fas fa-share" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Share
+									</button>
+									</cfif>		
+									<!-- The print button is not needed for mobile.-->
+									<cfif not session.isMobile>
+									<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#thisUrl#/print.cfm?id=#id#';">
+										<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+										<i class="fas fa-print" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Print
+									</button>
+									</cfif><!---<cfif not session.isMobile>--->
+									<p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
+									<p>There are currently <cfif commentCount is "">0<cfelse>#commentCount#</cfif> comments.</p> 
+									<cfif len(enclosure)><a href="#thisUrl#/enclosures/#urlEncodedFormat(getFileFromPath(enclosure))#" aria-label="Download attachment" class="k-content">Download attachment.</a></cfif>
+									<!--- Span to hold the little arrow. Note: the order of the spans in the code are different than the actual display. We need to reverse the order for proper display. We are not going to display this if there are no comments. --->
+									<cfif len(commentCount) gt 0><span id="commentControl#entryId#" class="collapse k-icon k-i-sort-desc-sm"></span>&nbsp;&nbsp;Show Comments</cfif>
+							</cfif><!---<cfif application.includeDisqus>---> 	
+							<cfsilent>
+							<!--- ***********************************************************************************************************
+								Disqus - load disqus if we are in looking at an individual entry
+							*************************************************************************************************************--->
+							</cfsilent>
+							<cfif application.includeDisqus and url.mode eq "alias">
+								<div id="disqus_thread"></div>
+								<script type="deferjs">
+									/**
+									*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+									*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#chr(35)#configuration-variables*/
+									/*
+									var disqus_config = function () {
+									var disqus_shortname = '#alias#';
+									this.page.url = #entryLink#;  // Replace PAGE_URL with your page's canonical URL variable
+									this.page.identifier = #entryId#; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+									};
+									*/
+									(function() { // DON'T EDIT BELOW THIS LINE
+										var d = document, s = d.createElement('script');
+										s.src = 'https://gregorys-blog.disqus.com/embed.js';
+										s.setAttribute('data-timestamp', +new Date());
+										(d.head || d.body).appendChild(s);
+									})();
+								</script>
+							</cfif><!---<cfif application.includeDisqus and url.mode eq "alias">--->
+
+
+							<cfsilent>
+							<!--- ***********************************************************************************************************
+								Original comments interface (non Disqus).
+							*************************************************************************************************************--->
+							</cfsilent>
+							<cfif len(commentCount) gt 0 and not application.includeDisqus>
+								<!-- Comments that are shown when the user clicks on the arrow button to open the container. -->
+								<div id="comment#entryId#" class="widget k-content" style="display:none;">
+									<h3 class="topContent">Comments</h3>          
+
+									<table cellpadding="3" cellspacing="0" border="0" class="fixedCommentTable">
+									 <tr width="100%">
+									 <cftry>
+									 <cfset comments = application.blog.getComments(id)>
+									 <cfloop query="comments">
+									 <!---Note: the URL is appended with an extra 'c' in front of the commentId.--->
+									 <tr id="c#id#" name="" class="<cfif currentRow mod 2>k-content<cfelse>k-alt</cfif>">
+										<td class="fixedCommentTableContent">
+											 <a class="comment-id" href="#application.blog.makeLink(entryid)###c#id#" aria-label="Comment by #name#" class="k-content">###currentRow#</a> by <b>
+											 <cfif len(comments.website)>
+												<a href="#comments.website#" aria-label="#name#" rel="nofollow">#name#</a>
+											 <cfelse>
+												#name#
+											 </cfif></b> 
+											 on #application.localeUtils.dateLocaleFormat(posted,"short")# - #application.localeUtils.timeLocaleFormat(posted)#</p>
+										</td>
+									 <tr class="<cfif currentRow mod 2>k-content<cfelse>k-alt</cfif>">
+										<td>
+											<img src="https://www.gravatar.com/avatar/#lcase(hash(lcase(email)))#?s=64&amp;r=pg&amp;d=#thisUrl#/images/defaultAvatar.gif" title="#name#'s Gravatar" alt="#name#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"  />
+											#paragraphFormat2(replaceLinks(comment))#
+										</td>
+									 </tr>
+									 <!---If the number of records is even, create the bottom border.--->
+								 <cfif comments.recordcount mod 2 is 0>
+									 <tr class="<cfif currentRow mod 2>k-alt<cfelse>k-content</cfif>">
+										<td class="border"></td>
+									 </tr>
+								 </cfif>
+								 </cfloop>
+								 <cfcatch type="any">
+									<tr>
+										<td>
+											#cfcatch.detail#
+										</td>
+									</tr>
+								 </cfcatch>
+								 </cftry>
+								</table>
+							</div><!---<div id="comment#entryId#" class="widget k-content" style="display:none;">--->
+						</cfif><!---<cfif len(commentCount) gt 0>--->
 
 						</span><!---<span class="innerContentContainer">--->
 					</div><!---<div class="blogPost">--->
@@ -3419,15 +4093,38 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	// Check the alignment of the page containers again and reset if necessary
 	setScreenProperties();
 </script>
+						
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+	// Initialize the plyr.
+	const players = Plyr.setup('video', { captions: { active: true } });
+	// Expose player so it can be used from the console
+	window.players = players;
+</script>
 
 <!--- Disqus tail end script to enable the number of vpage iews and the comment count. --->
 <script id="dsq-count-scr" type="<cfoutput>#scriptTypeString#</cfoutput>" src="//gregorys-blog.disqus.com/count.js" async></script>
-			
+						
+<!--- Debugging carriage: --->
+<!---
+<cfoutput>
+xmlKeywords:#xmlKeywords# getXmlKeywordValue(articles.body, 'facebookImageUrlMetaData'): #getXmlKeywordValue(articles.body, 'facebookImageUrlMetaData')#
+</cfoutput>
+--->
+
+<!--- 
+<cfoutput>
+#getPageMode()#
+</cfoutput>
+--->
+						
+<!--- 
+Note: if the Zion theme is screwed up, check the use custom theme setting in the ini file.
+<cfoutput>
+<cfdump var="#application.themeSettingsArray[3]#">
+</cfoutput>
+--->
+	
 <cfsilent>
-<!-- Custom sroll magic js (and custom kendo notifications from my extended notification UI library) -->
-<!---<script src="/common/js/scrollMagic/mainSceneNew.js"></script>--->
-<!--- The delicate arch script --->
-<!---<script src="/common/js/scrollMagic/delicateArch.js"></script>--->
 <!--- Prism is intended to be our new code renderer in a later version. 
 <script src="<cfoutput>#application.baseUrl#</cfoutput>common/libs/prism/prism.js"></script>
 --->
