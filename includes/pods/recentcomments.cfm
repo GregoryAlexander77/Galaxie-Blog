@@ -293,13 +293,15 @@
 				</cfif>
 					<!--- Note: Raymond is hiding the URL arguments. See notes above the showComment function on index.cfm template for more information. 
 					Bugs?: the alias appears to be wrong on several occasions. Not sure why. --->
-					<a href="#commentLink#" aria-label="#commentLink#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#entryTitle#</a>:<br/>
-					<span style="color:<cfif darkTheme>whitesmoke<cfelse>black</cfif>">#author# #formattedComment#</span>
+					<img src="https://www.gravatar.com/avatar/#lcase(hash(lcase(email)))#?s=64&amp;r=pg&amp;d=#thisUrl#/images/defaultAvatar.gif" title="#name#'s Gravatar" alt="#name#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"  />
+					<a href="#commentLink##chr(35)#c#getComments.id#" aria-label="#commentLink#" style="display: block; padding-top: 10px; padding-bottom: 5px;<cfif darkTheme> color:whitesmoke</cfif>">#entryTitle#:</a>
+					<span style="display: block; padding-bottom: 10px; color:<cfif darkTheme>whitesmoke<cfelse>black</cfif>">#formattedComment#</span>
 				</td>
 			</tr>
 			</cfoutput>
 
 	<cfelse><!---<cfif not application.includeDisqus>--->
+		
 		<!--- There are two ways to display the disqus recent comments: with an API key using the Disqus API, and without an API key using a recent comments widget. The method you take is up to you. ---> 
 		<cfif application.disqusApiKey neq "">
 				<tr>

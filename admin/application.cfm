@@ -1,4 +1,4 @@
-<cfapplication name="GregorysBlog" sessionManagement="true" loginStorage="session">
+<cfapplication name="GalaxieBlog" sessionManagement="true" loginStorage="session">
 	
 <!--- This template is needed in order to secure the admin portions of the site. I could have used a application.cfc instead, but then I would have had to screw around with creating proxyies in order to get the extends argument in order to find the parent application.cfc, and it is just a pain. It is just not needed here. Note: the cflogin code below the udf was coded by Raymond and is essentially unchanged. --->
 	

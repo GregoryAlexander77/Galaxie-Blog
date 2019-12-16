@@ -1,5 +1,5 @@
-<cfcomponent displayname="GregorysBlog" sessionmanagement="yes" clientmanagement="yes" output="true">
-	<cfset this.Name = "GregorysBlog" />
+<cfcomponent displayname="GalaxieBlog" sessionmanagement="yes" clientmanagement="yes" output="true">
+	<cfset this.Name = "GalaxieBlog" />
 	<cfset this.applicationTimeout = createTimeSpan(7,0,0,0) />
 	<cfset this.sessionManagement="yes"/>
 	<cfset this.enablerobustexception = true />

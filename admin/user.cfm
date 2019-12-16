@@ -8,10 +8,6 @@
 	History      : RBB: Updated to account for hashed passwords.
 --->
 
-<cfif not application.blog.isBlogAuthorized('ManageUsers')>
-	<cflocation url="index.cfm" addToken="false">
-</cfif>
-
 <cfset allroles = application.blog.getBlogRoles()>
 
 <cftry>

@@ -1,1 +1,0 @@
-_ate.track.config_resp({});

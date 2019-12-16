@@ -8,10 +8,6 @@
 	History      : 
 --->
 
-<cfif not application.blog.isBlogAuthorized('ManageUsers')>
-	<cflocation url="index.cfm" addToken="false">
-</cfif>
-
 <!--- handle deletes --->
 <cfif structKeyExists(form, "mark")>
 	<cfloop index="u" list="#form.mark#">

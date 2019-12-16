@@ -1,3 +1,10 @@
+<!--- Gregory's myTrim function (can't remember where I got it many many years ago). --->
+<cffunction name="myTrim" returntype="string" output="false">
+    <cfargument name="s" type="string" required="yes">
+	<cfset str = reReplace(s, "[[:space:]]", "", "ALL") />
+    <cfreturn Trim(Replace(s, chr(160), " ", "ALL"))>
+</cffunction>
+
 <cfscript>
 /* TODO rewrite this and put it into a cfc */
 /* Gregory's notes: the user vars from the coldfish library are not available in the blog.cfc for some reason. I suspect that this may be due to the scope of the library as there are other application.cfm templates. Howevver, the variables from the library are available higher up, and here. I need to set the isAdmin role in this udf and make it available in session scope. I also redesigned this page in order to tidy it up a bit.

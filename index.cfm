@@ -12,24 +12,60 @@
 	 -------- New Kendo redesign history (Gregory Alexander) --------
 	 -------------- Kendo Blog Cfc (Gregory Alexander) --------------
 	 Re-engineered the code to make it better compatible with as single page application and completely redesigned the page. I want to strip out all styling in order to have the default kendo .css control the page. I also had to eliminate some of the orginal features, such as 'AddThis' as it was using old jQuery libraries and was not compabitle with either the newest version of jQuery, or Kendo. 
-
 --->
 	
 <!--- //**************************************************************************************************************************************************
-			User defined settings (these will be put in a database in the next major version).
+		User defined settings (these will be put in a database in the next major version).
+
+		Notes: as soon as I get ORM integrated into the blog, these settings will move into the database. Currently, I have nearly 500 variables stored in Raymond's initial ini files, and it is realy cumbersome to get dynamic variables there instead of using a database where they really belong. After version 1.35, I forced myself to stop using the ini files and instead am using hardcoded variables for new features. I am going to throw away the logic behind the ini files, so for now, I am going to store these user defined variables here.
 //****************************************************************************************************************************************************--->
-	
+
 <!--- Optional libraries --->
 <!--- GSAP and scrollMagie allows for animations and parallax effects in the blog entries. Don't include by default. --->
-<cfset includeGsap = false>
-	
+<cfset application.includeGsap = false>
+
 <!--- Determine whether to include the disqus commenting system. If you set this to true, you must also set the optional disqus settings that are right below. Note: this is an application var so that the recentcomments.cfm can access these settings. That template is invoked via a cfmodule tag. --->
-<cfset application.includeDisqus = true>
-	
+<cfset application.includeDisqus = false>
+
 <!--- Setting to determine whether to defer the scripts and css. This is a setting as I need to quickly debug to see if the defer is working, but you should leave this at true as it provides a better google speed score. --->
-<cfset deferScriptsAndCss = true>
+<cfset application.deferScriptsAndCss = true>
+
+<!--- User defined application settings. 
+Note: as soon as I get ORM integrated into the blog, these settings will move into the database. Currently, I have nearly 500 variables stored in Raymond's initial ini files, and it is realy cumbersome to get dynamic variables there instead of using a database where they really belong. After version 1.35, I forced myself to stop using the ini files and instead am using hardcoded variables for new features. I am going to throw away the logic behind the ini files, so for now, I am going to store these user defined variables here. --->
+
+<!--- Video player settings. We have several options. Our default player is plyr. It is a full featured HTML5 media player, however, it does not play flash video. This should not be a problem as flash is soon to be depracated. Optionally, we can use the Kendo UI video player if you have a full Kendo license. The original flash player will take over for .flv videos, but will be depracated in 2020. --->
+<cfset application.defaultMediaPlayer = 'plyr'><!---You can optionally choose 'KendoUiPlayer' if you have the full lisence. However, the Kendo Media player is lacks quite a few plyr features. The Kendo player is useful if you want the video player to take on the theme that you are using. --->
+
+<!--- The addThis toolbox string changes depending upon the site and the configuration. --->
+<cfset application.addThisToolboxString = "addthis_inline_share_toolbox"><!---Typically 'addthis_inline_share_toolbox'--->
+
+<!--- //**************************************************************************************************************************************************
+			Optional disqus settings. Set these if you set includeDisqus to true. The first setting is required, the rest are optional settings.
+//****************************************************************************************************************************************************--->
+
+<cfset application.disqusBlogIdentifier = "gregorys-blog"><!--- Required if you're using Disqus. Note: this is intentionally set as an application var. ---> 
+<cfset application.disqusApiKey = "EhY9pmLkruL5Jj7cGVO3eab3cWVBFWLTPSmqADfe8tZhLamRpz8YiE7wQk4ta2hf"><!--- Optional if you're using Disqus - if you do not have an API key, leave this blank. Note: this is intentionally set as an application var. --->
+<cfset disqusApiSecret = "xxdWJxzwFoSGPUddksrU9mtBQU45hgtSLeIqwnSXpauir5Hsp0gsx1gfDj0m9NtW"><!--- Optional if you're using Disqus - if you do not have an API Secret, leave this blank. --->
+<cfset disqusAuthTokenKey = "08c0241af97d4ce7813c22085e61fea2"><!--- Optional if you're using Disqus - if you do not have an API Secret, leave this blank. --->
+<cfset disqusAuthUrl = "https://disqus.com/api/oauth/2.0/authorize/"><!--- Leave this alone unless you konw what you're doing. --->
+<cfset disqusAuthTokenUrl = "https://disqus.com/api/oauth/2.0/access_token/"><!--- Leave this alone unless you konw what you're doing. --->
+
+<!--- Facebook Id --->
+<cfset facebookAppId = "252557132092698">
+
+<!--- //**************************************************************************************************************************************************
+			Common custom templates.
+//****************************************************************************************************************************************************--->
+	
+<!--- Do you have your own favorite icons that you want to display for your site? Put this in the /includes/customTemplates folder and include them.--->	
+<cfset application.customFavIconTemplate = "includes/customTemplates/favIcon.cfm"><!--- Specify the path to the custom template if you have one. --->
+	
+<!--- //**************************************************************************************************************************************************
+			Logic to set user defined settings
+//****************************************************************************************************************************************************--->
+	
 <!--- Set the type string --->
-<cfif deferScriptsAndCss>
+<cfif application.deferScriptsAndCss>
 	<!--- Defers the loading of the script and css using the deferjs library. --->
 	<cfset scriptTypeString = "deferjs">
 <cfelse>
@@ -42,8 +78,7 @@
 <cfelse>
 	<cfset useSsl = false>
 </cfif>
-	
-<!--- Is there a URL rewrite rule in place? If so, we need to eliminate the 'index.cfm' string from all of our links. A rewrite rule on the server allows the blog owners to to obsfucate the 'index.cfm' string from the URL. This setting is in the application.cfc template. --->
+
 <cfif application.serverRewriteRuleInPlace>
 	<cfset thisUrl = replaceNoCase(application.rootURL, '/index.cfm', '')>
 	<!--- Create a blogUrl var. The thisUrl variable will be overwritten depending upon the page that is being viewed. --->
@@ -52,25 +87,6 @@
 	<cfset thisUrl = application.rootURL>
 	<cfset blogUrl = thisUrl>
 </cfif>
-		
-<!---Video player settings. We have several options. Our default player is plyr. It is a full featured HTML5 media player, however, it does not play flash video. This should not be a problem as flash is soon to be depracated. Optionally, we can use the Kendo UI video player if you have a full Kendo license. The original flash player will take over for .flv videos, but will be depracated in 2020. --->
-<cfset defaultMediaPlayer = 'plyr'><!---You can optionally choose 'KendoUiPlayer' if you have the full lisence. However, the Kendo Media player is lacks quite a few plyr features. The Kendo player is useful if you want the video player to take on the theme that you are using. --->
-	
-<!--- The addThis toolbox string changes depending upon the site and the configuration. --->
-<cfset addThisToolboxString = "addthis_inline_share_toolbox_zyuh"><!---Typically 'addthis_inline_share_toolbox'--->
-
-<!--- //**************************************************************************************************************************************************
-			Optional disqus settings. Set these if you set includeDisqus to true. The first setting is required, the rest are optional settings.
-//****************************************************************************************************************************************************--->
-	
-<cfset application.disqusBlogIdentifier = "gregorys-blog"><!--- Required if you're using Disqus. Note: this is intentionally set as an application var. ---> 
-<cfset application.disqusApiKey = "EhY9pmLkruL5Jj7cGVO3eab3cWVBFWLTPSmqADfe8tZhLamRpz8YiE7wQk4ta2hf"><!--- Optional if you're using Disqus - if you do not have an API key, leave this blank. Note: this is intentionally set as an application var. --->
-<cfset disqusApiSecret = "xxdWJxzwFoSGPUddksrU9mtBQU45hgtSLeIqwnSXpauir5Hsp0gsx1gfDj0m9NtW"><!--- Optional if you're using Disqus - if you do not have an API Secret, leave this blank. --->
-<cfset disqusAuthTokenKey = "08c0241af97d4ce7813c22085e61fea2"><!--- Optional if you're using Disqus - if you do not have an API Secret, leave this blank. --->
-<cfset disqusAuthUrl = "https://disqus.com/api/oauth/2.0/authorize/"><!--- Leave this alone unless you konw what you're doing. --->
-<cfset disqusAuthTokenUrl = "https://disqus.com/api/oauth/2.0/access_token/"><!--- Leave this alone unless you konw what you're doing. --->
-<!--- Facebook Id --->
-<cfset facebookAppId = "252557132092698">
 	
 <!--- //**************************************************************************************************************************************************
 			Global path and URL settings.
@@ -115,7 +131,7 @@
 --->
 
 <!--- See if the encryptionKey and the serviceKey have been created in the session scope. If they don't exist, create them. --->
-<cfif not isDefined("session.encryptionKey") and not isDefined("session.serviceKey")>
+<cfif not isDefined("session.encryptionKey") or not isDefined("session.serviceKey")>
 	<!--- Create unique token keys --->
 	<cfinvoke component="#ProxyControllerObj#" method="createTokenKeys" returnvariable="createTokenKeys" />
 	<!--- Store the value in session cookies. --->
@@ -143,7 +159,7 @@
 </cfif>
 
 <!--- Hardcoded image paths (TODO make this a variable that can be set on the settings page.) --->
-<cfset application.defaultLogoImageForSocialMediaShare = "/images/logo/gregorysBlogSocialMediaShare2.png">
+<cfset application.defaultLogoImageForSocialMediaShare = "/images/logo/ArehartSocialMediaShare.png">
 
 <!--- Include the displayAndThemes template. This contains display and theme related functions. --->
 <cfinclude template="#application.baseUrl#common/function/displayAndTheme.cfm">
@@ -332,16 +348,20 @@ toes with future updates.
 <cfset customTopMenuCssTemplate = application.themeSettingsArray[themeId][34]>
 <!--- Template to include the html for the top menu. --->
 <cfset customTopMenuHtmlTemplate = application.themeSettingsArray[themeId][35]>
-<!--- Template to include the javascript for the top menu. Note: this template is within the code region of the customTopMenuHtmlTemplate. --->
-<cfset customTopMenuJsTemplate = application.themeSettingsArray[themeId][36]>
+<!--- Template to include the javascript for the top menu. Note: this template is within the code region of the customTopMenuHtmlTemplate. 
+Custom setting for Arehart --->
+<cfset customTopMenuJsTemplate = "/blog/client/includes/customTemplates/topMenu.cfm">
+<!--- Original code: <cfset customTopMenuJsTemplate = application.themeSettingsArray[themeId][36]>--->
 <!--- Template to include the css rules for the blog content (blog entries). --->
 <cfset customBlogContentCssTemplate = application.themeSettingsArray[themeId][37]>
 <!--- Template to include Kendo's widget and UI javascripts for the main blog (not the header script) --->
 <cfset customBlogJsContentTemplate = application.themeSettingsArray[themeId][38]>
 <!--- Template to include blog content HTML (blog entries). This is a rather intensive bit of code that will be broken down further in a later version. --->
 <cfset customBlogContentHtmlTemplate = application.themeSettingsArray[themeId][39]>
-<!--- Template to include a custom footer. --->
-<cfset customFooterHtmlTemplate = application.themeSettingsArray[themeId][40]>
+<!--- Template to include a custom footer. 
+Custom setting for Arehart --->
+<cfset customFooterHtmlTemplate = "/blog/client/includes/customTemplates/footer.cfm">
+<!---Orignal code: <cfset customFooterHtmlTemplate = application.themeSettingsArray[themeId][40]>--->
 
 <!--- //**************************************************************************************************************************************************
 			Load coldfish. This is not dependent upon a theme setting right now (but it may be if I can get around to using prism).
@@ -643,7 +663,7 @@ before in other projects. I suspect that it is reading the entire object when it
 		</cfif>
 		<!--- Set videoCrossOrigin to true when using media outside of your own site. --->
 		<cfif arguments.postContent contains "<videoCrossOrigin:">
-			<!--- Supply the link to the WebVTT file --->
+			<!--- Get the cross origin property --->
 			<cfif xmlKeyWords eq "">
 				<cfset xmlKeyWords = "videoCrossOrigin">
 			<cfelse>
@@ -653,7 +673,7 @@ before in other projects. I suspect that it is reading the entire object when it
 					
 		<!--- The next two blocks, videoWidthMetaData and videoHeightMetaData, apply to both facebook and twitter. --->		
 		<cfif arguments.postContent contains "<videoWidthMetaData:">
-			<!--- Get the social media image description if available. --->
+			<!--- Get the width. --->
 			<cfif xmlKeyWords eq "">
 				<cfset xmlKeyWords = "videoWidthMetaData">
 			<cfelse>
@@ -661,13 +681,33 @@ before in other projects. I suspect that it is reading the entire object when it
 			</cfif>
 		</cfif>
 		<cfif arguments.postContent contains "<videoHeightMetaData:">
-			<!--- Get the social media image description if available. --->
+			<!--- meta data. --->
 			<cfif xmlKeyWords eq "">
 				<cfset xmlKeyWords = "videoHeightMetaData">
 			<cfelse>
 				<cfset xmlKeyWords = xmlKeyWords & "," & "videoHeightMetaData">
 			</cfif>
-		</cfif>			
+		</cfif>	
+					
+		<!--- YouTube  --->
+		<cfif arguments.postContent contains "<youTubeUrl:">
+			<!--- Get the url. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "youTubeUrl">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "youTubeUrl">
+			</cfif>
+		</cfif>	
+					
+		<!--- Vimeo  --->
+		<cfif arguments.postContent contains "<vimeoVideoId:">
+			<!--- Get the url. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "vimeoVideoId">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "vimeoVideoId">
+			</cfif>
+		</cfif>	
 					
 		<!--- Structured data (Not used yet) --->
 		<cfif arguments.postContent contains "<articleStructuredOrgLogoUrl:">
@@ -892,7 +932,12 @@ before in other projects. I suspect that it is reading the entire object when it
 				<cfset entry = application.blog.getEntry(url.entry,dontLog)>
 				<!--- On individual entry pages, the title of the page is the title of the post. --->
 				<cfset titleMetaTagValue = entry.title>
-				<cfcatch></cfcatch>
+				<!--- Gregory's code. We may be in entry mode based upon logic above that switched us from alias to entry mode (see if using alias, switch mode to entry). If we are, the entry will have no value and we need to get the articles data. I'll need to revise the logic to make it cleaner one day. --->
+				<cfcatch>
+					<cfset entry = articles>
+					<!--- On individual entry pages, the title of the page is the title of the post. --->
+					<cfset titleMetaTagValue = entry.title>
+				</cfcatch>
 			</cftry>
 		</cfif>
 	</cfif>
@@ -1045,7 +1090,7 @@ before in other projects. I suspect that it is reading the entire object when it
 	</cfif>
 		
 <cfelse>
-	<cfmodule template="#customCoreLogicTemplate#" />
+	<cfinclude template="#customCoreLogicTemplate#" />
 </cfif>
 		
 <!--- //**************************************************************************************************************************************************
@@ -1117,6 +1162,10 @@ before in other projects. I suspect that it is reading the entire object when it
 	<!--TODO <meta property="og:type" content="blog" />-->
 	<meta name="viewport" content="width=device-width, initial-scale=1"><!---<meta name="viewport" content="968"><meta name="viewport" content="1280">--->
  	<link rel="alternate" type="application/rss+xml" title="RSS" href="#thisUrl#/rss.cfm?mode=full" />
+<cfif application.customFavIconTemplate neq "">
+	<!-- FavIcons -->
+	<cfinclude template="#application.customFavIconTemplate#">
+</cfif>
 	<cfsilent>
 	<!--- We are only including the top level ld json when we are not in blog mode. The ld json will be in the body of the post.  ---->
 	<cfif getPageMode() neq 'blog'>
@@ -1127,7 +1176,7 @@ before in other projects. I suspect that it is reading the entire object when it
 		<cfset struturedDataMainEntityOfPageUrl = canonicalUrl>
 	</cfif>
 	</cfsilent>
-<cfif getPageMode() neq 'post'>
+<cfif getPageMode() neq 'blog'>
 	<!-- Structured data (see schema.org). -->
 	<script type="application/ld+json">
 	{
@@ -1147,7 +1196,6 @@ before in other projects. I suspect that it is reading the entire object when it
 	}
 	</script>
 </cfif>
-	
 	<!--- Load resources and scripts. --->
 	<script>
 		/* Script to defer script resources. See https://appseeds.net/defer.js/demo.html. 
@@ -1229,7 +1277,7 @@ before in other projects. I suspect that it is reading the entire object when it
 	<cfif addSocialMediaUnderEntry><!-- Go to www.addthis.com/dashboard to customize your tools --> 
 	<script type="#scriptTypeString#" src="//s7.addthis.com/js/300/addthis_widget.js#chr(35)#pubid=#application.addThisApiKey#"></script></cfif>
 	<!-- Scroll magic and other green sock plugins. -->
-<cfif includeGsap>
+<cfif application.includeGsap>
 	<!---<cfset scriptTypeString = "text/javascript">--->
 	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/greenSock/src/uncompressed/TweenMax.js"></script>
 	<script type="#scriptTypeString#" src="#application.baseUrl#common/libs/scrollMagic/scrollmagic/uncompressed/ScrollMagic.js"></script>
@@ -1246,7 +1294,7 @@ before in other projects. I suspect that it is reading the entire object when it
 	--->
 	</cfsilent>
 <cfelse>
-	<cfmodule template="#customHeadTemplate#" />
+	<cfinclude template="#customHeadTemplate#" />
 </cfif>
 </head>
 <cfsilent>
@@ -1556,7 +1604,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		}
 	</style></cfoutput>
 <cfelse>
-	<cfmodule template="#customFontCssTemplate#" />
+	<cfinclude template="#customFontCssTemplate#" />
 </cfif>
 
 <cfif customGlobalAndBodyCssTemplate eq "">
@@ -1685,7 +1733,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			
 	</style></cfoutput>
 <cfelse>
-	<cfmodule template="#customGlobalAndBodyCssTemplate#" />
+	<cfinclude template="#customGlobalAndBodyCssTemplate#" />
 </cfif>
 	
 	<cfsilent>
@@ -1900,7 +1948,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		
 	</style>
 <cfelse>
-	<cfmodule template="#customTopMenuCssTemplate#" />
+	<cfinclude template="#customTopMenuCssTemplate#" />
 </cfif>
 	
 	<cfsilent>	
@@ -2465,7 +2513,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	</style>
 	
 <cfelse>
-	<cfmodule template="#customBlogContentCssTemplate#" />
+	<cfinclude template="#customBlogContentCssTemplate#" />
 </cfif>
 	<cfsilent>
 	<!---//**************************************************************************************************************************************************
@@ -2473,15 +2521,14 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	//***************************************************************************************************************************************************--->
 	</cfsilent>
 <cfif customTopMenuHtmlTemplate eq "">
+	<cfset divName = "fixedNavMenu">
 	<header>
-	
 	<!--- This container will be displayed when the user scrolls down past the header. It is intended to allow for navigation when the user is down the page.--->
 	<div id="fixedNavHeader">
 		<cfif customTopMenuJsTemplate eq "">
-			<cfset divName = "fixedNavMenu">
 			<cfinclude template="includes/layers/topMenu.cfm">
 		<cfelse>
-			<cfmodule template="#customTopMenuJsTemplate#" />
+			<cfinclude template="#customTopMenuJsTemplate#" />
 		</cfif>	
 	</div>
 				
@@ -2507,11 +2554,11 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								Top menu javascript (controls the menu at the top of the page)
 					//***************************************************************************************************************************************************--->
 					</cfsilent>
+					<cfset divName = "topMenu">
 					<cfif customTopMenuJsTemplate eq "">
-						<cfset divName = "topMenu">
 						<cfinclude template="includes/layers/topMenu.cfm">
 					<cfelse>
-						<cfmodule template="#customTopMenuJsTemplate#" />
+						<cfinclude template="#customTopMenuJsTemplate#" />
 					</cfif>	
 					</td>
 			  </tr>
@@ -2546,11 +2593,11 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								Top menu javascript (controls the menu at the top of the page)
 					//***************************************************************************************************************************************************--->
 					</cfsilent>
+					<cfset divName = "topMenu">
 					<cfif customTopMenuJsTemplate eq "">
-						<cfset divName = "topMenu">
 						<cfinclude template="includes/layers/topMenu.cfm">
 					<cfelse>
-						<cfmodule template="#customTopMenuJsTemplate#" />
+						<cfinclude template="#customTopMenuJsTemplate#" />
 					</cfif>	
 				 </td>
 			  </tr>
@@ -2567,7 +2614,8 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	</header>
 		
 <cfelse>
-	<cfmodule template="#customTopMenuHtmlTemplate#" />
+	<cfset divName = "fixedNavMenu">
+	<cfinclude template="#customTopMenuHtmlTemplate#" />
 </cfif>
 	<!-- End header -->
 	
@@ -2917,11 +2965,15 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 			openComment = setTimeout(function(){ 
 				// Use a try block. 
 				try {
+					// Set the elements that we are going to modify.
 					var spanElement = "#commentControl" + entryId;
+					var spanLabelElement = "#commentControlLabel" + entryId;
 					// Remove the down arrow.
 					$(spanElement).removeClass("k-i-sort-desc-sm").addClass('k-i-sort-asc-sm');
 					// Add the up arrow.
 					$(spanElement).addClass("k-i-sort-asc-sm").addClass('k-i-sort-asc-sm');
+					// Change the text of the label
+					$(spanLabelElement).text("Hide Comments");
 					// Expand the table. See 'fx effects' on the Terlik website.
 					kendo.fx($("#comment" + entryId)).expand("vertical").play();
 				} catch(e){
@@ -3237,15 +3289,19 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 		$(document).ready(function() {
 
 			// Script that will allow us to expand the post containers to allow the user to see the comments.
-			// Expand the routing details
+			// Expand the commens
 			// When the ascending arrow is clicked on...
-			$(".flexParent").on("click", "span.k-i-sort-desc-sm", function(e) {		  
+			$(".flexParent").on("click", "span.k-i-sort-desc-sm", function(e) {	
 				// We need to get the associated entryId to properly expand the right containter. Here, we will get the id of this emement. It should be commentControl + entryId. 
 				var clickedSpan = $(this).attr('id');
 				// Remove the 'commentControl' string from the id to just get the Id.
 				var entryId = clickedSpan.replace("commentControl", "");
 				// The content element's id will be 'comment' + entryId 
 				var contentElement = 'comment' + entryId;
+				// We also want to change the label. The lable has the entryId appended to it as well.
+				var spanLabelElement = "#commentControlLabel" + entryId;
+				// Change the label text
+				$(spanLabelElement).text("Hide Comments");
 				// Change the class of the span (ie change the arrow direction), and expand the table.
 				$(e.target)
 					.removeClass("k-i-sort-desc-sm")
@@ -3263,6 +3319,10 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				var entryId = clickedSpan.replace("commentControl", "");
 				// The content element's id will be 'comment' + entryId
 				var contentElement = 'comment' + entryId;
+				// We also want to change the label. The lable has the entryId appended to it as well.
+				var spanLabelElement = "#commentControlLabel" + entryId;
+				// Change the label text
+				$(spanLabelElement).text("Show Comments");
 				// Change the class of the span (ie change the arrow direction), and shrink the table. I am doing this as I don't want to have to traverse the dom and write a bug.
 				$(e.target)
 					.removeClass("k-i-sort-asc-sm")
@@ -3364,7 +3424,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	</style>
 	</style>
 <cfelse>
-	<cfmodule template="#customBlogJsContentTemplate#" />
+	<cfinclude template="#customBlogJsContentTemplate#" />
 </cfif>
 	
 	<cfsilent>
@@ -3459,6 +3519,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								<cfelse>
 									<cfset includeTemplate = false>
 								</cfif>
+									
 								<!--- //**************************************************************************************************************************************************
 								Video and Audio Content
 								//****************************************************************************************************************************************************--->
@@ -3520,7 +3581,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 							<cfif (enclosure contains ".mp3" or enclosure contains ".mp4" or enclosure contains ".ogg" or enclosure contains ".ogv" or enclosure contains ".webm"
 								  or videoType contains ".mp3" or videoType contains ".mp4" or videoType contains ".ogg" or videoType contains ".ogv" or videoType contains ".webm")>
 								<br/>	
-								<cfif application.kendoCommercial and defaultMediaPlayer eq 'KendoUiPlayer'>
+								<cfif application.kendoCommercial and application.defaultMediaPlayer eq 'KendoUiPlayer'>
 								<div class="k-content wide">
 									<div id="mediaplayer#currentRow#" class="mediaPlayer"></div>
 									<script type="#scriptTypeString#">
@@ -3537,7 +3598,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 										});
 									</script>
 								</div><!---<div class="k-content">--->
-								<cfelse><!---<cfif application.kendoCommercial and defaultMediaPlayer eq 'KendoUiPlayer'>--->
+								<cfelse><!---<cfif application.kendoCommercial and application.defaultMediaPlayer eq 'KendoUiPlayer'>--->
 								<cfsilent>
 								<!--- Preset the videoCrossOrigin var to false if it is not already set. --->
 								<cfif not isDefined("videoCrossOrigin")>
@@ -3584,29 +3645,71 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 											kind="captions"
 											label="English"
 											srclang="en"
-											src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.en.vtt"
+											src="#videoCaptionsUrl#"
 											default
 										/>
 										</cfif>
 										<cfif smallVideoSourceUrl neq "">
 										<!-- Fallback for browsers that don't support the <video> element -->
-										<a href="#smallVideoSourceUrl#" download
-											>Download</a
-										>
+										<a href="#smallVideoSourceUrl#" download>Download</a>
 										</cfif>
 									</video>
 								</div>
 								<!--- Reset the video type arg. --->
 								<cfset videoType = "">
-								</cfif><!---<cfif application.kendoCommercial and defaultMediaPlayer eq 'KendoUiPlayer'>--->
+								</cfif><!---<cfif application.kendoCommercial and application.defaultMediaPlayer eq 'KendoUiPlayer'>--->
 							</cfif><!---<cfif (enclosure contains ".mp3" or enclosure contains ".mp4" or enclosure contains ".ogg" or enclosure contains ".ogv" or enclosure contains ".webm")>--->
+									
+							<!--- You Tube videos --->
+							<cfif findNoCase("youTubeUrl", xmlKeywords) gt 0>
+								<cfset youTubeUrl = myTrim(getXmlKeywordValue(articles.body, 'youTubeUrl'))>
+								<script type="#scriptTypeString#">
+									const mediaplayer#currentRow#Options = {
+									  // Autoplay when in post mode. Don't autoplay in blog mode.
+									  autoplay: <cfif getPageMode() eq 'post'>true<cfelse>false</cfif>,
+									  playsinline: true,
+									  clickToPlay: false,
+									  controls: ["play", "progress", "mute", "current-time", "mute", "volume", "captions", "settings", "pip", "airplay", "fullscreen"],
+									  debug: true,
+									  loop: { active: true }
+									}
+
+									const mediaplayer#currentRow# = new Plyr('#chr(35)#mediaplayer#currentRow#', mediaplayer#currentRow#Options);
+								</script>
+								<div class="k-content wide">
+									<br/>
+									<div id="mediaplayer#currentRow#" data-plyr-embed-id="#youTubeUrl#" data-plyr-provider="youtube" class="mediaPlayer lazy"></div>
+								</div>
+							</cfif>
+
+							<!--- Vimeo videos --->
+							<cfif findNoCase("vimeoVideoId", xmlKeywords) gt 0>
+								<cfset vimeoVideoId = myTrim(getXmlKeywordValue(articles.body, 'vimeoVideoId'))>
+								<script type="#scriptTypeString#">
+									const mediaplayer#currentRow#Options = {
+									  // Autoplay when in post mode. Don't autoplay in blog mode.
+									  autoplay: <cfif getPageMode() eq 'post'>true<cfelse>false</cfif>,
+									  playsinline: true,
+									  clickToPlay: false,
+									   controls: ["play", "progress", "mute", "current-time", "mute", "volume", "captions", "settings", "pip", "airplay", "fullscreen"],
+									  debug: true,
+									  loop: { active: true }
+									}
+
+									const mediaplayer#currentRow# = new Plyr('#chr(35)#mediaplayer#currentRow#', mediaplayer#currentRow#Options);
+								</script>
+								<div class="k-content wide">
+									<br/>
+									<div id="mediaplayer#currentRow#" data-plyr-provider="vimeo" data-plyr-embed-id="#vimeoVideoId#" class="mediaPlayer lazy"></div>
+								</div>
+							</cfif>
+								
 							<cfsilent>
 							<!---//**************************************************************************************************************************************************
 											Render Post Content
 							//***************************************************************************************************************************************************--->
 							</cfsilent>
-							#postContent#
-									
+							#postContent#		
 							<!-- Handle any posts that have the content broken into two sections written in the entry editor using the '</more>' tag. This is a neat feature allows the administrator to condense the entry for the front page and create a link to the full post. -->
 							<cfif len(morebody) and getPageMode() neq 'post'><!--- Chjanged logic. Old logic prior to version 1.45 was: and url.mode is not "entry"--->
 								<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#entryLink###more';">
@@ -3645,87 +3748,90 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								</ul>
 								</div>
 							</cfif>
-						<cfsilent>
-						<!--- ***********************************************************************************************************
-							Comment interfaces (Disqus and Galaxie Blog)
-						*************************************************************************************************************--->
-						</cfsilent>
-						<h3 class="topContent">Comments</h3>
-						<cfif application.includeDisqus>
-							<cfif url.mode neq "alias">
-									<button id="disqusCommentButton" class="k-button" style="#kendoButtonStyle#" onClick="createDisqusWindow('#entryId#', '#alias#', '#entryLink#')">
-										<i class="fas fa-comments" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Comment
-									</button>
-
-								<cfif not addSocialMediaUnderEntry>
-									<!--- Don't display the share button when reading a single entry. --->
-									<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
-										<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
-										<i class="fas fa-share" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Share
-									</button>
-								</cfif><!---<cfif not addSocialMediaUnderEntry>--->
-							</cfif><!---<cfif url.mode neq "alias">--->
-									<p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
-									<!--- The number of comments will be provided with the code below. --->
-									<p><a class="disqus-comment-count" data-disqus-url="#entryLink#" onClick="createDisqusWindow('#entryId#', '#alias#', '#entryLink#')"></a></p>
-						<cfelse><!---<cfif application.includeDisqus>--->
-									<!-- Button navigation. -->
-									<!-- Set a smaller font in the kendo buttons. Note: adjusting the .k-button class alone also adjusts the k-input in the multi-select so we will set it here.-->
-									<button id="addCommentButton" class="k-button" style="#kendoButtonStyle#" onClick="createAddCommentSubscribeWindow('#id#', 'addComment', #session.isMobile#)">
-										<i class="fas fa-comments" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Comment
-									</button>
-
-									<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createAddCommentSubscribeWindow('#id#', 'subscribe', #session.isMobile#)">
-										<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
-										<i class="fas fa-envelope-open-text" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Subscribe
-									</button>
-
-									<cfif not addSocialMediaUnderEntry>
-									<!--- Don't display the share button when reading a single entry. --->
-									<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
-										<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
-										<i class="fas fa-share" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Share
-									</button>
-									</cfif>		
-									<!-- The print button is not needed for mobile.-->
-									<cfif not session.isMobile>
-									<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#thisUrl#/print.cfm?id=#id#';">
-										<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
-										<i class="fas fa-print" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Print
-									</button>
-									</cfif><!---<cfif not session.isMobile>--->
-									<p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
-									<p>There are currently <cfif commentCount is "">0<cfelse>#commentCount#</cfif> comments.</p> 
-									<cfif len(enclosure)><a href="#thisUrl#/enclosures/#urlEncodedFormat(getFileFromPath(enclosure))#" aria-label="Download attachment" class="k-content">Download attachment.</a></cfif>
-									<!--- Span to hold the little arrow. Note: the order of the spans in the code are different than the actual display. We need to reverse the order for proper display. We are not going to display this if there are no comments. --->
-									<cfif len(commentCount) gt 0><span id="commentControl#entryId#" class="collapse k-icon k-i-sort-desc-sm"></span>&nbsp;&nbsp;Show Comments</cfif>
-							</cfif><!---<cfif application.includeDisqus>---> 	
 							<cfsilent>
 							<!--- ***********************************************************************************************************
-								Disqus - load disqus if we are in looking at an individual entry
+								Comment interfaces (Disqus and Galaxie Blog)
 							*************************************************************************************************************--->
 							</cfsilent>
-							<cfif application.includeDisqus and url.mode eq "alias">
-								<div id="disqus_thread"></div>
-								<script type="deferjs">
-									/**
-									*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
-									*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#chr(35)#configuration-variables*/
-									/*
-									var disqus_config = function () {
-									var disqus_shortname = '#alias#';
-									this.page.url = #entryLink#;  // Replace PAGE_URL with your page's canonical URL variable
-									this.page.identifier = #entryId#; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
-									};
-									*/
-									(function() { // DON'T EDIT BELOW THIS LINE
-										var d = document, s = d.createElement('script');
-										s.src = 'https://gregorys-blog.disqus.com/embed.js';
-										s.setAttribute('data-timestamp', +new Date());
-										(d.head || d.body).appendChild(s);
-									})();
-								</script>
-							</cfif><!---<cfif application.includeDisqus and url.mode eq "alias">--->
+							
+							<cfif application.includeDisqus>
+								<cfif url.mode neq "alias">
+										<button id="disqusCommentButton" class="k-button" style="#kendoButtonStyle#" onClick="createDisqusWindow('#entryId#', '#alias#', '#entryLink#')">
+											<i class="fas fa-comments" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Comment
+										</button>
+									<cfif not addSocialMediaUnderEntry>
+										<!--- Don't display the share button when reading a single entry. --->
+										<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
+											<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+											<i class="fas fa-share" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Share
+										</button>
+									</cfif><!---<cfif not addSocialMediaUnderEntry>--->
+								</cfif><!---<cfif url.mode neq "alias">--->
+										<p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
+										<!--- The number of comments will be provided with the code below. --->
+										<p><a class="disqus-comment-count" data-disqus-url="#entryLink#" onClick="createDisqusWindow('#entryId#', '#alias#', '#entryLink#')"></a></p>
+							<cfelse><!---<cfif application.includeDisqus>--->
+										<!-- Button navigation. -->
+										<!-- Set a smaller font in the kendo buttons. Note: adjusting the .k-button class alone also adjusts the k-input in the multi-select so we will set it here.-->
+										<button id="addCommentButton" class="k-button" style="#kendoButtonStyle#" onClick="createAddCommentSubscribeWindow('#id#', 'addComment', #session.isMobile#)">
+											<i class="fas fa-comments" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Comment
+										</button>
+
+										<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createAddCommentSubscribeWindow('#id#', 'subscribe', #session.isMobile#)">
+											<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+											<i class="fas fa-envelope-open-text" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Subscribe
+										</button>
+
+									<cfif not addSocialMediaUnderEntry>
+										<!--- Don't display the share button when reading a single entry. --->
+										<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="createMediaShareWindow('#id#');">
+											<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+											<i class="fas fa-share" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Share
+										</button>
+									</cfif>		
+										<!-- The print button is not needed for mobile.-->
+									<cfif not session.isMobile>
+										<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#thisUrl#/print.cfm?id=#id#';">
+											<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+											<i class="fas fa-print" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Print
+										</button>
+									</cfif><!---<cfif not session.isMobile>--->
+										<p>This entry was posted on #dateFormat(posted, "mmmm d, yyyy")# at #timeFormat(posted, "h:mm tt")# and has received #views# views. </p>
+										<h3 class="topContent">Comments</h3>
+										<p>There are currently <cfif commentCount is "">0<cfelse>#commentCount#</cfif> comments.</p> 
+									<cfif len(enclosure)><a href="#thisUrl#/enclosures/#urlEncodedFormat(getFileFromPath(enclosure))#" aria-label="Download attachment" class="k-content">Download attachment.</a></cfif>
+									<!--- Span to hold the little arrow. Note: the order of the spans in the code are different than the actual display. We need to reverse the order for proper display. We are not going to display this if there are no comments. --->
+									<cfif len(commentCount) gt 0>
+										<span id="commentControl#entryId#" class="collapse k-icon k-i-sort-desc-sm k-primary" style="width: 35px; height:35px; border-radius: 50%;"></span>&nbsp;&nbsp;<span id="commentControlLabel#entryId#">Show Comments</span><br/><br/>
+									</cfif><!---<cfif len(commentCount) gt 0>--->
+							</cfif><!---<cfif application.includeDisqus>---> 
+								
+								<cfsilent>
+								<!--- ***********************************************************************************************************
+									Disqus - load disqus if we are in looking at an individual entry
+								*************************************************************************************************************--->
+								</cfsilent>
+								<cfif application.includeDisqus and url.mode eq "alias">
+									<div id="disqus_thread"></div>
+									<script type="deferjs">
+										/**
+										*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+										*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#chr(35)#configuration-variables*/
+										/*
+										var disqus_config = function () {
+										var disqus_shortname = '#alias#';
+										this.page.url = #entryLink#;  // Replace PAGE_URL with your page's canonical URL variable
+										this.page.identifier = #entryId#; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+										};
+										*/
+										(function() { // DON'T EDIT BELOW THIS LINE
+											var d = document, s = d.createElement('script');
+											s.src = 'https://gregorys-blog.disqus.com/embed.js';
+											s.setAttribute('data-timestamp', +new Date());
+											(d.head || d.body).appendChild(s);
+										})();
+									</script>
+								</cfif><!---<cfif application.includeDisqus and url.mode eq "alias">--->
 
 
 							<cfsilent>
@@ -3733,11 +3839,10 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								Original comments interface (non Disqus).
 							*************************************************************************************************************--->
 							</cfsilent>
+							
 							<cfif len(commentCount) gt 0 and not application.includeDisqus>
 								<!-- Comments that are shown when the user clicks on the arrow button to open the container. -->
-								<div id="comment#entryId#" class="widget k-content" style="display:none;">
-									<h3 class="topContent">Comments</h3>          
-
+								<div id="comment#entryId#" class="widget k-content" style="display:none;">         
 									<table cellpadding="3" cellspacing="0" border="0" class="fixedCommentTable">
 									 <tr width="100%">
 									 <cftry>
@@ -3777,7 +3882,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 								 </cftry>
 								</table>
 							</div><!---<div id="comment#entryId#" class="widget k-content" style="display:none;">--->
-						</cfif><!---<cfif len(commentCount) gt 0>--->
+						</cfif><!---<cfif application.includeDisqus>--->
 
 						</span><!---<span class="innerContentContainer">--->
 					</div><!---<div class="blogPost">--->
@@ -3792,7 +3897,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 				<p class="bottomContent">
 					<!-- Go to www.addthis.com/dashboard to customize your tools --> 
 					<script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=<cfoutput>#application.addThisApiKey#</cfoutput>"></script>
-					<div class="<cfoutput>#addThisToolboxString#</cfoutput>"></div>
+					<div class="<cfoutput>#application.addThisToolboxString#</cfoutput>"></div>
 				</p>
 				</cfif>
 				<cfsilent>
@@ -4028,7 +4133,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	<div class="responsive-message"></div>
 				
 <cfelse>
-	<cfmodule template="#customBlogContentHtmlTemplate#" />
+	<cfinclude template="#customBlogContentHtmlTemplate#" />
 </cfif>
 			
 <cfsilent>
@@ -4064,7 +4169,7 @@ kendoTheme: '#kendoTheme#' listFindNoCase(application.darkThemes, getKendoTheme(
 	</div>
 		
 <cfelse>
-	<cfmodule template="#customFooterHtmlTemplate#" />
+	<cfinclude template="#customFooterHtmlTemplate#" />
 </cfif>
 			
 <!--- Let the users scroll down to see the whole image. --->

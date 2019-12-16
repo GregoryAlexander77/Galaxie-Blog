@@ -13,7 +13,7 @@ Notes: Gregory's home page design would have the following settings
 <!---<cfobject component="blogCfc.client.common.cfc.cfjson" name="jsonArray">--->
 
 <!--- The proxyController is between the blog.cfc and the client. --->
-<cfobject component="common.cfc.themes" name="ThemesObj">
+<cfobject component="#application.themesComponentPath#" name="ThemesObj">
 	
 <cffunction name="getKendoTheme" access="remote" returnType="string">
 	<cfif isDefined("URL.theme")>

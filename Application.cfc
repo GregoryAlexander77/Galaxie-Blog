@@ -1,5 +1,5 @@
-<cfcomponent displayname="GregorysBlog" sessionmanagement="yes" clientmanagement="yes" output="true">
-	<cfset this.Name = "GregorysBlog" />
+<cfcomponent displayname="GalaxieBlog" sessionmanagement="yes" clientmanagement="yes" output="true">
+	<cfset this.Name = "GalaxieBlog" />
 	<cfset this.applicationTimeout = createTimeSpan(7,0,0,0) />
 	<cfset this.sessionManagement="yes"/>
 	<cfset this.enablerobustexception = true />
@@ -11,7 +11,10 @@
 		--->
 		<cfset blogname = "Default">
 			
-		<!--- Create a reference to this component so that other functions can reset the application vars without a URL. To reinitalize from other templates use application.applicationObj.applicationInit() --->
+		<!--- 
+		Create a reference to this component so that other functions can reset the application vars without a URL. 
+		To reinitalize from other templates use application.applicationObj.applicationInit() 
+		--->
 		<cfset application.applicationObj = this>
 		
 		<!--- load and init blog --->
@@ -24,10 +27,11 @@
 		<cfset application.rootURL = reReplace(application.rootURL, "(.*)/index.cfm", "\1")>
 		<!--- Gregory added the following vars to point to various new cfc's. Note: my original code, reReplace(getPageContext().getRequest().getRequestURI(), "(.*)/index.cfm", "\1"), does not work with blogCfc after you click on a link. The link abstraction technique that Raymond employs breaks this logic. --->
 			
-		<!--- Check to see if the server is set up with the webp mime type. If so, we will deliver images via webp, which is a next gen image format. --->
-		<cfset application.serverSupportsWebP = serverSupportsWebP()>
-		<!--- Does the server have the woff2 mime type for woff2 fonts? --->
-		<cfset  application.serverSupportsWoff2 = serverSupportsWoff2()>
+		<!--- Does the blog use URL rewrite rules to hide index.cfm from the URL? --->
+		<cfset application.serverRewriteRuleInPlace = false>
+			
+		<!--- The addThis api key is found on the addThis.com site. There is a tutorial how to use this on Gregory's blog. --->
+		<cfset application.addThisApiKey = application.blog.getProperty("addThisApiKey")>
 			
 		<!---//**************************************************************************************************************************************************
 						File locations and URL settings
@@ -58,12 +62,14 @@
 		<cfset baseProxyUrl = replace(baseUrl, "/", "", "one")>
 		<!--- Replace forward slashes with dots. --->
 		<cfset application.baseComponentPath = replace(baseProxyUrl, "/", ".", "all")>
+			
 		<!--- Append the base URL with the proxyController. if there is a base url. If the site is installed in the root directory, we don't want to append a dot to the proxyControllerComponentPath. --->
 		<cfif len(baseProxyUrl) gt 0>
 			<cfset application.proxyControllerComponentPath = application.baseComponentPath & ".common.cfc.proxyController">
 		<cfelse>
 			<cfset application.proxyControllerComponentPath = "common.cfc.proxyController">
 		</cfif>
+			
 		<!--- Set the URL to the new proxy controller. --->
 		<cfset application.proxyControllerUrl = application.baseUrl & '/common/cfc/proxyController.cfc' / >
 		<!--- URL to the themes component. --->
@@ -74,6 +80,16 @@
 		<cfelse>
 			<cfset application.themesComponentPath = "common.cfc.themes">
 		</cfif>
+			
+		<!--- Perform the same logic for the Image component --->
+		<cfset application.imageComponentUrl = application.baseUrl & '/common/cfc/Image.cfc' / >
+		<!--- Append the base URL with the Image.cfc if there is a base url. If the site is installed in the root directory, we don't want to append a dot to the imageComponentUrl. --->
+		<cfif len(baseProxyUrl) gt 0>
+			<cfset application.imageComponentPath = application.baseComponentPath & ".common.cfc.Image">
+		<cfelse>
+			<cfset application.imageComponentPath = "common.cfc.Image">
+		</cfif>	
+			
 		<!--- Gregory's json wrapper.--->
 		<cfset application.jsonArray = application.baseUrl & '/common/cfc/cfJson.cfc' / >
 
@@ -96,6 +112,25 @@
 		<cfset application.jQueryNotifyLocation = application.baseUrl & "/common/libs/jQuery/jQueryNotify">
 		<!--- Note: the original blogCfc came with an older jQuery UI than the one that I am using and it is creating conflicts. We need to have two different jQuery incluedes, one for the administration part of the site, and the newer jquery UI for the new blogCfc.--->
 		<cfset application.adminjQueryUiPath = application.baseUrl & "/includes/jqueryui/jqueryui.js">
+			
+		<!---//**************************************************************************************************************************************************
+				Check server mime types.
+		//***************************************************************************************************************************************************--->
+			
+		<!--- Check to see if the server is set up with the webp mime type. If so, we will deliver images via webp, which is a next gen image format. --->
+		<cfset application.serverSupportsWebP = serverSupportsWebP()>
+		<!--- Does the server have the woff2 mime type for woff2 fonts? --->
+		<cfset application.serverSupportsWoff2 = serverSupportsWoff2()>
+			
+		<!---//**************************************************************************************************************************************************
+				ORM
+		//***************************************************************************************************************************************************--->
+			
+		<cfset ORMReload()>
+		<cfset this.ormenabled = "true">
+		<cfset this.datasource = getProfileString("#application.iniFile#", "default", "dsn")>
+		<!--- Allow ColdFusion to update and create the tables when they do not already exist. --->
+		<cfset this.dbcreate = "update">
 			
 		<!---//**************************************************************************************************************************************************
 				Administative section variables.
@@ -206,8 +241,6 @@
 		<cfset application.kendoTheme = "metro"><!---TODO This needs to be a setting.--->
 		<!--- Specify the dark themes. Note: this is a setting in the settings.cfm page, but the setting is not used as yet. --->
 		<cfset application.darkThemes = "black,materialblack,highcontrast,moonlight">
-		<!--- The addThis api key is found on the addThis.com site. There is a tutorial how to use this on Gregory's blog. --->
-		<cfset application.addThisApiKey = application.blog.getProperty("addThisApiKey")>
 
 		<!--- Gregory updated the device detection code on Feb 6 2019 (from http://detectmobilebrowsers.com/)--->
 		<cfif 

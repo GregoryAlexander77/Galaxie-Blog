@@ -905,7 +905,7 @@
 			<cfloop item="catid" collection="#categories#">
 				<cfset category = categories[currentRow][catid]>
 			</cfloop>
-			<cfif listFindNoCase(application.eliminateCategoryListInMainFeed, category) eq 0><!---GA--->
+			<cfif isDefined("application.eliminateCategoryListInMainFeed") and listFindNoCase(application.eliminateCategoryListInMainFeed, category) eq 0><!---GA--->
 			<cfset dateStr = dateFormat(posted,"ddd, dd mmm yyyy") & " " & timeFormat(posted,"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & "00">
 			<cfoutput>
 			<item>

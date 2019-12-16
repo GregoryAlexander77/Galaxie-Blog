@@ -57,9 +57,7 @@
 <li><a href="index.cfm">Home</a></li>
 <li><a href="entry.cfm?id=0">Add Entry</a></li>
 <li><a href="entries.cfm">Entries</a></li>
-<cfif application.blog.isBlogAuthorized('ManageCategories')>
 <li><a href="categories.cfm">Categories</a></li>
-</cfif>
 <li><a href="comments.cfm">Comments</a></li>
 <!--- I changed this from 'application.commentmoderation' as the application scope is cached and I want an immediate response. --->
 <cfif application.blog.getProperty("moderate")>
@@ -72,21 +70,15 @@
 </cfif>
 <li><a href="subscribers.cfm">Subscribers</a></li>
 <li><a href="mailsubscribers.cfm">Mail Subscribers</a></li>
-<cfif application.blog.isBlogAuthorized('ManageUsers')>
 <li><a href="users.cfm">Users</a></li>
-</cfif>
 </ul>
 <ul>
-<cfif application.blog.isBlogAuthorized('PageAdmin')>
 <li><a href="pods.cfm">Pod Manager</a></li>
-<cfif application.filebrowse>
 <li><a href="filemanager.cfm">File Manager</a></li>
-</cfif>
 <li><a href="pages.cfm">Pages</a></li>
 <li><a href="slideshows.cfm">Slideshows</a></li>
 <li><a href="textblocks.cfm">Textblocks</a></li>
 </ul>
-</cfif>
 <ul>
 <li><a href="../">Your Blog</a></li>
 <li><a href="../" target="_new">Your Blog (New Window)</a></li>
