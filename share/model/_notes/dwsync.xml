@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<dwsync>
+<file name="ArticleStructuredData.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132197440606053234" remote="132197512800000000" Dst="1" />
+<file name="Blog.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132233702617188353" remote="132233774400000000" Dst="1" />
+<file name="BlogOption.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132227428710756958" remote="132227500800000000" Dst="1" />
+<file name="Category.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132232488322755629" remote="132232560000000000" Dst="1" />
+<file name="Comment.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132232980429754151" remote="132233052600000000" Dst="1" />
+<file name="Commenter.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132229125767319138" remote="132229197600000000" Dst="1" />
+<file name="CommentRead.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215653544566844" remote="132215728200000000" Dst="1" />
+<file name="CustomTemplate.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215653661517464" remote="132215728200000000" Dst="1" />
+<file name="Font.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132197441138284413" remote="132197512800000000" Dst="1" />
+<file name="MainEntityOfPageType.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132197440617525825" remote="132197512800000000" Dst="1" />
+<file name="Media.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132233705209433854" remote="132233778000000000" Dst="1" />
+<file name="MetaTag.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215653939993764" remote="132215728200000000" Dst="1" />
+<file name="MimeType.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132230080649132496" remote="132230152200000000" Dst="1" />
+<file name="Post.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132235416285994511" remote="132235488000000000" Dst="1" />
+<file name="PostCategoryLookup.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132232475200245183" remote="132232546800000000" Dst="1" />
+<file name="PostInclude.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215654420551005" remote="132215728200000000" Dst="1" />
+<file name="PostIncludeFancyBoxItem.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215654596163200" remote="132215728200000000" Dst="1" />
+<file name="PostIncludeItem.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215654898397554" remote="132215728200000000" Dst="1" />
+<file name="PostIncludeType.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132197440622186876" remote="132197512800000000" Dst="1" />
+<file name="RelatedPost.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132218649734879525" remote="132218729400000000" Dst="1" />
+<file name="SearchQuery.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215655253846342" remote="132215728200000000" Dst="1" />
+<file name="Server.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215655314799451" remote="132215728200000000" Dst="1" />
+<file name="StructuredData.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215655592563220" remote="132215728200000000" Dst="1" />
+<file name="StructuredDataType.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132197440625817832" remote="132197512800000000" Dst="1" />
+<file name="Subscriber.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215655876005274" remote="132215728200000000" Dst="1" />
+<file name="Theme.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132233700818622828" remote="132233772600000000" Dst="1" />
+<file name="ThemeSetting.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132226828932722503" remote="132226900800000000" Dst="1" />
+<file name="UserRole.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132215656274563445" remote="132215728200000000" Dst="1" />
+<file name="Users.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132233703310626183" remote="132233775000000000" Dst="1" />
+<file name="Role.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132231796316390992" remote="132231868200000000" Dst="1" />
+<file name="MediaType.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132213496454399257" remote="132213568200000000" Dst="1" />
+<file name="ChangeLog.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132221545333344279" remote="132221617200000000" Dst="1" />
+<file name="ChangeLogType.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132221706634397910" remote="132221778600000000" Dst="1" />
+<file name="BlogUiSetting.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132222482723458586" remote="132222554400000000" Dst="1" />
+<file name="IpAddress.cfc" server="ftp.gregorysblog.org/wwwroot/" local="132229131610000000" remote="132229203600000000" Dst="1" />
+</dwsync>
