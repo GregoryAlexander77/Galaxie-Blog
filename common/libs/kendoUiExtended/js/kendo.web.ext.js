@@ -696,8 +696,9 @@
                 }
 
                 options = $.extend({
-                    width: "300px",
-                    height: "100px",
+					/* Gregory changed the height and width */
+                    width: "280px",
+                    height: "175px",
                     buttons: [{
                         name: "Yes",
                         click: function (e) {
@@ -803,8 +804,8 @@
 
                 options = $.extend({
 					// Gregory changed the width from 300 to 375.
-                    width: "375px",
-                    height: "100px",
+                     width: "280px",
+                    height: "175px",
                     modal: true,
                     visible: false,
                     message: ""

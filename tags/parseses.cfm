@@ -2,11 +2,13 @@
 <cfprocessingdirective pageencoding="utf-8">
 <!---
 	Name         : parseses.cfm
-	Author       : Raymond Camden 
+	Author       : Raymond Camden/Gregory Alexander 
 	Created      : June 23, 2005
 	Last Updated : August 31, 2006
 	History      : Reset for 5.0 (5/1/06)
 				 : catch long cats (8/31/06)
+				 : One line by Mike D
+				 : Other edits by Gregory Alexander, check GitHub for more information.
 	Purpose		 : Attempts to find SES info in URL and set URL vars
 --->
 
@@ -17,35 +19,34 @@
  *
  * @author Raymond Camden (ray@camdenfamily.com)
  * @version 1, June 23, 2005
+ * 
  */ 
 function parseMySES() {
-	//line below from Mike D.
+	// line below from Mike D.
 	var urlVars=reReplaceNoCase(trim(cgi.path_info), '.+\.cfm/? *', '');
 	var r = structNew();
 	var theLen = listLen(urlVars,"/");
 
 	if(len(urlVars) is 0 or urlvars is "/" or len(theLen) GT 4) return r;
 	
-	//handles categories
-	if(theLen is 1) {
+	// handles categories
+	if (theLen is 1) {
 			urlVars = replace(urlVars, "/","");
 			r.categoryName = urlVars;	
 			return r;
 	}
 	
-	//BEGIN BRAUNSTEIN MOD 2/5/2010
-	//handles users (aka posters, authors)
-	if(theLen is 2 and urlVars contains "postedby") {
+	// handles users (aka posters, authors)
+	if (theLen is 2 and urlVars contains "postedby") {
 			urlVars = replace(urlVars, "/postedby/","");
 			r.postedby = urlVars;	
 			return r;
 	}
-	//END BRAUNSTEIN MOD 2/5/2010
 
 	r.year = listFirst(urlVars,"/");
-	if(theLen gte 2) r.month = listGetAt(urlVars,2,"/");
-	if(theLen gte 3) r.day = listGetAt(urlVars,3,"/");
-	if(theLen gte 4) r.title = listLast(urlVars, "/");
+	if (theLen gte 2) r.month = listGetAt(urlVars,2,"/");
+	if (theLen gte 3) r.day = listGetAt(urlVars,3,"/");
+	if (theLen gte 4) r.title = listLast(urlVars, "/");
 	return r;
 }
 </cfscript>
@@ -60,33 +61,30 @@ function parseMySES() {
 </cfif>
 
 <cfset params = structNew()>
-
+	
 <!--- First see if we have a category --->
 <cfif structKeyExists(sesInfo, "categoryName")>
 
 	<cfif len(trim(sesInfo.categoryName)) and len(trim(sesInfo.categoryName)) lte 50>
-		<!--- translate back --->
-		<cfset categoryID = application.blog.getCategoryByAlias(sesInfo.categoryName)>
-		<cfif len(categoryID)>
-			<cfset url.mode = "cat">
-			<cfset url.catid = categoryID>
+		<!--- Set the URL mode, get the categoryId and save it. --->
+		<cfset getCategory = application.blog.getCategory(CategoryAlias=sesInfo.categoryName)>
+		<cfif len(getCategory[1]["CategoryId"])>
+			<cfset url.mode = "category">
+			<cfset url.categoryId = getCategory[1]["CategoryId"]>
 		</cfif>
 	</cfif>
 	
-<!--- BEGIN BRAUNSTEIN MOD 2/5/2010 --->
-<!--- else if we have a blog poster/user/author --->
+<!--- We have a blog poster/user/author --->
 <cfelseif structKeyExists(sesInfo, "postedby")>
 
 	<cfif len(trim(sesInfo.postedby)) and len(trim(sesInfo.postedby)) lte 50>
-		<!--- translate back - get username based on name --->
+		<!--- Set the mode and user name --->
 		<cfset username = application.blog.getUserByName(sesInfo.postedby)>
 		<cfif len(username)>
 			<cfset url.mode = "postedby">
 			<cfset url.postedby = username>
 		</cfif>
 	</cfif>
-
-<!--- END BRAUNSTEIN MOD 2/5/2010 --->
 
 <!--- By month --->
 <cfelseif not structKeyExists(sesInfo, "title")>
@@ -122,7 +120,7 @@ function parseMySES() {
 
 </cfif>
 
-<!--- Copy to caller --->
+<!--- Return vars --->
 <cfset caller.params = params>
 
 <cfsetting enablecfoutputonly=false>

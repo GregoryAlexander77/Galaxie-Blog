@@ -85,7 +85,7 @@
 					
 				<div class="widget k-content flexItem">
 					<span class="innerContentContainer">
-						<h3 class="topContent"><i class="fas fa-rss-square"></i> CFBloggers Feed</h3>
+						<h3 class="topContent"><i class="fas fa-rss-square"></i> CfBlogs.org Feed</h3>
 						<cfinclude template="#application.baseUrl#/includes/pods/feed.cfm">
 					</span>
 				</div>

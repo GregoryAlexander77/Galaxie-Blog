@@ -291,7 +291,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 
 			SimpleTimeline.prototype.add.call(self, value, position);
 
-			if (value._time || (!value._duration && value._initted)) { //in case, for example, the _startTime is moved on a tween that has already rendered. Imagine it's at its end state, then the startTime is moved WAY later (after the end of this timeline), it should render at its beginning.
+			if (value._time || (!value._duration && value._initted)) { //in case, for example, the _startTime is moved on a tween that has already rendered. Imagine its at its end state, then the startTime is moved WAY later (after the end of this timeline), it should render at its beginning.
 				curTime = (self.rawTime() - value._startTime) * value._timeScale;
 				if (!value._duration || Math.abs(Math.max(0, Math.min(value.totalDuration(), curTime))) - value._totalTime > 0.00001) {
 					value.render(curTime, false, false);
@@ -319,7 +319,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 		p.remove = function(value) {
 			if (value instanceof Animation) {
 				this._remove(value, false);
-				var tl = value._timeline = value.vars.useFrames ? Animation._rootFramesTimeline : Animation._rootTimeline; //now that it's removed, default it to the root timeline so that if it gets played again, it doesn't jump back into this timeline.
+				var tl = value._timeline = value.vars.useFrames ? Animation._rootFramesTimeline : Animation._rootTimeline; //now that its removed, default it to the root timeline so that if it gets played again, it doesn't jump back into this timeline.
 				value._startTime = (value._paused ? value._pauseTime : tl._time) - ((!value._reversed ? value._totalTime : value.totalDuration() - value._totalTime) / value._timeScale); //ensure that if it gets played again, the timing is correct.
 				return this;
 			} else if (value instanceof Array || (value && value.push && _isArray(value))) {
@@ -472,7 +472,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				if (!self._reversed) if (!self._hasPausedChild()) {
 					isComplete = true;
 					callback = "onComplete";
-					internalForce = !!self._timeline.autoRemoveChildren; //otherwise, if the animation is unpaused/activated after it's already finished, it doesn't get removed from the parent timeline.
+					internalForce = !!self._timeline.autoRemoveChildren; //otherwise, if the animation is unpaused/activated after its already finished, it doesn't get removed from the parent timeline.
 					if (self._duration === 0) if ((time <= 0 && time >= -_tinyNum) || self._rawPrevTime < 0 || self._rawPrevTime === _tinyNum) if (self._rawPrevTime !== time && self._first) {
 						internalForce = true;
 						if (self._rawPrevTime > _tinyNum) {
@@ -494,7 +494,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				}
 				if (time < 0) {
 					self._active = false;
-					if (self._timeline.autoRemoveChildren && self._reversed) { //ensures proper GC if a timeline is resumed after it's finished reversing.
+					if (self._timeline.autoRemoveChildren && self._reversed) { //ensures proper GC if a timeline is resumed after its finished reversing.
 						internalForce = isComplete = true;
 						callback = "onReverseComplete";
 					} else if (self._rawPrevTime >= 0 && self._first) { //when going back beyond the start, force a render so that zero-duration tweens that sit at the very beginning render their start values properly. Otherwise, if the parent timeline's playhead lands exactly at this timeline's startTime, and then moves backwards, the zero-duration tweens at the beginning would still be at their end state.
@@ -545,7 +545,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 					} else if (tween._active || (tween._startTime <= curTime && !tween._paused && !tween._gc)) {
 						if (pauseTween === tween) {
 							self.pause();
-							self._pauseTime = pauseTime; //so that when we resume(), it's starting from exactly the right spot (the pause() method uses the rawTime for the parent, but that may be a bit too far ahead)
+							self._pauseTime = pauseTime; //so that when we resume(), its starting from exactly the right spot (the pause() method uses the rawTime for the parent, but that may be a bit too far ahead)
 						}
 						if (!tween._reversed) {
 							tween.render((time - tween._startTime) * tween._timeScale, suppressEvents, force);
@@ -563,14 +563,14 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 						break;
 					} else if (tween._active || (tween._startTime <= prevTime && !tween._paused && !tween._gc)) {
 						if (pauseTween === tween) {
-							pauseTween = tween._prev; //the linked list is organized by _startTime, thus it's possible that a tween could start BEFORE the pause and end after it, in which case it would be positioned before the pause tween in the linked list, but we should render it before we pause() the timeline and cease rendering. This is only a concern when going in reverse.
+							pauseTween = tween._prev; //the linked list is organized by _startTime, thus its possible that a tween could start BEFORE the pause and end after it, in which case it would be positioned before the pause tween in the linked list, but we should render it before we pause() the timeline and cease rendering. This is only a concern when going in reverse.
 							while (pauseTween && pauseTween.endTime() > self._time) {
 								pauseTween.render( (pauseTween._reversed ? pauseTween.totalDuration() - ((time - pauseTween._startTime) * pauseTween._timeScale) : (time - pauseTween._startTime) * pauseTween._timeScale), suppressEvents, force);
 								pauseTween = pauseTween._prev;
 							}
 							pauseTween = null;
 							self.pause();
-							self._pauseTime = pauseTime; //so that when we resume(), it's starting from exactly the right spot (the pause() method uses the rawTime for the parent, but that may be a bit too far ahead)
+							self._pauseTime = pauseTime; //so that when we resume(), its starting from exactly the right spot (the pause() method uses the rawTime for the parent, but that may be a bit too far ahead)
 						}
 						if (!tween._reversed) {
 							tween.render((time - tween._startTime) * tween._timeScale, suppressEvents, force);

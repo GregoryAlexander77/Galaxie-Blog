@@ -9,11 +9,6 @@
 	History      : Version 1 by Gregory Alexander
 	Purpose		 : Provides search results.
 --->
-	
-<!--- Include the resource bundle. --->
-<cfset getResourceBundle = application.utils.getResource>
-<!--- Include the UDF (this is not automatically included when using an application.cfc) --->
-<cfinclude template="includes/udf.cfm">
 
 <cfparam name="URL.searchTerm" default="">
 <cfparam name="URL.category" default="">
@@ -23,7 +18,7 @@
 
 <cfset cats = application.blog.getCategories()>
 
-<!---Create the params necessary for the getEntries cfc method.--->
+<!--- Create the params necessary for the getEntries cfc method.--->
 <cfset params = structNew()>
 <cfset params.searchTerms = searchTerm>
 <!---The category is optional--->
@@ -37,42 +32,21 @@
 <cfset params.releasedonly = true />
 
 <cfif len(searchTerm)>
-	<cfset results = application.blog.getEntries(params)>
+	<cfset results = application.blog.getPost(params)>
 	<cfset searched = true>
 <cfelse>
 	<cfset searched = false>
 </cfif>
 
-<cfset title = getResourceBundle("search")>
+<cfset title = "Search Results">
 	
-<cffunction name="removePostData" access="public" output="true" returntype="string" hint="Removes everything between data found in the post content. Used by the search results template.">
-	<cfargument name="postContent" required="yes" hint="The post content is typically 'application.blog.renderEntry(body,false,enclosure)'.">
+<!--- Instantiate the StringUtils cfc. We are going to remove the post data using the removeTag and getTextFromBody methods. --->
+<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
+<!--- Also instantate the JSoup object. This will also be used to remove any HTML using the jsoupConvertHtmlToText method --->
+<cfobject component="#application.jsoupComponentPath#" name="JSoupObj">
 
-	<!--- Set the strings that we're searching for. --->
-	<cfset keyWordStartString = "<postData>">
-	<cfset keyWordEndString = "</postData>">
-
-	<!--- Find the start and end position of the keywords. --->
-	<cfset postDataStartPos = findNoCase(keyWordStartString, arguments.postContent)>
-	<cfset postDataEndPos = findNoCase(keyWordEndString, arguments.postContent)>
-
-	<!--- Add the lengh of the keyword to get the proper start position. --->
-	<cfset keyWordValueStartPos = postDataStartPos + len(postDataStartPos)>
-	<!--- And determine the count --->
-	<cfset valueCount = postDataEndPos - postDataStartPos>
-	<!--- Get the value in the xml string. --->
-	<cfset postData = mid(arguments.postContent, keyWordValueStartPos, valueCount)>
-
-	<!--- Strip it out. --->
-	<cfset strippedPostContent = replaceNoCase(arguments.postContent, postData, "", "all")>
-	<!--- Rip out the '</postData>' tag --->
-	<cfset strippedPostContent = replaceNoCase(strippedPostContent, "</postData>", "", "all")>
-
-	<!--- Return new post content --->
-	<cfreturn strippedPostContent>
-
-</cffunction>
 </cfsilent>
+<!---<cfdump var="#results#">--->
 			
 <script>
 	$(document).ready(function() {
@@ -87,16 +61,24 @@
 <cfoutput>
 <cfif searched>
 
-There  <cfif results.totalEntries is 1>was one result<cfelse>were #numberFormat(results.totalEntries)# results</cfif>.
+There <cfif arrayLen(results) eq 1>was one result<cfelse>were #arrayLen(results)# results</cfif>.
 <div id="blogPost" class="widget k-content">
 
-<cfif results.entries.recordCount>
-	<cfloop query="results.entries">
+<cfif arrayLen(results)>
+	<cfloop from="1" to="#arrayLen(results)#" index="i">
 		<cfsilent>
-		<!--- Remove the XML and google structured content from the post. --->
-		<cfset newBody = removePostData(body)>
+		<!--- Set the values --->
+		<cfset postId = results[i]["PostId"]>
+		<cfset title = results[i]["Title"]>
+		<cfset body = results[i]["Body"]>
+		<cfset posted = results[i]["DatePosted"]>
+			
+		<!--- Remove the XML and google structured content from the post between the postData tag --->
+		<cfset newBody = StringUtilsObj.removeTag(str=body, tag='postData')>
 		<!--- Now, remove the html from result. --->
 		<cfset newbody = reReplace(newBody, "<.*?>", "", "all")>	
+		<!--- Now use JSoup to get the text. This is duplicate logic but it should remove any and all HTML artifacts. --->
+		<cfset newBody = JsoupObj.jsoupConvertHtmlToText(newbody)>
 		<!--- highlight search terms --->
 		<!--- Raymonds comments: Before we "highlight" our matches in the body, we need to find the first match. We will create an except that begins 250 before and ends 250 after. This will give us slightly different sized excerpts, but between you, me, and the door, I think thats ok. It is also possible the match isn't in the entry but just the title. --->
 		<cfset match = findNoCase(searchTerm, newbody)>
@@ -133,12 +115,17 @@ There  <cfif results.totalEntries is 1>was one result<cfelse>were #numberFormat(
 		</cfsilent>
 		
 		<span id="blogContentContainer">
-			<h3 class="topContent">
-				<a href="#application.blog.makeLink(id)#" class="k-content">#newtitle#</a>
-			</h3>
-			<table align="center" class="k-content" width="100%" cellpadding="0" cellspacing="0">
+			
+			<table align="center" width="100%" cellpadding="4" cellspacing="4" class="#iif(i MOD 2,DE('k-content'),DE('k-alt'))#">
 				<tr>
-					<td>
+					<td colspan="2">
+						<h3 class="topContent">
+							<a href="#application.blog.makeLink(postId)#" class="k-content">#newtitle#</a>
+						</h3>
+					</td>
+				</tr>
+				<tr>
+					<td width="45px;">
 						<p class="postDate">
 							<!-- We are using Kendo's 'k-primary' class to render the primary accent color background. The primay color is set by the theme that is declared. -->
 							<span class="month k-primary">#dateFormat(posted, "mmm")#</span>
@@ -147,41 +134,13 @@ There  <cfif results.totalEntries is 1>was one result<cfelse>were #numberFormat(
 					</td>
 					<td>
 						<span id="postContent" style="padding-left: 25px">#excerpt#</span>
-						<cfif enclosure contains "mp3">
-							<cfset alternative=replace(getFileFromPath(enclosure),".mp3","") />
-							<div class="audioPlayerParent">
-								<div id="#alternative#" class="audioPlayer">
-								</div>
-							</div>
-							<!--- Mp3 player --->
-							<script type="text/javascript">
-								// <![CDATA[
-									var flashvars = {};
-									// unique ID
-									flashvars.playerID = "#alternative#";
-									// load the file
-									flashvars.soundFile= "#application.rooturl#/enclosures/#getFileFromPath(enclosure)#";
-									// Load width and Height again to fix IE bug
-									flashvars.width = "470";
-									flashvars.height = "24";
-									// Add custom variables
-									var params = {};
-									params.allowScriptAccess = "sameDomain";
-									params.quality = "high";
-									params.allowfullscreen = "true";
-									params.wmode = "transparent";
-									var attributes = false;
-									swfobject.embedSWF("#application.rooturl#/includes/audio-player/player.swf", "#alternative#", "470", "24", "8.0.0","/includes/audio-player/expressinstall.swf", flashvars, params, attributes);
-								// ]]>
-							</script>
-						</cfif><!---<cfif enclosure contains "mp3">--->
 						<br/>
 					</td>
 				</tr>
 			</table>
 
 		<!--- End the div and create a new div for every record. --->
-		<cfif currentRow neq recordCount>
+		<cfif i neq arrayLen(results)>
 		</div><!-- <div id="blogPost" class="widget k-content"> -->
 
 		<div id="blogPost" class="widget k-content">

@@ -195,7 +195,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 
 						pt.e = (v || v === 0) ? (rel ? v + s : v) : value[p]; //ensures that any += or -= prefixes are taken care of.
 
-						if ((s || s === 0) && (v || v === 0) && (pt.c = (rel ? v : v - s))) { //faster than isNaN(). Also, we set pt.c (change) here because if it's 0, we'll just treat it like a non-tweening value. can't do (v !== start) because if it's a relative value and the CHANGE is identical to the START, the condition will fail unnecessarily.
+						if ((s || s === 0) && (v || v === 0) && (pt.c = (rel ? v : v - s))) { //faster than isNaN(). Also, we set pt.c (change) here because if its 0, we'll just treat it like a non-tweening value. can't do (v !== start) because if its a relative value and the CHANGE is identical to the START, the condition will fail unnecessarily.
 							pt.s = s;
 						} else {
 							pt.type = -1;
@@ -214,7 +214,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				return true;
 			},
 
-			//called each time the values should be updated, and the ratio gets passed as the only parameter (typically it's a value between 0 and 1, but it can exceed those when using an ease like Elastic.easeOut or Back.easeOut, etc.)
+			//called each time the values should be updated, and the ratio gets passed as the only parameter (typically its a value between 0 and 1, but it can exceed those when using an ease like Elastic.easeOut or Back.easeOut, etc.)
 			set: function(v) {
 				var pt = this._firstPT, val;
 

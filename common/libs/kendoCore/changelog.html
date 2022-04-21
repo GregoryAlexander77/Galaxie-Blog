@@ -3,7 +3,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Changelog for Kendo UI Core v2019.2.514 (May 14, 2019)</title>
+    <title>Changelog for Kendo UI Core v2020.3.1118 (November 18, 2020)</title>
     <style>
         html, body {
             margin: 0;
@@ -58,7 +58,7 @@
         }
     </style>
 
-    <base href="http://www.telerik.com/support/whats-new/kendo-ui-web/release-history">
+    <base href="https://www.telerik.com/support/whats-new/kendo-ui-web/release-history">
 </head>
 <body>
     <div id="page">
@@ -70,84 +70,19 @@
                 
                 <p><strong>What's fixed</strong></p>
 <ul>
-<li>Resolve compatibility warnings for kendo.all.min.js reported by jQuery Migrate 3.0.1 (<a href="https://github.com/telerik/kendo-ui-core/issues/4665">#4665</a>)</li>
-<li>Unexpected recursive variable definition in bootstrap-mapper.less (<a href="https://github.com/telerik/kendo-ui-core/issues/4387">#4387</a>)</li>
-<li>Destroying the widget triggers a reflow on the whole document (<a href="https://github.com/telerik/kendo-ui-core/issues/1560">#1560</a>)</li>
+<li>kendo.UserEvents is missing in Typescript definition (<a href="https://github.com/telerik/kendo-ui-core/issues/4702">#4702</a>)</li>
 </ul>
             </div>
         </div>
 
-        <h1>New components</h1>
-        <div class="tClear poTopLine">
-            <div class="poBoxIconText">
-                <h2>Drawer Widget</h2>
-            </div>
-        </div>
-        <div class="tClear poTopLine">
-            <div class="poBoxIconText">
-                <h2>PDFViewer Widget</h2>
-            </div>
-        </div>
-
-        <h1>Features and Updates</h1>
 
         <div class="tClear poTopLine">
             <h2>AutoComplete</h2>
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>Popup option cannot be set through data attribute (<a href="https://github.com/telerik/kendo-ui-core/issues/4974">#4974</a>)</li>
-<li>Filtering is not working with Turkish localization (<a href="https://github.com/telerik/kendo-ui-core/issues/3268">#3268</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>Button</h2>
-            
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Buttons disabled through "disabled" attribute appear enabled (<a href="https://github.com/telerik/kendo-ui-core/issues/4836">#4836</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>ButtonGroup</h2>
-            
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Active class is not applied when button has defined attributes (<a href="https://github.com/telerik/kendo-ui-core/issues/4869">#4869</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>ComboBox</h2>
-            
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Popup option cannot be set through data attribute (<a href="https://github.com/telerik/kendo-ui-core/issues/4974">#4974</a>)</li>
-<li>Filtering is not working with Turkish localization (<a href="https://github.com/telerik/kendo-ui-core/issues/3268">#3268</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>ContextMenu</h2>
-            <p><strong>What's new</strong></p>
-<ul>
-<li>Binding to Kendo DataSource</li>
-</ul>
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>ContextMenu appears outside screen boundary upon initial opening (<a href="https://github.com/telerik/kendo-ui-core/issues/4961">#4961</a>)</li>
-<li>ContextMenu open animation not finished on first open (<a href="https://github.com/telerik/kendo-ui-core/issues/4887">#4887</a>)</li>
-<li>ContextMenu does not display when holding over the target on mobile (<a href="https://github.com/telerik/kendo-ui-core/issues/4881">#4881</a>)</li>
-<li>ContextMenu does not overflow correctly with more than one nested level (<a href="https://github.com/telerik/kendo-ui-core/issues/4210">#4210</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>DataSource</h2>
-            <p><strong>What's new</strong></p>
-<ul>
-<li>Accent folding with filtering for the Kendo UI DataSource</li>
-</ul>
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Filtering with Turkish letters is not working correctly (<a href="https://github.com/telerik/kendo-ui-core/issues/4764">#4764</a>)</li>
+<li>JavaScript error thrown on pressing Arrow Down key, if AutoComplete's filtering event is prevented (<a href="https://github.com/telerik/kendo-ui-core/issues/5979">#5979</a>)</li>
+<li>AutoComplete throws an error when dataSource.query() method is used (<a href="https://github.com/telerik/kendo-ui-core/issues/4337">#4337</a>)</li>
 </ul>
         </div>
         <div class="tClear poTopLine">
@@ -155,24 +90,7 @@
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>Readonly DatePicker can be edited when dateInput is enabled (<a href="https://github.com/telerik/kendo-ui-core/issues/4859">#4859</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>DateRangePicker</h2>
-            <p><strong>What's new</strong></p>
-<ul>
-<li>Add mobile support for DateRangePicker. (<a href="https://github.com/telerik/kendo-ui-core/issues/4842">#4842</a>)</li>
-<li>Add model binding to DateRangePicker</li>
-</ul>
-            
-        </div>
-        <div class="tClear poTopLine">
-            <h2>Draggable</h2>
-            
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Hold event of the Draggable widget is fired when holdToDrag property is set to false (<a href="https://github.com/telerik/kendo-ui-core/issues/2633">#2633</a>)</li>
+<li>DatePicker messages disapper when the ng-model is null initially (<a href="https://github.com/telerik/kendo-ui-core/issues/5660">#5660</a>)</li>
 </ul>
         </div>
         <div class="tClear poTopLine">
@@ -180,28 +98,44 @@
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>Popup option cannot be set through data attribute (<a href="https://github.com/telerik/kendo-ui-core/issues/4974">#4974</a>)</li>
-<li>Filtering is not working with Turkish localization (<a href="https://github.com/telerik/kendo-ui-core/issues/3268">#3268</a>)</li>
+<li>DropDownLists contain array prototypes (<a href="https://github.com/telerik/kendo-ui-core/issues/6018">#6018</a>)</li>
+<li>DropDownList not firing change event (<a href="https://github.com/telerik/kendo-ui-core/issues/5937">#5937</a>)</li>
+<li>DropDownList: aria-hidden attribute on the animation container and the inner listbox do not allow the Narrator reader to find the aria-activedescendant (<a href="https://github.com/telerik/kendo-ui-core/issues/5366">#5366</a>)</li>
 </ul>
         </div>
         <div class="tClear poTopLine">
             <h2>DropDownTree</h2>
-            <p><strong>What's new</strong></p>
-<ul>
-<li>Submit DropDownTree values automatically when checkboxes are enabled (<a href="https://github.com/telerik/kendo-ui-core/issues/4943">#4943</a>)</li>
-</ul>
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Popup option cannot be set through data attribute (<a href="https://github.com/telerik/kendo-ui-core/issues/4974">#4974</a>)</li>
-<li>DropDownTree doesn't display the right text when value is set to 0. (<a href="https://github.com/telerik/kendo-ui-core/issues/4941">#4941</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>Excel Export</h2>
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>TreeList Excel Export exports only the expanded nodes since 2018 R3 (client paging) (<a href="https://github.com/telerik/kendo-ui-core/issues/4696">#4696</a>)</li>
+<li>DropDownTree popup triggers page scroll and closes automatically  (<a href="https://github.com/telerik/kendo-ui-core/issues/6074">#6074</a>)</li>
+<li>DropDownTree popup auto-closes, when its height is bigger than the window's height, in Chrome and IE (<a href="https://github.com/telerik/kendo-ui-core/issues/4776">#4776</a>)</li>
+</ul>
+        </div>
+        <div class="tClear poTopLine">
+            <h2>FileManager</h2>
+            <p><strong>What's new</strong></p>
+<ul>
+<li>Implement commandStack utility and command event</li>
+</ul>
+            <p><strong>What's fixed</strong></p>
+<ul>
+<li>Read request is triggered twice, when navigation to a folder in the FileManager (<a href="https://github.com/telerik/kendo-ui-core/issues/5741">#5741</a>)</li>
+<li>Moving files results in permanent deletion due to failing Create and successful Destroy requests (<a href="https://github.com/telerik/kendo-ui-core/issues/5935">#5935</a>)</li>
+<li>FileManager's messages.toolbar.uploadDialog does not update toolbar's upload button text (<a href="https://github.com/telerik/kendo-ui-core/issues/5927">#5927</a>)</li>
+<li>JavaScript error thrown by FileManager with MVVM configuration (<a href="https://github.com/telerik/kendo-ui-core/issues/5897">#5897</a>)</li>
+<li>FileManager Renaming File/Folder is inconsistent in IE and Chrome across ListView and GridView (<a href="https://github.com/telerik/kendo-ui-core/issues/5862">#5862</a>)</li>
+<li>FileManager Upload events cannot be handled (<a href="https://github.com/telerik/kendo-ui-core/issues/5841">#5841</a>)</li>
+<li>Context Menu is not displayed when FileManager is initialized with local data source (<a href="https://github.com/telerik/kendo-ui-core/issues/5752">#5752</a>)</li>
+<li>No vertical scrollbar in FileManager's ListView with all LESS themes (<a href="https://github.com/telerik/kendo-ui-core/issues/6097">#6097</a>)</li>
+</ul>
+        </div>
+        <div class="tClear poTopLine">
+            <h2>Filter</h2>
+            
+            <p><strong>What's fixed</strong></p>
+<ul>
+<li>DropDownLists contain array prototypes (<a href="https://github.com/telerik/kendo-ui-core/issues/6018">#6018</a>)</li>
 </ul>
         </div>
         <div class="tClear poTopLine">
@@ -209,96 +143,55 @@
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>Unexpected blue background of selected Gantt/Scheduler View in Fiori (<a href="https://github.com/telerik/kendo-ui-core/issues/4957">#4957</a>)</li>
-<li>Gantt shrinks its treelist text to fit column's width on PDF export in IE and Edge  (<a href="https://github.com/telerik/kendo-ui-core/issues/1868">#1868</a>)</li>
+<li>Gantt performance decrease starting from R3 2020 (<a href="https://github.com/telerik/kendo-ui-core/issues/6114">#6114</a>)</li>
+<li>Gantt save event not fired when dropping a task to make it child of another task (<a href="https://github.com/telerik/kendo-ui-core/issues/6096">#6096</a>)</li>
+<li>Unable to edit Gantt TreeList nodes on mobile browsers</li>
+<li>Clicking on the expand/collapse icon of Gantt TreeList cell focuses the cell, but keyboard navigation does not work</li>
+</ul>
+        </div>
+        <div class="tClear poTopLine">
+            <h2>ImageEditor</h2>
+            
+            <p><strong>What's fixed</strong></p>
+<ul>
+<li>ImageEditor crop works only from right to left and bottom to top (<a href="https://github.com/telerik/kendo-ui-core/issues/6090">#6090</a>)</li>
+</ul>
+        </div>
+        <div class="tClear poTopLine">
+            <h2>ListBox</h2>
+            
+            <p><strong>What's fixed</strong></p>
+<ul>
+<li>ListBox Built-In Remove Tool does not delete the item from the DataSource</li>
 </ul>
         </div>
         <div class="tClear poTopLine">
             <h2>ListView</h2>
-            <p><strong>What's new</strong></p>
-<ul>
-<li><span class='breaking'>Breaking</span> Wrap the "k-pager-numbers" Ul in a Div with "k-pager-numbers-wrap" class</li>
-<li><span class='breaking'>Breaking</span> Change Pager layout to Flex from Float for the Less-based themes</li>
-<li>ListView Infinite Scroll</li>
-</ul>
-            
-        </div>
-        <div class="tClear poTopLine">
-            <h2>MVVM</h2>
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>Incorrect MVVM binding of PanelBar items checkboxes (<a href="https://github.com/telerik/kendo-ui-core/issues/4978">#4978</a>)</li>
-<li>Popup option cannot be set through data attribute (<a href="https://github.com/telerik/kendo-ui-core/issues/4974">#4974</a>)</li>
-<li>Computed props don't show values in MVVM Grid in non-locked columns (<a href="https://github.com/telerik/kendo-ui-core/issues/4837">#4837</a>)</li>
+<li>ListView content wrong overflow in LESS Themes</li>
 </ul>
         </div>
         <div class="tClear poTopLine">
             <h2>MediaPlayer</h2>
             
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Cut icons in MediaPlayer toolbar</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>Menu</h2>
-            <p><strong>What's new</strong></p>
-<ul>
-<li>Binding to Kendo DataSource</li>
-</ul>
             
         </div>
         <div class="tClear poTopLine">
             <h2>MultiSelect</h2>
-            <p><strong>What's new</strong></p>
-<ul>
-<li>MultiSelect accessibility improvements (<a href="https://github.com/telerik/kendo-ui-core/issues/4642">#4642</a>)</li>
-</ul>
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Unable to deselect single tag MutliSelect items with Esc key, when filter is applied (<a href="https://github.com/telerik/kendo-ui-core/issues/5018">#5018</a>)</li>
-<li>Popup option cannot be set through data attribute (<a href="https://github.com/telerik/kendo-ui-core/issues/4974">#4974</a>)</li>
-<li>MultiSelect deselected items remain highlighted in the list (<a href="https://github.com/telerik/kendo-ui-core/issues/4902">#4902</a>)</li>
-<li>MultiSelect's single tag remains after using the Clear Button even though there are no selected items (<a href="https://github.com/telerik/kendo-ui-core/issues/4889">#4889</a>)</li>
-<li>Filtering is not working with Turkish localization (<a href="https://github.com/telerik/kendo-ui-core/issues/3268">#3268</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>MultiViewCalendar</h2>
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>Header shows incorrect value when months from next year are shown (<a href="https://github.com/telerik/kendo-ui-core/issues/4853">#4853</a>)</li>
-<li>MultiViewCalendar doesn't clean focused state of selected dates.</li>
+<li>MultiSelect highlightFirst:false focuses the first item if autoBind is false (<a href="https://github.com/telerik/kendo-ui-core/issues/5889">#5889</a>)</li>
 </ul>
         </div>
         <div class="tClear poTopLine">
-            <h2>NumericTextBox</h2>
+            <h2>PDFViewer</h2>
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>NumericTextBox with a negative value pointer does not go between the clicked numbers (<a href="https://github.com/telerik/kendo-ui-core/issues/3168">#3168</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>PDF Export</h2>
-            
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Gantt shrinks its treelist text to fit column's width on PDF export in IE and Edge  (<a href="https://github.com/telerik/kendo-ui-core/issues/1868">#1868</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>Pager</h2>
-            <p><strong>What's new</strong></p>
-<ul>
-<li><span class='breaking'>Breaking</span> Wrap the "k-pager-numbers" Ul in a Div with "k-pager-numbers-wrap" class</li>
-<li><span class='breaking'>Breaking</span> Change Pager layout to Flex from Float for the Less-based themes</li>
-</ul>
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Selecting page size "All" from a non-first page is breaking the Pager (<a href="https://github.com/telerik/kendo-ui-core/issues/4726">#4726</a>)</li>
+<li>If you choose "Fit to Width" and load another file in the PDF Viewer, it sets the "Automatic Width" in the ComboBox, but the one applied is actually "Fit to Width" (<a href="https://github.com/telerik/kendo-ui-core/issues/5331">#5331</a>)</li>
 </ul>
         </div>
         <div class="tClear poTopLine">
@@ -306,47 +199,15 @@
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>Incorrect MVVM binding of PanelBar items checkboxes (<a href="https://github.com/telerik/kendo-ui-core/issues/4978">#4978</a>)</li>
+<li>PanelBar renders invalid HTML when initialized from div element (<a href="https://github.com/telerik/kendo-ui-core/issues/5877">#5877</a>)</li>
 </ul>
         </div>
         <div class="tClear poTopLine">
-            <h2>PivotGrid</h2>
+            <h2>TabStrip</h2>
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>Cursor on Expand and Collapse buttons is not pointer TreeList, Gantt and Pivot  (<a href="https://github.com/telerik/kendo-ui-core/issues/5021">#5021</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>ScrollView</h2>
-            
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>ScrollView destroy() method throws error when not pageable (<a href="https://github.com/telerik/kendo-ui-core/issues/4890">#4890</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>TimePicker</h2>
-            
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Time Picker with dateInput=true handles mouse/keyboard arrows time change in a wrong way (<a href="https://github.com/telerik/kendo-ui-core/issues/4949">#4949</a>)</li>
-</ul>
-        </div>
-        <div class="tClear poTopLine">
-            <h2>ToolBar</h2>
-            <p><strong>What's new</strong></p>
-<ul>
-<li>Tool type "spacer"</li>
-</ul>
-            
-        </div>
-        <div class="tClear poTopLine">
-            <h2>Tooltip</h2>
-            
-            <p><strong>What's fixed</strong></p>
-<ul>
-<li>Unexpected Tooltip hiding on hovering its content (<a href="https://github.com/telerik/kendo-ui-core/issues/3721">#3721</a>)</li>
+<li>The content of the TabStrip's tabs is not focusable (<a href="https://github.com/telerik/kendo-ui-core/issues/5871">#5871</a>)</li>
 </ul>
         </div>
         <div class="tClear poTopLine">
@@ -354,7 +215,7 @@
             
             <p><strong>What's fixed</strong></p>
 <ul>
-<li>Window doesn't keep its original dimensions when restored after minimization (<a href="https://github.com/telerik/kendo-ui-core/issues/4960">#4960</a>)</li>
+<li>Unexpected Window size decreasing on resizing via Window's top resize handle and SASS themes used (<a href="https://github.com/telerik/kendo-ui-core/issues/6061">#6061</a>)</li>
 </ul>
         </div>
     </div>

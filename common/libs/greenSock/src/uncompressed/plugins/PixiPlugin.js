@@ -209,7 +209,7 @@ var _gsScope = (typeof module !== "undefined" && module.exports && typeof global
 			return filter;
 		},
 
-		_addColorMatrixFilterCacheTween = function(p, pg, cache, vars) { //we cache the ColorMatrixFilter components in a _gsColorMatrixFilter object attached to the target object so that it's easy to grab the current value at any time.
+		_addColorMatrixFilterCacheTween = function(p, pg, cache, vars) { //we cache the ColorMatrixFilter components in a _gsColorMatrixFilter object attached to the target object so that its easy to grab the current value at any time.
 			pg._addTween(cache, p, cache[p], vars[p], p);
 			pg._overwriteProps.push(p);
 		},

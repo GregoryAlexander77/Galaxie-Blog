@@ -58,7 +58,7 @@
 		<cfset arrayAppend(errors, "The body cannot be blank.")>
 	</cfif>
 	<cfif len(form.title) and not len(form.alias)>
-		<cfset form.alias = application.blog.makeTitle(form.title)>
+		<cfset form.alias = application.blog.makeSesTitle(form.title)>
 	</cfif>
 
 	<cfif not arrayLen(errors)>
@@ -71,8 +71,6 @@
 </cfif>
 
 <cfset categories = application.blog.getCategories()>
-
-<cfmodule template="../tags/adminlayout.cfm" title="Page Editor">
 
 	<cfoutput>
 	<p>
@@ -130,14 +128,14 @@
 
 			</td>
 		</tr>
-		<tr valign="top">
+		<!---<tr valign="top">
 			<td align="right">categories:</td>
 			<td><select name="categories" multiple size="4">
 			<cfloop query="categories">
 				<option value="#categoryid#" <cfif listFind(form.categories,categoryid)>selected</cfif>>#categoryname#</option>
 			</cfloop>
 			</select></td>
-		</tr>
+		</tr>--->
 		<tr>
 			<td>&nbsp;</td>
 			<td><input type="submit" name="cancel" value="Cancel"> <input type="submit" name="save" value="Save"></td>
@@ -145,6 +143,6 @@
 	</table>
 	</form>
 	</cfoutput>
-</cfmodule>
+<!---</cfmodule>--->
 
 <cfsetting enablecfoutputonly=false>

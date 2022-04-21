@@ -9,63 +9,57 @@
 					Use SES cat urls (rkc 8/29/06)
 					Rewritten for Kendo by Gregory
    Purpose : 		Display archives as sized tags
+   Gregory's notes: This template has been completely overhauled. I converted this to ORM and simplified the logic quite a bit. 
 --->
 
-	<cfset cats = application.blog.getCategories()>
-
-	<cfquery dbtype="query" name="tags">
-	  SELECT entrycount AS tagCount,categoryname as tag, categoryid
-	  FROM
-		 cats
-	</cfquery>
-	<!--- Original contained the following clause 
-	WHERE entrycount >= 10
-	--->
-
-	<cfset tagValueArray = ListToArray(ValueList(tags.tagCount))>
-	<cfset max = ArrayMax(tagValueArray)>
-	<cfset min = ArrayMin(tagValueArray)>
-
-	<cfset diff = max - min>
-	<!---
-	  scaleFactor will affect the degree of difference between the different font sizes.
-	  if you have one really large category and many smaller categories, then set higher.
-	  if your category count does not vary too much try a lower number.      
-	--->
-	<cfset scaleFactor = 25>
-	<cfset distribution = diff / scaleFactor>
-	<!--- 
-	<cfdump var="#cats#">
-	<cfdump var="#tags#">
-	--->
-	<!--- optionally add a range of colors in the CSS color property for each class --->
-	</cfsilent>
-
-   <table align="center" class="k-content fixedPodTableWithWrap" width="100%" cellpadding="0" cellspacing="0">
-   <cfoutput query="tags">
-	<cfsilent>
-	<!--- We need to perform the same logic for the post author (remove the 'index.cfm' string when a rewrite rule is in place). --->
-	<cfif application.serverRewriteRuleInPlace>
-		<cfset categoryTagLink = replaceNoCase(application.blog.makeCategoryLink(tags.categoryid), '/index.cfm', '')>
+	<cfset categories = application.blog.getCategories()>
+		
+	<!--- Cache note: this template does not need to differentiate between desktop and mobile. We do need to track the dark theme tho. --->
+	<cfset cacheName = "tagCloud">
+	<cfif darkTheme>
+		<cfset cacheName = cacheName & "Dark">
 	<cfelse>
-		<cfset categoryTagLink = application.blog.makeCategoryLink(tags.categoryid)>
+		<cfset cacheName = cacheName & "Light">
 	</cfif>
+
+</cfsilent>
+<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#application.disableCache#">
+   <table align="center" class="k-content fixedPodTableWithWrap" width="100%" cellpadding="0" cellspacing="0">
+   <cfif not arrayLen(categories)>
+	   <tr><td>There are no tags</td></tr>
+   </cfif>
+   <cfloop from="1" to="#arrayLen(categories)#" index="i"><cfoutput>
+	<cfsilent>
+	<!--- Extract the values from the category array --->
+	<cfset CategoryId = categories[i]["CategoryId"]>
+	<cfset category = categories[i]["Category"]>
+	<cfset categoryPostCount = categories[i]["PostCount"]>
+	<!--- Make the category link --->
+	<cfset categoryTagLink = application.blog.makeCategoryLink(CategoryId)>
+	<!---Make a var to hold the row count since we are supressing categories that don't  have a post count --->
+	<cfparam name="categoryRowCount" default="1">
 	</cfsilent>
-	<tr class="#iif(currentRow MOD 2,DE('k-content'),DE('k-alt'))#">
+<cfif isNumeric(categoryPostCount) and categoryPostCount gt 0>
+	<tr class="#iif(i MOD categoryRowCount,DE('k-content'),DE('k-alt'))#">
 		<!--- Create alternating rows in the table. The Kendo classes which we will use are k-alt and k-content.
 		We will create a border between the rows if the current row is not the first row. --->
-		<cfif currentRow mod 2>
+		<cfif i mod 2>
 			<cfset thisClass = 'k-content'>
 		<cfelse>
 			<cfset thisClass = 'k-alt'>
 		</cfif>
-		<tr class="#iif(currentRow MOD 2,DE('k-content'),DE('k-alt'))#">
-		<cfif currentRow eq 1><td valign="top"><cfelse><td align="left" valign="top" class="border"></cfif>
-			<a href="#categoryTagLink#" aria-label="#lcase(tags.tag)# (#tags.tagCount#)" <cfif darkTheme>style="color:whitesmoke"</cfif>>#lcase(tags.tag)# (#tags.tagCount#)</a>
+		<tr class="#iif(categoryRowCount MOD 2,DE('k-content'),DE('k-alt'))#">
+		<cfif i eq 1><td valign="top"><cfelse><td align="left" valign="top" class="border"></cfif>
+			<a href="#categoryTagLink#" aria-label="#lcase(category)# (#categoryPostCount#)" <cfif darkTheme>style="color:whitesmoke"</cfif>>#lcase(category)# (#categoryPostCount#)</a>
 		</td>
 	</tr>
+	<!--- Increment our row count counter --->
+	<cfset categoryRowCount = categoryRowCount + 1>
+</cfif><!---<cfif isNumeric(categoryPostCount) and categoryPostCount gt 0>--->
    </cfoutput>
+	</cfloop>
 	<tr>
 	   	<td>&nbsp;</td>
 	</tr>
 </table>
+</cfmodule>

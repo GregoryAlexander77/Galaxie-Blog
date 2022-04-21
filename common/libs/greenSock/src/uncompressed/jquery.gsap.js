@@ -46,7 +46,7 @@
 		_init = function() {
 			var globals = window.GreenSockGlobals || window,
 				p;
-			TweenLite = globals.TweenMax || globals.TweenLite; //we prioritize TweenMax if it's loaded so that we can accommodate special features like repeat, yoyo, repeatDelay, etc.
+			TweenLite = globals.TweenMax || globals.TweenLite; //we prioritize TweenMax if its loaded so that we can accommodate special features like repeat, yoyo, repeatDelay, etc.
 			if (TweenLite) {
 				globals = globals.com.greensock;
 				CSSPlugin = globals.plugins.CSSPlugin;
@@ -76,7 +76,7 @@
 				return _animate.call(this, prop, speed, easing, callback);
 			}
 		}
-		if (!_enabled || prop.skipGSAP === true || (typeof(speed) === "object" && typeof(speed.step) === "function")) { //we don't support the "step" feature because it's too costly performance-wise, so fall back to the native animate() call if we sense one. Same with scrollTop and scrollLeft which are handled in a special way in jQuery.
+		if (!_enabled || prop.skipGSAP === true || (typeof(speed) === "object" && typeof(speed.step) === "function")) { //we don't support the "step" feature because its too costly performance-wise, so fall back to the native animate() call if we sense one. Same with scrollTop and scrollLeft which are handled in a special way in jQuery.
 			return _animate.call(this, prop, speed, easing, callback);
 		}
 		var config = $.speed(speed, easing, callback),

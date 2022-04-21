@@ -9,6 +9,12 @@
 							<cfelseif divName eq 'fixedNavMenu'>
 								<cfset layerNumber = 2>
 							</cfif>
+								
+							<!--- Get the themes. This is a HQL array --->
+							<cfset themeNames = application.blog.getThemeNames()>
+								
+							<!--- We are not going to cache this template. There would be no gain due to the number of conditional blocks requred.--->
+								
 							</cfsilent>
 								<ul id="<cfoutput>#divName#</cfoutput>">
 								<li class="toggleSidebarPanelButton">
@@ -22,7 +28,7 @@
 										<li><a href="http://www.gregoryalexander.com/blog/">Gregory's Blog</a></li>
 										<li><a href="http://www.gregoryalexander.com/">Gregory Alexander Web Design</a></li>
 										<li><a href="javascript:createAddCommentSubscribeWindow('', 'contact', <cfoutput>#session.isMobile#</cfoutput>);">Contact</a></li>
-										<!---<li><a href="http://www.gregoryalexander.com/blog/?contact">Contact</a></li>--->
+										<!--- or <li><a href="http://www.gregoryalexander.com/blog/?contact">Contact</a></li>--->
 										<cfif divName eq 'fixedNavMenu'><li onclick="javascript:scrollToBottom();"><span class="fa fa-arrow-circle-down"></span> Bottom</li></cfif>
 									</ul>
 								</li>
@@ -35,12 +41,24 @@
 										<li><a href="javascript:createAboutWindow(3);">Download</a></li>
 									</ul>
 								</li>
+								<!--- Only show the theme menu when a theme has not yet been selected. Once a theme has been selected, that becomes the only available theme. --->
+								<cfif not selectedTheme>
 								<li>
 									Themes
 									<ul>
-										<cfset themeLoopCount=1><cfloop list="#application.defaultKendoThemes#" index="defaultKendoTheme"><cfoutput><li><a href="#application.baseUrl#?theme=#defaultKendoTheme#">#listGetAt(application.customThemeNames,themeLoopCount)#</a></li>
-									<cfset themeLoopCount=themeLoopCount+1></cfoutput></cfloop>
+										<cfloop from="1" to="#arrayLen(themeNames)#" index="i"><cfoutput><li><a href="#application.baseUrl#?theme=#themeNames[i]['ThemeAlias']#">#themeNames[i]['ThemeName']#</a></li></cfoutput></cfloop>
 									</ul>
+								</li>
+								</cfif>
+								<li>
+								<!--- Admin. --->
+								<a href="<cfoutput>#application.baseUrl#/admin/</cfoutput>" aria-label="<cfif not application.Udf.isLoggedIn()>Login<cfelse>Blog Administration</cfif>"><span class="k-icon k-i-user"></span></a>
+								<!--- Allow the user to logout. --->
+								<cfif application.Udf.isLoggedIn()>
+									<ul>
+										<li><a href="<cfoutput>#application.baseUrl#/admin/?logout=1</cfoutput>">Logout</a></li>
+									</ul>
+								</cfif>
 								</li>
 								<li class="siteSearchButton">
 									<cfsilent>
@@ -62,7 +80,7 @@
 									<a href="javascript:createSearchWindow();" aria-label="Search"><span class="fa fa-search" style="font-size:<cfoutput>#searchAndMenuFontSize#</cfoutput>"></span></a>
 								</li>
 							</ul>
-							<script type="<Cfoutput>#scriptTypeString#</cfoutput>">
+							<script type="<cfoutput>#scriptTypeString#</cfoutput>">
 								$(document).ready(function() {	
 									$("#<cfoutput>#divName#</cfoutput>").kendoMenu();
 								});//..document.ready

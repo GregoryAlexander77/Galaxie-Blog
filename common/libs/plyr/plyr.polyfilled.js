@@ -1418,7 +1418,7 @@ typeof navigator === "object" && (function (global, factory) {
       var length = toLength(O.length);
       var k = toAbsoluteIndex(start, length);
       var fin = toAbsoluteIndex(end === undefined ? length : end, length);
-      // inline `ArraySpeciesCreate` for usage native `Array#slice` where it's possible
+      // inline `ArraySpeciesCreate` for usage native `Array#slice` where its possible
       var Constructor, result, n;
       if (isArray(O)) {
         Constructor = O.constructor;
@@ -2212,7 +2212,7 @@ typeof navigator === "object" && (function (global, factory) {
     var iteratorMethod = getIteratorMethod(O);
     var length, result, step, iterator;
     if (mapping) mapfn = bindContext(mapfn, argumentsLength > 2 ? arguments[2] : undefined, 2);
-    // if the target is not iterable or it's an array with the default iterator - use a simple case
+    // if the target is not iterable or its an array with the default iterator - use a simple case
     if (iteratorMethod != undefined && !(C == Array && isArrayIteratorMethod(iteratorMethod))) {
       iterator = iteratorMethod.call(O);
       result = new C();
@@ -2264,12 +2264,12 @@ typeof navigator === "object" && (function (global, factory) {
     while (counter < length) {
       var value = string.charCodeAt(counter++);
       if (value >= 0xD800 && value <= 0xDBFF && counter < length) {
-        // It's a high surrogate, and there is a next character.
+        // its a high surrogate, and there is a next character.
         var extra = string.charCodeAt(counter++);
         if ((extra & 0xFC00) == 0xDC00) { // Low surrogate.
           output.push(((value & 0x3FF) << 10) + (extra & 0x3FF) + 0x10000);
         } else {
-          // It's an unmatched surrogate; only append this code unit, in case the
+          // its an unmatched surrogate; only append this code unit, in case the
           // next code unit is the high surrogate of a surrogate pair.
           output.push(value);
           counter--;
@@ -2335,7 +2335,7 @@ typeof navigator === "object" && (function (global, factory) {
     var basicLength = output.length; // number of basic code points.
     var handledCPCount = basicLength; // number of code points that have been handled;
 
-    // Finish the basic string with a delimiter unless it's empty.
+    // Finish the basic string with a delimiter unless its empty.
     if (basicLength) {
       output.push(delimiter);
     }
@@ -5653,7 +5653,7 @@ typeof navigator === "object" && (function (global, factory) {
       channel.port1.onmessage = listener;
       defer = bindContext(port.postMessage, port, 1);
     // Browsers with postMessage, skip WebWorkers
-    // IE8 has postMessage, but it's sync & typeof its postMessage is 'object'
+    // IE8 has postMessage, but its sync & typeof its postMessage is 'object'
     } else if (global_1.addEventListener && typeof postMessage == 'function' && !global_1.importScripts && !fails(post)) {
       defer = post;
       global_1.addEventListener('message', listener, false);
@@ -7306,7 +7306,7 @@ typeof navigator === "object" && (function (global, factory) {
     }, {
       key: "set",
       value: function set(object) {
-        // Bail if we don't have localStorage support or it's disabled
+        // Bail if we don't have localStorage support or its disabled
         if (!Storage.supported || !this.enabled) {
           return;
         } // Can only store objectst
@@ -7580,7 +7580,7 @@ typeof navigator === "object" && (function (global, factory) {
 
       if ('href' in use) {
         use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', path);
-      } // Always set the older attribute even though it's "deprecated" (it'll be around for ages)
+      } // Always set the older attribute even though its "deprecated" (it'll be around for ages)
 
 
       use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', path); // Add <use> to <svg>
@@ -8021,7 +8021,7 @@ typeof navigator === "object" && (function (global, factory) {
           case 'timeupdate':
           case 'seeking':
           case 'seeked':
-            value = getPercentage(this.currentTime, this.duration); // Set seek range value only if it's a 'natural' time event
+            value = getPercentage(this.currentTime, this.duration); // Set seek range value only if its a 'natural' time event
 
             if (event.type === 'timeupdate') {
               controls.setRange.call(this, this.elements.inputs.seek, value);
@@ -8208,7 +8208,7 @@ typeof navigator === "object" && (function (global, factory) {
 
       if (!is$1.element(list)) {
         list = pane && pane.querySelector('[role="menu"]');
-      } // If there's no list it means it's not been rendered...
+      } // If there's no list it means its not been rendered...
 
 
       if (!is$1.element(list)) {
@@ -8352,7 +8352,7 @@ typeof navigator === "object" && (function (global, factory) {
       // Menu required
       if (!is$1.element(this.elements.settings.panels.captions)) {
         return;
-      } // TODO: Captions or language? Currently it's mixed
+      } // TODO: Captions or language? Currently its mixed
 
 
       var type = 'captions';
@@ -9202,7 +9202,7 @@ typeof navigator === "object" && (function (global, factory) {
 
           captions.set.call(this, tracks.indexOf(track));
           return;
-        } // Toggle button if it's enabled
+        } // Toggle button if its enabled
 
 
         if (this.elements.buttons.captions) {
@@ -9435,7 +9435,7 @@ typeof navigator === "object" && (function (global, factory) {
     displayDuration: true,
     // Invert the current time to be a countdown
     invertTime: true,
-    // Clicking the currentTime inverts it's value to show time left rather than elapsed
+    // Clicking the currentTime inverts its value to show time left rather than elapsed
     toggleInvert: true,
     // Force an aspect ratio
     // The format must be `'w:h'` (e.g. `'16:9'`)
@@ -10257,7 +10257,7 @@ typeof navigator === "object" && (function (global, factory) {
       .then(function () {
         return loadImage(poster);
       }).catch(function (err) {
-        // Hide poster on error unless it's been set by another call
+        // Hide poster on error unless its been set by another call
         if (poster === _this2.poster) {
           ui.togglePoster.call(_this2, false);
         } // Rethrow
@@ -10661,7 +10661,7 @@ typeof navigator === "object" && (function (global, factory) {
 
           if (target !== elements.container) {
             return;
-          } // If it's not an embed and no ratio specified
+          } // If its not an embed and no ratio specified
 
 
           if (!player.isEmbed && is$1.empty(player.config.ratio)) {
@@ -12949,7 +12949,7 @@ typeof navigator === "object" && (function (global, factory) {
 
           result.text = _lineSplit[0];
 
-          // If there's content in lineSplit[1], then we have sprites. If not, then it's just one frame per image
+          // If there's content in lineSplit[1], then we have sprites. If not, then its just one frame per image
           if (lineSplit[1]) {
             var _lineSplit$1$split = lineSplit[1].split(',');
 
@@ -13434,7 +13434,7 @@ typeof navigator === "object" && (function (global, factory) {
         var _this10 = this;
 
         if (currentQualityIndex < this.thumbnails.length - 1) {
-          // Only use the higher quality version if it's going to look any better - if the current thumb is of a lower pixel density than the thumbnail container
+          // Only use the higher quality version if its going to look any better - if the current thumb is of a lower pixel density than the thumbnail container
           var previewImageHeight = previewImage.naturalHeight;
 
           if (this.usingSprites) {
@@ -14201,7 +14201,7 @@ typeof navigator === "object" && (function (global, factory) {
     }, {
       key: "toggleControls",
       value: function toggleControls(toggle) {
-        // Don't toggle if missing UI support or if it's audio
+        // Don't toggle if missing UI support or if its audio
         if (this.supported.ui && !this.isAudio) {
           // Get state before change
           var isHidden = hasClass(this.elements.container, this.config.classNames.hideControls); // Negate the argument if not undefined since adding the class to hides the controls
@@ -14263,7 +14263,7 @@ typeof navigator === "object" && (function (global, factory) {
        * Event listeners are removed when elements are removed
        * http://stackoverflow.com/questions/12528049/if-a-dom-element-is-removed-are-its-listeners-also-removed-from-memory
        * @param {Function} callback - Callback for when destroy is complete
-       * @param {Boolean} soft - Whether it's a soft destroy (for source changes etc)
+       * @param {Boolean} soft - Whether its a soft destroy (for source changes etc)
        */
 
     }, {
@@ -14281,7 +14281,7 @@ typeof navigator === "object" && (function (global, factory) {
           // Reset overflow (incase destroyed while in fullscreen)
           document.body.style.overflow = ''; // GC for embed
 
-          _this3.embed = null; // If it's a soft destroy, make minimal changes
+          _this3.embed = null; // If its a soft destroy, make minimal changes
 
           if (soft) {
             if (Object.keys(_this3.elements).length) {

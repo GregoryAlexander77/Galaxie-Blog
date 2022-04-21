@@ -1,15 +1,9 @@
 <!---
 	Name         : c:\projects\blog\client\tags\getmode.cfm
-	Author       : Raymond Camden 
+	Author       : Raymond Camden/Gregory Alexander
 	Created      : 02/09/06
-	Last Updated : 12/7/2018
-	History      : Removed date filter (rkc 10/28/06)
-				 : Put it back in (rkc 10/30/06)
-				 : releasedonly (rkc 4/13/07)
-				 :  Gregory Alexander removed the logic that handled searches. The logic is no longer necessary, and it caused the cached index to appear in the searchResults.cfm template. Gregory's new UI casused other bugs as well.
+	History      : Check GitHub
 --->
-
-
 <cfparam name="url.mode" default="">
 <cfparam name="attributes.r_params" type="variableName">
 
@@ -21,19 +15,28 @@
 --->
 <cfmodule template="parseses.cfm" />
 
-<!--- Pagination. --->
+<!--- //******************************************************************************************************************
+			Set the start row for pagination
+//********************************************************************************************************************--->
+	
 <cfparam name="url.startrow" default="1">
 <cfif not isNumeric(url.startrow) or url.startrow lte 0 or round(url.startrow) neq url.startrow>
 	<cfset url.startrow = 1>
 </cfif>
-<!--- handle people passing super big #s --->
-<cfif application.isColdFusionMX7 and not isValid("integer", url.startrow)>
+	
+<!--- Set the start row --->
+<cfif not isValid("integer", url.startrow)>
 	<cfset url.startrow = 1>
 </cfif>
+	
 <cfset params.startrow = url.startrow>
+<!--- This will be reset to 1 when in alias or entry mode. --->
 <cfset params.maxEntries = application.maxEntries>
 
-<!--- Handle cleaning of day, month, year --->
+<!--- //******************************************************************************************************************
+			Delete previously set vars for day, month, year
+//********************************************************************************************************************--->
+
 <cfif isDefined("url.day") and (not isNumeric(url.day) or val(url.day) is not url.day)>
 	<cfset structDelete(url,"day")>
 </cfif>
@@ -44,6 +47,10 @@
 	<cfset structDelete(url,"year")>
 </cfif>
 
+<!--- //******************************************************************************************************************
+			Determine the params based upon the page mode.
+//********************************************************************************************************************--->
+	
 <cfif url.mode is "day" and isDefined("url.day") and isDefined("url.month") and url.month gte 1 and url.month lte 12 and isDefined("url.year")>
 	<cfset params.byDay = val(url.day)>
 	<cfset params.byMonth = val(url.month)>
@@ -55,19 +62,16 @@
 	<cfset params.byYear = val(url.year)>
 	<cfset month = val(url.month)>
 	<cfset year = val(url.year)>
-<cfelseif url.mode is "cat" and isDefined("url.catid")>
-	<cfset params.byCat = url.catid>
-<!--- BEGIN BRAUNSTEIN MOD 2/5/2010 --->
+<cfelseif url.mode is "category" and isDefined("url.categoryId")>
+	<cfset params.byCat = url.categoryId>
 <cfelseif url.mode is "postedby" and isDefined("url.postedby")>
 	<cfset params.byPosted = url.postedby>
-<!--- END BRAUNSTEIN MOD 2/5/2010 --->
-
 <cfelseif url.mode is "search" and (isDefined("form.search") or isDefined("url.search"))>
 	<cfif isDefined("url.search")>
 		<cfset form.search = url.search>
 	</cfif>
 	<cfset params.searchTerms = htmlEditFormat(form.search)>
-	<!--- dont log pages --->
+	<!--- Dont log pages --->
 	<cfif url.startrow neq 1>
 		<cfset params.dontlogsearch = true>
 	</cfif>
@@ -79,7 +83,7 @@
 	<cfset url.mode = "">
 </cfif>
 
-<!---// if user is logged in an has an admin role, then show all entries //--->
+<!--- If user is logged in an has an admin role, then show all entries --->
 <cfif IsUserInRole("admin") and structKeyExists(url, "adminview") and url.adminview>
 	<cfset params.releasedonly = false />
 <!---// Ensures admins wont see unreleased on main page. //--->

@@ -11,14 +11,10 @@
 				 : Added new pointers to the UDF (ga).
 --->
 <cfoutput>application.adminApplicationTemplateType: #application.adminApplicationTemplateType#</cfoutput>
-<!--- If necessary, include the UDF (Raymond's code) --->
-<cfif application.adminApplicationTemplateType eq "cfc">
-	<cfinclude template="../includes/udf.cfm">
-</cfif>
 
-<cfif not application.filebrowse>
+<!---<cfif not application.filebrowse>
 	<cflocation url="index.cfm" addToken="false">
-</cfif>
+</cfif>--->
 
 <cfset rootDirectory = getDirectoryFromPath(getCurrentTemplatePath())>
 <cfset rootDirectory = reReplaceNoCase(rootDirectory, "[\\/]admin", "")>
@@ -54,7 +50,7 @@
 	<cffile action="upload" filefield="form.newfile" destination="#currentDirectory#" nameconflict="overwrite">
 </cfif>
 
-<cfmodule template="../tags/adminlayout.cfm" title="File Manager">
+<!---<cfmodule template="../tags/adminlayout.cfm" title="File Manager">--->
 
 	<cfoutput>
 	<p>
@@ -126,7 +122,7 @@
 
 			</cfif>
 			</td>
-			<td><cfif type is not "Dir">#kbytes(size)#<cfelse>&nbsp;</cfif></td>
+			<td><!---<cfif type is not "Dir">#kbytes(size)#<cfelse>&nbsp;</cfif>---></td>
 			<td>#dateFormat(datelastmodified)# #timeFormat(datelastmodified)#</td>
 			<td width="50" align="center">
 			<cfif type is not "Dir">
@@ -148,6 +144,6 @@
 	</table>
 	</cfoutput>
 		
-</cfmodule>
+<!---</cfmodule>--->
 
 <cfsetting enablecfoutputonly=false>

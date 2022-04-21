@@ -33,7 +33,7 @@
 <cffunction name="translateCategory" returnType="uuid">
 	<cfargument name="category" type="string" required="true">
 	
-	<cfreturn application.blog.getCategoryByName(arguments.category)>
+	<cfreturn application.blog.getCategory(category=arguments.category)>
 </cffunction>
 
 <cfset xmlrpc = createObject("component", "xmlrpc")>
@@ -54,7 +54,7 @@
 		<cfset info = structNew()>
 		<cfset info["url"] = application.rooturl>
 		<cfset info["blogid"] = "$string" & "1">
-		<cfset info["blogName"] = application.blog.getProperty("name")>
+		<cfset info["blogName"] = application.BlogDbObj.getBlogName()>
 		<cfset result = arrayNew(1)>
 		<cfset result[1] = info>
 		
@@ -308,10 +308,10 @@
 		<!---// replace the em dash character with the HTML entity //--->
 		<cfset entry.body = replace(entry.body, chr(8212), "&##8212;", "all") />
 		<cfset entry.body = replace(entry.body, chr(151), "&##8212;", "all") />
-		<cfset entry.body = replace(entry.body, "â€”", "&##8212;", "all") />
+		<cfset entry.body = replace(entry.body, "—", "&##8212;", "all") />
 		<cfset entry.body = replace(entry.body, chr(8211), "&##8211;", "all") />
 		<cfset entry.body = replace(entry.body, chr(150), "&##8211;", "all") />
-		<cfset entry.body = replace(entry.body, "â€“", "&##8211;", "all") />
+		<cfset entry.body = replace(entry.body, "–", "&##8211;", "all") />
 
 		<cfif url.parseMarkup>
 			<cfset entry.body = xmlrpc.unescapeMarkup(entry.body) />
@@ -393,7 +393,7 @@
 				<cfset entryid = currentID>
 				<cfset result = "$boolean1">	
 			<cfelse>	
-				<cfset entry.alias = application.blog.makeTitle(entry.title)>
+				<cfset entry.alias = application.blog.makeAlias(entry.title)>
 	
 				<cfinvoke component="#application.blog#" method="addEntry" returnVariable="newid">
 					<cfloop item="key" collection="#entry#">
@@ -482,7 +482,7 @@
 
 			<cfset result = arrayNew(1)>
 		
-			<cfset categories = application.blog.getCategoriesForEntry(id=postid)>
+			<cfset categories = application.blog.getCategoriesForPost(postId=postid)>
 		
 			<cfloop query="categories">	
 				<cfset info = structNew()>

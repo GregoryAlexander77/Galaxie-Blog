@@ -1510,7 +1510,7 @@ typeof navigator === "object" && (function (global, factory) {
     }, {
       key: "set",
       value: function set(object) {
-        // Bail if we don't have localStorage support or it's disabled
+        // Bail if we don't have localStorage support or its disabled
         if (!Storage.supported || !this.enabled) {
           return;
         } // Can only store objectst
@@ -1775,7 +1775,7 @@ typeof navigator === "object" && (function (global, factory) {
 
       if ('href' in use) {
         use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', path);
-      } // Always set the older attribute even though it's "deprecated" (it'll be around for ages)
+      } // Always set the older attribute even though its "deprecated" (it'll be around for ages)
 
 
       use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', path); // Add <use> to <svg>
@@ -2216,7 +2216,7 @@ typeof navigator === "object" && (function (global, factory) {
           case 'timeupdate':
           case 'seeking':
           case 'seeked':
-            value = getPercentage(this.currentTime, this.duration); // Set seek range value only if it's a 'natural' time event
+            value = getPercentage(this.currentTime, this.duration); // Set seek range value only if its a 'natural' time event
 
             if (event.type === 'timeupdate') {
               controls.setRange.call(this, this.elements.inputs.seek, value);
@@ -2403,7 +2403,7 @@ typeof navigator === "object" && (function (global, factory) {
 
       if (!is$1.element(list)) {
         list = pane && pane.querySelector('[role="menu"]');
-      } // If there's no list it means it's not been rendered...
+      } // If there's no list it means its not been rendered...
 
 
       if (!is$1.element(list)) {
@@ -2547,7 +2547,7 @@ typeof navigator === "object" && (function (global, factory) {
       // Menu required
       if (!is$1.element(this.elements.settings.panels.captions)) {
         return;
-      } // TODO: Captions or language? Currently it's mixed
+      } // TODO: Captions or language? Currently its mixed
 
 
       var type = 'captions';
@@ -3397,7 +3397,7 @@ typeof navigator === "object" && (function (global, factory) {
 
           captions.set.call(this, tracks.indexOf(track));
           return;
-        } // Toggle button if it's enabled
+        } // Toggle button if its enabled
 
 
         if (this.elements.buttons.captions) {
@@ -3630,7 +3630,7 @@ typeof navigator === "object" && (function (global, factory) {
     displayDuration: true,
     // Invert the current time to be a countdown
     invertTime: true,
-    // Clicking the currentTime inverts it's value to show time left rather than elapsed
+    // Clicking the currentTime inverts its value to show time left rather than elapsed
     toggleInvert: true,
     // Force an aspect ratio
     // The format must be `'w:h'` (e.g. `'16:9'`)
@@ -4440,7 +4440,7 @@ typeof navigator === "object" && (function (global, factory) {
       .then(function () {
         return loadImage(poster);
       }).catch(function (err) {
-        // Hide poster on error unless it's been set by another call
+        // Hide poster on error unless its been set by another call
         if (poster === _this2.poster) {
           ui.togglePoster.call(_this2, false);
         } // Rethrow
@@ -4844,7 +4844,7 @@ typeof navigator === "object" && (function (global, factory) {
 
           if (target !== elements.container) {
             return;
-          } // If it's not an embed and no ratio specified
+          } // If its not an embed and no ratio specified
 
 
           if (!player.isEmbed && is$1.empty(player.config.ratio)) {
@@ -7043,7 +7043,7 @@ typeof navigator === "object" && (function (global, factory) {
 
           result.text = _lineSplit[0];
 
-          // If there's content in lineSplit[1], then we have sprites. If not, then it's just one frame per image
+          // If there's content in lineSplit[1], then we have sprites. If not, then its just one frame per image
           if (lineSplit[1]) {
             var _lineSplit$1$split = lineSplit[1].split(',');
 
@@ -7528,7 +7528,7 @@ typeof navigator === "object" && (function (global, factory) {
         var _this10 = this;
 
         if (currentQualityIndex < this.thumbnails.length - 1) {
-          // Only use the higher quality version if it's going to look any better - if the current thumb is of a lower pixel density than the thumbnail container
+          // Only use the higher quality version if its going to look any better - if the current thumb is of a lower pixel density than the thumbnail container
           var previewImageHeight = previewImage.naturalHeight;
 
           if (this.usingSprites) {
@@ -8295,7 +8295,7 @@ typeof navigator === "object" && (function (global, factory) {
     }, {
       key: "toggleControls",
       value: function toggleControls(toggle) {
-        // Don't toggle if missing UI support or if it's audio
+        // Don't toggle if missing UI support or if its audio
         if (this.supported.ui && !this.isAudio) {
           // Get state before change
           var isHidden = hasClass(this.elements.container, this.config.classNames.hideControls); // Negate the argument if not undefined since adding the class to hides the controls
@@ -8357,7 +8357,7 @@ typeof navigator === "object" && (function (global, factory) {
        * Event listeners are removed when elements are removed
        * http://stackoverflow.com/questions/12528049/if-a-dom-element-is-removed-are-its-listeners-also-removed-from-memory
        * @param {Function} callback - Callback for when destroy is complete
-       * @param {Boolean} soft - Whether it's a soft destroy (for source changes etc)
+       * @param {Boolean} soft - Whether its a soft destroy (for source changes etc)
        */
 
     }, {
@@ -8375,7 +8375,7 @@ typeof navigator === "object" && (function (global, factory) {
           // Reset overflow (incase destroyed while in fullscreen)
           document.body.style.overflow = ''; // GC for embed
 
-          _this3.embed = null; // If it's a soft destroy, make minimal changes
+          _this3.embed = null; // If its a soft destroy, make minimal changes
 
           if (soft) {
             if (Object.keys(_this3.elements).length) {

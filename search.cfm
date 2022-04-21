@@ -1,19 +1,13 @@
 
 <!---
 	Name         : search.cfm
-	Author       : Raymond Camden 
-				 : Gregory Alexander
+	Author       : Raymond Camden / Gregory Alexander
 	Created      : February 9, 2007
 	Last Updated : December 1 2018
 	History      : Wholesale changes to the UI by Gregory
 	Purpose		 : Search Logic
 	Note		 : This will incorporate a Kendo grid in the next version so I did not make any effort to paginate the form. I am trying to get out the basic version using Kendo's open source package (which does not include a grid) asap.
 --->
-
-<!--- Include the resource bundle. --->
-<cfset getResourceBundle = application.utils.getResource>
-<!--- Include the UDF (this is not automatically included when using an application.cfc) --->
-<cfinclude template="includes/udf.cfm">
 
 <!--- allow for /xxx shortcut --->
 <cfif cgi.path_info is not "/search.cfm">
@@ -32,19 +26,21 @@
 <cfparam name="url.start" default="1">
 <cfparam name="form.search" default="#searchAlias#">
 <cfparam name="form.category" default="">
-
+<!--- Trim our search field. --->
 <cfset form.search = left(htmlEditFormat(trim(form.search)),255)>
+<!--- Get the categories --->
+<cfset getCategories = application.blog.getCategories()>
 
-<cfset cats = application.blog.getCategories()>
-
+<!--- Set the parameters for our query.--->
 <cfset params = structNew()>
 <cfset params.searchTerms = form.search>
+<!--- See if a category was selected. --->
 <cfif form.category is not "">
 	<cfset params.byCat = form.category>
 </cfif>
 <cfset params.startrow = url.start>
 <cfset params.maxEntries = application.maxEntries>
-<!---// dgs: only get released items //--->
+<!--- Limit the results to released items //--->
 <cfset params.releasedonly = true />
 
 <cfif len(form.search) or form.category is not "">
@@ -53,9 +49,8 @@
 <cfelse>
 	<cfset searched = false>
 </cfif>
-
-<cfset title = getResourceBundle("search")>
-
+	
+<cfset title = "Search">
 	
 <script>
 	
@@ -160,16 +155,19 @@
 	<input type="hidden" id="startRow" name="startRow" value="0"/>
 	<tr height="30px">
 		<td align="right" width="30%"><label for="siteSearchField">Search Term:</label></td>
-		<td align="left"  width="*"><input id="siteSearchField" name="siteSearchField" class="k-textbox" style="width:<cfif session.isMobile>60%<cfelse>250px;</cfif>" required data-required-msg="Enter search term."/></td>
+		<td align="left"  width="*">
+			<input id="siteSearchField" name="siteSearchField" class="k-textbox" style="width:<cfif session.isMobile>80%<cfelse>75%;</cfif>" required data-required-msg="Enter search term."/>
+		</td>
 	</tr>
 	<tr height="30%">
 		<td align="right">Category:</td>
 		<td align="left">
-		<select id="category"  name="category" multiple="multiple" style="width:85%;" data-placeholder="Select categories...">
-			<option value="" <cfif form.category is "">selected="selected"</cfif>>all categories</option>
-			<cfoutput query="cats">
-			<option value="#categoryid#" <cfif form.category is categoryid>selected="selected"</cfif>>#categoryname#</option>
-			</cfoutput>
+		<select id="category" name="category" multiple="multiple" style="width:85%;" data-placeholder="Select categories...">
+			<option value="all" <cfif form.category is "">selected="selected"</cfif>>all categories</option>
+			<!--- Loop through the array --->
+			<cfloop from="1" to="#arrayLen(getCategories)#" index="i"><cfoutput>
+			<option value="#getCategories[i]['CategoryId']#" <cfif form.category is getCategories[i]['CategoryId']>selected="selected"</cfif>>#getCategories[i]["Category"]#</option>
+			</cfoutput></cfloop>
 		</select>
 		</td>
 	</tr>

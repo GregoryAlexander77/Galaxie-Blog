@@ -24,7 +24,11 @@
 <cfelse>
 	<cfset subscribeFormId = "subscribeViaPanel">
 </cfif>
+	
+<!--- Cache notes: this is too complex, and it is unecessary to use caching as this opens up a window and the code will not load until the window is opened. --->
+
 </cfsilent>
+				
 					<script type="<cfoutput>#scriptTypeString#</cfoutput>">
 						// Invoked when the submit button is clicked. Instead of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
 						var subscribeSubmit = $('#<cfoutput>#subscribeFormId#Submit</cfoutput>');
@@ -39,7 +43,7 @@
 								subscribeToBlog('<cfoutput>#sideBarType#</cfoutput>');
 							} else {//..if (<cfoutput>#subscribeFormId#</cfoutput>FormValidator.validate())
 								// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
-								$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "A valid email address is required. Please correct the highlighted fields and try again.", icon: "k-ext-warning", width: "425px", height: "140px" }) // or k-ext-error, k-ext-question
+								$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "A valid email address is required. Please correct the highlighted fields and try again.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "140px" }) // or k-ext-error, k-ext-question
 									).done(function () {
 									// Do nothing
 								});//..$.when(kendo.ui.ExtAlertDialog.show...
@@ -53,14 +57,13 @@
 					</script>
 					
 					<cfoutput>
-					#application.resourceBundle.getResource("subscribeblog")#
+					Enter your email address to subscribe to this blog.
 					<form id="#subscribeFormId#Form" name="#subscribeFormId#Form" action="#chr(35)#" method="post" data-role="validator">
 						<!--- Note that this forms type is 'email'. This is an HTML5 attribute and it will automatically be validated. --->
 						<input type="email" id="#subscribeFormId#" name="#subscribeFormId#" value="" class="k-textbox" 
-							   required validationMessage="Email is required"
-							   data-email-msg="Email is not valid" />
+							required validationMessage="Email is required"
+							data-email-msg="Email is not valid" />
 						<br/>
 						<input type="button" id="#subscribeFormId#Submit" name="#subscribeFormId#Submit" value="Subscribe" class="k-button k-primary" style="<cfoutput>#kendoButtonStyle#</cfoutput>">
 					</form>
 					</cfoutput>
-					

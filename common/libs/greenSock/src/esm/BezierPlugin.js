@@ -379,11 +379,11 @@ import { _gsScope } from "./TweenLite.js";
 								this._overwriteProps.push(p);
 							}
 						}
-						this._startRatio = tween.vars.runBackwards ? 1 : 0; //we determine the starting ratio when the tween inits which is always 0 unless the tween has runBackwards:true (indicating it's a from() tween) in which case it's 1.
+						this._startRatio = tween.vars.runBackwards ? 1 : 0; //we determine the starting ratio when the tween inits which is always 0 unless the tween has runBackwards:true (indicating its a from() tween) in which case its 1.
 						return true;
 					},
 
-					//called each time the values should be updated, and the ratio gets passed as the only parameter (typically it's a value between 0 and 1, but it can exceed those when using an ease like Elastic.easeOut or Back.easeOut, etc.)
+					//called each time the values should be updated, and the ratio gets passed as the only parameter (typically its a value between 0 and 1, but it can exceed those when using an ease like Elastic.easeOut or Back.easeOut, etc.)
 					set: function(v) {
 						var segments = this._segCount,
 							func = this._func,

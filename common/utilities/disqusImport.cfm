@@ -5,7 +5,7 @@ query function getCommentsForEntry(required string id) {
 
 string function getLink(required struct entry) {
 	var alias = entry.alias?:entry.id;
-	var link = "http://www.raymondcamden.com/#year(entry.posted)#/#month(entry.posted)#/#day(entry.posted)#/#alias#";
+	var link = "http://www.gregoryalexander.com/blog/#year(entry.posted)#/#month(entry.posted)#/#day(entry.posted)#/#alias#";
 	return link;
 }
 

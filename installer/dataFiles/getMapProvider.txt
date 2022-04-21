@@ -1,0 +1,1 @@
+<wddxPacket version='1.0'><header/><data><recordset rowCount='1' fieldNames='MAPPROVIDER' type='coldfusion.sql.QueryTable'><field name='MAPPROVIDER'><string>Bing Maps</string></field></recordset></data></wddxPacket>

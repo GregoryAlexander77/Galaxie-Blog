@@ -2,17 +2,9 @@
 <cfprocessingdirective pageencoding="utf-8">
 <!---
 	Name         : RSS
-	Author       : Raymond Camden 
+	Author       : Raymond Camden / Gregory Alexander
 	Created      : March 12, 2003
-	Last Updated : October 11 2019
-	History      : Reset history for version 5.0
-				 : Note that I'm not doing RSS feeds by day or month anymore, so that code is marked for removal (maybe)
-				 : Added additionalTitle support for cats
-				 : Cache for main RSS (rkc 7/10/06)
-				 : Rob Wilkerson added code to handle noting/returning headers for aggregators (rkc 4/19/07)
-				 http://musetracks.instantspot.com/blog/index.cfm/2007/4/19/BlogCFC-Enhancement
-				 : Fix bug where no entries - also support N categories (rkc 5/18/07)
-				 : DanS fix for unreleased entries, cap url.byentry to 35 (rkc 11/17/07)
+	Last Updated : Please see the Galaxie Blog Git hub repo.
 	Purpose		 : Blog RSS feed.
 --->
 
@@ -35,6 +27,7 @@
 
 <cfset additionalTitle = "">
 
+<!--- Set params and get the data. --->
 <cfif isDefined("url.mode2")>
 	<cfif url.mode2 is "day" and isDefined("url.day") and isDefined("url.month") and isDefined("url.year")>
 		<cfset params.byDay = val(url.day)>
@@ -48,12 +41,10 @@
 		<cfset additionalTitle = "">
 		<cfset params.byCat = "">
 		<cfloop index="x" from="1" to="#listLen(url.catid)#">
-			<cfset cat = listGetAt(url.catid, x)>
-			<!--- set to 35 --->
-			<cfset cat = left(cat, 35)>
-			<cfset params.byCat = listAppend(params.byCat, cat)>
+			<cfset categoryId = listGetAt(url.catid, x)>
+			<cfset params.byCat = listAppend(params.byCat, categoryId)>
 			<cftry>
-				<cfset additionalTitle = additionalTitle & " - " & application.blog.getCategory(cat).categoryname>
+				<cfset additionalTitle = additionalTitle & " - " & application.blog.getCategory(categoryId)[1]["CategoryName"]>
 				<cfcatch></cfcatch>
 			</cftry>
 		</cfloop>
@@ -66,31 +57,31 @@
 <!--- In other words, cache just the main view --->
 <!--- Therefore, our cache name needs to just care about mode and version --->
 <cfset cachename = application.applicationname & "_rss_" & mode & version>
-<cfif structKeyExists(url, "mode2")>
+<cfif structKeyExists(url, "mode2") or application.disableCache>
 	<cfset disabled = true>
 <cfelse>
 	<cfset disabled = false>
 </cfif>
 
+<!--- Note: this is being cached. I typically removed all of the caching features that were in the initial blog, but I like this one... it gives me time to think about things and perfect the post once it is released. Comment out this code and uncomment the line below it to see a realtime feed. --->
 <cfsavecontent variable="variables.feedXML">
-	
-<!--- Note: this is being cached. I typically removed all of the caching features that were in the initial blog, but I like this one... it gives me time to think about things and perfect the post once it is released. Comment out this code and uncomment the line below it to see a realtime feed (GA). --->
-<cfmodule template="tags/scopecache.cfm" cachename="#cachename#" scope="application" timeout="#application.timeout#" disabled="#disabled#">
-	<cfoutput>#application.blog.generateRSS(mode=mode,params=params,version=version,additionalTitle=additionalTitle)#</cfoutput>
-</cfmodule>
-<!--- <cfoutput>#application.blog.generateRSS(mode=mode,params=params,version=version,additionalTitle=additionalTitle)#</cfoutput> --->
+	<cfmodule template="tags/scopecache.cfm" cachename="#cachename#" scope="application" timeout="#application.timeout#" disabled="#disabled#">
+		<cfoutput>
+			#application.blog.generateRSS(mode=mode,params=params,version=version,additionalTitle=additionalTitle)#
+		</cfoutput>
+	</cfmodule>
 </cfsavecontent>
 
 <cfset variables.lastModified = XMLSearch ( XMLParse ( variables.feedXML ), '//item[1]/pubDate' ) />
 <cfif arrayLen(variables.lastModified) is 0>
 	<cfset variables.lastModified = "">
 <cfelse>
-	<cfset variables.lastModified = variables.lastModified[1].XMLText />
+	<cfset variables.lastModified = variables.lastModified[1]["XMLText"] />
 </cfif>
-<cfset variables.ETag         = hash ( variables.lastModified ) />
+<cfset variables.ETag = hash ( variables.lastModified ) />
 
-<cfset variables.request      = getHTTPRequestData() />
-<cfset variables.headers      = variables.request.headers />
+<cfset variables.request = getHTTPRequestData() />
+<cfset variables.headers = variables.request.headers />
 
 <cfif structKeyExists ( variables.headers, 'If-Modified-Since' ) and variables.headers['If-Modified-Since'] eq variables.lastModified>
 	<cfif structKeyExists ( variables.headers, 'If-None-Match' ) and variables.headers['If-None-Match'] eq variables.ETag>
@@ -113,4 +104,3 @@
 		</cfif>
 	</cfcatch>
 </cftry>
-

@@ -80,7 +80,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 			},
 			_modCSS = function(lookup, cssp) {
 				var pt = cssp._firstPT,
-					hasBezier = (lookup.rotation && cssp._overwriteProps.join("").indexOf("bezier") !== -1); //when a Bezier tween is applying autoRotation, it's a very special case we need to handle differently.
+					hasBezier = (lookup.rotation && cssp._overwriteProps.join("").indexOf("bezier") !== -1); //when a Bezier tween is applying autoRotation, its a very special case we need to handle differently.
 				if (lookup.scale) {
 					lookup.scaleX = lookup.scaleY = lookup.scale;
 				} else if (lookup.rotationZ) {

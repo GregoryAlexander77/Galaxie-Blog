@@ -1,87 +1,248 @@
-<cfsetting enablecfoutputonly=true>
+<!doctype html><!---Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/2018) --->
+<cfprocessingdirective suppressWhiteSpace="true">
 <cfprocessingdirective pageencoding="utf-8">
+<cfsilent>
+	
 <!---
-	Name         : /client/admin/index.cfm
-	Author       : Raymond Camden
-	Created      : 04/06/06
-	Last Updated : 8/1/07
-	History      : Added blog name (rkc 5/17/06)
-				 : typo (rkc 8/20/06)
-				 : JS alert when coming from settings page (rkc 9/5/06)
-				 : htmlEditFormat the title (rkc 10/12/06)
-				 : added top entries for past 7 days (rkc 2/28/07)
-				 : fixed link to my blog, made "past few days" say seven to be more clear (rkc 8/1/07)
+	Name         	: index.cfm
+	Author       	: Gregory Alexander
+	Created/Updated : See GalaxieBlog GitHub repository
+		 	
+	Completely reengineered from scratch to make the code compatible as single page application.
 --->
-
-<!--- As with my stats page, this should most likely be abstracted into the CFC. --->
-<cfset dsn = application.blog.getProperty("dsn")>
-<cfset blog = application.blog.getProperty("name")>
-<cfset sevendaysago = dateAdd("d", -7, now())>
-<cfset username = application.blog.getProperty("username")>
-<cfset password = application.blog.getProperty("password")>
-
-<cfquery name="topByViews" datasource="#dsn#" maxrows="5" username="#username#" password="#password#">
-select	id, title, views, posted
-from	tblblogentries
-where 	tblblogentries.blog = <cfqueryparam cfsqltype="cf_sql_varchar" value="#blog#">
-and		posted > <cfqueryparam cfsqltype="cf_sql_timestamp" value="#sevendaysago#">
-order by views desc
-</cfquery>
-
-<cfmodule template="../tags/adminlayout.cfm" title="Welcome">
-
-	<!--- Latest version check. --->
-	<cfoutput>
-	<script>
-	$(document).ready(function() {
-		// latestversioncheck.cfm?version=#application.blog.getVersion()#
-		$("##latestversioncheck").html("<p>Checking to see if your blog is up to date. Please stand by...</p>").load("latestversioncheck.cfm?version=1")
-	})
-	</script>
-	</cfoutput>
 	
-	<cfif structKeyExists(url, "reinit")>
-		<cfoutput>
-			<div style="margin: 15px 0; padding: 15px; border: 5px solid ##008000; background-color: ##80ff00; color: ##000000; font-weight: bold; text-align: center;">
-				Your blog cache has been refreshed.
-			</div>
-		</cfoutput>
-	</cfif>
-	<cfoutput>
-	<h3>About</h3>
-	<p>
-	Welcome to the Galaxie Blog adminstration interface. You are running Galaxie Blog version #application.blog.getVersion()#. This blog is named
-	#htmlEditFormat(application.blog.getProperty("blogtitle"))#. For more information, please visit Galaxie Blog site at <a href="http://www.gregoryalexander.com/blog/">http://www.gregoryalexander.com/blog/</a>.
-	Galaxie Blog was created by <a href="http://www.gregoryalexander.com">Gregory Alexander</a>, and the is a complete re-write of BlogCfc. BlogCFC was created by <a href="http://www.coldfusionjedi.com">Raymond Camden</a>. For support, please visit <a href="www.gregorysblog.org">www.gregorysblog.org,</a>, or the original BlogCfc group at, <a href="http://groups.google.com/group/blogcfc">listserv</a>
-	or send Gregory an <a href="mailto:gregory@gregoryalexander.com">email</a>.
-	</p>
-
-	<div id="latestversioncheck">
-	</div>
+<!--- //******************************************************************************************************************
+			Page settings.
+//********************************************************************************************************************--->
 	
-	<cfif topByViews.recordCount>
-	<h3>Top Entries</h3>
-	<p>
-	Here are the top entries over the past seven days based on the number of views:
-	</p>
-	<p>
-	<cfloop query="topByViews">
-	<a href="#application.blog.makeLink(id)#">#title#</a> (#views#)<br/>
-	</cfloop>
-	</p>
-	</cfif>
+<!--- Unique page settings that may vary on each different page. --->
+<cfset pageId = 2>
+<cfset pageName = "admin"><!--- Blog --->
+<cfset pageTypeId = 2><!--- Blog --->
 
-	<h3>Credits</h3>
-	<p>
-	This blog would not have been possible without Raymond Camden. Raymond developed BlogCfc, on which this platform was originally based. Raymond is a ColdFusion enthusiast who authored thousands of ColdFusion related posts on the internet. Like every senior ColdFusion web developer; I have found his posts invaluable and have based many of my own ColdFusion libraries based upon his approach.
-	</p>
+<!--- Common settings. The pageSettings also determines when we should cache the page depending upon if the user is logged in. --->
+<cfinclude template="#application.baseUrl#/includes/templates/pageSettings.cfm">
+	
+<!--- //******************************************************************************************************************
+			Core logic (queries the database and sets vars)
+//********************************************************************************************************************--->
+	
+<!--- Determine whether we should disable the cache. --->
+<cfset disableCache = application.udf.getDisableCache()>	
+<!--- Get post information from the db --->
+<cfinclude template="#application.baseUrl#/includes/templates/coreLogic.cfm">
 
-	<h3>Support Galaxie Blog Development!</h3>
-	<p>
-	<!---If you find this blog useful, please consider visiting my <a href="http://www.amazon.com/o/registry/2TCL1D08EZEYE">wishlist</a>.--->
-	</p>
-	</cfoutput>
+<!--- //******************************************************************************************************************
+			Page output
+//********************************************************************************************************************--->
+</cfsilent>
+<html lang="en-US"><head><cfoutput>
+<cfif customHeadTemplate eq ""> 
+	<cfinclude template="#application.baseUrl#/includes/templates/head.cfm" />
+<cfelse>
+	<cfinclude template="#customHeadTemplate#" />
+</cfif>
+</head>
+</cfoutput>	
+<cfsilent>
+<!--- //******************************************************************************************************************
+			Responsive site javascript (handles the width of the containers)
+//********************************************************************************************************************--->
+<!--- Do not cache this! --->
+	
+</cfsilent>
+<cfinclude template = "#application.baseUrl#/includes/templates/responsiveJs.cfm" />
+<cfsilent>
+<!--- //******************************************************************************************************************
+			Body tag
+//********************************************************************************************************************--->
+	
+</cfsilent>
 
+<cfif customBodyString eq "">
+<body onload="if(top != self) top.location.replace(self.location.href);" onresize="setScreenProperties()"><cfelse><cfoutput>#customBodyString#</cfoutput></cfif>
+<cfsilent>
+<!---//*******************************************************************************************************************
+			Font .css
+//********************************************************************************************************************--->
+
+<!--- Set up cache. The fonts should never expire. This code is also minimized. --->
+<cfif session.isMobile>
+	<cfset cacheName = "fontTemplateMobile">
+<cfelse>
+	<cfset cacheName = "fontTemplate">
+</cfif>
+</cfsilent>
+<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#disableCache#">
+<cfif customFontCssTemplate eq "">
+	<cfinclude template="#application.baseUrl#/includes/templates/font.cfm" />	
+<cfelse>
+	<cfinclude template="#customFontCssTemplate#" />
+</cfif>
 </cfmodule>
 
-<cfsetting enablecfoutputonly=false>
+<cfsilent>
+<!---//*******************************************************************************************************************
+			Global and body .css
+//********************************************************************************************************************--->
+	
+<!--- Cache notes: this template contains dynamic images and other elements that are dependent upon the theme. It should not be cached. It won't matter much as this code is minimized. --->
+</cfsilent>
+<cfif customGlobalAndBodyCssTemplate eq "">
+	<cfinclude template="#application.baseUrl#/includes/templates/globalAndBodyCss.cfm" />
+<cfelse>
+	<cfinclude template="#customGlobalAndBodyCssTemplate#" />
+</cfif>
+	
+<cfsilent>
+<!---//*******************************************************************************************************************
+			Top menu .css
+//********************************************************************************************************************--->
+	
+<!--- Cache notes: this template contains dynamic images and other elements that are dependent upon the theme. It should not be cached. It won't matter much as this code is minimized. --->
+</cfsilent>
+<cfif customTopMenuCssTemplate eq "">
+	<cfinclude template="#application.baseUrl#/includes/templates/topMenuCss.cfm" />
+<cfelse>
+	<cfinclude template="#customTopMenuCssTemplate#" />
+</cfif>
+	
+<cfsilent>	
+<!---//*******************************************************************************************************************
+			Blog html body stylesheet
+//********************************************************************************************************************--->
+<!--- This code is minimized --->
+</cfsilent>
+<cfif customBlogContentCssTemplate eq "">
+	<cfinclude template="#application.baseUrl#/includes/templates/blogContentCss.cfm" />
+<cfelse>
+	<cfinclude template="#customBlogContentCssTemplate#" />
+</cfif>
+<cfsilent>		
+<!---//*******************************************************************************************************************
+			Top menu html
+//********************************************************************************************************************--->
+	
+<!--  Outer container. This container controls the blog width. The 'k-alt' class is used when there are alternating rows and you want to differentiate them. Typically, it is a darker color that 'k-content'. We will set the min width of the container to be 968 pixels and the min width of the blog content to be 640 pixels. This should give approximately 300 miniumum pixels to the side bar on the right. -->
+	
+<!--- Set up cache. We need to save the theme and the device type (ie mobile) in the cache name. --->
+<cfif session.isMobile>
+	<cfset cacheName = "topMenuHtml#kendoTheme#Mobile">
+<cfelse>
+	<cfset cacheName = "topMenuHtml#kendoTheme#">
+</cfif>
+</cfsilent>
+	
+<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. --->
+<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#disableCache#">
+	<cfif customTopMenuHtmlTemplate eq "">
+		<cfinclude template="#application.baseUrl#/includes/templates/topMenuHtml.cfm" />
+	<cfelse>
+		<cfset divName = "fixedNavMenu">
+		<cfinclude template="#customTopMenuHtmlTemplate#" />
+	</cfif>
+</cfmodule>
+		
+<table id="mainBlog" class="k-alt" cellpadding="0" cellspacing="0">
+	<cfsilent>
+	<!---//***************************************************************************************************************
+				Javascript for the blog's Kendo widgets and UI interactions.
+	//****************************************************************************************************************--->
+	</cfsilent>
+   <tr>
+	<td>
+	<cfif customBlogJsContentTemplate eq "">
+		<cfinclude template="#application.baseUrl#/includes/templates/blogJsContent.cfm" />
+	<cfelse>
+		<cfinclude template="#customBlogJsContentTemplate#" />
+	</cfif>
+	<cfsilent>
+	<!---//***************************************************************************************************************
+				Blog content html
+	//****************************************************************************************************************--->
+		
+	<!--- Note: the blog content HTML template is too sophisticated to cache the entire template. Instead, we will cache parts of it  --->
+	</cfsilent>			
+	<!-- Blog body -->
+	<main>
+	<cfif customBlogContentHtmlTemplate eq "">
+		<cfif pageTypeId eq 1>
+			<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
+		<cfelseif pageTypeId eq 2>
+			<!-- Dynamic content loaded via jQuery and Ajax. -->
+		<div id='adminContent'>
+			<cfinclude template="#application.baseUrl##getTemplatePathByPageName(pageName)#" />
+		</div><!---<div id='adminContent'>--->
+		</cfif><!---<cfelseif pageTypeId eq 2>--->
+	<cfelse>
+		<cfinclude template="#customBlogContentHtmlTemplate#" />
+	</cfif>	
+	</main>
+	</td>
+   </tr>
+</table>
+<cfif pageTypeId gt 1>
+	<cfsilent>	
+	<!---//***************************************************************************************************************
+			Sidebar	
+			Note: when the blogContentHtml template is used, the side bar panel should not be used here.
+	//****************************************************************************************************************--->
+
+	<!--- Set up cache. We need to save the theme and the device type (ie mobile) in the cache name. --->
+	<cfif session.isMobile>
+		<cfset cacheName = "sideBarPanelHtml#kendoTheme#Mobile">
+	<cfelse>
+		<cfset cacheName = "sideBarPanelHtml#kendoTheme#">
+	</cfif>
+
+	</cfsilent>			
+	<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. --->
+	<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#disableCache#">
+		<!-- Side Bar Panel -->
+		<cfif customSideBarPanelHtmlTemplate eq "">
+			<cfinclude template="#application.baseUrl#/includes/templates/sideBarPanel.cfm" />
+		<cfelse>
+			<cfinclude template="#customSideBarPanelHtmlTemplate#" />
+		</cfif>
+	</cfmodule>
+</cfif><!---<cfif pageTypeId gt 1>--->
+<cfsilent>
+<!---//*****************************************************************************************************************
+			Footer (the administrative interface does not need a footer)
+//**************************************************************************************************************--->
+		
+	<!--- Note: the blog content HTML template uses ColdFusion's cache instead of scopecache as we need to capture all of the URL variables. --->
+	<cfif session.isMobile>
+		<cfset cacheKey = 'footerHtmlMobile'>
+	<cfelse>
+		<cfset cacheKey = 'footerHtml'>
+	</cfif>
+	<!--- Determine whether to use the cache or not depending upon the disableCache variable. --->
+	<cfif disableCache>
+		<cfset useCache = false>
+	<cfelse>
+		<cfset useCache = true>
+	</cfif>
+</cfsilent>
+
+<cfcache action="cache" key="#cacheKey#" stripwhitespace="#application.minimizeCode#" usequerystring="true" useCache="#useCache#" expireURL="#application.baseUrl#/includes/flushCache.cfm">
+	<cfif customFooterHtmlTemplate eq "">
+		<cfinclude template="#application.baseUrl#/includes/templates/footerHtml.cfm" />
+	<cfelse>
+		<cfinclude template="#customFooterHtmlTemplate#" />
+	</cfif>
+</cache>
+	
+<cfsilent>
+	<!---//***************************************************************************************************************
+				Tail end scripts
+	//****************************************************************************************************************--->	
+</cfsilent>
+<cfinclude template="#application.baseUrl#/includes/templates/tailEndScripts.cfm" />
+
+<!--- 
+Note: if the Zion theme is screwed up, check the use custom theme setting in the ini file.
+--->
+</body>
+</html>
+</cfprocessingdirective>

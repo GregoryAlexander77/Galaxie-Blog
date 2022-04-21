@@ -46,7 +46,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 			_dragCount = 0, //total number of elements currently being dragged
 			_prefix,
 			_isMultiTouching,
-			_isAndroid = (_gsScope.navigator && _gsScope.navigator.userAgent.toLowerCase().indexOf("android") !== -1), //Android handles touch events in an odd way and it's virtually impossible to "feature test" so we resort to UA sniffing
+			_isAndroid = (_gsScope.navigator && _gsScope.navigator.userAgent.toLowerCase().indexOf("android") !== -1), //Android handles touch events in an odd way and its virtually impossible to "feature test" so we resort to UA sniffing
 			_lastDragTime = 0,
 			_temp1 = {}, // a simple object we reuse and populate (usually x/y properties) to conserve memory and improve performance.
 			_windowProxy = {}, //memory/performance optimization - we reuse this object during autoScroll to store window-related bounds/offsets.
@@ -55,7 +55,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				if (typeof(a) === "string") {
 					a = TweenLite.selector(a);
 				}
-				if (!a || a.nodeType) { //if it's not an array, wrap it in one.
+				if (!a || a.nodeType) { //if its not an array, wrap it in one.
 					return [a];
 				}
 				var b = [],
@@ -169,7 +169,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				return _tempEvent;
 			},
 
-			//grabs the first element it finds (and we include the window as an element), so if it's selector text, it'll feed that value to TweenLite.selector, if it's a jQuery object or some other selector engine's result, it'll grab the first one, and same for an array. If the value doesn't contain a DOM element, it'll just return null.
+			//grabs the first element it finds (and we include the window as an element), so if its selector text, it'll feed that value to TweenLite.selector, if its a jQuery object or some other selector engine's result, it'll grab the first one, and same for an array. If the value doesn't contain a DOM element, it'll just return null.
 			_unwrapElement = function(value) {
 				if (!value) {
 					return value;
@@ -255,7 +255,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				}
 				return neg ? -pix : pix;
 			},
-			_calculateOffset = function(t, p) { //for figuring out "top" or "left" in px when it's "auto". We need to factor in margin with the offsetLeft/offsetTop
+			_calculateOffset = function(t, p) { //for figuring out "top" or "left" in px when its "auto". We need to factor in margin with the offsetLeft/offsetTop
 				if (_getStyle(t, "position", true) !== "absolute") { return 0; }
 				var dim = ((p === "left") ? "Left" : "Top"),
 					v = _getStyle(t, "margin" + dim, true);
@@ -323,7 +323,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 					wrapper = _createElement("div"),
 					style = div.style,
 					parent = _doc.body || _docElement,
-					isFlex = (_getStyle(parent, "display", true) === "flex"), //Firefox bug causes getScreenCTM() to return null when parent is display:flex and the element isn't rendered inside the window (like if it's below the scroll position)
+					isFlex = (_getStyle(parent, "display", true) === "flex"), //Firefox bug causes getScreenCTM() to return null when parent is display:flex and the element isn't rendered inside the window (like if its below the scroll position)
 					matrix, e1, point, oldValue;
 				if (_doc.body && _transformProp) {
 					style.position = "absolute";
@@ -362,7 +362,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				// -- end _svgScrollOffset calculation.
 				parent.appendChild(svg);
 				if (isFlex) {
-					parent.style.display = "block"; //Firefox bug causes getScreenCTM() to return null when parent is display:flex and the element isn't rendered inside the window (like if it's below the scroll position)
+					parent.style.display = "block"; //Firefox bug causes getScreenCTM() to return null when parent is display:flex and the element isn't rendered inside the window (like if its below the scroll position)
 				}
 				matrix = svg.getScreenCTM();
 				e1 = matrix.e;
@@ -407,7 +407,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 					cache = _cache(e),
 					eRect, parentRect, offsetParent, cs, m, i, point1, point2, borderWidth, borderHeight, width, height;
 				cache.lastUpdate = TweenLite.ticker.frame;
-				if (e.getBBox && !cache.isSVGRoot) { //if it's a nested/child SVG element, we must find the parent SVG canvas and measure the offset from there.
+				if (e.getBBox && !cache.isSVGRoot) { //if its a nested/child SVG element, we must find the parent SVG canvas and measure the offset from there.
 					curElement = e.parentNode;
 					eRect = e.getBBox();
 					while (curElement && (curElement.nodeName + "").toLowerCase() !== "svg") {
@@ -484,7 +484,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				if (y === "center" || y == null) {
 					y = "50%";
 				}
-				if (x === "center" || isNaN(parseFloat(x))) { //remember, the user could flip-flop the values and say "bottom center" or "center bottom", etc. "center" is ambiguous because it could be used to describe horizontal or vertical, hence the isNaN(). If there's an "=" sign in the value, it's relative.
+				if (x === "center" || isNaN(parseFloat(x))) { //remember, the user could flip-flop the values and say "bottom center" or "center bottom", etc. "center" is ambiguous because it could be used to describe horizontal or vertical, hence the isNaN(). If there's an "=" sign in the value, its relative.
 					x = "50%";
 				}
 				if (e.getBBox && _isSVG(e)) { //SVG elements must be handled in a special way because their origins are calculated from the top left.
@@ -536,7 +536,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				}
 				return cache;
 			},
-			_getOffset2DMatrix = function(e, offsetOrigin, parentOffsetOrigin, zeroOrigin, isBase) {  //"isBase" helps us discern context - it should only be true when the element is the base one (the one at which we're starting to walk up the chain). It only matters in cases when it's an <svg> element itself because that's a case when we don't apply scaling.
+			_getOffset2DMatrix = function(e, offsetOrigin, parentOffsetOrigin, zeroOrigin, isBase) {  //"isBase" helps us discern context - it should only be true when the element is the base one (the one at which we're starting to walk up the chain). It only matters in cases when its an <svg> element itself because that's a case when we don't apply scaling.
 				if (e === window || !e || !e.style || !e.parentNode) {
 					return [1,0,0,1,0,0];
 				}
@@ -912,7 +912,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				return vars;
 			},
 
-			_isClickable = function(e) { //sometimes it's convenient to mark an element as clickable by adding a data-clickable="true" attribute (in which case we won't preventDefault() the mouse/touch event). This method checks if the element is an <a>, <input>, or <button> or has an onclick or has the data-clickable or contentEditable attribute set to true (or any of its parent elements).
+			_isClickable = function(e) { //sometimes its convenient to mark an element as clickable by adding a data-clickable="true" attribute (in which case we won't preventDefault() the mouse/touch event). This method checks if the element is an <a>, <input>, or <button> or has an onclick or has the data-clickable or contentEditable attribute set to true (or any of its parent elements).
 				var data;
 				return (!e || !e.getAttribute || e.nodeName === "BODY") ? false : ((data = e.getAttribute("data-clickable")) === "true" || (data !== "false" && (e.onclick || _clickableTagExp.test(e.nodeName + "") || e.getAttribute("contentEditable") === "true"))) ? true : _isClickable(e.parentNode);
 			},
@@ -927,7 +927,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 				}
 			},
 
-			_addPaddingBR = (function() { //this function is in charge of analyzing browser behavior related to padding. It sets the _addPaddingBR to true if the browser doesn't normally factor in the bottom or right padding on the element inside the scrolling area, and it sets _addPaddingLeft to true if it's a browser that requires the extra offset (offsetLeft) to be added to the paddingRight (like Opera).
+			_addPaddingBR = (function() { //this function is in charge of analyzing browser behavior related to padding. It sets the _addPaddingBR to true if the browser doesn't normally factor in the bottom or right padding on the element inside the scrolling area, and it sets _addPaddingLeft to true if its a browser that requires the extra offset (offsetLeft) to be added to the paddingRight (like Opera).
 				var div = _doc.createElement("div"),
 					child = _doc.createElement("div"),
 					childStyle = child.style,
@@ -1024,7 +1024,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 						}
 					}
 					element.scrollLeft = value | 0;
-					prevLeft = element.scrollLeft; //don't merge this with the line above because some browsers adjsut the scrollLeft after it's set, so in order to be 100% accurate in tracking it, we need to ask the browser to report it.
+					prevLeft = element.scrollLeft; //don't merge this with the line above because some browsers adjsut the scrollLeft after its set, so in order to be 100% accurate in tracking it, we need to ask the browser to report it.
 				};
 
 				this.top = function(value, force) {
@@ -1080,7 +1080,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 						element.appendChild(node);
 						node = nextNode;
 					}
-					if (element === content.parentNode) { //in case disable() is called when it's already disabled.
+					if (element === content.parentNode) { //in case disable() is called when its already disabled.
 						element.removeChild(content);
 					}
 				};
@@ -1113,7 +1113,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 						this.left(-element.scrollLeft);
 						this.top(-element.scrollTop);
 					}
-					//first, we need to remove any width constraints to see how the content naturally flows so that we can see if it's wider than the containing element. If so, we've got to record the amount of overage so that we can apply that as padding in order for browsers to correctly handle things. Then we switch back to a width of 100% (without that, some browsers don't flow the content correctly)
+					//first, we need to remove any width constraints to see how the content naturally flows so that we can see if its wider than the containing element. If so, we've got to record the amount of overage so that we can apply that as padding in order for browsers to correctly handle things. Then we switch back to a width of 100% (without that, some browsers don't flow the content correctly)
 					if (!widthMatches || force) {
 						style.display = "block";
 						style.width = "auto";
@@ -1207,7 +1207,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 						}
 					},
 
-					//this method gets called on every tick of TweenLite.ticker which allows us to synchronize the renders to the core engine (which is typically synchronized with the display refresh via requestAnimationFrame). This is an optimization - it's better than applying the values inside the "mousemove" or "touchmove" event handler which may get called many times inbetween refreshes.
+					//this method gets called on every tick of TweenLite.ticker which allows us to synchronize the renders to the core engine (which is typically synchronized with the display refresh via requestAnimationFrame). This is an optimization - its better than applying the values inside the "mousemove" or "touchmove" event handler which may get called many times inbetween refreshes.
 					render = function(suppressEvents) {
 						if (self.autoScroll && self.isDragging && (checkAutoScrollBounds || dirty)) {
 							var e = target,
@@ -1538,7 +1538,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 							startElementY = scrollProxy.top();
 							startElementX = scrollProxy.left();
 						} else {
-							//if the element is in the process of tweening, don't force snapping to occur because it could make it jump. Imagine the user throwing, then before it's done, clicking on the element in its inbetween state.
+							//if the element is in the process of tweening, don't force snapping to occur because it could make it jump. Imagine the user throwing, then before its done, clicking on the element in its inbetween state.
 							if (isTweening()) {
 								syncXY(true, true);
 								calculateBounds();
@@ -1594,7 +1594,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 						}
 						if (typeof(snap) === "function") {
 							return function(n) {
-								var edgeTolerance = !self.isPressed ? 1 : 1 - self.edgeResistance; //if we're tweening, disable the edgeTolerance because it's already factored into the tweening values (we don't want to apply it multiple times)
+								var edgeTolerance = !self.isPressed ? 1 : 1 - self.edgeResistance; //if we're tweening, disable the edgeTolerance because its already factored into the tweening values (we don't want to apply it multiple times)
 								return snap.call(self, (n > max ? max + (n - max) * edgeTolerance : (n < min) ? min + (n - min) * edgeTolerance : n)) * factor;
 							};
 						}
@@ -1628,7 +1628,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 								var edgeTolerance = !self.isPressed ? 1 : 1 - self.edgeResistance,
 									x = point.x,
 									y = point.y,
-									result, dx, dy; //if we're tweening, disable the edgeTolerance because it's already factored into the tweening values (we don't want to apply it multiple times)
+									result, dx, dy; //if we're tweening, disable the edgeTolerance because its already factored into the tweening values (we don't want to apply it multiple times)
 								point.x = x = (x > maxX ? maxX + (x - maxX) * edgeTolerance : (x < minX) ? minX + (x - minX) * edgeTolerance : x);
 								point.y = y = (y > maxY ? maxY + (y - maxY) * edgeTolerance : (y < minY) ? minY + (y - minY) * edgeTolerance : y);
 								result = snap.call(self, point);
@@ -1768,7 +1768,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 						touches = e.changedTouches;
 						if (touches) { //touch events store the data slightly differently
 							e = touches[0];
-							if (e !== touch && e.identifier !== touchID) { //Usually changedTouches[0] will be what we're looking for, but in case it's not, look through the rest of the array...(and Android browsers don't reuse the event like iOS)
+							if (e !== touch && e.identifier !== touchID) { //Usually changedTouches[0] will be what we're looking for, but in case its not, look through the rest of the array...(and Android browsers don't reuse the event like iOS)
 								i = touches.length;
 								while (--i > -1 && (e = touches[i]).identifier !== touchID) {}
 								if (i < 0) {
@@ -1981,7 +1981,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 							touches = e.changedTouches;
 							if (touches) { //touch events store the data slightly differently
 								e = touches[0];
-								if (e !== touch && e.identifier !== touchID) { //Usually changedTouches[0] will be what we're looking for, but in case it's not, look through the rest of the array...(and Android browsers don't reuse the event like iOS)
+								if (e !== touch && e.identifier !== touchID) { //Usually changedTouches[0] will be what we're looking for, but in case its not, look through the rest of the array...(and Android browsers don't reuse the event like iOS)
 									i = touches.length;
 									while (--i > -1 && (e = touches[i]).identifier !== touchID) {}
 									if (i < 0) {
@@ -2000,7 +2000,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 							}
 							_dispatchEvent(self, "release", "onRelease");
 						} else if (originalEvent && !wasDragging) {
-							if (interrupted && (vars.snap || vars.bounds)) { //otherwise, if the user clicks on the object while it's animating to a snapped position, and then releases without moving 3 pixels, it will just stay there (it should animate/snap)
+							if (interrupted && (vars.snap || vars.bounds)) { //otherwise, if the user clicks on the object while its animating to a snapped position, and then releases without moving 3 pixels, it will just stay there (it should animate/snap)
 								animate(vars.throwProps);
 							}
 							_dispatchEvent(self, "release", "onRelease");
@@ -2077,7 +2077,7 @@ var _gsScope = (typeof(module) !== "undefined" && module.exports && typeof(globa
 						if (isModern && (alreadyDispatched || (recentlyDragged && self.vars.suppressClickOnDrag !== false) )) {
 							e.stopImmediatePropagation();
 						}
-						if (recentlyClicked && !(self.pointerEvent && self.pointerEvent.defaultPrevented) && (!alreadyDispatched || (trusted !== alreadyDispatchedTrusted))) { //let the first click pass through unhindered. Let the next one only if it's trusted, then no more (stop quick-succession ones)
+						if (recentlyClicked && !(self.pointerEvent && self.pointerEvent.defaultPrevented) && (!alreadyDispatched || (trusted !== alreadyDispatchedTrusted))) { //let the first click pass through unhindered. Let the next one only if its trusted, then no more (stop quick-succession ones)
 							if (trusted && alreadyDispatched) {
 								trustedClickDispatch = clickTime;
 							}

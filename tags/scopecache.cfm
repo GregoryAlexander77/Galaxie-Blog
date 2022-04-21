@@ -2,16 +2,17 @@
 	Name         : scopeCache
 	Author       : Raymond Camden (jedimaster@mindseye.com)
 	Created      : December 12, 2002
-	Last Updated : August 21, 2008
+	Last Updated : August 21, 2008, very minor argument name changes by Gregory in 2021.
 	History      : Allow for clearAll (rkc 11/6/03)
 				 : Added dependancies, timeout, other misc changes (rkc 1/8/04)
 				 : Found bug where if you called it with clear and used />, the cache was screwed up (rkc 2/15/05)
 				 : Typos in msg for bad timeout (rkc 2/15/05)
 				 : Added locking to scopeCache subkey creation (rkc 2/15/05)
-				 : Added r_cacheItems (rkc 2/15/05)
+				 : Added getCacheItems (rkc 2/15/05)
 				 : Moved logic around to make it simpler (rkc 2/15/05)
 				 : Dependencies fix, and support Request scope (rkc 2/27/08)
 				 : Support for file based caching (rkc 8/21/08)
+				 : Gregory changed the r_cacheItems and r_data to getCacheItems and getCacheData
 	Purpose		 : Allows you to cache content in various scopes.
 	Documentation:
 	
@@ -29,18 +30,18 @@
 					Also, any children of those children will also be cleared. (optional)
 	clear:			If passed and if true, will clear out the cached item. Note that
 					this option will NOT recreate the cache. In other words, the rest of
-					the tag isn't run (well, mostly, but don't worry).
+					the tag isn't run (well, mostly, but dont worry).
 	clearAll:		Removes all data from this scope. Exits the tag immidiately.
 	disabled:		Allows for a quick exit out of the tag. How would this be used? You can 
 					imagine using disabled="#request.disabled#" to allow for a quick way to
 					turn on/off caching for the entire site. Of course, all calls to the tag
 					would have to use the same value.
-	r_cacheItems:	Returns a list of keys in the cache. Exists the tag when called. NOTICE! Some items
+	getCacheItems:	Returns a list of keys in the cache. Exists the tag when called. NOTICE! Some items
 					may be expired. Items only get removed if you are fetching them or calling CLEAR on them.
-	r_data:			Returns the value directly.
+	getCacheData:	Returns the value directly.
 	data:			Sets the value directly.
 	file:			Fully qualified file name for file based caching.
-	suppressHitCount: Only used for file operations - if passed, we don't bother updating the file based cache with the hit count. Makes the file IO a bit less.
+	suppressHitCount: Only used for file operations - if passed, we dont  bother updating the file based cache with the hit count. Makes the file IO a bit less.
 
 	License		 : Use this as you will. If you enjoy it and it helps your application, 
 				   consider sending me something from my Amazon wish list:
@@ -89,8 +90,8 @@
 </cfif>
 
 <!--- Do they simply want the keys? --->
-<cfif isDefined("attributes.r_cacheItems") and attributes.scope neq "file">
-	<cfset caller[attributes.r_cacheItems] = structKeyList(ptr.scopeCache)>
+<cfif isDefined("attributes.getCacheItems") and attributes.scope neq "file">
+	<cfset caller[attributes.getCacheItems] = structKeyList(ptr.scopeCache)>
 	<cfexit method="exitTag">
 </cfif>
 
@@ -141,10 +142,10 @@
 				<cflock scope="#attributes.scope#" type="exclusive" timeout="30">
 					<cfset ptr.scopeCache[attributes.name].hitCount = ptr.scopeCache[attributes.name].hitCount + 1>
 				</cflock>			
-				<cfif not isDefined("attributes.r_Data")>
+				<cfif not isDefined("attributes.getCacheData")>
 					<cfoutput>#ptr.scopeCache[attributes.name].value#</cfoutput>
 				<cfelse>
-					<cfset caller[attributes.r_Data] = ptr.scopeCache[attributes.name].value>
+					<cfset caller[attributes.getCacheData] = ptr.scopeCache[attributes.name].value>
 				</cfif>
 				<cfexit method="exitTag">
 			</cfif>
@@ -156,10 +157,10 @@
 				<cfwddx action="wddx2cfml" input="#contents#" output="data">
 			</cflock>
 			<cfif dateCompare(now(),data.timeout) is -1>
-				<cfif not isDefined("attributes.r_Data")>
+				<cfif not isDefined("attributes.getCacheData")>
 					<cfoutput>#data.value#</cfoutput>
 				<cfelse>
-					<cfset caller[attributes.r_Data] = data.value>
+					<cfset caller[attributes.getCacheData] = data.value>
 				</cfif>
 				<cfif not structKeyExists(attributes, "suppressHitCount")>
 					<cflock name="#attributes.file#" type="exclusive" timeout="30">
@@ -189,8 +190,8 @@
 			<cfset ptr.scopeCache[attributes.name].dependancies = attributes.dependancies>
 			<cfset ptr.scopeCache[attributes.name].hitCount = 0>
 			<cfset ptr.scopeCache[attributes.name].created = now()>
-			<cfif isDefined("attributes.r_Data")>
-				<cfset caller[attributes.r_Data] = ptr.scopeCache[attributes.name].value>
+			<cfif isDefined("attributes.getCacheData")>
+				<cfset caller[attributes.getCacheData] = ptr.scopeCache[attributes.name].value>
 			</cfif>
 		<cfelse>
 			<cfset data = structNew()>
@@ -207,8 +208,8 @@
 				<cfwddx action="cfml2wddx" input="#data#" output="packet">
 				<cffile action="write" file="#attributes.file#" output="#packet#" charset="UTF-8">
 			</cflock>
-			<cfif isDefined("attributes.r_Data")>
-				<cfset caller[attributes.r_Data] = data.value>
+			<cfif isDefined("attributes.getCacheData")>
+				<cfset caller[attributes.getCacheData] = data.value>
 			</cfif>
 		</cfif>
 	</cfif>

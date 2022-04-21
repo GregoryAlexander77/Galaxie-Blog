@@ -1,14 +1,5 @@
 <cfcomponent displayname="ServiceKey.cfc" output="no">
 
-<cfscript>
-function isLoggedIn() {
-	return structKeyExists(session,"loggedin");
-}
-
-function cfcIsLoggedIn(){
-	return isLoggedIn();
-}
-</cfscript>
 <!---
 *****************************************************************************************************************************************  
 Security tokens and keys.

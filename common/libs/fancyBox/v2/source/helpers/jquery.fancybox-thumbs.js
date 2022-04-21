@@ -78,7 +78,7 @@
 						return;
 					}
 
-					//Calculate thumbnail width/height and center it
+					// Calculate thumbnail width/height and center it
 					widthRatio  = width / thumbWidth;
 					heightRatio = height / thumbHeight;
 

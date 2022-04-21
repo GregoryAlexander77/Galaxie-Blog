@@ -8,11 +8,9 @@
 	History      : support imageroot (rkc 12/14/06)
 --->
 
-<cfif len(application.imageroot)>
-	<cfset sImgRoot = "../" & application.imageroot />
-<cfelse>
-	<cfset sImgRoot = "../images/" />
-</cfif>
+
+<cfset sImgRoot = "../images/" />
+
 
 <cfset sImgRoot = application.utils.fixUrl(sImgRoot) />
 <cfset imageDirectory = expandPath(sImgRoot) />
@@ -78,7 +76,7 @@ function insertIt(url) {
 			<img src="#application.rooturl#/images/#img#"> #name#
 		</cfif>
 		</td>
-		<td><cfif type is not "Dir">#kbytes(size)#<cfelse>&nbsp;</cfif></td>
+		<td><!---<cfif type is not "Dir">#kbytes(size)#<cfelse>&nbsp;</cfif>---></td>
 		<td><cfif type is not "Dir"><a href="javascript:showImage('#urlEncodedFormat(application.utils.fixUrl("#sImgRoot#/#url.dir#/#name#"))#')"><img src="#sImgRoot#/#url.dir#/#name#" width="50" height"50" align="absmiddle" border="0"></a><cfelse>&nbsp;</cfif></td>
 		<td width="50" align="center">
 		<cfif type is not "Dir">

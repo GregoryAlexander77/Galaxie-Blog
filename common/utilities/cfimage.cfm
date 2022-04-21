@@ -263,7 +263,7 @@
 				
 				<!--- Resize the new image. For portrait images, we are going to resize the image to 550 pixels wide. --->
 				<cfset imageResize(shareImage, 550, '')>
-				<!--- We know the width of the new image that was just created (550), now get it's height --->
+				<!--- We know the width of the new image that was just created (550), now get its height --->
 				<cfset shareImageHeight = imageGetHeight(shareImage)>
 				<!--- Crop the resized image from the center (centerCrop(path/image, originalWidth, originalHeight, newWidth, newHeight). We don't need to determine an aspect ratio. It is a square. --->
 				<cfset shareImage = centerCrop(shareImage, 550, shareImageHeight, thisImageWidth, thisImageHeight)>
@@ -290,7 +290,7 @@
 				</cfif>
 				<!--- We are going to resize the new image to the precrop size and then crop it again. I want extra space to make sure that it fits our target size. We are putting in a blank argument for the height in order to keep the aspect ratio of the original image. --->
 				<cfset imageResize(shareImage, preCropSize, '')>
-				<!--- We know the width of the new image that was just created (250), now get it's height --->
+				<!--- We know the width of the new image that was just created (250), now get its height --->
 				<cfset shareImageHeight = imageGetHeight(shareImage)>
 				<!--- Crop the resized image from the center (centerCrop(path/image, originalWidth, originalHeight, newWidth, newHeight). We don't need to determine an aspect ratio. It is a square. --->
 				<cfset shareImage = centerCrop(shareImage, preCropSize, shareImageHeight, thisImageWidth, thisImageHeight)>

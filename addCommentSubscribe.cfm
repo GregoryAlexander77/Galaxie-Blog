@@ -9,15 +9,10 @@
 	Usage		 : This template requires a single argument, uiInterface. The uiInterface argument should either be 'addComment' or 'subscribe'. The inteface is essentially the same but the subscribe interface does not 		
 				   require the user's name, website, and comments.
 --->
-	
-<!--- Include the resource bundle. --->
-<cfset getResourceBundle = application.utils.getResource>
-<!--- Include the UDF --->
-<cfinclude template="includes/udf.cfm">
 
 <cfparam name="commenterName" default="">
 <cfparam name="commenterEmail" default="">
-<cfparam name="commenterWebsite" default="http://">
+<cfparam name="commenterWebsite" default="">
 <cfparam name="comments" default="">
 <cfparam name="rememberMe" default="false">
 <cfparam name="subscribe" default="false">
@@ -39,15 +34,22 @@
 </cfif>			
 	
 <cfif isDefined("URL.Id") and URL.id neq ''>
-	<cfset entry = application.blog.getEntry(URL.Id, true)>
+	<!--- Get the individual post --->
+	<cfset getPost = application.blog.getPostByPostId(URL.Id, true)>
+		
+	<!--- Set the values that we will need. Note: there should only be one element in the getPost array. --->
+	<cfset postId = getPost[1]["PostId"]>
+	<cfset title = getPost[1]["Title"]>
+	<cfset allowComment = getPost[1]["AllowComment"]>
+		
 </cfif>
 
 <!--- Set UI specific params. --->
 <cfif URL.uiElement eq 'addComment'>
 	<!--- I am keeping the localization labels if they exist. I may add in localization for the stuff that I coded in the next version. --->
-	<cfset submitButtonLabel = getResourceBundle("post")>
+	<cfset submitButtonLabel = "Submit Comment">
 <cfelseif URL.uiElement eq 'subscribe'>
-	<cfset submitButtonLabel = getResourceBundle("subscribe")>
+	<cfset submitButtonLabel = "Subscribe">
 <cfelseif URL.uiElement eq 'contact'>
 	<cfset submitButtonLabel = "Contact">
 </cfif>
@@ -73,7 +75,10 @@
 <!---Note: we do not want duplicate doctypes, titles, and head tags here. These are already included in the layout.cfm template (ga).
 This section has been completely redesigned by Gregory --->
 </cfsilent>
-<!---<cfoutput>#URL.uiElement#</cfoutput>--->
+<!---
+<cfoutput>#URL.uiElement#</cfoutput>
+<cfdump var="#getPost#">
+--->
 		
 <script>
 	$(document).ready(function() {
@@ -125,7 +130,7 @@ This section has been completely redesigned by Gregory --->
 			captchaTextObj: captchaTextDs = new kendo.data.DataSource({
 			  transport: {
 				read:  {
-					url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=getCaptchaAsJson", // the cfc component which processes the query and returns a json string. 
+					url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=getCaptchaAsJson,", // the cfc component which processes the query and returns a json string. 
 					dataType: "json", // Use json if the template is on the current server. If not, use jsonp for cross domain reads.
 					method: "post" // Note: when the method is set to "get", the query will be cached by default. This is not ideal. 
 				},//..read
@@ -150,11 +155,10 @@ This section has been completely redesigned by Gregory --->
 		sessionStorage.setItem("postButtonClicked", "false");
 		// Preset our sessionStorage var. This is set to '' initially to indicate that server side validation has not yet occurred.
 		sessionStorage.setItem("captchaValidated", "");
-		// Set the initial value of the captchaValidatedValue form element. We need to store this in order to know when to hit the server with a new validation request. We don't want to hit the server 3 times a second unless the text value has actually changed.
+		// Set the initial value of the captchaValidatedValue form element. We need to store this in order to know when to hit the server with a new validation request. We don't  want to hit the server 3 times a second unless the text value has actually changed.
 		sessionStorage.setItem("captchaValidatedValue", "");
 		// Since the kendo validator occurs so quickly, it may send an erroneous value to the server the a few times before it picks up the new value that was entered. We need to allow several attempts to occur when we hit the server. This is a numeric value that will be incremented.
 		sessionStorage.setItem("captchaValidatedAttempts", "0");
-		
 		
 		// Invoked when the submit button is clicked. Instead of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
 		var addCommentSubmit = $('#addCommentSubmit');
@@ -267,7 +271,7 @@ This section has been completely redesigned by Gregory --->
 								// debugging alert('Yes!');
 								// Set the value on the cache object so that it can be referenced in the next validation run. Note: sessionStorage can only store strings.
 								sessionStorage.setItem("captchaValidated", "yes");
-								// At the tail end of the validation process, when the validated data is complete, post the data. Since we have passed validation, we don't need to hit the 'captcha' custom rule above again.
+								// At the tail end of the validation process, when the validated data is complete, post the data. Since we have passed validation, we don't  need to hit the 'captcha' custom rule above again.
 								if (addCommentFormValidator.validate()) {
 									// Hide the custom window message
 									kendo.ui.ExtAlertDialog.hide;
@@ -312,7 +316,7 @@ This section has been completely redesigned by Gregory --->
 								addCommentFormValidator.validate();
 							}, 2000);// Wait 2 seconds to hit the server again.
 						}//..success: function(data) {
-						// Notes: success() only gets called if your webserver responds with a 200 OK HTTP header - basically when everything is fine. However, complete() will always get called no matter if the ajax call was successful or not. It's worth mentioning that .complete() will get called after .success() gets called - if it matters to you.
+						// Notes: success() only gets called if your webserver responds with a 200 OK HTTP header - basically when everything is fine. However, complete() will always get called no matter if the ajax call was successful or not. its worth mentioning that .complete() will get called after .success() gets called - if it matters to you.
 					
 					});//..$.ajax({
 				}//..if (element.val() != getCapthchaValidatedValue()){
@@ -324,7 +328,7 @@ This section has been completely redesigned by Gregory --->
 	// Validation helper functions. These must be oustide of the document ready block in order to work.
 	// Note: due to the latency of the data coming back from the server, we need to have two points to post a completely validated form to the server for processing. The first point is when the user clicks the submit form button, and the second point is at the tail end of the processing when the server has validated data. 
 		
-	// I am using sessionStorage to store the value from the server in order to effect the captach widget that I developed. I don't want to have to ask the user to go thru the captha validation process multiple times within the same session and don't want to have to write out the logic every time.
+	// I am using sessionStorage to store the value from the server in order to effect the captach widget that I developed. I don't  want to have to ask the user to go thru the captha validation process multiple times within the same session and don't want to have to write out the logic every time.
 	// NEW Determine if the post button was clicked.
 	function wasPostButtonClicked(){
 		return sessionStorage.getItem("postButtonClicked");
@@ -379,19 +383,19 @@ This section has been completely redesigned by Gregory --->
 
 </script>
 <cfsilent>
-<!---Notes: this form serves two purposes, 1) to make a comment, 2) and to subscribe. It has separate interfaces for 1) the desktop web application, 2) and an interface for mobile. The desktop design puts the label to the right of the form, and the mobile puts the label on a separate row above the form. --->
+<!--- Notes: this form serves two purposes, 1) to make a comment, 2) and to subscribe. It has separate interfaces for 1) the desktop web application, 2) and an interface for mobile. The desktop design puts the label to the right of the form, and the mobile puts the label on a separate row above the form. --->
 </cfsilent>
 <!-- Notes: 
 1) Kendo generally requires that the form is outside of the container.
-2) The Kendo window is not responsive, and has it's own internal properties that are hardcoded, so I need to reset properties using inline styles, such as font-size.
+2) The Kendo window is not responsive, and has its own internal properties that are hardcoded, so I need to reset properties using inline styles, such as font-size.
 -->
 <form id="addCommentSubscribe" name="addCommentSubscribe" action="addCommentSubscribe.cfm" method="post" data-role="validator">
 <table align="center" class="k-content" width="100%" cellpadding="0" cellspacing="0" style="font-size: 16px;">
 	<cfif URL.uiElement neq 'contact'>
 		<!--- Hidden form elements to pass in required vars --->
-		<input type="hidden" id="entryTitle" name="entryTitle" value="<cfoutput>#entry.title#</cfoutput>" />
+		<input type="hidden" id="postTitle" name="postTitle" value="<cfoutput>#title#</cfoutput>" />
 	</cfif>
-	<cfif URL.uiElement eq 'contact' or entry.allowcomments>
+	<cfif URL.uiElement eq 'contact' or allowComment>
 	<cfsilent>
 		<!--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 		Mobile design 
@@ -403,14 +407,13 @@ This section has been completely redesigned by Gregory --->
 		<!-- Name -->
 		<tr class="k-content">
 			<td>
-				<label for="commenterName">#getResourceBundle("name")#:</label>
+				<label for="commenterName">Name:</label>
 			</td>
 		</tr>
 		<tr class="k-content">
 			<td>
 				<!--- Important note: when using Kendo and Ajax, all forms should have both an ID and a name attribute! --->
-				<input type="text" id="commenterName" name="commenterName" value="#commenterName#" class="k-textbox" style="width: <cfoutput>#textInputWidth#</cfoutput>;"  
-					   required validationMessage="Enter your name." />
+				<input type="text" id="commenterName" name="commenterName" value="#commenterName#" class="k-textbox" style="width: <cfoutput>#textInputWidth#</cfoutput>;" required validationMessage="Enter your name." />
 			</td>
 		</tr>
 		<!-- Border and spacer. -->
@@ -427,7 +430,7 @@ This section has been completely redesigned by Gregory --->
 		<!-- Email -->
 		<tr class="<cfif URL.uiElement neq 'subscribe'>k-alt<cfelse>k-content</cfif>">
 			<td>
-				<label for="commenterEmail">#getResourceBundle("emailaddress")#:</label>
+				<label for="commenterEmail">Email:</label>
 			</td>
 		</tr>
 		<tr class="<cfif URL.uiElement neq 'subscribe'>k-alt<cfelse>k-content</cfif>">
@@ -452,13 +455,12 @@ This section has been completely redesigned by Gregory --->
 		<!-- Comments -->
 		<tr height="35px" class="k-content">
 			<td>
-				<label for="comments">#getResourceBundle("comments")#:</label>
+				<label for="comments">Comment:</label>
 			</td>
 		</tr>
 		<tr height="35px" class="k-content">
 			<td>
-				<textarea name="comments" id="comments" rows="5" cols="25" style="height: #textAreaHeight#; width:<cfoutput>#textInputWidth#</cfoutput>;" 
-						  required validationMessage="Enter comment."></textarea>
+				<textarea name="comments" id="comments" rows="5" cols="25" style="height: #textAreaHeight#; width:<cfoutput>#textInputWidth#</cfoutput>; font-family: 'Arial', Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', 'DejaVu Sans', Verdana, 'sans-serif'" required validationMessage="Enter comment."></textarea>
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->
@@ -473,12 +475,12 @@ This section has been completely redesigned by Gregory --->
 			<td height="5px"></td>
 		</tr>
 		</cfoutput>
-		<cfif application.useCaptcha and not isLoggedIn()>
+		<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
 		<!-- Captcha -->
 		<tr height="35px" class="k-alt">
 			<td>
 				<!--- Captcha logic in its own table. This is a Kendo Mvvm template.  --->
-				<div id="captchaImage" class="container k-alt">
+				<div id="captchaImage" class="k-alt">
 					<table align="left" class="k-alt" width="100%" cellpadding="0" cellspacing="0">
 						<!--- The source refers to the javascript code that will be used to populate the control, the template is the UI and it is not associated with the javascript code. --->
 						<tbody data-bind="source: captchaTextObj" data-template="captchaTemplate" data-visible="true"></tbody>
@@ -510,10 +512,10 @@ This section has been completely redesigned by Gregory --->
 							</td>
 						</tr>	
 					</script>
-				</div><!---<div id="captchaImage" class="container">--->
+				</div><!---<div id="captchaImage" class="k-alt">--->
 			</td>
 		</tr>
-		</cfif><!---<cfif application.useCaptcha and not isLoggedIn()>--->	
+		</cfif><!---<cfif application.useCaptcha and not application.Udf.isLoggedIn()>--->	
 		<!-- Border and spacer. -->
 		<tr class="k-alt">
 			<td height="5px"></td>
@@ -534,7 +536,7 @@ This section has been completely redesigned by Gregory --->
 	<cfif URL.uiElement neq 'contact'>
 		<tr class="k-content">
 			<td>
-				<input type="checkbox" id="subscribe" name="subscribe" aria-label="Subscribe" value="1" <cfif uiElement eq 'subscribe' or (isBoolean(subscribe) and subscribe)>checked="checked"</cfif> /> <label for="subscribe">#getResourceBundle("subscribe")#</label>
+				<input type="checkbox" id="subscribe" name="subscribe" aria-label="Subscribe" value="1" <cfif uiElement eq 'subscribe' or (isBoolean(subscribe) and subscribe)>checked="checked"</cfif> /> <label for="subscribe">Subscribe</label>
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'contact'>--->
@@ -553,7 +555,7 @@ This section has been completely redesigned by Gregory --->
 			<td>
 				<!--- Note: the onclick event is defined in the javascript on this page. --->
 				<input id="addCommentSubmit" name="addCommentSubmit" value="#submitButtonLabel#" class="k-button k-primary" style="width: #submitButtonWidth#px;" />
-				<input type="reset" id="reset" value="#getResourceBundle("cancel")#" class="k-button" onClick="addCommentReset();"  style="width: #submitButtonWidth#px;" />
+				<input type="reset" id="reset" value="Cancel" class="k-button" onClick="addCommentReset();"  style="width: #submitButtonWidth#px;" />
 				<!---
 				<input type="close" id="close" value="close" class="k-button" onClick="closeAddCommentSubscribeWindow();"  style="width: #submitButtonWidth#px;" />
 				--->
@@ -573,7 +575,7 @@ This section has been completely redesigned by Gregory --->
 	<cfif URL.uiElement neq 'subscribe'>
 		<tr height="35px" class="k-content">
 			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>">
-				<label for="commenterName">#getResourceBundle("name")#:</label>
+				<label for="commenterName">Name:</label>
 			</td>
 			<td width="5px"></td>
 			<td align="left" width="*">
@@ -585,7 +587,7 @@ This section has been completely redesigned by Gregory --->
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->
 		<tr height="35px" class="k-content">
 			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>px">
-				<label for="commenterEmail">#getResourceBundle("emailaddress")#:</label>
+				<label for="commenterEmail">Email:</label>
 			</td>
 			<td width="5px"></td>
 			<td align="left">
@@ -598,7 +600,7 @@ This section has been completely redesigned by Gregory --->
 	<cfif URL.uiElement neq 'subscribe'>
 		<tr height="35px" class="k-content">
 			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>">
-				<label for="commenterWebSite">#getResourceBundle("website")#:</label>
+				<label for="commenterWebSite">Website:</label>
 			</td>
 			<td width="5px"></td>
 			<td align="left">
@@ -619,7 +621,7 @@ This section has been completely redesigned by Gregory --->
 		</tr>
 		<tr height="35px" class="k-alt">
 			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>">
-				<label for="comments">#getResourceBundle("comments")#:</label>
+				<label for="comments">Comment:</label>
 			</td>
 			<td width="5px"></td>
 			<td align="left">
@@ -629,11 +631,11 @@ This section has been completely redesigned by Gregory --->
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->
 		</cfoutput>
-		<cfif application.useCaptcha and not isLoggedIn()>
+		<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
 		<tr class="k-alt">
 			<td colspan="3" align="left">
 				<!--- Captcha logic in its own table. This is a Kendo Mvvm template.  --->
-				<div id="captchaImage" class="container k-alt">
+				<div id="captchaImage" class="k-alt">
 					<table align="left" class="k-alt" width="100%" cellpadding="0" cellspacing="0">
 						<!--- The source refers to the javascript code that will be used to populate the control, the template is the UI and it is not associated with the javascript code. --->
 						<tbody data-bind="source: captchaTextObj" data-template="captchaTemplate" data-visible="true"></tbody>
@@ -668,10 +670,10 @@ This section has been completely redesigned by Gregory --->
 						</td>
 					</tr>
 				 </script>
-				</div><!---<div id="captchaImage" class="container">--->
+				</div><!---<div id="captchaImage" class="k-alt">--->
 			</td>
 		</tr>
-		</cfif><!---<cfif application.useCaptcha and not isLoggedIn()>--->
+		</cfif><!---<cfif application.useCaptcha and not application.Udf.isLoggedIn()>--->
 		<cfoutput>
 		<tr>
 			<td colspan="3" height="5px" class="k-alt"></td>
@@ -694,7 +696,7 @@ This section has been completely redesigned by Gregory --->
 			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>"></td>
 			<td></td>
 			<td>
-				<input type="checkbox" id="subscribe" name="subscribe" aria-label="Subscribe" value="1" <cfif uiElement eq 'subscribe' or (isBoolean(subscribe) and subscribe)>checked="checked"</cfif> /> <label for="subscribe">#getResourceBundle("subscribe")#</label>
+				<input type="checkbox" id="subscribe" name="subscribe" aria-label="Subscribe" value="1" <cfif uiElement eq 'subscribe' or (isBoolean(subscribe) and subscribe)>checked="checked"</cfif> /> <label for="subscribe">Subscribe</label>
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'contact'>--->
@@ -713,7 +715,7 @@ This section has been completely redesigned by Gregory --->
 			<td>
 				<!--- Note: the onclick event is defined in the javascript on this page. --->
 				<input id="addCommentSubmit" name="addCommentSubmit" value="#submitButtonLabel#" class="k-button k-primary" style="width: #submitButtonWidth#px;" />
-				<input type="reset" id="reset" value="#getResourceBundle("cancel")#" class="k-button" onClick="addCommentReset();"  style="width: #submitButtonWidth#px;" />
+				<input type="reset" id="reset" value="Cancel" class="k-button" onClick="addCommentReset();"  style="width: #submitButtonWidth#px;" />
 				<!---
 				<input type="close" id="close" value="close" class="k-button" onClick="closeAddCommentSubscribeWindow();"  style="width: #submitButtonWidth#px;" />
 				--->
@@ -727,10 +729,10 @@ This section has been completely redesigned by Gregory --->
 		</tr>
 		</cfoutput>
 	</cfif>
-	<cfelse><!---<cfif entry.allowcomments>--->
+	<cfelse><!---<cfif allowComment>--->
 		<cfoutput>
-		<p>#getResourceBundle("commentsnotallowed")#</p>
+		<p>Comments are not allowed</p>
 		</cfoutput>
-	</cfif><!---<cfif entry.allowcomments>--->
+	</cfif><!---<cfif allowComment>--->
 </table>
 </form>

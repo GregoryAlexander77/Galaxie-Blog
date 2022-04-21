@@ -53,7 +53,7 @@ var _doc = (_gsScope.document || {}).documentElement,
 				isRoot = (!container || container === _window || container === b),
 				cRect = isRoot ? {top:_doc.clientTop - (window.pageYOffset || _doc.scrollTop || b.scrollTop || 0), left:_doc.clientLeft - (window.pageXOffset || _doc.scrollLeft || b.scrollLeft || 0)} : container.getBoundingClientRect(),
 				offsets = {x: rect.left - cRect.left, y: rect.top - cRect.top};
-			if (!isRoot && container) { //only add the current scroll position if it's not the window/body.
+			if (!isRoot && container) { //only add the current scroll position if its not the window/body.
 				offsets.x += _buildGetter(container, "x")();
 				offsets.y += _buildGetter(container, "y")();
 			}
@@ -63,7 +63,7 @@ var _doc = (_gsScope.document || {}).documentElement,
 				isRoot = (!container || container === _window || container === document.body),
 				cRect = (isRoot ? _doc : container).getBoundingClientRect(),
 				offsets = {x: rect.left - cRect.left, y: rect.top - cRect.top};
-			if (!isRoot && container) { //only add the current scroll position if it's not the window/body.
+			if (!isRoot && container) { //only add the current scroll position if its not the window/body.
 				offsets.x += _buildGetter(container, "x")();
 				offsets.y += _buildGetter(container, "y")();
 			}
@@ -115,7 +115,7 @@ var _doc = (_gsScope.document || {}).documentElement,
 				return true;
 			},
 
-			//called each time the values should be updated, and the ratio gets passed as the only parameter (typically it's a value between 0 and 1, but it can exceed those when using an ease like Elastic.easeOut or Back.easeOut, etc.)
+			//called each time the values should be updated, and the ratio gets passed as the only parameter (typically its a value between 0 and 1, but it can exceed those when using an ease like Elastic.easeOut or Back.easeOut, etc.)
 			set: function(v) {
 				this._super.setRatio.call(this, v);
 
@@ -132,7 +132,7 @@ var _doc = (_gsScope.document || {}).documentElement,
 					this.y = 0;
 				}
 				if (this._autoKill) {
-					//note: iOS has a bug that throws off the scroll by several pixels, so we need to check if it's within 7 pixels of the previous one that we set instead of just looking for an exact match.
+					//note: iOS has a bug that throws off the scroll by several pixels, so we need to check if its within 7 pixels of the previous one that we set instead of just looking for an exact match.
 					if (!this.skipX && (xDif > threshold || xDif < -threshold) && x < _max(this._target, "x")) {
 						this.skipX = true; //if the user scrolls separately, we should stop tweening!
 					}
