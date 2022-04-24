@@ -37,17 +37,10 @@
 			Get the posts. The posts can either be one post, or multiple posts. It is designed this way to keep the output logic the same.
 	//****************************************************************************************************************--->
 	
-	<!--- Determine if we should display non released entries when logged in. --->
-	<cfif isDefined("cookie.isAdmin") or application.Udf.isLoggedIn()>
-		<cfset previewNonReleasedEntries = true>
-	<cfelse>
-		<cfset previewNonReleasedEntries = false>
-	</cfif>
-	
 	<!--- Get the post count (note: this function must be placed above the getPost invocation below) --->
 	<cfset postCount = application.blog.getPostCount(params, previewNonReleasedEntries)>
-	<!--- Get the posts. --->
-	<cfset getPost = application.blog.getPost(params, previewNonReleasedEntries)>
+	<!--- Get the posts ( getPost(params,showRemovedPosts,showJsonLd,showPromoteAtTopOfQuery) ) --->
+	<cfset getPost = application.blog.getPost(params,false,true,true)>
 		
 	<!--- Handle errors when the post was not found --->
 	<cfif arrayLen(getPost) eq 0>

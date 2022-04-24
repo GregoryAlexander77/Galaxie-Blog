@@ -384,7 +384,7 @@
 						DatePosted as DatePosted)
 					FROM Post as Post 
 					WHERE 0=0
-						AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+						<!-----AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">--->
 						AND PostId = <cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.postId#" maxlength="35">
 						AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 				</cfquery>
@@ -4206,14 +4206,13 @@
 			hint="Helper function for the getPost method. The getPost method expects a structure, so here we will take a postId and turn it into a structure that will be passed to the get post method that will allow us to use a single postId.">	
 		<cfargument name="postId" type="numeric" required="true">
 		<cfargument name="showRemovedPosts" type="boolean" required="false" default="false">
-		<cfargument name="loggedIn" type="boolean" required="false" default="false">
 		
 		<!--- Create our parameters struct --->
 		<cfset params = structNew()>
 		<!--- Stuff the postId into the new struct. --->
 		<cfset params.byEntry = val(postId)>
-		<!--- Invoke the getPost method sending in the new struct. --->
-		<cfset getPost = application.blog.getPost(params,showRemovedPosts,loggedIn)>
+		<!--- Invoke the getPost method sending in the new struct ((getPost(params, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery))). --->
+		<cfset getPost = application.blog.getPost(params,showRemovedPosts,false,false)>
 			
 		<!--- Return it. --->
 		<cfreturn getPost>
@@ -4267,7 +4266,7 @@
 			FROM Post as Post 
 			WHERE Post.Released = 1
 			AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
-			ORDER BY Post.DatePosted ASC
+			ORDER BY Post.DatePosted DESC
 		</cfquery>
 		
 		<cfreturn Data>
@@ -4469,13 +4468,14 @@
 		</cfif>
 			
 	</cffunction>
-		
+	
 	<cffunction name="getPost" access="public" returnType="any" output="true"
-		hint="This is Raymonds original function with major changes. Returns one more more posts. Allows for a params structure to configure what entries are returned. I am going to revise this in the next version as the params are hard to identify and want to pass in the arguments in the params struct instead.">
+		hint="This is Raymonds original function with major changes. Returns one more more posts. Allows for a params structure to configure what entries are returned. I am going to revise this in the next version as the params are hard to identify and want to pass in the arguments in the params struct instead. Note: this is often invoked using getPost(params,showRemovedPosts,showJsonLd,showPromoteAtTopOfQuery)">
 		
 		<cfargument name="params" type="struct" required="false" default="#structNew()#">
 		<cfargument name="showRemovedPosts" type="boolean" required="false" default="false">
 		<cfargument name="showJsonLd" type="boolean" required="false" default="false" hint="The Json Ld sting can be quite large and it should not be included unless it is needed.">
+		<cfargument name="showPromoteAtTopOfQuery" type="boolean" required="false" default="true" hint="The RSS template needs to order the query by the date and can't have the promoted posts at the top of the query">
 			
 		<cfset debug = true>
 			
@@ -4608,6 +4608,7 @@
 			<cfif showJsonLd>
 				Post.JsonLd as JsonLd,
 			</cfif>
+				Post.Remove as Remove,
 				Enclosure.MediaId as MediaId,
 				Enclosure.MediaTitle as MediaTitle,
 				Enclosure.MediaPath as MediaPath,
@@ -4699,7 +4700,11 @@
 				AND Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
 			</cfif>
 			AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
-			ORDER BY Post.Promote DESC, Post.DatePosted DESC
+			<cfif showPromoteAtTopOfQuery>
+				ORDER BY Post.Promote DESC, Post.DatePosted DESC
+			<cfelse>
+				ORDER BY Post.DatePosted DESC
+			</cfif>
 			<!--- ORDER BY #arguments.params.orderBy# #arguments.params.orderByDir# --->
 		</cfquery>	
 		<!---<cfdump var="#Data#">--->
@@ -4770,6 +4775,7 @@
 						<cfset PostStruct["JsonLd"] = "">
 					</cfif>
 				</cfif>
+				<cfset PostStruct["Remove"] = Data[i]["Remove"]>
 				<!--- The post header may be null as well --->
 				<cfif structKeyExists(postRow, "PostHeader")>
 					<cfset PostStruct["PostHeader"] = Data[i]["PostHeader"]>
@@ -7508,9 +7514,8 @@
 		<cfif (structKeyExists(arguments.params,"maxEntries") and arguments.params.maxEntries gt 15) or not structKeyExists(arguments.params,"maxEntries")>
 			<cfset arguments.params.maxEntries = 15>
 		</cfif>
-
-		<!--- Get the array from the database. --->
-		<cfset getPost = application.blog.getPost(arguments.params)>
+		<!--- Get the array from the database. Do not show the promoted posts at the top of the query (getPost(params, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery)).  --->
+	<cfset getPost = application.blog.getPost(arguments.params,false,false,false)>
 
 		<cfif not find("-", z.utcHourOffset)>
 			<cfset utcPrefix = " -">
