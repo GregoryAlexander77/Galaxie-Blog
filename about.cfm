@@ -70,27 +70,86 @@
 
 	<p><b>Credits</b></p>
 	<p>This blog would not have been possible without <a href="http://www.coldfusionjedi.com">Raymond Camden</a>. Raymond developed <a href="http://www.blogcfc.com/views/main/docs/index.htm">BlogCfc</a>, on which this platform was originally based. Raymond is a ColdFusion enthusiast who authored thousands of ColdFusion related posts on the internet. Like every senior ColdFusion web developer; I have found his posts invaluable and have based many of my own ColdFusion libraries based upon his approach.</p>
-
-	<p><b>Installation</b></p>
-	<p>The installation package is found either on <a href="https://github.com/GregoryAlexander77/gregorysBlog/archive/master.zip">Galaxie Blog</a>, or on <a href="https://github.com/GregoryAlexander77/gregorysBlog">Github</a>. After downloading and extracting the installation package, you will see the Apache 2.0 license and two folders, blog and install. You can rename the blog folder to anything that you would like, or you can copy the contents of the folder and remove the blog folder. You don't need to keep the same structure. Galaxie Blog will adjust the paths as necessary when running the web based installer. Upload all of these files to your web server. Of course, your web server must be running ColdFusion. I have tested the software on both ColdFusion 2016 and 2018 and the software should work on all recent ColdFusion servers*. You will also need to have a database. It is recommended that you use Microsoft SQL Server, or MySql, but this blog should also work with Oracle and Microsoft Access. </p>
-
-	<p>Once the files have been uploaded to your own web server, you need to navigate to the installer. Unless you have renamed or removed the blog folder, the default path would be '/blog/installer/'. The installer should walk you through the installation process. After the installation process, you will need to fine tune the settings using the blog's administrative interface. The default administrative interface is found under /blog/admin/' There are articles on this web site that explains the settings in detail. If you have a problem, please email me, or make a comment on this website, and I will try to help you.</p>
-
-	<p>If you use this blog, I hope that you will give me credit and link back to <a href="http://www.gregoryalexander.com">www.gregoryalexander.com</a>, preferably by leaving this content found under 'about' - 'download' link intact in the menu. I also ask that you inform me if you find bugs, or have any suggestions.</p>
-
-	<p>Copyright 2019 Gregory Alexander</p>
-
-	<button type="button" class="k-button k-primary" style="#kendoButtonStyle#">
-		<i class="fas fa-file-download" style="color:whitesmoke"></i>&nbsp;&nbsp;<a href="https://github.com/GregoryAlexander77/gregorysBlog/archive/master.zip" style="color:whitesmoke">Download ZIP</a>
-	</button>
-
+			
+	<p><strong>Getting the software</strong></p>
+	<ol>
+	<li>Galaxie Blog can be downloaded from the <a title="Galaxie Blog Git Hub Repository" href="https://github.com/GregoryAlexander77/Galaxie-Blog" target="_blank" rel="noopener">Galaxie Blog Git Hub Repository</a>.</li>
+	</ol>
+		
 	<button type="button" class="k-button k-primary" style="#kendoButtonStyle#">
 		<i class="fab fa-github" style="color:whitesmoke"></i>&nbsp;&nbsp;<a href="https://github.com/GregoryAlexander77/gregorysBlog" style="color:whitesmoke">Github Project</a>
 	</button>
 
-	<p>* I suggest that you run this using ColdFusion 2016 if you want to use this blog's captcha features. The captcha library that Peter J. Farrel developed uses the com.sun.image.codec.jpeg.JPEGCodec library, which is depracated in ColdFusion 2018. I intend to rewrite the underlying logic to handle captcha differently in a future release. </p>
+	<p><b>Installation</b></p>
+	<li>You must have a ColdFusion installed on a server.
+	<ul>
+	<li><strong>Important note</strong>: if you are using ColdFusion 2018 or 2021, you must <strong>not </strong>check the <strong>Disable access to internal ColdFusion Java components </strong>checkbox in the ColdFusion Administrator as it will cause the Javaloader, which this blog uses, to fail. Unfortunately, many ISPs, such as Hostek.com shared sites, have this setting enabled on CF2018 and CF2021. Use ColdFusion 2016 if you don't have access to the ColdFusion administrator to turn this setting off.</li>
+	<li>Your web server must have ColdFusion installed. Galaxie Blog has been tested on ColdFusion 2016, 2018, and 2021.</li>
+	<li>Theoretically, the blog may support any ColdFusion edition starting from ColdFusion 9, however, your mileage may vary.</li>
+	<li>We have successfully tested against Apache, TomCat and IIS.</li>
+	<li>We have not yet tested the blog on Lucee, an open-source version of Adobe ColdFusion. We intend on supporting Lucee in the future.</li>
+	<li>There are many ISPs which offer ColdFusion servers for as low as 12 dollars a month. Search the web for ColdFusion hosting to find out more.</li>
+	</ul>
+	</li>
+	<li>Once downloaded, upload the entire contents into your desired location on a web server
+	<ul>
+	<li>You can install the contents in the root, or in folder in the root directory of your server.</li>
+	<li>We have tested the blog in the root, and in 'blog' and 'galaxie' folders.</li>
+	</ul>
+	</li>
+	<li>You must have a database that is accessible to the webserver. The blog was <strong><em>should</em></strong> support the following databases, however, we have only tested the blog using SQL Server:
+	<ul>
+	<li>Microsoft SQL Server</li>
+	<li>DB2</li>
+	<li>DB2AS400</li>
+	<li>DB2OS390</li>
+	<li>Derby</li>
+	<li>Informix</li>
+	<li>MySQL</li>
+	<li>MySQLwithInnoDB</li>
+	<li>MySQLwithMyISAM</li>
+	<li>Oracle8i</li>
+	<li>Oracle9i</li>
+	<li>Oracle10g</li>
+	<li>PostgreSQL</li>
+	<li>Sybase</li>
+	<li>SybaseAnywhere</li>
+	</ul>
+	</li>
+	<li>Create the database to install Galaxie Blog in.
+	<ul>
+	<li>You may install Galaxie Blog using your current database, however, you need to make sure that there are no table name conflicts. We will document the database schema in later blog posts.</li>
+	<li>We have tested Galaxie Blog using our original BlogCFC database with no conflicts.</li>
+	</ul>
+	</li>
+	<li>Create a ColdFusion DSN for the database that you intend to install Galaxie Blog in.</li>
+	</ol>
+	<p><strong>Enable Woff and Woff2 Font Support on the Webserver<br></strong>Galaxie Blog uses web fonts for typography and needs web font mime types set up on the webserver. Most modern web servers already support these web font mime types, but you may need to set the following mime types need to be set up on some servers. If the server does not support these mime types certain textual elements will not be displayed.&nbsp;</p>
+	<ol>
+	<li>.woff (use font/woff as the mime type).</li>
+	<li>.woff2 (use font/woff2 as the mime type).</li>
+	</ol>
+	<p><strong>Installing the software</strong></p>
+	<ol>
+	<li>Migrate to the URL of your uploaded blog and the blog should automatically open the installer.
+	<ul>
+	<li>For example, if you uploaded the files in the root directory go to <a href="http://yourdomain.com/">http://yourdomain.com/</a>.</li>
+	<li>If you uploaded to a blog directory in your root, go to <a href="http://yourdomain.com/blog/,">http://yourdomain.com/blog/,</a> etc.</li>
+	</ul>
+	</li>
+	<li>The installer will guide you and ask you to enter information, such as your URL, blog name, and other information.&nbsp;</li>
+	<li>The installer is a 7 step process. Each screen has may provide information and ask you to hit the next button or have multiple questions. It should not take more than 5 minutes to fill out.</li>
 
-	<p>Version <cfoutput>#application.blog.getVersion()#</cfoutput> January 16th 2022.</p>
+	<li>Be sure to write down your chosen user name and password. You will need to retain this information. Galaxie Blog does not retain passwords- the passwords are hashed using the strongest publicly available encryption process and they cannot be recovered.</li>
+	<li>Once you are done, the installer will automatically create the database and import the needed data. In the final step, it may take a while for the software to be installed. If there is a time-out error, refresh the browser and the installation should continue.</li>
+	<li>Once installed, you should see your new blog with a 'No Entries' message on the front page. You will not see any blog posts until you make them using the administrative site, see below.</li>
+	</ol>
+
+	<p>If you use this blog, I hope that you will give me credit and link back to <a href="http://www.gregoryalexander.com">www.gregoryalexander.com</a>, preferably by leaving this content found under 'about' - 'download' link intact in the menu. I also ask that you inform me if you find bugs, or have any suggestions.</p>
+
+	<p>Copyright 2022 Gregory Alexander</p>
+
+	<p>Version <cfoutput>#application.blog.getVersion()#</cfoutput> April 15th 2022.</p>
 		
 </cfif>
 

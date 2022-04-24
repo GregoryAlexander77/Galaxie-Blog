@@ -1555,8 +1555,8 @@ TinyMce styles
 			// Create a var to determine whether we sould prompt the user to email
 			var promptToEmailToSubscribers = <cfoutput>#promptToEmailToSubscribers#</cfoutput>;
 	
-			// If the post is released, prompt to see if we should send an email to the subscribers
-			if (promptToEmailToSubscribers && $('#released').is(':checked')){
+			// If the post is released and it is not being removed, prompt to see if we should send an email to the subscribers
+			if ( promptToEmailToSubscribers && $('#released').is(':checked') && !$('#remove').is(':checked') ){
 				$.when(kendo.ui.ExtYesNoDialog.show({ 
 					title: "<cfoutput>#promptEmailTitle#</cfoutput>",
 					message: "<cfoutput>#promptEmailMessage#</cfoutput>",
@@ -10401,9 +10401,11 @@ Custom element markup example for videos:
 	<cfset backgroundImageResolution = application.BlogOptionDbObj.getBackgroundImageResolution()>
 	<cfset addThisApiKey = application.BlogOptionDbObj.getAddThisApiKey()>
 	<cfset addThisToolboxString = application.BlogOptionDbObj.getAddThisToolboxString()>
+	<!--- Note: the API for Disqus changed recently, now we only need the blog identifier and the API Key. I am keeping the secret field for potential future use --->
 	<cfset disqusBlogIdentifier = application.BlogOptionDbObj.getDisqusBlogIdentifier()>
 	<cfset disqusApiKey = application.BlogOptionDbObj.getDisqusApiKey()>
 	<cfset disqusApiSecret = application.BlogOptionDbObj.getDisqusApiSecret()>
+	<!--- The following 3 Disqus vars are no longer needed. --->
 	<cfset disqusAuthTokenKey = application.BlogOptionDbObj.getDisqusAuthTokenKey()>
 	<cfset disqusAuthUrl = application.BlogOptionDbObj.getDisqusAuthUrl()>
 	<cfset disqusAuthTokenUrl = application.BlogOptionDbObj.getDisqusAuthTokenUrl()>
@@ -10846,7 +10848,7 @@ Custom element markup example for videos:
 	<!---//***********************************************************************************************
 						Add This
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Add This Libary</button>
+	<button type="button" class="collapsible k-header">Add This Library</button>
 	<div class="content k-content">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 			
@@ -11141,14 +11143,13 @@ Custom element markup example for videos:
 				<input type="text" name="disqusApiSecret" id="disqusApiSecret" value="<cfoutput>#disqusApiSecret#</cfoutput>" class="k-textbox" style="width: 50%" />
 			</td>
 		  </tr>
-		</cfif>	  
-		  <!-- Border -->
+		</cfif>	
+		<!--- The following fields are no longer needed (as of 2021) --->
+		<!--- Start depracted disqus fields
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
 		<cfif session.isMobile>
@@ -11162,7 +11163,7 @@ Custom element markup example for videos:
 				<input type="text" name="disqusAuthTokenKey" id="disqusAuthTokenKey" value="<cfoutput>#disqusAuthTokenKey#</cfoutput>" class="k-textbox" style="width: 95%" />
 			</td>
 		  </tr>
-		<cfelse><!---<cfif session.isMobile>--->
+		<cfelse>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="disqusAuthTokenKey">Disqus Auth Token Key:</label>
@@ -11172,13 +11173,10 @@ Custom element markup example for videos:
 			</td>
 		  </tr>
 		</cfif>	  
-		  <!-- Border -->
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
 		<cfif session.isMobile>
@@ -11192,7 +11190,7 @@ Custom element markup example for videos:
 				<input type="text" name="disqusAuthUrl" id="disqusAuthUrl" value="<cfoutput>#disqusAuthUrl#</cfoutput>" class="k-textbox" style="width: 95%" />
 			</td>
 		  </tr>
-		<cfelse><!---<cfif session.isMobile>--->
+		<cfelse>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="disqusAuthUrl">Disqus Auth URL:</label>
@@ -11202,13 +11200,10 @@ Custom element markup example for videos:
 			</td>
 		  </tr>
 		</cfif>	  
-		  <!-- Border -->
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
 		<cfif session.isMobile>
@@ -11222,7 +11217,7 @@ Custom element markup example for videos:
 				<input type="text" name="disqusAuthTokenUrl" id="disqusAuthTokenUrl" value="<cfoutput>#disqusAuthTokenUrl#</cfoutput>" class="k-textbox" style="width: 95%" />
 			</td>
 		  </tr>
-		<cfelse><!---<cfif session.isMobile>--->
+		<cfelse>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="disqusAuthTokenUrl">Disqus Auth Token URL:</label>
@@ -11231,7 +11226,9 @@ Custom element markup example for videos:
 				<input type="text" name="disqusAuthTokenUrl" id="disqusAuthTokenUrl" value="<cfoutput>#disqusAuthTokenUrl#</cfoutput>" class="k-textbox" style="width: 50%" />
 			</td>
 		  </tr>
-		</cfif>	  
+		</cfif>	
+		End depracated disqus fields
+		--->
 		  <!-- Border -->
 		  <tr height="2px">
 			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
