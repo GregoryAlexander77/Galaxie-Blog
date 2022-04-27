@@ -782,7 +782,7 @@
 
 			<!--- Wrap the gallery with a '<gallery>' tag --->
 			<cfif i eq 1>
-				<cfset htmlStr = '<gallery data-name="' & galleryName & '">'>	
+				<cfset htmlStr = '<gallery data-galleryid="#galleryId#" data-name="' & galleryName & '">'>	
 			</cfif>	
 			<!--- Construct our anchor tag. --->
 			<cfif generateTinyMcePreview>
@@ -1401,6 +1401,8 @@
 		<cfargument name="callToActionText" type="string" required="no" default="">
 		<cfargument name="callToActionLink" type="string" required="no" default="">
 		<cfargument name="unSubscribeLink" type="string" required="no" default="">
+			
+		<cfoutput>application.blogHostUrl: #application.blogHostUrl# application.siteUrl: #application.siteUrl# application.blogDomain: #application.blogDomain#</cfoutput>
 			
 		<!--- Set display properties --->
 		<cfset maxWidth = "720">

@@ -43,7 +43,7 @@
 		
 	</cffunction>
 			
-	<cffunction name="removeGalleryIframes" access="public" output="false" returntype="any" 
+	<cffunction name="removeGalleryIframes" access="public" output="true" returntype="any" 
 			hint="This function will remove iframes that are generated for gallery preview for the tinymce editor and replace them with inline gallery code. This function is used to inspect the post contents when they are posted to the server to remove the iframes and store the inline code in the database.">
 		<cfargument name="post" type="string" required="yes" hint="Pass in the content of the post">
 			
@@ -60,31 +60,48 @@
 			<!--- Load the post --->
 			<cfset PostJSoupObj = JSoupObj.parse(arguments.post)>
 
-			<!--- Select div's with a data-type of gallery --->
+			<!--- Select div's with a data-type of gallery. --->
 			<cfset GalleryObj = PostJSoupObj.select("div[data-type=gallery]")>	
 			<!---<cfdump var="#GalleryObj#" label="GalleryObj"><br/>--->
+			<!---<cfoutput>#GalleryObj.html()#</cfoutput>--->
 
 			<!--- Loop through all of the gallery jsoup objects. --->
-			<cfloop array="#GalleryObj#" index="i">
+			<cfloop from="1" to="#arrayLen(GalleryObj)#" index="i">
+				<!---<cfoutput>i: #i#<br/></cfoutput>--->
 
-				<!--- Note: when selecting iframes we need to select the first iframe found instead of trying to select them all. If we select them all, the selected iframes will not be a JSoup object, instead it will return the html as Jsoup handles iframes differently than other elements. The only way to select an iframe and to work with it as an object is to select the first element or each individual element with a get(int). Even though we are selecting the first element, we still will get all of the iframes here as we are looping through the gallery div's and each one should contain an iframe. --->
-				<cfset GalleryIframeObj = i.select("iframe").first()>
-				<!---<cfdump var="#GalleryIframeObj.html()#" label="GalleryIframeObj">--->
-
-				<!--- Get the value of the galleryId found in the data-id attribute --->
-				<cfset galleryId = GalleryObj.attr("data-id")>
-				<!---galleryId:<cfoutput>#galleryId#</cfoutput>--->
-
-				<!--- Now that we have a galleryId, pass it to the database to construct the gallery code. This function will generate the HTML for this galleryId. --->
-				<cfset newGalleryHtml = RendererObj.renderImageGalleryFromDb(galleryId, true)>
-				<!---newGalleryHtml: <cfoutput>#newGalleryHtml#</cfoutput>--->
-
-				<!--- Use a simple regex to remove iframe tags from content and to replace it with the new content that was just generated from the database. I could continue to use JSoup here, but it is more complicated. --->
-				<cfset newPostContent = rereplaceNoCase(GalleryObj.html(), "<iframe.*?</iframe>", newGalleryHtml, "all")>
-
+				<!--- Determine if this gallery div contains an iframe. --->
+				<cfif GalleryObj[i].html() contains '<iframe'>
+					
+					<!--- Get the data-id. This is the galleryId that we need to regenerate the HTML --->
+					<cfset galleryId = GalleryObj[i].attr("data-id")>
+					<!---<cfoutput>galleryId: #galleryId#<br></cfoutput>--->
+						
+					<!--- Grab the HTML --->
+					<cfset originalGalleryHtml = GalleryObj[i].html()>
+					
+					<!--- Isolate the code with the iframe --->
+					<cfset GalleryIframeObj = GalleryObj[i].select("iframe")>
+						
+					<!--- Now that we have the galleryId and have removed the iframes, pass it to the database to construct the new gallery code. This function will generate the HTML for this galleryId. --->
+					<cfset newGalleryHtml = RendererObj.renderImageGalleryFromDb(galleryId, true)>
+					<!---newGalleryHtml: <cfoutput>#newGalleryHtml#</cfoutput>--->
+						
+					<!--- Set the GalleryObj's HTML. This will *replace* whatever is already there (ie the iframes with the content) with the new HTML that we generated from the database. --->
+					<cfset setHtml = GalleryObj[i].html(newGalleryHtml)>
+						
+					<!--- At the end of the loop return the html from the PostJSoupObj object. It is important to not that everytime we modify any child object of the PostJSoupObj using JSoup, we are modifying the parent PostJSoupObj object as well. --->
+					<cfif i eq arrayLen(GalleryObj)>
+						<cfset newPostContent = PostJSoupObj.html()>
+					</cfif>
+						
+				<cfelse>
+					<!---There is no iframe here, return the html--->
+					<cfset newPostContent = PostJSoupObj.html()>
+				</cfif>
+						
 			</cfloop>
-				
-			<!--- Return the original post if the iframes were not found. --->
+						
+			<!--- Return the original post if iframes were not found. --->
 			<cfif newPostContent eq ''>
 				<cfset newPostContent = arguments.post>
 			</cfif>

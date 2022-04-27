@@ -109,7 +109,7 @@
 							type: "get",
 							url: "https://disqus.com/api/3.0/forums/listPosts.json?related=thread",
 							data: {
-								// Passing my own keys.
+								// Passing Disqus keys.
 								api_key: "<cfoutput>#application.disqusApiKey#</cfoutput>",
 								forum:  "<cfoutput>#application.disqusBlogIdentifier#</cfoutput>",
 								limit: "<cfoutput>#numComments#</cfoutput>"

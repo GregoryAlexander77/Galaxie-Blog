@@ -2894,16 +2894,7 @@
 			<cfinvoke component="#application.baseComponentPath#.common.cfc.JSoup" method="removeGalleryIframes" returnvariable="postContent">
 				<cfinvokeargument name="post" value="#arguments.post#">
 			</cfinvoke>
-				
-			<!--- In order to view the Galaxie Blog Directives in tinyMce, we had to remove the opening and closing tags ('<', '>') from the directives and replace them with symbols (&lt; &gt;). Replace the less than symbol with the opening tag on the directives when we are going to the database. --->
-			<!--- Instantiate the Render.cfc. --->
-			<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-			<!--- The post content may not be defined when including a cfinclude in the post header. --->
-			<cfif isDefined("postContent") and len(postContent)>
-				<cfset postContent = RendererObj.renderGalaxieDirectiveFromTinyMceToDb(postContent)>
-			<cfelse>
-				<cfset postContent = " ">
-			</cfif>
+			<!---<cfoutput>removeGalleryIframes: #postContent#</cfoutput>--->
 			
 			<cfif not error>
 					
