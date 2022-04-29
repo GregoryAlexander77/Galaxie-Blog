@@ -16,7 +16,7 @@ Galaxie Blog has extensive SEO features to improve your ranking with the search 
 
 Galaxie Blog supports multiple users and user capabilities. There are 9 different user roles and dozens of unique capabilities. You can create new custom roles with unique capabilities. For example, you may assign one user to moderate the blog comments, and another to edit the contents of a post. 
 
-Galaxie Blog allows for custom templates to over-ride the default Galaxie Blog logic. Developers can use the custom templates to introduce new custom logic into the application and keep it separate from the core blog logic to allow the blog to remain current when new updates are made.
+Galaxie Blog allows for custom templates to over-ride the default Galaxie Blog logic. Developers can use custom templates to introduce new logic into the application and keep it separate from the core blog logic to allow the blog to remain current when new updates are made.
 
 Galaxie Blog has many unique features not found in other blogs. For example, the blog allows you to use javascripts and other advanced features into a blog post. The blog can also include a logical programming template using a ColdFusion cfinclude in your blog posts. The blog is also perfect for developers, the blog can display code and can be tailored to support the display of hundreds of different programming languages. Additionally, unlike the majority of other blog software, it displays your code on mobile devices perfectly.
 
