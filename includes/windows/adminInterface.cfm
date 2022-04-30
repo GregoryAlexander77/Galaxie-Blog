@@ -1918,22 +1918,27 @@ TinyMce styles
 			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0">
 				<tr>
 					<td width="25%" align="left">
-						<button id="postHeader" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(42,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Post Header</button>
-					</td>
-					<td width="25%" align="left">
-						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
+						<!--- Make the link --->
+						<cfset postUrl = application.blog.getPostUrlByPostId(getPost[1]['PostId'])>
+						<button id="postPreview" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="window.open('<cfoutput>#postUrl#</cfoutput>');">Preview</button>
 					</td>
 					<td width="25%" align="left">
 						<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Change Alias</button>
 					</td>
 					<td width="25%" align="left">
-						<!--- Next version:
+						<button id="postHeader" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(42,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Post Header</button>
+					</td>
+					<td width="25%" align="left">
+						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
+					</td>
+					<!---<td width="25%" align="left">
+						 Next version:
 						<button id="setTheme" class="k-button normalFontWeight" type="button" style="width: 175px">Set Theme</button>
 						--->
 						<!--- Next version:
 						<button id="scheduleRelease" class="k-button normalFontWeight" type="button" style="width: 175px">Schedule Release</button>
-						--->
-					</td>
+						
+					</td>--->
 				</tr>
 			</table>
 		</td>

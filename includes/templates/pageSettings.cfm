@@ -35,11 +35,11 @@ Note: in order to debug- remove the cfsilent that wraps around the pageSettings.
 </cfif>
 
 <cfif application.serverRewriteRuleInPlace>
-	<cfset thisUrl = replaceNoCase(application.rootURL, '/index.cfm', '')>
+	<cfset thisUrl = replaceNoCase(application.siteUrl, '/index.cfm', '')>
 	<!--- Create a blogUrl var. The thisUrl variable will be overwritten depending upon the page that is being viewed. --->
 	<cfset blogUrl = thisUrl>
 <cfelse>
-	<cfset thisUrl = application.rootURL>
+	<cfset thisUrl = application.siteUrl>
 	<cfset blogUrl = thisUrl>
 </cfif>
 	
@@ -94,6 +94,8 @@ Debugging:
 <cfset kendoTheme = getTheme[1]["KendoTheme"]>
 <!--- Is this a dark theme (such as Orion)? --->
 <cfset darkTheme = getTheme[1]["DarkTheme"]>
+<!--- We need to know if this is a modern theme to handle the side bar Disqus widget (among other potential things) --->
+<cfset modernTheme = getTheme[1]["ModernThemeStyle"]>
 
 <!--- 
 The default width of the containers that hold the blog content. I would suggest leaving this at 66% as I am checking the screen size later on and adjusting the css to this baseline value. I am using a bigger font than most of the blogCfc sites, so I am setting this at 66%, which is a bit wider than 50% which looks the best. This setting also affects the seach and searchResults windows which subtract 10% from this setting. 

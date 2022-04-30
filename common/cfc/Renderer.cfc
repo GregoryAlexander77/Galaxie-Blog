@@ -1402,7 +1402,7 @@
 		<cfargument name="callToActionLink" type="string" required="no" default="">
 		<cfargument name="unSubscribeLink" type="string" required="no" default="">
 			
-		<cfoutput>application.blogHostUrl: #application.blogHostUrl# application.siteUrl: #application.siteUrl# application.blogDomain: #application.blogDomain#</cfoutput>
+		<!---<cfoutput>application.blogHostUrl: #application.blogHostUrl# application.siteUrl: #application.siteUrl# application.blogDomain: #application.blogDomain#</cfoutput>--->
 			
 		<!--- Set display properties --->
 		<cfset maxWidth = "720">

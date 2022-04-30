@@ -37,10 +37,13 @@
 			Get the posts. The posts can either be one post, or multiple posts. It is designed this way to keep the output logic the same.
 	//****************************************************************************************************************--->
 	
-	<!--- Get the post count (note: this function must be placed above the getPost invocation below) --->
-	<cfset postCount = application.blog.getPostCount(params, previewNonReleasedEntries)>
-	<!--- Get the posts ( getPost(params,showRemovedPosts,showJsonLd,showPromoteAtTopOfQuery) ) --->
-	<cfset getPost = application.blog.getPost(params,false,true,true)>
+	<!--- 
+	Get the post count (getPostCount(params,showRemovedPosts))
+	(note: this function must be placed above the getPost invocation below)
+	--->
+	<cfset postCount = application.blog.getPostCount(params, false, false)>
+	<!--- Get the posts ( getPostCount(params,showRemovedPosts) ) --->
+	<cfset getPost = application.blog.getPost(params)>
 		
 	<!--- Handle errors when the post was not found --->
 	<cfif arrayLen(getPost) eq 0>
@@ -288,7 +291,7 @@
 		<!--- Set the canonicalUrl to point to the correct URL (this is a single page app and there will be duplicate pages found in the crawl unfortunately). --->
 		<cfif getPageMode() eq 'post'>
 			<cftry>
-				<cfset canonicalUrl  = application.blog.makeLink(articles.id[1])>
+				<cfset canonicalUrl  = application.blog.makeLink(postId)>
 				<cfcatch type="any">
 					<!--- This generally shows up when the link has changed. We will create a 404 status in order to drop the page from the search engines. --->
 					<cfset error = "Articles or Entry is not defined">

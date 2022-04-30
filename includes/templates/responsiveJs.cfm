@@ -30,7 +30,7 @@ Script to adjust properties depending upon the device screen size.
 				var windowHeight = $(window).height();
 
 				// Set the content width depending upon the screen size.
-				if (windowWidth <= 980){
+				if (windowWidth < 980){
 					var contentWidthPercent = desiredContentWidth + 40;
 				} else if (windowWidth <= 1140){
 					var contentWidthPercent = desiredContentWidth + 35;
@@ -128,6 +128,17 @@ Script to adjust properties depending upon the device screen size.
 		// Get the width of the header container which we need to align.
 		var headerContainerWidth = $( "#headerContainer" ).width();
 		// alert('contentWidthValue: ' + contentWidthValue + '\n parentContainerWidth: ' + parentContainerWidth + '\n mainContainerWidth: ' + mainContainerWidth + '\n getContentPaddingPixelWidth(): ' + getContentPaddingPixelWidth() + '\n mainContainerWidth + getContentPaddingPixelWidth(): ' + parentContainerWidth + getContentPaddingPixelWidth() + '\n headerContainerWidth: ' + headerContainerWidth);
+		
+		// If both the parent and header container widths are not null (when this function first loads), and the header does not match the width of the parent container, resize the header. The sizes may not identical as the padding expands the parent container by 20 (mobile) or 40 (desktop) pixels. I will fix this in an upcoming version.
+		if (!!parentContainerWidth && !!headerContainerWidth && parentContainerWidth != headerContainerWidth){
+			// alert('parentContainerWidth:' + parentContainerWidth + 'headerContainerWidth:' + headerContainerWidth);
+		<cfif headerBannerWidth eq '100%'>// The header, fixedNav header, and footer are set to stretch accross the page
+		<cfelse>$( "#headerContainer" ).width(parentContainerWidth + "px");
+			// Resize the width of the header elements.
+			$( "#fixedNavHeader" ).width(parentContainerWidth + "px");
+			$( "#footerDiv" ).width(parentContainerWidth + "px");
+		</cfif>
+		}
 		
 	}
 	

@@ -44,7 +44,7 @@
 	<meta name="robots" content="<cfif noIndex>noindex<cfelse>index, follow</cfif>" />
 	<!-- Twitter meta tags. -->			
 	<meta name="twitter:card" content="#twitterCardType#">
-	<meta name="twitter:site" content="@#thisUrl#">
+	<meta name="twitter:site" content="@#canonicalUrl#">
 	<meta name="twitter:title" content="#titleMetaTagValue#">
 	<meta name="twitter:description" content="#descriptionMetaTagValue#">
 	<meta name="twitter:image" content="#twitterImageMetaTagValue#?id=#createUuid()#">

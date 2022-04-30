@@ -877,6 +877,7 @@
 				KendoThemeRef.DarkTheme as DarkTheme,
 				ThemeSettingRef.ThemeSettingId as ThemeSettingId,
 				ThemeSettingRef.Breakpoint as Breakpoint,
+				0 as ModernThemeStyle,
 				ThemeSettingRef.FontRef.FontId as FontId,
 				ThemeSettingRef.FontRef.Font as Font,
 				ThemeSettingRef.FontRef.FontType as FontType,
@@ -955,6 +956,14 @@
 				<cfset Data[1]["BlogNameFontType"] = ''>
 			</cfif>
 		</cfif>
+				
+		<!--- Loop through the data and set the modern theme style. ORM does not have reliable case statements. --->
+		<cfloop from="1" to="#arrayLen(Data)#" index="i">
+			<!--- A modern theme has 0 as the breakpoint. --->
+			<cfif Data[i]["Breakpoint"] eq 0>
+				<cfset Data[i]["ModernThemeStyle"] = 1>
+			</cfif>	
+		</cfloop>
 				
 		<cfreturn Data>
 			
@@ -4881,8 +4890,6 @@
 		
 		<cfargument name="params" type="struct" required="false" default="#structNew()#">
 		<cfargument name="showRemovedPosts" type="boolean" required="false" default="false">
-		<cfargument name="showJsonLd" type="boolean" required="false" default="false" hint="The Json Ld sting can be quite large and it should not be included unless it is needed.">
-		<cfargument name="loggedIn" type="string" required="false" default="no" hint="Gregory added this argument to allow the administrators to preview entries that are not released.">
 			
 		<cfset var Data = []>
 
@@ -7487,11 +7494,11 @@
 	//******************************************************************************************--->
 
 	<cffunction name="generateRSS" access="public" returnType="string" output="false"
-			hint="Attempts to generate RSS v1 or v2">
+			hint="Generates RSSa 2 feeds. This was updated and validated in Galaxie Blog 3.0">
 		<cfargument name="mode" type="string" required="false" default="short" hint="If mode=short, show EXCERPT chars of entries. Otherwise, show all.">
 		<cfargument name="excerpt" type="numeric" required="false" default="250" hint="If mode=short, this how many chars to show.">
 		<cfargument name="params" type="struct" required="false" default="#structNew()#" hint="Passed to getPost. Note, maxEntries can't be bigger than 15.">
-		<cfargument name="version" type="numeric" required="false" default="2" hint="RSS verison, Options are 1 or 2">
+		<cfargument name="version" type="numeric" required="false" default="2" hint="Depracated. No longer supporting version 1">
 		<cfargument name="additionalTitle" type="string" required="false" default="" hint="Adds a title to the end of your blog title. Used mainly by the cat view.">
 
 		<cfset var articles = "">
@@ -7515,7 +7522,8 @@
 			<cfset arguments.params.maxEntries = 15>
 		</cfif>
 		<!--- Get the array from the database. Do not show the promoted posts at the top of the query (getPost(params, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery)).  --->
-	<cfset getPost = application.blog.getPost(arguments.params,false,false,false)>
+		<cfset getPost = application.blog.getPost(arguments.params,false,false,false)>
+		<!---<cfdump var="#getPost#">--->
 
 		<cfif not find("-", z.utcHourOffset)>
 			<cfset utcPrefix = " -">
@@ -7524,108 +7532,22 @@
 			<cfset utcPrefix = " +">
 		</cfif>
 
-		<cfif arguments.version is 1>
-
-			<cfsavecontent variable="header">
-			<cfoutput>
-			<?xml version="1.0" encoding="utf-8"?>
-			<rdf:RDF
-				xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns##"
-				xmlns:dc="http://purl.org/dc/elements/1.1/"
-				xmlns="http://purl.org/rss/1.0/">
-			</cfoutput>
-			</cfsavecontent>
-
-			<cfsavecontent variable="channel">
-				<cfoutput>
-				<channel rdf:about="#xmlFormat(application.rootURL)#">
-				<title>#xmlFormat(instance.blogTitle)##xmlFormat(arguments.additionalTitle)#</title>
-				<description>#xmlFormat(instance.blogDescription)#</description>
-				<link>#xmlFormat(application.rootURL)#</link>
-				<items>
-					<rdf:Seq>
-					<cfloop from="1" to="#arrayLen(getPost)#" index="i">
-						<cfsilent>
-						<!--- Set the variable values. I want to shorten the long variable names here. --->
-						<cfset postId = getPost[i]["PostId"]>
-						</cfsilent>
-						<rdf:li rdf:resource="#xmlFormat(makeLink(postId))#" />
-					</cfloop>
-					</rdf:Seq>
-				</items>
-
-				</channel>
-				</cfoutput>
-			</cfsavecontent>
-
-			<cfsavecontent variable="items">
-			<cfloop from="1" to="#arrayLen(getPost)#" index="i">
-				<!--- Extract data from the post --->
-				<cfset postId = getPost[i]["PostId"]>
-				<cfset fullName = getPost[i]["FullName"]>
-				<cfset mediaPath = getPost[i]["MediaPath"]>
-				<cfset title = getPost[i]["Title"]>
-				<cfset body = StringUtilsObj.getTextFromBody(getPost[i]["Body"])>
-				<cfset moreBody = getPost[i]["MoreBody"]>
-				<cfset datePosted = getPost[i]["DatePosted"]>
-				
-				<!--- We need to remove the 'index.cfm' string when a rewrite rule is in place. --->
-				<cfif application.serverRewriteRuleInPlace>
-					<cfset xmlLink = xmlFormat(replaceNoCase(xmlFormat(makeLink(postId)), '/index.cfm', ''))>
-				<cfelse>
-					<cfset xmlLink = xmlFormat(makeLink(postId))>
-				</cfif>
-					
-				<cfset dateStr = dateFormat(datePosted,"yyyy-mm-dd")>
-				<cfset dateStr = dateStr & "T" & timeFormat(datePosted,"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & ":00">
-					
-				<!--- Set the description. --->
-				<cfif arguments.mode is "short" and len(body) gte arguments.excerpt>
-					<!--- Remove the HTML tags and get the first 50 characters of the text. --->
-					<cfset thisDesc = left( body, arguments.excerpt ) & "...">
-				<cfelse>
-					<cfset thisDesc = body & morebody>
-				</cfif>
-					
-				<cfoutput>
-				<item rdf:about="#xmlLink#">
-				<title>#xmlFormat(title)#</title>
-				<description>#xmlFormat(thisDesc)#</description>
-				<link>#xmlLink#</link>
-				<dc:date>#dateStr#</dc:date>
-				<!--- Get the categories for this post. --->
-				<cfset getCategories = application.blog.getCategoriesByPostId(postId)>
-				<!--- Loop through the array to build a list of categories --->
-				<cfloop from="1" to="#arrayLen(getCategories)#" index="i">
-					<cfset category = getCategories[i]["Category"]>
-					<cfset catlist = listAppend(catlist, xmlFormat(category))>
-				</cfloop>
-				<dc:subject>#xmlFormat(catlist)#</dc:subject><cfsilent>Note: this repeats.</cfsilent>
-				</item>
-				</cfoutput>
-			 </cfloop>
-			 </cfsavecontent>
-
-			<cfset rssStr = trim(header & channel & items & "</rdf:RDF>")>
-
-		<cfelseif arguments.version eq "2">
-
-			<cfsavecontent variable="header">
+		<cfsavecontent variable="header">
 			<cfoutput><?xml version="1.0" encoding="utf-8"?>
 
 			<rss version="2.0" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns##" xmlns:cc="http://web.resource.org/cc/" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
 
 			<channel>
 			<title>#xmlFormat(instance.blogTitle)##xmlFormat(arguments.additionalTitle)#</title>
-			<link>#StringUtilsObj.trimStr(xmlFormat(application.rootURL))#</link>
+			<link>#StringUtilsObj.trimStr(xmlFormat(application.blogHostUrl))#</link>
 			<description>#xmlFormat(instance.blogDescription)#</description>
-			<language>#replace(lcase(instance.locale),'_','-','one')#</language>
+			<language>en</language>
 			<pubDate>#dateFormat(blogNow(),"ddd, dd mmm yyyy") & " " & timeFormat(blogNow(),"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & "00"#</pubDate>
 			<lastBuildDate>{LAST_BUILD_DATE}</lastBuildDate>
 			<generator>Galaxie Blog</generator>
 			<docs>http://blogs.law.harvard.edu/tech/rss</docs>
-			<managingEditor>#xmlFormat(instance.owneremail)#</managingEditor>
-			<webMaster>#xmlFormat(instance.owneremail)#</webMaster>
+			<managingEditor>#xmlFormat(instance.owneremail)# (#xmlFormat(getPost[1]["FullName"])#)</managingEditor>
+			<webMaster>#xmlFormat(instance.owneremail)# (#xmlFormat(getPost[1]["FullName"])#)</webMaster>
 			<itunes:subtitle>#xmlFormat(instance.itunesSubtitle)#</itunes:subtitle>
 			<itunes:summary>#xmlFormat(instance.itunesSummary)#</itunes:summary>
 			<itunes:category text="Technology" />
@@ -7633,13 +7555,13 @@
 				<itunes:category text="Podcasting" />
 			</itunes:category>
 			<itunes:category text="Technology">
-				<itunes:category text="Tech News" />
+				<itunes:category text="Tech News" /> 
 			</itunes:category>
 			<itunes:keywords>#xmlFormat(instance.itunesKeywords)#</itunes:keywords>
-			<itunes:author>#xmlFormat(instance.itunesAuthor)#</itunes:author>
+			<itunes:author>#xmlFormat(getPost[1]["Email"])#</itunes:author> 
 			<itunes:owner>
-				<itunes:email>#xmlFormat(instance.owneremail)#</itunes:email>
-				<itunes:name>#xmlFormat(instance.itunesAuthor)#</itunes:name>
+				<itunes:email>#xmlFormat(getPost[1]["Email"])#</itunes:email>
+				<itunes:name>#xmlFormat(getPost[1]["FullName"])#</itunes:name>
 			</itunes:owner>
 			<cfif len(instance.itunesImage)>
 			<itunes:image href="#xmlFormat(instance.itunesImage)#" />
@@ -7649,15 +7571,16 @@
 				<link>#xmlFormat(instance.blogUrl)#</link>
 			</image>
 			</cfif>
-			<itunes:explicit>#xmlFormat(instance.itunesExplicit)#</itunes:explicit>
+			<itunes:explicit>#xmlFormat('no')#</itunes:explicit>
 			</cfoutput>
-			</cfsavecontent>
+		</cfsavecontent>
 
 		<cfsavecontent variable="items">
 		<cfloop from="1" to="#arrayLen(getPost)#" index="i">
 			<!--- Extract data from the post --->
 			<cfset postId = getPost[i]["PostId"]>
 			<cfset fullName = getPost[i]["FullName"]>
+			<cfset email = getPost[i]["Email"]>
 			<cfset mediaPath = getPost[i]["MediaPath"]>
 			<cfset mediaType = getPost[i]["MediaType"]>
 			<cfset mimeType = getPost[i]["MimeType"]>
@@ -7693,14 +7616,16 @@
 			</cfloop>
 				<pubDate>#dateStr#</pubDate>
 				<guid>#xmlLink#</guid>
-				<author>
-					<name>#xmlFormat(fullName)#</name>
-				</author>
+				<author>#xmlFormat(email)# (#xmlFormat(fullName)#)</author>
 				<cfif len(mediaPath)>
-				<enclosure>#xmlFormat("#rootUrl#/enclosures/#getFileFromPath(mediaPath)#")#</enclosure>
+			<cfif mimetype neq "">
+				<enclosure url="#xmlFormat( application.blogHostUrl & '/enclosures/' & getFileFromPath(mediaPath) )#" length="0" type="#mimetype#"></enclosure>
+			<cfelse>
+				<enclosure url="#xmlFormat( application.blogHostUrl & '/enclosures/' & getFileFromPath(mediaPath) )#" length="0" type="image/jpeg"></enclosure>
+			</cfif>
 				<cfif mimetype eq "audio/mpeg">
-				<itunes:author>#xmlFormat(instance.itunesAuthor)#</itunes:author>
-				<itunes:explicit>#xmlFormat(instance.itunesExplicit)#</itunes:explicit>
+				<itunes:author>#xmlFormat(email)# (#xmlFormat(fullName)#)</itunes:author>
+				<itunes:explicit>#xmlFormat('no')#</itunes:explicit> 
 				<itunes:duration>#xmlFormat(duration)#</itunes:duration>
 				<itunes:keywords>#xmlFormat(keywords)#</itunes:keywords>
 				<itunes:subtitle>#xmlFormat(subtitle)#</itunes:subtitle>
@@ -7711,12 +7636,10 @@
 			</item>
 			</cfoutput>
 		 	</cfloop>
-			</cfsavecontent>
+		</cfsavecontent>
 
-			<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & "00"#','one')>
-			<cfset rssStr = trim(header & items & "</channel></rss>")>
-
-		</cfif>
+		<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & "00"#','one')>
+		<cfset rssStr = trim(header & items & "</channel></rss>")>
 
 		<cfreturn rssStr>
 

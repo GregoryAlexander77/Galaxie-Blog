@@ -49,7 +49,6 @@
 		<cfset cacheName = cacheName & "Moblile">
 	</cfif>
 	
-
 <!--- Note: this template works with either the original comment interface, or disqus. The logic is similiar, but if the blog owner prefers to use disqus we need to get the comments from an external feed provided by disqus. --->
 </cfsilent>
 	<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" timeout="#60*30#" disabled="#application.disableCache#">
@@ -98,8 +97,8 @@
 			<!--- If the blog owner has an API key, we are going to get the data from the Disqus API and build our own interface. --->
 			<script type="<cfoutput>#scriptTypeString#</cfoutput>">
 			
-				// The sidebarType of 'div' gets loaded first, then the 'panel' gets loaded.
-			<cfif sideBarType eq 'div'>
+				// In classic mode, the sidebarType of 'div' gets loaded first, then the 'panel' gets loaded. In modern themes the sidebar on the right does not exist.
+			<cfif sideBarType eq 'div' or modernTheme>
 
 				function getRecentDisqusComments(){
 	

@@ -4,7 +4,7 @@
 	<cfif breakpoint gt 0>
 		<div id="sidebar">
 			<!---Suppply the sideBarType argument before loading the side bar--->
-			<cfmodule template="#application.baseUrl#/includes/layers/sidebar.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#" kendoTheme="#kendoTheme#" darkTheme="#darktheme#">
+			<cfmodule template="#application.baseUrl#/includes/layers/sidebar.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#" kendoTheme="#kendoTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 		</div><!---<nav id="sidebar">--->
 		</cfif>
 	</div><!---<div class="mainPanel hiddenOnNarrow">--->
@@ -12,7 +12,7 @@
 	<nav id="sidebarPanel" class="k-content">
 		<div id="sidebarPanelWrapper" name="sidebarPanelWrapper" class="flexScroll">
 			<!---Suppply the sideBarType argument before loading the side bar--->
-			<cfmodule template="#application.baseUrl#/includes/layers/sidebar.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#" kendoTheme="#kendoTheme#" darkTheme="#darktheme#">
+			<cfmodule template="#application.baseUrl#/includes/layers/sidebar.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#" kendoTheme="#kendoTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 		</div>
 	</nav><!---<nav id="sidebar">--->
 	<!--- This script must be placed underneath the layer that is being used in order to effectively work as a flyout menu.--->
