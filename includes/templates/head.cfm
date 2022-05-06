@@ -1,4 +1,4 @@
-<!--- <cfoutput>application.baseUrl: #application.baseUrl# application.rootUrl: #application.rootUrl#</cfoutput> --->
+<!---<cfdump var="#getPost#">--->
 <cfsilent>
 <!--- Default values. This is only needed when the post does not exist. --->
 <cfparam name="addSocialMediaUnderEntry" default="false">
@@ -33,6 +33,18 @@
 	<cfset titleMetaTagValue = "Post Not Found">
 </cfif>
 </cfsilent>
+<!--- Don't show the Google Analytics script on the admin page or if the string does not exist in the database. Note: there can be many gtag measurement Ids, we are going to grab the first one for the script and loop through all of them in the config line at the bottom of the script --->
+<cfif pageId neq 2 and len(application.googleAnalyticsString)>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=<cfoutput>#listGetAt(application.googleAnalyticsString, 1)#</cfoutput>"></script>
+<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+<cfloop list="#application.googleAnalyticsString#" index="i">
+	gtag('config', '<cfoutput>#i#</cfoutput>');
+</cfloop>
+</script></cfif>
 <cfoutput><title>#titleMetaTagValue#</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -47,11 +59,12 @@
 	<meta name="twitter:site" content="@#canonicalUrl#">
 	<meta name="twitter:title" content="#titleMetaTagValue#">
 	<meta name="twitter:description" content="#descriptionMetaTagValue#">
+	<!-- The twitter image is still required with player cards -->
 	<meta name="twitter:image" content="#twitterImageMetaTagValue#?id=#createUuid()#">
 <cfif videoType neq "" and getPageMode() eq 'post'>
 	<!-- Twitter player card meta types -->
-	<!-- The twitter video must be on a mimimal page that just includes the video, and nothing else. -->
-	<meta property="twitter:player" content="<cfoutput>#application.rootUrl#</cfoutput>/blog/galaxiePlayer.cfm?videoUrl=#ogVideo#&poster=#twitterImageMetaTagValue#&id=#createUuid()#">
+	<!-- The twitter video must be on a mimimal page that just includes the video, and nothing else. Also, the providerMediaId must be passed here. -->
+	<meta property="twitter:player" content="<cfoutput>#application.blogHostUrl#/galaxiePlayer.cfm?videoUrl=#ogVideo#&providerVideoId=#getPost[1]['ProviderVideoId']#</cfoutput>">
 	<meta property="twitter:player:width" content="#ogVideoWidth#">	
 	<meta property="twitter:player:height" content="#ogVideoHeight#">	
 </cfif><!---<cfif videoType neq "" and getPageMode() eq 'post'>--->
@@ -61,13 +74,15 @@
 	<meta property="og:url" content="#canonicalUrl#" />
 	<meta property="og:title" content="#titleMetaTagValue#" />
 	<meta property="og:description" content="#descriptionMetaTagValue#" />
+<cfif len(application.facebookAppId)>
 	<meta property="fb:app_id" content="#application.facebookAppId#">
+</cfif>
 <cfif videoType neq "" and getPageMode() eq 'post'>
 	<!-- Video meta types -->
-	<meta property="og:type" content="video.movie">
+	<meta property="og:type" content="article">
 	<meta property="og:video:type" content="video/mp4"><!---RFC 4337 § 2, video/mp4 should be the correct Content-Type for MPEG-4 video.--->
 	<meta property="og:video" content="#ogVideo#">
-	<meta property="og:video:url" content="#ogVideo#">
+	<!-- We are omitting the og:video:url, it is the same as the og:video -->
 	<meta property="og:video:secure_url" content="#ogVideo#">
 	<meta property="og:video:width" content="#ogVideoWidth#">	
 	<meta property="og:video:height" content="#ogVideoHeight#">

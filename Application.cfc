@@ -147,7 +147,7 @@
 		<!--- Get the site URL. This is one of the most essential settings as the entire path structure of the blog is based on this --->
 		<cfset application.siteUrl = getSiteUrl()>
 		<!--- The blogHostUrl is the site URL minus the index.cfm. This should be the rootUrl in later versions. --->
-		<cfset application.blogHostUrl = replaceNoCase(getSiteUrl(true), '/index.cfm', '')>
+		<cfset application.blogHostUrl = replaceNoCase(getSiteUrl(), '/index.cfm', '')>
 		<!--- Get the domain. This is needed to append the domain to the media path when sending out images. The mediaPath contains the baseUrl which we will append the domain to to get the path to the email images. --->
 		<cfset application.blogDomain = parseUri(application.blogHostUrl).host>
 		<!--- And get the root and base URL. Note: for now these are the same thing. I'll standardize this in an upcoming version --->
@@ -186,13 +186,13 @@
 		</cfif>
 				
 		<!--- Determine if we need to run the installer. Do not run the installer prior to the ORM declaration. --->
-		<cfif reinstallIni or (not getInstalled() and not len(dsn))>
+		<cfif reinstallIni or (isBoolean(getInstalled()) and not getInstalled() and not len(dsn))>
 			<!--- Display the inital welcome screen and get the DSN from the user to create the initial database --->
 			<cflocation url="installer/initial/index.cfm?notInstalled" addToken="false">
 		</cfif>
 			
 		<!--- After the ORM has been reloaded in order to create the initial database, continue to install the blog by populating the database. The saveDsnCredentials.cfm template in the install directory has just redirected to the index.cfm page with the init argument. If we continue processing without populating the database we will have errors here. Note: when testing run this from the root home (index.cfm) page --->
-		<cfif ( reinstallDb or not getInstalled() and len(getDsn()) )>
+		<cfif ( reinstallDb or isBoolean(getInstalled()) and not getInstalled() and len(getDsn()) )>
 			<cfinclude template="installer/insertData.cfm">
 		</cfif>
 			
@@ -407,6 +407,9 @@
 
 		<!--- Video player settings. We have several options. Our default player is plyr. It is a full featured HTML5 media player, however, it does not play flash video. This should not be a problem as flash is soon to be depracated. Optionally, we can use the Kendo UI video player if you have a full Kendo license. The original flash player will take over for .flv videos, but will be depracated in 2020. --->
 		<cfset application.defaultMediaPlayer = application.BlogOptionDbObj.getDefaultMediaPlayer()><!---You can optionally choose 'KendoUiPlayer' if you have the full lisence. However, the Kendo Media player is lacks quite a few plyr features. The Kendo player is useful if you want the video player to take on the theme that you are using. --->
+			
+		<!--- This is Googles gtag string and is used for analytics. --->
+		<cfset application.googleAnalyticsString = application.BlogOptionDbObj.getGoogleAnalyticsString()>
 
 		<!--- The addThis toolbox string changes depending upon the site and the configuration. --->
 		<cfset application.addThisToolboxString = application.BlogOptionDbObj.getAddThisToolboxString()><!---Typically 'addthis_inline_share_toolbox'--->
@@ -681,7 +684,9 @@
 			<cfset installed = application.installed>
 		<cfelseif isDefined("this.ormInitialized") and isDefined("application.BlogDbObj")>
 			<!--- Get it from the db. --->
-			<cfset installed = application.BlogDbObj.getBlogInstalled()>
+			<cfif isBoolean(application.BlogDbObj.getBlogInstalled())>
+				<cfset installed = application.BlogDbObj.getBlogInstalled()>
+			</cfif>
 		<cfelse>
 			<!--- Get it from the ini file --->
 			<cftry>

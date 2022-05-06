@@ -317,6 +317,7 @@
 					title: "Posted",
 					editing: false,
 					width: (pageWidth*(10/100)),
+					sorttype: 'date', 
 					itemTemplate: function (value, item) {
 						// Format the date using the momentJs lib.
 						return dayjs(item.DatePosted).format('MM/DD/YYYY h:mm A');

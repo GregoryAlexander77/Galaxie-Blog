@@ -587,9 +587,10 @@
       }
     };
 
+	// Modified by Gregory Alexander for Galaxie Blog. Changing code to make the media responsive instead of using a fixed width and height. Putting '<div class="video-container">' before the iframe and a '</div>' after.
     var getIframeHtml = function (data) {
       var allowFullscreen = data.allowFullscreen ? ' allowFullscreen="1"' : '';
-      return '<iframe src="' + data.source + '" width="' + data.width + '" height="' + data.height + '"' + allowFullscreen + '></iframe>';
+      return '<div class="video-container"><iframe src="' + data.source + '" width="' + data.width + '" height="' + data.height + '"' + allowFullscreen + '></iframe></div>';
     };
     var getFlashHtml = function (data) {
       var html = '<object data="' + data.source + '" width="' + data.width + '" height="' + data.height + '" type="application/x-shockwave-flash">';

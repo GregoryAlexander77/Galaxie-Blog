@@ -143,9 +143,9 @@
 				<!--- On individual entry pages, the title of the page is the title of the post. --->
 				<cfset titleMetaTagValue = getPost[1]["Title"]>
 
-				<!--- Get all of the keywords that may be enclosed in the post. The articles body may not be defined when looking at a post that contains the more tag when in blog mode. --->
-				<cfif len(getPost[1]["Body"])>
-					<cfset xmlKeywords = application.blog.inspectPostContentForXmlKeywords(getPost[1]["Body"])>
+				<!--- Get all of the keywords that may be enclosed in the post header. --->
+				<cfif len(getPost[1]["PostHeader"])>
+					<cfset xmlKeywords = application.blog.inspectPostContentForXmlKeywords(getPost[1]["PostHeader"])>
 				<cfelse>
 					<cfset xmlKeywords = "">
 				</cfif>
@@ -162,7 +162,6 @@
 
 		<!--- Default twitter card type. We will rewrite this if the twitterMediaUrlMetaData is defined. --->
 		<cfset twitterCardType = "summary_large_image">
-
 
 		<!--- Is this page displaying a single post?--->
 		<cfif getPageMode() eq 'post'>
@@ -191,34 +190,34 @@
 			<!--- SEO Meta tags. --->
 			<cfif findNoCase("titleMetaTag", xmlKeywords) gt 0> 
 				<!--- Overwrite the titleMetaTagValue variable. --->
-				<cfset titleMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'titleMetaTag')>
+				<cfset titleMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'titleMetaTag')>
 			</cfif>
 			<cfif findNoCase("descMetaTag", xmlKeywords) gt 0> 
 				<!--- Overwrite the descriptionMetaTagValue variable. --->
-				<cfset descriptionMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'descMetaTag')>
+				<cfset descriptionMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'descMetaTag')>
 			</cfif>
 			<!--- Check to see if there is a social media description in the post body --->
 			<cfif findNoCase("socialMediaDescMetaData", xmlKeywords) gt 0> 
 				<!--- Overwrite the socialMediaDescMetaTagValue variable. --->
-				<cfset socialMediaDescMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'socialMediaDescMetaData')>
+				<cfset socialMediaDescMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'socialMediaDescMetaData')>
 			</cfif>
 
 			<!--- Social Media Sharing for Images. --->
 			<!--- Overwrite the facebookImageMetaTagValue variable --->
 			<cfif findNoCase("facebookImageUrlMetaData", xmlKeywords) gt 0> 
 				<!--- See if there is meta data inside of the blog post. --->
-				<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'facebookImageUrlMetaData')>
+				<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'facebookImageUrlMetaData')>
 			</cfif>
 			<!--- Overwrite the twitterImageMetaTagValue --->
 			<cfif findNoCase("twitterImageUrlMetaData", xmlKeywords) gt 0> 
 				<!--- See if there is meta data inside of the blog post. --->
-				<cfset twitterImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'twitterImageUrlMetaData')>
+				<cfset twitterImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'twitterImageUrlMetaData')>
 			</cfif>
 
 		</cfif><!---<cfif isDefined("URL.mode") and (URL.mode is "entry" or URL.mode eq 'alias')>--->
 
 		<!--- //**************************************************************************************************************
-		Video and Audio Content
+		Video and Audio Content. We need to capture data from XML as well as the DB.
 		//****************************************************************************************************************--->
 
 		<cfparam name="videoType" default="" type="string">
@@ -227,29 +226,47 @@
 		<cfparam name="mediumVideoSourceUrl" default="" type="string">
 		<cfparam name="largeVideoSourceUrl" default="" type="string">
 		<cfparam name="videoCaptionsUrl" default="" type="string">
-
-		<!--- Overwrite the vars if the proper xml is embedded in the post. The xml keyword thing is temporary and will be put into the database in the future. --->
-		
+			   
+		<!--- Overwrite the vars if the proper xml is embedded in the post header or the db. --->
 		<cfif findNoCase("videoType", xmlKeywords) gt 0> 
-			<cfset videoType = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'videoType')>
+			<cfset videoType = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'videoType')>
+		<cfelseif getPost[1]["MediaType"] contains 'Video'>
+			<!--- YouTube and Vimeo are nearly always .mp4 at this time. We may have to revisit this in the future. --->
+			<cfset videoType = '.mp4'>
 		</cfif>
+			
+		<!--- Media Cover --->
 		<cfif findNoCase("videoPosterImageUrl", xmlKeywords) gt 0> 
-			<cfset videoPosterImageUrl = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'videoPosterImageUrl')>
+			<cfset videoPosterImageUrl = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'videoPosterImageUrl')>
+		<cfelseif len(getPost[1]["MediaVideoCoverUrl"])>
+			<cfset videoPosterImageUrl = getPost[1]["MediaVideoCoverUrl"]>
 		</cfif>	
+			
+		<!--- The WYSIWYG interface does not have different sources. This is only available using XML Directives. If the video is in the db, use the medium source URL --->
 		<cfif findNoCase("smallVideoSourceUrl", xmlKeywords) gt 0> 
-			<cfset smallVideoSourceUrl = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'smallVideoSourceUrl')>
+			<cfset smallVideoSourceUrl = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'smallVideoSourceUrl')>
 		</cfif>
+			
+		<!--- Medium sized URL --->
 		<cfif findNoCase("mediumVideoSourceUrl", xmlKeywords) gt 0> 
-			<cfset mediumVideoSourceUrl = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'mediumVideoSourceUrl')>
+			<cfset mediumVideoSourceUrl = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'mediumVideoSourceUrl')>
+		<cfelseif len(getPost[1]["MediaUrl"])>
+			<cfset mediumVideoSourceUrl = getPost[1]["MediaUrl"]>
 		</cfif>
+			
 		<cfif findNoCase("largeVideoSourceUrl", xmlKeywords) gt 0> 
-			<cfset largeVideoSourceUrl = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'largeVideoSourceUrl')>
+			<cfset largeVideoSourceUrl = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'largeVideoSourceUrl')>
 		</cfif>
+			
+		<!--- Local videos may have captions, however, YouTube and Vimeo will have them embedded in the video --->
 		<cfif findNoCase("videoCaptionsUrl", xmlKeywords) gt 0> 
-			<cfset videoCaptionsUrl = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'videoCaptionsUrl')>
+			<cfset videoCaptionsUrl = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'videoCaptionsUrl')>
+		<cfelseif len(getPost[1]["MediaVideoVttFileUrl"])>
+			<cfset videoPosterImageUrl = getPost[1]["MediaVideoVttFileUrl"]>
 		</cfif>
+			
 		<cfif findNoCase("videoCrossOrigin", xmlKeywords) gt 0> 
-			<cfset videoCrossOrigin = application.blog.getXmlKeywordValue(getPost[1]["Body"], 'videoCrossOrigin')>
+			<cfset videoCrossOrigin = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'videoCrossOrigin')>
 		</cfif>
 
 		<!--- Create the video meta tags --->

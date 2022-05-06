@@ -11,6 +11,8 @@
 <cfparam name="URL.posterUrl" default="">
 <!--- The WebVTT file allows captions --->
 <cfparam name="URL.videoCaptionsUrl" default="">
+<!--- The provider video ID is necessary for YouTube and Vimeo videos. --->
+<cfparam name="URL.providerVideoId" default="">
 <!--- Our default cross origin value should be set to false --->
 <cfparam name="URL.crossOrigin" default="false">
 <!--- We are using thumbnails on the admin edit post page --->
@@ -48,6 +50,13 @@ We need to inspect the URL to determine the provider, ie youtube, vimeo or a loc
 	</cfif>
 </cfif>
 			
+<!--- Create the links to the video providers --->
+<cfif provider eq 'youtube'>
+	<cfset YouTubeUrl = "https://www.youtube.com/embed/<cfoutput>#URL.providerVideoId#</cfoutput>?origin=#application.blogHostUrl#&iv_load_policy=3&modestbranding=1&playsinline=1&showinfo=0&rel=0&enablejsapi=1">
+<cfelseif provider eq 'vimeo'>
+	<cfset vimeoUrl = "https://player.vimeo.com/video/<cfoutput>#providerVideoId#</cfoutput>?loop=false&byline=false&portrait=false&title=false&speed=true&transparent=0&gesture=media">
+</cfif>
+			
 <!--- Construct our URL to prompt the edit dialog's --->
 	
 <!--- Get the current blog theme if it was not passed in --->
@@ -79,12 +88,12 @@ mediaPlayer video {
 </style>
 
 	<cfif provider eq 'youTube'>
-		<div class="k-content wide" onDblClick="createAdminInterfaceWindow(14, '<cfoutput>#URL.mediaId#</cfoutput>');">
+		<div class="k-content wide">
 			<div class="plyr__video-embed" id="mediaPlayer">
 				<iframe
 					width="<cfoutput>#width#</cfoutput>"
 					height="<cfoutput>#height#</cfoutput>"
-					src="https://www.youtube.com/embed/<cfoutput>#providerVideoId#</cfoutput>?origin=https://plyr.io&iv_load_policy=3&modestbranding=1&playsinline=1&showinfo=0&rel=0&enablejsapi=1"
+					src="https://www.youtube.com/embed/<cfoutput>#URL.providerVideoId#</cfoutput>?origin=<cfoutput>#application.blogHostUrl#</cfoutput>&iv_load_policy=3&modestbranding=1&playsinline=1&showinfo=0&rel=0&enablejsapi=1"
 					allowfullscreen
 					allowtransparency
 					allow="autoplay">
@@ -92,7 +101,7 @@ mediaPlayer video {
 			</div>
 		</div>
 	<cfelseif provider eq 'vimeo'>
-		<div class="k-content wide" onDblClick="createAdminInterfaceWindow(14, '<cfoutput>#URL.mediaId#</cfoutput>');">
+		<div class="k-content wide">
 			<div class="plyr__video-embed" id="mediaPlayer">
 				<iframe
 					width="<cfoutput>#width#</cfoutput>"

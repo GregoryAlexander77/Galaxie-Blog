@@ -1261,7 +1261,7 @@ TinyMce styles
 		<cfset promptEmailTitle = "Do you want to email the post?">
 		<cfset promptEmailMessage = "Do you want to send this post out to your subscribers?">
 	</cfif>
-		
+
 	<!--- Render the thumnbail HTML. Pass in the getPost obj and if you want to render the thumbnail --->
 	<cfset thumbnailHtml = RendererObj.renderMediaPreview(kendoTheme, getPost, true)>
 		
@@ -4168,7 +4168,7 @@ TinyMce styles
 				<cfinvokeargument name="videoCaptionsUrl" value="#mediaVideoVttFileUrl#">
 			</cfinvoke>
 		</cfif>
-	</cfif>
+	</cfif><!---<cfif len(mediaUrl)>--->
 	<!---<cfdump var="#mediaHtml#" label="mediaHtml">--->
 					
 	<!---*********************    Handle the map    *********************--->
@@ -4209,8 +4209,8 @@ TinyMce styles
 	<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/get-video-id/getVideoId.min.js"></script>
 		
 	<script>
-		// Note: this function handles enclosure images, videos, and theme images and needs to be changed according to what is being processed. This particular function handles theme images.
-		function saveExternalUrl(url, mediaType, selectorId){ 
+		// Note: this function handles enclosure images, videos, and theme images and needs to be changed according to what is being processed. This particular function handles theme images. Note: the invokedArguments is not used by CF, but shows the location where this function is being called from and the arguments for debugging purposes.
+		function saveExternalUrl(url, mediaType, selectorId, invokedArguments){ 
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveExternalMediaEnclosure&template=enclosureImageEditor',
@@ -4224,7 +4224,8 @@ TinyMce styles
 					postId: <cfoutput>#URL.optArgs#</cfoutput>,
 					mediaType: 'image',
 					themeImageType: '<cfoutput>#URL.otherArgs#</cfoutput>',
-					selectorId: selectorId
+					selectorId: selectorId,
+					invokedArguments: invokedArguments
 				},
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
@@ -9903,8 +9904,8 @@ Custom element markup example for videos:
 	<cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">
 		
 	<script>
-		
-		function saveExternalUrl(url, mediaType, selectorId){ 
+		// Note: this function handles enclosure images, videos, and theme images and needs to be changed according to what is being processed. This particular function handles theme images. Note: the invokedArguments is not used by CF, but shows the location where this function is being called from and the arguments for debugging purposes.
+		function saveExternalUrl(url, mediaType, selectorId, invokedArguments){ 
 			jQuery.ajax({
 				type: 'post', 
 				selectorId: '<cfoutput>#selectorId#</cfoutput>',
@@ -9918,7 +9919,8 @@ Custom element markup example for videos:
 					themeId: <cfoutput>#URL.optArgs#</cfoutput>,
 					mediaType: 'image',
 					themeImageType: <cfoutput>'#URL.otherArgs#'</cfoutput>,
-					selectorId: selectorId
+					selectorId: selectorId,
+					invokedArguments: invokedArguments
 				},
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
@@ -10404,6 +10406,7 @@ Custom element markup example for videos:
 	<cfset includeDisqus = application.BlogOptionDbObj.getIncludeDisqus()>
 	<cfset defaultMediaPlayer = application.BlogOptionDbObj.getDefaultMediaPlayer()>
 	<cfset backgroundImageResolution = application.BlogOptionDbObj.getBackgroundImageResolution()>
+	<cfset googleAnalyticsString = application.BlogOptionDbObj.getGoogleAnalyticsString()>
 	<cfset addThisApiKey = application.BlogOptionDbObj.getAddThisApiKey()>
 	<cfset addThisToolboxString = application.BlogOptionDbObj.getAddThisToolboxString()>
 	<!--- Note: the API for Disqus changed recently, now we only need the blog identifier and the API Key. I am keeping the secret field for potential future use --->
@@ -10847,6 +10850,75 @@ Custom element markup example for videos:
 			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		
+		</table>
+	</div>
+			
+	<!---//***********************************************************************************************
+						Google Analytics GTAG String
+	//************************************************************************************************--->
+	<button type="button" class="collapsible k-header">Google Analytics</button>
+	<div class="content k-content">
+		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+		  </cfsilent>
+				
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2"> 
+				<p>Google Analytics may be incorporated to determine your page traffic trends. To use Google Analytics, you must first obtain a free Google GTAG string, see <a href="https://developers.google.com/tag-platform/gtagjs/install">https://developers.google.com/tag-platform/gtagjs/install</a> for more information.</p>
+				
+				<p>To use Google Analytics, enter in the GTAG strings below (ie G-XXXXXX). If you have more than one GTAG string, separate them with comma's. You can enter as many GTAG strings below as you need. You don't need to do anything else other than to enter in your GTAG string(s), if a string is found, Galaxie Blog will configure Google Analytics for you.</p>
+			</td>
+		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="googleAnalyticsString">Google GTAG String(s):</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input type="text" name="googleAnalyticsString" id="googleAnalyticsString" value="<cfoutput>#googleAnalyticsString#</cfoutput>" class="k-textbox" style="width: 50%" />
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+				<label for="googleAnalyticsString">Google GTAG String(s):</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="text" name="googleAnalyticsString" id="googleAnalyticsString" value="<cfoutput>#googleAnalyticsString#</cfoutput>" class="k-textbox" style="width: 50%" />
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px" class="containerWidths">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+			  
+		  <!-- Border -->
+		  <tr height="2px">
+			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		</table>
 	</div>
 			

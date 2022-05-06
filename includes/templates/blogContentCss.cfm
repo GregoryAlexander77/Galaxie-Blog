@@ -436,6 +436,28 @@
 		  height: auto;
 		}
 		
+		/* YouTube and Vimeo Video classes */
+		.video-container {
+			position: relative;
+			padding-bottom: 56.25%; /* - 16:9 aspect ratio (most common) */
+			/* padding-bottom: 62.5%; - 16:10 aspect ratio */
+			/* padding-bottom: 75%; - 4:3 aspect ratio */
+			padding-top: 30px;
+			height: 0;
+			overflow: hidden;
+		}
+
+		.video-container iframe,
+		.video-container object,
+		.video-container embed {
+			border: 0;
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+		}
+		
 		/* Table classes */
 		/* Applies a border on the outside of the table */
 		table.tableBorder {

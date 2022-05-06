@@ -242,21 +242,24 @@
 							/* 	Original logic to find external links. 
 								if (e.element.tagName === "IMG" && e.element.currentSrc != e.element.src && e.element.src.indexOf(window.location.host) == -1) { 
 							*/
+						<!--- This logic only applies when using the enclosure editor --->
+						<cfif selectorId eq 'enclosureEditor'>
 							// Clear the previous content
 							clearPreviousEditorContent();
+						</cfif>
 						  
-						  	/* Define the urlSentToServer var if it not defined. Since null === undefined is false, this statement will catch only null or undefined. If the var is defined, set it to the element.src. This is needed as this logical branch will be raised twice with tinymce and we only want to call the saveExternalUrl one time. */
+						  	/* Define the boolean urlSentToServer var if it not defined. Since null === undefined is false, this statement will catch only null or undefined. If the var is defined, set it to the element.src. This is needed as this logical branch will be raised twice with tinymce and we only want to call the saveExternalUrl one time. */
 						  	if (typeof urlSentToServer === 'undefined') {
 						  		urlSentToServer = "";
-								imageSent = e.element.src;
+								urlSentToServer = e.element.src;
 						  	}
-						  	//alert('urlSentToServer: ' + urlSentToServer + ' e.element.src: ' + e.element.src + ' !e.element.src != urlSentToServer:' + !e.element.src != urlSentToServer);
+						  	// alert('e.element.src: ' + e.element.src + 'urlSentToServer: ' + urlSentToServer + '!e.element.src != urlSentToServer:' + !e.element.src != urlSentToServer);
 						  
-						  	// Send the data to the server to update the database. Only do this once per URL.
-						  	if (e.element.src != urlSentToServer){
+						  	// Send the data to the server to update the database. Also, don't invoke the saveExternalUrl if the image was just uploaded. Only do this once per URL. The last argument is used for debugging purposes
+						  	if ( (e.element.src != urlSentToServer) ){
 								// alert('saving URL')
 								// Custom save external URL function is on the various interfaces that use this code
-								saveExternalUrl(e.element.src, 'image', '<cfoutput>#selectorId#</cfoutput>')
+								saveExternalUrl(e.element.src, 'image', '<cfoutput>#selectorId#</cfoutput>', '')
 								// Clear any previous url's
 								$("#externalImageUrl").val('');
 								// Insert the new url into the externalImageUrl hidden form
@@ -539,14 +542,14 @@
 							// Do nothing
 						});		
 					});
-					
-					// Refresh the media preview- pass in the postId
-					reloadEnclosureThumbnailPreview(<cfoutput>#URL.optArgs#</cfoutput>);					
-					// Remove previous editor content
+				<cfif selectorId eq 'enclosureEditor'>	
+					// Refresh the enclosure media preview- pass in the postId
+					reloadEnclosureThumbnailPreview(<cfoutput>#URL.optArgs#</cfoutput>);
+					// Remove previous enclosure editor content
 					tinymce.activeEditor.setContent('');
-					// For the external video preview, let tinymce resolve the URL natively (this is a tinymce function). When we display the video from the database plyr will take over.
+				</cfif>
+					// For the external video preview, let tinymce resolve the URL natively (this is a tinymce function). When we display the video from the database plyr will take over (Note: this does not remove prior content)
           			resolve({ html: '' });
-					
 				},
 				// Turn off the 'powered by Tiny' advertisement at the bottom of the editor
 				branding: false

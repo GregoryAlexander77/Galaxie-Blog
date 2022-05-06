@@ -21,6 +21,7 @@
 	<cfproperty name="IncludeGsap" ormtype="boolean" default="false">
 	<cfproperty name="IncludeDisqus" ormtype="boolean" default="true">
 	<cfproperty name="DefaultMediaPlayer" ormtype="string" length="35" default="Plyr" hint="Either 'Plyr' or 'KendoUi'. Plyr is default.">
+	<cfproperty name="GoogleAnalyticsString" ormtype="string"  length="900" default="">
 	<cfproperty name="AddThisApiKey" ormtype="string" length="75" default="">
 	<cfproperty name="AddThisToolboxString" ormtype="string" length="75" default="">
 	<cfproperty name="BingMapsApiKey" ormtype="string" length="75" default="">

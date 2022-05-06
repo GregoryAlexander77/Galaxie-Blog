@@ -5392,9 +5392,87 @@
 		<cfreturn PostDbObj.getPostId()>
 
 	</cffunction>
+		
+	<cffunction name="deletePost" access="public" returnType="void" roles="admin,ReleaseEntries" output="false"
+			hint="Replaces the deleteEntry function">
+		<cfargument name="postId" type="uuid" required="true">
+			
+		<cftransaction>
+			
+			<!--- Load the post object --->
+			<cfset PostDbObj = entityLoadByPK("Post", arguments.postId)>
+			<!--- Set the MediaEnclosureRef to null so that we don't get a constraint error --->
+			<cfset PostDbObj.setMediaEnclosureRef(javaCast("null",""))>
+			
+			<!--- Get the various images and videos for this post. --->
+			<cfquery name="Data" dbtype="hql">
+				SELECT new Map (
+					MediaId as MediaId,
+					MediaPath as MediaPath
+				)
+				FROM Media 
+				WHERE 
+					PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+				
+			<!--- Loop through the array and delete the various media --->
+			<cfloop from="1" to="#arrayLen(Data)#" index="i">
+				
+				<!--- See if the media belongs to another post record. We don't want to delete the media if it is used by another record. --->
+				<cfquery name="getOtherMediaPosts" dbtype="hql">
+					SELECT new Map (
+						MediaId as MediaId
+					)
+					FROM Media 
+					WHERE 
+						MediaId <> #MediaId#
+				</cfquery>
+				
+				<!--- If the media was *not* found in the other posts, delete the actual images. --->
+				<cfif not arrayLen(getOtherMediaPosts)>
+					<!--- Delete the media record in the db --->
+					<cfquery name="Data" dbtype="hql">
+						DELETE FROM Media
+						WHERE 
+							MediaId = #Data[i]['MediaId']#
+					</cfquery>
+					
+					<!--- Does the media exist on the server? If so, delete it. --->
+					<cfif fileExists(Data[i]["MediaPath"])>
+						<cffile action="delete" file="#Data[i]['MediaPath']#">
+					</cfif>
+				</cfif>
+					
+			</cfloop>
+					
+			<!--- Delete the associated post categories --->
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM PostCategoryLookup
+				WHERE 
+					PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+
+			<!--- And delete the comments. --->
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM Comment
+				WHERE 
+					PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+					
+			<!--- Finally, delete the post record --->
+			<cfset EntityDelete(UserRoleDbObj)>
+				
+			<!--- Delete the PostDbObj variable to ensure that the record doesn't stick around and is deleted from ORM memory. --->
+			<cfset void = structDelete( variables, "PostDbObj" )>
+			<!--- Delete the Data variable to ensure that the record doesn't stick around and is deleted from ORM memory. --->
+			<cfset void = structDelete( variables, "Data" )>
+			
+		</cftransaction>
+				
+	</cffunction>
 			
 	<cffunction name="deleteEntry" access="public" returnType="void" roles="admin,ReleaseEntries" output="false"
-			hint="Deletes an entry, plus all comments.">
+			hint="Deletes an entry, plus all comments. This is a depracated function and may not work properly. Use the deletePost function instead.">
 		<cfargument name="id" type="uuid" required="true">
 		<cfset var entry = "">
 		<cfset var enclosure = "">
@@ -5702,7 +5780,7 @@
 			<cftry>
 
 				<!--- Set the strings that we're searching for. --->
-				<cfset keyWordStartString = "<" & arguments.xmlKeyword & ":">
+				<cfset keyWordStartString = "<" & arguments.xmlKeyword & ">">
 				<cfset keyWordEndString = "</" & arguments.xmlKeyword & ">">
 
 				<!--- Find the start and end position of the keywords. --->
@@ -5714,7 +5792,7 @@
 				<cfset valueCount = keyWordEndPos - keyWordValueStartPos>
 				<!---<cfoutput>#keyWordStartString# #keyWordEndString# StartPos:#keyWordValueStartPos# EndPos:#keyWordEndPos# count:#valueCount#</cfoutput>--->
 				<!--- Get the value in the xml string. --->
-				<cfset keyWordValue = mid(arguments.postContent, keyWordValueStartPos, valueCount-1)>
+				<cfset keyWordValue = mid(arguments.postContent, keyWordValueStartPos, valueCount)>
 				<!---<cfoutput>keyWordValue:#keyWordValue#</cfoutput>--->
 
 				<cfcatch type="any">
@@ -5866,7 +5944,6 @@
 		<cfelse>
 			<cfset enclosureUrl = application.baseUrl & "/enclosures/" & arguments.mediaPath>
 		</cfif>
-		<cfoutput>#enclosureUrl#</cfoutput>
 			
 		<cfreturn enclosureUrl>
 			

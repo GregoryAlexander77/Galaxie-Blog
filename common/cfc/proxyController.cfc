@@ -4653,9 +4653,6 @@
 			
 		<cfif application.Udf.isLoggedIn()>
 			
-			<!--- Remove the current blogs current root in the external URL. We don't  need to save the root URL (www.thisblog.com) when the links are coming from our own site. --->
-			<cfset arguments.externalUrl = replaceNoCase(arguments.externalUrl, application.rootUrl, '')>
-			
 			<!--- If the mediaId was not passed in, and we are dealing with a post, see if the record already exists --->
 			<cfif not len(arguments.mediaId) and len(arguments.postId)>
 				<cfinvoke component="#application.blog#" method="getPostEnclosureMediaIdByUrl" returnvariable="arguments.mediaId">
@@ -4778,7 +4775,12 @@
 						<cfif len(mimeType)>
 							<cfinvokeargument name="mimeType" value="#mimeType#" />
 						</cfif>
-						<cfinvokeargument name="enclosure" value="true" />
+						<!--- This is *not* an enlosure if it is coming from the post editor. --->
+						<cfif selectorId neq 'postEditor'>
+							<cfinvokeargument name="enclosure" value="true" />
+						<cfelse>
+							<cfinvokeargument name="enclosure" value="false" />
+						</cfif>
 						<cfinvokeargument name="mediaHeight" value="#imageHeight#" />
 						<cfinvokeargument name="mediaWidth" value="#imageWidth#" />
 						<cfinvokeargument name="mediaSize" value="" />
@@ -4799,7 +4801,12 @@
 							<cfinvokeargument name="mediaType" value="#mediaTypeStrId#" />
 							<!--- The mime type may not be available --->
 							<cfinvokeargument name="mimeType" value="#mimeType#" />
-							<cfinvokeargument name="enclosure" value="true" />
+							<!--- This is *not* an enlosure if it is coming from the post editor. --->
+							<cfif selectorId neq 'postEditor'>
+								<cfinvokeargument name="enclosure" value="true" />
+							<cfelse>
+								<cfinvokeargument name="enclosure" value="false" />
+							</cfif>
 							<cfinvokeargument name="mediaHeight" value="#imageHeight#" />
 							<cfinvokeargument name="mediaWidth" value="#imageWidth#" />
 							<cfinvokeargument name="mediaSize" value="" />
@@ -5333,6 +5340,7 @@
 		<!--- These are text boxes --->
 		<cfargument name="jQueryCDNPath" default="" required="false">
 		<cfargument name="kendoFolderPath" default="" required="false">
+		<cfargument name="googleAnalyticsString" default="" required="false">
 		<cfargument name="addThisApiKey" default="" required="false">
 		<cfargument name="addThisToolboxString" default="" required="false">
 		<cfargument name="bingMapsApiKey" default="" required="false">
@@ -5421,6 +5429,7 @@
 				<!--- These are strings coming from textboxes. --->
 				<cfset OptionDbObj.setJQueryCDNPath(arguments.jQueryCDNPath)>
 				<cfset OptionDbObj.setKendoFolderPath(arguments.kendoFolderPath)>
+				<cfset OptionDbObj.setGoogleAnalyticsString(arguments.googleAnalyticsString)>
 				<cfset OptionDbObj.setAddThisApiKey(arguments.addThisApiKey)>
 				<cfset OptionDbObj.setAddThisToolboxString(arguments.addThisToolboxString)>
 				<cfset OptionDbObj.setAddThisApiKey(arguments.addThisApiKey)>
