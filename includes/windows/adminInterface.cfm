@@ -1223,8 +1223,8 @@ TinyMce styles
 	<!--- Instantiate the Render.cfc. This will be used to render our directives and create video and map thumbnails --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 	
-	<!--- Get the post. The last argument should also show posts that are removed. --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true)>
+	<!--- Get the post ( ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) ) --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	<!---<cfdump var="#getPost#">--->
 		
 	<!--- Get the Body --->
@@ -1241,13 +1241,8 @@ TinyMce styles
 	<cfset arguments.body = RendererObj.renderCodeForPrism(body)>
 	<!---<cfdump var="#getPost#">--->
 		
-	<!--- Determine whether to prompt to send email --->
+	<!--- Determine whether to prompt to send email. The defaul is true unless the post date is in the past. --->
 	<cfset promptToEmailToSubscribers = true>
-	
-	<!--- Is the post released? --->
-	<cfif not getPost[1]["Released"]>
-		<cfset promptToEmailToSubscribers = false>
-	</cfif>
 	<!--- Is posted less than now? --->
 	<cfif dateCompare(getPost[1]["DatePosted"], application.blog.blogNow()) is 1>
 		<cfset promptToEmailToSubscribers = false>
@@ -1308,7 +1303,7 @@ TinyMce styles
 	<cfif session.isMobile>
 		<cfset toolbarString = "undo redo | bold italic | link | image media fancyBoxGallery">
 	<cfelse>
-		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link | image editimage | media | fancyBoxGallery | map mapRouting">
+		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | tox | hr | link | image editimage | media | fancyBoxGallery | map mapRouting | emoticons">
 	</cfif>
 	<cfset includeGallery = true>
 	</cfsilent>
@@ -1341,15 +1336,20 @@ TinyMce styles
 				if (this.value() > todaysDate){
 					$.when(kendo.ui.ExtYesNoDialog.show({ 
 							title: "Release post in the future?",
-							message: "You are posting at a later date in the future.",
-							icon: "k-ext-warning",
-							width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
-							height: "215px"
+							message: "You are posting at a later date in the future. If you continue and submit this post, it will be scheduled to be automatically published on your selected date in the future. Do you want to continue?",
+						icon: "k-ext-info",
+						width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
+						height: "275px"
 						})
 						).done(function (response) { // If the user clicked 'yes'
 							if (response['button'] == 'Yes'){// remember that js is case sensitive.
-								
-							}//..if (response['button'] == 'Yes'){
+								// Do nothing
+							} else {
+								// Change the date to now
+								$("#datePosted").kendoDateTimePicker({
+									value: new Date(Date.now())
+								});
+							}
 						});
 				} else {
 					// alert(todaysDate);
@@ -1588,8 +1588,11 @@ TinyMce styles
 					action: action, // either update or insert.
 					postId: $("#postId").val(),
 					postAlias: $("#postAlias").val(),
+					// This is a hidden form field that is populated by the post sort date interface
+					blogSortDate: $("#newBlogSortDate").val(),
 					datePosted: kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'MM/dd/yyyy'),
 					timePosted: kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'hh:mm tt'),
+					themeId: $("#postThemeId").val(),
 					author: $("#author").data("kendoDropDownList").value(),
 					title: $("#title").val(),
 					// Get the contents of the editor
@@ -1654,6 +1657,63 @@ TinyMce styles
 			}//..if (JSON.parse(response.success) == true){
 		}
 		
+	<cfif getPost[1]['Remove']>	
+		function deletePost(){
+
+			jQuery.ajax({
+				type: 'post', 
+				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deletePost',
+				data: { // arguments
+					// We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#formName").serialize()' or use the stringify method to pass it as an array of values. 
+					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
+					postId: <cfoutput>#getPost[1]['PostId']#</cfoutput>
+				},
+				dataType: "json",
+				success: deletePostResult, // calls the result function.
+				error: function(ErrorMsg) {
+					console.log('Error' + ErrorMsg);
+				}
+			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			}).fail(function (jqXHR, textStatus, error) {
+				// This is a secured function. Display the login screen.
+				if (jqXHR.status === 403) { 
+					createLoginWindow(); 
+				} else {//...if (jqXHR.status === 403) { 
+					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the deletePost function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
+						).done(function () {
+						// Do nothing
+					});
+				}//...if (jqXHR.status === 403) { 
+			});//...jQuery.ajax({
+		};
+		
+		function deletePostResult(response){
+			// Are the credentials correct?
+			if (JSON.parse(response.success) == true){
+				// Refresh the <cfif application.kendoCommercial>kendo<cfelse>jsgrid</cfif> grid 
+			<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+				$('#postsGrid').data('kendoGrid').dataSource.read();
+			<cfelse>
+				// Try to refresh the post grid by refreshing the window. It may not be open so we are using a try block
+				try {
+					$("#PostsWindow").data("kendoWindow").refresh();
+				} catch (error) {
+					// Do nothing
+				}			
+			</cfif>
+				// Close the window
+				jQuery('#postDetailWindow').kendoWindow('destroy');
+			} else {
+				// Alert the user that the login has failed.
+				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error deleting post", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
+				).done(function () {
+					// Do nothing
+				});
+			}//..if (JSON.parse(response.success) == true){
+		}
+		
+	</cfif>	
 	</script>
 		
 	<form id="postDetails" data-role="validator">
@@ -1666,6 +1726,10 @@ TinyMce styles
 	<input type="hidden" name="videoMediaId" id="videoMediaId" value="" />
 	<!-- Pass the mapId for a static map -->
 	<input type="hidden" name="mapId" id="mapId" value="" />
+	<!--- The post theme id allows authors to select a certain theme to be displayed when this post is viewed. --->
+	<input type="hidden" name="postThemeId" id="postThemeId" value="<cfoutput>#getPost[1]['ThemeRef']#</cfoutput>" />
+	<!--- The post sort date is used to sort the posts on the main blog page. --->
+	<input type="hidden" name="newBlogSortDate" id="newBlogSortDate" value="<cfoutput>#getPost[1]['BlogSortDate']#</cfoutput>" />
 	<!--- Pass the csrfToken --->
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
 	
@@ -1676,6 +1740,35 @@ TinyMce styles
 		<!--- Set the colspan property for borders --->
 		<cfset thisColSpan = "2">
 	  </cfsilent>
+	<!--- Delete post interface (only shows up when a post is removed) --->
+	<cfif getPost[1]['Remove']>	
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+    <cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<p class="k-block k-error-colored" align="left">This post has been removed. You may permanently <a href="javascript:deletePost();">delete it</a>.</p>
+		</td>
+	   </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<p class="k-block k-error-colored" align="left">This post has been removed. You may permanently <a href="javascript:deletePost();">delete it</a>.</p>
+		</td>
+	  </tr>
+	</cfif><!---<cfif session.isMobile>--->
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	</cfif>
+			
 	  <tr height="1px">
 		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
@@ -1696,7 +1789,8 @@ TinyMce styles
 			<label for="datePosted">Date Posted</label>
 		</td>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>">
-		<input id="datePosted" name="datePosted" value="<cfoutput>#dateTimeFormat(getPost[1]['DatePosted'], "medium")#</cfoutput>" style="width: 45%" />    
+		<input id="datePosted" name="datePosted" value="<cfoutput>#dateTimeFormat(getPost[1]['DatePosted'], "medium")#</cfoutput>" style="width: 45%" /> 
+		<button id="sortDate" class="k-button normalFontWeight" type="button" style="width: 105px" onClick="createAdminInterfaceWindow(43,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Sort Date</button>
 		</td>
 	  </tr>
 	</cfif>
@@ -1917,28 +2011,26 @@ TinyMce styles
 			<!--- Inner table --->
 			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0">
 				<tr>
-					<td width="25%" align="left">
+					<td width="20%" align="left">
 						<!--- Make the link --->
 						<cfset postUrl = application.blog.getPostUrlByPostId(getPost[1]['PostId'])>
-						<button id="postPreview" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="window.open('<cfoutput>#postUrl#</cfoutput>');">Preview</button>
+						<button id="postPreview" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="window.open('<cfoutput>#postUrl#</cfoutput>');">Preview</button>
 					</td>
-					<td width="25%" align="left">
-						<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Change Alias</button>
+					<td width="20%" align="left">
+						<button id="postHeader" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(42,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Post Header</button>
 					</td>
-					<td width="25%" align="left">
-						<button id="postHeader" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(42,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Post Header</button>
+					<td width="20%" align="left">
+						<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Change Alias</button>
 					</td>
-					<td width="25%" align="left">
-						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
+					<td width="20%" align="left">
+						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
 					</td>
-					<!---<td width="25%" align="left">
-						 Next version:
-						<button id="setTheme" class="k-button normalFontWeight" type="button" style="width: 175px">Set Theme</button>
-						--->
+					<td width="20%" align="left">
+						<button id="setTheme" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(44,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Set Theme</button>
 						<!--- Next version:
 						<button id="scheduleRelease" class="k-button normalFontWeight" type="button" style="width: 175px">Schedule Release</button>
-						
-					</td>--->
+						--->
+					</td>
 				</tr>
 			</table>
 		</td>
@@ -2811,7 +2903,7 @@ TinyMce styles
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="password" name="password" type="password" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 66%" <cfif detailAction eq 'update'>onClick="showPasswordNote()"</cfif> onChange="createAdminInterfaceWindow(9, 'confirmPassword');" /><br/>
+			<input id="password" name="password" type="password" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 66%" <cfif detailAction eq 'update'>onClick="showPasswordNote()"</cfif> onBlur="createAdminInterfaceWindow(9, 'confirmPassword');" /><br/>
 			Note: the blog does not store the password other than in encrypted form. The actual password can't be retrieved and is not stored.
 		</td>
 	  </tr>
@@ -2821,7 +2913,7 @@ TinyMce styles
 			<label for="password"><cfif detailAction eq 'update'>Encrypted Password<cfelse>Password</cfif></label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="password" name="password" type="password" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 33%" <cfif detailAction eq 'update'>onClick="showPasswordNote()"</cfif> onChange="createAdminInterfaceWindow(9, 'confirmPassword');" /><br/> 
+			<input id="password" name="password" type="password" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 33%" <cfif detailAction eq 'update'>onClick="showPasswordNote()"</cfif> onBlur="createAdminInterfaceWindow(9, 'confirmPassword');" /><br/> 
 			Note: the blog does not store the password other than in encrypted form. The actual password is not stored.
 		</td>
 	  </tr>
@@ -4131,8 +4223,8 @@ TinyMce styles
 	
 	<!--- Instantiate the Render.cfc. This will be used to build the HTML for the image if the MediaUrl is present in the database. --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-	<!--- Get the post --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true)>
+	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	<!--- <cfdump var="#getPost#"> ---> 
 		
 	<!---*********************     Handle media      *********************--->
@@ -4374,9 +4466,9 @@ Custom element markup example for videos:
 <cfcase value=14>
 
 	<cfsilent>
-	<!--- Get the current content by the mediaId if available. --->
+	<!--- Get the current content by the mediaId if available ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ). --->
 	<cfif len(URL.optArgs)>
-		<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true)>
+		<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	<!---<cfdump var="#getPost#"> --->  
 		
 		<!---*********************     Handle media      *********************--->
@@ -4505,56 +4597,19 @@ Custom element markup example for videos:
 	}
 	</style>
 		
-	<!--- Get the post. Here we aer passing the postId, true to get removed posts, and true to get the ld-json body. --->
+	<!--- Get the post. Here we are passing the postId, true to get pending posts, and true to get the removed posts ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ). --->
 	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	<!---<cfdump var="#getPost#">--->
-	
-	<!--- 
-	Note: this is also saved in the database for efficiency, however, we we want to always refresh the content on the admin site.
-	To get the LDJson from the database use:
+
 	<cfif len(getPost[1]["JsonLd"])>
-		<cfset jsonLd = getPost[1]["JsonLd"]>		
-	</cfif> 
-	--->
-	<!--- Render the LD JSON --->
-	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-	<!--- The true argument will prettify the code for the editor. --->
-	<cfset jsonLd = RendererObj.renderLdJson(getPost, true)>
-	
-	<!--- Include the CfJson component --->
-	<cfobject component="#application.baseComponentPath#/common.cfc.cfJson" name="jsonArray">
-	<!--- Format the json --->
-	<cfset jsonLd = jsonArray.formatJson(jsonLd)>
-	<!---<cfdump var="#jsonLd#">--->
-
-	<!---********************* Json LD editor *********************--->
-	<cfsilent>
-	<!--- Note: the tinymce.cfm template will create a unique selectorName that we need to use in the textarea where we want to place the editor.--->
-	<cfset selectorId = "jsonLdEditor">
-	<cfif session.isMobile>
-		<cfset editorHeight = "600">
+		<cfset jsonLd = getPost[1]["JsonLd"]>	
 	<cfelse>
-		<cfset editorHeight = "600">
+		<!--- Render the LD JSON --->
+		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
+		<!--- The true argument will prettify the code for the editor. --->
+		<cfset jsonLd = RendererObj.renderLdJson(getPost, false)>
+		<!---<cfdump var="#jsonLd#">--->
 	</cfif>
-	<cfset imageHandlerUrl = ""><!--- Images are not available here --->
-	<cfset contentVar = jsonLd>
-	<cfset imageMediaIdField = ""><!--- Images are not available here --->
-	<cfset imageClass = ""><!--- Images are not available here --->
-
-	<cfif session.isMobile>
-		<cfset toolbarString = "undo redo | fileUpload ">
-	<cfelse>
-		<cfset toolbarString = "undo redo | fileUpload ">
-	</cfif>
-	<cfset pluginList = "'print preview anchor',
-		'searchreplace visualblocks code codesample fullscreen',
-		'paste iconfonts'">
-	<cfset includeGallery = false>
-	<cfset includeVideoUpload = false>
-	<cfset includeFileUpload = false>
-	</cfsilent>
-	<!--- Include the tinymce js template --->
-	<cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">
 
 	<script>
 		$(document).ready(function() {
@@ -4576,8 +4631,8 @@ Custom element markup example for videos:
 				data: { // arguments
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					postId: "<cfoutput>#URL.optArgs#</cfoutput>",
-					jsonLd: tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent(),
-					selectorId: '<cfoutput>#selectorId#</cfoutput>'
+					jsonLd: $("#jsonLdEditor").val(),
+					selectorId: 'jsonLdEditor'
 				},
 				dataType: "json",
 				success: saveJsonLdResponse, // calls the result function.
@@ -4618,15 +4673,13 @@ Custom element markup example for videos:
 	  <cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			LD-JSON is used by the search engines to better understand the structure of your web page. Galaxie Blog automatically generates compressed LD-JSON for your blog postings. You may edit this LD Json here.<br/> 
-			Note: this is a prettified JSON LD string and it may cause errors when copying and pasting to test the LD Json on external sites. <a href="javascript:createAdminInterfaceWindow(22, <cfoutput>#URL.optArgs#</cfoutput>)">Click here</a> to get the actual non-prettified JSON LD string that is used on this blog posting.
+			LD-JSON is used by the search engines to better understand the structure of your web page. Galaxie Blog automatically generates compressed LD-JSON for your blog postings. You may edit this LD Json here.
 		</td>
 	   </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
-			LD-JSON is used by the search engines to better understand the structure of your web page. Galaxie Blog automatically generates compressed LD-JSON for your blog postings. You may edit this LD Json here.<br/> 
-			Note: this is a prettified JSON LD string and it may cause errors when copying and pasting to test the LD Json on external sites. <a href="javascript:createAdminInterfaceWindow(22, <cfoutput>#URL.optArgs#</cfoutput>)">Click here</a> to get the actual non-prettified JSON LD string that is used on this blog posting.
+			LD-JSON is used by the search engines to better understand the structure of your web page. Galaxie Blog automatically generates compressed LD-JSON for your blog postings. You may edit this LD Json here.<br/>
 		</td>
 	  </tr>
 	</cfif>
@@ -4646,21 +4699,21 @@ Custom element markup example for videos:
 	<cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="<cfoutput>#selectorName#</cfoutput>">LD-JSON</label>
+			<label for="jsonLdEditor">LD-JSON</label>
 		</td>
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<textarea id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>"></textarea>
+			<textarea id="jsonLdEditor" name="jsonLdEditor" rows="20" cols="75"><cfoutput>#jsonLd#</cfoutput></textarea>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
-			<label for="<cfoutput>#selectorName#</cfoutput>">LD-JSON</label>
+			<label for="jsonLdEditor">LD-JSON</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<textarea id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>"></textarea>
+			<textarea id="jsonLdEditor" name="jsonLdEditor" rows="20" cols="75"><cfoutput>#jsonLd#</cfoutput></textarea>
 		</td>
 	  </tr>
 	</cfif>
@@ -4705,8 +4758,8 @@ Custom element markup example for videos:
 	}
 	</style>
 	
-	<!--- Get the post --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true)>
+	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	<!---<cfdump var="#getPost#">--->
 		
 	<!--- See if there is a local video --->
@@ -4720,10 +4773,12 @@ Custom element markup example for videos:
 			<cftry>
 				<cffile action="read" file="#expandPath(videoVttFileUrl)#" variable="fileContent">
 			<cfcatch type="any">
+				<cfset videoVttFileUrl = "">
 				<cfset fileContent = "">
 			</cfcatch>
 			</cftry>
 		<cfelse>
+			<cfset videoVttFileUrl = "">
 			<cfset fileContent = "">
 		</cfif>
 
@@ -4998,8 +5053,8 @@ Custom element markup example for videos:
 	
 	<!--- Instantiate the Render.cfc. This will be used to build the HTML for the image if the MediaUrl is present in the database. --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-	<!--- Get the post --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true)>
+	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) )--->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	<!---<cfdump var="#getPost#">--->
 		
 	<!--- Get the current video cover URL --->
@@ -5117,8 +5172,8 @@ Custom element markup example for videos:
 	
 	<!--- Instantiate the Render.cfc. This will be used to build the HTML for the image if the MediaUrl is present in the database. --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-	<!--- Get the post --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true)>
+	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	<!---<cfdump var="#getPost#">--->
 	<!--- Get the mapId if already present. --->
 	<cfset mapId = getPost[1]["EnclosureMapId"]>
@@ -5449,8 +5504,8 @@ Custom element markup example for videos:
 	
 	<!--- Instantiate the Render.cfc. This will be used to build the HTML for the image if the MediaUrl is present in the database. --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-	<!--- Get the post --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true)>
+	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	<!---<cfdump var="#getPost#">--->
 		
 	<!--- When the map already contains routes the location does not show up when submitting the form. This flag will turn off the existing directions so that the user has to fill out the form again. --->
@@ -5639,8 +5694,8 @@ Custom element markup example for videos:
 	<!--- Instantiate the Render.cfc. This will be used to build the HTML for the image if the MediaUrl is present in the database. --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 	
-	<!--- Get the post --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true)>
+	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs, true, true)>
 	<!---<cfdump var="#getPost#">--->
 	<!--- Get the mapId if present. --->
 	<cfset mapId = getPost[1]["EnclosureMapId"]>
@@ -5781,7 +5836,7 @@ Custom element markup example for videos:
 	}
 	</style>
 		
-	<!--- Get the post. Here we aer passing the postId, true to get removed posts, and true to get the ld-json body. --->
+	<!--- Get the post. Here we aer passing the postId, true to get removed posts, and true to get the ld-json body ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ). --->
 	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	<!---<cfdump var="#getPost#">--->
 		
@@ -5847,6 +5902,7 @@ Custom element markup example for videos:
 	
 <cfcase value=23>
 	
+	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
 	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	
 	<!--- Get a list of titles and aliases for validation purposes --->
@@ -7955,14 +8011,52 @@ Custom element markup example for videos:
 		  </tr>
 		  <tr>
 			<td colspan="2"> 
-				<p>The Favorite Icon will allow other devides to display your theme when bookmarking a page and will display the icon on the tab in the browser.</p>
+				<p>The Favorite Icon will allow other devices to display your theme when bookmarking a page and will display the icon on the tab in the browser.</p>
 				<p>There are many free favicon generators on the web, for example, <a href="https://favicon.io/">https://favicon.io/</a> that will generate the necessary files for you.</p> <p>However, each generator is unique and creates different files and the standards are fluid and not consistent. Please generate your files manually or by using a generator, and paste in the code that you want the browser to render. Once you're done, you may also click on the upload FavIcon Files button below to upload your files to the root directory of your blog site.</p>
+				<p>If you want your Favorite Icon HTML to be applied to all themes, click on the 'Apply across all themes' checkbox.</p>
 			</td>
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
+			  
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="uploadFavIcon"></label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">				
+				<button id="uploadFavIcon" class="k-button k-primary" type="button" onclick="createAdminInterfaceWindow(36, 'favIconUploader')">Upload FavIcon files</button> 
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+				<label for="saveFavIcon">Upload Favorite Icons</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">				
+				<button id="uploadFavIcon" class="k-button k-primary" type="button" onclick="createAdminInterfaceWindow(36, 'favIconUploader')">Upload FavIcon files</button>  
+			</td>
+		  </tr>
+		</cfif>	
+			
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+			  
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -7988,36 +8082,28 @@ Custom element markup example for videos:
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			  
-		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
-		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<label for="uploadFavIcon"></label>
+				<label for="applyFavIconToAllThemes">Apply across all themes:</label>
 			</td>
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<button id="uploadFavIcon" class="k-button k-primary" type="button" onclick="createAdminInterfaceWindow(36, 'favIconUploader')">Upload FavIcon files</button> 
+				<input type="checkbox" id="applyFavIconToAllThemes" name="applyFavIconToAllThemes">
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
-				<label for="uploadFavIcon"></label>
+				<label for="applyFavIconToAllThemes">Apply across all themes:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<button id="uploadFavIcon" class="k-button k-primary" type="button" onclick="createAdminInterfaceWindow(36, 'favIconUploader')">Upload FavIcon files</button>  
+				 <input type="checkbox" id="applyFavIconToAllThemes" name="applyFavIconToAllThemes">
 			</td>
 		  </tr>
-		</cfif>	  
+		</cfif>
+			  
 		  <!-- Border -->
 		  <tr height="2px">
 			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -8071,7 +8157,7 @@ Custom element markup example for videos:
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="logoImage" name="logoImage" value="#logoImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImage','#logoImage#');">
+				<input type="text" id="logoImage" name="logoImage" value="#application.baseUrl##logoImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImage','#application.baseUrl##logoImage#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8099,7 +8185,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#logoImageMobile#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#logoImageMobile#');">
+				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#application.baseUrl##logoImageMobile#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#application.baseUrl##logoImageMobile#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8111,7 +8197,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#logoImageMobile#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#logoImageMobile#');">
+				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#application.baseUrl##logoImageMobile#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#application.baseUrl##logoImageMobile#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8149,7 +8235,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#defaultLogoImageForSocialMediaShare#');">
+				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#application.baseUrl##defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#application.baseUrl##defaultLogoImageForSocialMediaShare#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8161,7 +8247,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#defaultLogoImageForSocialMediaShare#');">
+				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#application.baseUrl##defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#application.baseUrl##defaultLogoImageForSocialMediaShare#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8328,7 +8414,7 @@ Custom element markup example for videos:
 		   <tr class="includeBackgroundImages">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#blogBackgroundImage#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#');">
+				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#application.baseUrl##blogBackgroundImage#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#application.baseUrl##blogBackgroundImage#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8339,7 +8425,7 @@ Custom element markup example for videos:
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#blogBackgroundImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#');">
+				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#application.baseUrl##blogBackgroundImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#application.baseUrl##blogBackgroundImage#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8367,7 +8453,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#blogBackgroundImageMobile#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#');">
+				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#application.baseUrl##blogBackgroundImageMobile#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#application.baseUrl##blogBackgroundImageMobile#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8379,7 +8465,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#blogBackgroundImageMobile#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#');">
+				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#application.baseUrl##blogBackgroundImageMobile#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#application.baseUrl##blogBackgroundImageMobile#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -9972,7 +10058,8 @@ Custom element markup example for videos:
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
 			<cfswitch expression="#URL.otherArgs#">
 				<cfcase value="blogBackgroundImage">
-					The blog background image will cover the background. Make sure that the image is compressed and if possible use a highly compressed .webp image instead of a .jpg or gif.
+					<p>The blog background image will cover the background. Make sure that the image is compressed.</p>
+					<p>Note: we are not yet supporting .webp file uploads. Instead upload them manually and link to them. The webp images will also show up as a broken image in the editor unfortunately.</p>
 				</cfcase>
 				<cfcase value="blogBackgroundImageMobile">
 					The Mobile Blog Background is used to display the background image on mobile devices. This image should be about 1/3rd smaller than the blog background image.
@@ -10161,7 +10248,7 @@ Custom element markup example for videos:
 		
 		$(document).ready(function() {
 		
-			// ---------------------------- kendo theme dropdown. ----------------------------
+			// ---------------------------- theme dropdown. ----------------------------
 			var themeDs = new kendo.data.DataSource({
 				transport: {
 					read: {
@@ -10456,6 +10543,13 @@ Custom element markup example for videos:
 		
 	<script>
 		
+		// Numeric inputs
+		$("#entriesPerBlogPage").kendoNumericTextBox({
+			decimals: 0,
+			format: "#",
+			round: true
+		});
+		
 		// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 		$(document).ready(function() {
 
@@ -10597,7 +10691,6 @@ Custom element markup example for videos:
 			<input type="checkbox" id="useSsl" name="useSsl" value="1" <cfif useSsl>checked</cfif>>
 		</td>
 	  </tr>
-		  
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
 	  <!---After the first row, the content class should be the current class. --->
@@ -10606,7 +10699,7 @@ Custom element markup example for videos:
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <!-- Form content -->
+	  <!-- Rewrite rule -->
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 			A 'Server Rewrite Rule' essentially removes the index.cfm from all of your public pages and makes it easier for the search engines to digest the content in a SEO friendly way. The server re-write rules are placed on the server. You may have to get your server or hosting administrator involved to get it working on the server. If you have a server rewite rule on the server, and you're sure that it works, check the box below so that Galaxie Blog can generate the proper links. Be sure that your server side rewrite rules work before checking this box as you may not be able to get bck into this site unless you have direct access to the database to disable this setting once it is checked.
@@ -10621,12 +10714,10 @@ Custom element markup example for videos:
 			<input type="checkbox" name="serverRewriteRuleInPlace" id="serverRewriteRuleInPlace" value="1" <cfif serverRewriteRuleInPlace>checked</cfif>>
 		</td>
 	  </tr>
-		  
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-		  
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
 	  <!---After the first row, the content class should be the current class. --->
@@ -10635,7 +10726,7 @@ Custom element markup example for videos:
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <!-- Form content -->
+	  <!-- Defer scripts -->
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 			Deferring the loading of non-essential scripts speeds up the loading of the site making the initial site to load faster. It is highly recommened to keep this setting unless you absolutely need all of the scripts to load before rendering the page.
@@ -10650,12 +10741,10 @@ Custom element markup example for videos:
 			<input type="checkbox" name="deferScriptsAndCss" id="deferScriptsAndCss" value="1" <cfif deferScriptsAndCss>checked</cfif>>
 		</td>
 	  </tr>
-		
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-		
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
 	  <!---After the first row, the content class should be the current class. --->
@@ -10664,7 +10753,7 @@ Custom element markup example for videos:
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <!-- Form content -->
+	  <!-- Minimize Javascript -->
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 			Galaxie Blog has logic to minimize the various Javascript and CSS in order to load the page quicker. This setting should be checked when you are in a production environment to improve page performance. You may want to turn this off if you are trying to debug code as the code is much easier to read when it is not compressed.
@@ -10679,12 +10768,10 @@ Custom element markup example for videos:
 			<input type="checkbox" name="minimizeCode" id="minimizeCode" value="1" <cfif minimizeCode>checked</cfif>>
 		</td>
 	  </tr>
-		  
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-		
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
 	  <!---After the first row, the content class should be the current class. --->
@@ -10693,7 +10780,7 @@ Custom element markup example for videos:
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <!-- Form content -->
+	  <!-- Caching -->
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 			Galaxie Blog's caching features enhances performance and should <b>be enabled in production environments</b>. However, you will want to disable caching until you are <b>completely</b> finished setting up your site. This option should be checked when you need to immediately see your changes reflected on the front end after making site changes or writing new code. 
@@ -10707,8 +10794,41 @@ Custom element markup example for videos:
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input type="checkbox" name="disableCache" id="disableCache" value="1" <cfif disableCache>checked</cfif>>
 		</td>
+	  </tr>  
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-		  
+		
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Caching -->
+	  <tr valign="middle" height="30px">
+		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
+			You can adjust how many blog posts will appear on the blog landing page. The default setting is ten (10) posts per page, however, if you extensively use maps and or videos, you may want to consider adjusting this to five (5) posts per page as both maps and videos consume a lot of resources and will increase the page load time. Alternatively, if you are minimal in your usage of media, or use the &lt;more&gt; tag quite often to break up the content of your posts, you can set this to a max of twenty five (25) posts.
+		</td>
+	  </tr>
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr valign="middle" height="30px">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<label for="entriesPerBlogPage">Number of posts per page</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input type="number" id="entriesPerBlogPage" name="entriesPerBlogPage" min="5" max="25" step="1" value="<cfoutput>#maxEntries#</cfoutput>" class="k-textbox" width="15%" > 
+		</td>
+	  </tr>  
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -12724,8 +12844,8 @@ Custom element markup example for videos:
 		textarea { width: 90%; height: auto; }
 	</style>
 	
-	<!--- Get the post. The last argument should also show posts that are removed. --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true)>
+	<!--- Get the post. The last argument should also show posts that are removed ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ). --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 	<!---<cfdump var="#getPost#">--->
 	<!--- Get the post header  --->
 	<cfset postHeader = getPost[1]["PostHeader"]>
@@ -12847,6 +12967,275 @@ Custom element markup example for videos:
 	</table>
 	</form>
 	
+</cfcase>
+		  
+<!---//*******************************************************************************************************************
+				Sort Order Date
+//********************************************************************************************************************--->
+		  
+<cfcase value="43">
+	
+	<!--- Instantiate the Render.cfc. This will be used to render our directives and create video and map thumbnails --->
+	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
+	
+	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
+	<!---<cfdump var="#getPost#">--->
+		
+	<!--- Get the sort order date --->
+	<cfset blogSortDate = getPost[1]["BlogSortDate"]>
+		
+	<script>
+		
+		var todaysDate = new Date();
+		var currentBlogSortDate = $("#newBlogSortDate").val();
+			
+		// Kendo Dropdowns
+		// Date posted date/time picker			
+		$("#blogSortDate").kendoDateTimePicker({
+			componentType: "modern",
+			value: <cfoutput>#application.Udf.jsDateFormat(getPost[1]['BlogSortDate'])#</cfoutput>
+		});
+
+		function onBlogSortDateSubmit() {
+			// alert("Change :: " + kendo.toString(this.value(), 'g'));
+			// Check to see if the selected date is greater than today
+			if ($("#blogSortDate").val() > todaysDate){
+				$.when(kendo.ui.ExtYesNoDialog.show({ 
+					title: "Set the sort date in the future?",
+					message: "You are setting this to a date in the future. Do you want to continue?",
+					icon: "k-ext-warning",
+					width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
+					height: "215px"
+				})
+				).done(function (response) { // If the user clicked 'yes'
+					if (response['button'] == 'Yes'){// remember that js is case sensitive.
+						// Change the hidden input field on the post details page
+						$("#newBlogSortDate").val($("#blogSortDate").val());
+					}//..if (response['button'] == 'Yes'){
+				});
+			} else {
+				// Change the hidden input field on the post details page
+				$("#newBlogSortDate").val($("#blogSortDate").val());
+			}
+			// Close this window.
+			$('#blogSortDateWindow').kendoWindow('destroy');
+		}
+		
+	</script>
+		
+	<form id="postBlogSortDateForm" action="#" method="post" data-role="validator">
+	<!--- Pass the csrfToken --->
+	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
+	<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0" border="0">
+	  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+	  </cfsilent>
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<p>The Blog Sort Date is be used to change the sort order of the posts in a different order than the actual post date.</p>
+			
+			<p>To change the sort order on the main blog page, choose a sort date between the dates of two different posts. For example, if you want this to show up underneath a post with the post made on New Year's Day, but above your post made during Christmas, set the date to something between December 25th and January 1st.</p>
+		</td>
+	   </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr height="30px">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
+			<p>The Blog Sort Date is be used to change the sort order of the posts in a different order than the actual post date.</p>
+			
+			<p>To change the sort order on the main blog page, choose a sort date between the dates of two different posts. For example, if you want this to show up underneath a post with the post made on New Year's Day, but above your post made during Christmas, set the date to something between December 25th and January 1st.</p>
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	<cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="blogSortDate">Post Sort Date</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<input id="blogSortDate" name="blogSortDate" value="<cfoutput>#dateTimeFormat(blogSortDate, 'medium')#</cfoutput>" style="width: <cfif session.isMobile>95<cfelse>45</cfif>%" /> 
+		</td>
+	  </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr valign="middle" height="30px">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
+			<label for="blogSortDate">Post Sort Date</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input id="blogSortDate" name="blogSortDate" value="<cfoutput>#dateTimeFormat(blogSortDate, 'medium')#</cfoutput>" style="width: <cfif session.isMobile>95<cfelse>45</cfif>%" /> 
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!--- After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	  <tr valign="middle" height="30px">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<button id="postHeaderSubmit" name="postHeaderSubmit" class="k-button k-primary" type="button" onClick="onBlogSortDateSubmit()">Submit</button>
+		</td>
+	  </tr>
+	</table>
+	</form>
+		
+</cfcase>
+		  
+<!---//*******************************************************************************************************************
+				Set Post Theme
+//********************************************************************************************************************--->
+		  
+<cfcase value="44">
+	
+	<!--- Instantiate the Render.cfc. This will be used to render our directives and create video and map thumbnails --->
+	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
+	
+	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ). --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
+	<!--- Get the current theme --->
+	<cfset postThemeId = getPost[1]["ThemeRef"]>
+	<!--- Get the themes. This is a HQL array --->
+	<cfset themeNames = application.blog.getThemeNames()>
+	<!---<cfdump var="#themeNames#">--->
+		
+	<script>
+		
+		$(document).ready(function() {
+			// Create the top level dropdown
+			var postThemeDropdown = $("#postThemeDropdown").kendoDropDownList();
+		});
+		
+		function onPostThemeSubmit() {
+			// Change the hidden input field on the post details page
+			$("#postThemeId").val($("#postThemeDropdown").val());
+			// Close this window.
+			$('#setPostThemeWindow').kendoWindow('destroy');
+		}
+		
+	</script>
+		
+	<form id="postThemeForm" action="#" method="post" data-role="validator">
+	<!--- Pass the csrfToken --->
+	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
+	<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0" border="0">
+	  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+	  </cfsilent>
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<p>You can attach a unique theme to a given post.</p> 
+			<p>This does not have any impact on the main blog page, but it will display the chosen theme when the user is looking at this post.</p>
+		</td>
+	   </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr height="30px">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
+			<p>You can attach a unique theme to a given post.</p> 
+			<p>This was designed to allow blog owners to create a post that has a unique theme. For example, you can create your own holiday-oriented theme on your 'Happy Holidays!' post, or on a post that supports a certain cause (i.e. 'Donate to breast cancer awareness'.</p> <p>This does not have any impact on the main blog page, but it will display the chosen theme when the user is looking at this post.</p>
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	<cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="setPostTheme">Set Post Theme</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<select id="postThemeDropdown" name="postThemeDropdown">
+				<option value="0">None Selected</option>
+				<cfloop from="1" to="#arrayLen(themeNames)#" index="i"><cfoutput><option value="#themeNames[i]['ThemeId']#" <cfif postThemeId eq themeNames[i]['ThemeId']>selected</cfif>>#themeNames[i]['ThemeName']#</option></cfoutput></cfloop>
+			</select>
+		</td>
+	  </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr valign="middle" height="30px">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
+			<label for="setPostTheme">Set Post Theme</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<select id="postThemeDropdown" name="postThemeDropdown">
+				<option value="0">None Selected</option>
+				<cfloop from="1" to="#arrayLen(themeNames)#" index="i"><cfoutput><option value="#themeNames[i]['ThemeId']#" <cfif postThemeId eq themeNames[i]['ThemeId']>selected</cfif>>#themeNames[i]['ThemeName']#</option></cfoutput></cfloop>
+			</select>
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!--- After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	  <tr valign="middle" height="30px">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<!--- The onPostThemeSubmit changes a dropdown in the post detail page. It does not trigger the saving of the theme. The save function is invoked using on onPostThemeSubmit js function --->
+			<button id="postThemeSubmit" name="postThemeSubmit" class="k-button k-primary" type="button" onClick="onPostThemeSubmit()">Submit</button>
+		</td>
+	  </tr>
+	</table>
+	</form>
+		
 </cfcase>
 	
 </cfswitch>	

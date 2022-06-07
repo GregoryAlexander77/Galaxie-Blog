@@ -4,8 +4,11 @@
 	
 	<cffunction name="loadJSoup" access="public" output="false" returntype="any" hint="Loads the JSoup library">
     	
-		<!--- The JavaLoader already has initilized the jSoup lib within the application.cfc template. The class that we need in the jar is org.jsoup.Jsoup. There are no other methods needed to initialize. --->
+		<!--- We are now using the this.javaSettings approach to load Jsoup instead of using the class loader. The class that we need in the jar is org.jsoup.Jsoup. There are no other methods needed to initialize. --->
+		<cfset JSoupObj = createObject( "java", "org.jsoup.Jsoup" )>
+		<!--- Original approach:
 		<cfset JSoupObj = application.jsoupJavaloader.create("org.jsoup.Jsoup")>
+		--->
 		
 		<!--- Return the JSoup class. --->
 		<cfreturn JSoupObj>
@@ -217,13 +220,12 @@
 		<!--- Instantiate the Render.cfc. We need to get to the simpleHtmlEscape function. --->
 		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 			
-		<!--- Init the Whitelist object. We need this for the clean method later on --->
-		<cfset WhiteListObj = application.jsoupJavaloader.create("org.jsoup.safety.Whitelist")>
-		<!--- Init the parser object. We will use this to parse ColdFusion tags without Jsoup normalizing the CF code and ending end tags (ie <cfset x = 'foo'></cfset>) --->
-		<cfset ParserObj = application.jsoupJavaloader.create("org.jsoup.parser.Parser")>
-		
 		<!--- Init JSoup --->
 		<cfset JSoupObj = loadJSoup()>
+		
+		<!--- Init the parser object. We will use this to parse ColdFusion tags without Jsoup normalizing the CF code and ending end tags (ie <cfset x = 'foo'></cfset>) --->
+		<cfset ParserObj = createObject("java", "org.jsoup.parser.Parser")>
+		
 		<!--- Load the post. To minimize the normalization of the code, we are using the XML parser --->
 		<cfset PostJSoupObj = JSoupObj.parse( arguments.post, "", ParserObj.xmlParser() )>
 			
@@ -362,11 +364,11 @@
     	
 		<!--- Init JSoup --->
 		<cfset JSoupObj = loadJSoup()>
-		<!--- Init the Whitelist object --->
-		<cfset WhiteListObj = application.jsoupJavaloader.create("org.jsoup.safety.Whitelist")>	
+		<!--- Init the Safelist object. We need this for the clean method later on. This was named Whitelist. --->
+		<cfset SafelistObj = createObject("java", "org.jsoup.safety.Safelist")>
 		
 		<!--- Sanitize the string. Note: this method is in the JSoup parent object. --->
-		<cfset sanitizedStr = JSoupObj.clean(arguments.str, WhitelistObj.relaxed())>
+		<cfset sanitizedStr = JSoupObj.clean(arguments.str, SafelistObj.relaxed())>
 			
 		<!--- Return the new string --->
 		<cfreturn sanitizedStr>
@@ -402,8 +404,6 @@
     	
 		<!--- Init JSoup --->
 		<cfset JSoupObj = loadJSoup()>
-		<!--- Init the Whitelist object --->
-		<cfset WhiteListObj = application.jsoupJavaloader.create("org.jsoup.safety.Whitelist")>	
 			
 		<!--- Parse the input and create a new document --->
 		<cfset JSoupDocObj = JSoupObj.parse(arguments.html)>

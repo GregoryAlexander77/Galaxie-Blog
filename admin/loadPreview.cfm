@@ -15,8 +15,8 @@
 		<!--- Instantiate the Render.cfc. This will be used to create video and map thumbnails --->
 		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 
-		<!--- Get the post. The last argument should also show posts that are removed. --->
-		<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true)>
+		<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+		<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
 		<!---<cfdump var="#getPost#">--->
 
 		<!--- Get the current blog theme --->

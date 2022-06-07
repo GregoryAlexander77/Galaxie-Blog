@@ -19,7 +19,7 @@
 	<cfset session.databaseType = Form.databaseType>
 		
 	<!--- Determine the files that we need to have the user replace --->
-	<cfset dbCfcFilePath = session.basePath & "common/cfc/galaxieDb/" & databaseType>
+	<cfset dbCfcFilePath = session.basePath & "common/cfc/db/galaxieDb/" & databaseType>
 	<cfset newDbCfcFilePath = session.basePath & "installer/databaseOrmFiles/" & databaseType>
 		
 	<!--- Save these paths to the session --->

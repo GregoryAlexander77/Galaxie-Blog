@@ -1,3 +1,4 @@
+<cfif isDefined("debug") and debug>Running the installer/insertData.cfm template.<br/></cfif>
 <!---<cfsilent>--->
 <!--- This is consumed from the Application.cfm template after ORM creates the initial database. --->
 
@@ -105,6 +106,8 @@ Populate the blog table.
 
 	<cfset blogId = BlogDbObj.getBlogId()>
 </cfif>	
+<cfif isDefined("debug") and debug>Blog Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the blog option table.
 ********************************************************************************************--->
@@ -170,6 +173,8 @@ Populate the blog option table.
 
 	<cfset blogOptionId = OptionDbObj.getBlogOptionId()>
 </cfif>
+<cfif isDefined("debug") and debug>Blog Option Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the capability table.
 ********************************************************************************************--->
@@ -221,6 +226,8 @@ Populate the capability table.
 
 	<cfset CapabilityId = CapabilityDbObj.getCapabilityId()>
 </cfif>
+<cfif isDefined("debug") and debug>Capability Table succesfully populated.<br/></cfif>	
+			
 <!--- ******************************************************************************************
 Populate the Custom Template table. For this version, we are just populating 1 empty row
 ********************************************************************************************--->
@@ -278,6 +285,8 @@ Populate the Custom Template table. For this version, we are just populating 1 e
 
 	<cfset customTemplateId = CustomTemplateDbObj.getCustomTemplateId()>
 </cfif>
+<cfif isDefined("debug") and debug>Custom Template Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the Font table.
 ********************************************************************************************--->
@@ -333,6 +342,8 @@ Populate the Font table.
 
 	<cfset FontId = FontDbObj.getFontId()>
 </cfif>	
+<cfif isDefined("debug") and debug>Font Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the Kendo Theme table.
 ********************************************************************************************--->
@@ -383,6 +394,8 @@ Populate the Kendo Theme table.
 
 	<cfset KendoThemeId = KendoThemeDbObj.getKendoThemeId()>
 </cfif>	
+<cfif isDefined("debug") and debug>Kendo Theme Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the Map Provider table.
 ********************************************************************************************--->
@@ -429,6 +442,8 @@ Populate the Map Provider table.
 
 	<cfset mapProviderId = MapProviderDbObj.getMapProviderId()>
 </cfif>
+<cfif isDefined("debug") and debug>Map Provider Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the Map Type table.
 ********************************************************************************************--->
@@ -479,6 +494,8 @@ Populate the Map Type table.
 
 	<cfset mapTypeId = MapTypeDbObj.getMapTypeId()>
 </cfif>
+<cfif isDefined("debug") and debug>Map Type Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the Media Type table.
 ********************************************************************************************--->
@@ -527,6 +544,8 @@ Populate the Media Type table.
 
 	<cfset mediaTypeId = MediaTypeDbObj.getMediaTypeId()>
 </cfif>
+<cfif isDefined("debug") and debug>Media Type Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the Mime Type table.
 ********************************************************************************************--->
@@ -575,6 +594,8 @@ Populate the Mime Type table.
 
 	<cfset mimeTypeId = MimeTypeDbObj.getMimeTypeId()>
 </cfif>	
+<cfif isDefined("debug") and debug>Mime Type Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the Role table.
 ********************************************************************************************--->
@@ -625,6 +646,8 @@ Populate the Role table.
 
 	<cfset roleId = RoleDbObj.getRoleId()>
 </cfif>	
+<cfif isDefined("debug") and debug>Role Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the Role Capability table.
 ********************************************************************************************--->
@@ -697,6 +720,8 @@ Populate the Role Capability table.
 
 	<cfset roleCapabilityId = RoleCapabilityDbObj.getRoleCapabilityId()>
 </cfif>	
+<cfif isDefined("debug") and debug>Role Capability Table succesfully populated.<br/></cfif>
+				
 <!--- ******************************************************************************************
 Populate the Theme and Theme Setting tables at the same time. This one is tricky...
 ********************************************************************************************--->
@@ -850,6 +875,8 @@ Populate the Theme and Theme Setting tables at the same time. This one is tricky
 	<cfset themeId = ThemeDbObj.getThemeId()>
 	<cfset themeSettingId = ThemeSettingDbObj.getThemeSettingId()> 
 </cfif>
+<cfif isDefined("debug") and debug>Theme Setting Table succesfully populated.<br/></cfif>
+		
 <!--- ******************************************************************************************
 Populate the User table using the form values sent in
 ********************************************************************************************--->
@@ -862,12 +889,6 @@ Populate the User table using the form values sent in
 			DBCC CHECKIDENT ('[Users]', RESEED, 0);
 		</cfquery>
 	</cfif>
-
-	<!--- We need to get the role id from the data that we just inserted. --->
-	<cfquery name="getRoleId" dbtype="hql">
-		SELECT RoleId FROM Role
-		WHERE RoleName = <cfqueryparam value="Administrator" cfsqltype="varchar">
-	</cfquery>
 
 	<!--- Get the data from the .ini file --->
 	<cfset firstName = getProfileString(application.blogIniPath, "default", "firstName")>
@@ -883,6 +904,8 @@ Populate the User table using the form values sent in
 		
 	<cfset salt = generateSecretKey('AES', 256)>
 	<cfset uuid = createUUID()>
+		
+	<cfif isDefined("debug") and debug>Captured profile information.<br/></cfif>
 			
 	<!--- Use a transaction --->
 	<cftransaction>
@@ -891,7 +914,9 @@ Populate the User table using the form values sent in
 		<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
 
 		<cfquery name="getUserId" dbtype="hql">
-			SELECT UserId 
+			SELECT new Map ( 
+				UserId as UserId 
+			)
 			FROM Users 
 			WHERE UserName = <cfqueryparam value="#userName#">
 			AND Active = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
@@ -900,8 +925,9 @@ Populate the User table using the form values sent in
 
 		<!--- Load the entity. --->
 		<cfif arrayLen(getUserId)>
+			<cfset userId = getUserId[1]["UserId"]>
 			<!--- Load the entity by the username --->
-			<cfset UserDbObj = entityLoadByPk("Users", getUserId[1])>
+			<cfset UserDbObj = entityLoadByPk("Users", userId)>
 		<cfelse>
 			<!--- Create a new entity --->
 			<cfset UserDbObj = entityNew("Users")>
@@ -930,25 +956,15 @@ Populate the User table using the form values sent in
 		<cfset UserDbObj.setLastLogin("")>
 		<cfset UserDbObj.setActive(true)>
 		<cfset UserDbObj.setDate(now())>
+			
+		<cfif isDefined("debug") and debug>User Table succesfully populated.<br/></cfif>
 
 		<!--- ******************** Save the user role ******************** --->
 			
 		<!--- When inserting the original data, always load the administrator role --->
 		<cfset RoleDbObj = entityLoad("Role", { RoleName = 'Administrator' }, "true" )>
-			
 		<cfif arrayLen(getUserId)>
-			<cfquery name="getUserRole" dbtype="hql">
-				SELECT RoleRef 
-				FROM UserRole 
-				WHERE RoleRef = <cfqueryparam value="1" cfsqltype="integer">
-				AND UserRef = <cfqueryparam value="#getUserId[1]#" cfsqltype="integer">
-			</cfquery>
-			<cfif arrayLen(getUserRole)>
-				<cfset UserRoleDbObj = entityLoadByPK("UserRole", 1)>
-			<cfelse>
-				<!--- Create a new entity --->
-				<cfset UserRoleDbObj = entityNew("UserRole")>
-			</cfif>
+			<cfset UserRoleDbObj = entityLoadByPK("UserRole", 1)>
 		<cfelse><!---<cfif arrayLen(getUserId)>--->
 			<!--- Create a new entity --->
 			<cfset UserRoleDbObj = entityNew("UserRole")>
@@ -969,6 +985,8 @@ Populate the User table using the form values sent in
 	<cfset setProfileString(application.blogIniPath, "default", "installed", true)>
 
 </cfif>
+
+<cfif isDefined("debug") and debug>Completed installation.<br/></cfif>
 			
 <!--- Note: this is a copy of the blog.cfc's generateRandomString() --->
 <cffunction name="generateRandomPhrase" returntype="string" access="public" output="false">

@@ -287,7 +287,7 @@
 					type: "text",
 					title: "Author",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>20<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>10</cfif>/100)),
 				},
 				
 				{ name: "Title", 
@@ -310,6 +310,18 @@
 						// This does not work to strip out the HTML ($(value).text())
 					  	return '<a href="javascript:createAdminInterfaceWindow(6, ' + item.PostId + ');">' + truncateWithEllipses(removeStrBetween(value, "postData"), 125) + '</a>';
 					}
+				},
+				{ 	
+					name: "BlogSortDate", 
+					type: "date",
+					title: "Sort Date",
+					editing: true,
+					width: (pageWidth*(10/100)),
+					sorttype: 'date', 
+					itemTemplate: function (value, item) {
+						// Format the date using the momentJs lib.
+						return dayjs(item.BlogSortDate).format('MM/DD/YYYY h:mm A');
+					},
 				},
 				{ 	
 					name: "DatePosted", 

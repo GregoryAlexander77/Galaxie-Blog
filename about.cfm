@@ -83,7 +83,6 @@
 	<p><b>Installation</b></p>
 	<li>You must have a ColdFusion installed on a server.
 	<ul>
-	<li><strong>Important note</strong>: if you are using ColdFusion 2018 or 2021, you must <strong>not </strong>check the <strong>Disable access to internal ColdFusion Java components </strong>checkbox in the ColdFusion Administrator as it will cause the Javaloader, which this blog uses, to fail. Unfortunately, many ISPs, such as Hostek.com shared sites, have this setting enabled on CF2018 and CF2021. Use ColdFusion 2016 if you don't have access to the ColdFusion administrator to turn this setting off.</li>
 	<li>Your web server must have ColdFusion installed. Galaxie Blog has been tested on ColdFusion 2016, 2018, and 2021.</li>
 	<li>Theoretically, the blog may support any ColdFusion edition starting from ColdFusion 9, however, your mileage may vary.</li>
 	<li>We have successfully tested against Apache, TomCat and IIS.</li>

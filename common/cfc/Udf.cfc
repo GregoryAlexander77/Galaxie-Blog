@@ -1,24 +1,4 @@
 <cfcomponent displayname="Udf" hint="Common functions" name="Udf">
-	
-	<!---******************************************************************************************************
-		Caching
-	******************************************************************************************************--->
-
-	<cffunction name="getDisableCache" access="remote" output="yes" returntype="boolean" 
-			hint="Determines whether the cache should be disabled. This is used to refresh the contents of the site when needed. I expect this function to become more complex to allow for granular caching in the future">
-
-		<!--- Disable the cache when logged in --->
-		<cfif application.Udf.isLoggedIn()>
-			<cfset disableCache = true>
-		<cfelseif structKeyExists(URL, "refreshCache")>
-			<cfset disableCache = true>
-		<cfelse>
-			<cfset disableCache = application.disableCache>
-		</cfif>
-
-		<cfreturn disableCache>
-
-	</cffunction> 
 			
 	<!---******************************************************************************************************
 		Security

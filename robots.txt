@@ -1,2 +1,4 @@
 User-agent: *
-Disallow: /mobile/
+Sitemap: https://www.gregoryalexander.com/blog/googlesitemap.cfm
+User-agent: Googlebot
+Disallow: /*?theme=

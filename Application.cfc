@@ -1,11 +1,11 @@
 <cfcomponent displayname="GalaxieBlog3" sessionmanagement="yes" clientmanagement="yes" output="true">
 	<cfsetting requesttimeout="60">
 	<cfset this.Name = "GalaxieBlog" /> 
-		
+
 	<!--- Putting here as I often restart the app when debugging <cfset applicationStop()> --->
 	<cfparam name="doInit" default="false">
 	<!--- Print out some of the vars for debugging purposes. --->
-	<cfset debug = false>
+	<cfset debug = false>  
 		
 	<!--- Used for testing purposes. Setting these vars to true will allow you to re-run the installer --->
 	<cfset reinstallIni = false>
@@ -34,6 +34,15 @@
 		
 	<!--- Set the blogIniPath in order to get the variables. --->
 	<cfset application.blogIniPath = getBlogIniPath()>
+		
+	<!---//****************************************************************************************
+				jSoup
+	//*****************************************************************************************--->
+		
+	<!--- Create the path. This is bracketed as the init function expects an array --->
+	<cfset application.jSoupPath = [expandPath("common/java/jSoup/jsoup-1.15.1.jar")]>
+	<!--- Load Jsoup using this.javaSettings. Don't create the object until it is needed. This will be done in Jsoup.cfc --->
+	<cfset this.javaSettings = { loadPaths = application.jSoupPath, loadColdFusionClassPath=true, reloadOnChange=false }>
 		
 	<!--- Enable ORM --->
 	<cfset initOrm()>
@@ -187,12 +196,14 @@
 				
 		<!--- Determine if we need to run the installer. Do not run the installer prior to the ORM declaration. --->
 		<cfif reinstallIni or (isBoolean(getInstalled()) and not getInstalled() and not len(dsn))>
+			<cfif debug>Redirecting to installer/initial/index.cfm?notInstalled<br/></cfif>
 			<!--- Display the inital welcome screen and get the DSN from the user to create the initial database --->
 			<cflocation url="installer/initial/index.cfm?notInstalled" addToken="false">
 		</cfif>
 			
 		<!--- After the ORM has been reloaded in order to create the initial database, continue to install the blog by populating the database. The saveDsnCredentials.cfm template in the install directory has just redirected to the index.cfm page with the init argument. If we continue processing without populating the database we will have errors here. Note: when testing run this from the root home (index.cfm) page --->
 		<cfif ( reinstallDb or isBoolean(getInstalled()) and not getInstalled() and len(getDsn()) )>
+			<cfif debug>The initial install has been completed. Trying to insert data by including the installer/insertData.cfm template<br/></cfif>
 			<cfinclude template="installer/insertData.cfm">
 		</cfif>
 			
@@ -267,12 +278,12 @@
 			<cfset application.momentComponentPath = "common.cfc.Moment">
 		</cfif>
 			
-		<!--- The Javaloader is used to load Jsoup. --->
+		<!--- TimeZone.cfc gets and converts date time stamps based upon the time zone. This is used to convert the date stamps if the server resides in a different time zone than the author. --->
 		<cfif len(application.baseProxyUrl) gt 0>
-			<cfset application.javaLoaderComponentPath = application.baseComponentPath & ".common.java.javaloader.JavaLoader">
+			<cfset application.timeZoneComponentPath = application.baseComponentPath & ".common.cfc.TimeZone">
 		<cfelse>
-			<cfset application.javaLoaderComponentPath = "common.java.javaloader.JavaLoader">
-		</cfif>	
+			<cfset application.timeZoneComponentPath = "common.cfc.TimeZone">
+		</cfif>
 			
 		<!--- JSoup is used to parse and glean data. --->
 		<cfif len(application.baseProxyUrl) gt 0>
@@ -303,7 +314,7 @@
 		//*****************************************************************************************--->
 			
 		<!--- Load the Blog Db object (there is only one record in this version) --->
-		<cfset application.BlogDbObj = entityLoadByPK("Blog", 1)>			
+		<cfset application.BlogDbObj = entityLoadByPK("Blog", 1)>
 		<!--- Load the BlogOptions Db Object (there is only one record in this version) --->
 		<cfset application.BlogOptionDbObj = entityLoadByPK("BlogOption", 1)>
 			
@@ -364,11 +375,6 @@
 		<cfset application.jQueryNotifyLocation = getBaseUrl() & "/common/libs/jQuery/jQueryNotify">
 		<!--- Note: the original blogCfc came with an older jQuery UI than the one that I am using and it is creating conflicts. We need to have two different jQuery incluedes, one for the administration part of the site, and the newer jquery UI for the new blogCfc.--->
 		<cfset application.adminjQueryUiPath = getBaseUrl() & "/includes/jqueryui/jqueryui.js">
-			
-		<!--- jSoup (note: this is bracketed as the init function expects an array) --->
-		<cfset application.jSoupPath = [expandPath("#getBaseUrl()#/common/java/jSoup/jsoup-1.13.1.jar")]>
-		<!--- Create an instance of the jSoup java object --->
-		<cfset application.jsoupJavaloader = createObject("component", application.javaLoaderComponentPath).init(application.jSoupPath)>
 			
 		<!--- //****************************************************************************************
 				User defined settings.

@@ -32,7 +32,8 @@
 <cfset params.releasedonly = true />
 
 <cfif len(searchTerm)>
-	<cfset results = application.blog.getPost(params)>
+	<!--- Get the posts ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ) --->
+	<cfset results = application.blog.getPost(params,false,false,false,false)>
 	<cfset searched = true>
 <cfelse>
 	<cfset searched = false>

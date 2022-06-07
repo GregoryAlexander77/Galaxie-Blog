@@ -1502,7 +1502,7 @@
 				<cfinvokeargument name="themeName" value="#arguments.themeName#"/>
 			</cfif>
 			<cfif arguments.kendoTheme neq ''>
-				<cfinvokeargument name="postTitle" value="#arguments.kendoTheme#"/>
+				<cfinvokeargument name="kendoTheme" value="#arguments.kendoTheme#"/>
 			</cfif>
 		</cfinvoke>
 		
@@ -1691,6 +1691,7 @@
 		<cfargument name="sideBarContainerWidth" required="no" default="34">
 		<cfargument name="siteOpacity" required="no" default="93">
 		<cfargument name="favIconHtml" required="no" default="">
+		<cfargument name="applyFavIconToAllThemes" required="no" default="">
 		<!--- Logos --->
 		<cfargument name="logoImage" required="no" default="">
 		<cfargument name="logoImageMobile" required="no" default="">
@@ -1777,8 +1778,17 @@
 				<cfset stretchHeaderAcrossPage = false>
 			</cfif>
 				
+			<cfif len(applyFavIconToAllThemes)>
+				<cfset applyFavIconToAllThemes = true>
+			<cfelse>
+				<cfset applyFavIconToAllThemes = false>
+			</cfif>
+				
 			<!--- Create the themeAlias. This is always done as the user may have changed the theme name --->
 			<cfset themeAlias = application.blog.makeAlias(arguments.theme)>
+				
+			<!--- Invoke the stringUtils object to send the proper file path for theme related images. By design, the theme image locations are only using part of the file path starting from /images. This was initially done as I wanted to keep the theme images from using specific domain and blog path information. This simplifies the logic when installing the blog and allows the blog to be more portable from server to server. However, we need this information when using the editors and the full paths will be sent in. We need to remove the path info here. I may revisit this decision in future editions. --->
+			<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
 			
 			<cftransaction>
 				
@@ -1790,8 +1800,16 @@
 						WHERE SelectedTheme = 1
 					</cfquery>
 				</cfif>
+				
+				<!--- Second, if the applyFavIconToAllThemes argument is set, apply the favorite icon string across all themes. --->
+				<cfif applyFavIconToAllThemes and len(arguments.favIconHtml)>
+					<cfquery name="deselectAllThemes" dbtype="hql">
+						UPDATE ThemeSetting
+						SET FavIconHtml = <cfqueryparam value="#arguments.FavIconHtml#" cfsqltype="cf_sql_longvarchar">
+					</cfquery>
+				</cfif>
 
-				<!--- Save the record to the database. --->
+				<!--- Now, save the record to the database. --->
 				<cfif len(arguments.themeId) and len(arguments.themeSettingId)>
 					<!--- Load the theme entity. --->
 					<cfset ThemeDbObj = entityLoadByPK("Theme", arguments.themeId)>
@@ -1840,15 +1858,15 @@
 				<cfset ThemeSettingDbObj.setSideBarContainerWidth(arguments.sideBarContainerWidth)>
 				<cfset ThemeSettingDbObj.setSiteOpacity(arguments.siteOpacity)>
 				<cfset ThemeSettingDbObj.setFavIconHtml(arguments.favIconHtml)>
-				<cfset ThemeSettingDbObj.setLogoImage(arguments.logoImage)>
-				<cfset ThemeSettingDbObj.setLogoImageMobile(arguments.logoImageMobile)>
+				<cfset ThemeSettingDbObj.setLogoImage(StringUtilsObj.setThemeFilePath(arguments.logoImage))>
+				<cfset ThemeSettingDbObj.setLogoImageMobile(StringUtilsObj.setThemeFilePath(arguments.logoImageMobile))>
 				<cfset ThemeSettingDbObj.setLogoMobileWidth(arguments.logoMobileWidth)>
 				<cfset ThemeSettingDbObj.setLogoPaddingLeft(arguments.logoPaddingLeft)>
-				<cfset ThemeSettingDbObj.setDefaultLogoImageForSocialMediaShare(arguments.defaultLogoImageForSocialMediaShare)>
+				<cfset ThemeSettingDbObj.setDefaultLogoImageForSocialMediaShare(StringUtilsObj.setThemeFilePath(arguments.defaultLogoImageForSocialMediaShare))>
 				<!--- Background images --->
 				<cfset ThemeSettingDbObj.setIncludeBackgroundImages(arguments.includeBackgroundImages)>
-				<cfset ThemeSettingDbObj.setBlogBackgroundImage(arguments.blogBackgroundImage)>
-				<cfset ThemeSettingDbObj.setBlogBackgroundImageMobile(arguments.blogBackgroundImageMobile)>
+				<cfset ThemeSettingDbObj.setBlogBackgroundImage(StringUtilsObj.setThemeFilePath(arguments.blogBackgroundImage))>
+				<cfset ThemeSettingDbObj.setBlogBackgroundImageMobile(StringUtilsObj.setThemeFilePath(arguments.blogBackgroundImageMobile))>
 				<cfset ThemeSettingDbObj.setBlogBackgroundImagePosition(arguments.blogBackgroundImagePosition)>
 				<cfset ThemeSettingDbObj.setBlogBackgroundImageRepeat(arguments.blogBackgroundImageRepeat)>
 				<cfset ThemeSettingDbObj.setBlogBackgroundColor(arguments.blogBackgroundColor)>
@@ -1856,11 +1874,11 @@
 				<cfset ThemeSettingDbObj.setBlogNameTextColor(arguments.blogNameTextColor)>
 				<!--- Header --->
 				<cfset ThemeSettingDbObj.setHeaderBackgroundColor(arguments.headerBackgroundColor)>
-				<cfset ThemeSettingDbObj.setHeaderBackgroundImage(arguments.headerBackgroundImage)>
-				<cfset ThemeSettingDbObj.setHeaderBodyDividerImage(arguments.headerBodyDividerImage)>
+				<cfset ThemeSettingDbObj.setHeaderBackgroundImage(StringUtilsObj.setThemeFilePath(arguments.headerBackgroundImage))>
+				<cfset ThemeSettingDbObj.setHeaderBodyDividerImage(StringUtilsObj.setThemeFilePath(arguments.headerBodyDividerImage))>
 				<cfset ThemeSettingDbObj.setStretchHeaderAcrossPage(arguments.stretchHeaderAcrossPage)>
 				<!--- Menu --->
-				<cfset ThemeSettingDbObj.setMenuBackgroundImage(arguments.menuBackgroundImage)>
+				<cfset ThemeSettingDbObj.setMenuBackgroundImage(StringUtilsObj.setThemeFilePath(arguments.menuBackgroundImage))>
 				<cfset ThemeSettingDbObj.setAlignBlogMenuWithBlogContent(arguments.alignBlogMenuWithBlogContent)>
 				<cfset ThemeSettingDbObj.setCoverKendoMenuWithMenuBackgroundImage(arguments.coverKendoMenuWithMenuBackgroundImage)>
 				<cfset ThemeSettingDbObj.setTopMenuAlign(arguments.topMenuAlign)>
@@ -2427,7 +2445,7 @@
 				<cfinvokeargument name="body" value="#arguments.body#"/>
 			</cfif>
 			<cfif arguments.moreBody neq ''>
-				<cfinvokeargument name="body" value="#arguments.moreBody#"/>
+				<cfinvokeargument name="moreBody" value="#arguments.moreBody#"/>
 			</cfif>
 			<cfif arguments.posted neq ''>
 				<cfinvokeargument name="posted" value="#arguments.posted#"/>
@@ -2826,11 +2844,13 @@
 		<!--- If the postId is passed, the function will update the post table. Otherwise it is an insertion. --->
 		<cfargument name="postId" type="string" default="" required="false">
 		<cfargument name="postAlias" type="string" default="" required="false">
+		<cfargument name="blogSortDate" type="string" required="true">
 		<cfargument name="datePosted" type="string" required="true">
 		<cfargument name="timePosted" type="string" required="true">
 		<cfargument name="author" type="string" default="" required="true" hint="This will be the userId of the author">
 		<cfargument name="title" type="string" default="" required="true">
 		<cfargument name="description" type="string" default="" required="true">
+		<cfargument name="themeId" type="string" default="0" required="false">
 		<cfargument name="jsonLd" type="string" default="" required="false" hint="A Json Ld string">
 		<cfargument name="post" type="string" default="" required="true" hint="The contents of the post">
 		<!--- Media (images, video or maps). There is either zero of one of these send in for an enclosure --->
@@ -2888,12 +2908,26 @@
 				<cfset error = true>
 				<cfset errorMessage = errorMessage & "<li>Description is required</li>">
 			</cfif>
-			<!--- Note: the post may not be available if the user is using a cfinclude. --->
+			<!--- Get the post header to determine if we should display an error if there is not a post. A post may not be available when there is a cfinclude in the post header ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) . --->
+			<cfset getPost = application.blog.getPostByPostId(arguments.postId,true,true)>
+			<cfset postHeader = getPost[1]["PostHeader"]>
+			<!--- Raise an error if the post content is not sent and there is no cfinclude in the post header column --->
+			<cfif len(arguments.post) eq 0 and len(postHeader) and postHeader and findNoCase(postHeader, '<cfincludeTemplate>') eq 0>
+				<cfset error = true>
+				<cfset errorMessage = errorMessage & "<li>Post is required</li>">
+			</cfif>
 					
-			<!--- When we are viewing a gallery in the tinymce editor, we are looking at a prepared gallery that has iFrames in order for tinymce to show the galleries correctly. However, we want to strip the iframes out and generate new gallery code from the database. The following function will take care of this and return the proper HTML code prior to inserting the post into the database. --->
-			<cfinvoke component="#application.baseComponentPath#.common.cfc.JSoup" method="removeGalleryIframes" returnvariable="postContent">
-				<cfinvokeargument name="post" value="#arguments.post#">
-			</cfinvoke>
+			<!--- Fix the more tag as it will have a &lt; and &gt; tags surrounding it. --->
+			<cfif findNoCase(arguments.post, '&lt;more/&gt;')>
+				<cfset arguments.post = replaceNoCase(arguments.post, '&lt;more/&gt;', '<more/>', 'all')>
+			</cfif>	
+					
+			<!--- When we are viewing a gallery in the tinymce editor, we are looking at a prepared gallery that has iFrames in order for tinymce to show the galleries correctly. However, we want to strip the iframes out and generate new gallery code from the database. The following function will take care of this and return the proper HTML code prior to inserting the post into the database. Note: the post may not be sent in when using a cfinclude or other directive. --->
+			<cfif len(arguments.post)>
+				<cfinvoke component="#application.jsoupComponentPath#" method="removeGalleryIframes" returnvariable="postContent">
+					<cfinvokeargument name="post" value="#arguments.post#">
+				</cfinvoke>
+			</cfif>
 			<!---<cfoutput>removeGalleryIframes: #postContent#</cfoutput>--->
 			
 			<cfif not error>
@@ -2903,6 +2937,7 @@
 					<cfif len(arguments.postId)>
 						<cfinvokeargument name="postId" value="#arguments.postId#">
 					</cfif>
+					<cfinvokeargument name="blogSortDate" value="#arguments.blogSortDate#">
 					<cfinvokeargument name="datePosted" value="#arguments.datePosted#">
 					<cfinvokeargument name="timePosted" value="#arguments.timePosted#">
 					<cfinvokeargument name="author" value="#arguments.author#">
@@ -2910,6 +2945,7 @@
 					<!--- The post alias is dependent upon the title. --->
 					<cfinvokeargument name="postAlias" value="#postAlias#">
 					<cfinvokeargument name="description" value="#arguments.description#">
+					<cfinvokeargument name="themeId" value="#arguments.themeId#">
 					<cfinvokeargument name="jsonLd" value="#arguments.jsonLd#">
 					<cfinvokeargument name="post" value="#postContent#">
 					<cfinvokeargument name="imageMediaId" value="#arguments.imageMediaId#">
@@ -3060,6 +3096,57 @@
 				<!--- And send the new or updated postId --->
 				<cfset response[ "postId" ] = postId />
 			</cfif><!---<cfif not error>--->
+		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
+			<cfset error = true>
+			<cfset errorMessage = errorMessage & "<li>Not logged on</li>">	
+		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
+		
+		<!--- Prepare the default response objects --->
+		<cfif error>
+			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
+		</cfif>
+		<!--- Serialize the response --->
+    	<cfset serializedResponse = serializeJSON( response ) />
+    
+    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
+    	<cfreturn serializedResponse>
+	</cffunction>
+				
+	<cffunction name="deletePost" access="remote" returnformat="json" output="true" 
+			hint="Permenantly removes a post from the system">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="postId" type="string" default="" required="false">
+		
+		<cfparam name="error" type="boolean" default="false">
+		<cfparam name="errorMessage" type="string" default="">
+		
+		<!---Set the default response objects.--->
+  		<cfset response[ "success" ] = false />
+    	<cfset response[ "errorMessage" ] = "" />
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON(false)>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in. Note: the user can edit their own profile when a new user is required to change their password --->
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<!--- Only admins can update this. --->
+		<cfif application.Udf.isLoggedIn()>
+					
+			<!--- Delete it --->
+			<cfinvoke component="#application.blog#" method="deletePost" returnvariable="postId">
+				<cfinvokeargument name="postId" value="#arguments.postId#">
+			</cfinvoke>
+
+			<!--- Set the success response --->
+			<cfset response[ "success" ] = true />
+			<!--- And send a boolean value --->
+			<cfset response[ "sucess" ] = 1 />
+						
 		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
 			<cfset error = true>
 			<cfset errorMessage = errorMessage & "<li>Not logged on</li>">	
@@ -5004,7 +5091,7 @@
 				<cfelseif woff2>
 					<cfset woffExtension = '.woff2'>
 				</cfif>
-				<!--- This no longer works with CF2021 (it worked in CF2016). The keys are not preserved and are in uppercase.
+				<!--- Note: the following syntax no longer works with CF2021 (it worked in CF2016). The keys are not preserved and are in uppercase.
 				<cfset uploadedFontStruct = { fontUrl="#fontUrl#", fontId="#fontId#" }>
 				--->
 				<cfset uploadedFontStruct["fontUrl"] = "#fontUrl#">
@@ -5334,6 +5421,7 @@
 		<cfargument name="deferScriptsAndCss" default="" required="false">
 		<cfargument name="minimizeCode" default="" required="false">
 		<cfargument name="disableCache" default="" required="false">
+		<cfargument name="entriesPerBlogPage" default="10" required="false">
 		<cfargument name="kendoCommercial" default="" required="false">
 		<cfargument name="includeDisqus" default="" required="false">
 		<cfargument name="includeGsap" default="" required="false">
@@ -5422,6 +5510,7 @@
 				<cfset OptionDbObj.setDeferScriptsAndCss(deferScriptsAndCss)>
 				<cfset OptionDbObj.setMinimizeCode(minimizeCode)>
 				<cfset OptionDbObj.setDisableCache(disableCache)>
+				<cfset OptionDbObj.setEntriesPerBlogPage(arguments.entriesPerBlogPage)>	
 				<cfset OptionDbObj.setKendoCommercial(kendoCommercial)>
 				<cfset OptionDbObj.setIncludeDisqus(includeDisqus)>
 				<cfset OptionDbObj.setIncludeGsap(includeGsap)>

@@ -7,8 +7,8 @@
 <cfset params.maxEntries = 99999>
 <cfset params.mode = "short">
 
-<!--- Get the posts. --->
-<cfset getPosts = application.blog.getPost(params, false)>
+<!--- Get the posts ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ). --->
+<cfset getPosts = application.blog.getPost(params, false, false, false, false)>
 
 <!--- Time zone logic --->
 <cfset z = getTimeZoneInfo()>
@@ -29,9 +29,9 @@
 		
 <!--- If the application.serverRewriteRuleInPlace variable has been set to true, we need to eliminate 'index.cfm' from the URL --->
 <cfif application.serverRewriteRuleInPlace>
-	<cfset blogUrl = replaceNoCase(application.rootURL, 'index.cfm', '')>
+	<cfset blogUrl = replaceNoCase(application.blogHostUrl, 'index.cfm', '')>
 <cfelse>
-	<cfset blogUrl = application.rootURL>
+	<cfset blogUrl = application.blogHostUrl>
 </cfif>
 
 <cfcontent type="text/xml" reset="true"><cfoutput><?xml version="1.0" encoding="UTF-8"?>

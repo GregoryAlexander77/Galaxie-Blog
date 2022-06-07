@@ -1832,8 +1832,8 @@
 		<cfargument name="email" type="string" required="yes">
 		<cfargument name="token" type="string" required="yes">
 			
-		<!--- Get the post --->
-		<cfset getPost = application.blog.getPostByPostId(arguments.postId)>
+		<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+		<cfset getPost = application.blog.getPostByPostId(arguments.postId,false,false)>
 			
 		<!--- Get the suscriber info from the HQL result --->
 		<cfset email = arguments.email>
@@ -1983,7 +1983,8 @@
 		<!--- <cfdump var="#getPost#"> --->
 			
 		<!--- Preset some vars that may not be available --->
-		<cfparam name="ldJson" default="">	
+		<cfparam name="ldJson" default="">
+		<cfparam name="numGoogleImages" default="0">
 		<cfparam name="google16_9Thumbnail" default="">
 		<cfparam name="google4_3Thumbnail" default="">
 		<cfparam name="google1_1Thumbnail" default="">
@@ -2024,7 +2025,7 @@
 		<!--- Get the image name and path --->
 		<cfset enclosureImageName = listLast(mediaPath, "\")>
 		<cfset imageBasePath = replaceNoCase(mediaPath, enclosureImageName, '')>
-		<cfset imageBaseUrl = application.baseUrl & '/' & replaceNoCase(mediaUrl, enclosureImageName, '')>
+		<cfset imageBaseUrl = application.blogHostUrl & replaceNoCase(mediaUrl, enclosureImageName, '')>
 			
 		<!--- Note: there may not be an enclosure.--->
 		<cfif enclosureImageName neq "">
@@ -2044,22 +2045,40 @@
 				google1_1ThumbnailPath: #google1_1ThumbnailPath#<br/>
 			</cfoutput>--->
 			
-			<!--- Set the vars if the file exists --->
+			<!--- Set the vars if the file exists. We need to know how many google images to use in order to determine if we should use an image array. --->
+			<cfset numGoogleImages = 0>
 			<cfif fileExists(google16_9ThumbnailPath)>
 				<cfset google16_9Thumbnail = google16_9Url>
+				<cfset numGoogleImages = numGoogleImages + 1>
 			</cfif>	
 			<cfif fileExists(google4_3ThumbnailPath)>
 				<cfset google4_3Thumbnail = google4_3Url>
+				<cfset numGoogleImages = numGoogleImages + 1>
 			</cfif>	
 			<cfif fileExists(google1_1ThumbnailPath)>
 				<cfset google1_1Thumbnail = google1_1Url>
+				<cfset numGoogleImages = numGoogleImages + 1>
 			</cfif>
 		</cfif><!---<cfif enclosureImageName neq "">--->
+		
+		
 			
-		<!--- Use JSoup to clean the HTML out of the body. --->
+		<!--- Get the largest thumbnail for the article image --->
+		<cfif isDefined("google16_9Thumbnail") and len(google16_9Thumbnail)>
+			<cfset articleImage = google16_9Thumbnail>
+		<cfelseif isDefined("google4_3Url") and len(google4_3Url)>
+			<cfset articleImage = google4_3Url>
+		<cfelseif isDefined("google1_1ThumbnailPath") and len(google1_1ThumbnailPath)>
+			<cfset articleImage = google1_1ThumbnailPath>	
+		<cfelse>
+			<cfset articleImage = "">	
+		</cfif>
+			
+		<!--- The body was removed. It is not necessary for articles. 
+		Use JSoup to clean the HTML out of the body. 
 		<cfinvoke component="#application.jsoupComponentPath#" method="jsoupConvertHtmlToText" returnvariable="articleBody">
 			<cfinvokeargument name="html" value="#body#">
-		</cfinvoke>
+		</cfinvoke>--->
 			
 		<cfif prettify>
 			<cfset cr = '<br/>'>
@@ -2076,6 +2095,11 @@
 		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
 		  <cfset ldJson = ldJson & '"@type":"Article",'>
 		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
+		  <!--- If there is only one Google image, set the image string here --->
+		  <cfif numGoogleImages lt 2 and len(articleImage)>
+		  	<cfset ldJson = ldJson & '"image":"' & articleImage & '",'>
+		  	<cfif prettify><cfset ldJson = ldJson & cr></cfif>
+		  </cfif>
 		  <cfset ldJson = ldJson & '"mainEntityOfPage":{'>
 			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
 			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
@@ -2121,36 +2145,40 @@
 		  <cfset ldJson = ldJson & '},'><cfif prettify>
 		  <cfset ldJson = ldJson & cr></cfif>
 		  <cfset ldJson = ldJson & '"url":"' & postUrl & '",'>
-		  <!--- Images --->
-		  <cfif len(google16_9Thumbnail) gt 0 or len(google4_3Thumbnail) gt 0 or len(google1_1Thumbnail) gt 0>
+		  <!--- Image array if there is more than one google image --->
+		  <cfif numGoogleImages gt 1 >
 			  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
 			  <cfset ldJson = ldJson & '"image":['>
 				<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-				<cfif google16_9Thumbnail neq "">
+				<cfif len(google16_9Thumbnail)>
 					<cfif prettify><cfset ldJson = ldJson & tab></cfif>
 					<cfset ldJson = ldJson & '"' & google16_9Thumbnail & '",'>
 					<cfif prettify><cfset ldJson = ldJson & cr></cfif>
 				</cfif>
-				<cfif google4_3Thumbnail neq "">
+				<cfif len(google4_3Thumbnail)>
 					<cfif prettify><cfset ldJson = ldJson & tab></cfif>
 					<cfset ldJson = ldJson & '"' & google4_3Thumbnail & '",'>
 					<cfif prettify><cfset ldJson = ldJson & cr></cfif>
 				</cfif>
-				<cfif google1_1Thumbnail neq "">
+				<cfif len(google1_1Thumbnail)>
 					<cfif prettify><cfset ldJson = ldJson & tab></cfif>
 					<cfset ldJson = ldJson & '"' & google1_1Thumbnail & '"'>
 					<cfif prettify><cfset ldJson = ldJson & cr></cfif>
 				</cfif>
 			  <cfset ldJson = ldJson & '],'>
-		  </cfif>	
+		  </cfif>
+		  
 		  <!--- Maps --->
 		  <cfif len(enclosureMapId)>
 		  	<cfif prettify><cfset ldJson = ldJson & cr></cfif>
 			<!--- Note: hasMap is not supported by the article schema. We will use image instead. --->
 			<cfset ldJson = ldJson & '"image":"#application.baseUrl#/preview/maps.cfm?mapId=' & enclosureMapId & '",'>
 		  </cfif>
+		  <!---
+		  The body was removed. It is not necessary.
 		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
 		  <cfset ldJson = ldJson & '"articleBody":"' & articleBody & '",'>
+			--->
 		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
 		  <cfset ldJson = ldJson & '"datePublished":"' & application.Udf.getIsoTimeString(datePosted) & '",'>
 		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>

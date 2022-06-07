@@ -34,8 +34,8 @@
 </cfif>			
 	
 <cfif isDefined("URL.Id") and URL.id neq ''>
-	<!--- Get the individual post --->
-	<cfset getPost = application.blog.getPostByPostId(URL.Id, true)>
+	<!--- Get the individual post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) )--->
+	<cfset getPost = application.blog.getPostByPostId(URL.Id,false,false)>
 		
 	<!--- Set the values that we will need. Note: there should only be one element in the getPost array. --->
 	<cfset postId = getPost[1]["PostId"]>

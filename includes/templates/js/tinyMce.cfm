@@ -84,10 +84,10 @@
 	<cfparam name="includeFileUpload" default="false">
 	<cfparam name="disableWebVttAndVideoCoverButtons" default="true">
 	<cfparam name="includeMaps" default="true">
-	<!--- Note: don't  use the autosave plugin. its buggy! --->
-	<cfparam name="pluginList" default="'advlist autolink lists link image charmap print preview anchor',
+	<!--- Note: don't use the autosave plugin. its buggy! --->
+	<cfparam name="pluginList" default="'advlist autolink lists hr link image charmap print preview anchor',
 		'searchreplace visualblocks code codesample fullscreen',
-		'insertdatetime media table paste imagetools wordcount iconfonts'">
+		'insertdatetime media table paste imagetools wordcount iconfonts textpattern toc emoticons nonbreaking'">
 	</cfsilent>
 
 	<cfif  application.serverSupportsWoff2>
@@ -143,6 +143,8 @@
 				// Point to a common content.css. This does not impact the dynamic nature of the skin.
 				content_css: "<cfoutput>#application.baseUrl#</cfoutput>/includes/templates/blogContentCss.cfm?standalone=true,<cfoutput>#application.baseUrl#</cfoutput>/common/libs/tinymce/skins/ui/oxide/content.css",
 				height: "<cfoutput>#editorHeight#</cfoutput>",
+				// This only works with tinymce 5.6
+				images_file_types: 'peg,jpg,jpe,jfi,jif,jfif,png,gif,bmp,webp',
 				// Custom plugin argument to allow us to use fontawesome icons
 				iconfonts_selector: '.fa, .fab, .fal, .far, .fas, .glyphicon', // optional (default shown)
 			<!--- Set the menu depending upon the selector name. --->

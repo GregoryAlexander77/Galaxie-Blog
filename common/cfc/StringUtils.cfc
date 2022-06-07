@@ -200,6 +200,33 @@
 		<cfreturn newPostContent>
 
 	</cffunction>
+					
+	<!--- By design, the theme image locations are only using part of the file path starting from /images. This was initially done as I wanted to keep the theme images from using specific domain and blog path information. This simplifies the logic when installing the blog and allows the blog to be more portable from server to server. However, we need this information when using the editors and the full paths will be sent in. We need to remove the path info here. I may revisit this decision in future editions. --->
+	<cffunction name="setThemeFilePath"  access="public" output="true" returntype="string" 
+			hint="Removes domain and file path information from theme related images when storing the location in the database. This should only keep the information after the '/images/' string">
+		<cfargument name="filePath" required="yes" hint="Pass in the file path">
+			
+		<!--- Find the '/image' string position --->
+		<cfset startPos = findNoCase( '/images/', arguments.filePath )>
+		<!--- If the start position is 1, we don't need to do anything --->
+		<cfif startPos eq 1>
+			<cfset imageFilePath = arguments.filePath>
+		<cfelse>
+			<!--- We only want to perform this logic if the path is stored in this blog. --->
+			<cfif arguments.filePath contains application.baseUrl>
+				<!--- Determine the count --->
+				<cfset endPos = (len(arguments.filePath) - startPos) + 1>
+				<!--- Get the new file path starting with '/image'. --->
+				<cfset imageFilePath = mid(arguments.filePath, startPos, endPos)>
+			<cfelse><!---<cfif arguments.filePath contains application.baseUrl>--->
+				<cfset imageFilePath = arguments.filePath>
+			</cfif><!---<cfif arguments.filePath contains application.baseUrl>--->
+		</cfif>
+		
+		<!--- Return it --->
+		<cfreturn imageFilePath>
+				
+	</cffunction>
 			
 	<cffunction name="getTextFromBody" access="public" output="true" returntype="string" hint="Removes everything between postData tags and the HTML found in the post content. Used by the search results template.">
 

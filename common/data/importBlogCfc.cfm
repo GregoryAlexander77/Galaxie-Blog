@@ -269,23 +269,6 @@
 					<cfinvokeargument name="emailSubscriber" value="false">
 				</cfinvoke>
 
-				<!---****************************************************************************************
-				Populate the LD JSON
-				*****************************************************************************************--->
-
-				<!--- Instantiate our renderer obj --->
-				<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-
-				<!--- Get the post by the postId --->
-				<cfset getPost = application.blog.getPostByPostId(postId)>
-				<!--- Render the JsonLD --->
-				<cfset jsonLd = RendererObj.renderLdJson(getPost, true)>
-
-				<!--- Save it --->
-				<cfinvoke component="#application.blog#" method="saveJsonLd" returnvariable="postId">
-					<cfinvokeargument name="postId" value="#postId#" />
-					<cfinvokeargument name="jsonLd" value="#jsonLd#" />
-				</cfinvoke>
 			</cfoutput>
 
 			<cfif debug><cfdump var="#getBlogCfcPosts#"></cfif>

@@ -26,7 +26,7 @@
 <cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#application.disableCache#">
    <table align="center" class="k-content fixedPodTableWithWrap" width="100%" cellpadding="0" cellspacing="0">
    <cfif not arrayLen(categories)>
-	   <tr><td>There are no tags</td></tr>
+	   <tr><td>There are no categories</td></tr>
    </cfif>
    <cfloop from="1" to="#arrayLen(categories)#" index="i"><cfoutput>
 	<cfsilent>

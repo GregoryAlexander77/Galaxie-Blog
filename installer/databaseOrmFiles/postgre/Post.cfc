@@ -32,6 +32,7 @@
 	<cfproperty name="Remove" ormtype="boolean" default="false">
 	<cfproperty name="NumViews" ormtype="int" default="0">
 	<cfproperty name="Mailed" ormtype="boolean" default="false">
+	<cfproperty name="BlogSortDate" ormtype="timestamp" default="">
 	<cfproperty name="DatePosted" ormtype="timestamp" default="">
 	<!--- We need an actual date property without the timestamp for the date search. --->
 	<cfproperty name="Date" ormtype="date" default="">

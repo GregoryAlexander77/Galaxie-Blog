@@ -21,10 +21,10 @@
 	<cfproperty name="PostAlias" ormtype="string" length="100" default="">
 	<cfproperty name="Title" ormtype="string" length="125" default="">
 	<cfproperty name="Description" ormtype="string" length="1250" default="This should be set to a lenght of 160 in the future">
-	<!--- The following 4 items are configured for SQL Server. Change these depending upon your db --->
-	<cfproperty name="JsonLd" ormtype="string" sqltype="varchar(max)" default="">
-	<cfproperty name="PostHeader" ormtype="string" sqltype="varchar(max)" default="">
-	<cfproperty name="Body" ormtype="string" sqltype="varchar(max)" default="">
+	<!--- The following 4 items are configured for DB2. Change these depending upon your db --->
+	<cfproperty name="JsonLd" ormtype="string" sqltype="varchar(32764)" default="">
+	<cfproperty name="PostHeader" ormtype="string" sqltype="varchar(32764)" default="">
+	<cfproperty name="Body" ormtype="string" sqltype="varchar(32764)" default="">
 	<cfproperty name="MoreBody" ormtype="clob" default="">
 	<cfproperty name="Released" ormtype="boolean" default="false">
 	<cfproperty name="Promote" ormtype="boolean" default="false">
@@ -32,6 +32,7 @@
 	<cfproperty name="Remove" ormtype="boolean" default="false">
 	<cfproperty name="NumViews" ormtype="int" default="0">
 	<cfproperty name="Mailed" ormtype="boolean" default="false">
+	<cfproperty name="BlogSortDate" ormtype="timestamp" default="">
 	<cfproperty name="DatePosted" ormtype="timestamp" default="">
 	<!--- We need an actual date property without the timestamp for the date search. --->
 	<cfproperty name="Date" ormtype="date" default="">

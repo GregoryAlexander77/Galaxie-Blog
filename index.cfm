@@ -28,7 +28,7 @@
 //********************************************************************************************************************--->
 	
 <!--- Determine whether we should disable the cache. --->
-<cfset disableCache = application.udf.getDisableCache()>	
+<cfset disableCache = application.blog.getDisableCache()>	
 <!--- Get post information from the db --->
 <cfinclude template="#application.baseUrl#/includes/templates/coreLogic.cfm">
 
@@ -37,6 +37,7 @@
 //********************************************************************************************************************--->
 </cfsilent>
 <html lang="en-US"><head><cfoutput>
+<!---<cfdump var="#getPost#">--->
 <cfif customHeadTemplate eq ""> 
 	<cfinclude template="#application.baseUrl#/includes/templates/head.cfm" />
 <cfelse>
@@ -58,7 +59,7 @@
 //********************************************************************************************************************--->
 	
 </cfsilent>
-
+<!---<cfdump var="#URL#">--->
 <cfif customBodyString eq "">
 <body onload="if(top != self) top.location.replace(self.location.href);" onresize="setScreenProperties()"><cfelse><cfoutput>#customBodyString#</cfoutput></cfif>
 <cfsilent>
@@ -196,8 +197,8 @@
 	</cfif>
 
 	</cfsilent>			
-	<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. --->
-	<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#disableCache#">
+	<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. This needs to refresh every 30 minutes --->
+	<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#disableCache#" timeout="30">
 		<!-- Side Bar Panel -->
 		<cfif customSideBarPanelHtmlTemplate eq "">
 			<cfinclude template="#application.baseUrl#/includes/templates/sideBarPanel.cfm" />
@@ -239,7 +240,6 @@
 	//****************************************************************************************************************--->	
 </cfsilent>
 <cfinclude template="#application.baseUrl#/includes/templates/tailEndScripts.cfm" />
-
 <!--- 
 Note: if the Zion theme is screwed up, check the use custom theme setting in the ini file.
 --->

@@ -519,6 +519,16 @@
 				var windowHeight = "65%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>45%</cfif>";
 				var windowTitle = "Post Header";
+			} else if (Id == 43){
+				var windowName = "blogSortDateWindow";
+				var windowHeight = "35%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>45%</cfif>";
+				var windowTitle = "Change Post Sort Date";
+			} else if (Id == 44){
+				var windowName = "setPostThemeWindow";
+				var windowHeight = "35%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>45%</cfif>";
+				var windowTitle = "Set Post Theme";
 			}
 			
 			// Remove the window if it already exists

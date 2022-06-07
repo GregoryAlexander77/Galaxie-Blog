@@ -1,4 +1,10 @@
 <!--- //******************************************************************************************************
+			Get the post(s)
+//********************************************************************************************************--->
+
+<cfinclude template="#application.baseUrl#/includes/templates/getPost.cfm">
+
+<!--- //******************************************************************************************************
 			Global page settings and cache
 //********************************************************************************************************--->
 
@@ -6,14 +12,11 @@
 <cfinclude template="#application.baseUrl#/common/function/page.cfm">
 
 <!--- //******************************************************************************************************
-			Common custom templates.
+			Common custom templates (ad-hoc scripts if the database does not contain the logic).
 //********************************************************************************************************
 
 Note: in order to debug- remove the cfsilent that wraps around the pageSettings.cfm template on the index.cfm page.
 --->
-	
-<!--- Do you have your own favorite icons that you want to display for your site? Put this in the /includes/customTemplates folder and include them.--->	
-<cfset application.customFavIconTemplate = ""><!--- Specify the path to the custom template if you have one. --->
 	
 <!--- //******************************************************************************************************
 			Logic to set user defined settings
@@ -78,11 +81,28 @@ Note: in order to debug- remove the cfsilent that wraps around the pageSettings.
 	
 <!--- Preset the xmlKeywords. --->
 <cfparam name="xmlKeyWords" default="" type="string">
+	
+<!--- Get the post theme ref (if available) --->
+<cftry>
+	<cfset postThemeId = getPost[1]["ThemeRef"]>
+	<cfcatch type="any">
+		<cfset postThemeId = 0>
+	</cfcatch>
+</cftry>
 
-<!--- Get the current theme --->
-<cfset selectedThemeAlias = trim(application.blog.getSelectedThemeAlias())>
-<!--- Get the Theme data for this theme. --->
-<cfset getTheme = application.blog.getTheme(themeAlias=selectedThemeAlias)>	
+<!--- When we are looking at a post and the post theme is defined, get the theme. Otherwise get the current selected theme. --->
+<cfif getPageMode() eq 'post' and isDefined("postThemeId") and postThemeId gt 0>
+	<!--- Get the theme data by the theme id. --->
+	<cfset getTheme = application.blog.getTheme(themeId=postThemeId)>	
+<cfelse>
+	<!--- Get the current theme --->
+	<cfset selectedThemeAlias = trim(application.blog.getSelectedThemeAlias())>
+	<!--- Get the Theme data for this theme. --->
+	<cfset getTheme = application.blog.getTheme(themeAlias=selectedThemeAlias)>	
+</cfif>
+<cfif not arrayLen(getTheme)>
+	<cfset getTheme = application.blog.getTheme(themeAlias="Delicate-Arch")>		
+</cfif>
 <!---	
 Debugging:
 <cfoutput>selectedThemeAlias: #selectedThemeAlias#</cfoutput>
@@ -238,6 +258,8 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <cfset blogNameFontType = getTheme[1]["BlogNameFontType"]>
 <cfset blogNameFontSize = getTheme[1]["BlogNameFontSize"]>
 <cfset blogNameFontSizeMobile = getTheme[1]["BlogNameFontSizeMobile"]>
+<!--- FavIcon --->
+<cfset favIconHtml = getTheme[1]["FavIconHtml"]>
 	
 <!--- Logo image check (there may be one common logo for all things). --->
 <cfif session.isMobile>

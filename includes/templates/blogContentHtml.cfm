@@ -70,15 +70,7 @@
 				<!--- We need to perform the same logic for the post author (remove the 'index.cfm' string when a rewrite rule is in place). --->
 				<cfset userLink = application.blog.makeUserLink(getPost[i]["FullName"])>
 				<!--- Render the post. This will render cfinclude and video directives if present, the encosure and the body. --->
-				<cfset post = RendererObj.renderPost(kendoTheme,getPost,i)> 
-				
-				<!--- Set our blog content. We need to determine the content based upon the more tag if it exists. If the more tag exists- use the body column when we not looking at an individual post and the body and the moreBody when we are looking at and individual post. ---> 
-				<cfif len(moreBody)>
-					<cfif getPageMode() eq 'post'>
-						<!--- Append the more body to the body --->
-						<cfset body = body & ' ' & moreBody>
-					</cfif>
-				</cfif>					
+				<cfset post = RendererObj.renderPost(kendoTheme,getPost,i)> 			
 				<!--- Set the post content --->
 				<cfset postContent = RendererObj.renderBody(body, mediaPath, getPageMode())>
 					
@@ -136,13 +128,19 @@
 										Render the post. 
 							**********************************************************************************************--->
 							</cfsilent>
-							<p>#post#</p>							
+							<p>#post#</p>	
 							<!--- If the more tag exists and we are not looking at a page, summarize the content (done when we set the postContent in logic above) and render a button to get to the full post. --->
-						<cfif len(morebody) and getPageMode() neq 'post'><!--- Chjanged logic. Old logic prior to version 1.45 was: and url.mode is not "entry"--->
-							<button type="button" class="k-button" style="#kendoButtonStyle#" onClick="location.href='#postLink###more';">
-								<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
-								<i class="fas fa-chevron-circle-down" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;More...
-							</button>
+						<cfif len(morebody)>
+							<!--- Show a button in single page mode --->
+							<cfif getPageMode() neq 'post'>
+								<button type="button" class="k-button" style="width:225px; font-size:0.875em;" onClick="location.href='#postLink###more';">
+									<!--- Use a font icon. There needs to be hard coded non breaking spaces next to the image for some odd reason. A simple space won't work.--->
+									<i class="fas fa-chevron-circle-down" style="alignment-baseline:middle;"></i>&nbsp;&nbsp;Continue Reading...
+								</button>
+							<cfelse>
+								<!--- Show the more body in addition to the post --->
+								#moreBody#
+							</cfif>
 						</cfif>
 						
 						</span><!--<span class="postContent">--> 

@@ -14,8 +14,8 @@
 	<cfproperty name="Email" ormtype="string" default="" length="255">
 	<cfproperty name="Website" ormtype="string" default="" length="255">
 	<!--- The ProfileBody can be HTML that creates a page. --->
-	<!--- This is configured for SQL Server. Manually change the varchar(max) property if you use another db --->
-	<cfproperty name="Biography" ormtype="string" sqltype="varchar(max)" default="">
+	<!--- This is configured for DB2. Manually change the varchar(32764) property if you use another db --->
+	<cfproperty name="Biography" ormtype="string" sqltype="varchar(32764)" default="">
 	<cfproperty name="Status" ormtype="string" default="" length="255">
 	<!--- An email can be used as the user name. Authentication may be broken out into a new table eventually. --->
 	<cfproperty name="UserName" ormtype="string" default="" length="255">

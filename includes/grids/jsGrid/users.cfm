@@ -324,7 +324,7 @@
 				{ 	
 					name: "Date", 
 					type: "date",
-					title: "Posted",
+					title: "Created",
 					editing: false,
 					width: (pageWidth*(<cfif session.isMobile><cfelse>10</cfif>/100)),
 					itemTemplate: function (value, item) {

@@ -57,8 +57,17 @@
 	<cfset basePath = replace(directory, '/', '', 'one')>
 	<!--- Replace forward slashes with dots --->
 	<cfset extendsPath = replace(basePath, '/', '.', 'all')>
-	<!--- Append the directory with 'Application' --->
-	<cfset extendsStr = extendsPath & 'Application'>
+		
+	<!--- If the extends path is empty, the installation took place in the root directory and we need to extend the root Proxy.cfc --->
+	<cfif not len(extendsPath)>
+		<cfset extending = 'root'>
+		<cfset extendsStr = 'Proxy'>
+	<cfelse>
+	<!--- Extend using the ApplicationProxy --->
+		<cfset extending = replaceNoCase(basePath, '/', '', 'all') & ' subdirectory'>
+		<!--- Append the directory with 'Application' --->
+		<cfset extendsStr = extendsPath & 'Application'>
+	</cfif>
 	<!--- Save this to the sesion. --->
 	<cfset session.extendsStr = extendsStr>
 

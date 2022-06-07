@@ -275,6 +275,45 @@
 	</cffunction>
 							
 	<!---//*****************************************************************************************
+		Cache functions
+	//******************************************************************************************--->
+							
+	<cffunction name="clearScopeCache" access="public" returntype="boolean" output="false"
+			hint="Clears the scope cache. Returns a boolean value to indicate if the cache was cleared">
+		
+		<!--- Flush our cache. It will not exist when first installing the blog --->
+		<cftry>
+			<!--- Note: each Kendo Theme has a cache. There are too many caches to try to flush so we are going to flush them all. --->
+			<!--- Clear everything from the scopecache library --->
+			<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" clearall="true">
+			<!--- Clear CF Caching --->
+			<cfcache action="flush"></cfcache>
+			<cfcatch type="any">
+				<cfset error = 'cache does not exist'>
+			</cfcatch>
+		</cftry>
+				
+		<cfreturn 1>
+			
+	</cffunction>
+			
+	<cffunction name="getDisableCache" access="remote" output="yes" returntype="boolean" 
+			hint="Determines whether the cache should be disabled. This is used to refresh the contents of the site when needed. I expect this function to become more complex to allow for granular caching in the future">
+		
+		<cfparam name="disableCache" default="false">
+
+		<!--- Disable the cache when the URL argument is found --->
+		<cfif structKeyExists(URL, "disableCache")>
+			<cfset disableCache = true>
+		<cfelse>
+			<cfset disableCache = application.disableCache>
+		</cfif>
+
+		<cfreturn disableCache>
+
+	</cffunction> 
+							
+	<!---//*****************************************************************************************
 		Generic blog functions
 	//******************************************************************************************--->
 
@@ -289,11 +328,52 @@
 		<cfreturn blogDateTime>
 	</cffunction>
 			
+	<cffunction name="getBlogDateTime" access="public" returntype="date" output="false"
+			hint="Takes a date and returns what time it should be for the blog.">
+		<cfargument name="dateTime" type="date" required="true" />
+			
+		<!--- Get the local time. MomentCfc requires the new keyword to initialize. See https://github.com/AlumnIQ/momentcfc/blob/master/readme.md for documentation. Note: this requires the time zone string to work right now and it is not used.
+		<cfset blogDateTime = new "#application.momentComponentPath#"( now() ).tz( instance.blogTimeZone ).time> --->
+		<cfset blogDateTime = dateAdd("h", instance.offset, arguments.dateTime)>
+			
+		<cfreturn blogDateTime>
+	</cffunction>
+			
+	<cffunction name="getServerDateTime" access="public" returntype="date" output="false"
+			hint="Takes a date from the client and returns the date that it should be on the Server. This is used to schedule tasks on the server from the front end.">
+		<cfargument name="dateTime" type="date" required="true" />
+		
+		<!--- Invoke the Time Zone cfc --->
+		<cfobject component="#application.timeZoneComponentPath#" name="TimeZoneObj">
+		
+		<!--- Get the server timezone using the Moment library. MomentCfc requires the new keyword to initialize. See https://github.com/AlumnIQ/momentcfc/blob/master/readme.md for documentation. --->
+		<cfset serverTimeZone = new "#application.momentComponentPath#"().getSystemTZ()>
+		<!--- Get the time zone identifier (America/Los_Angeles) from the TimeZone component --->
+		<cfset serverTimeZoneId = TimeZoneObj.getServerId()>
+			
+		<!--- Get the blog time zone from the database and is populated by the Blog Time interface. We probably should be storing the identifier in the database in the future to avoid this --->
+		<cfset blogTimeZone = application.BlogDbObj.getBlogTimeZone()>
+		<!--- Get the time zone identifier (America/Los_Angeles) by the GMT offset. This will pull up multiple options, but we just need a working identifier and will select the first one.  --->
+		<cfset blogTimeZone = TimeZoneObj.getTZByOffset(blogTimeZone)>
+		<!--- Get the first value in the array. We don't need this to be accurate, we just need a valid identifier to use. --->
+		<cfset blogTimeZoneId = blogTimeZone[1]>
+			
+		<!--- Now use the convertTZ function to convert the blog time to server time. The blog time is the time zone of the site administrator that is writing the articles. We may want to add time zones for all blog users with the edit post role in the future. 
+		convertTz(thisDate,	fromTZ, toTZ) --->
+		<cfset serverDateTime = TimeZoneObj.convertTZ(arguments.dateTime, blogTimeZoneId, serverTimeZoneId)>
+			
+		<!--- Return it. --->
+		<cfreturn serverDateTime>
+			
+	</cffunction>
+			
 	<!--- File and paths --->
 	<cffunction name="getRootUrl" access="public" returnType="string" output="false"
 				hint="Simple helper function to get root url.">
 
 		<cfset var theURL = replace(instance.blogUrl, "index.cfm", "")>
+		
+		<!--- Return it --->
 		<cfreturn theURL>
 
 	</cffunction>
@@ -363,57 +443,24 @@
 		<cfset var q = "">
 		<cfset var realdate = "">
 
-		<cfif not structKeyExists(variables, "lCache")>
-			<cfset variables.lCache = structNew()>
-		</cfif>
+		<!--- I turned off the caching as the links went awry --->
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				Post.PostId as PostId,
+				PostUuid as PostUuid,
+				PostAlias as PostAlias,
+				DatePosted as DatePosted)
+			FROM Post as Post 
+			WHERE 0=0
+				<!-----AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">--->
+				AND PostId = <cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.postId#" maxlength="35">
+				AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
+		</cfquery>
+		<!---<cfdump var="#Data#">--->
 
-		<!---// if forcing the cache to be updated, remove the key //--->
-		<cfif arguments.updateCache>
-			<cfset structDelete(variables.lCache, arguments.postId, true) />
-		</cfif>
+		<!--- Set the return string --->
+		<cfset returnStr = instance.blogUrl & "/" & year(Data[1]["DatePosted"]) & "/" & month(Data[1]["DatePosted"]) & "/" & day(Data[1]["DatePosted"]) & "/" & Data[1]["PostAlias"]>
 
-		<cflock name="variablesLCache_#instance.name#" timeout="30" type="exclusive">
-			
-			<cfif not structKeyExists(variables.lCache, arguments.postId)>
-
-				<cfquery name="Data" dbtype="hql">
-					SELECT new Map (
-						Post.PostId as PostId,
-						PostUuid as PostUuid,
-						PostAlias as PostAlias,
-						DatePosted as DatePosted)
-					FROM Post as Post 
-					WHERE 0=0
-						<!-----AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">--->
-						AND PostId = <cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.postId#" maxlength="35">
-						AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
-				</cfquery>
-				<!---<cfdump var="#Data#">--->
-					
-				<!--- Set the return string --->
-				<cfset returnStr = instance.blogUrl & "/" & year(Data[1]["DatePosted"]) & "/" & month(Data[1]["DatePosted"]) & "/" & day(Data[1]["DatePosted"]) & "/" & Data[1]["PostAlias"]>
-
-				<!--- Cache the link --->
-				<cfset realdate = Data[1]["DatePosted"]>
-				<cfset cacheLink(postId=arguments.postId, alias=Data[1]["PostAlias"], posted=realdate) />
-					
-			<cfelse>
-				<!--- There was an error here after deleting an entry (Element alias is undefined in a CFML structure referenced as part of an expression). Added a try block (ga) --->
-				<cftry>
-					<cfset q = structNew()>
-					<cfset q.alias = variables.lCache[arguments.postId].alias>
-					<cfset q.posted = variables.lCache[arguments.postId].posted>
-
-					<!--- Set the return string --->
-					<cfset returnStr = instance.blogUrl & "?mode=entry&amp;entry=" & arguments.postId>
-				<cfcatch type="any">
-					<cfset error = cfcatch.message>
-					<cfset returnStr = "">
-				</cfcatch>
-				</cftry>
-			</cfif>
-		</cflock>
-		
 		<!--- Return it --->
 		<cfreturn StringUtilsObj.trimStr(makeRewriteRuleSafeLink(returnStr))>
 	
@@ -449,7 +496,7 @@
 		</cfif>
 		
 		<cfreturn newLink>
-			
+
 	</cffunction>
 	
 	<cffunction name="cacheLink" access="public" returnType="struct" output="false"
@@ -490,7 +537,8 @@
 			Calendar functions
 	//**************************************************************************************************************--->
 
-	<cffunction name="getActiveDays" returnType="string" output="false" hint="Returns a list of unique days that have at least one post.">
+	<cffunction name="getActiveDays" returnType="string" output="false" 
+			hint="Returns a list of unique days that have at least one post.">
 		<cfargument name="year" type="numeric" required="true">
 		<cfargument name="month" type="numeric" required="true">
 
@@ -531,7 +579,8 @@
 
 	</cffunction>
 	
-	<cffunction name="getArchives" access="public" returnType="array" output="false" hint="I return a query containing all of the past months/years that have entries along with the entry count">
+	<cffunction name="getArchives" access="public" returnType="array" output="false" 
+			hint="I return a query containing all of the past months/years that have entries along with the entry count">
 		<cfargument name="archiveYears" type="numeric" required="false" hint="Number of years back to pull archives for. This helps limit the result set that can be returned" default="0">
 		
 		<cfset var Data = "[]">	
@@ -569,8 +618,8 @@
 		<cfset promptToEmailToSubscribers = true>
 			
 		<!--- Error checking --->
-		<!--- Get the post --->
-		<cfset getPost = application.blog.getPostByPostId(arguments.postId)>
+		<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+		<cfset getPost = application.blog.getPostByPostId(arguments.postId,true,false)>
 
 		<!--- Is the post released? --->
 		<cfif not getPost[1]["Released"]>
@@ -603,8 +652,8 @@
 		<cfset response = {} />
 			
 		<!--- Error checking --->
-		<!--- Get the post --->
-		<cfset getPost = application.blog.getPostByPostId(arguments.postId)>
+		<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) )--->
+		<cfset getPost = application.blog.getPostByPostId(arguments.postId,true,false)>
 
 		<!--- Is the post released? --->
 		<cfif not getPost[1]["Released"]>
@@ -711,12 +760,12 @@
 				Theme as Theme
 			WHERE 0=0
 			<cfif arguments.themeName neq ''>
-				AND ThemeName = <cfqueryparam value="#arguments.themeName#" cfsqltype="cf_sql_varchar">
+				AND ThemeName LIKE <cfqueryparam value="%#arguments.themeName#%" cfsqltype="cf_sql_varchar">
 			</cfif>
-			<cfif arguments.themeName neq ''>
-				AND KendoThemeRef.KendoTheme =  <cfqueryparam value="#arguments.kendoTheme#" cfsqltype="cf_sql_varchar">
+			<cfif arguments.kendoTheme neq ''>
+				AND KendoThemeRef.KendoTheme = <cfqueryparam value="#arguments.kendoTheme#" cfsqltype="cf_sql_varchar">
 			</cfif>
-			<cfif arguments.themeName neq ''>
+			<cfif arguments.themeGenre neq ''>
 				AND Theme.ThemeGenre = <cfqueryparam value="#arguments.themeGenre#" cfsqltype="cf_sql_varchar">
 			</cfif>
 			ORDER BY Theme.ThemeName
@@ -739,6 +788,7 @@
 			
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
+				ThemeId as ThemeId,
 				ThemeAlias as ThemeAlias,
 				ThemeName as ThemeName,
 				KendoThemeRef.KendoTheme as KendoTheme
@@ -790,7 +840,8 @@
 			
 	</cffunction>
 			
-	<cffunction name="getSelectedKendoTheme" access="public" returnType="string" hint="This will return the selected kendo theme, or the default kendo theme by day if one is not selected.">
+	<cffunction name="getSelectedKendoTheme" access="public" returnType="string" 
+			hint="This will return the selected kendo theme, or the default kendo theme by day if one is not selected.">
 		
 		<!--- Get the selected theme alias. --->
 		<cfset themeAlias = this.getSelectedThemeAlias()>
@@ -1590,6 +1641,9 @@
 			<cfset EntitySave(ThemeSettingDbObj)>
 			<cfset EntitySave(ThemeDbObj)>
 		</cftransaction>
+				
+		<!--- Clear the scope cache --->
+		<cfset application.blog.clearScopeCache()>
 		
 		<!--- Return the id --->
 		<cfreturn ThemeDbObj.getThemeId()>
@@ -1735,7 +1789,7 @@
 				AND FontId = <cfqueryparam value="#arguments.fontId#" cfsqltype="cf_sql_integer">
 			</cfif>
 			<cfif arguments.font neq ''>
-				AND Font.Font = <cfqueryparam value="#arguments.font#" cfsqltype="cf_sql_varchar">
+				AND Font.Font LIKE <cfqueryparam value="%#arguments.font#%" cfsqltype="cf_sql_varchar">
 			</cfif>
 			<cfif arguments.fontAlias neq ''>
 				AND FontAlias =  <cfqueryparam value="#arguments.fontAlias#" cfsqltype="cf_sql_varchar">
@@ -1750,7 +1804,7 @@
 				AND FontType =  <cfqueryparam value="#arguments.fontType#" cfsqltype="cf_sql_varchar">
 			</cfif>
 			<cfif arguments.fileName neq ''>
-				AND FileName = <cfqueryparam value="#arguments.fileName#" cfsqltype="cf_sql_varchar">
+				AND FileName LIKE <cfqueryparam value="%#arguments.fileName#%" cfsqltype="cf_sql_varchar">
 			</cfif>
 			<cfif arguments.selfHosted neq ''>
 				AND SelfHosted = <cfqueryparam value="#arguments.selfHosted#" cfsqltype="cf_sql_varchar">
@@ -2152,10 +2206,10 @@
 			WHERE 
 				0=0
 			<cfif arguments.category neq ''>
-				AND Category.Category = <cfqueryparam value="#arguments.category#">
+				AND Category.Category LIKE <cfqueryparam value="%#arguments.category#%">
 			</cfif>
 			<cfif arguments.alias neq ''>
-				AND Category.CategoryAlias = <cfqueryparam value="#arguments.alias#">
+				AND Category.CategoryAlias LIKE <cfqueryparam value="%#arguments.alias#%">
 			</cfif>
 				AND Category.BlogRef = #application.BlogDbObj.getBlogId()#			
 		</cfquery>
@@ -2516,6 +2570,7 @@
 				<!---Save it--->
 				<cfset EntitySave(CategoryDbObj)>
 			</cftransaction>
+			
 			<!--- Return the new Id --->
 			<cfreturn CategoryDbObj.getCategoryId()>
 		
@@ -3038,8 +3093,8 @@
 			<cfset variables.utils.throw("#arguments.postId# is not a valid entry.")>
 		</cfif>
 
-		<!--- Get the entry so we can check for allowcomments --->
-		<cfset getPost = getPostByPostId(arguments.postId)>
+		<!--- Get the entry so we can check for allowcomments ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+		<cfset getPost = getPostByPostId(arguments.postId,false,false)>
 		<cfif not getPost[1]["AllowComment"]>
 			<cfset variables.utils.throw("#arguments.postId# does not allow for comments.")>
 		</cfif>
@@ -3449,7 +3504,7 @@
 				</cfif>
 			</cfif>
 			<cfif len(arguments.subscriberEmail)>
-				AND SubscriberEmail = <cfqueryparam value="#arguments.subscriberEmail#" cfsqltype="cf_sql_varchar">
+				AND SubscriberEmail LIKE <cfqueryparam value="%#arguments.subscriberEmail#%" cfsqltype="cf_sql_varchar">
 			</cfif>
 			<cfif len(arguments.subscriberToken)>
 				AND SubscriberToken = <cfqueryparam value="#arguments.subscriberToken#" cfsqltype="cf_sql_varchar">
@@ -3940,6 +3995,9 @@
 			</cfif><!---<cfif arguments.spam>--->
 					
 		</cftransaction>
+					
+		<!--- Clear the scope cache --->
+		<cfset application.blog.clearScopeCache()>
 
 		<cfreturn serializeJson(arguments.commentId)>
 	</cffunction>
@@ -4212,16 +4270,17 @@
 	</cffunction>
 			
 	<cffunction name="getPostByPostId" access="public" returntype="any" output="true"
-			hint="Helper function for the getPost method. The getPost method expects a structure, so here we will take a postId and turn it into a structure that will be passed to the get post method that will allow us to use a single postId.">	
+			hint="Helper function for the getPost method. The getPost method expects a structure, so here we will take a postId and turn it into a structure that will be passed to the get post method that will allow us to use a single postId. Typically invoked with ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) )">	
 		<cfargument name="postId" type="numeric" required="true">
+		<cfargument name="showPendingPosts" type="boolean" required="false" default="false">
 		<cfargument name="showRemovedPosts" type="boolean" required="false" default="false">
 		
 		<!--- Create our parameters struct --->
 		<cfset params = structNew()>
 		<!--- Stuff the postId into the new struct. --->
 		<cfset params.byEntry = val(postId)>
-		<!--- Invoke the getPost method sending in the new struct ((getPost(params, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery))). --->
-		<cfset getPost = application.blog.getPost(params,showRemovedPosts,false,false)>
+		<!--- Invoke the getPost method sending in the new struct ((getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery))). --->
+		<cfset getPost = application.blog.getPost(params,showPendingPosts,showRemovedPosts,true,false)>
 			
 		<!--- Return it. --->
 		<cfreturn getPost>
@@ -4407,6 +4466,7 @@
 				Post.NumViews as NumViews,
 				Post.Mailed as Mailed,
 				Post.Released as Released,
+				Post.BlogSortDate as BlogSortDate,
 				Post.DatePosted as DatePosted, 
 				Post.Date as Date)
 			FROM Post as Post 
@@ -4434,6 +4494,7 @@
 				AND date(Post.DatePosted) = <cfqueryparam value="#arguments.datePosted#" cfsqltype="cf_sql_date">
 			</cfif>
 			ORDER BY 
+				Post.BlogSortDate DESC,
 				Post.DatePosted DESC, 
 				Post.Title ASC
 		</cfquery>	
@@ -4451,7 +4512,6 @@
 		<cfparam name="error" default="">
 		<cfparam name="moreBody" default="">
 			
-		<!--- Original BlogCfc comment by Ray: fix by Andrew --->
 		<cfset moreStr = "<more/>">
 		<cfset moreStart = findNoCase(moreStr,arguments.postContent)>
 		<cfif moreStart gt 1>
@@ -4479,14 +4539,15 @@
 	</cffunction>
 	
 	<cffunction name="getPost" access="public" returnType="any" output="true"
-		hint="This is Raymonds original function with major changes. Returns one more more posts. Allows for a params structure to configure what entries are returned. I am going to revise this in the next version as the params are hard to identify and want to pass in the arguments in the params struct instead. Note: this is often invoked using getPost(params,showRemovedPosts,showJsonLd,showPromoteAtTopOfQuery)">
+		hint="This is Raymonds original function with major changes. Returns one more more posts. Allows for a params structure to configure what entries are returned. I am going to revise this in the next version as the params are hard to identify and want to pass in the arguments in the params struct instead. Note: this is often invoked using getPost(params,showPendingPosts,showRemovedPosts,showJsonLd,showPromoteAtTopOfQuery)">
 		
 		<cfargument name="params" type="struct" required="false" default="#structNew()#">
+		<cfargument name="showPendingPosts" type="boolean" required="false" default="false">
 		<cfargument name="showRemovedPosts" type="boolean" required="false" default="false">
 		<cfargument name="showJsonLd" type="boolean" required="false" default="false" hint="The Json Ld sting can be quite large and it should not be included unless it is needed.">
 		<cfargument name="showPromoteAtTopOfQuery" type="boolean" required="false" default="true" hint="The RSS template needs to order the query by the date and can't have the promoted posts at the top of the query">
 			
-		<cfset debug = true>
+		<cfset debug = false>
 			
 		<!--- Preset vars. --->
 		<cfset var getComments = "">
@@ -4498,6 +4559,7 @@
 		<cfset var idList = "">
 		<cfset var pageIdList = "">
 		<cfset var x = "">
+		<cfset var loadScrollMagic = false>
 		<cfset var Data = []>
 		<!--- And set the initial EnclosureMapCount --->
 		<cfset enclosureMapCount = 0>
@@ -4589,10 +4651,11 @@
 				<cfset offset = 0>
 			</cfif>
 		</cfif>
-		<!--- Debugging: 
-		<cfdump var="#arguments.params#">
-		numRows: #numRows# offset: #offset#
-		--->
+		<!--- Debugging: --->
+		<cfif debug>
+			<cfdump var="#arguments.params#">
+			numRows: #numRows# offset: #offset#
+		</cfif>
 			
 		<!--- **********************************************************************************************
 			Get the posts that match the variables that were sent in.
@@ -4636,6 +4699,7 @@
 				Post.NumViews as NumViews,
 				Post.Mailed as Mailed,
 				Post.Released as Released,
+				Post.BlogSortDate as BlogSortDate,
 				Post.DatePosted as DatePosted, 
 				Post.Date as Date
 			)
@@ -4702,15 +4766,15 @@
 				AND year(Post.DatePosted) = <cfqueryparam value="#arguments.params.byYear#" cfsqltype="integer">
 			</cfif>
 			<!--- Allow admin's to see non-released posts and future posts. --->
-			<cfif not application.Udf.isLoggedIn() or (structKeyExists(arguments.params, "releasedOnly") and arguments.params.releasedonly)>
+			<cfif not arguments.showPendingPosts and not application.Udf.isLoggedIn() or (structKeyExists(arguments.params, "releasedOnly") and arguments.params.releasedonly)>
 				AND Post.DatePosted < <cfqueryparam cfsqltype="cf_sql_timestamp" value="#blogNow()#">
 			</cfif>
-			<cfif not application.Udf.isLoggedIn()>
+			<cfif not arguments.showPendingPosts or not application.Udf.isLoggedIn()>
 				AND Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
 			</cfif>
 			AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 			<cfif showPromoteAtTopOfQuery>
-				ORDER BY Post.Promote DESC, Post.DatePosted DESC
+				ORDER BY Post.Promote DESC, Post.BlogSortDate DESC, Post.DatePosted DESC
 			<cfelse>
 				ORDER BY Post.DatePosted DESC
 			</cfif>
@@ -4750,6 +4814,11 @@
 					</cfif>
 					<!--- Increment the map count property --->
 					<cfset mapCount = mapCount + 1>
+				</cfif>
+						
+				<!--- Determine if there is a scroll magic scene. We are doing this in order to load scroll magic only when it is needed. We only know if there may be a scene if the post header contains a cfinclude, or when there is a script with the string 'new ScrollMagic'. --->
+				<cfif Data[i]["PostHeader"] contains '<cfincludeTemplate>' or Data[i]["PostHeader"] contains 'new ScrollMagic'>
+					<cfset loadScrollMagic = true>
 				</cfif>
 			</cfloop>
 			
@@ -4866,10 +4935,12 @@
 				<cfset PostStruct["Mailed"] = Data[i]["Mailed"]>
 				<cfset PostStruct["Released"] = Data[i]["Released"]>
 				<!--- Note: we are now getting the proper time when we are inserting the records instead of manipulating the data after it is in the database. --->
+				<cfset PostStruct["BlogSortDate"] = Data[i]["BlogSortDate"]>
 				<cfset PostStruct["DatePosted"] = Data[i]["DatePosted"]>
 				<cfset PostStruct["Date"] = Data[i]["Date"]>
 					
 				<!--- Reset these values at the very end. --->
+				<cfset PostStruct["LoadScrollMagic"] = loadScrollMagic>
 				<cfset PostStruct["EnclosureMapCount"] = mapCount>
 				<cfset PostStruct["EnclosureMapIdList"] = mapIds>
 					
@@ -5123,7 +5194,9 @@
 				<cfset PostDbObj.setUserRef(UserDbObj)>
 				<cfset PostDbObj.setPostAlias(postAlias)>
 				<cfset PostDbObj.setTitle(arguments.title)>
-				<cfset PostDbObj.setDescription(arguments.description)>	
+				<cfset PostDbObj.setDescription(arguments.description)>
+				<!--- The blog sort date here is the same as the date posted --->
+				<cfset PostDbObj.setBlogSortDate(dateTimePosted)>
 				<cfset PostDbObj.setDatePosted(dateTimePosted)>
 				<cfset PostDbObj.setPostUuid(uuid)>
 				<cfset PostDbObj.setDate(blogNow())>
@@ -5144,9 +5217,11 @@
 		<cfargument name="alias" type="string" required="false" default="">
 		<cfargument name="title" type="string" required="true">
 		<cfargument name="description" type="string" required="true">
+		<cfargument name="themeId" type="string" required="false" default="0">
 		<cfargument name="jsonLd" type="string" required="false" default="">
 		<cfargument name="postHeader" type="any" required="false" default="">
 		<cfargument name="post" type="any" required="false" default="">
+		<cfargument name="blogSortDate" type="any" required="false" default="">
 		<cfargument name="datePosted" type="any" required="false" default="">
 		<cfargument name="timePosted" type="any" required="false" default="">
 		<cfargument name="allowcomments" type="boolean" required="false" default="true">
@@ -5163,8 +5238,8 @@
 			<cfset variables.utils.throw("The post, '#arguments.postid#', does not exist.")>
 		</cfif>
 			
-		<!--- We need to inspect this post to determine if it had been released. --->
-		<cfset getPost = application.blog.getPostByPostId(arguments.postId)>
+		<!--- We need to inspect this post to determine if it had been released ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ). --->
+		<cfset getPost = application.blog.getPostByPostId(arguments.postId,true,false)>
 		<!---<cfdump var="#getPost#" label="getPost"><br/>--->
 			
 		<!--- Only certain authorized users may release a post. However, we don't  want to change a currently released post if the editor changed some of the text. Note: the session.capabilityList will not be present when importing data from a previous blog version. --->
@@ -5201,11 +5276,18 @@
 
 		<!--- Set the date time. --->
 		<cfif len(arguments.datePosted) and len(arguments.timePosted)>
-			<!--- don't  modify the date that the user sent in --->
+			<!--- don't modify the date that the user sent in --->
 			<cfset dateTimePosted = arguments.datePosted & ' ' & arguments.timePosted>
 		<cfelse>
 			<!--- Blog now already has the time zone info --->
 			<cfset dateTimePosted = blogNow()>	
+		</cfif>
+			
+		<!--- Handle the sort date. This is only different than the date posted when the user wants to sort a blog post in a different order than the sort date. It will only be sent in on occassion. --->
+		<cfif len(arguments.blogSortDate)>
+			<cfset blogSortDate = arguments.blogSortDate>
+		<cfelse>
+			<cfset blogSortDate = dateTimePosted>
 		</cfif>
 			
 		<!--- **********************************************************************************************
@@ -5228,6 +5310,7 @@
 				<cfset PostDbObj.setPostUuid(arguments.postUuid)>
 			</cfif>
 			<cfset PostDbObj.setUserRef(UserDbObj)>
+			<cfset PostDbObj.setThemeRef(arguments.themeId)>
 			<cfset PostDbObj.setPostAlias(postAlias)>
 			<cfset PostDbObj.setTitle(arguments.title)>
 			<cfset PostDbObj.setDescription(arguments.description)>
@@ -5243,6 +5326,7 @@
 			<cfif isNumeric(arguments.numViews)>
 				<cfset PostDbObj.setNumViews(arguments.numViews)>
 			</cfif>
+			<cfset PostDbObj.setBlogSortDate(blogSortDate)>
 			<cfset PostDbObj.setDatePosted(dateTimePosted)>
 			<cfset PostDbObj.setDate(blogNow())>
 				
@@ -5312,30 +5396,81 @@
 
 		<!--- Email to the subscribers --->
 		<cfif arguments.emailSubscriber>
+			
+			<!--- Email the post --->
+			<cfinvoke component="#application.blog#" method="sendPostEmailToSubscribers" returnvariable="emailSent">
+				<cfinvokeargument name="postId" value="#arguments.postId#">
+				<!--- Bypass any errors since the admin already confirmed that they want to send the email. --->
+				<cfinvokeargument name="byPassErrors" value="true">
+			</cfinvoke>
 
-			<cfif dateCompare(getPost[1]["DatePosted"], blogNow()) is 1>
-				<!--- Handle delayed posting --->
-				<cfset theURL = getRootUrl()>
-				<cfset theURL = theURL & "/common/services/sendSubscriberEmail.cfm?postId=#URL.postId#">
+		</cfif><!---<cfif arguments.emailSubscriber>--->
+			
+		<!--- Handle future posts. --->
+		<cfif dateCompare(dateTimePosted, blogNow()) is 1>
+			
+			<!--- Delete any previous tasks. --->
+			<cftry>
+				<cfschedule action="delete" task="schedulePost#URL.postId#">
+				<cfcatch type="any"><cfset error="Task can't be found"></cfcatch>
+			</cftry>
+				
+			<!--- To shedule the task to run at the correct date, translate the client date to the date on the server. The server may reside in a different time zone than the blog owner --->
+			<cfset serverDateTime = application.blog.getServerDateTime(dateTimePosted)>
+				
+			<!--- Create a task to email and release the post in the future. --->
+			<cfschedule action="update" 
+				task="schedulePost#postId#" 
+				operation="HTTPRequest"
+				startDate="#dateFormat(serverDateTime)#" 
+				startTime="#timeFormat(serverDateTime)#" 
+				url="#application.blogHostUrl#/common/services/handleFuturePost.cfm?postId=#arguments.postId#" 
+				interval="once">
+		
+		</cfif><!---<cfif dateCompare(getPost[1]["DatePosted"], blogNow()) is 1>--->
+		
+		<!--- Clear the scope cache when the post is released --->
+		<cfif released>
+			<cfset application.blog.clearScopeCache()>
+		</cfif>
+						
+		<cfreturn PostDbObj.getPostId()>
 
-				<!--- Create a task to email the post in the future. --->
-				<cfschedule action="update" 
-					task="/common/services/sendSubscriberEmail.cfm?postId=#URL.postId#" 
-					operation="HTTPRequest"
-					startDate="#getPost[1]['DatePosted']#" 
-					startTime="#getPost[1]['DatePosted']#" 
-					url="#theURL#" 
-					interval="once">
-			<cfelse><!---<cfif dateCompare(getPost[1]["DatePosted"], blogNow()) is 1>--->
-				<!--- Email the post --->
-				<cfinvoke component="#application.blog#" method="sendPostEmailToSubscribers" returnvariable="emailSent">
-					<cfinvokeargument name="postId" value="#arguments.postId#">
-					<!--- Bypass any errors since the admin already confirmed that they want to send the email. --->
-					<cfinvokeargument name="byPassErrors" value="true">
-				</cfinvoke>
-			</cfif><!---<cfif dateCompare(getPost[1]["DatePosted"], blogNow()) is 1>--->
+	</cffunction>
+			
+	<cffunction name="releaseFuturePosts" access="public" returnType="numeric" output="true"
+			hint="Handles future posts">
+		<cfargument name="postId" type="numeric" required="true">
 
-		</cfif><!---<cfif getPost[1]["Released"] neq 1 and arguments.released>--->
+		<cfif not postExists(arguments.postId)>
+			<cfset variables.utils.throw("The post, '#arguments.postId#', does not exist.")>
+		</cfif>
+
+		<!--- **********************************************************************************************
+		Release the post. 
+		*************************************************************************************************--->
+			
+		<cftransaction>
+			<!--- Load the entity. --->
+			<cfset PostDbObj = entityLoad("Post", { postId = arguments.postId }, "true" )>
+			<cfset PostDbObj.setReleased(true)>
+			<cfset PostDbObj.setDate(blogNow())>		
+			<!--- Save the Post. --->
+			<cfset EntitySave(PostDbObj)>
+		</cftransaction>
+				
+		<!--- **********************************************************************************************
+		Send email
+		*************************************************************************************************--->
+				
+		<cfinvoke component="#application.blog#" method="sendPostEmailToSubscribers" returnvariable="emailSent">
+			<cfinvokeargument name="postId" value="#arguments.postId#">
+			<!--- Bypass any errors since the admin already confirmed that they want to send the email. --->
+			<cfinvokeargument name="byPassErrors" value="true">
+		</cfinvoke>
+		
+		<!--- Clear the cache --->
+		<cfset application.blog.clearScopeCache()>
 						
 		<cfreturn PostDbObj.getPostId()>
 
@@ -5388,68 +5523,45 @@
 			<!--- Save the Post. --->
 			<cfset EntitySave(PostDbObj)>
 		</cftransaction>
+				
+		<!--- Clear the scope cache --->
+		<cfset application.blog.clearScopeCache()>
 						
 		<cfreturn PostDbObj.getPostId()>
 
 	</cffunction>
 		
-	<cffunction name="deletePost" access="public" returnType="void" roles="admin,ReleaseEntries" output="false"
+	<cffunction name="deletePost" access="public" returnType="void" output="false"
 			hint="Replaces the deleteEntry function">
-		<cfargument name="postId" type="uuid" required="true">
+		<cfargument name="postId" type="numeric" required="true">
 			
 		<cftransaction>
 			
 			<!--- Load the post object --->
 			<cfset PostDbObj = entityLoadByPK("Post", arguments.postId)>
 			<!--- Set the MediaEnclosureRef to null so that we don't get a constraint error --->
-			<cfset PostDbObj.setMediaEnclosureRef(javaCast("null",""))>
-			
-			<!--- Get the various images and videos for this post. --->
+			<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
+				
+			<!--- Delete the post media --->
 			<cfquery name="Data" dbtype="hql">
-				SELECT new Map (
-					MediaId as MediaId,
-					MediaPath as MediaPath
-				)
-				FROM Media 
+				DELETE FROM PostMedia
 				WHERE 
 					PostRef = #PostDbObj.getPostId()#
 			</cfquery>
-				
-			<!--- Loop through the array and delete the various media --->
-			<cfloop from="1" to="#arrayLen(Data)#" index="i">
-				
-				<!--- See if the media belongs to another post record. We don't want to delete the media if it is used by another record. --->
-				<cfquery name="getOtherMediaPosts" dbtype="hql">
-					SELECT new Map (
-						MediaId as MediaId
-					)
-					FROM Media 
-					WHERE 
-						MediaId <> #MediaId#
-				</cfquery>
-				
-				<!--- If the media was *not* found in the other posts, delete the actual images. --->
-				<cfif not arrayLen(getOtherMediaPosts)>
-					<!--- Delete the media record in the db --->
-					<cfquery name="Data" dbtype="hql">
-						DELETE FROM Media
-						WHERE 
-							MediaId = #Data[i]['MediaId']#
-					</cfquery>
-					
-					<!--- Does the media exist on the server? If so, delete it. --->
-					<cfif fileExists(Data[i]["MediaPath"])>
-						<cffile action="delete" file="#Data[i]['MediaPath']#">
-					</cfif>
-				</cfif>
-					
-			</cfloop>
 					
 			<!--- Delete the associated post categories --->
 			<cfquery name="Data" dbtype="hql">
 				DELETE FROM PostCategoryLookup
 				WHERE 
 					PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+				
+			<!--- Delete related posts. --->
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM RelatedPost
+				WHERE 
+					PostRef = #PostDbObj.getPostId()#
+					OR RelatedPostRef = #PostDbObj.getPostId()#
 			</cfquery>
 
 			<!--- And delete the comments. --->
@@ -5460,77 +5572,23 @@
 			</cfquery>
 					
 			<!--- Finally, delete the post record --->
-			<cfset EntityDelete(UserRoleDbObj)>
-				
-			<!--- Delete the PostDbObj variable to ensure that the record doesn't stick around and is deleted from ORM memory. --->
-			<cfset void = structDelete( variables, "PostDbObj" )>
-			<!--- Delete the Data variable to ensure that the record doesn't stick around and is deleted from ORM memory. --->
-			<cfset void = structDelete( variables, "Data" )>
-			
-		</cftransaction>
-				
-	</cffunction>
-			
-	<cffunction name="deleteEntry" access="public" returnType="void" roles="admin,ReleaseEntries" output="false"
-			hint="Deletes an entry, plus all comments. This is a depracated function and may not work properly. Use the deletePost function instead.">
-		<cfargument name="id" type="uuid" required="true">
-		<cfset var entry = "">
-		<cfset var enclosure = "">
-
-		<cfif postExists(arguments.id)>
-
-			<!--- Load the Post entity by the PostId in order to delete them --->
-			<cfset PostDbObj = entityLoad("Post", { PostId = arguments.id }, "true" )>
-				
-			<!--- Get the various images and videos for this post. --->
-			<cfquery name="Data" dbtype="hql">
-				SELECT new Map (
-					MediaPath as MediaPath
-				)
-				FROM Media 
-				WHERE 
-					PostRef = #PostDbObj.getPostId()#
-			</cfquery>
-				
-			<!--- Loop through the array and delete the various media --->
-			<cfloop from="1" to="#arrayLen(Data)#" index="i">
-				<cfif fileExists(Data[i]["MediaPath"])>
-					<cffile action="delete" file="#Data[i]['MediaPath']#">
-				</cfif>
-			</cfloop>
-				
-			<!--- Load the Post entity by the PostId --->
-			<cfset PostDbObj = entityLoad("Post", { PostId = arguments.id }, "true" )>
-			
-			<!--- Delete the post --->
 			<cfquery name="Data" dbtype="hql">
 				DELETE FROM Post
 				WHERE 
-					PostId = <cfqueryparam value="#arguments.id#" cfsqltype="integer" maxlength="35">
-					AND BlogRef = #application.BlogDbObj.getBlogId()#
-			</cfquery>
-
-			<!--- Delete the associated post categories --->
-			<cfquery name="Data" dbtype="hql">
-				DELETE FROM PostCategoryLookup
-				WHERE 
-					PostRef = #PostDbObj.getPostId()#
-			</cfquery>
-
-			<!--- And delete the comments. --->
-			<cfquery name="Data" dbtype="hql">
-				DELETE FROM Comment
-				WHERE 
-					PostRef = #PostDbObj.getPostId()#
+					PostId = #PostDbObj.getPostId()#
 			</cfquery>
 				
 			<!--- Delete the PostDbObj variable to ensure that the record doesn't stick around and is deleted from ORM memory. --->
-			<cfset void = structDelete( variables, "PostDbObj" )>
-			<!--- Delete the Data variable to ensure that the record doesn't stick around and is deleted from ORM memory. --->
-			<cfset void = structDelete( variables, "Data" )>
-
-		</cfif>
-
+			<cftry>
+				<cfset void = structDelete( variables, "PostDbObj" )>
+				<cfcatch type="Any"></cfcatch>
+			</cftry>
+			
+		</cftransaction>
+				
+		<!--- Clear the scope cache --->
+		<cfset application.blog.clearScopeCache()>
+				
 	</cffunction>
 				
 	<!--- //***********************************************************************************************
@@ -6645,9 +6703,6 @@
 		<cfargument name="postId" type="string" required="true" default="">
 		<cfargument name="jsonLd" type="string" required="true" default="">
 			
-		<!--- Replace colons with the escaped HTML colon. This is needed as the colon's outside of a double qouted var will be eliminated when placed into the editor (or textarea) from the db --->
-		<cfset jsonLd = replaceNoCase(arguments.jsonLd, ':', '&##58;', 'all')>
-			
 		<cftransaction>
 			<!--- Load the post entity --->
 			<cfset PostDbObj = entityLoadByPk("Post", arguments.postId)>
@@ -6754,13 +6809,13 @@
 				Users as User
 			WHERE 0=0
 			<cfif arguments.firstName neq ''>
-				AND FirstName = <cfqueryparam value="#arguments.firstName#" cfsqltype="cf_sql_varchar" maxlength="50">
+				AND FirstName LIKE <cfqueryparam value="%#arguments.firstName#%" cfsqltype="cf_sql_varchar" maxlength="50">
 			</cfif>
 			<cfif arguments.lastName neq ''>
-				AND LastName = <cfqueryparam value="#arguments.lastName#" cfsqltype="cf_sql_varchar" maxlength="50">
+				AND LastName LIKE <cfqueryparam value="%#arguments.lastName#%" cfsqltype="cf_sql_varchar" maxlength="50">
 			</cfif>
 			<cfif arguments.email neq ''>
-				AND Email = <cfqueryparam value="#arguments.email#" cfsqltype="cf_sql_varchar" maxlength="50">
+				AND Email LIKE <cfqueryparam value="%#arguments.email#%" cfsqltype="cf_sql_varchar" maxlength="50">
 			</cfif>
 				AND Active = <cfqueryparam value="1">
 				AND BlogRef = #application.BlogDbObj.getBlogId()#
@@ -7593,19 +7648,21 @@
 			
 		<!--- Include the string utilities cfc. --->
 		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
+		<!--- Get the blog time zone --->
+		<cfset blogTimeZone = application.BlogDbObj.getBlogTimeZone()>
 
 		<!--- Right now, we force this in. Useful to limit throughput of RSS feed. I may remove this later. --->
 		<cfif (structKeyExists(arguments.params,"maxEntries") and arguments.params.maxEntries gt 15) or not structKeyExists(arguments.params,"maxEntries")>
 			<cfset arguments.params.maxEntries = 15>
 		</cfif>
-		<!--- Get the array from the database. Do not show the promoted posts at the top of the query (getPost(params, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery)).  --->
-		<cfset getPost = application.blog.getPost(arguments.params,false,false,false)>
+		<!--- Get the array from the database. Do not show the promoted posts at the top of the query (getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery)).  --->
+		<cfset getPost = application.blog.getPost(arguments.params,false,false,false,false)>
 		<!---<cfdump var="#getPost#">--->
 
-		<cfif not find("-", z.utcHourOffset)>
+		<cfif not find("-", blogTimeZone)>
 			<cfset utcPrefix = " -">
 		<cfelse>
-			<cfset z.utcHourOffset = right(z.utcHourOffset, len(z.utcHourOffset) -1 )>
+			<cfset blogTimeZone = right(blogTimeZone, len(blogTimeZone) -1 )>
 			<cfset utcPrefix = " +">
 		</cfif>
 
@@ -7619,7 +7676,7 @@
 			<link>#StringUtilsObj.trimStr(xmlFormat(application.blogHostUrl))#</link>
 			<description>#xmlFormat(instance.blogDescription)#</description>
 			<language>en</language>
-			<pubDate>#dateFormat(blogNow(),"ddd, dd mmm yyyy") & " " & timeFormat(blogNow(),"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & "00"#</pubDate>
+			<pubDate>#dateFormat(blogNow(),"ddd, dd mmm yyyy") & " " & timeFormat(blogNow(),"HH:mm:ss") & utcPrefix & numberFormat(blogTimeZone,"00") & "00"#</pubDate>
 			<lastBuildDate>{LAST_BUILD_DATE}</lastBuildDate>
 			<generator>Galaxie Blog</generator>
 			<docs>http://blogs.law.harvard.edu/tech/rss</docs>
@@ -7672,7 +7729,7 @@
 				<cfset xmlLink = xmlFormat(makeLink(postId))>
 			</cfif>
 				
-			<cfset dateStr = dateFormat(datePosted,"ddd, dd mmm yyyy") & " " & timeFormat(datePosted,"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & "00">
+			<cfset dateStr = dateFormat(datePosted,"ddd, dd mmm yyyy") & " " & timeFormat(datePosted,"HH:mm:ss") & utcPrefix & numberFormat(blogTimeZone,"00") & "00">
 				
 			<!--- Set the description. --->
 			<cfif arguments.mode is "short" and len(body) gte arguments.excerpt>
@@ -7715,7 +7772,7 @@
 		 	</cfloop>
 		</cfsavecontent>
 
-		<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & "00"#','one')>
+		<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & utcPrefix & numberFormat(blogTimeZone,"00") & "00"#','one')>
 		<cfset rssStr = trim(header & items & "</channel></rss>")>
 
 		<cfreturn rssStr>

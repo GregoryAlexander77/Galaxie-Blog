@@ -8,8 +8,10 @@
 //********************************************************************************************************--->
 <!--- Cache this stuff --->
 <cfheader name="filesMatch" value="<filesMatch '.(css|jpg|jpeg|png|gif|js|ico)$'>">
-<cfheader name="Expires" value="#getHttpTimeString(dateAdd('m', 1, Now()))#">
+<cfif pageId eq 1>
+<cfheader name="Expires" value="#getHttpTimeString(dateAdd('yyyy', 1, Now()))#">
 <cfheader name="cache-control" value="Cache-Control: max-age=31536000, public">
+</cfif>
 
 <!--- Enforce ssl if necessary. --->
 <cfif useSsl and (CGI.https eq "off")>
@@ -89,13 +91,17 @@
 </cfif><!---<cfif videoType neq "" and getPageMode() eq 'post'>--->
 	<!--TODO <meta property="og:type" content="blog" />-->
  	<link rel="alternate" type="application/rss+xml" title="RSS" href="#thisUrl#/rss.cfm?mode=full" />
-<cfif application.customFavIconTemplate neq "">
-	<!-- FavIcons -->
-	<cfinclude template="#application.customFavIconTemplate#">
+<cfif len(favIconHtml)>
+	<cfsilent>
+		<!--- Fix ColdFusions script protection where it substitues meta name wtih InvalidTag name. --->
+		<cfset favIconHtml = replaceNoCase(favIconHtml, 'InvalidTag name', 'meta name', 'all')>
+	</cfsilent>
+	<!-- FavIcons --> 
+	#favIconHtml#
 </cfif>
 	<cfsilent>
 	<!--- We are only including the top level ld json when we are not in blog mode. The ld json will be in the body of the post.  ---->
-	<cfif getPageMode() neq 'blog'>
+	<cfif getPageMode() eq 'blog'>
 		<cfset struturedDataMainEntityOfPage = "Blog"><!--- The URL of a page on which the thing is the main entity. --->
 		<cfset struturedDataMainEntityOfPageUrl = blogUrl>
 	<cfelse>
@@ -103,7 +109,7 @@
 		<cfset struturedDataMainEntityOfPageUrl = canonicalUrl>
 	</cfif>
 	</cfsilent>
-<cfif getPageMode() neq 'blog'>
+<cfif getPageMode() eq 'blog'>
 	<!-- Structured data (see schema.org). -->
 	<script type="application/ld+json">
 	{
@@ -121,6 +127,19 @@
 			"name": "#htmlEditFormat(application.BlogDbObj.getBlogTitle())#"
 		}
 	}
+	</script>
+<cfelse>
+	<cfif len(getPost[1]["JsonLd"])>
+		<cfset jsonLd = getPost[1]["JsonLd"]>
+	<cfelse>
+		<!--- Instantiate our renderer obj --->
+		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
+		<!--- Render the json from the db (renderLdJson(getPost, prettity)) --->
+		<cfset jsonLd = RendererObj.renderLdJson(getPost, false)>
+	</cfif>
+	<!-- Structured data (see schema.org). -->
+	<script type="application/ld+json">
+		#jsonLd#
 	</script>
 </cfif><!---<cfif getPageMode() neq 'blog'>--->
 </cfif><!---<cfif postFound>--->
@@ -203,7 +222,7 @@
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#/common/libs/prism/themes/#prismTheme#.css') );
 	</script>
 	<!-- Note: the prism.min.js library (our code hightlighter) should not be placed here in the header. It is in the footer prior to the end body tag. This library must be placed between the body tags. -->
-<cfif application.Udf.isLoggedIn()>
+<cfif pageId eq 2 and application.Udf.isLoggedIn()>
 	<!-- TinyMce must also be placed in the head in order for the set and get content methods to work. Read the notes in the /includes/templates/js/tinymce.cfm template for more information. -->
 	<script src="#application.baseUrl#/common/libs/tinymce/tinymce.min.js"></script>
 	<script src="#application.baseUrl#/common/libs/tinymce/jquery.tinymce.min.js"></script>
@@ -230,8 +249,8 @@
 	</script>
 	<cfif addSocialMediaUnderEntry><!-- Go to www.addthis.com/dashboard to customize your tools --> 
 	<script type="#scriptTypeString#" src="//s7.addthis.com/js/300/addthis_widget.js#chr(35)#pubid=#application.addThisApiKey#"></script></cfif>
+<cfif arrayLen(getPost) and getPost[1]['LoadScrollMagic'] and application.includeGsap>
 	<!-- Scroll magic and other green sock plugins. -->
-<cfif application.includeGsap>
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/greenSock/src/uncompressed/TweenMax.js"></script>
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/uncompressed/ScrollMagic.js"></script>
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/uncompressed/plugins/animation.gsap.js"></script>

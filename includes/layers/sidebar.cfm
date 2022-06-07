@@ -3,6 +3,7 @@
 				<cfset sideBarType = attributes.sideBarType>
 				<cfset scriptTypeString = attributes.scriptTypeString>
 				<cfset kendoTheme = attributes.kendoTheme>
+				<cfset modernTheme = attributes.modernTheme>
 				<cfset darkTheme = attributes.darktheme>
 					
 				<!--- Is there a URL rewrite rule in place? If so, we need to eliminate the 'index.cfm' string from all of our links. A rewrite rule on the server allows the blog owners to to obsfucate the 'index.cfm' string from the URL. This setting is in the application.cfc template. --->
@@ -48,7 +49,7 @@
 					
 				<div class="widget k-content flexItem">
 					<span class="innerContentContainer">
-						<h3 class="topContent"><i class="fas fa-tags"></i> Tags</h3>
+						<h3 class="topContent"><i class="fas fa-tags"></i> Categories</h3>
 						<cfinclude template="#application.baseUrl#/includes/pods/tagcloud.cfm">
 					</span>
 				</div>
