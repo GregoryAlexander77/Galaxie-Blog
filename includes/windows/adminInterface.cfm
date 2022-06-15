@@ -41,10 +41,11 @@ If I place the tinymce scripts here, the setContent method does not work and the
 	<cfinvoke component="#application.proxyControllerComponentPath#" method="verifyCsrfToken" returnvariable="validCsrf">
 		<cfinvokeargument name="csrfToken" value="#csrfToken#">	
 	</cfinvoke>
-		
+	
 	Debugging:<br/>
 	<!---<cfdump var="#session#">--->
 	<cfoutput>
+	session.isTablet: #session.isTablet#
 	adminInterfaceId: #adminInterfaceId# 
 	URL.optArgs: #URL.optArgs# 
 	<cfif isDefined("URL.otherArgs")> URL.otherArgs:  #URL.otherArgs#</cfif>
@@ -1290,7 +1291,7 @@ TinyMce styles
 	<!--- Set the common vars for tinymce. --->
 	<cfsilent>
 	<cfset selectorId = "postEditor">
-	<cfif session.isMobile>
+	<cfif session.isMobile or session.isTablet>
 		<cfset editorHeight = "600">
 	<cfelse>
 		<cfset editorHeight = "650">
@@ -1300,7 +1301,7 @@ TinyMce styles
 	<cfset imageMediaIdField = "imageMediaId">
 	<cfset imageClass = "entryImage">
 
-	<cfif session.isMobile>
+	<cfif session.isMobile or session.isTablet>
 		<cfset toolbarString = "undo redo | bold italic | link | image media fancyBoxGallery">
 	<cfelse>
 		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | tox | hr | link | image editimage | media | fancyBoxGallery | map mapRouting | emoticons">
@@ -1745,19 +1746,19 @@ TinyMce styles
 	  <tr height="1px">
 		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-    <cfif session.isMobile>
+    <cfif session.isMobile or session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<p class="k-block k-error-colored" align="left">This post has been removed. You may permanently <a href="javascript:deletePost();">delete it</a>.</p>
 		</td>
 	   </tr>
-	<cfelse><!---<cfif session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isMobile>--->
 	  <tr>
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<p class="k-block k-error-colored" align="left">This post has been removed. You may permanently <a href="javascript:deletePost();">delete it</a>.</p>
 		</td>
 	  </tr>
-	</cfif><!---<cfif session.isMobile>--->
+	</cfif><!---<cfif session.isMobile or session.isTablet>--->
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -1772,7 +1773,7 @@ TinyMce styles
 	  <tr height="1px">
 		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-    <cfif session.isMobile>
+    <cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 		<label for="datePosted">Date Posted</label>
@@ -1783,7 +1784,7 @@ TinyMce styles
 			<input id="datePosted" name="datePosted" value="<cfoutput>#dateTimeFormat(getPost[1]['DatePosted'], "medium")#</cfoutput>" style="width: 95%" />   
 		</td>
 	  </tr>
-	<cfelse><!---<cfif session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	  <tr>
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 			<label for="datePosted">Date Posted</label>
@@ -1806,7 +1807,7 @@ TinyMce styles
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <cfif session.isMobile>
+	  <cfif session.isMobile  or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 		<label for="post">Author</label>
@@ -1825,7 +1826,7 @@ TinyMce styles
 			</script> 
 		</td>
 	  </tr>
-	<cfelse><!---<cfif session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	  <!-- Form content -->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -1857,7 +1858,7 @@ TinyMce styles
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Form content -->
-  	<cfif session.isMobile>
+  	<cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 		<label for="post">Title</label>
@@ -1868,7 +1869,7 @@ TinyMce styles
 			<input type="text" id="title" name="title" value="<cfoutput>#getPost[1]['Title']#</cfoutput>" class="k-textbox" style="width: 95%" />
 		</td>
 	  </tr>
-	<cfelse><!---<cfif session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
 		<label for="post">Title</label>
@@ -1891,7 +1892,7 @@ TinyMce styles
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Enclosure thumbnail -->
-	<cfif session.isMobile>
+	<cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 		<label>Enclosure</label>
@@ -1902,7 +1903,7 @@ TinyMce styles
 			<div id="mediaPreview" name="mediaPreview"><cfoutput>#thumbnailHtml#</cfoutput></div>
 		</td>
 	  </tr>
-	<cfelse><!---<cfif session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	   <tr valign="middle" height="35">
 		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<label>Enclosure</label>
@@ -1914,9 +1915,9 @@ TinyMce styles
 			<div id="mediaPreview" name="mediaPreview"><cfoutput>#thumbnailHtml#</cfoutput></div>
 		</td>
 	  </tr>
-	</cfif><!---<cfif session.isMobile>--->
+	</cfif><!---<cfif session.isMobile or session.isTablet>--->
 	  <!--- Editor button --->
-	<cfif session.isMobile>
+	<cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Enclosure Editor</button>
@@ -1945,7 +1946,7 @@ TinyMce styles
 	  </tr>
 	  <!-- Form content -->
 	  <!-- ****************************************** TinyMce Editor ****************************************** -->
-	<cfif session.isMobile>
+	<cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<div id="dynamicGalleryInputFields" name="dynamicGalleryInputFields"></div>
@@ -1958,10 +1959,10 @@ TinyMce styles
 	  </tr>
 	  <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="text" id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>" style="width:95%" />
+			<input type="text" id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>" />
 		</td>
 	  </tr>
-	<cfelse><!---<cfif session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	  <tr>
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"><div id="dynamicGalleryLabel"></div></td>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>"><div id="dynamicGalleryInputFields" name="dynamicGalleryInputFields"></div></td>
@@ -1988,7 +1989,7 @@ TinyMce styles
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Form content -->
-	<cfif session.isMobile>
+	<cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<i class="far fa-edit"></i> 
@@ -2001,7 +2002,7 @@ TinyMce styles
 			<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Change Alias</button>
 		</td>
 	  </tr>
-	<cfelse><!---<cfif session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<i class="far fa-edit"></i> 
@@ -2050,10 +2051,10 @@ TinyMce styles
 	  </tr>
 	  <!-- Form content -->
 	  <tr>
-	  <cfif not session.isMobile>
+	  <cfif not session.isMobile or session.isTablet>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </cfif>
-		<td align="center" class="<cfoutput>#thisContentClass#</cfoutput>" <cfif session.isMobile>colspan="2"</cfif>>
+		<td align="center" class="<cfoutput>#thisContentClass#</cfoutput>" <cfif session.isMobile or session.isTablet>colspan="2"</cfif>>
 			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0" border="0">
 				<tr>
 					<td width="25%" align="left">
@@ -2124,7 +2125,7 @@ TinyMce styles
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Form content -->
-	<cfif session.isMobile>
+	<cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<label for="description">Description</label>
@@ -2135,7 +2136,7 @@ TinyMce styles
 			<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width:95%"><cfoutput>#getPost[1]['Description']#</cfoutput></textarea>   
 		</td>
 	  </tr>
-	<cfelse><!---<cfif session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<label for="description">Description</label>
@@ -2158,7 +2159,7 @@ TinyMce styles
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Form content -->
-	<cfif session.isMobile>
+	<cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<label for="postCategories">Categories</label>
@@ -2180,7 +2181,7 @@ TinyMce styles
 			</script>    
 		</td>
 	  </tr>
-	<cfelse><!---<cfif session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<label for="postCategories">Categories</label>
@@ -2214,7 +2215,7 @@ TinyMce styles
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Form content -->
-	<cfif session.isMobile>
+	<cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<label for="relatedPosts">Related Posts</label>
@@ -2225,7 +2226,7 @@ TinyMce styles
 			<select id="relatedPosts" style="width: 95%; font-weight: 300;"></select> 
 		</td>
 	  </tr>
-	<cfelse><!---<cfif session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<label for="relatedPosts">Related Posts</label>
@@ -6829,15 +6830,31 @@ Custom element markup example for videos:
 	<!--- Blog backgrounds --->
 	<cfset includeBackgroundImages = getTheme[1]["IncludeBackgroundImages"]>
 	<cfset blogBackgroundImage = getTheme[1]["BlogBackgroundImage"]>
+	<!--- Images need to have the baseUrl (this was put in to make the blog more portable) --->
+	<cfif len(blogBackgroundImage)>
+		<cfset blogBackgroundImage = application.baseUrl & blogBackgroundImage>
+	</cfif>
 	<cfset blogBackgroundImageMobile = getTheme[1]["BlogBackgroundImageMobile"]>
+	<!--- Images need to have the baseUrl (this was put in to make the blog more portable) --->
+	<cfif len(blogBackgroundImageMobile)>
+		<cfset blogBackgroundImageMobile = application.baseUrl & blogBackgroundImageMobile>
+	</cfif>
 	<cfset blogBackgroundImageRepeat = getTheme[1]["BlogBackgroundImageRepeat"]>
 	<cfset blogBackgroundImagePosition = getTheme[1]["BlogBackgroundImagePosition"]>
 	<cfset blogBackgroundColor = getTheme[1]["BlogBackgroundColor"]>
 	<!--- Header backgrounds --->
 	<cfset headerBackgroundColor = getTheme[1]["HeaderBackgroundColor"]>
 	<cfset headerBackgroundImage = getTheme[1]["HeaderBackgroundImage"]>
+	<!--- Images need to have the baseUrl (this was put in to make the blog more portable) --->
+	<cfif len(headerBackgroundImage)>
+		<cfset headerBackgroundImage = application.baseUrl & headerBackgroundImage>
+	</cfif>
 	<!--- Menu backgrounds --->
 	<cfset menuBackgroundImage = getTheme[1]["MenuBackgroundImage"]>
+	<!--- Images need to have the baseUrl (this was put in to make the blog more portable) --->
+	<cfif len(menuBackgroundImage)>
+		<cfset menuBackgroundImage = application.baseUrl & menuBackgroundImage>
+	</cfif>
 	<!--- Menu Font --->
 	<cfset menuFontId = getTheme[1]["MenuFontId"]>
 	<cfset coverKendoMenuWithMenuBackgroundImage = getTheme[1]["CoverKendoMenuWithMenuBackgroundImage"]>
@@ -6855,15 +6872,31 @@ Custom element markup example for videos:
 	<cfset headerBodyDividerImage = getTheme[1]["HeaderBodyDividerImage"]>
 	<!--- Logos --->
 	<cfset logoImageMobile = getTheme[1]["LogoImageMobile"]>
+	<!--- Images need to have the baseUrl (this was put in to make the blog more portable) --->
+	<cfif len(logoImageMobile)>
+		<cfset logoImageMobile = application.baseUrl & logoImageMobile>
+	</cfif>
 	<cfset logoMobileWidth = getTheme[1]["LogoMobileWidth"]>
+	<!--- Images need to have the baseUrl (this was put in to make the blog more portable) --->
 	<cfset logoImage = getTheme[1]["LogoImage"]>
+	<cfif len(logoImage)>
+		<cfset logoImage = application.baseUrl & logoImage>
+	</cfif>
 	<cfset logoPaddingTop = getTheme[1]["LogoPaddingTop"]>
 	<cfset logoPaddingRight = getTheme[1]["LogoPaddingRight"]>
 	<cfset logoPaddingLeft = getTheme[1]["LogoPaddingLeft"]>
 	<cfset logoPaddingBottom = getTheme[1]["LogoPaddingBottom"]>
 	<cfset defaultLogoImageForSocialMediaShare = getTheme[1]["DefaultLogoImageForSocialMediaShare"]>
+	<!--- Images need to have the baseUrl (this was put in to make the blog more portable) --->
+	<cfif len(defaultLogoImageForSocialMediaShare)>
+		<cfset defaultLogoImageForSocialMediaShare = application.baseUrl & defaultLogoImageForSocialMediaShare>
+	</cfif>
 	<cfset blogBackgroundImagePosition = getTheme[1]["BlogBackgroundImagePosition"]>
 	<cfset footerImage = getTheme[1]["FooterImage"]>
+	<!--- Images need to have the baseUrl (this was put in to make the blog more portable) --->
+	<cfif len(footerImage)>
+		<cfset footerImage = application.baseUrl & footerImage>
+	</cfif>
 		
 	<cfset getFonts = application.blog.getFont()>
 	<!---<cfdump var="#getFonts#">--->
@@ -8157,7 +8190,7 @@ Custom element markup example for videos:
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="logoImage" name="logoImage" value="#application.baseUrl##logoImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImage','#application.baseUrl##logoImage#');">
+				<input type="text" id="logoImage" name="logoImage" value="#logoImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImage','#logoImage#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8185,7 +8218,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#application.baseUrl##logoImageMobile#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#application.baseUrl##logoImageMobile#');">
+				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#logoImageMobile#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#logoImageMobile#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8197,7 +8230,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#application.baseUrl##logoImageMobile#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#application.baseUrl##logoImageMobile#');">
+				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#logoImageMobile#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#logoImageMobile#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8235,7 +8268,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#application.baseUrl##defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#application.baseUrl##defaultLogoImageForSocialMediaShare#');">
+				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#defaultLogoImageForSocialMediaShare#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8247,7 +8280,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#application.baseUrl##defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#application.baseUrl##defaultLogoImageForSocialMediaShare#');">
+				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#defaultLogoImageForSocialMediaShare#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8414,7 +8447,7 @@ Custom element markup example for videos:
 		   <tr class="includeBackgroundImages">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#application.baseUrl##blogBackgroundImage#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#application.baseUrl##blogBackgroundImage#');">
+				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#blogBackgroundImage#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8425,7 +8458,7 @@ Custom element markup example for videos:
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#application.baseUrl##blogBackgroundImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#application.baseUrl##blogBackgroundImage#');">
+				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#blogBackgroundImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8453,7 +8486,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#application.baseUrl##blogBackgroundImageMobile#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#application.baseUrl##blogBackgroundImageMobile#');">
+				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#blogBackgroundImageMobile#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8465,7 +8498,7 @@ Custom element markup example for videos:
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#application.baseUrl##blogBackgroundImageMobile#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#application.baseUrl##blogBackgroundImageMobile#');">
+				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#blogBackgroundImageMobile#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#');">
 				</cfoutput>
 			</td>
 		  </tr>
@@ -8557,7 +8590,7 @@ Custom element markup example for videos:
 		  </tr>
 		  <tr class="backgroundColor">
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
-				If you don't  want to have a blog background, you can have a simple blog background color. 
+				If you don't want to have a blog background, you can have a simple blog background color. 
 			</td>
 		  </tr>
 			  

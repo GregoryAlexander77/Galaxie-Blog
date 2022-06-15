@@ -1883,7 +1883,7 @@
 				<cfset ThemeSettingDbObj.setCoverKendoMenuWithMenuBackgroundImage(arguments.coverKendoMenuWithMenuBackgroundImage)>
 				<cfset ThemeSettingDbObj.setTopMenuAlign(arguments.topMenuAlign)>
 				<!--- Footer --->
-				<cfset ThemeSettingDbObj.setFooterImage(arguments.footerImage)>
+				<cfset ThemeSettingDbObj.setFooterImage(StringUtilsObj.setThemeFilePath(arguments.footerImage))>
 				<!--- On new themes, save the theme setting ref --->
 				<cfif len(themeId) eq 0 and len(themeSettingId) eq 0>
 					<cfset ThemeDbObj.setThemeSettingRef(ThemeSettingDbObj.getThemeSettingId())>

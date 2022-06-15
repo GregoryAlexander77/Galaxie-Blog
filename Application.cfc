@@ -469,6 +469,12 @@
 		<cfelse>
 			<cfset session.isMobile = false>
 		</cfif>
+		<!--- Determine if the device is a tablet --->
+		<cfif find("iPad", CGI.HTTP_USER_AGENT) OR (find("Android", CGI.HTTP_USER_AGENT) and not session.isMobile)>
+			<cfset session.isTablet = true>
+		<cfelse>
+			<cfset session.isTablet = false>
+		</cfif>
 
 		<!--- Initialize the application if it has not already been done. --->
 		<cfif not isDefined("application.init")>
