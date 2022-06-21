@@ -280,7 +280,7 @@ Happy Blogging!
 <p><strong>If you run into problems...</strong></p>
 <p>This is a final release candidate so I am sure that there are going to be a few bugs.<strong>&nbsp;</strong>However, please reach out to me or document the issue on the git hub site. I prefer that you document the issue so that others can also see what is going on. I made some mistakes on the previous version of Galaxie Blog's installer and am frustrated that no one reached out to me. I spent a great deal of time developing this for the community and would like to be aware when something goes wrong.&nbsp;</p>
 <p>There are some tools built in the Application.cfc template that may also be used to debug your issues.&nbsp;There is a debug = false statement near the top of the root Application.cfc template. Set this argument to debug = true to print out all of the system variables.</p>
-<p>If you're using a hosted provider with CF2018 or CF2021, they may have a setting that causes the Java loader to fail. The 'Disable Internal Java Components' checkbox must not be checked in the ColdFusion administrator. If you can't get around this, for now, use CF2016.&nbsp;</p>
+
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
