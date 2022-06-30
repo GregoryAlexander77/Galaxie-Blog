@@ -147,11 +147,13 @@
 			  </tr>
 			  <tr>
 				  <td align="left" valign="top" colspan="2" class="k-header" style="font-weight: bold">
-					<!---<cfif session.extendsStrOk>
+					<!---
+					<cfif session.extendsStrOk>
 						Application extends check.
 					<cfelse>
 						Change one line of code to extend the application.
-					</cfif>--->
+					</cfif>
+					--->
 					Application Extends Note.
 					<br/>(Step 3 of 6)
 				  </td>
@@ -186,7 +188,7 @@
 						<li>Upload this file to your server.</li>
 					</ul>
 				</cfif>
-				-->
+				--->
 				</td>
 			</tr>
 			<tr>
