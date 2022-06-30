@@ -189,7 +189,7 @@
 					</ul>
 				</cfif>
 				--->
-				</td>
+				</td> 
 			</tr>
 			<tr>
 				<td><input type="submit" value="Continue" class="k-button k-primary" /></td>
