@@ -65,13 +65,13 @@
 	<cfelse>
 	<!--- Extend using the ApplicationProxy --->
 		<cfset extending = replaceNoCase(basePath, '/', '', 'all') & ' subdirectory'>
-		<!--- Append the directory with 'Application' --->
-		<cfset extendsStr = extendsPath & 'Application'>
+		<!--- Append the directory with 'Proxy' --->
+		<cfset extendsStr = extendsPath & 'Proxy'>
 	</cfif>
 	<!--- Save this to the sesion. --->
 	<cfset session.extendsStr = extendsStr>
 
-	<cfif extendsStr eq 'blog.Application'>
+	<cfif extendsStr eq 'blog.Proxy'>
 		<cfset extendsStrOk = true>
 	<cfelse>
 		<cfset extendsStrOk = false>
@@ -147,14 +147,11 @@
 			  </tr>
 			  <tr>
 				  <td align="left" valign="top" colspan="2" class="k-header" style="font-weight: bold">
-					<!---
 					<cfif session.extendsStrOk>
 						Application extends check.
 					<cfelse>
 						Change one line of code to extend the application.
 					</cfif>
-					--->
-					Application Extends Note.
 					<br/>(Step 3 of 6)
 				  </td>
 			  </tr>
@@ -167,29 +164,24 @@
 				  	<img src="../images/docking.jpg" alt="Site Information" style="float: left; padding:5px;">
 				  </td>
 				  <td align="left" valign="top">
-				  <p>
-					  Note: the extends argument is hardcoded in the ApplicationProxyReference.cfc to extend the root Proxy.cfc. <b>Everything is set and you should need to do anything</b>, but I have noticed that the extends logic is not bullet proof with all of the various server setups. If you can't get into the Administrator please let me know either by creating a new GIT issue or emailing me and I will get back to you promptly. I have been through this quite a few times now and will have some ideas.
-				  </p>
-				  <p>Please click on button at the bottom of the page to continue.</p> 
-				  <!---
-					<cfif session.extendsStrOk>
+				  <cfif session.extendsStrOk>
 					<p>
-					  Note: the extends argument is hardcoded in the ApplicationProxyReference.cfc to extend the parent Application.cfc to the Admin/Application.cfc. <b>Everything is set and you don't need to do anything</b>, but <b>if</b> you change your folder structure at a later time you will need to change the folder name (ie 'blog') with the new folder that you changed.
+					  Note: the extends argument is hardcoded in the ApplicationProxyReference.cfc to extend the Proxy.cfc in the blog's root directory. <b>Everything is set and you don't need to do anything</b>, but <b>if</b> you change your folder structure at a later time you will need to change the folder name (ie 'blog') with the new folder that you changed.
 					</p>
 					<p>Please click on button at the bottom of the page to continue.</p>
 				  <cfelse>
 				    <p>
-					 We need you to add the folder name to one word of code to extend the core application logic. We have tried to perform this programatically, but unfortunately, there is no reliable way to extend our application code with all of the various ColdFusion configurations. Here, we are just appending the folder name with a '.Application' if your site is in a subfolder. You will not need to make any more manual code adjustments to install the blog. 
+					 We need you to add the folder name to one word of code to extend the core application logic. We have tried to perform this programatically, but unfortunately, there is no reliable way to extend our application code with all of the various ColdFusion configurations. Here, we are just appending the folder name with a '.Proxy' if your site is in a subfolder. You will not need to make any more manual code adjustments to install the blog. 
 					</p>
+
 					<ul>
 						<li>Please open the ApplicationProxyReference.cfc template in the /admin/ folder.</li>
-						<li>On the very first line of code locate the extends="blog.Application" string.</li>
-						<li>Change this extends argument from 'blog.Application' to <cfoutput><b>#extendsStr#</b></cfoutput> and save the file.</li>
+						<li>On the very first line of code locate the extends="blog.Proxy" string.</li>
+						<li>Change this extends argument from 'blog.Proxy' to <cfoutput><b>#extendsStr#</b></cfoutput> and save the file.</li>
 						<li>Upload this file to your server.</li>
 					</ul>
-				</cfif>
-				--->
-				</td> 
+				</cfif>  
+				</td>
 			</tr>
 			<tr>
 				<td><input type="submit" value="Continue" class="k-button k-primary" /></td>
