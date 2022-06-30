@@ -346,17 +346,14 @@
 		<!--- Invoke the Time Zone cfc --->
 		<cfobject component="#application.timeZoneComponentPath#" name="TimeZoneObj">
 		
-		<!--- Get the server timezone using the Moment library. MomentCfc requires the new keyword to initialize. See https://github.com/AlumnIQ/momentcfc/blob/master/readme.md for documentation. --->
-		<cfset serverTimeZone = new "#application.momentComponentPath#"().getSystemTZ()>
-		<!--- Get the time zone identifier (America/Los_Angeles) from the TimeZone component --->
+		<!--- Get the time zone identifier on the server (ie America/Los_Angeles) from the TimeZone component --->
 		<cfset serverTimeZoneId = TimeZoneObj.getServerId()>
-			
-		<!--- Get the blog time zone from the database and is populated by the Blog Time interface. We probably should be storing the identifier in the database in the future to avoid this --->
+		<!--- Get the blog time zone offset (-8) from the database and is populated by the Blog Time interface. We probably should be storing the actual identifier (America/Los_Angeles) in the database in the future to get the proper DST --->
 		<cfset blogTimeZone = application.BlogDbObj.getBlogTimeZone()>
 		<!--- Get the time zone identifier (America/Los_Angeles) by the GMT offset. This will pull up multiple options, but we just need a working identifier and will select the first one.  --->
-		<cfset blogTimeZone = TimeZoneObj.getTZByOffset(blogTimeZone)>
+		<cfset blogTimeZoneList = TimeZoneObj.getTZByOffset(blogTimeZone)>
 		<!--- Get the first value in the array. We don't need this to be accurate, we just need a valid identifier to use. --->
-		<cfset blogTimeZoneId = blogTimeZone[1]>
+		<cfset blogTimeZoneId = blogTimeZoneList[1]>
 			
 		<!--- Now use the convertTZ function to convert the blog time to server time. The blog time is the time zone of the site administrator that is writing the articles. We may want to add time zones for all blog users with the edit post role in the future. 
 		convertTz(thisDate,	fromTZ, toTZ) --->

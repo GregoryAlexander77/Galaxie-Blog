@@ -22,10 +22,10 @@
 	<cfproperty name="Title" ormtype="string" length="125" default="">
 	<cfproperty name="Description" ormtype="string" length="1250" default="This should be set to a length of 160 in the future">
 	<!--- The following 4 items are configured for MySql Server. Change these depending upon your db --->
-	<cfproperty name="JsonLd" ormtype="long" default="">
-	<cfproperty name="PostHeader" ormtype="long" default="">
-	<cfproperty name="Body" ormtype="long" default="">
-	<cfproperty name="MoreBody" ormtype="long" default="">
+	<cfproperty name="JsonLd" ormtype="text" sqltype="longtext" default="">
+	<cfproperty name="PostHeader"ormtype="text" sqltype="longtext" default="">
+	<cfproperty name="Body" ormtype="text" sqltype="longtext" default="">
+	<cfproperty name="MoreBody"ormtype="text" sqltype="longtext" default="">
 	<cfproperty name="Released" ormtype="boolean" default="false">
 	<cfproperty name="Promote" ormtype="boolean" default="false">
 	<cfproperty name="AllowComment" ormtype="boolean" default="true">

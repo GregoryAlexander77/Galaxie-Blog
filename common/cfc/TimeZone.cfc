@@ -3,6 +3,7 @@
 	author:	paul hastings <paul@sustainableGIS.com>
 	date:	11-sep-2003
 	revisions:
+			6/23 Gregory modified around line 455 with a note as this was causing errors with cf2021
 			5/26/2022 Gregory Alexander Fixed a bug and minor formatting changes
 			23-oct-2003 changed to use argument dates rather than setting calendar time, forgot that
 			java MONTH start with zero. kept gregorian calendar object for timezone offset in order to
@@ -451,7 +452,8 @@
 	
 		if (isValidTZ(aTZ))
 		{
-			aTZStruct.Entry[aTZ].Detail = getTimeZone(aTZ);
+			// Gregory modified this from 'getTimeZone(aTZ)' to 'variables.tzObj.getTimeZone(aTZ)'
+			aTZStruct.Entry[aTZ].Detail = variables.tzObj.getTimeZone(aTZ);
 		}
 		else
 		{

@@ -1760,7 +1760,7 @@
 				<cfset useTheme = false>
 			</cfif>
 				
-			<cfif len(arguments.selectedTheme) and arguments.selectedTheme>
+			<cfif len(arguments.selectedTheme) and isBoolean(arguments.selectedTheme)>
 				<cfset selectedTheme = true>
 			<cfelse>
 				<cfset selectedTheme = false>
@@ -3007,12 +3007,6 @@
 
 		<!--- Only admins can update this. --->
 		<cfif application.Udf.isLoggedIn()>
-
-			<!--- Validate the data --->
-			<cfif not len(postHeader)>
-				<cfset error = true>
-				<cfset errorMessage = errorMessage & "<li>Post Header is required</li>">
-			</cfif>
 			
 			<cfif not error>
 					

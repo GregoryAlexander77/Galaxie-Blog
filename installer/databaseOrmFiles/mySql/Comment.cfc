@@ -16,7 +16,7 @@
 	<cfproperty name="CommentAssets" singularname="CommentAsset" ormtype="int" fieldtype="one-to-many" cfc="CommentMedia" fkcolumn="CommentRef" inversejoincolumn="MediaRef" cascade="all" inverse="true" missingRowIgnored="true">
 	<cfproperty name="CommentUuid" ormtype="string" default="">
 	<!--- This is configured for MySql. Manually change this property if you use another db --->
-	<cfproperty name="Comment" ormtype="long" default="">
+	<cfproperty name="Comment" ormtype="text" sqltype="longtext" default="">
 	<cfproperty name="DatePosted" ormtype="timestamp">
 	<cfproperty name="Subscribe" ormtype="boolean" default="false">
 	<cfproperty name="Moderated" ormtype="boolean" default="false">

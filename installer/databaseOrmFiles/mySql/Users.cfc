@@ -15,7 +15,7 @@
 	<cfproperty name="Website" ormtype="string" default="" length="255">
 	<!--- The ProfileBody can be HTML that creates a page. --->
 	<!--- This is configured for MySql. Manually change this property if you use another db --->
-	<cfproperty name="Biography" ormtype="long" default="">
+	<cfproperty name="Biography" ormtype="text" sqltype="longtext" default="">
 	<cfproperty name="Status" ormtype="string" default="" length="255">
 	<!--- An email can be used as the user name. Authentication may be broken out into a new table eventually. --->
 	<cfproperty name="UserName" ormtype="string" default="" length="255">
