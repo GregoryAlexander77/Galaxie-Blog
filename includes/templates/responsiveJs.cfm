@@ -14,6 +14,11 @@ Script to adjust properties depending upon the device screen size.
 	// Adjust the screen properties immediately.
 	setScreenProperties();
 	
+	// Set a cookie indicating the screen size. We are going to use this to determine what interfaces to use when the the screens are narrow.
+	// (setCookie(name,value,days))
+	setCookie('screenWidth',$(window).width(),1);
+	setCookie('screenHeight',$(window).height(),1);
+	
 	// Set the content width depending upon the screen size.
 	function getContentWidthPercent() {
 		
@@ -68,7 +73,7 @@ Script to adjust properties depending upon the device screen size.
 		var desiredContentWidth = <cfoutput>#contentWidth#</cfoutput>;
 		var mainContainerWidth = <cfoutput>#mainContainerWidth#</cfoutput>;
 		var windowWidth = $(window).width();
-		var windowHeight = $(window).height()
+		var windowHeight = $(window).height();
 		var contentWidthAsInt = getContentWidthPercent();
 		var mainContainerWidth =  calculatePercent(mainContainerWidth, getContentPixelWidth())+"px"
 		//alert('windowWidth:' + windowWidth);
@@ -236,5 +241,28 @@ Script to adjust properties depending upon the device screen size.
     // Then call the deferimg and deferiframe methods
     deferimg('img.fade', 300, 'lazied', media_loaded);
     deferiframe('iframe.fade', 300, 'lazied', media_loaded);
+	
+	/* Cookie functions. The original author of this script is unknown */
+	function setCookie(name,value,days) {
+		var expires = "";
+		if (days) {
+			var date = new Date();
+			date.setTime(date.getTime() + (days*24*60*60*1000));
+			expires = "; expires=" + date.toUTCString();
+		}
+		// The path must be stored in the root in order for ColdFusion to read these cookies
+		document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+	}
+
+	function getCookie(name) {
+		var nameEQ = name + "=";
+		var ca = document.cookie.split(';');
+		for(var i=0;i < ca.length;i++) {
+			var c = ca[i];
+			while (c.charAt(0)==' ') c = c.substring(1,c.length);
+			if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+		}
+		return null;
+	}
 	
 </script>

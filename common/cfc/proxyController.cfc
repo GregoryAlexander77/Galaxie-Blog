@@ -4304,7 +4304,9 @@
 						mode="644">
 						
 					<!--- Get the full path and the name of the file. --->
-					<cfif mediaProcessType eq 'gallery'>
+					<cfif mediaProcessType eq 'post'>
+						<cfset imageUrl = application.baseUrl & "/enclosures/post/" & image.serverFile>
+					<cfelseif mediaProcessType eq 'gallery'>
 						<cfset imageUrl = application.baseUrl & "/enclosures/gallery/" & image.serverFile>
 					<cfelseif mediaProcessType eq 'headerBackgroundImage' or mediaProcessType eq 'menuBackgroundImage'>
 						<cfset imageUrl = application.baseUrl & "/images/header/" & image.serverFile>
@@ -4947,6 +4949,136 @@
 			<cfreturn 0>
 		</cfif>
 					
+	</cffunction>
+				
+	<!---****************************************************************************************************
+		Custom Window functions 
+	******************************************************************************************************--->
+				
+	<cffunction name="saveCustomWindow" access="remote" output="true" returnformat="json" 
+			hint="Saves data from the create custom window interface.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="postId" type="string" default="">
+		<cfargument name="customWindowId" type="string" default="">
+		<cfargument name="buttonLabel" type="string" required="true">
+		<cfargument name="windowTitle" type="string" required="true">
+		<cfargument name="windowHeight" type="string" required="true">
+		<cfargument name="windowWidth" type="string" required="true">
+		<cfargument name="cfincludePath" type="string" default="">
+		<cfargument name="windowContent" type="string" default="">
+		<cfargument name="active" type="boolean" default="true">
+
+		<cfparam name="error" type="boolean" default="false">
+		<cfparam name="errorMessage" type="string" default="">
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON(false)>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('AddPost,AssetEditor,EditComment,ReleasePost')>
+		
+		<!---Set the default response objects.--->
+  		<cfset response[ "success" ] = false />
+    	<cfset response[ "errorMessage" ] = "" />
+
+		<!--- Only admins can update this. --->
+		<cfif application.Udf.isLoggedIn()>
+
+			<!--- Validate the data --->
+			<cfif not len(arguments.buttonLabel)>
+				<cfset error = true>
+				<cfset errorMessage = "<li>Button label is required but was not filled in</li>">
+			</cfif>
+			<cfif not len(arguments.windowTitle)>
+				<cfset error = true>
+				<cfset errorMessage = "<li>Title is required but was not filled in</li>">
+			</cfif>
+			<cfif not len(arguments.windowHeight)>
+				<cfset error = true>
+				<cfset errorMessage = "<li>Height is required but was not filled in</li>">
+			</cfif>
+			<cfif not len(arguments.windowWidth)>
+				<cfset error = true>
+				<cfset errorMessage = "<li>Width is required but was not filled in</li>">
+			</cfif>
+			<cfif not len(arguments.cfincludePath) and not len(arguments.windowContent)>
+				<cfset error = true>
+				<cfset errorMessage = "<li>Either a cfinclude or content must be filled out</li>">
+			</cfif>
+			<cfif len(arguments.cfincludePath) and not fileExists(expandPath(arguments.cfincludePath))>
+				<cfset error = true>
+				<cfset errorMessage = "<li>Cfinclude not found. Please check your path or upload the ColdFusion template to the server in the proper directory.</li>">
+			</cfif>
+			
+			<cfif not error>
+
+				<cftransaction>
+					<!--- Load the media ORM database object. --->
+					<cfif len(arguments.customWindowId) and arguments.customWindowId gt 0>
+						<cfset CustomWindowObj = EntityLoadByPk("CustomWindowContent", arguments.customWindowId)>
+					<cfelse>
+						<cfset CustomWindowObj = entityNew("CustomWindowContent")>
+					</cfif>
+					<!--- Save the data --->
+					<cfif len(arguments.postId)>
+						<cfset CustomWindowObj.setPostRef(arguments.postId)>
+					</cfif>
+					<cfset CustomWindowObj.setButtonName(application.blog.makeAlias(windowTitle))>
+					<cfset CustomWindowObj.setButtonLabel(buttonLabel)>
+					<cfset CustomWindowObj.setWindowName(application.blog.makeAlias(windowTitle))>
+					<cfset CustomWindowObj.setWindowTitle(windowTitle)>
+					<cfset CustomWindowObj.setWindowHeight(arguments.windowHeight)>
+					<cfset CustomWindowObj.setWindowWidth(arguments.windowWidth)>
+					<cfset CustomWindowObj.setCfincludePath(arguments.cfincludePath)>
+					<cfset CustomWindowObj.setContent(arguments.windowContent)>
+					<cfset CustomWindowObj.setActive(arguments.active)>
+					<cfset CustomWindowObj.setDate(application.blog.blogNow())>
+					<!--- And finally, load the blog entity. This is not functional at the moment to have several blogs on a site, but the logic is in the database. --->
+					<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+					<!--- Set the blog ref the Theme table --->
+					<cfset CustomWindowObj.setBlogRef(BlogDbObj)>
+					<!--- Save it. --->
+					<cfset EntitySave(CustomWindowObj)>
+				</cftransaction>
+
+				<!--- Return the HTML for the button to the client.--->
+				<cfsavecontent variable="customWindowButton">
+					<button id="customWindow#CustomWindowObj.getCustomWindowContentId()#" name="customWindow#CustomWindowObj.getCustomWindowContentId()#" class="k-button k-primary" onclick="javascript:createCustomInterfaceWindow(#CustomWindowObj.getCustomWindowContentId()#,#postId#);"><span class="fa-solid fa-up-right-from-square fa-2xs"></span> &nbsp;#buttonLabel#</button>
+				</cfsavecontent>
+			<cfelse>
+				<cfset error = true>
+				<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
+			</cfif><!---<cfif not error>--->
+		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
+			<cfset error = true>
+			<cfset errorMessage = errorMessage & "<li>Not logged on</li>">	
+		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
+
+		<!--- Prepare the default response objects --->
+		<cfif error>
+			<cfset response[ "success" ] = false />		
+			<!--- Set the error response --->
+			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
+		<cfelse>
+			<!--- Return a success --->
+			<cfset response[ "success" ] = true />
+			<!--- Send back the windowId --->
+			<cfset response[ "customWindowId" ] = CustomWindowObj.getCustomWindowContentId() />
+			<!--- Send back the postId --->
+			<cfset response[ "postId" ] = arguments.postId />	
+			<!--- Send the title alias, this will be the link --->
+			<cfset response[ "titleAlias" ] = application.blog.makeAlias(windowTitle) />
+			<!--- Send back our html --->
+			<cfset response[ "buttonHtml" ] = customWindowButton />
+		</cfif>
+    
+    	<!--- Send the response back to the client. --->
+    	<cfreturn serializeJSON( response )>
+			
 	</cffunction>
 					
 	<!---******************************************************************************************************

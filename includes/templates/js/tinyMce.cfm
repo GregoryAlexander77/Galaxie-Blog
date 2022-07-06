@@ -80,6 +80,7 @@
 		
 	<!--- Preset vars that are not always used --->
 	<cfparam name="includeGallery" default="false">
+	<cfparam name="includeCustomWindow" default="false">
 	<cfparam name="includeVideoUpload" default="false">
 	<cfparam name="includeFileUpload" default="false">
 	<cfparam name="disableWebVttAndVideoCoverButtons" default="true">
@@ -125,7 +126,7 @@
 			font-family: FontAwesome !important; 
 			font-weight: 900 !important; 
 			font-size: 19px !important;
-		}
+		}		
 	</style>
 
 	<script type="text/javascript">
@@ -136,14 +137,14 @@
 			tinymce.init({
 				schema: 'html5',
 				selector: '#<cfoutput>#selectorName#</cfoutput>',
-				<cfif session.isMobile>// On mobile devices, subtract 20 pixels (for padding) from the content container pixel width 
-				width: (getContentPixelWidth()-20),</cfif>
+				<cfif session.isMobile>// On mobile devices, subtract 25 pixels (for padding) from the content container pixel width 
+				width: (getContentPixelWidth()-25),</cfif>
 				// Skin
 				skin: "<cfoutput>#kendoTheme#</cfoutput>",//This points to the folder in the ui directory
 				// Point to a common content.css. This does not impact the dynamic nature of the skin.
 				content_css: "<cfoutput>#application.baseUrl#</cfoutput>/includes/templates/blogContentCss.cfm?standalone=true,<cfoutput>#application.baseUrl#</cfoutput>/common/libs/tinymce/skins/ui/oxide/content.css",
 				height: "<cfoutput>#editorHeight#</cfoutput>",
-				// This only works with tinymce 5.6
+				// This only works with tinymce 5.6+
 				images_file_types: 'peg,jpg,jpe,jfi,jif,jfif,png,gif,bmp,webp',
 				// Custom plugin argument to allow us to use fontawesome icons
 				iconfonts_selector: '.fa, .fab, .fal, .far, .fas, .glyphicon', // optional (default shown)
@@ -191,7 +192,7 @@
 					file: { title: 'File', items: 'newdocument restoredraft | preview | print ' },
 					edit: { title: 'Edit', items: 'undo redo | cut copy paste | selectall | searchreplace' },
 					view: { title: 'View', items: 'code | visualaid visualchars visualblocks | spellchecker | preview fullscreen' },
-					insert: { title: 'Insert', items: 'image link media fancyBoxGallery | map mapRouting | template codesample inserttable | charmap emoticons hr | pagebreak nonbreaking anchor toc | insertdatetime' },
+					insert: { title: 'Insert', items: 'image link media fancyBoxGallery customWindow | map mapRouting | template codesample inserttable | charmap emoticons hr | pagebreak nonbreaking anchor toc | insertdatetime' },
 					format: { title: 'Format', items: 'bold italic underline strikethrough superscript subscript codeformat | formats blockformats fontformats fontsizes align lineheight | forecolor backcolor | removeformat' },
 					table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
 				},
@@ -218,8 +219,10 @@
 				font_formats: "<cfloop from="1" to="#arrayLen(getThemeAndWebSafeFonts)#" index="i"><cfoutput>#getThemeAndWebSafeFonts[i]['Font']#=<cfif len(getThemeAndWebSafeFonts[i]['WebSafeFallback'])>#lCase(getThemeAndWebSafeFonts[i]['WebSafeFallback'])#<cfelse>#lCase(getThemeAndWebSafeFonts[i]['Font'])#</cfif>;</cfoutput></cfloop>",
 				// Declare the font faces and set the font properties for the editor body
 				content_style: '<cfoutput><cfloop from="1" to="#arrayLen(getSelfHostedFonts)#" index="i">@font-face {font-family: "#getSelfHostedFonts[i]['Font']#"; src: url("#application.baseUrl#/common/fonts/#getSelfHostedFonts[i]['FileName']#.#fontExtension#") format("#fontExtension#");}</cfloop> body { font-family:#themeBodyFont#; font-size:14px; }',</cfoutput>
-				// Alow a list item in order to incorporate font awesome icons
-				extended_valid_elements: 'i[*]',
+				// allow scripts: tinymce_allow_script_urls=true
+				// all: valid_elements : '+*[*],+body[style]'
+				// Alow a list item in order to incorporate font awesome icons, we also put onClick events on buttons.
+				extended_valid_elements: 'i[*],a[href|class|id|onClick],button[*],span[*]',
 				//autosave_interval: "240s",
 				// Set the content and add certain events
 				setup: function (editor) {
@@ -324,6 +327,33 @@
 						}
 					});
 				</cfif>
+				<cfif includeCustomWindow>
+					// Create the icon
+					editor.ui.registry.addIcon(
+						'customWindow', 
+						'<svg><span data-fa-symbol="customWindow" class="fontAwesomeIcon fa-regular fa-up-right-from-square">&nbsp;</span></svg>'
+					);
+				
+					// Custom dialogs that are invoked via the toolbar
+					// Custom window. This opens up a dialog to create a popup window (note: this also needs to be added to the toolBarString)
+					editor.ui.registry.addButton('customWindow', {
+						text: '<i class="fontAwesomeIcon fa-regular fa-up-right-from-square"></i>',
+						tooltip: 'Create Custom Window',
+						onAction: function (_) {
+							$('#image').val('');
+							// Open up a new video upload window. The code for this window is the next switch block below.
+							createAdminInterfaceWindow(45, '<cfoutput>#URL.optArgs#</cfoutput>');
+						}
+					});
+				
+					editor.ui.registry.addMenuItem('customWindow', {
+						text: 'Create Custom Window',
+						icon: 'customWindow',
+						onAction: function () {
+							createAdminInterfaceWindow(45, '<cfoutput>#URL.optArgs#</cfoutput>');
+						}
+					});
+				</cfif>				
 				<cfif includeVideoUpload>
 					// Create the icon
 					editor.ui.registry.addIcon(

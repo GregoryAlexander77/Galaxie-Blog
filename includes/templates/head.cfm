@@ -231,9 +231,9 @@
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/uppy/uppy.min.js"></script>
 </cfif>
 	<!-- Optional libs -->
-	<!-- FontAwesome 5.9 -->
+	<!-- FontAwesome 6.1 -->
 	<script type="#scriptTypeString#">
-		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://use.fontawesome.com/releases/v5.9.0/css/all.css') );
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://use.fontawesome.com/releases/v6.1.0/css/all.css') );
 	</script>
 	<!-- Fancy box (version 2). -->
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/fancyBox/v2/source/jquery.fancybox.js"></script>

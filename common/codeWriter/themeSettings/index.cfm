@@ -1,6 +1,6 @@
 <cfset themeVars = "useCustomTheme,customThemeName,darkTheme,contentWidth,mainContainerWidth,sideBarContainerWidth,siteOpacity,blogBackgroundImage,blogBackgroundImageRepeat,blogBackgroundImagePosition,stretchHeaderAcrossPage,alignBlogMenuWithBlogContent,topMenuAlign,headerBackgroundImage,menuBackgroundImage,coverKendoMenuWithMenuBackgroundImage,logoImageMobile,logoMobileWidth,logoImage,logoPaddingTop,logoPaddingRight,logoPaddingLeft,logoPaddingBottom,blogNameTextColor,headerBodyDividerImage,kendoThemeCssFileLocation,kendoThemeMobileCssFileLocation,customCoreLogicTemplate,customHeadTemplate,customBodyString,customFontCssTemplate,customGlobalAndBodyCssTemplate,customTopMenuCssTemplate,customTopMenuHtmlTemplate,customTopMenuJsTemplate,customBlogContentCssTemplate,customBlogJsContentTemplate,customBlogContentHtmlTemplate,customFooterHtmlTemplate">
 	
-<cfset kendoThemes = "default,black,blueOpal,flat,highcontrast,material,materialblack,metro,moonlight,office365,silver,uniform,fiori,nova">
+<cfset kendoThemes = "default,black,blueopal,flat,highcontrast,material,materialblack,metro,moonlight,office365,silver,uniform,fiori,nova">
 	
 <cfset generateFunction = "generateGetThemeSettingId">
 	

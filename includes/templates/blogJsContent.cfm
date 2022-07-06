@@ -1,8 +1,14 @@
+	<cfsilent>
+	<!--- Get the custom windows from the db --->
+	<cfset getCustomWindows = application.blog.getCustomWindowContent()>
+	</cfsilent>
+	<!---<cfdump var="#getCustomWindows#">--->
+
 	<!--- Defer this script --->
 	<script type="<cfoutput>#scriptTypeString#</cfoutput>">	
 		<cfsilent>
 		//**************************************************************************************************************
-		// Listener scripts 
+		// Standard listener scripts (custom windows are down the page a bit)
 		// Scripts to listen to the URL to determine if we should perform any action after the page loads.
 		//**************************************************************************************************************
 		
@@ -289,6 +295,86 @@
 				error = 'window no longer initialized';
 			}
 		}
+<cfif arrayLen(getCustomWindows)>		
+		// Custom windows --------------------------------------------------------------------------
+		// Custom window listeners
+		// Get the query string
+		var queryString = window.location.search;
+		// Grab the params
+		var urlParams = new URLSearchParams(queryString);
+	<cfloop from="1" to="#arrayLen(getCustomWindows)#" index="i">
+		<cfsilent>
+		<cfset customWindowId = getCustomWindows[i]['CustomWindowContentId']>
+		<cfset postId = getCustomWindows[i]['PostRef']>
+		<cfset urlParamName = getCustomWindows[i]['WindowName']>
+		</cfsilent>
+		// Is the URL parameter present?
+		if (urlParams.has('<cfoutput>#urlParamName#</cfoutput>')){
+			// Open the custom window
+			createCustomInterfaceWindow(<cfoutput>#customWindowId#,#postId#</cfoutput>);
+		}
+	</cfloop>
+		// Custom window logic to open the custom window
+		function createCustomInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) {
+			/* Note: the Id is the windowId, optArgs generally is the postId. These arguments were meant to be generic. */
+			
+			// Initialize non required args
+			otherArgs1 = typeof otherArgs1 !== 'undefined' ? otherArgs1 : '';
+	<cfloop from="1" to="#arrayLen(getCustomWindows)#" index="i">
+	<cfoutput>
+		<cfif i eq 1>
+			if (Id == #i#){
+				var postId = "#getCustomWindows[i]['PostRef']#";
+				var windowName = "#getCustomWindows[i]['WindowName']#";
+				var windowTitle = "#getCustomWindows[i]['WindowTitle']#";
+				var windowHeight = "#getCustomWindows[i]['WindowHeight']#%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>#getCustomWindows[i]['WindowWidth']#%</cfif>";
+		<cfelse>
+			} else if (Id == #i#){
+				var postId = "#getCustomWindows[i]['PostRef']#";
+				var windowName = "#getCustomWindows[i]['WindowName']#";
+				var windowTitle = "#getCustomWindows[i]['WindowTitle']#";
+				var windowHeight = "#getCustomWindows[i]['WindowHeight']#%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>#getCustomWindows[i]['WindowWidth']#%</cfif>";
+		</cfif>
+			<cfif i eq arrayLen(getCustomWindows)>
+			}
+			</cfif>
+	</cfoutput>
+	</cfloop>
+			// Typically we would use a div outside of the script to attach the window to, however, since this is inside of a function call, we are going to dynamically create a div via the append js method. If we were to use a div outside of this script, lets say underneath the 'mainBlog' container, it would cause wierd problems, such as the page disappearing behind the window.
+			$(document.body).append('<div id="' + windowName + '"></div>');
+			$("#" + windowName).kendoWindow({
+				title: windowTitle,
+				// The search window can't be set to full screen per design.
+				actions: [<cfoutput>#kendoWindowIcons#</cfoutput>],
+				modal: false,
+				iframe: false,
+				resizable: <cfif session.isMobile>false<cfelse>true</cfif>,
+				draggable: <cfif session.isMobile>false<cfelse>true</cfif>,
+				// For desktop, we are subtracting 5% off of the content width setting found near the top of this template.
+				width: windowWidth,
+				height: windowHeight,// We must leave room if the user wants to select a bunch of categories.
+				iframe: false, // don't  use iframes unless it is content derived outside of your own site. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/customInterface.cfm?interfaceId=" + Id + "&optArgs=" + optArgs + "&otherArgs=" + otherArgs + "&otherArgs1=" + otherArgs1,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+			<cfif session.isMobile>
+				animation: {
+					close: {
+						effects: "slideIn:right",
+						reverse: true,
+						duration: 500
+					},
+				}
+			<cfelse>
+				close: function() {
+					$("#" + windowName).kendoWindow('destroy');
+				}
+			</cfif>
+			}).data('kendoWindow').center();// Center the window.
+						  
+		}//..function createCustomInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) {
+</cfif><!---<cfif arrayLen(getCustomWindows)>--->
+	
 	<cfif pageTypeId eq 2>
 	
 		// Administrative Interface window --------------------------------------------------------------------------
@@ -529,6 +615,11 @@
 				var windowHeight = "35%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>45%</cfif>";
 				var windowTitle = "Set Post Theme";
+			} else if (Id == 45){
+				var windowName = "customWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Create Custom Window";
 			}
 			
 			// Remove the window if it already exists
