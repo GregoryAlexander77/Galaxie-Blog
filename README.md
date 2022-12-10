@@ -1,3 +1,5 @@
+Note: full documentation is provided at https://www.gregoryalexander.com/blog/Galaxie-Blog
+
 I am proud to announce that Galaxie Blog 3 is finally released. While this blog does not yet have full fledged content management tools or e-commerce capabilities, it is intended to meet or exceed the out-of-the-box core blogging functionality of all of the major blog platforms such as WordPress and Wix. Unlike some other major blogging platforms, you own your data with Galaxie Blog, and Galaxie Blog only uses non-propreitory open-source libraries and is completely free.
 
 Galaxie Blog was developed with a mobile-first priority. We have put great emphasis on perfecting your mobile experience where you can manage the blog and create a stunning blog post with just your phone. Galaxie Blog 3.0 is also an HTML5 web application. HTML5 is a modern web standard that supports the latest multimedia features and enhances user interaction. 
