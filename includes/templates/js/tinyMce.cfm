@@ -198,7 +198,14 @@
 				},
 				</cfdefaultcase>
 			</cfswitch>
+				toolbar_sticky: true, // Makes the toolbar float at the top of the page
+				toolbar_sticky: "80px",// This fixes when the toolbar disappears with the toolbar_sticky
 				plugins: [<cfoutput>#pluginList#</cfoutput>],
+				// Change the toc_depth to support h4 tags (the default is h1-3)
+				toc_depth: 5,
+				// Allow the Prism folder to be the prism engine instead of the embedded version of Prism within TinyMce. This is required to have line numbers
+				codesample_global_prismjs: true,
+				// Set the prism languages
 				codesample_languages: [
 					{ text: 'HTML/XML', value: 'markup' },
 					{ text: 'JavaScript', value: 'javascript' },
@@ -222,7 +229,11 @@
 				// allow scripts: tinymce_allow_script_urls=true
 				// all: valid_elements : '+*[*],+body[style]'
 				// Alow a list item in order to incorporate font awesome icons, we also put onClick events on buttons.
-				extended_valid_elements: 'i[*],a[href|class|id|onClick],button[*],span[*]',
+				extended_valid_elements: 'i[*],a[href|class|id|onClick],button[*],span[*],script[src|async|defer|type|charset],input[*],more',
+				// Allows all elements
+				// valid_elements : '*[*]',
+				// Allow custom more tags
+				custom_elements: 'more',
 				//autosave_interval: "240s",
 				// Set the content and add certain events
 				setup: function (editor) {

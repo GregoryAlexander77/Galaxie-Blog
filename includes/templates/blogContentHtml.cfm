@@ -158,12 +158,18 @@
 							<ul name="relatedEntriesList">
 							<cfloop from="1" to="#arrayLen(getRelatedPosts)#" index="i">
 							<cfsilent>
+							<cftry>
 							<!--- Is there a URL rewrite rule in place? If so, we need to eliminate the 'index.cfm' string from all of our links. A rewrite rule on the server allows the blog owners to to obsfucate the 'index.cfm' string from the URL. This setting is in the application.cfc template. --->
 							<cfif application.serverRewriteRuleInPlace>
 								<cfset relatedEntryUrl = replaceNoCase(application.blog.makeLink(postId=getRelatedPosts[i]["PostId"]), '/index.cfm', '')>
 							<cfelse>
 								<cfset relatedEntryUrl = application.blog.makeLink(postId=getRelatedPosts[i]["PostId"])>
 							</cfif>
+							<cfcatch type="any">
+								<cfset relatedEntryUrl = "">
+								<cfset error = 'relatedEntryList'>
+							</cfcatch>
+							</cftry>
 							</cfsilent>
 							<li><a href="#relatedEntryUrl#" aria-label="#getRelatedPosts[i]['Title']#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#getRelatedPosts[i]['Title']#</a></li>
 							</cfloop>			

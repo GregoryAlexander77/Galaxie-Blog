@@ -20,7 +20,7 @@
 <cfset pageName = "Blog"><!--- Blog --->
 <cfset pageTypeId = 1><!--- Blog --->
 
-<!--- Common settings. The pageSettings also determines when we should cache the page depending upon if the user is logged in. --->
+<!--- Common and theme settings. The pageSettings also determines when we should cache the page depending upon if the user is logged in. --->
 <cfinclude template="#application.baseUrl#/includes/templates/pageSettings.cfm">
 	
 <!--- //******************************************************************************************************************
@@ -67,11 +67,11 @@
 			Font .css
 //********************************************************************************************************************--->
 
-<!--- Set up cache. The fonts should never expire. This code is also minimized. --->
+<!--- Set up cache. This needs to use the themeId as the fonts are different for each theme. The fonts should never expire. This code is also minimized. --->
 <cfif session.isMobile>
-	<cfset cacheName = "fontTemplateMobile">
+	<cfset cacheName = "fontTemplateMobile#themeId#">
 <cfelse>
-	<cfset cacheName = "fontTemplate">
+	<cfset cacheName = "fontTemplate#themeId#">
 </cfif>
 </cfsilent>
 <cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#disableCache#">
@@ -128,13 +128,13 @@
 	
 <!--- Set up cache. We need to save the theme and the device type (ie mobile) in the cache name. --->
 <cfif session.isMobile>
-	<cfset cacheName = "topMenuHtml#kendoTheme#Mobile">
+	<cfset cacheName = "topMenuHtml#themeId#Mobile">
 <cfelse>
-	<cfset cacheName = "topMenuHtml#kendoTheme#">
+	<cfset cacheName = "topMenuHtml#themeId#">
 </cfif>
 </cfsilent>
 	
-<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. --->
+<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. !!! We need to use the themeId as each theme uses different background images in the menu --->
 <cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#disableCache#">
 	<cfif customTopMenuHtmlTemplate eq "">
 		<cfinclude template="#application.baseUrl#/includes/templates/topMenuHtml.cfm" />

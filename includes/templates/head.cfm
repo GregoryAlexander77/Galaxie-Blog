@@ -1,4 +1,11 @@
+<!--- Debugging --->
+<!---<cfoutput>#application.Udf.isLoggedIn()#</cfoutput>--->
+<!---<cfdump var="#URL#" label="URL">--->
+<!---<cfdump var="#pageId#" label="pageId">--->
 <!---<cfdump var="#getPost#">--->
+<!---<cfdump var="#URL.mode#" label="URL.mode">--->
+<!---<cfdump var="#getPageMode()#" label="getPageMode()">--->
+<!---<cfdump var="#titleMetaTagValue#" label="titleMetaTagValue">--->
 <cfsilent>
 <!--- Default values. This is only needed when the post does not exist. --->
 <cfparam name="addSocialMediaUnderEntry" default="false">

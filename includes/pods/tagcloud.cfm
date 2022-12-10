@@ -30,14 +30,22 @@
    </cfif>
    <cfloop from="1" to="#arrayLen(categories)#" index="i"><cfoutput>
 	<cfsilent>
-	<!--- Extract the values from the category array --->
-	<cfset CategoryId = categories[i]["CategoryId"]>
-	<cfset category = categories[i]["Category"]>
-	<cfset categoryPostCount = categories[i]["PostCount"]>
-	<!--- Make the category link --->
-	<cfset categoryTagLink = application.blog.makeCategoryLink(CategoryId)>
-	<!---Make a var to hold the row count since we are supressing categories that don't  have a post count --->
-	<cfparam name="categoryRowCount" default="1">
+	<cftry>
+		<!--- Extract the values from the category array --->
+		<cfset CategoryId = categories[i]["CategoryId"]>
+		<cfset category = categories[i]["Category"]>
+		<cfset categoryPostCount = categories[i]["PostCount"]>
+		<!--- Make the category link --->
+		<cfset categoryTagLink = application.blog.makeCategoryLink(CategoryId)>
+		<!---Make a var to hold the row count since we are supressing categories that don't  have a post count --->
+		<cfparam name="categoryRowCount" default="1">
+		<cfcatch type="any">
+			<cfset CategoryId = "">
+			<cfset category = "">
+			<cfset categoryPostCount = "">
+			<cfset categoryTagLink = "">
+		</cfcatch>
+	</cftry>
 	</cfsilent>
 <cfif isNumeric(categoryPostCount) and categoryPostCount gt 0>
 	<tr class="#iif(i MOD categoryRowCount,DE('k-content'),DE('k-alt'))#">

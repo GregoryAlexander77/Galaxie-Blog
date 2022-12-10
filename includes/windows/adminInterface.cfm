@@ -52,9 +52,8 @@
 <!--- TinyMce notes: the tinymce scripts may be also placed in the head tag on the /admin/index.cfm page. 
 If I place the tinymce scripts here, the setContent method does not work and the editors are not kept in memory. Nor can I get the content of the editor. This is also the case if the scripts are included here and on the index.cfm page. If I don't  place them here and keep the script in the head of the index page, the editors are preserved in memory, I can get the content and use the setContent method as well- but the editors disappear after the first use. --->
 </cfsilent>
-
 <cfif debug>
-	
+	<cfdump var="#application.blog.getThemeFonts(4)#">
 	<cfinvoke component="#application.proxyControllerComponentPath#" method="verifyCsrfToken" returnvariable="validCsrf">
 		<cfinvokeargument name="csrfToken" value="#csrfToken#">	
 	</cfinvoke>
@@ -1253,9 +1252,12 @@ TinyMce styles
 	<cfset moreBody = getPost[1]["MoreBody"]>
 	<!--- Set the body. We need to determine the content based upon the more tag if it exists. If the more tag exists- append the moreBody to the body ---> 
 	<cfif len(moreBody)>
-		<!--- Append the more body to the body --->
-		<cfset body = body & ' &lt;more/&gt; ' & moreBody>
+		<!--- Append the more body to the body. TinyMce will append an extra more tag, we might as well do it here. --->
+		<cfset body = body & '<more/> ' & moreBody>
 	</cfif>	
+		
+	<!--- If there are scripts, put HTML comments around them to escape the sript- otherwise the content will terminate at the fist script when using the tinymce setContent method. --->
+	<cfset body = RendererObj.renderScriptsToTinyMce(body)>
 	
 	<!--- Also render the post for prism. We need to add pre and script tags here. --->
 	<cfset arguments.body = RendererObj.renderCodeForPrism(body)>
@@ -1267,6 +1269,7 @@ TinyMce styles
 	<cfif dateCompare(getPost[1]["DatePosted"], application.blog.blogNow()) is 1>
 		<cfset promptToEmailToSubscribers = false>
 	</cfif>
+		
 	<!--- Was this already mailed? --->
 	<cfif getPost[1]["Mailed"]>
 		<!--- The user can still email the post again --->
@@ -1353,6 +1356,7 @@ TinyMce styles
 			
 			function onDatePostedChange() {
                 // alert("Change :: " + kendo.toString(this.value(), 'g'));
+				
 				// Check to see if the selected date is greater than today
 				if (this.value() > todaysDate){
 					$.when(kendo.ui.ExtYesNoDialog.show({ 
@@ -1362,20 +1366,44 @@ TinyMce styles
 						width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
 						height: "275px"
 						})
-						).done(function (response) { // If the user clicked 'yes'
-							if (response['button'] == 'Yes'){// remember that js is case sensitive.
-								// Do nothing
-							} else {
-								// Change the date to now
-								$("#datePosted").kendoDateTimePicker({
-									value: new Date(Date.now())
-								});
-							}
-						});
-				} else {
-					// alert(todaysDate);
-				}
-            }
+					).done(function (response) { // If the user clicked 'yes'
+						if (response['button'] == 'Yes'){// remember that js is case sensitive.
+							// Do nothing
+						} else {
+							// Change the date to now
+							$("#datePosted").kendoDateTimePicker({
+								value: new Date(Date.now())
+							});
+						}
+					});//).done(function (response)..
+					
+				} else if (this.value() < todaysDate){
+					
+					$.when(kendo.ui.ExtYesNoDialog.show({ 
+						title: "Can we change the post date to the current time and date?",
+						message: "You are using an older date and this may negatively impact the post placement and your RSS feeds. Can we change the post date using the current date?",
+						icon: "k-ext-info",
+						width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
+						height: "275px"
+						})
+					).done(function (response) { // If the user clicked 'yes'
+						if (response['button'] == 'Yes'){// remember that js is case sensitive.
+
+							// Change the date posted to now
+							$("#datePosted").kendoDateTimePicker({
+								value: new Date(Date.now())
+							});
+
+							// And change the sort date
+							$("#newBlogSortDate").kendoDateTimePicker({
+								value: new Date(Date.now())
+							});
+						} else {
+							// Do nothing
+						}
+					});//).done(function (response)..
+				}//} else if (this.value() < todaysDate){{..
+            }//..onDatePostedChange
 			
 			// ---------------------------- author dropdown. ----------------------------
 			var authorDs = new kendo.data.DataSource({
@@ -1599,6 +1627,13 @@ TinyMce styles
 		
 		// Post method on the detail form called from the commentDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
 		function postDetails(action, sendEmail){
+			
+			// Bypass ColdFusions global script protection to allow JavaScripts in a post
+			var postContent = tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent();
+			// Replace '<script' with '<attachScript'. This is a modified JavaScript function.
+			var postContentNoScripts = replaceNoCase(postContent,'<script','<attachScript', 'all');
+			// Replace the end tag
+			var postContentNoScripts = replaceNoCase(postContentNoScripts,'</script','</attachScript', 'all');
 
 			jQuery.ajax({
 				type: 'post', 
@@ -1616,8 +1651,8 @@ TinyMce styles
 					themeId: $("#postThemeId").val(),
 					author: $("#author").data("kendoDropDownList").value(),
 					title: $("#title").val(),
-					// Get the contents of the editor
-					post: tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent(),
+					// Pass in the contents of the editor with all <script tags replaced with attach script
+					post: postContentNoScripts,
 					// Get the value of the checkboxes
 					released: $('#released').is(':checked'), // checkbox boolean value.
 					allowComment: $('#allowComment').is(':checked'), // checkbox boolean value.
@@ -1766,19 +1801,19 @@ TinyMce styles
 	  <tr height="1px">
 		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-    <cfif session.isMobile or session.isMobile>
+    <cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<p class="k-block k-error-colored" align="left">This post has been removed. You may permanently <a href="javascript:deletePost();">delete it</a>.</p>
 		</td>
 	   </tr>
-	<cfelse><!---<cfif session.isMobile or session.isMobile>--->
+	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	  <tr>
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<p class="k-block k-error-colored" align="left">This post has been removed. You may permanently <a href="javascript:deletePost();">delete it</a>.</p>
 		</td>
 	  </tr>
-	</cfif><!---<cfif smallScreen>--->
+	</cfif><!---<cfif session.isMobile or session.isTablet>--->
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -2035,7 +2070,7 @@ TinyMce styles
 					<td width="20%" align="left">
 						<!--- Make the link --->
 						<cfset postUrl = application.blog.getPostUrlByPostId(getPost[1]['PostId'])>
-						<button id="postPreview" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="window.open('<cfoutput>#postUrl#</cfoutput>');">Preview</button>
+						<button id="postPreview" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="window.open('<cfoutput>#postUrl#</cfoutput>?showPendingPosts');">Preview</button>
 					</td>
 					<td width="20%" align="left">
 						<button id="postHeader" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(42,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Post Header</button>
@@ -13187,7 +13222,7 @@ Custom element markup example for videos:
 		
 		$(document).ready(function() {
 			// Create the top level dropdown
-			var postThemeDropdown = $("#postThemeDropdown").kendoDropDownList();
+			var postThemeDropdown = $("#postThemeDropdown").kendoComboBox();
 		});
 		
 		function onPostThemeSubmit() {
@@ -13468,6 +13503,12 @@ Custom element markup example for videos:
 			<cfset cfincludePath = "">
 			<cfset content = "">
 		</cfif>
+		<!--- Determine the existing unit of measure. Will use pixels if nothing is present --->
+		<cfif windowWidth contains '%'>
+			<cfset userMeasurement = '%'>
+		<cfelse>
+			<cfset userMeasurement = 'px'>
+		</cfif>
 				
 		<!---//***************************************************************************************************************
 					TinyMce Scripts
@@ -13602,6 +13643,7 @@ Custom element markup example for videos:
 						customWindowId: $("#customWindowId").val(),
 						buttonLabel: $("#buttonLabel").val(),
 						windowTitle: $("#windowTitle").val(),
+						unitMeasurement: $("input[id=unitMeasurement]:checked").val(),
 						windowHeight: $("#windowHeight").val(),
 						windowWidth: $("#windowWidth").val(),
 						cfincludePath: $("#cfincludePath").val(),
@@ -13640,7 +13682,7 @@ Custom element markup example for videos:
 						// Insert the content into the active tinymce editor. The response is json coming from the server
 						tinymce.get(postEditorName).insertContent(JSON.parse(JSON.stringify(response.buttonHtml)));
 						// Display the link to the user
-						$.when(kendo.ui.ExtAlertDialog.show({ title: "Your window has been created", message: 'A button has been placed in the editor to launch your custom window. You can get the source code by clicking on view source and copying the HTML. This HTML can be placed anywhere on the blog. The following link can also be used to open up your custom window:<br/> <cfoutput>#application.blogHostUrl#</cfoutput>/?' + titleAlias, icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "325px" }) // or k-ext-error, k-ext-question
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Your window has been created", message: 'A button has been placed in the editor to launch your custom window. You can get the source code by clicking on view source and copying the HTML. This HTML can be placed anywhere on the blog. The following link can also be used to open up your custom window:<br/> <cfoutput>#application.blogHostUrl#</cfoutput>/?customWindow=' + titleAlias, icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "325px" }) // or k-ext-error, k-ext-question
 						).done(function () {
 							// Do nothing
 						});
@@ -13769,6 +13811,47 @@ Custom element markup example for videos:
 		  </tr>
 		  <tr valign="middle" height="30px">
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
+				You can use pixels or percent to control the height and width of the window. If you use percent it will use the screen size as the container.
+			</td>
+		  </tr>
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="unitMeasurement">Unit Measurement:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input type="radio" id="unitMeasurement" name="unitMeasurement" value="px" <cfif userMeasurement eq 'px'>checked</cfif>> Pixels <input type="radio" id="unitMeasurement" name="unitMeasurement" value="%" <cfif userMeasurement eq '%'>checked</cfif>> Percent
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr valign="middle" height="30px">
+			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<label for="unitMeasurement">Unit Measurement:</label>
+			</td>
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="radio" id="unitMeasurement" name="unitMeasurement" value="px" <cfif userMeasurement eq 'px'>checked</cfif>> Pixels <input type="radio" id="unitMeasurement" name="unitMeasurement" value="%" <cfif userMeasurement eq '%'>checked</cfif>> Percent
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="bottom" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr valign="middle" height="30px">
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 				The window width and height control the window size in percent. On mobile and smaller clients the windows will take 95% of the width of the device.
 			</td>
 		  </tr>
@@ -13783,7 +13866,7 @@ Custom element markup example for videos:
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="number" id="windowHeight" name="windowHeight" min="33" max="90" step="1" value="<cfoutput>#windowHeight#</cfoutput>" class="k-textbox" >%
+				<input type="number" id="windowHeight" name="windowHeight" value="<cfoutput>#windowHeight#</cfoutput>" class="k-textbox" >
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -13792,7 +13875,7 @@ Custom element markup example for videos:
 				<label for="windowHeight">Window Height:</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="number" id="windowHeight" name="windowHeight" min="33" max="90" step="1" value="<cfoutput>#windowHeight#</cfoutput>" class="k-textbox" >%
+				<input type="number" id="windowHeight" name="windowHeight" value="<cfoutput>#windowHeight#</cfoutput>" class="k-textbox" >
 			</td>
 		  </tr>
 		</cfif>
@@ -13816,7 +13899,7 @@ Custom element markup example for videos:
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="number" id="windowWidth" name="windowHeight" min="33" max="95" step="1" value="<cfoutput>#windowWidth#</cfoutput>" class="k-textbox" >%
+				<input type="number" id="windowWidth" name="windowHeight" value="<cfoutput>#windowWidth#</cfoutput>" class="k-textbox" >
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -13825,7 +13908,7 @@ Custom element markup example for videos:
 				<label for="windowWidth">Window Width:</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="number" id="windowWidth" name="windowHeight" min="33" max="95" step="1" value="<cfoutput>#windowWidth#</cfoutput>" class="k-textbox" >%
+				<input type="number" id="windowWidth" name="windowHeight" value="<cfoutput>#windowWidth#</cfoutput>" class="k-textbox" >
 			</td>
 		  </tr>
 		</cfif>

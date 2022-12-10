@@ -15,6 +15,8 @@
 
 <!-- PrismJs (our code hightlighter). This *must* be placed between the body tags! -->
 <script type="<cfoutput>#scriptTypeString#</cfoutput>" src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/prism/prism.min.js"></script>
+<!-- Include the Prism line numbers plugin -->
+<script type="<cfoutput>#scriptTypeString#</cfoutput>" src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/prism/plugins/prism-line-numbers.min.js"></script> 
 
 <!--- When the page has been loaded, fade in the menu's. --->
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">

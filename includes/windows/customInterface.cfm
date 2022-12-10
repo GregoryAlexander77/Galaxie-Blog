@@ -1,7 +1,7 @@
 <html>
 <cfsilent>
 <!--- Debug flag. This will print the interfaceId along with the args send via the URL --->
-<cfset debug = false>
+<cfset debug = 0>
 	
 <!--- Get the data --->
 <cfset getCustomWindowContent = application.blog.getCustomWindowContentById(URL.interfaceId)>
@@ -38,6 +38,81 @@
 	<cfset smallScreen = false>
 </cfif>
 </cfsilent>
+		
+<style>
+	/* Constraining images to a max width so that they don't  push the content containers out to the right */
+	.entryImage img {
+		max-width: 100%;
+		height: auto; 
+		/* Subtle drop shadow on the image layer */
+		box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+	}
+
+	.entryMap {
+		height: 564px;
+		width: 100%; 
+		/* Subtle drop shadow on the layer */
+		box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+	}
+	
+	/* FancyBox Thumnails */
+	.thumbnail {
+		position: relative;
+
+		width: 225px;
+		height: 128px;
+		padding: 5px;
+		padding-top: 5px;
+		padding-left: 5px;
+		padding-right: 5px;
+		padding-bottom: 5px;
+		box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 4px 8px 0 rgba(0, 0, 0, 0.19);
+		overflow: hidden;
+	}
+
+	.thumbnail img {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		height: 100%;
+		width: auto;
+		-webkit-transform: translate(-50%,-50%);
+		  -ms-transform: translate(-50%,-50%);
+			  transform: translate(-50%,-50%);
+	}
+
+	.thumbnail img.portrait {
+	  width: 100%;
+	  height: auto;
+	}
+
+	/* See https://aaronparecki.com/2016/08/13/4/css-thumbnails */
+	.squareThumbnail {
+		/* set the desired width/height and margin here */
+		width: 128px;
+		height: 128px;
+
+		margin-right: 1px;
+		position: relative;
+		overflow: hidden;
+		display: inline-block;
+	}
+
+	.squareThumbnail img {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		height: 100%;
+		width: auto;
+		-webkit-transform: translate(-50%,-50%);
+		  -ms-transform: translate(-50%,-50%);
+			  transform: translate(-50%,-50%);
+	}
+	.squareThumbnail img.portrait {
+		width: 100%;
+		height: auto;
+	}
+</style>
 
 <cfif debug>	
 	Debugging:<br/>
@@ -48,18 +123,28 @@
 	<cfoutput>
 	screenWidth: #screenWidth#<br/>
 	URL.interfaceId: #URL.interfaceId#
-	URL.optArgs: #URL.optArgs# 
+	URL.optArgs: #URL.optArgs#<br/>
 	smallScreen: #smallScreen#<br/>
+	CfincludePath: #getCustomWindowContent[1]['CfincludePath']#<br/>
 	</cfoutput>
 </cfif>
 	
 <!--- Display the custom window content. This will either be from the content or a cfinclude --->
 <cfif arrayLen(getCustomWindowContent)>
-	<cfif len(getCustomWindowContent[1]["CfincludePath"])>
-		<cfinclude template="#getCustomWindowContent[1]['CfincludePath']#">
-	<cfelseif len(getCustomWindowContent[1]["Content"])>
-		<cfoutput>#getCustomWindowContent[1]["Content"]#</cfoutput>
-	</cfif>	
+	<!--- Set our vars --->
+	<!--- Using a cfinclude --->
+	<cfset customWindowId = getCustomWindowContent[1]["CustomWindowContentId"]>
+	<cfset cfincludePath = getCustomWindowContent[1]["CfincludePath"]>
+	<!--- TinyMce content --->
+	<cfset content = getCustomWindowContent[1]["Content"]>
+			
+	<cfif len(cfincludePath)>
+		<!--- Include the template. The URL.interfaceId is the windowId. --->
+		<cfinclude template="#cfincludePath#">
+	<cfelseif len(content)>
+		<!--- Include the TinyMce content --->
+		<cfoutput>#content#</cfoutput>
+	</cfif><!---<cfif len(cfincludePath)>--->
 </cfif><!---<cfif arrayLen(getCustomWindowContent)>--->
 	
 </html>

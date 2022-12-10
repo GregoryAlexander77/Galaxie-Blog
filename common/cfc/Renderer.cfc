@@ -442,8 +442,63 @@
 	</cffunction>
 			
 	<!--- //************************************************************************************************
-		Independent media functions
+		Independent functions
 	//**************************************************************************************************--->
+			
+	<!--- Functions to handle strings that are formatted to bypass CF's Global Script Protection --->
+	<cffunction name="renderScriptsToDb" returntype="string" output="false" hint="Not used yet!">
+		<cfargument name="str" type="string" required="yes">
+			
+		<!--- Replaces the comment outside of the script tags. The comment is necessary to render the script in the tinymce editor. This may occur when the user is editting an existing post with a script. --->
+		<cfif findNoCase("<!--<attachScript",str) and findNoCase("</attachScript>-->",str)>
+			<!--- Replace the opening comment --->
+			<cfset str = replaceNoCase(str, "<!--<attachScript", "<script", "all")>
+			<!--- Replace the end comment --->
+			<cfset str = replaceNoCase(str, "</attachScript>-->", "</script>", "all")>
+		</cfif>
+		<!--- Replaces <attachScript with <script. This may occur when a new post is made with a script. --->
+		<cfif findNoCase("<attachScript",str) and findNoCase("</attachScript>",str)>
+			<cfset str = replaceNoCase(str, "attachScript", "script", "all")>
+		</cfif>	
+		<!--- Allows for style sheets. --->
+		<cfif findNoCase("<attachStyle",str) and findNoCase("</attachStyle>",str)>
+			<cfset str = replaceNoCase(str, "attachStyle", "style", "all")>
+		</cfif>
+			
+		<cfreturn str>
+	</cffunction>
+			
+	<cffunction name="renderScriptsToTinyMce" returntype="string" output="false" 
+			hint="Renders script tags surrounded by HTML comments before sending to TinyMce. TinyMce does not allow scripts to be inside of the setContent method which we use so we need to escape theme.">
+		<cfargument name="str" type="string" required="yes">
+			
+		<cfif str contains '<script' and str contains '</script>'>
+			<!--- Put comments around the opening tag --->
+			<cfset str = replaceNoCase(str,'<script','<!--<script','all')>
+			<!--- and the closing tag --->
+			<cfset str = replaceNoCase(str,'</script>','</script>-->','all')>
+		</cfif>
+		<cfreturn str>
+			
+	</cffunction>
+			
+	<!--- Fix tinymce limitations that require us to use comments and symbols around custom HTML tags. --->
+	<cffunction name="renderMoreTagFromTinyMce" returntype="string" output="false" 
+			hint="Renders the more tag when it is encountered. We can't use <more> in the tinymce editor as it will remove it, so we are surrounding the more tag with &lt; and &gt;. We also can surround it using an HTML comment">
+		<cfargument name="str" type="string" required="yes">
+		
+		<!--- Depracated cases when there are &lt; + &gt; codes --->
+		<cfif findNoCase(arguments.str, '&lt;more/&gt;')>
+			<cfset arguments.str = replaceNoCase(arguments.str, '&lt;more/&gt;', '<more/>', 'all')>
+		</cfif>
+			
+		<!--- New more logic. TinyMce puts in a closing more tag --->
+		<cfif findNoCase(arguments.str, '<more>') and findNoCase(arguments.str, '</more>')>
+			<cfset arguments.str = replaceNoCase(arguments.str, '<more></more>', '<more/>', 'all')>
+		</cfif>
+			
+		<cfreturn arguments.str>
+	</cffunction>
 			
 	<cffunction name="injectCfinclude" returntype="string" output="true"
 			hint="Note: this function takes precendent over all other post content functions">

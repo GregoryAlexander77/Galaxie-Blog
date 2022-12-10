@@ -4,6 +4,8 @@
 	<cfset variables.utils = createObject("component", "utils")>
 	<!--- Roles --->
 	<cfset variables.roles = structNew()>
+	<!--- Instantiate the Render.cfc to render stuff --->
+	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 		
 	<!---//*****************************************************************************************
 		Version
@@ -604,6 +606,72 @@
 	</cffunction>
 			
 	<!---//*****************************************************************************************
+		CMS Content functions
+	//******************************************************************************************--->
+			
+	<!---//*****************************************************************************************
+		Custom Windows
+	//******************************************************************************************--->
+			
+	<cffunction name="getCustomWindowContent" access="public" returnType="any" output="false"
+			hint="Gets the custom windows for a post">
+		<cfargument name="postId" type="string" required="false" default="">
+			
+		<!--- Get the custom windows from the db --->
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				CustomWindowContentId as CustomWindowContentId, 
+				PostRef as PostRef,
+				CfincludePath as CfincludePath,
+				CustomWindowShortDesc as CustomWindowShortDesc,
+				Content as Content,
+				ButtonName as ButtonName,
+				ButtonLabel as ButtonLabel,
+				ButtonOptArgs as ButtonOptArgs,
+				WindowName as WindowName,
+				WindowTitle as WindowTitle,
+				WindowHeight as WindowHeight,
+				WindowWidth as WindowWidth
+			)
+			FROM CustomWindowContent
+			WHERE Active = <cfqueryparam value="1" cfsqltype="bit">
+			<cfif len(arguments.postId)>AND PostRef = <cfqueryparam value="#arguments.postId#" cfsqltype="integer"></cfif>
+		</cfquery>
+			
+		<cfreturn Data>
+
+	</cffunction>
+			
+	<cffunction name="getCustomWindowContentById" access="public" returnType="any" output="false"
+				hint="Handles adding a view to an entry.">
+		<cfargument name="customWindowId" type="numeric" required="true">
+			
+			<!--- Get the custom windows from the db --->
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				CustomWindowContentId as CustomWindowContentId, 
+				PostRef as PostRef,
+				CfincludePath as CfincludePath,
+				CustomWindowShortDesc as CustomWindowShortDesc,
+				Content as Content,
+				ButtonName as ButtonName,
+				ButtonLabel as ButtonLabel,
+				ButtonOptArgs as ButtonOptArgs,
+				WindowName as WindowName,
+				WindowTitle as WindowTitle,
+				WindowHeight as WindowHeight,
+				WindowWidth as WindowWidth
+			)
+			FROM CustomWindowContent
+			WHERE CustomWindowContentId = <cfqueryparam value="#arguments.customWindowId#" cfsqltype="numeric">
+			AND Active = <cfqueryparam value="1" cfsqltype="bit">
+		</cfquery>
+			
+		<cfreturn Data>
+
+	</cffunction>
+			
+	<!---//*****************************************************************************************
 		Email functions
 	//******************************************************************************************--->
 			
@@ -672,9 +740,6 @@
 			
 		<!--- Send the email if there are no errors. The byPassErrors can be used to send the email anyway if the post has been revised and should be sent again. --->
 		<cfif arguments.byPassErrors or not error>
-			
-			<!--- Instantiate the Render.cfc to render our email --->
-			<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 
 			<!--- Blog title --->
 			<cfset blogTitle = htmlEditFormat(application.BlogDbObj.getBlogTitle())>
@@ -1650,6 +1715,26 @@
 	<!--- //************************************************************************************************************
 			Fonts
 	//**************************************************************************************************************--->
+			
+	<cffunction name="getDefaultFontId" access="public" returntype="numeric" 
+		hint="Gets the fondId of the Arial font, for now...">	
+		
+		<cfquery name="getDefaultFont" dbtype="hql">
+			SELECT new Map (
+				FontId as FontId
+			)
+			FROM 
+				Font as Font
+			WHERE 
+				Font.Font = <cfqueryparam value="Arial" cfsqltype="cf_sql_varchar">
+		</cfquery>
+			
+		<cfif arrayLen(getDefaultFont)>
+			<cfreturn getDefaultFont[1]["FontId"]>
+		<cfelse>
+			<cfreturn 0>
+		</cfif>
+	</cffunction>
 					
 	<cffunction name="fontExists" access="public" returntype="numeric" hint="returns a zero  or the fontId">	
 		<cfargument name="font" required="yes" type="string">
@@ -1673,7 +1758,8 @@
 		</cfif>
 	</cffunction>
 				
-	<cffunction name="getThemeFonts" access="public" returntype="array" hint="This function finds all of the fonts associated with a given theme or fonts that are marked as being used and returns the font data in a query">
+	<cffunction name="getThemeFonts" access="public" returntype="array" 
+			hint="This function finds all of the fonts associated with a given theme or fonts that are marked as being used and returns the font data in a query">
 		<cfargument name="themeId" required="true" type="numeric" />
 		<cfargument name="selfHosted" required="false" type="boolean" default="true" />
 		<cfargument name="includeWebSafeFonts" required="false" type="boolean" default="false" />
@@ -1696,9 +1782,23 @@
 		<!--- Loop through the dataset and build a list of fontIds --->
 		<cfif arrayLen(getThemeFonts)>
 			<cfloop from="1" to="#arrayLen(getThemeFonts)#" index="i">
-				<cfset fontId = getThemeFonts[i]["FontId"]>
-				<cfset menuFontId = getThemeFonts[i]["MenuFontId"]>
-				<cfset blogFontId = getThemeFonts[i]["BlogNameFontId"]>
+				<!--- Note: the fonts may be defined so extra logic is required --->
+				<cfif getThemeFonts[i]["FontId"]>
+					<cfset fontId = getThemeFonts[i]["FontId"]>
+				<cfelse>
+					<cfset fontId = getDefaultFontId()><!---Arial--->
+				</cfif>
+				<cfif getThemeFonts[i]["MenuFontId"]>
+					<cfset menuFontId = getThemeFonts[i]["MenuFontId"]>
+				<cfelse>
+					<cfset menuFontId = getDefaultFontId()><!---Arial--->
+				</cfif>
+				<cfif getThemeFonts[i]["BlogNameFontId"]>
+					<cfset blogFontId = getThemeFonts[i]["BlogNameFontId"]>
+				<cfelse>
+					<cfset blogFontId = getDefaultFontId()><!---Arial--->
+				</cfif>
+					
 				<cfif len(fontId)>
 					<cfset fontIdList = listAppend(fontIdList, fontId)>
 				</cfif>
@@ -2161,7 +2261,7 @@
 				</cfquery>
 
 				<!--- Set the post count --->
-				<cfif arrayLen(getCategoryPostCount)>
+				<cfif arrayLen(getCategoryPostCount) and isNumeric(getCategoryPostCount[1]["PostCount"])>
 					<cfset postCount = getCategoryPostCount[1]["PostCount"]>
 				<cfelse>
 					<cfset postCount = 0>
@@ -3304,8 +3404,6 @@
 			<!--- Send out email to the subscribers if the comment was approved and the sendEmail argument is true (which it is by default). --->
 			<cfif approved and arguments.sendEmail>
 
-				<!--- Instantiate the Render.cfc. --->
-				<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 				<!--- Get the commentId from the entity --->
 				<cfset commentId = CommentDbObj.getCommentId()>
 				<!--- Get the comment. The comment table will have the postId --->
@@ -3359,8 +3457,6 @@
 		<cfset EntitySave(CommentDbObj)>
 			
 		<!--- Send an email to the post subscribers. --->
-		<!--- Instantiate the Render.cfc. --->
-		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 		<!--- Get the commentId from the entity --->
 		<cfset commentId = arguments.commentId>
 		<!--- Get the comment. The comment table will have the postId --->
@@ -3940,8 +4036,6 @@
 			<!--- Email the post subscribers if the comment was approved --->
 			<cfif arguments.approved>
 
-				<!--- Instantiate the Render.cfc. --->
-				<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 				<!--- Get the commentId from the entity --->
 				<cfset commentId = CommentDbObj.getCommentId()>
 				<!--- Get the comment. The comment table will have the postId --->
@@ -4456,6 +4550,7 @@
 				Enclosure.MediaPath as MediaPath,
 				Enclosure.MediaUrl as MediaUrl,
 				Enclosure.MediaHeight as MediaHeight,
+				Enclosure.MediaSize as MediaSize,
 				MediaType.MediaType as MediaType,
 				MimeType.MimeTypeId as MimeTypeId,
 				MimeType.MimeType as MimeType,
@@ -4536,7 +4631,7 @@
 	</cffunction>
 	
 	<cffunction name="getPost" access="public" returnType="any" output="true"
-		hint="This is Raymonds original function with major changes. Returns one more more posts. Allows for a params structure to configure what entries are returned. I am going to revise this in the next version as the params are hard to identify and want to pass in the arguments in the params struct instead. Note: this is often invoked using getPost(params,showPendingPosts,showRemovedPosts,showJsonLd,showPromoteAtTopOfQuery)">
+			hint="This is Raymonds original function with major changes. Returns one more more posts. Allows for a params structure to configure what entries are returned. I am going to revise this in the next version as the params are hard to identify and want to pass in the arguments in the params struct instead. Note: this is often invoked using getPost(params,showPendingPosts,showRemovedPosts,showJsonLd,showPromoteAtTopOfQuery)">
 		
 		<cfargument name="params" type="struct" required="false" default="#structNew()#">
 		<cfargument name="showPendingPosts" type="boolean" required="false" default="false">
@@ -4684,6 +4779,7 @@
 				Enclosure.MediaUrl as MediaUrl,
 				Enclosure.MediaThumbnailUrl as MediaThumbnailUrl,
 				Enclosure.MediaHeight as MediaHeight,
+				Enclosure.MediaSize as MediaSize,
 				Enclosure.MediaVideoCoverUrl as MediaVideoCoverUrl,
 				Enclosure.MediaVideoVttFileUrl as MediaVideoVttFileUrl,
 				Enclosure.ProviderVideoId as ProviderVideoId,
@@ -4763,10 +4859,10 @@
 				AND year(Post.DatePosted) = <cfqueryparam value="#arguments.params.byYear#" cfsqltype="integer">
 			</cfif>
 			<!--- Allow admin's to see non-released posts and future posts. --->
-			<cfif not arguments.showPendingPosts and not application.Udf.isLoggedIn() or (structKeyExists(arguments.params, "releasedOnly") and arguments.params.releasedonly)>
+			<cfif not arguments.showPendingPosts or (structKeyExists(arguments.params, "releasedOnly") and arguments.params.releasedonly)>
 				AND Post.DatePosted < <cfqueryparam cfsqltype="cf_sql_timestamp" value="#blogNow()#">
 			</cfif>
-			<cfif not arguments.showPendingPosts or not application.Udf.isLoggedIn()>
+			<cfif not arguments.showPendingPosts>
 				AND Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
 			</cfif>
 			AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
@@ -4890,6 +4986,11 @@
 					<cfset PostStruct["MediaHeight"] = Data[i]["MediaHeight"]>
 				<cfelse>
 					<cfset PostStruct["MediaHeight"] = "">
+				</cfif>
+				<cfif structKeyExists(postRow, "MediaSize")>
+					<cfset PostStruct["MediaSize"] = Data[i]["MediaSize"]>
+				<cfelse>
+					<cfset PostStruct["MediaSize"] = "">
 				</cfif>
 				<cfif structKeyExists(postRow, "MediaPath")>
 					<cfset PostStruct["MediaPath"] = Data[i]["MediaPath"]>
@@ -5257,13 +5358,10 @@
 
 		<!--- Create a new alias since the title may change. This won't change unless the title was changed. --->
 		<cfset postAlias = application.blog.makeAlias(arguments.title)>
-
-		<!--- Instantiate the Render.cfc. Were going to use this to determine if any more blocks are in the post content --->
-		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 			
 		<!--- Handle the post --->
 		<!--- Fix the tags that may come in with a &lt; and &gt; characters that tinyMce puts in. Most of the directives will be used using the postHeader interface which uses a textaread instead of tiny mce. --->
-		<cfset arguments.post = replaceNoCase(arguments.post, '&lt;more/&gt;', '<more/>', 'all')>
+		<cfset arguments.post = RendererObj.renderMoreTagFromTinyMce(arguments.post)>
 
 		<!--- Determine if there are any more blocks --->
 		<cfset moreStruct = getMoreBlocksFromPost(arguments.post)>
@@ -5871,6 +5969,9 @@
 			hint="Logs the search.">
 		<cfargument name="searchterm" type="string" required="true">
 			
+		<!--- Sanitize the search term --->
+		<cfset sanitizedSearchTerm = sanitizeString(arguments.searchTerm)>
+			
 		<!--- Load the blog table and get the first record (there only should be one record at this time). This will pass back an object with the value of the blogId. This is needed as the setBlogRef is a foreign key and for some odd reason ColdFusion or Hybernate must have an object passed as a reference instead of a hardcoded value. --->
 		<cfset BlogDbObj = entityLoadByPK("Blog", application.BlogDbObj.getBlogId())>
 
@@ -5878,7 +5979,7 @@
 		<cfset SearchQueryObj = entityNew("SearchQuery")>
 		<!--- Use the entity objects to set the data. --->
 		<cfset SearchQueryObj.setBlogRef(BlogDbObj)>
-		<cfset SearchQueryObj.setSearchQuery(arguments.searchterm)>
+		<cfset SearchQueryObj.setSearchQuery(sanitizedSearchTerm)>
 		<cfset SearchQueryObj.setDate(blogNow())>
 
 		<!--- Save it. --->
@@ -7182,8 +7283,6 @@
 			<cfset kendoTheme = this.getSelectedKendoTheme()>
 			<!--- Get the logo path  --->
 			<cfset logoPath = application.blog.getLogoPathByTheme(kendoTheme='default')>
-			<!--- Instantiate the Render.cfc. Were going to use this to determine if any more blocks are in the post content --->
-			<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 
 			<!--- Email the new user --->
 			<cfsavecontent variable="mainBody">
@@ -7394,6 +7493,9 @@
 						<cfset roleIdList = roleIdList & Data[i]["RoleId"]>
 					</cfif>
 				</cfloop>
+			<cfelse>
+				<!--- Return the guest role --->
+				<cfset roleIdList = 5>
 			</cfif> 
 			<!--- Return the list of the role id's --->
 			<cfreturn roleIdList>
@@ -7408,6 +7510,9 @@
 						<cfset roleList = roleList & Data[i]["RoleName"]>
 					</cfif>
 				</cfloop>
+			<cfelse>
+				<!--- Return the guest role --->
+				<cfset roleIdList = "Guest">
 			</cfif> 
 			<!--- Return the list of roles --->
 			<cfreturn roleList>
@@ -7625,7 +7730,7 @@
 	<cffunction name="generateRSS" access="public" returnType="string" output="false"
 			hint="Generates RSSa 2 feeds. This was updated and validated in Galaxie Blog 3.0">
 		<cfargument name="mode" type="string" required="false" default="short" hint="If mode=short, show EXCERPT chars of entries. Otherwise, show all.">
-		<cfargument name="excerpt" type="numeric" required="false" default="250" hint="If mode=short, this how many chars to show.">
+		<cfargument name="excerpt" type="numeric" required="false" default="750" hint="If mode=short, this how many chars to show. The excerpt only applies to the body.">
 		<cfargument name="params" type="struct" required="false" default="#structNew()#" hint="Passed to getPost. Note, maxEntries can't be bigger than 15.">
 		<cfargument name="version" type="numeric" required="false" default="2" hint="Depracated. No longer supporting version 1">
 		<cfargument name="additionalTitle" type="string" required="false" default="" hint="Adds a title to the end of your blog title. Used mainly by the cat view.">
@@ -7637,6 +7742,7 @@
 		<cfset var items = "">
 		<cfset var dateStr = "">
 		<cfset var rssStr = "">
+		<!--- Note: we are not using the UTC Previx in v3. Keeping around just in case --->
 		<cfset var utcPrefix = "">
 		<cfset var rootUrl = "">
 		<cfset var cat = "">
@@ -7656,10 +7762,12 @@
 		<cfset getPost = application.blog.getPost(arguments.params,false,false,false,false)>
 		<!---<cfdump var="#getPost#">--->
 
-		<cfif not find("-", blogTimeZone)>
+		<cfif find("-", blogTimeZone)>
+			<!--- Note: we are not using the UTC Previx in v3. Keeping around just in case --->
 			<cfset utcPrefix = " -">
 		<cfelse>
 			<cfset blogTimeZone = right(blogTimeZone, len(blogTimeZone) -1 )>
+			<!--- Note: we are not using the UTC Previx in v3. Keeping around just in case --->
 			<cfset utcPrefix = " +">
 		</cfif>
 
@@ -7673,7 +7781,7 @@
 			<link>#StringUtilsObj.trimStr(xmlFormat(application.blogHostUrl))#</link>
 			<description>#xmlFormat(instance.blogDescription)#</description>
 			<language>en</language>
-			<pubDate>#dateFormat(blogNow(),"ddd, dd mmm yyyy") & " " & timeFormat(blogNow(),"HH:mm:ss") & utcPrefix & numberFormat(blogTimeZone,"00") & "00"#</pubDate>
+			<pubDate>#dateFormat(blogNow(),"ddd, dd mmm yyyy") & " " & timeFormat(blogNow(),"HH:mm:ss") & numberFormat(blogTimeZone,"00") & "00"#</pubDate>
 			<lastBuildDate>{LAST_BUILD_DATE}</lastBuildDate>
 			<generator>Galaxie Blog</generator>
 			<docs>http://blogs.law.harvard.edu/tech/rss</docs>
@@ -7714,8 +7822,10 @@
 			<cfset email = getPost[i]["Email"]>
 			<cfset mediaPath = getPost[i]["MediaPath"]>
 			<cfset mediaType = getPost[i]["MediaType"]>
+			<cfset mediaSize = getPost[i]["MediaSize"]>
 			<cfset mimeType = getPost[i]["MimeType"]>
 			<cfset title = getPost[i]["Title"]>
+			<cfset description = getPost[i]["Description"]>
 			<cfset body = StringUtilsObj.getTextFromBody(getPost[i]["Body"])>
 			<cfset moreBody = getPost[i]["MoreBody"]>
 			<cfset datePosted = getPost[i]["DatePosted"]>
@@ -7726,14 +7836,18 @@
 				<cfset xmlLink = xmlFormat(makeLink(postId))>
 			</cfif>
 				
-			<cfset dateStr = dateFormat(datePosted,"ddd, dd mmm yyyy") & " " & timeFormat(datePosted,"HH:mm:ss") & utcPrefix & numberFormat(blogTimeZone,"00") & "00">
+			<cfset dateStr = dateFormat(datePosted,"ddd, dd mmm yyyy") & " " & timeFormat(datePosted,"HH:mm:ss") & numberFormat(blogTimeZone,"00") & "00">
 				
-			<!--- Set the description. --->
+			<!--- Description. --->
+			<cfif len(description)>
+				<cfset thisDesc = description>
+			<!--- Set the description if it is not available. --->
 			<cfif arguments.mode is "short" and len(body) gte arguments.excerpt>
-				<!--- Remove the HTML tags and get the first 50 characters of the text. --->
+				<!--- Remove the HTML tags and get the first x characters of the text. --->
 				<cfset thisDesc = left( body, arguments.excerpt ) & "...">
 			<cfelse>
 				<cfset thisDesc = body & morebody>
+			</cfif>
 			</cfif>
 	
 			<cfoutput>
@@ -7749,11 +7863,11 @@
 				<guid>#xmlLink#</guid>
 				<author>#xmlFormat(email)# (#xmlFormat(fullName)#)</author>
 				<cfif len(mediaPath)>
-			<cfif mimetype neq "">
-				<enclosure url="#xmlFormat( application.blogHostUrl & '/enclosures/' & getFileFromPath(mediaPath) )#" length="0" type="#mimetype#"></enclosure>
-			<cfelse>
-				<enclosure url="#xmlFormat( application.blogHostUrl & '/enclosures/' & getFileFromPath(mediaPath) )#" length="0" type="image/jpeg"></enclosure>
-			</cfif>
+				<cfif mimetype neq "">
+				<enclosure url="#xmlFormat( application.blogHostUrl & '/enclosures/' & getFileFromPath(mediaPath) )#" length="#mediaSize#" type="#mimetype#"></enclosure>
+				<cfelse><!---<cfif len(mediaPath)>--->
+				<enclosure url="#xmlFormat( application.blogHostUrl & '/enclosures/' & getFileFromPath(mediaPath) )#" length="#mediaSize#" type="image/jpeg"></enclosure>
+				</cfif><!---<cfif len(mediaPath)>--->
 				<cfif mimetype eq "audio/mpeg">
 				<itunes:author>#xmlFormat(email)# (#xmlFormat(fullName)#)</itunes:author>
 				<itunes:explicit>#xmlFormat('no')#</itunes:explicit> 
@@ -7762,14 +7876,14 @@
 				<itunes:subtitle>#xmlFormat(subtitle)#</itunes:subtitle>
 				<itunes:summary>#xmlFormat(summary)#</itunes:summary>
 				<itunes:image href="#xmlFormat(instance.itunesImage)#" />
-				</cfif>
-				</cfif>
+				</cfif><!---<cfif mimetype eq "audio/mpeg">--->
+				</cfif><!---<cfif len(mediaPath)>--->
 			</item>
 			</cfoutput>
 		 	</cfloop>
 		</cfsavecontent>
 
-		<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & utcPrefix & numberFormat(blogTimeZone,"00") & "00"#','one')>
+		<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & numberFormat(blogTimeZone,"00") & "00"#','one')>
 		<cfset rssStr = trim(header & items & "</channel></rss>")>
 
 		<cfreturn rssStr>
@@ -7854,16 +7968,16 @@
 		<cfreturn arrayToList(list1Array, Delim3) />
 	</cffunction>
 			
-	<cffunction name="sanitizeString" access="public" returnType="boolean" output="false" 
-			hint="Sanitizes the HTML from a string. This function uses Jsoup and should be used prior to inserting data into the database to sanitize a string. Note: this is a slower function.">
+	<cffunction name="sanitizeString" access="public" returnType="string" output="false" 
+			hint="Sanitizes the HTML from a string. This function uses Jsoup and should be used prior to inserting data into the database to sanitize a string. Note: this is a slower function so don't use it when looping through tons of strings.">
 		<cfargument name="str" type="string" required="true" default="">
 			
 		<!--- We need to clean up the html and other special characters from the json ---> 
 		<!--- Remove non breaking spaces --->
 		<cfset str = replaceNoCase(str, '&nbsp;', '', "all")>
 		<!--- And remove other HTML... --->
-		<cfinvoke component="#application.jsoupComponentPath#" method="jsoupConvertHtmlToText2" returnvariable="sanitizedStr">
-			<cfinvokeargument name="html" value="#str#">
+		<cfinvoke component="#application.jsoupComponentPath#" method="jsoupSanitize" returnvariable="sanitizedStr">
+			<cfinvokeargument name="str" value="#str#">
 		</cfinvoke>
 			
 		<cfreturn sanitizedStr>

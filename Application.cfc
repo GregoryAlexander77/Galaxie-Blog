@@ -24,6 +24,9 @@
 	<cfset this.setClientCookies = false />
 	<cfset this.enablerobustexception = true />
 		
+	<!--- Turn on script protection. The admin site has this disabled tho --->
+	<cfset this.scriptProtect = "all">
+		
 	<!--- Note: do not user mappings here. Mappings do not work with CF ORM. They are causing errors. --->
 		
 	<!--- 

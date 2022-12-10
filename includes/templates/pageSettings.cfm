@@ -56,8 +56,8 @@ Note: in order to debug- remove the cfsilent that wraps around the pageSettings.
 <cfparam name="URL.startRow" default="0">
 	
 <!--- Use to delete the cookies for testing.
-<cfset exists= structdelete(session, 'encryptionKey', true)/>
-<cfset exists= structdelete(session, 'serviceKey', true)/>
+<cfset exists = structdelete(session, 'encryptionKey', true)/>
+<cfset exists = structdelete(session, 'serviceKey', true)/>
 --->
 	
 <!--- //******************************************************************************************************
@@ -65,13 +65,18 @@ Note: in order to debug- remove the cfsilent that wraps around the pageSettings.
 //********************************************************************************************************--->
 
 <!--- Determine if the http accept header contains webp. The getHttpRequestData().headers is a structure and we are targetting the accept element in the array. Note: nearly all modern browsers will include this if the browser supports the webp next gen image. --->
-<cfset acceptHeader = getHttpRequestData().headers["accept"]>
-<!--- Does the header accept webp? --->
-<cfif findNoCase("webp", acceptHeader) gt 0>
-	<cfset clientAcceptsWebP = true>
-<cfelse>
-	<cfset clientAcceptsWebP = false>
-</cfif>
+<cftry>
+	<cfset acceptHeader = getHttpRequestData().headers["accept"]>
+	<!--- Does the header accept webp? --->
+	<cfif findNoCase("webp", acceptHeader) gt 0>
+		<cfset clientAcceptsWebP = true>
+	<cfelse>
+		<cfset clientAcceptsWebP = false>
+	</cfif>
+<cfcatch type="any">
+	<cfset clientAcceptsWebP = false>	
+</cfcatch>
+</cftry>
 <!--- The logic to determine if the server has the necessary webp mime type was done in the application.cfc template. We will use the application.serverSupportsWebP variable that the mime type is installed on the server. Of course, both the client and the server need to support webp images before we can deliver them.---> 
 <cfif application.serverSupportsWebP and clientAcceptsWebP>
 	<cfset webpImageSupported = true>
@@ -225,7 +230,7 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <!--- The header background image. You can also leave this blank if you want the blogBackgroundImage to be shown instead of a colored banner on the header. If you choose to leave this blank and not display a colored banner, also leave the menuBackgroundImage blank, otherwise, a colored bar will be displayed. Note: I put a gradient on the banner image, however, the top of the image, which is darker than the bottom, can't be used for the menu as it will look off. So I am separating the background images for the banner and the menu. --->
 <cfset headerBackgroundImage = application.baseUrl & getTheme[1]["HeaderBackgroundImage"]>
 <cfif webPImagesIncluded and webpImageSupported>
-	<!---Overwrite the headerBodyDividerImage var and change the extension to .webp--->
+	<!--- Overwrite the headerBodyDividerImage var and change the extension to .webp--->
 	<cfset headerBackgroundImage = replaceNoCase(headerBackgroundImage, '.png', '.webp')>
 </cfif>
 <!--- The background image for the top menu. This should be a consistent color and not gradiated. --->

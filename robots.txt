@@ -2,3 +2,4 @@ User-agent: *
 Sitemap: https://www.gregoryalexander.com/blog/googlesitemap.cfm
 User-agent: Googlebot
 Disallow: /*?theme=
+Disallow: /*search.cfm

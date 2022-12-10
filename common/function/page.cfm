@@ -16,7 +16,12 @@
 			<cfcase value="entry">
 				<cfset pageMode = "post">
 			</cfcase>
+			<!--- Cat is depracated --->
 			<cfcase value="cat">
+				<cfset pageMode = "category">
+			</cfcase>
+			<!--- Category replaces cat --->
+			<cfcase value="category">
 				<cfset pageMode = "category">
 			</cfcase>
 			<cfcase value="postedBy">

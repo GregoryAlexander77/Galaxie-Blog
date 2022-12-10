@@ -25,6 +25,8 @@
 	<cfobject component="#application.cfJsonComponentPath#" name="jsonArray">
 	<!--- Include our string utils object to trim strings --->
 	<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
+	<!--- Instantiate the Render.cfc. --->
+	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 
 	<!---******************************************************************************************************
 		Security tokens and keys.
@@ -246,54 +248,6 @@
 	<!---******************************************************************************************************
 		UI Specific functions
 	******************************************************************************************************--->
-				
-	<!--- Function to get the search results --->
-	<cffunction name="getSiteSearchResults" access="public" returnformat="json" 
-			hint="Consumed by the search near the top of the page. ">
-		<cfargument name="searchTerm" type="string" required="yes" default="">
-		<cfargument name="category" type="string" required="no" default="">
-		<cfargument name="startRow" type="numeric" required="no" default="">
-		<cfargument name="endRow" type="numeric" required="no" default="">
-
-		<cfif searchTerm neq ''>
-
-			<!--- Break down search parameters --->
-			<cfset params = structNew()>
-			<cfset params.searchTerms = arguments.searchTerm>
-			<cfif arguments.category is not "">
-				<cfset params.byCat = arguments.category>
-			</cfif>
-
-			<cfset params.startrow = arguments.startRow>
-			<cfset params.maxEntries = application.maxEntries>
-			<!--- Only get released items --->
-			<cfset params.releasedonly = true />
-
-		    <!---  Do the search. --->
-			<cfif len(arguments.searchTerm) or arguments.category is not "">
-				<cfset data = application.blog.getEntries(params)>
-				<cfset searched = true>
-			<cfelse>
-				<cfset searched = false>
-			</cfif>
-
-			<!--- Convert the query object into json --->
-			<cfinvoke component="cfJson" method="convertCfQuery2JsonStruct" returnvariable="jsonString" >
-				<cfinvokeargument name="queryObj" value="#data.entries#">
-				<cfinvokeargument name="contentType" value="json">
-				<cfinvokeargument name="includeTotal" value="false">
-				<!--- don't  include the data handle for dropdown menu's ---> 
-				<cfinvokeargument name="includeDataHandle" value="false">
-				<cfinvokeargument name="dataHandleName" value="">
-				<!--- Force the column names into lower case. The code writer for the grid converts the case into lCase. --->
-				<cfinvokeargument name="convertColumnNamesToLowerCase" value="false">
-			</cfinvoke>
-
-			 <cfreturn jsonString>
-
-		</cfif>
-
-	</cffunction>
 
 	<!--- Captcha.  --->
 	<cffunction name="getCaptchaAsJson" access="remote" returnformat="json" output="false" 
@@ -382,9 +336,6 @@
 		<cfinvoke component="#application.blog#" method="addSubscriber" returnVariable="token">
 			<cfinvokeargument name="email" value="#arguments.email#">
 		</cfinvoke>
-			
-		<!--- Instantiate the Render.cfc. --->
-		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 
 		<!--- Process the request.--->
 		<cfif token is not "">
@@ -475,9 +426,6 @@
 		<cfset response[ "adminEmailedNewComment" ] = false />
 		<cfset response[ "confirmationEmailSent" ] = false />
 		<cfset response[ "newCommentEmailSentToPostSubscribers" ] = false />
-			
-		<!--- Instantiate the Render.cfc. --->
-		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 
 		<!--- if website is just http://, remove it --->
 		<cfif commenterWebSite is "http://" or commenterWebsite eq "https://">
@@ -1191,8 +1139,6 @@
 		<!--- Email the post subscribers if the comment was approved --->
 		<cfif arguments.approved>
 
-			<!--- Instantiate the Render.cfc. --->
-			<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 			<!--- Get the commentId from the entity --->
 			<cfset commentId = arguments.commentId>
 			<!--- Get the comment. The comment table will have the postId --->
@@ -1574,8 +1520,6 @@
 				<!--- Email the post subscribers if the comment was approved --->
 				<cfif arguments.approved>
 
-					<!--- Instantiate the Render.cfc. --->
-					<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 					<!--- Get the commentId from the entity --->
 					<cfset commentId = arguments.commentId>
 					<!--- Get the comment. The comment table will have the postId --->
@@ -2213,19 +2157,9 @@
 				
 	<cffunction name="getFontsForDropdown" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the font dropdown.">
-		<cfargument name="csrfToken" default="" required="true">
+		<!--- Note: the csrfToken is not required for this query is also used on the external blog (non-admin). This query is not secured. --->
 			
-		<!--- Verify the token --->
-		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
-			<!--- Abort the process if the token is not validated. --->
-			<cfabort>
-		</cfif>
-			
-		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
-		<cfset secureFunction('EditTheme')>
-			
-		<!--- Get the categories, don't  use the cached values. --->
+		<!--- Get the fonts, don't  use the cached values. --->
 		<cfset Data = application.blog.getFont()>
 		
 		<!--- Return the data as a json object. --->
@@ -2917,10 +2851,12 @@
 				<cfset errorMessage = errorMessage & "<li>Post is required</li>">
 			</cfif>
 					
-			<!--- Fix the more tag as it will have a &lt; and &gt; tags surrounding it. --->
-			<cfif findNoCase(arguments.post, '&lt;more/&gt;')>
-				<cfset arguments.post = replaceNoCase(arguments.post, '&lt;more/&gt;', '<more/>', 'all')>
-			</cfif>	
+			<!--- *************************** Format the post content. *************************** --->
+			<!--- Remove any <attachScript tags and replace them with <script --->
+			<cfset arguments.post = RendererObj.renderScriptsToDb(arguments.post)> 
+					
+			<!--- Render the more tag if it has &lt; and &gt; or comments surrounding it. --->
+			<cfset arguments.post = RendererObj.renderMoreTagFromTinyMce(arguments.post)>
 					
 			<!--- When we are viewing a gallery in the tinymce editor, we are looking at a prepared gallery that has iFrames in order for tinymce to show the galleries correctly. However, we want to strip the iframes out and generate new gallery code from the database. The following function will take care of this and return the proper HTML code prior to inserting the post into the database. Note: the post may not be sent in when using a cfinclude or other directive. --->
 			<cfif len(arguments.post)>
@@ -4081,9 +4017,6 @@
 					</cfloop><!---<cfloop from="1" to="#listLen(arguments.mediaIdList, '_')#" index="i">--->
 						
 					<!--- Return a gallery iframe to the client.--->
-					<!--- Instantiate the Render.cfc. --->
-					<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-
 					<!--- Get the HTML for this gallery. We need to send in the galleryId and the number of images. --->
 					<cfset galleryHtml = RendererObj.renderImageGalleryPreview(galleryId, listLen(arguments.mediaIdList, '_'), arguments.darkTheme)>
 						
@@ -4962,6 +4895,7 @@
 		<cfargument name="customWindowId" type="string" default="">
 		<cfargument name="buttonLabel" type="string" required="true">
 		<cfargument name="windowTitle" type="string" required="true">
+		<cfargument name="unitMeasure" type="string" required="false" default="px">
 		<cfargument name="windowHeight" type="string" required="true">
 		<cfargument name="windowWidth" type="string" required="true">
 		<cfargument name="cfincludePath" type="string" default="">
@@ -5009,12 +4943,16 @@
 				<cfset error = true>
 				<cfset errorMessage = "<li>Either a cfinclude or content must be filled out</li>">
 			</cfif>
-			<cfif len(arguments.cfincludePath) and not fileExists(expandPath(arguments.cfincludePath))>
+			<!---<cfif len(arguments.cfincludePath) and not fileExists(expandPath(arguments.cfincludePath))>
 				<cfset error = true>
 				<cfset errorMessage = "<li>Cfinclude not found. Please check your path or upload the ColdFusion template to the server in the proper directory.</li>">
-			</cfif>
+			</cfif>--->
 			
 			<cfif not error>
+				
+				<!--- Set the windowHeight and width along with the unit of measurement --->
+				<cfset thisWindowHeight = arguments.windowHeight & arguments.unitMeasurement>
+				<cfset thisWindowWidth = arguments.windowWidth & arguments.unitMeasurement>
 
 				<cftransaction>
 					<!--- Load the media ORM database object. --->
@@ -5031,8 +4969,8 @@
 					<cfset CustomWindowObj.setButtonLabel(buttonLabel)>
 					<cfset CustomWindowObj.setWindowName(application.blog.makeAlias(windowTitle))>
 					<cfset CustomWindowObj.setWindowTitle(windowTitle)>
-					<cfset CustomWindowObj.setWindowHeight(arguments.windowHeight)>
-					<cfset CustomWindowObj.setWindowWidth(arguments.windowWidth)>
+					<cfset CustomWindowObj.setWindowHeight(thisWindowHeight)>
+					<cfset CustomWindowObj.setWindowWidth(thisWindowWidth)>
 					<cfset CustomWindowObj.setCfincludePath(arguments.cfincludePath)>
 					<cfset CustomWindowObj.setContent(arguments.windowContent)>
 					<cfset CustomWindowObj.setActive(arguments.active)>

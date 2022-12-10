@@ -140,7 +140,6 @@
 		}
 		
 		// About window -----------------------------------------------------------------------------------------------
-		// Search window script
 		function createAboutWindow(Id) {
 
 			// Remove the window if it already exists
@@ -295,21 +294,29 @@
 				error = 'window no longer initialized';
 			}
 		}
+		
+		// Notes: https://fellowtuts.com/jquery/get-query-string-values-url-parameters-javascript/
+		function getUrlParameter(name) {
+			name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+			var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+			results = regex.exec(location.search);
+			return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+		}
+		
 <cfif arrayLen(getCustomWindows)>		
 		// Custom windows --------------------------------------------------------------------------
+		
 		// Custom window listeners
-		// Get the query string
-		var queryString = window.location.search;
-		// Grab the params
-		var urlParams = new URLSearchParams(queryString);
+		// Get the param
+		customWindow = getUrlParameter('customWindow');
 	<cfloop from="1" to="#arrayLen(getCustomWindows)#" index="i">
 		<cfsilent>
 		<cfset customWindowId = getCustomWindows[i]['CustomWindowContentId']>
+		<cfset customWindowName = getCustomWindows[i]['WindowName']>
 		<cfset postId = getCustomWindows[i]['PostRef']>
-		<cfset urlParamName = getCustomWindows[i]['WindowName']>
 		</cfsilent>
-		// Is the URL parameter present?
-		if (urlParams.has('<cfoutput>#urlParamName#</cfoutput>')){
+		// Is the customWindow URL parameter present and does it match a known window name?
+		if (customWindow.length && customWindow == '<cfoutput>#customWindowName#</cfoutput>'){
 			// Open the custom window
 			createCustomInterfaceWindow(<cfoutput>#customWindowId#,#postId#</cfoutput>);
 		}
@@ -317,7 +324,6 @@
 		// Custom window logic to open the custom window
 		function createCustomInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) {
 			/* Note: the Id is the windowId, optArgs generally is the postId. These arguments were meant to be generic. */
-			
 			// Initialize non required args
 			otherArgs1 = typeof otherArgs1 !== 'undefined' ? otherArgs1 : '';
 	<cfloop from="1" to="#arrayLen(getCustomWindows)#" index="i">
@@ -327,15 +333,15 @@
 				var postId = "#getCustomWindows[i]['PostRef']#";
 				var windowName = "#getCustomWindows[i]['WindowName']#";
 				var windowTitle = "#getCustomWindows[i]['WindowTitle']#";
-				var windowHeight = "#getCustomWindows[i]['WindowHeight']#%";
-				var windowWidth = "<cfif session.isMobile>95%<cfelse>#getCustomWindows[i]['WindowWidth']#%</cfif>";
+				var windowHeight = "#getCustomWindows[i]['WindowHeight']#";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>#getCustomWindows[i]['WindowWidth']#</cfif>";
 		<cfelse>
 			} else if (Id == #i#){
 				var postId = "#getCustomWindows[i]['PostRef']#";
 				var windowName = "#getCustomWindows[i]['WindowName']#";
 				var windowTitle = "#getCustomWindows[i]['WindowTitle']#";
-				var windowHeight = "#getCustomWindows[i]['WindowHeight']#%";
-				var windowWidth = "<cfif session.isMobile>95%<cfelse>#getCustomWindows[i]['WindowWidth']#%</cfif>";
+				var windowHeight = "#getCustomWindows[i]['WindowHeight']#";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>#getCustomWindows[i]['WindowWidth']#</cfif>";
 		</cfif>
 			<cfif i eq arrayLen(getCustomWindows)>
 			}
@@ -812,7 +818,7 @@
 		// Ajax functions 
 		//**************************************************************************************************************
 
-		// Captcha ------------------------------------------------------------------------------------------------------------------------------------------------
+		// Captcha -----------------------------------------------------------------------------------------------------
 		// This function is used by multiple templates, including the add comments and subscribe interfaces.
 		function checkCaptcha(captchaText, captchaHash){
 			// Submit form via AJAX.
@@ -1350,26 +1356,54 @@
 			const whitespaceChars = [' ', '\t', '\n'];
 			return whitespaceChars.some(char => s.includes(char));
 		}
-
 		
+		// ColdFusion like string functions
+		
+		// ReplaceNoCase, scope is either 'all' or 'one'. 
+		// Gregory Alexander <www.gregoryalexander.com>
+		function replaceNoCase(string,subString,replacement, scope){
+			if (scope == 'all'){
+				// i is a RegEx ignore case flag, g is global flag
+				var regEx = new RegExp(subString, "ig");
+			} else {
+				// i is an RegEx ignore case flag
+				var regEx = new RegExp(subString, "i");
+			}
+			// i is an ignore case flag, g is global flag
+			var regEx = new RegExp(subString, "ig");
+			var result = string.replace(regEx, replacement);
+			return result;
+		}
+
 		// ColdFusion like list functions
+
 		function listLen(list, delimiter){
+			// Gregory Alexander <www.gregoryalexander.com>
 			if(delimiter == null) { delimiter = ','; }
 			var thisLen = list.split(delimiter);
 			return thisLen.length;
 		}
 		
-		function listGetAt(list, position, delimiter) {
+		function listGetAt(list, position, delimiter, zeroIndex) {
+			// Gregory Alexander <www.gregoryalexander.com>
 			if(delimiter == null) { delimiter = ','; }
+			if(zeroIndex == null) { zeroIndex = true; }
 			list = list.split(delimiter);
 			if(list.length > position) {
-				return list[position];
+				if(zeroIndex){
+					// Better handling for JavaScript arrays
+					return list[position];
+				} else {
+					// Handles like the CF version without a zero-index
+					return list[position-1];
+				}
 			} else {
 				return 0;
 			}
 		}
 
 		function listFind(list, value, delimiter) {
+			// Adapted from a variety of sources by Gregory Alexander <www.gregoryalexander.com>
 			var result = 0;
 			if(delimiter == null) delimiter = ',';
 			list = list.split(delimiter);
@@ -1382,8 +1416,9 @@
 			return result;
 		}
 		
-		// Compares two lists of comma seperated strings. Used to determine if the selected capabilities match the default capabilities for a given role.
+		// Compares two lists of comma seperated strings. Used to determine if the selected capabilities match the default capabilities for a given role. Function based on the listCompare method found in cflib.
 		function listCompare(string1, string2){
+			// Adapted from a variety of sources by Gregory Alexander <www.gregoryalexander.com>
 			var s = string1.split(",");
 			for(var k = 0 ;k < s.length; k++){
 				if(string2.indexOf("," + s[k] + ",") ){ 
@@ -1394,7 +1429,8 @@
 		}
 		
 		// Adds a value to a comma separated list. Will not add the value if the list already contains the value.
-		function addValueToList(list, value) {
+		function listAppend(list, value) {
+		  // Adapted from a variety of sources by Gregory Alexander <www.gregoryalexander.com>
 		  var re = new RegExp('(^|\\b)' + value + '(\\b|$)');
 		  if (!re.test(list)) {
 			return list + (list.length? ',' : '') + value;
@@ -1402,8 +1438,9 @@
 		  return list;
 		}
 		
-		// Removes a value to a comma separated list
-		var removeValueFromList = function(list, value){
+		// Removes a value to a comma separated list. Based on the ListDeleteValue function by Ben Nadel CF fuction https://gist.github.com/bennadel/9753040
+		var listDeleteValue = function(list, value){
+			// Adapted from a variety of sources by Gregory Alexander <www.gregoryalexander.com>
 			var values = list.split(",");
 			for(var i = 0 ; i < values.length ; i++) {
 				if (values[i] == value) {
@@ -1414,6 +1451,57 @@
 			return list;
 		}
 		
+		// URL functions
+		
+		// 
+		// parseUri 1.2.2
+		// (c) Steven Levithan <stevenlevithan.com>
+		// MIT License
+		/*
+		Splits any well-formed URI into the following parts (all are optional):
+		----------------------
+		- source (since the exec method returns the entire match as key 0, we might as well use it)
+		- protocol (i.e., scheme)
+		- authority (includes both the domain and port)
+		  - domain (i.e., host; can be an IP address)
+		  - port
+		- path (includes both the directory path and filename)
+		  - directoryPath (supports directories with periods, and without a trailing backslash)
+		  - fileName
+		- query (does not include the leading question mark)
+		- anchor (i.e., fragment) */
+
+		function parseUri (str) {
+			var	o   = parseUri.options,
+				m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
+				uri = {},
+				i   = 14;
+
+			while (i--) uri[o.key[i]] = m[i] || "";
+
+			uri[o.q.name] = {};
+			uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+				if ($1) uri[o.q.name][$1] = $2;
+			});
+
+			return uri;
+		};
+
+		parseUri.options = {
+			strictMode: false,
+			key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+			q:   {
+				name:   "queryKey",
+				parser: /(?:^|&)([^&=]*)=?([^&]*)/g
+			},
+			parser: {
+				strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+				loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+			}
+		};
+		
+		// Dump function. Use like you would with cfdump.
+	
 		// function to dump out a a javascript object.
 		function mydump(arr,level) {
 			var dumped_text = "";

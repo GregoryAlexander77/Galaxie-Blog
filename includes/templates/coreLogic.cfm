@@ -1,4 +1,4 @@
-	<!---Note: this is already put inside of a cfsilent tag on the index.cfm page --->
+	<!--- Note: this is already put inside of a cfsilent tag on the index.cfm page --->
 		
 	<!--- //**************************************************************************************************************
 			Create custom security token keys
@@ -91,20 +91,22 @@
 
 			<!--- Categories. --->
 			<cfif getPageMode() eq "category">
-				<!--- can be a list --->
+				<!--- This might be a list --->
 				<cfset additionalTitle = "">
-				<cfloop index="cat" list="#url.categoryId#">
-				<!---<cftry>--->
-					<cfset additionalTitle = additionalTitle & ": " & application.blog.getCategory(cat).categoryname>
-					<!---<cfcatch></cfcatch>--->
-				<!---</cftry>--->
+				<cfset categoryLoopCount = "1">
+				<cfloop index="thisCategoryId" list="#URL.categoryId#">
+					<cfset getTitle = application.blog.getCategory(thisCategoryId)>
+					<cfset additionalTitle = additionalTitle & ": " & getTitle[1]['Category']>
+					<cfset categoryLoopCount = categoryLoopCount + 1>
 				</cfloop>
+				<!--- Reset the loop count to an empty string --->
+				<cfset categoryLoopCount = "">
 
-				<!--- Add the short category to the Title if the user is viewing the categories --->
+				<!--- Add the category to the Title if the user is viewing the categories --->
 				<cfif additionalTitle neq "">
-					<cfset titleMetaTagValue = titleMetaTagValue & ": " & additionalTitle>
+					<cfset titleMetaTagValue = titleMetaTagValue & additionalTitle>
 				</cfif>
-
+				
 			<!--- We're reading a single post. We're going to change the title to be the title of the post here.  --->
 			<cfelseif getPageMode() eq "post">
 

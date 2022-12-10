@@ -8,6 +8,9 @@
 	Note: we turned off setClientCookies in the previous versions, however, when it is turned off in CF 2021, the sessionId increments everytime a window is open and the crsfToken changes which is breaking things.
 	--->
 	<cfset this.setClientCookies = true />
+		
+	<!--- Turn off script protection on the admin site to allow authors to use scripts in the posts --->
+	<cfset this.scriptProtect = "none">
 
 	<cffunction name="OnRequestStart">
 		
