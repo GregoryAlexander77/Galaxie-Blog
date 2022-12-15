@@ -781,6 +781,8 @@ TinyMce styles
 						).done(function () {
 						// Do nothing
 					});
+
+
 				}
 			});
 		});//...document.ready
@@ -2840,6 +2842,7 @@ TinyMce styles
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
 	  <!---After the first row, the content class should be the current class. --->
@@ -5411,6 +5414,7 @@ Custom element markup example for videos:
 				<tr>
 					<td colspan="2"> 
 						<p>Type in a location or address in the location form to drop a pin. An autosuggest will appear below the location input to help you select the proper location.</p>
+
 						<p>You can also use the map controls to the right to customize the map type (road, arial, etc) and set the zoom. If you want a different location pin, indicate the path to the image in the field below.</p> 
 						<p>If the location is a city, state, or region, you can highlight the location by clicking on the highlight checkmark below. When you're satisfied with the look and feel of the map, click on the submit button below.</p>
 					</td>
@@ -10706,6 +10710,7 @@ Custom element markup example for videos:
 				kendo.ui.ExtWaitDialog.hide();
 				// Display the error. The full response is: jqXHR.responseText, but we just want to extract the error.
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveBlogOptions function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
+
 					).done(function () {
 					
 				});		
@@ -12842,6 +12847,14 @@ Custom element markup example for videos:
 			
 <cfcase value="40">
 	
+	<!--- The application.dbBlogVersion was not set until version 3.12 --->
+	<cfif not isDefined("application.dbBlogVersion")>
+		<cfset dbBlogVersion = 3>
+	<cfelse>
+		<cfset dbBlogVersion = application.dbBlogVersion>
+	</cfif>
+	<cfset fileSystemBlogVersion = application.blog.getVersion()>
+	
 	<style>
 		#recentVersionCheck {
 			width:100%;
@@ -12850,23 +12863,13 @@ Custom element markup example for videos:
 	
 	<script>
 		// Get the summary information
-		$("#summary").html("<p>Checking to see if your blog is up to date. Please wait.</p>").load("latestVersionCheck.cfm?type=summary&version=<cfoutput>#application.blog.getVersion()#</cfoutput>", function() {
+		$("#upgradeDetails").html("<p>Checking to see if your blog is up to date. Please wait.</p>").load("latestVersionCheck.cfm?version=<cfoutput>#fileSystemBlogVersion#</cfoutput>&dbBlogVersion=<cfoutput>#dbBlogVersion#</cfoutput>", function() {
 		});
-		
-		// Get the details
-		$("#upgradeDetails").html("<p>Retrieving details....</p>").load("latestVersionCheck.cfm?type=detail&version=<cfoutput>#application.blog.getVersion()#</cfoutput>");
-	</script>
-	<!---#application.blog.getVersion()#--->
+	</script>	
 	
 	<table id="recentVersionCheck" class="k-content" width="100%" cellpadding="0" cellspacing="0" border="0">
-	  <tr align="left">
-		<td style="height: 25px;">
-		  <span id="summary"></span>
-		</td>
-	  </tr>
 	  <tr class="k-alt">
-		<td>
-		  <span id="upgradeDetails"></span>
+		  <span id="upgradeDetails" style="display: inline-block; width: 100%"></span>
 		</td>	
 	  </tr>
 	</table><br/>

@@ -5445,6 +5445,7 @@
 			hint="Updates the Post.JsonLd column in the database with a Json Ld string">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="postId" default="" required="true">
+
 		<cfargument name="jsonLd" default="string" required="true" hint="Pass in the Json LD string">
 			
 		<!--- Verify the token --->
@@ -5978,6 +5979,58 @@
 		<cfreturn serializeJSON( response )>
 			
 	</cffunction>
+						
+	<!---******************************************************************************************************
+		Update DB
+	*******************************************************************************************************--->
+				
+	<cffunction name="updateDb" access="remote" output="true" returnFormat="json"
+			hint="This function updates the database to a new version">
+		<cfargument name="blogVersion" required="true">
+		<cfargument name="csrfToken" required="true">
 			
+		<!--- Set the default response object.--->
+		<cfset response = {} />
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON(false)>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditServerSetting')>
+			
+		<cfif application.Udf.isLoggedIn()>
+			
+			<!--- Determine what tables to update based upon the verson --->
+			<cfif arguments.blogVersion eq '3.12'>
+				<!--- Update all of the records in the Font table --->
+				<cfinvoke component="#application.blog#" method="updateDb" returnvariable="success">
+					<cfinvokeargument name="tablesToPopulate" value="Font">
+					<cfinvokeargument name="updateRecords" value="true">
+				</cfinvoke>
+						
+				<!--- Only insert the new Joshua Tree records into the Theme related tables. --->
+				<cfinvoke component="#application.blog#" method="updateDb" returnvariable="success">
+					<cfinvokeargument name="tablesToPopulate" value="Theme">
+					<cfinvokeargument name="updateRecords" value="false">
+				</cfinvoke>
+					
+				<!--- Update the version --->
+				<cfinvoke component="#application.blog#" method="updateBlogVersion" returnvariable="success">
+					<cfinvokeargument name="blogVersion" value="3.12">
+					<cfinvokeargument name="blogVersionName" value="Galaxie Blog 3.12">
+				</cfinvoke>
+
+			</cfif><!---<cfif arguments.blogVersion eq '3.12'>--->
+					
+		</cfif>
+	
+		<cfreturn true>
+			
+	</cffunction>
+						
 </cfcomponent>
 	
