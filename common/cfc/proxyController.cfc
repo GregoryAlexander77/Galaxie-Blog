@@ -1,4 +1,4 @@
-<cfcomponent displayName="ProxyController" output="true" hint="The proxy between the client and the backend blog cfc.">
+<cfcomponent displayName="ProxyController" output="true" hint="The proxy between the client and the backend blog cfc."> 
 	
 <!--- 
 	*************************************************************************************************************

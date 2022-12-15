@@ -1,4 +1,4 @@
-<cfsetting enablecfoutputonly=true>
+<cfsetting enablecfoutputonly=true> 
 <cfprocessingdirective pageencoding="utf-8">	
 <!--- Note: we are starting from version one and moving towards the latest version --->
 <!--- Important note: this must have a cfoutput tag to render --->

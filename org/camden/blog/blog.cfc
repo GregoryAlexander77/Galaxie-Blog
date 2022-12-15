@@ -1,4 +1,4 @@
-<cfcomponent displayName="Blog" output="yes" hint="Galaxie Blog's main cfc. Handles database and other system functions. Originally written by Raymond Camden">
+<cfcomponent displayName="Blog" output="yes" hint="Galaxie Blog's main cfc. Handles database and other system functions. Originally written by Raymond Camden"> 
 
 	<!--- Load utils immidiately. --->
 	<cfset variables.utils = createObject("component", "utils")>
