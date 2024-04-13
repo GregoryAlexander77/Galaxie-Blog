@@ -18,7 +18,7 @@
  * One line from MikeD
  *
  * @author Raymond Camden (ray@camdenfamily.com)
- * @version 1, June 23, 2005
+ * @version 2, Jan 21, 2005 (19 years after it was released)
  * 
  */ 
 function parseMySES() {
@@ -33,6 +33,13 @@ function parseMySES() {
 	if (theLen is 1) {
 			urlVars = replace(urlVars, "/","");
 			r.categoryName = urlVars;	
+			return r;
+	}
+	
+	// handles tags
+	if (theLen is 2 and urlVars contains "tag") {
+			urlVars = replace(urlVars, "/tag/","");
+			r.tagName = urlVars;	
 			return r;
 	}
 	
@@ -52,8 +59,7 @@ function parseMySES() {
 </cfscript>
 
 <!--- Try to load my info from the URL ... --->
-<cfset sesInfo = parseMySES()>
-<!---<cfdump var="#sesInfo#">--->
+<cfset sesInfo = parseMySES()> 
 
 <!--- I don't have the right info, so we are outa here! --->
 <cfif structIsEmpty(sesInfo)>
@@ -74,6 +80,16 @@ function parseMySES() {
 			<cfset url.categoryId = getCategory[1]["CategoryId"]>
 		</cfif>
 	</cfif>
+			
+<!--- We have a tag --->
+<cfelseif structKeyExists(sesInfo, "tagName")>
+	
+	<!--- Set the URL mode, get the tagId and save it. --->
+	<cfset getTag = application.blog.getTag(TagAlias=sesInfo.tagName)>
+	<cfif arrayLen(getTag) and len(getTag[1]["TagId"])>
+		<cfset url.mode = "tag">
+		<cfset url.tagId = getTag[1]["TagId"]>
+	</cfif>
 	
 <!--- We have a blog poster/user/author --->
 <cfelseif structKeyExists(sesInfo, "postedby")>
@@ -83,6 +99,7 @@ function parseMySES() {
 		<cfset username = application.blog.getUserByName(sesInfo.postedby)>
 		<cfif len(username)>
 			<cfset url.mode = "postedby">
+			<cfset URL.authorName = sesInfo.postedby>
 			<cfset url.postedby = username>
 		</cfif>
 	</cfif>

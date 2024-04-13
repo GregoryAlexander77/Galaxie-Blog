@@ -1,4 +1,4 @@
-<cfset accentColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'accentColor')>
+<cfset accentColor = "application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'accentColor')">
 <style>
 @charset "UTF-8";
 .uppy-Root {

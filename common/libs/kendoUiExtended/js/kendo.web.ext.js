@@ -608,8 +608,9 @@
                 }
 
                 options = $.extend({
-                    width: "300px",
-                    height: "100px",
+					// Gregory changed the width from 300 to 375 and the height was changed from 100 to 175.
+                    width: "375px",
+                    height: "175px",
                     buttons: [{
                         name: "OK",
                         click: function (e) {
@@ -651,8 +652,8 @@
                 }
 
                 options = $.extend({
-                    width: "300px",
-                    height: "100px",
+                    width: "380px",
+                    height: "175px",
                     buttons: [{
                         name: "OK",
                         click: function (e) {
@@ -697,7 +698,7 @@
 
                 options = $.extend({
 					/* Gregory changed the height and width */
-                    width: "280px",
+                    width: "375px",
                     height: "175px",
                     buttons: [{
                         name: "Yes",
@@ -748,8 +749,8 @@
                 }
 
                 options = $.extend({
-                    width: "300px",
-                    height: "100px",
+                    width: "380px",
+                    height: "175px",
                     buttons: [{
                         name: "OK",
                         click: function (e) {
@@ -804,7 +805,7 @@
 
                 options = $.extend({
 					// Gregory changed the width from 300 to 375.
-                     width: "280px",
+                    width: "380px",
                     height: "175px",
                     modal: true,
                     visible: false,
@@ -814,6 +815,50 @@
                 $(document.body).append(kendo.format("<div id='extWaitDialog' style='position:relative;'><div style='position:absolute;left:10px;top:10px;' class='k-ext-wait'></div><div style='display:inline-block;margin-left:90px;'>{0}</div></div>", options.message));
                 $("#extWaitDialog").kendoWindow(options);
                 $("#extWaitDialog").parent().find("div.k-window-titlebar div.k-window-actions").empty();
+				// Note: you will get a cannot read properties of undefined message here if the dependencies are not included correcty or you need to put the function that calls this in a document read block.
+                $("#extWaitDialog").data("kendoWindow").center().open();
+
+                return deferred.resolve();
+            });
+        },
+
+        hide: function () {
+        	// Gregory Alexander added a try block as this was throwing an error when uploading files. This occurs if the event is finished before launching the ext dialog.
+        	try {
+            	$("#extWaitDialog").data("kendoWindow").close(); 
+        	}
+        	catch(e){
+        		error = "Can't find window. It has not launched yet.";
+        	}
+        }
+    };
+	
+	/*
+     *
+     * WaitDialogMobile
+     *
+     */
+
+	 kendo.ui.ExtWaitDialogMobile = {
+        show: function (options) {
+            return new $.Deferred(function (deferred) {
+                if ($("#extWaitDialog").length > 0) {
+                    $("#extWaitDialog").parent().remove();
+                }
+
+                options = $.extend({
+					// Gregory changed the width from 300 to 275 for mobile clients.
+                    width: "275px",
+                    height: "175px",
+                    modal: true,
+                    visible: false,
+                    message: ""
+                }, options);
+				// Gregory changed <div style='display:inline-block;margin-left:35px;'> to <div style='display:inline-block;margin-left:90px;'>
+                $(document.body).append(kendo.format("<div id='extWaitDialog' style='position:relative;'><div style='position:absolute;left:10px;top:10px;' class='k-ext-wait'></div><div style='display:inline-block;margin-left:90px;'>{0}</div></div>", options.message));
+                $("#extWaitDialog").kendoWindow(options);
+                $("#extWaitDialog").parent().find("div.k-window-titlebar div.k-window-actions").empty();
+				// Note: you will get a cannot read properties of undefined message here if the dependencies are not included correcty or you need to put the function that calls this in a document read block.
                 $("#extWaitDialog").data("kendoWindow").center().open();
 
                 return deferred.resolve();

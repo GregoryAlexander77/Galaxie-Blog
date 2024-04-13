@@ -45,6 +45,7 @@
 	<cfproperty name="BlogNameTextColor" ormtype="string" default="" length="20">
 	<cfproperty name="BlogNameFontSize" ormtype="int" default="28">
 	<cfproperty name="BlogNameFontSizeMobile" ormtype="int" default="20">
+	<cfproperty name="DisplayBlogName" ormtype="boolean" default="true">
 	<!--- Footer --->
 	<cfproperty name="FooterImage" ormtype="string" default="" length="255">
 	<!--- Are webp image formats included? --->

@@ -1,8 +1,9 @@
 <!---
-	Name         : c:\projects\blog\client\tags\getmode.cfm
+	Name         : blog\client\tags\getmode.cfm
 	Author       : Raymond Camden/Gregory Alexander
 	Created      : 02/09/06
 	History      : Check GitHub
+This tag sets the params that are sent to the getPost query. 
 --->
 <cfparam name="url.mode" default="">
 <cfparam name="attributes.r_params" type="variableName">
@@ -13,7 +14,7 @@
 	  Plus if folks don't like this, they can just get rid of it.
 	  Of course, the Blog makes use of it... but I'll worry about that later.
 --->
-<cfmodule template="parseses.cfm" />
+<cfmodule template="parseses.cfm" /> 
 
 <!--- //******************************************************************************************************************
 			Set the start row for pagination
@@ -30,7 +31,7 @@
 </cfif>
 	
 <cfset params.startrow = url.startrow>
-<!--- This will be reset to 1 when in alias or entry mode. --->
+<!--- Preset the maxEntries var. This will be reset to a higher value when looking at categorys or reset to 1 when in alias or entry mode. --->
 <cfset params.maxEntries = application.maxEntries>
 
 <!--- //******************************************************************************************************************
@@ -64,6 +65,9 @@
 	<cfset year = val(url.year)>
 <cfelseif url.mode is "category" and isDefined("url.categoryId")>
 	<cfset params.byCat = url.categoryId>
+	<!--- Since version 3.5ish, the blog now shows the posts as a card when in category or tag mode. Since the posts are condensed, we can show more of the posts. --->
+<cfelseif url.mode is "tag" and isDefined("url.tagId")>
+	<cfset params.byTag = url.tagId>
 <cfelseif url.mode is "postedby" and isDefined("url.postedby")>
 	<cfset params.byPosted = url.postedby>
 <cfelseif url.mode is "search" and (isDefined("form.search") or isDefined("url.search"))>
@@ -80,11 +84,11 @@
 <cfelseif url.mode is "alias" and isDefined("url.alias") and len(trim(url.alias))>
 	<cfset params.byAlias = url.alias>
 <cfelse>
-	<cfset url.mode = "">
+	<cfset url.mode = "full">
 </cfif>
 
 <!--- If user is logged in an has an admin role, then show all entries --->
-<cfif IsUserInRole("admin") and structKeyExists(url, "adminview") and url.adminview>
+<cfif application.Udf.isLoggedIn() and structKeyExists(url, "adminview") and url.adminview>
 	<cfset params.releasedonly = false />
 <!---// Ensures admins wont see unreleased on main page. //--->
 <cfelse>

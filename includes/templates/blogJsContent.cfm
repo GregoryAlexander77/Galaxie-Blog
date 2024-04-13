@@ -303,6 +303,20 @@
 			return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 		}
 		
+		// Method to create a notification. -------------------------------------------------------   
+        function createNotification( template, vars, opts, processId ){
+            return $container.notify("create", template, vars, opts);
+        }
+        
+        // Function to initialize a notifcation. 
+        $(function(){
+            // initialize widget on a container, passing in all the defaults.
+            // the defaults will apply to any notification created within this
+            // container, but can be overwritten on notification-by-notification
+            // basis.
+            $container = $("#notification").notify(); 
+        });
+		
 <cfif arrayLen(getCustomWindows)>		
 		// Custom windows --------------------------------------------------------------------------
 		
@@ -315,7 +329,7 @@
 		<cfset customWindowName = getCustomWindows[i]['WindowName']>
 		<cfset postId = getCustomWindows[i]['PostRef']>
 		</cfsilent>
-		// Is the customWindow URL parameter present and does it match a known window name?
+		<cfif i eq 1>// Is the customWindow URL parameter present and does it match a known window name?</cfif>
 		if (customWindow.length && customWindow == '<cfoutput>#customWindowName#</cfoutput>'){
 			// Open the custom window
 			createCustomInterfaceWindow(<cfoutput>#customWindowId#,#postId#</cfoutput>);
@@ -407,8 +421,13 @@
 				var windowHeight = "66%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
 			} else if (Id == 3){
+				/* This window is shared by the gallery and carousel */
 				var windowName = "galleryWindow";
-				var windowTitle = "Create Gallery";
+				if (otherArgs == "gallery"){
+					var windowTitle = "Create Gallery";
+				} else {
+					var windowTitle = "Create Carousel";
+				}
 				var windowHeight = "640px";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>732px</cfif>";
 			} else if (Id == 4){
@@ -626,6 +645,36 @@
 				var windowHeight = "70%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
 				var windowTitle = "Create Custom Window";
+			} else if (Id == 46){
+				var windowName = "postCssWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Post CSS";
+			} else if (Id == 47){
+				var windowName = "postJavaScriptWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Post JavaScript";
+			} else if (Id == 48){
+				var windowName = "visitorLogWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Visitor Logs";
+			} else if (Id == 49){
+				var windowName = "addTagWindow";
+				var windowHeight = "33%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>33%</cfif>";
+				var windowTitle = "Add Tag";
+			} else if (Id == 50){
+				var windowName = "tagGridWindow";
+				var windowTitle = "Tags";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowHeight = "<cfif session.isMobile>85%<cfelse>75%</cfif>%";
+			} else if (Id == 51){
+				var windowName = "carouselItemsWindow";
+				var windowTitle = "Carousel Images";
+				var windowHeight = "85%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
 			}
 			
 			// Remove the window if it already exists
@@ -886,7 +935,7 @@
 					commenterEmail: commenterEmail,
 					commenterWebSite: commenterWebSite,
 					comments: comments,
-					user: "<cfoutput>#getAuthUser()#</cfoutput>",
+					<!---user: "<cfoutput>#getAuthUser()#</cfoutput>", CF2023 Cache issue, replace this with application.blog.getUsersId() --->
 					ipAddress: "<cfoutput>#CGI.Remote_Addr#</cfoutput>",
 					httpUserAgent: "<cfoutput>#CGI.Http_User_Agent#</cfoutput>",
 					<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
@@ -1230,7 +1279,7 @@
 	<cfsilent>
 	<!--- End windows --->
 	
-	<!--- Fancybox custom script. This is used to place expanding thumnail images that take up very little space within the blog content. Use the following example and type this into the blog entry editor (in the admin section):
+	<!--- Fancybox and Kendo Panel Bar custom scripts. The panel bar is a fancy widget for the table of contents. Fancy Box is used to place expanding thumnail images that take up very little space within the blog content. Use the following example and type this into the blog entry editor (in the admin section):
 	<a class="fancybox-effects" href="/blog/doc/addThis/2addNewTool.png" data-fancybox-group="steps12" title="Add New Tool"><img src="/blog/doc/addThis/2addNewToolThumb.png" alt="" /></a>
 	I may build this functionality in with a new editor.
 	--->
@@ -1238,6 +1287,29 @@
 	<script type="<cfoutput>#scriptTypeString#</cfoutput>">
 	
 		$(document).ready(function() {
+		
+			// Create an accordian style panel for all table of contents. 
+			// Append a gtoc id to *all* ul elements inside a mce-toc class
+			try {
+				// Create a loop counter
+				var tocLoop = 0;
+				// Loop through all classes with mce-toc
+				$('.mce-toc').each(function(index,el){
+					// Find the ul
+					var selectedDiv = $(el).find('ul');
+					// Append the ul with a gtoc + loopCounter
+					selectedDiv =  selectedDiv.attr('id', 'gtoc' + tocLoop);
+
+					// Create the panel bar
+					$("#gtoc" + tocLoop).kendoPanelBar({
+						expandMode: "single"
+					});
+					// Increment the loop
+					tocLoop++;
+				});
+			} catch(err) {
+  				error = "Error generating Kendo Panel for TOC";
+			}
 			
 			// Load fancyBox */
 			$('.fancybox').fancybox();
@@ -1324,6 +1396,27 @@
 		// Helper function to determine if the numer is even or odd. This is used to create alternating row colors.
 		function isOdd(num) {
 			return num % 2;
+		}
+		
+		// Dom utilities
+		/* This function appends a value to a specified element in the DOM. Delimiter is optional and defaults to a comma */
+		function appendValueToElement(value,elementId,delimiter){
+			// Written by Gregory Alexander
+			// The delimiter is optional and defaults to a comma
+			if (delimiter == null){
+				var delimiter = ",";
+			}
+			
+			// Get the element
+			el = $("#" + elementId);
+			// Does the value contain anything?
+			if (el.val().length > 0){
+				// Append the new value to the existing form
+				el.val(el.val() + delimiter + value);
+			} else { 
+				// Insert the value into the empty form
+				el.val(value);
+			}
 		}
 		
 		// String utilities

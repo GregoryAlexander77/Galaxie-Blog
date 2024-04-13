@@ -40,11 +40,18 @@
 	<cfset imageList = listAppend(imageList, "/images/icons/comments.png")>
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
+	<!--- Categories --->
 	<cfset iconList = listAppend(iconList, 'Categories')>
 	<cfset titleList = listAppend(titleList, 'Categories')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(25);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/categories.png")>
 </cfif>	
+<cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
+	<cfset iconList = listAppend(iconList, 'Tags')>
+	<cfset titleList = listAppend(titleList, 'Tags')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(50);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/tags.png")>
+</cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditTheme')>
 	<cfset iconList = listAppend(iconList, 'Fonts')>
 	<cfset titleList = listAppend(titleList, 'Fonts')>
@@ -86,6 +93,13 @@
 	<cfset titleList = listAppend(titleList, 'Blog Updates')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(40);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/blogUpdates.gif")>
+</cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
+	<!---Visitor Log--->
+	<cfset iconList = listAppend(iconList, 'VisitorLog')>
+	<cfset titleList = listAppend(titleList, 'Visitor Log')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(48);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/visitorLog.gif")>
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
 	<cfset iconList = listAppend(iconList, 'ImportData')>

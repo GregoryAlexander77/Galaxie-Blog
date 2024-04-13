@@ -1,7 +1,7 @@
 <!doctype html>
 <!--- <cfdump var="#URL#" label="url"> --->
 <cfsilent>
-<!---There can be multiple arguments to get the file. We can get the full path from the URL, or extract it from the database using the MediaId like we do when we are using the tinymce editor in the administrative site. --->
+<!--- There can be multiple arguments to get the file. We can get the full path from the URL, or extract it from the database using the MediaId like we do when we are using the tinymce editor in the administrative site. --->
 
 <!--- If the mediaId is in the URL, get the file path from the database --->
 <cfparam name="URL.mediaId" default="">
@@ -17,6 +17,8 @@
 <cfparam name="URL.crossOrigin" default="false">
 <!--- We are using thumbnails on the admin edit post page --->
 <cfparam name="URL.thumbnail" default="false">
+<!--- Variable to remove the height attribute for kendo cards --->
+<cfparam name="URL.kcard" default="false">
 <!--- The kendo theme should be passed in if possible. We can get it later if it is not passed in. --->
 <cfparam name="URL.kendoTheme" default="">
 <!--- Set the default provider arg (local, vimeo or youtube) --->
@@ -90,7 +92,7 @@ mediaPlayer video {
 	<cfif provider eq 'youTube'>
 		<div class="k-content wide">
 			<div class="plyr__video-embed" id="mediaPlayer">
-				<iframe
+				<iframe title="media player"
 					width="<cfoutput>#width#</cfoutput>"
 					height="<cfoutput>#height#</cfoutput>"
 					src="https://www.youtube.com/embed/<cfoutput>#URL.providerVideoId#</cfoutput>?origin=<cfoutput>#application.blogHostUrl#</cfoutput>&iv_load_policy=3&modestbranding=1&playsinline=1&showinfo=0&rel=0&enablejsapi=1"
@@ -103,7 +105,7 @@ mediaPlayer video {
 	<cfelseif provider eq 'vimeo'>
 		<div class="k-content wide">
 			<div class="plyr__video-embed" id="mediaPlayer">
-				<iframe
+				<iframe title="media player"
 					width="<cfoutput>#width#</cfoutput>"
 					height="<cfoutput>#height#</cfoutput>"
 					src="https://player.vimeo.com/video/<cfoutput>#providerVideoId#</cfoutput>?loop=false&byline=false&portrait=false&title=false&speed=true&transparent=0&gesture=media"
@@ -115,14 +117,18 @@ mediaPlayer video {
 		</div>
 	<cfelse>
 		<video 
+			<cfif not URL.kcard>
 			width="<cfoutput>#width#</cfoutput>"
 			height="<cfoutput>#height#</cfoutput>"
+			<cfelse>
+			width="<cfoutput>100%</cfoutput>"
+			</cfif>
 			controls
 			<cfif URL.crossOrigin eq true>crossorigin</cfif>
 			playsinline
 			<cfif posterUrl neq "">poster="<cfoutput>#URL.posterUrl#</cfoutput></cfif>"
 			id="player"
-			 onDblClick="createAdminInterfaceWindow(14, '<cfoutput>#URL.mediaId#</cfoutput>');">
+			onDblClick="createAdminInterfaceWindow(14, '<cfoutput>#URL.mediaId#</cfoutput>');">
 			<!-- Video files -->
 			<!-- 1280x720 --->
 			<source

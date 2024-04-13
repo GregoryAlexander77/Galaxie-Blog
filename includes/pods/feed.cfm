@@ -25,7 +25,7 @@
 	<table align="center" class="k-content fixedPodTableWithWrap" width="100%" cellpadding="7" cellspacing="0">
 	<cftry>
 		<cfsilent>
-		<cfset theURL = "https://gregoryalexander.com/cfblogs/rss.cfm">
+		<cfset theURL = "https://www.cfblogs.org/rss.cfm">
 		<cfhttp url="#theURL#" timeout="5">
 		<cfset xml = xmlParse(cfhttp.filecontent)>
 		<cfset items = xmlSearch(xml, "//*[local-name() = 'item']")>

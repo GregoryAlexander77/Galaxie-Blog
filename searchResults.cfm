@@ -27,7 +27,7 @@
 </cfif>
 	
 <cfset params.startrow = URL.start>
-<cfset params.maxEntries = application.maxEntries>
+<cfset params.maxEntries = 50>
 <!--- Only get released items --->
 <cfset params.releasedonly = true />
 
@@ -77,42 +77,55 @@ There <cfif arrayLen(results) eq 1>was one result<cfelse>were #arrayLen(results)
 		<!--- Remove the XML and google structured content from the post between the postData tag --->
 		<cfset newBody = StringUtilsObj.removeTag(str=body, tag='postData')>
 		<!--- Now, remove the html from result. --->
-		<cfset newbody = reReplace(newBody, "<.*?>", "", "all")>	
-		<!--- Now use JSoup to get the text. This is duplicate logic but it should remove any and all HTML artifacts. --->
+		<cfset newbody = reReplace(newBody, "<.*?>", "", "all")>
+		<!--- Now use JSoup to get the wholeText with lines preserved. --->
 		<cfset newBody = JsoupObj.jsoupConvertHtmlToText(newbody)>
+			
 		<!--- highlight search terms --->
-		<!--- Raymonds comments: Before we "highlight" our matches in the body, we need to find the first match. We will create an except that begins 250 before and ends 250 after. This will give us slightly different sized excerpts, but between you, me, and the door, I think thats ok. It is also possible the match isn't in the entry but just the title. --->
+		<!--- Raymonds comment (the rest our mine): Before we "highlight" our matches in the body, we need to find the first match. We will create an except that begins 250 before and ends 250 after. This will give us slightly different sized excerpts, but between you, me, and the door, I think thats ok. It is also possible the match isn't in the entry but just the title. --->
 		<cfset match = findNoCase(searchTerm, newbody)>
+			
+		<!--- If the search term is in the first 250 characters, set the match var to 1 --->
 		<cfif match lte 250>
 			<cfset match = 1>
 		</cfif>
+		<!--- Set the end string. This will either be a 1 or something over 250 --->
 		<cfset end = match + len(searchTerm) + 500>
 
+		<!--- Is the body of the string greater than 500? --->
 		<cfif len(newbody) gt 500>
 			<cfif match gt 1>
+				<!--- The excerpt will be the occurance of the match minus 250 chars and the end of the string minus the match. --->
 				<cfset excerpt = "..." & mid(newbody, match-250, end-match)>
 			<cfelse>
+				<!--- Set the excerpt for strings less than 250 chars --->
 				<cfset excerpt = left(newbody,end)>
 			</cfif>
+				
+			<!--- Put an elipisis at the end of the string --->
 			<cfif len(newbody) gt end>
 				<cfset excerpt = excerpt & "...">
 			</cfif>
+	
 		<cfelse>
 			<cfset excerpt = newbody>
 		</cfif>	
+			
+		<!--- For safety, now clean any html from the excerpt with lines preserved (using jSoups wholeText method) --->
+		<cfset excerpt = JsoupObj.jsoupConvertHtmlToText(excerpt)>
 
 		<!---
 		We switched to regular expressions to highlight our search terms. However, it is possible for someone to search 
 		for a string that isn't a valid regex. So if we fail, we just don't bother highlighting. (RC)
 		--->
 		<cftry>
-			<cfset excerpt = reReplaceNoCase(excerpt, "(#searchTerm#)", "<span class='k-primary'>\1</span>","all")>
 			<cfset newtitle = reReplaceNoCase(title, "(#searchTerm#)", "<span class='k-primary'>\1</span>","all")>
 			<cfcatch>
-				<!--- only need to set newtitle, excerpt already exists (RC). --->
+				<!--- Set the title. --->
 				<cfset newtitle = title>
 			</cfcatch>
 		</cftry>
+		<cfset excerpt = reReplaceNoCase(excerpt, "(#searchTerm#)", "<span class='k-primary'>\1</span>","all")>
 		</cfsilent>
 		
 		<span id="blogContentContainer">
@@ -140,32 +153,15 @@ There <cfif arrayLen(results) eq 1>was one result<cfelse>were #arrayLen(results)
 				</tr>
 			</table>
 
-		<!--- End the div and create a new div for every record. --->
-		<cfif i neq arrayLen(results)>
+	<!--- End the div and create a new div for every record. --->
+	<cfif i lt arrayLen(results)>
 		</div><!-- <div id="blogPost" class="widget k-content"> -->
 
 		<div id="blogPost" class="widget k-content">
-		</cfif>
+	</cfif>
 
 	</cfloop>
-	<!---<cfif results.totalEntries gte url.start + application.maxEntries>
-		<p align="right">
-		<cfif url.start gt 1>
-			<a href="search.cfm?search=#urlEncodedFormat(searchTerm)#&amp;category=#category#&amp;start=#url.start-application.maxEntries#" class="k-content">Previous Results</a>
-		<cfelse>
-			Previous Entries
-		</cfif>
-		-
-		<cfif (url.start + application.maxEntries-1) lt results.totalEntries>
-			<a href="search.cfm?search=#urlEncodedFormat(searchTerm)#&amp;category=#category#&amp;start=#url.start+application.maxEntries#" class="k-content">Next Results</a>
-		<cfelse>
-			Next Entries
-		</cfif>
-		</p>
-	</cfif>--->
 </cfif>
 	
 </cfif>
 </cfoutput>
-	
-

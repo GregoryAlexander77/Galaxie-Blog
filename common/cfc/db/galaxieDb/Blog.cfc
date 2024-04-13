@@ -1,6 +1,8 @@
 <cfcomponent displayName="Blog" persistent="true" table="Blog" output="no" hint="ORM logic for the new Blog table">
 	
 	<cfproperty name="BlogId" fieldtype="id" generator="native" setter="false">
+	<!--- Many blog types to one blog --->
+	<cfproperty name="BlogTypeRef" ormtype="int" fieldtype="many-to-one" cfc="BlogType" fkcolumn="BlogTypeRef" cascade="all" missingrowignored="true" hint="Foreign Key to the BlogType.BlogTypeId" default="1">
 	<cfproperty name="BlogName" ormtype="string" length="50" default="">
 	<cfproperty name="BlogTitle" ormtype="string" length="75" default="">
 	<cfproperty name="BlogUrl" ormtype="string" length="255" default="">

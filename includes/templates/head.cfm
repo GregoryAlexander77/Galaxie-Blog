@@ -1,3 +1,4 @@
+<cfsilent>
 <!--- Debugging --->
 <!---<cfoutput>#application.Udf.isLoggedIn()#</cfoutput>--->
 <!---<cfdump var="#URL#" label="URL">--->
@@ -6,7 +7,7 @@
 <!---<cfdump var="#URL.mode#" label="URL.mode">--->
 <!---<cfdump var="#getPageMode()#" label="getPageMode()">--->
 <!---<cfdump var="#titleMetaTagValue#" label="titleMetaTagValue">--->
-<cfsilent>
+
 <!--- Default values. This is only needed when the post does not exist. --->
 <cfparam name="addSocialMediaUnderEntry" default="false">
 	
@@ -192,6 +193,10 @@
 	  src="#application.jQueryCDNPath#"
 	  crossorigin="anonymous"></script>
 </cfif>
+	<!-- Load jQuery UI via CDN (for notification script) -->
+	<script type="#scriptTypeString#" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1/jquery-ui.js" ></script>
+	<!-- Load the notify script -->
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/jQuery/jQueryNotify/src/jquery.notify.js"></script>
 <cfsilent>
 <!--- The Kendo css locations are set in the includes/templates/pageSettings.cfm template and use the Kendo folder path when using Kendo commercial. Otherwise they point to the embedded Kendo Core package. --->
 </cfsilent>	
@@ -254,15 +259,15 @@
 	<script type="#scriptTypeString#">
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#/common/libs/plyr/themeCss/#kendoTheme#.css') );
 	</script>
-	<cfif addSocialMediaUnderEntry><!-- Go to www.addthis.com/dashboard to customize your tools --> 
-	<script type="#scriptTypeString#" src="//s7.addthis.com/js/300/addthis_widget.js#chr(35)#pubid=#application.addThisApiKey#"></script></cfif>
+	<cfif addSocialMediaUnderEntry><!-- Add this is depracated as of May 2023 --></cfif>
 <cfif arrayLen(getPost) and getPost[1]['LoadScrollMagic'] and application.includeGsap>
 	<!-- Scroll magic and other green sock plugins. -->
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/greenSock/src/uncompressed/TweenMax.js"></script>
+	<!--- Note: using the minified version of scrollmagic causes issues- the text is not displayed --->
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/uncompressed/ScrollMagic.js"></script>
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/uncompressed/plugins/animation.gsap.js"></script>
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/greenSock/src/uncompressed/plugins/ScrollToPlugin.js"></script>
-	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/uncompressed/plugins/debug.addIndicators.js"></script>
+	<!---<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/uncompressed/plugins/debug.addIndicators.js"></script>--->
 </cfif></cfoutput>
 				
 <script>

@@ -11,10 +11,9 @@
 		<cfset hoverBorderColor = "4d4d4d">
 		<cfset textColor = "ffffff">
 		<cfset selectedTextColor = "ffffff">
-		<cfset headerBorderColor = "2a2a2a">
-		<cfset contentBgColor = "555">
+		<cfset contentBgColor = "4d4d4d">
 		<cfset contentBorderColor = "000">
-		<cfset alternateBgColor = "4D4D4D">
+		<cfset alternateBgColor = "555">
 		<cfset error = "db4240">
 		<cfset warning = "ffc000">
 		<cfset success = "37b400">
@@ -31,7 +30,6 @@
 		<cfset hoverBorderColor = "3d3d3d">
 		<cfset textColor = "000">
 		<cfset selectedTextColor = "fff">
-		<cfset headerBorderColor = "a3d0e4"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "d9ecf5"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "a3d0e4"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "f5f5f5"><!---.k-status{background-color:#f5f5f5}--->
@@ -51,7 +49,6 @@
 		<cfset hoverBorderColor = "333333">
 		<cfset textColor = "333333">
 		<cfset selectedTextColor = "333333">
-		<cfset headerBorderColor = "dfdfdf">
 		<cfset contentBgColor = "ffffff">
 		<cfset contentBorderColor = "dfdfdf">
 		<cfset alternateBgColor = "ebebeb">
@@ -71,7 +68,6 @@
 		<cfset hoverBorderColor = "3d3d3d">
 		<cfset textColor = "000">
 		<cfset selectedTextColor = "fff">
-		<cfset headerBorderColor = "c5c5c5"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "d5d5d5"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "f5f5f5"><!---.k-status{background-color:#f5f5f5}--->
@@ -91,7 +87,6 @@
 		<cfset hoverBorderColor = "3d3d3d">
 		<cfset textColor = "000">
 		<cfset selectedTextColor = "fff">
-		<cfset headerBorderColor = "606572"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "fff"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "F5F5F5"><!---.k-status{background-color:#f5f5f5}--->
@@ -111,7 +106,6 @@
 		<cfset hoverBorderColor = "3d3d3d">
 		<cfset textColor = "ffffff">
 		<cfset selectedTextColor = "fff">
-		<cfset headerBorderColor = "674c63"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "2c232b"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "674c63"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "1b141a"><!---.k-status{background-color:#f5f5f5}--->
@@ -131,7 +125,6 @@
 		<cfset hoverBorderColor = "3d3d3d">
 		<cfset textColor = "000">
 		<cfset selectedTextColor = "fff">
-		<cfset headerBorderColor = "e6e6e6"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "e6e6e6"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "f5f7fa"><!---.k-status{background-color:#f5f5f5}--->
@@ -151,7 +144,6 @@
 		<cfset hoverBorderColor = "3d3d3d">
 		<cfset textColor = "fff">
 		<cfset selectedTextColor = "fff">
-		<cfset headerBorderColor = "505050"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "363636"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "4d4d4d"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "393a3b"><!---.k-status{background-color:#f5f5f5}--->
@@ -171,7 +163,6 @@
 		<cfset hoverBorderColor = "3d3d3d">
 		<cfset textColor = "000">
 		<cfset selectedTextColor = "fff">
-		<cfset headerBorderColor = "dbdbdb"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "dbdbdb"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "F5F5F5"><!---.k-status{background-color:#f5f5f5}--->
@@ -191,7 +182,6 @@
 		<cfset hoverBorderColor = "3d3d3d">
 		<cfset textColor = "fff">
 		<cfset selectedTextColor = "000">
-		<cfset headerBorderColor = "3E454F"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "424550"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "232d36"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "494C58"><!---.k-status{background-color:#f5f5f5}--->
@@ -211,7 +201,6 @@
 		<cfset hoverBorderColor = "FAFAFA">
 		<cfset textColor = "000">
 		<cfset selectedTextColor = "000">
-		<cfset headerBorderColor = "e0e0e0"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "FAFAFA"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "FAFAFA"><!---.k-status{background-color:#f5f5f5}--->
@@ -231,7 +220,6 @@
 		<cfset hoverBorderColor = "c9c9c9">
 		<cfset textColor = "000">
 		<cfset selectedTextColor = "000">
-		<cfset headerBorderColor = "ffff0"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "ffff0"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "FAFAFA"><!---.k-status{background-color:#f5f5f5}--->
@@ -245,13 +233,12 @@
 		<cfset buttonAccentColor = "0066cc">
 		<cfset accentColor = "1984c8">
 		<cfset baseColor = "fff">
-		<cfset headerBgColor = "FAFAFA">
+		<cfset headerBgColor = "f3f3f4">
 		<cfset headerTextColor = "000">
 		<cfset hoverBgColor = "b6bdca">
 		<cfset hoverBorderColor = "F6F6F6">
 		<cfset textColor = "000">
 		<cfset selectedTextColor = "fff">
-		<cfset headerBorderColor = "ceced2"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "f3f3f4"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "dedee0"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "f5f5f5"><!---.k-status{background-color:#f5f5f5}--->
@@ -271,7 +258,6 @@
 		<cfset hoverBorderColor = "F6F6F6">
 		<cfset textColor = "000">
 		<cfset selectedTextColor = "000">
-		<cfset headerBorderColor = "F6F6F6"><!--- in css: .k-separator{border-color:#c5c5c5} --->
 		<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:#eae8e8}--->
 		<cfset contentBorderColor = "dedee0"><!---k-textbox{border-color:#d5d5d5--->
 		<cfset alternateBgColor = "f5f5f5"><!---.k-status{background-color:#f5f5f5}--->
@@ -339,7 +325,7 @@
 	}
 
 	.jsgrid-grid-header {
-		background: #<cfoutput>#headerBorderColor#</cfoutput>;
+		background: #<cfoutput>#headerBgColor#</cfoutput>;
 		color: #<cfoutput>#textColor#</cfoutput>;
 	}
 

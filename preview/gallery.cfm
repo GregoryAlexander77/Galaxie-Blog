@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <!--- <cfdump var="#URL#" label="url"> --->
 <!---<cfsilent>--->
-<!--- Extract the media items for this media id. --->
+<!--- Extract the gallery. --->
 <cfparam name="URL.galleryId" default="">
 <cfparam name="darkTheme" default="false">
 	
 <!--- Set the page --->
-<cfset pageId = 3>
+<cfset pageId = 4><!---Used to be 3--->
 <cfset pageName = "GalleryPreview"><!--- Galler Preview --->
 <cfset pageTypeId = 1>
 	

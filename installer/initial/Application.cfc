@@ -1,7 +1,6 @@
 <cfcomponent displayname="InitialInstaller" sessionmanagement="yes" clientmanagement="yes" output="true">
 	<cfset this.sessionManagement="yes"/>
 	<cfset this.enablerobustexception = true />
-	<cfset this.Name = "GalaxieBlogInitialInstaller" /> 
 	
 	<!--- Create a dummy blog name in session scope --->
 	<cfset session.blogName = "default">

@@ -52,7 +52,7 @@
 
 	<cfcase value="blogger.getUsersBlogs,metaWeblog.getUsersBlogs">
 		<cfset info = structNew()>
-		<cfset info["url"] = application.rooturl>
+		<cfset info["url"] = application.baseUrl>
 		<cfset info["blogid"] = "$string" & "1">
 		<cfset info["blogName"] = application.BlogDbObj.getBlogName()>
 		<cfset result = arrayNew(1)>
@@ -87,7 +87,7 @@
 				<cfif requestData.method is "metaWeblog.getCategories">
 					<cfset info["description"] = categoryname>
 					<cfset info["htmlUrl"] = "$string" & application.blog.makeCategoryLink(categoryid)>
-					<cfset info["rssUrl"] = "$string" & "#application.rootURL#/rss.cfm?mode=full&mode2=cat&catid=#categoryid#">
+					<cfset info["rssUrl"] = "$string" & "#application.baseUrl#/rss.cfm?mode=full&mode2=cat&catid=#categoryid#">
 					
 					<cfset info["title"] = categoryname>
 					<!--- Added to make it work in Mars Edit --->
@@ -456,7 +456,7 @@
 			<cffile action="write" output="#upFileData#" file="#destination#/#upFileName#" />
 
 			<cfset result = structNew() />
-			<cfset result["url"] = "$string" & "#application.rootURL#/enclosures/#upFileName#" />
+			<cfset result["url"] = "$string" & "#application.baseUrl#/enclosures/#upFileName#" />
 
 		<cfelse>
 		

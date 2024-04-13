@@ -40,7 +40,7 @@
 	</cffunction>
 				
 	<cffunction name="removeTag" access="public" output="true" returntype="string" 
-			hint="Removes everything between to tags. Used by the search results and rss templates. You should use this instead of the Jsoup functions to remove stuff between tags when you don't want JSoup to format the html including adding end tags for ColdFusion tags (ie <cfset x = 'foo'></cfset>)">
+			hint="Removes everything between two tags. Used by the search results and rss templates. You should use this instead of the Jsoup functions to remove stuff between tags when you don't want JSoup to format the html including adding end tags for ColdFusion tags (ie <cfset x = 'foo'></cfset>)">
 
 		<cfargument name="str" required="yes" hint="What is the string that you want parsed?">
 		<cfargument name="tag" required="yes" hint="What tag is to be removed?">
@@ -228,7 +228,8 @@
 				
 	</cffunction>
 			
-	<cffunction name="getTextFromBody" access="public" output="true" returntype="string" hint="Removes everything between postData tags and the HTML found in the post content. Used by the search results template.">
+	<cffunction name="getTextFromBody" access="public" output="true" returntype="string" 
+			hint="Removes everything between postData tags and the HTML found in the post content. Used by the search results template.">
 
 		<cfargument name="postContent" required="yes" hint="The post content is typically 'RendererObj.renderBody(body,enclosure)'.">
 			

@@ -1,4 +1,4 @@
-<cfcomponent displayName="Blog" output="yes" hint="Galaxie Blog's main cfc. Handles database and other system functions. Originally written by Raymond Camden"> 
+<cfcomponent displayName="Blog" output="yes" hint="Galaxie Blog's main cfc. Handles database and other system functions. Originally written by Raymond Camden">
 
 	<!--- Load utils immidiately. --->
 	<cfset variables.utils = createObject("component", "utils")>
@@ -12,9 +12,9 @@
 	//******************************************************************************************--->
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "3.12" />
-	<cfset versionName = "3.12 (Toby's Edition)" />
-	<cfset versionDate =  "December 10th 2022"> 
+	<cfset version = "3.57" />
+	<cfset versionName = "3.57 Gold (Toby's Edition)" />
+	<cfset versionDate =  "April 10th 2024"> 
 
 	<!--- Require version 9 or higher as we are using ORM --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>
@@ -119,6 +119,32 @@
 		<cfreturn this>
 
 	</cffunction>
+			
+	<!---//*****************************************************************************************
+		Check to see if ORM is loaded TODO
+	//******************************************************************************************--->
+			
+	<cffunction name="doOrmReload" access="public" output="false" returntype="boolean" 
+		hint="Since CF2021, there is an ORM related error that says 'org.hibernate.QueryException: could not resolve property: DisplayBlogName'. This error occurs daily for some odd reason, but is resolved when ORM is reloaded. Check the query to see if it throws an exception and reload ORM if the error occurs">
+		
+		<cfset reloadOrm = false>
+			
+		<cftry>
+			<cfquery name="Data" dbtype="hql">
+				SELECT new Map (
+					ThemeSettingRef.DisplayBlogName as DisplayBlogName
+				)
+				FROM 
+					Theme as Theme
+			</cfquery>
+			<cfcatch type="any">
+				<cfset reloadOrm = true>
+			</cfcatch>
+		</cftry>
+				
+		<cfreturn reloadOrm>
+		
+	</cffunction>
 					
 	<!---//*****************************************************************************************
 		Helper functions
@@ -210,6 +236,20 @@
 	</cffunction>
 			
 	<!---//*****************************************************************************************
+		User Information
+	//******************************************************************************************--->
+			
+	<cffunction name="getUsersId" access="public" returnType="numeric" output="true" hint="Gets the userId of the user when logged in. If the user is not logged in, will return a zero">
+		<!--- Determine if the user is logged in --->
+		<cfif structKeyExists(session,"userId")>
+			<cfset usersId = session.userId>
+		<cfelse>
+			<cfset usersId = 0>
+		</cfif>
+		<cfreturn usersId>
+	</cffunction>
+			
+	<!---//*****************************************************************************************
 		Authentication and security
 	//******************************************************************************************--->
 
@@ -248,19 +288,22 @@
 					<!--- Log the login --->
 					<cfset UsersDbObj = entityLoadByPK("Users", thisUserId)>
 					<cfset UsersDbObj.setLastLogin(blogNow())>
-					
-					<cfif arguments.ipAddress neq ''>
-						<!--- Log the IP --->
-						<cfset IpAddressDbObj = entityNew("IpAddress")>
-						<cfset IpAddressDbObj.setUserRef(UsersDbObj)>
-						<cfset IpAddressDbObj.setIpAddress(arguments.ipAddress)>
-						<cfset IpAddressDbObj.setHttpUserAgent(arguments.remoteAgent)> 
-						<cfset IpAddressDbObj.setDate(blogNow())>
-						<!--- Save the entities --->
-						<cfset EntitySave(IpAddressDbObj)>
-					</cfif>
+					<!--- Save the users object --->
 					<cfset EntitySave(UsersDbObj)>
 						
+					<!--- Create a record in the admin log --->
+					<cfinvoke component="#application.blog#" method="saveAdminLog" returnVariable="adminLog">
+						<cfinvokeargument name="userId" value="#thisUserId#">
+						<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#">
+						<cfinvokeargument name="HttpUserAgent" value="#arguments.remoteAgent#">
+					</cfinvoke>
+							
+					<cfinvoke component="#application.blog#" method="associateAnonymousUserWithUserId" returnVariable="sucess">
+						<cfinvokeargument name="userId" value="#thisUserId#">
+						<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#">
+						<cfinvokeargument name="HttpUserAgent" value="#arguments.remoteAgent#">
+					</cfinvoke>
+				
 				</cftransaction>
 	
 			</cfif><!---<cfif (thisPassword is hash(thisSalt & arguments.password, instance.hashalgorithm))>--->
@@ -274,6 +317,502 @@
 
 		<cfreturn authenticated>
 
+	</cffunction>
+							
+	<!---//*****************************************************************************************
+		Logging Functions
+	//******************************************************************************************--->
+						
+	<!--- ************************** Admin Logs ************************** 
+	Note: there is no get function as we are always inserting a new record.
+	--->
+							
+	<cffunction name="saveAdminLog" access="public" returnType="numeric" output="true" hint="Gets an anonymous web user and returns the new id.">
+		<cfargument name="userId" type="string" required="false" default="">
+		<cfargument name="ipAddress" type="string" required="false" default="">
+		<cfargument name="httpUserAgent" type="string" required="false" default="">
+			
+		<cfparam name="httpUserAgentId" default="0">
+			
+		<!--- Save the admin log. This will always create a new record --->
+		<!--- Load the blog entity. --->
+		<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+		<!--- Load the user entity when the userId is passed in --->
+		<cfif len(arguments.userId)>
+			<cfset UserDbObj = entityLoadByPk("Users", arguments.userId)>
+		</cfif>
+		<!--- Get or save the IP Address Id --->
+		<cfinvoke component="#application.blog#" method="saveIpAddress" returnVariable="ipAddressId">
+			<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#">
+		</cfinvoke>
+		<!--- Load the Ip Address entity --->
+		<cfset IpAddressDbObj = entityLoadByPK("IpAddress", ipAddressId)>
+
+		<!--- Get or save the http remote agent --->
+		<cfinvoke component="#application.blog#" method="saveHttpUserAgent" returnVariable="httpUserAgentId">
+			<cfinvokeargument name="httpUserAgent" value="#arguments.httpUserAgent#">
+		</cfinvoke>
+		<!--- Load the http referrer entity --->
+		<cfset HttpUserAgentDbObj = entityLoadByPK("HttpUserAgent", httpUserAgentId)>
+			
+		<cftransaction>
+			<!--- Create a new entity --->
+			<cfset AdminLogDbObj = entityNew("AdminLog")>
+			<!--- Save it --->
+			<cfset AdminLogDbObj.setBlogRef(BlogDbObj)>
+			<cfif len(arguments.userId)>
+				<cfset AdminLogDbObj.setUserRef(UserDbObj)>
+			</cfif>
+			<cfif ipAddressId>
+				<cfset AdminLogDbObj.setIpAddressRef(IpAddressDbObj)>
+			</cfif>
+			<cfif httpUserAgentId>
+				<cfset AdminLogDbObj.setHttpUserAgentRef(HttpUserAgentDbObj)>
+			</cfif>
+			<cfset AdminLogDbObj.setDate(blogNow())>
+			<cfset EntitySave(AdminLogDbObj)>
+
+			<!--- Get the new ID --->
+			<cfset AdminLogId = AdminLogDbObj.getAdminLogId()>
+		</cftransaction>
+			
+		<!--- Return the new id --->
+		<cfreturn AdminLogId>
+			
+	</cffunction>
+				
+	<cffunction name="associateAnonymousUserWithUserId" access="public" returnType="numeric" output="true" hint="Function used to associate the visitor logs with a user Id">
+		<cfargument name="userId" type="string" required="true" default="">
+		<cfargument name="ipAddress" type="string" required="true" default="">
+		<cfargument name="httpUserAgent" type="string" required="true" default="">
+			
+		<!--- Get the user. This will return a query object. --->
+		<cfinvoke component="#application.blog#" method="getAnonymousUser" returnVariable="anonymousUser">
+			<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#">
+			<cfinvokeargument name="httpUserAgent" value="#arguments.httpUserAgent#">
+		</cfinvoke>
+
+		<!--- If the record was found, update the userRef with the userId. --->
+		<cfif arrayLen(anonymousUser)>
+			<cftransaction>
+				<!--- Load the user entity --->
+				<cfset UserDbObj = entityLoadByPk("Users", arguments.userId)>
+
+				<!--- Load the anonymousUser entity --->
+				<cfset AnonymousUserDbObj = entityLoadByPk("AnonymousUser", anonymousUser[1]["AnonymousUserId"])>
+				<!--- Save it --->
+				<cfset AnonymousUserDbObj.setUserRef(UserDbObj)>
+				<cfset AnonymousUserDbObj.setDate(blogNow())>
+				<cfset EntitySave(AnonymousUserDbObj)>
+			</cftransaction>
+			<cfreturn 1>
+		</cfif>
+		<cfreturn 0>	
+	</cffunction>
+							
+	<!--- ************************** Visitor Logs ************************** --->
+			
+	<cffunction name="getVisitorLog" access="public" returnType="query" output="true" hint="Gets the visitor log by a variety of args. This returns a ColdFusion query object.">
+		<cfargument name="anonymousUserId" type="string" required="false" default="">
+		<cfargument name="userId" type="string" required="false" default="">
+		<cfargument name="fullName" type="string" required="false" default="">
+		<cfargument name="hitCount" type="string" required="false" default="">
+		<cfargument name="ipAddress" type="string" required="false" default="">
+		<cfargument name="httpUserAgent" type="string" required="false" default="">
+		<cfargument name="postId" type="string" required="false" default="">
+			
+		<cfset maxRows = 10000>
+			
+		<!--- Note: using ORM here is inefficient as I need to load too many tables and am using vanilla SQL instead. This should work on all SQL databases and has been tested on MYSql 5.6-8, MariaDb, Postgres, and Oracle. --->			
+		<cfquery name="Data" datasource="#application.dsn#" maxrows="#maxRows#">		
+			SELECT
+			  VisitorLog.VisitorLogId,
+			  AnonymousUser.AnonymousUserId,
+			  Users.UserId,
+			  Users.FullName,
+			  IpAddress.IpAddressId,
+			  IpAddress.IpAddress,
+			  HttpUserAgent.HttpUserAgentId,
+			  HttpUserAgent.HttpUserAgent,
+			  AnonymousUser.HitCount,
+			  AnonymousUser.ScreenHeight,
+			  AnonymousUser.ScreenWidth,
+			  HttpReferrer.HttpReferrer,
+			  Post.PostId,
+			  Post.Title,
+			  VisitorLog.Date
+			FROM
+			  Users
+			  RIGHT OUTER JOIN AnonymousUser
+			  INNER JOIN HttpUserAgent ON AnonymousUser.HttpUserAgentRef = HttpUserAgent.HttpUserAgentId
+			  INNER JOIN IpAddress ON AnonymousUser.IpAddressRef = IpAddress.IpAddressId
+			  INNER JOIN VisitorLog ON AnonymousUser.AnonymousUserId = VisitorLog.AnonymousUserRef ON Users.UserId = AnonymousUser.UserRef
+			  LEFT OUTER JOIN Post ON VisitorLog.PostRef = Post.PostId
+			  LEFT OUTER JOIN HttpReferrer ON VisitorLog.HttpReferrerRef = HttpReferrer.HttpReferrerId
+			WHERE 
+				VisitorLog.BlogRef = 1
+			<cfif len(arguments.anonymousUserId)>
+				AND AnonymousUser.AnonymousUserId = <cfqueryparam value="#arguments.anonymousUserId#" cfsqltype="integer"> 
+			</cfif>
+			<cfif len(arguments.userId)>
+				AND Users.UserId = <cfqueryparam value="#arguments.userId#" cfsqltype="integer"> 
+			</cfif>
+			<cfif len(arguments.fullName)>
+				AND Users.FullName = <cfqueryparam value="#arguments.fullName#" cfsqltype="varchar"> 
+			</cfif>
+			<cfif len(arguments.hitCount)>
+				AND AnonymousUser.HitCount = <cfqueryparam value="#arguments.hitCount#" cfsqltype="integer"> 
+			</cfif>
+			<cfif len(arguments.ipAddress)>
+				AND AnonymousUser.IpAddressRef.IpAddress = <cfqueryparam value="#arguments.ipAddress#" cfsqltype="varchar">
+			</cfif>
+			<cfif len(arguments.httpUserAgent)>
+				AND AnonymousUser.HttpUserAgentRef.HttpUserAgent = <cfqueryparam value="#arguments.httpUserAgent#" cfsqltype="varchar">
+			</cfif>
+			<cfif len(arguments.postId) and isNumeric(postId)>
+				AND Post = <cfqueryparam value="#arguments.postId#" cfsqltype="integer">
+			</cfif>
+				ORDER BY dbo.VisitorLog.Date DESC
+		</cfquery>
+			
+		<cfreturn Data>
+			
+	</cffunction>
+							
+	<cffunction name="saveVisitorLog" access="public" returnType="numeric" output="true" hint="Gets an anonymous web user and returns the new id.">
+		<cfargument name="anonymousUserId" type="string" required="true" default="">
+		<cfargument name="userId" type="string" required="false" default="">
+		<cfargument name="httReferrer" type="string" required="false" default="">
+		<cfargument name="postId" type="string" required="false" default="">
+			
+		<cfparam name="visitorLogId" default="0">
+				
+		<!--- Save the visitor log. This will always create a new record --->
+		<!--- Load the blog entity. --->
+		<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+		<!--- Load the anonymous user entity --->
+		<cfset AnonymousUserDbObj = entityLoadByPk("AnonymousUser", arguments.anonymousUserId)>
+		<!--- Load the user entity when the userId is passed in --->
+		<cfif len(arguments.userId)>
+			<cfset UserDbObj = entityLoadByPk("Users", arguments.userId)>
+		</cfif>
+		<!--- Save the http referrer. This will pass back the id. --->
+		<cfinvoke component="#application.blog#" method="saveHttpReferrer" returnVariable="httpReferrerId">
+			<cfinvokeargument name="HttpReferrer" value="#CGI.Http_Referer#">
+		</cfinvoke>
+		<!--- Load the referrer entity if it was passed in. --->
+		<cfif httpReferrerId>
+			<cfset HttpReferrerDbObj = entityLoadByPk("HttpReferrer", httpReferrerId)>
+		</cfif>
+		<!--- Load the post --->
+		<cfif len(postId)>
+			<cfset PostDbObj = entityLoadByPk("Post", arguments.postId)>
+		</cfif>
+			
+		<cftry>
+			<cftransaction>
+				<!--- Create a new entity --->
+				<cfset VisitorLogDbObj = entityNew("VisitorLog")>
+				<!--- Save it --->
+				<cfset VisitorLogDbObj.setBlogRef(BlogDbObj)>
+				<cfif len(arguments.userId)>
+					<cfset VisitorLogDbObj.setUserRef(UserDbObj)>
+				</cfif>
+				<cfset VisitorLogDbObj.setAnonymousUserRef(AnonymousUserDbObj)>
+				<cfif httpReferrerId>
+					<cfset VisitorLogDbObj.setHttpReferrerRef(HttpReferrerDbObj)>
+				</cfif>
+				<cfif len(postId)>
+					<cfset VisitorLogDbObj.setPostRef(PostDbObj)>
+				</cfif>
+				<cfset VisitorLogDbObj.setDate(blogNow())>
+				<cfset EntitySave(VisitorLogDbObj)>
+
+				<!--- Get the new ID --->
+				<cfset visitorLogId = VisitorLogDbObj.getVisitorLogId()>
+			</cftransaction>
+			<cfcatch type="any">
+				<!--- TODO Occasionally, I am having a 'A different object with the same identiier value was already associated with the sesion [blog#1]' error here that I am escaping. --->
+				<cfset visitorLogId = 0>
+			</cfcatch>
+		</cftry>
+			
+		<!--- Return the new id --->
+		<cfreturn visitorLogId>
+			
+	</cffunction>
+							
+	<!--- ************************** Anonymous Users ************************** 
+	Note: this table can store a bunch of other data, such as the time-zone, language, etc, however, I am only trying to get the IP and user agent to see who views certain posts and made comments. You can easilly use google analytics or another software if you want better user tracking here.
+	--->
+	<cffunction name="getAnonymousUser" access="public" returnType="array" output="true" hint="Gets an anonymous web user and returns a HQL array.">
+		<cfargument name="anonymousUserId" type="string" required="false" default="">
+		<cfargument name="ipAddress" type="string" required="false" default="">
+		<cfargument name="httpUserAgent" type="string" required="false" default="">
+			
+		<cfparam name="httpUserAgentId" default="0">
+			
+		<!--- Get the IpAddress and HttpUserAgent Id's. These methods will save the ip and remote user if they are not there. --->
+		<cfinvoke component="#application.blog#" method="saveIpAddress" returnVariable="ipAddressId">
+			<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#">
+		</cfinvoke>
+		<cfinvoke component="#application.blog#" method="saveHttpUserAgent" returnVariable="httpUserAgentId">
+			<cfinvokeargument name="HttpUserAgent" value="#arguments.httpUserAgent#">
+		</cfinvoke>
+					
+		<!--- Note: the following query does not work with cfqueryparam. I get an invalid integer message no matter what I do (and this is typical of some ORM queries). It is not a security issue here as I am checking to see if it is a siple numeric value --->			
+		<cfquery name="Data" dbtype="hql" ormoptions="#{maxresults=1}#">		
+			SELECT new Map (
+				AnonymousUserId as AnonymousUserId,
+				IpAddressRef.IpAddressId as IpAddressId,
+				IpAddressRef.IpAddress as IpAddress,
+				HttpUserAgentRef.HttpUserAgentId as HttpUserAgentId,
+				HttpUserAgentRef.HttpUserAgent as HttpUserAgent,
+				HitCount as HitCount,
+				ScreenHeight as ScreenHeight,
+				ScreenWidth as ScreenWidth
+			)
+			FROM 
+				AnonymousUser as tblAnonymousUser
+			WHERE 
+				BlogRef = 1
+			<cfif len(arguments.anonymousUserId)>
+				AND AnonymousUserId = <cfqueryparam value="#arguments.anonymousUserId#"> 
+			</cfif>
+			<cfif len(ipAddressId) and isNumeric(ipAddressId)>
+				AND IpAddressRef = #ipAddressId#
+			</cfif>
+			<cfif len(httpUserAgentId) and isNumeric(httpUserAgentId)>
+				AND HttpUserAgentRef = #httpUserAgentId#
+			</cfif>
+		</cfquery>
+			
+		<cfreturn Data>
+			
+	</cffunction>
+				
+	<!--- Save the anonymous user --->
+	<cffunction name="saveAnonymousUser" access="public" returnType="any" output="true" hint="Saves an anonymous web user and returns the anonymous user entity back to the client.">
+		<cfargument name="anonymousUserId" type="string" required="false" default="">
+		<cfargument name="ipAddress" type="string" required="false" default="">
+		<cfargument name="httpUserAgent" type="string" required="false" default="">
+		<cfargument name="httpReferrer" type="string" required="false" default="">
+		<cfargument name="ScreenWidth" type="string" required="false" default="">
+		<cfargument name="ScreenHeight" type="string" required="false" default="">
+			
+		<cfparam name="httpUserAgentId" default="0">
+			
+		<!--- Get the user. This will return a query object. --->
+		<cfinvoke component="#application.blog#" method="getAnonymousUser" returnVariable="anonymousUser">
+			<cfinvokeargument name="anonymousUserId" value="#arguments.anonymousUserId#">
+			<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#">
+			<cfinvokeargument name="httpUserAgent" value="#arguments.httpUserAgent#">
+		</cfinvoke>
+				
+		<!--- Set the hit count --->
+		<cftry>
+			<cfset hitCount = round(anonymousUser[1]["HitCount"] + 1)>
+			<cfcatch type="any">
+				<cfset hitCount = 1>
+			</cfcatch>
+		</cftry>
+					
+		<cfif not arrayLen(anonymousUser)>
+			
+			<!--- Get or save the IP Address Id --->
+			<cfinvoke component="#application.blog#" method="saveIpAddress" returnVariable="ipAddressId">
+				<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#">
+			</cfinvoke>
+			<!--- Load the Ip Address entity --->
+			<cfset IpAddressDbObj = entityLoadByPK("IpAddress", ipAddressId)>
+				
+			<!--- Get or save the http remote agent --->
+			<cfinvoke component="#application.blog#" method="saveHttpUserAgent" returnVariable="httpUserAgentId">
+				<cfinvokeargument name="httpUserAgent" value="#arguments.httpUserAgent#">
+			</cfinvoke>
+			<!--- Load the http referrer entity --->
+			<cfset HttpUserAgentDbObj = entityLoadByPK("HttpUserAgent", httpUserAgentId)>
+				
+			<!--- Get or save the http referrer --->
+			<cfinvoke component="#application.blog#" method="saveHttpReferrer" returnVariable="httpReferrerId">
+				<cfinvokeargument name="httpReferrer" value="#arguments.httpReferrer#">
+			</cfinvoke>
+			<!--- Load the http referrer entity --->
+			<cfset HttpReferrerDbObj = entityLoadByPK("HttpReferrer", httpReferrerId)>
+				
+			<!--- Load the blog entity. --->
+			<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+			
+			<cftransaction>
+				<!--- Create a new entity --->
+				<cfset AnonymousUserDbObj = entityNew("AnonymousUser")>
+				<!--- Save it --->
+				<cfset AnonymousUserDbObj.setBlogRef(BlogDbObj)>
+				<cfset AnonymousUserDbObj.setIpAddressRef(IpAddressDbObj)>
+				<cfset AnonymousUserDbObj.setHttpUserAgentRef(HttpUserAgentDbObj)>
+				<cfset AnonymousUserDbObj.setScreenWidth(arguments.screenWidth)>
+				<cfset AnonymousUserDbObj.setScreenHeight(arguments.screenHeight)>
+				<cfset AnonymousUserDbObj.setHitCount(1)>
+				<cfset AnonymousUserDbObj.setDate(blogNow())>
+				<cfset EntitySave(AnonymousUserDbObj)>
+
+				<!--- Get the new Ip Address ID --->
+				<cfset anonymousUserId = AnonymousUserDbObj.getAnonymousUserId()>
+			</cftransaction>
+		<cfelse>
+			<cfset anonymousUserId = anonymousUser[1]["AnonymousUserId"]>
+			
+			<cftransaction>
+				<!--- Load the entity --->
+				<cfset AnonymousUserDbObj = entityLoadByPk("AnonymousUser", anonymousUserId)>
+				<!--- Save data --->
+				<cfset AnonymousUserDbObj.setScreenWidth(arguments.screenWidth)>
+				<cfset AnonymousUserDbObj.setScreenHeight(arguments.screenHeight)>
+				<cfset AnonymousUserDbObj.setHitCount(hitCount)>
+				<cfset AnonymousUserDbObj.setDate(blogNow())>
+				<cfset EntitySave(AnonymousUserDbObj)>
+			</cftransaction>
+		</cfif>
+			
+		<!--- Return the entire ORM object --->
+		<cfreturn AnonymousUserDbObj>
+			
+	</cffunction>
+				
+	<!--- ************************** Ip Address for logging (visits, comments, and admin logins) ************************** --->
+	<cffunction name="getIpAddressId" access="public" returnType="string" output="true" hint="Gets an IP address.">
+		<cfargument name="ipAddress" type="string" required="true">
+			
+		<!--- Get the IP. ---> 	
+		<cfquery name="getIpAddressId" dbtype="hql" ormoptions="#{maxresults=1}#">		
+			SELECT new Map (
+				IpAddressId as IpAddressId)
+			<!--- Prefix the IP address table name as it will conflict with the identical column name. --->
+			FROM IpAddress as tblIpAddress 
+			WHERE IpAddress = <cfqueryparam value="#arguments.ipAddress#">
+		</cfquery>
+		<!--- Return the first item in the query array --->
+		<cfif arrayLen(getIpAddressId)>
+			<cfset ipAddressId = getIpAddressId[1]["IpAddressId"]>
+		<cfelse>
+			<cfset ipAddressId = 0>
+		</cfif>
+		<cfreturn ipAddressId>
+	</cffunction>
+			
+	<cffunction name="saveIpAddress" access="public" returnType="string" output="true" hint="Saves a unique IP to the db.">
+		<cfargument name="ipAddress" type="string" required="true" default="">
+		<!--- Get the IP. ---> 
+		<cfset ipAddressId = this.getIpAddressId(arguments.ipAddress)>
+		<cfif ipAddressId eq 0>
+			<!--- Load the blog entity. This is not functional at the moment to have several blogs on a site, but the logic is in the database. --->
+			<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+
+			<!--- Create a new entity --->
+			<cfset IpAddressDbObj = entityNew("IpAddress")>
+			<!--- Save it --->
+			<cfset IpAddressDbObj.setBlogRef(BlogDbObj)>
+			<cfset IpAddressDbObj.setIpAddress(arguments.ipAddress)>
+			<cfset IpAddressDbObj.setDate(blogNow())>
+			<cfset EntitySave(IpAddressDbObj)>
+			<!--- Get the new Ip Address ID --->
+			<cfset ipAddressId = IpAddressDbObj.getIpAddressId()>
+		</cfif>
+		<!--- Return the ipAddressId --->
+		<cfreturn ipAddressId>
+	</cffunction>
+			
+	<!--- ************************** Http User Agent strings for logging (visits, comments, and admin logins) ************************** --->
+	<cffunction name="getHttpUserAgentId" access="public" returnType="string" output="true" hint="Gets a HTTP Remote Agent Id.">
+		<cfargument name="httpUserAgent" type="string" required="true">
+			
+		<!--- Get the remote agent from the db. ---> 
+		<cfquery name="getHttpUserAgent" dbtype="hql" ormoptions="#{maxresults=1}#">		
+			SELECT new Map (
+				HttpUserAgentId as HttpUserAgentId)
+			<!--- Prefix the HttpUserAgent table name as it will conflict with the identical column name. --->
+			FROM HttpUserAgent as tblHttpUserAgent 
+			WHERE HttpUserAgent = <cfqueryparam value="#arguments.httpUserAgent#" cfsqltype="varchar">
+		</cfquery>
+		<!--- Return the first item in the query array --->
+		<cfif arrayLen(getHttpUserAgent)>
+			<cfset httpUserAgentId = getHttpUserAgent[1]["HttpUserAgentId"]>
+		<cfelse>
+			<cfset httpUserAgentId = 0>
+		</cfif>
+		<cfreturn httpUserAgentId>
+	</cffunction>
+			
+	<cffunction name="saveHttpUserAgent" access="public" returnType="string" output="true" hint="Saves a remote agent and passes back the HttpUserAgentId.">
+		<cfargument name="httpUserAgent" type="string" required="true">
+		<!--- Get the user agent. ---> 
+		<cfset httpUserAgentId = this.getHttpUserAgentId(arguments.httpUserAgent)>
+		<cfif httpUserAgentId eq 0>
+			<!--- Load the blog entity. This is not functional at the moment to have several blogs on a site, but the logic is in the database. --->
+			<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+				
+			<!--- Create a new entity --->
+			<cfset HttpUserAgentObj = entityNew("HttpUserAgent")>
+			<!--- Save it --->
+			<cfset HttpUserAgentObj.setBlogRef(BlogDbObj)>
+			<cfset HttpUserAgentObj.setHttpUserAgent(arguments.httpUserAgent)>
+			<cfset HttpUserAgentObj.setDate(blogNow())>
+			<cfset EntitySave(HttpUserAgentObj)>
+			<!--- Get the new ID --->
+			<cfset httpUserAgentId = HttpUserAgentObj.getHttpUserAgentId()>
+		</cfif>
+		<!--- Return the userAgentId --->
+		<cfreturn httpUserAgentId>
+	</cffunction>
+			
+	<!--- ************************** Http Referrer strings ************************** --->
+	<cffunction name="getHttpReferrerId" access="public" returnType="string" output="true" hint="Gets a HTTP Referrer Id.">
+		<cfargument name="httpReferrer" type="string" required="true">
+			
+		<!--- Get the remote agent from the db. ---> 
+		<cfquery name="getHttpReferrer" dbtype="hql" ormoptions="#{maxresults=1}#">		
+			SELECT new Map (
+				HttpReferrerId as HttpReferrerId)
+			<!--- Prefix the HttpReferrer table name as it will conflict with the identical column name. --->
+			FROM HttpReferrer as tblHttpReferrer
+			WHERE HttpReferrer = <cfqueryparam value="#arguments.httpReferrer#">
+		</cfquery>
+		<!--- Return the first item in the query array --->
+		<cfif arrayLen(getHttpReferrer)>
+			<cfset httpReferrerId = getHttpReferrer[1]["HttpReferrerId"]>
+		<cfelse>
+			<cfset httpReferrerId = 0>
+		</cfif>
+		<cfreturn httpReferrerId>
+	</cffunction>
+			
+	<cffunction name="saveHttpReferrer" access="public" returnType="string" output="true" hint="Saves a HttpReferrer and passes back the HttpReferrerId.">
+		<cfargument name="httpReferrer" type="string" required="true">
+		
+		<cfparam name="httpReferrerId" default="0">
+			
+		<cfif len(httpReferrer)>
+			<!--- Get the referrer. ---> 
+			<cfset httpReferrerId = this.getHttpReferrerId(arguments.httpReferrer)>
+			<cfif httpReferrerId gt 0>
+				<!--- Load the blog entity. This is not functional at the moment to have several blogs on a site, but the logic is in the database. --->
+				<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+
+				<!--- Create a new entity --->
+				<cfset HttpReferrerObj = entityNew("HttpReferrer")>
+				<!--- Save it --->
+				<cfset HttpReferrerObj.setBlogRef(BlogDbObj)>
+				<cfset HttpReferrerObj.setHttpReferrer(arguments.httpReferrer)>
+				<cfset HttpReferrerObj.setDate(blogNow())>
+				<cfset EntitySave(HttpReferrerObj)>
+				<!--- Return the new id --->
+				<cfset httpReferrerId = HttpReferrerObj.getHttpReferrerId()>
+			<cfelse>
+				<cfset httpReferrerId = 0>
+			</cfif>
+		</cfif>
+		<cfreturn httpReferrerId>
+		
 	</cffunction>
 							
 	<!---//*****************************************************************************************
@@ -368,7 +907,7 @@
 			
 	<!--- File and paths --->
 	<cffunction name="getRootUrl" access="public" returnType="string" output="false"
-				hint="Simple helper function to get root url.">
+			hint="Simple helper function to get root url.">
 
 		<cfset var theURL = replace(instance.blogUrl, "index.cfm", "")>
 		
@@ -382,7 +921,7 @@
 	*********************************************************************************************************--->
 
 	<cffunction name="makeCategoryLink" access="public" returnType="string" output="false"
-				hint="Generates links for a category.">
+			hint="Generates links for a category.">
 		<cfargument name="categoryId" type="numeric" required="true">
 		
 		<cfset var Data = []>
@@ -417,6 +956,45 @@
 		
 		<!--- Return it --->
 		<cfreturn variables.catAliasCache[arguments.categoryId]>
+			
+	</cffunction>
+			
+	<cffunction name="makeTagLink" access="public" returnType="string" output="false"
+			hint="Generates links for a tag.">
+		<cfargument name="tagId" type="numeric" required="true">
+		
+		<cfset var Data = []>
+
+		<!---// make sure the cache exists //--->
+		<cfif not structKeyExists(variables, "tagAliasCache")>
+			<cfset variables.tagAliasCache = structNew() />
+		</cfif>
+
+		<cfif structKeyExists(variables.tagAliasCache, arguments.tagId)>
+			<cfreturn variables.tagAliasCache[arguments.tagId]>
+		</cfif>
+			
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				TagAlias as TagAlias
+			)
+			FROM  
+				Tag
+			WHERE 0=0
+				AND TagId = <cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.tagId#" maxlength="35">
+				AND BlogRef = #application.BlogDbObj.getBlogId()#			
+		</cfquery>
+
+		<cfif arrayLen(Data)>
+			<cfset tagLink = instance.blogUrl & '/tag/' & Data[1]["TagAlias"]>
+		<cfelse>
+			<cfset tagLink = instance.blogUrl & '?mode=cat&amp;tagId=' & arguments.tagId>
+		</cfif>
+		<!--- Make the link safe for server side rewrite rules --->
+		<cfset variables.tagAliasCache[arguments.tagId] = makeRewriteRuleSafeLink(tagLink)>
+		
+		<!--- Return it --->
+		<cfreturn variables.tagAliasCache[arguments.tagId]>
 			
 	</cffunction>
 
@@ -529,7 +1107,7 @@
 		<!--- change spaces to - --->
 		<cfset arguments.title = replace(arguments.title," ","-","all")>
 
-		<cfreturn arguments.title>
+		<cfreturn lCase(arguments.title)>
 	</cffunction>
 				
 	<!--- //************************************************************************************************************
@@ -594,6 +1172,8 @@
 			)
 			FROM Post
 			WHERE 0=0
+				AND Released = 1
+				AND Remove = 0
 				AND YEAR(DatePosted) >= #fromYear#
 				AND BlogRef = #application.BlogDbObj.getBlogId()#
 			GROUP BY 
@@ -1089,6 +1669,7 @@
 				ThemeSettingRef.BlogNameFontRef as BlogNameFontId,
 				'' as BlogNameFont,
 				'' as BlogNameFontType,
+				ThemeSettingRef.DisplayBlogName as DisplayBlogName,
 				ThemeSettingRef.BlogNameTextColor as BlogNameTextColor,
 				ThemeSettingRef.BlogNameFontSize as BlogNameFontSize,
 				ThemeSettingRef.BlogNameFontSizeMobile as BlogNameFontSizeMobile,
@@ -1103,6 +1684,78 @@
 			AND Theme.ThemeAlias = <cfqueryparam value="#arguments.themeAlias#" cfsqltype="cf_sql_varchar">
 		</cfif>
 		</cfquery>
+			
+		<!--- Error handling. Use the delicate arch theme if there is no data --->
+		<cfif not arrayLen(Data)>
+			<cfquery name="Data" dbtype="hql">
+				SELECT new Map (
+					ThemeId as ThemeId,
+					ThemeName as Theme,
+					ThemeGenre as ThemeGenre,
+					UseTheme as UseTheme,
+					SelectedTheme as SelectedTheme,
+					KendoThemeRef.KendoThemeId as KendoThemeId,
+					KendoThemeRef.KendoTheme as KendoTheme,
+					KendoThemeRef.KendoCommonCssFileLocation as KendoCommonCssFileLocation,
+					KendoThemeRef.KendoThemeCssFileLocation as KendoThemeCssFileLocation,
+					KendoThemeRef.KendoThemeMobileCssFileLocation as KendoThemeMobileCssFileLocation,
+					KendoThemeRef.DarkTheme as DarkTheme,
+					ThemeSettingRef.ThemeSettingId as ThemeSettingId,
+					ThemeSettingRef.Breakpoint as Breakpoint,
+					0 as ModernThemeStyle,
+					ThemeSettingRef.FontRef.FontId as FontId,
+					ThemeSettingRef.FontRef.Font as Font,
+					ThemeSettingRef.FontRef.FontType as FontType,
+					ThemeSettingRef.FontSize as FontSize,
+					ThemeSettingRef.FontSizeMobile as FontSizeMobile,
+					ThemeSettingRef.ContentWidth as ContentWidth,
+					ThemeSettingRef.MainContainerWidth as MainContainerWidth,
+					ThemeSettingRef.SideBarContainerWidth as SideBarContainerWidth,
+					ThemeSettingRef.SiteOpacity as SiteOpacity,
+					ThemeSettingRef.WebPImagesIncluded as WebPImagesIncluded,
+					ThemeSettingRef.FavIconHtml as FavIconHtml,
+					ThemeSettingRef.IncludeBackgroundImages as IncludeBackgroundImages,
+					ThemeSettingRef.BlogBackgroundImage as BlogBackgroundImage,
+					ThemeSettingRef.BlogBackgroundImageMobile as BlogBackgroundImageMobile,
+					ThemeSettingRef.BlogBackgroundImageRepeat as BlogBackgroundImageRepeat,
+					ThemeSettingRef.BlogBackgroundImagePosition as BlogBackgroundImagePosition,
+					ThemeSettingRef.BlogBackgroundColor as BlogBackgroundColor,
+					<!---Fix ThemeSettingRef.HeaderBackgroundColor as HeaderBackgroundColor,--->
+					'' as HeaderBackgroundColor,
+					ThemeSettingRef.HeaderBackgroundImage as HeaderBackgroundImage,
+					ThemeSettingRef.HeaderBodyDividerImage as HeaderBodyDividerImage,
+					ThemeSettingRef.StretchHeaderAcrossPage as StretchHeaderAcrossPage,
+					ThemeSettingRef.AlignBlogMenuWithBlogContent as AlignBlogMenuWithBlogContent,
+					ThemeSettingRef.TopMenuAlign as TopMenuAlign,
+					ThemeSettingRef.MenuFontRef as MenuFontId,
+					'' as MenuFont,
+					'' as MenuFontType,
+					ThemeSettingRef.MenuBackgroundImage as MenuBackgroundImage,
+					ThemeSettingRef.CoverKendoMenuWithMenuBackgroundImage as CoverKendoMenuWithMenuBackgroundImage,
+					ThemeSettingRef.LogoImageMobile as LogoImageMobile,
+					ThemeSettingRef.LogoMobileWidth as LogoMobileWidth,
+					ThemeSettingRef.LogoImage as LogoImage,
+					ThemeSettingRef.LogoPaddingTop as LogoPaddingTop,
+					ThemeSettingRef.LogoPaddingRight as LogoPaddingRight,
+					ThemeSettingRef.LogoPaddingLeft as LogoPaddingLeft,
+					ThemeSettingRef.LogoPaddingBottom as LogoPaddingBottom,
+					ThemeSettingRef.DefaultLogoImageForSocialMediaShare as DefaultLogoImageForSocialMediaShare,
+					ThemeSettingRef.BlogNameFontRef as BlogNameFontId,
+					'' as BlogNameFont,
+					'' as BlogNameFontType,
+					ThemeSettingRef.DisplayBlogName as DisplayBlogName,
+					ThemeSettingRef.BlogNameTextColor as BlogNameTextColor,
+					ThemeSettingRef.BlogNameFontSize as BlogNameFontSize,
+					ThemeSettingRef.BlogNameFontSizeMobile as BlogNameFontSizeMobile,
+					ThemeSettingRef.FooterImage as FooterImage
+				)
+				FROM 
+					Theme as Theme
+				WHERE 0 = 0
+				AND Theme.ThemeId = 11
+			</cfquery>
+			
+		</cfif>
 			
 		<!--- We need to extract font information for the blog name and menu fonts. Only do this if there are theme records. --->
 		<cfif arrayLen(Data)>
@@ -1181,7 +1834,8 @@
 			)
 			FROM 
 				KendoTheme as KendoTheme
-			WHERE 0 = 0
+			<!--- Don't get metroblack --->
+			WHERE KendoThemeId < 15
 		<!--- Validate the kendo theme Id to prevent injection. We cant use binding here due to a CF ORM issue with entity keys. --->
 		<cfif arguments.kendoThemeId neq '' and isNumeric(arguments.kendoThemeId) and len(arguments.kendoThemeId) lt 5>
 			AND KendoTheme.KendoThemeId = #arguments.kendoThemeId#
@@ -1237,282 +1891,254 @@
 			<cfcase value="black">
 				<cfset buttonAccentColor = "db4240">
 				<cfset accentColor = "0066cc">
-				<cfset baseColor = "363636">
-				<cfset headerBgColor = "4D4D4D">
+				<cfset baseColor = "292525">
+				<cfset headerBgColor = "292525">
 				<cfset headerTextColor = "fff">
 				<cfset hoverBgColor = "3d3d3d">
 				<cfset hoverBorderColor = "4d4d4d">
 				<cfset textColor = "ffffff">
 				<cfset selectedTextColor = "ffffff">
-				<cfset headerBorderColor = "2a2a2a">
-				<cfset contentBgColor = "555">
+				<cfset contentBgColor = "4d4d4d">
 				<cfset contentBorderColor = "000">
-				<cfset alternateBgColor = "4D4D4D">
+				<cfset alternateBgColor = "555">
 				<cfset error = "db4240">
 				<cfset warning = "ffc000">
-				<cfset success = "37b400">
+				<cfset success = "2b893c">
 				<cfset info = "0066cc">
-				<cfset titleColor = "8e8e8e">
 			</cfcase>
 			<cfcase value="blueOpal">
 				<cfset buttonAccentColor = "0066cc">
-				<cfset accentColor = "326891"><!---7bd2f6--->
-				<cfset baseColor = "daecf4">
+				<cfset accentColor = "326891">
+				<cfset baseColor = "fff">
 				<cfset headerBgColor = "E3EFF7">
 				<cfset headerTextColor = "000">
-				<cfset hoverBgColor = "A1D6F7"><!---13688c--->
+				<cfset hoverBgColor = "A1D6F7">
 				<cfset hoverBorderColor = "3d3d3d">
 				<cfset textColor = "000">
 				<cfset selectedTextColor = "fff">
-				<cfset headerBorderColor = "a3d0e4"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "d9ecf5"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "a3d0e4"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "f5f5f5"><!---.k-status{background-color:f5f5f5}--->
+				<cfset contentBgColor = "fff">
+				<cfset contentBorderColor = "a3d0e4">
+				<cfset alternateBgColor = "e6f2f8">
 				<cfset error = "db4240">
 				<cfset warning = "ffb400">
 				<cfset success = "37b400">
 				<cfset info = "0066cc">
-				<cfset titleColor = "8e8e8e">
 			</cfcase>
 			<cfcase value="bootstrap">
 				<cfset buttonAccentColor = "428bca">
 				<cfset accentColor = "428bca">
-				<cfset baseColor = "ebebeb">
-				<cfset headerBgColor = "8e8e8e">
+				<cfset baseColor = "fff">
+				<cfset headerBgColor = "f5f5f5">
 				<cfset headerTextColor = "333333">
 				<cfset hoverBgColor = "ebebeb">
 				<cfset hoverBorderColor = "333333">
 				<cfset textColor = "333333">
-				<cfset selectedTextColor = "333333">
-				<cfset headerBorderColor = "dfdfdf">
-				<cfset contentBgColor = "ffffff">
+				<cfset selectedTextColor = "fff">
+				<cfset contentBgColor = "fff">
 				<cfset contentBorderColor = "dfdfdf">
-				<cfset alternateBgColor = "ebebeb">
-				<cfset error = "d9534f">
-				<cfset warning = "f0ad4e">
-				<cfset success = "5cb85c">
-				<cfset info = "5bc0de">
-				<cfset titleColor = "8e8e8e">
+				<cfset alternateBgColor = "f5f5f5">
+				<cfset error = "ffe0d9">
+				<cfset warning = "fbeed5">
+				<cfset success = "eaf7ec">
+				<cfset info = "e5f5fa">
 			</cfcase>
 			<cfcase value="default">
 				<cfset buttonAccentColor = "0066cc">
 				<cfset accentColor = "f35800">
 				<cfset baseColor = "fff">
-				<cfset headerBgColor = "e9e9e9">
+				<cfset headerBgColor = "eae8e8">
 				<cfset headerTextColor = "000">
 				<cfset hoverBgColor = "bcb4b0">
 				<cfset hoverBorderColor = "3d3d3d">
 				<cfset textColor = "000">
 				<cfset selectedTextColor = "fff">
-				<cfset headerBorderColor = "c5c5c5"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "d5d5d5"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "f5f5f5"><!---.k-status{background-color:f5f5f5}--->
-				<cfset error = "f35800">
+				<cfset contentBgColor = "fff">
+				<cfset contentBorderColor = "d5d5d5">
+				<cfset alternateBgColor = "f1f1f1">
+				<cfset error = "db4240">
 				<cfset warning = "ffc000">
 				<cfset success = "37b400">
 				<cfset info = "0066cc">
-				<cfset titleColor = "8e8e8e">
 			</cfcase>
 			<cfcase value="flat">
 				<cfset buttonAccentColor = "0066cc">
 				<cfset accentColor = "10c4b2">
 				<cfset baseColor = "fff">
-				<cfset headerBgColor = "373940">
+				<cfset headerBgColor = "363940">
 				<cfset headerTextColor = "fff">
 				<cfset hoverBgColor = "2eb3a6">
 				<cfset hoverBorderColor = "3d3d3d">
 				<cfset textColor = "000">
 				<cfset selectedTextColor = "fff">
-				<cfset headerBorderColor = "606572"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "fff"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "F5F5F5"><!---.k-status{background-color:f5f5f5}--->
-				<cfset error = "fe633f">
-				<cfset warning = "feca3f">
-				<cfset success = "2db245">
-				<cfset info = "0099cc">
-				<cfset titleColor = "8e8e8e">
+				<cfset contentBgColor = "fff">
+				<cfset contentBorderColor = "fff">
+				<cfset alternateBgColor = "f5f5f5">
+				<cfset error = "ffdfd7">
+				<cfset warning = "fff4d7">
+				<cfset success = "eefbf0">
+				<cfset info = "e6f9ff">
 			</cfcase>
 			<cfcase value="highContrast">
 				<cfset buttonAccentColor = "0066cc">
 				<cfset accentColor = "870074">
 				<cfset baseColor = "2B232B">
-				<cfset headerBgColor = "4d4d4d">
+				<cfset headerBgColor = "2c232b">
 				<cfset headerTextColor = "fff">
 				<cfset hoverBgColor = "a7008f">
 				<cfset hoverBorderColor = "3d3d3d">
 				<cfset textColor = "ffffff">
 				<cfset selectedTextColor = "fff">
-				<cfset headerBorderColor = "674c63"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "2c232b"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "674c63"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "1b141a"><!---.k-status{background-color:f5f5f5}--->
-				<cfset error = "e33a13">
+				<cfset contentBgColor = "2c232b">
+				<cfset contentBorderColor = "674c63">
+				<cfset alternateBgColor = "2c232b">
+				<cfset error = "be5138">
 				<cfset warning = "e9a71d">
 				<cfset success = "2b893c">
 				<cfset info = "007da7">
-				<cfset titleColor = "8e8e8e">
 			</cfcase>
 			<cfcase value="material">
 				<cfset buttonAccentColor = "0066cc">
-				<cfset accentColor = "00b0ff">
+				<cfset accentColor = "5e6cbf">
 				<cfset baseColor = "fff">
-				<cfset headerBgColor = "ebebeb">
+				<cfset headerBgColor = "fafafa">
 				<cfset headerTextColor = "000">
 				<cfset hoverBgColor = "ebebeb">
 				<cfset hoverBorderColor = "3d3d3d">
 				<cfset textColor = "000">
 				<cfset selectedTextColor = "fff">
-				<cfset headerBorderColor = "e6e6e6"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "e6e6e6"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "f5f7fa"><!---.k-status{background-color:f5f5f5}--->
-				<cfset error = "f44336">
-				<cfset warning = "ff9800">
-				<cfset success = "4caf50">
-				<cfset info = "2196f3">
-				<cfset titleColor = "8e8e8e">
+				<cfset contentBgColor = "fff">
+				<cfset contentBorderColor = "e6e6e6">
+				<cfset alternateBgColor = "F2F2F1">
+				<cfset error = "ffcdd2">
+				<cfset warning = "fdefba">
+				<cfset success = "c8e6c9">
+				<cfset info = "bbdefb">
 			</cfcase>
 			<cfcase value="materialBlack">
 				<cfset buttonAccentColor = "0066cc">
-				<cfset accentColor = "00b0ff">
+				<cfset accentColor = "3f51b5">
 				<cfset baseColor = "363636">
-				<cfset headerBgColor = "5A5A5A">
+				<cfset headerBgColor = "5a5a5a">
 				<cfset headerTextColor = "fff">
 				<cfset hoverBgColor = "606060">
 				<cfset hoverBorderColor = "3d3d3d">
 				<cfset textColor = "fff">
 				<cfset selectedTextColor = "fff">
-				<cfset headerBorderColor = "505050"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "363636"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "4d4d4d"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "393a3b"><!---.k-status{background-color:f5f5f5}--->
-				<cfset error = "f44336">
-				<cfset warning = "ff9800">
-				<cfset success = "4caf50">
-				<cfset info = "2196f3">
-				<cfset titleColor = "8e8e8e">
+				<cfset contentBgColor = "363636">
+				<cfset contentBorderColor = "4d4d4d">
+				<cfset alternateBgColor = "5a5a5a">
+				<cfset error = "c93b31">
+				<cfset warning = "cdaa1d">
+				<cfset success = "429246">
+				<cfset info = "207ec8">
 			</cfcase>
 			<cfcase value="metro">
 				<cfset buttonAccentColor = "0066cc">
 				<cfset accentColor = "7ea700">
 				<cfset baseColor = "fff">
-				<cfset headerBgColor = "F5F5F5">
+				<cfset headerBgColor = "fff">
 				<cfset headerTextColor = "000">
 				<cfset hoverBgColor = "8ebc00">
 				<cfset hoverBorderColor = "3d3d3d">
 				<cfset textColor = "000">
 				<cfset selectedTextColor = "fff">
-				<cfset headerBorderColor = "dbdbdb"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "dbdbdb"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "F5F5F5"><!---.k-status{background-color:f5f5f5}--->
-				<cfset error = "e20000">
-				<cfset warning = "ffb137">
-				<cfset success = "2b893c">
-				<cfset info = "0c779b">
-				<cfset titleColor = "8e8e8e">
+				<cfset contentBgColor = "fff">
+				<cfset contentBorderColor = "dbdbdb">
+				<cfset alternateBgColor = "f5f5f5">
+				<cfset error = "ffb8a9">
+				<cfset warning = "ffe44d">
+				<cfset success = "ddffd0">
+				<cfset info = "d0f8ff">
 			</cfcase>
 			<cfcase value="moonlight">
 				<cfset buttonAccentColor = "0066cc">
 				<cfset accentColor = "f4af03">
 				<cfset baseColor = "424550">
-				<cfset headerBgColor = "424852">
+				<cfset headerBgColor = "1f2a35">
 				<cfset headerTextColor = "fff">
 				<cfset hoverBgColor = "62656F">
 				<cfset hoverBorderColor = "3d3d3d">
 				<cfset textColor = "fff">
 				<cfset selectedTextColor = "000">
-				<cfset headerBorderColor = "3E454F"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "424550"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "232d36"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "494C58"><!---.k-status{background-color:f5f5f5}--->
+				<cfset contentBgColor = "484c58">
+				<cfset contentBorderColor = "232d36">
+				<cfset alternateBgColor = "484c58">
 				<cfset error = "be5138">
 				<cfset warning = "ea9d07">
 				<cfset success = "2b893c">
 				<cfset info = "0c779b">
-				<cfset titleColor = "8e8e8e">
 			</cfcase>
 			<cfcase value="nova">
-				<cfset buttonAccentColor = "0066cc">
-				<cfset accentColor = "7FD2E3">
-				<cfset baseColor = "fff">
-				<cfset headerBgColor = "FAFAFA">
+				<cfset buttonAccentColor = "e51a5f">
+				<cfset accentColor = "ff5763">
+				<cfset baseColor = "fafafa">
+				<cfset headerBgColor = "fafafa">
 				<cfset headerTextColor = "000">
 				<cfset hoverBgColor = "f5f6f6">
 				<cfset hoverBorderColor = "FAFAFA">
 				<cfset textColor = "000">
-				<cfset selectedTextColor = "000">
-				<cfset headerBorderColor = "e0e0e0"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "FAFAFA"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "FAFAFA"><!---.k-status{background-color:f5f5f5}--->
-				<cfset error = "ff2637">
-				<cfset warning = "ffb82e">
-				<cfset success = "479b4a">
-				<cfset info = "1ea2b3">
-				<cfset titleColor = "8e8e8e">
+				<cfset selectedTextColor = "fff">
+				<cfset contentBgColor = "fff">
+				<cfset contentBorderColor = "FAFAFA">
+				<cfset alternateBgColor = "fafafa">
+				<cfset error = "ffbfc4">
+				<cfset warning = "ffecc7">
+				<cfset success = "a5d6a7">
+				<cfset info = "80deea">
 			</cfcase>
 			<cfcase value="office365">
 				<cfset buttonAccentColor = "0066cc">
-				<cfset accentColor = "cde6f7">
+				<cfset accentColor = "005b9d">
 				<cfset baseColor = "fff">
-				<cfset headerBgColor = "FAFAFA">
+				<cfset headerBgColor = "fff">
 				<cfset headerTextColor = "000">
 				<cfset hoverBgColor = "f4f4f4">
 				<cfset hoverBorderColor = "c9c9c9">
 				<cfset textColor = "000">
-				<cfset selectedTextColor = "000">
-				<cfset headerBorderColor = "ffff0"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "ffff0"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "FAFAFA"><!---.k-status{background-color:f5f5f5}--->
-				<cfset error = "f44336">
-				<cfset warning = "ffdb04">
-				<cfset success = "43a047">
-				<cfset info = "1976d2">
-				<cfset titleColor = "8e8e8e">
+				<cfset selectedTextColor = "fff">
+				<cfset contentBgColor = "fff">
+				<cfset contentBorderColor = "ffff0">
+				<cfset alternateBgColor = "fff">
+				<cfset error = "fccbc7">
+				<cfset warning = "fff19d">
+				<cfset success = "cbe9cc">
+				<cfset info = "bbd9f7">
 			</cfcase>
 			<cfcase value="silver">
 				<cfset buttonAccentColor = "0066cc">
 				<cfset accentColor = "1984c8">
 				<cfset baseColor = "fff">
-				<cfset headerBgColor = "FAFAFA">
+				<cfset headerBgColor = "f3f3f4">
 				<cfset headerTextColor = "000">
 				<cfset hoverBgColor = "b6bdca">
 				<cfset hoverBorderColor = "F6F6F6">
 				<cfset textColor = "000">
 				<cfset selectedTextColor = "fff">
-				<cfset headerBorderColor = "ceced2"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "f3f3f4"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "dedee0"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "f5f5f5"><!---.k-status{background-color:f5f5f5}--->
+				<cfset contentBgColor = "fff">
+				<cfset contentBorderColor = "dedee0">
+				<cfset alternateBgColor = "fbfbfb">
 				<cfset error = "d92800">
 				<cfset warning = "ff9800">
 				<cfset success = "3ea44e">
 				<cfset info = "2498bc">
-				<cfset titleColor = "8e8e8e">
 			</cfcase>
 			<cfcase value="uniform">
 				<cfset buttonAccentColor = "0066cc">
-				<cfset accentColor = "D4D4D4">
+				<cfset accentColor = "747474">
 				<cfset baseColor = "fff">
 				<cfset headerBgColor = "f5f5f5">
 				<cfset headerTextColor = "000">
 				<cfset hoverBgColor = "F6F6F6">
 				<cfset hoverBorderColor = "F6F6F6">
 				<cfset textColor = "000">
-				<cfset selectedTextColor = "000">
-				<cfset headerBorderColor = "F6F6F6"><!--- in css: .k-separator{border-color:c5c5c5} --->
-				<cfset contentBgColor = "fff"><!---td.k-group-cell{background-color:eae8e8}--->
-				<cfset contentBorderColor = "dedee0"><!---k-textbox{border-color:d5d5d5--->
-				<cfset alternateBgColor = "f5f5f5"><!---.k-status{background-color:f5f5f5}--->
+				<cfset selectedTextColor = "FFF">
+				<cfset contentBgColor = "fff">
+				<cfset contentBorderColor = "dedee0">
+				<cfset alternateBgColor = "f5f5f5">
 				<cfset error = "d92800">
 				<cfset warning = "ff9800">
 				<cfset success = "3ea44e">
 				<cfset info = "2498bc">
-				<cfset titleColor = "8e8e8e">
 			</cfcase>
 		</cfswitch>
 		<!--- Return the setting that was requested --->
@@ -1551,7 +2177,7 @@
 		<cfargument name="stretchHeaderAcrossPage" type="string" required="false" default="">
 		<cfargument name="headerBackgroundImage" type="string" required="false" default="">
 		<cfargument name="headerBodyDividerImage" type="string" required="false" default="">
-		<!--- Title --->
+		<!--- Title ---> 
 		<cfargument name="blogNameTextColor" type="string" required="false" default="">
 		<cfargument name="blogNameFontSize" type="string" required="false" default="">
 		<cfargument name="blogNameFontSizeMobile" type="string" required="false" default="">
@@ -1769,6 +2395,10 @@
 		<cfreturn ThemeDbObj.getThemeId()>
 			
 	</cffunction>
+			
+	<!--- //************************************************************************************************************
+			Page content
+	//**************************************************************************************************************--->
 					
 	<!--- //************************************************************************************************************
 			Fonts
@@ -1820,7 +2450,7 @@
 			hint="This function finds all of the fonts associated with a given theme or fonts that are marked as being used and returns the font data in a query">
 		<cfargument name="themeId" required="true" type="numeric" />
 		<cfargument name="selfHosted" required="false" type="boolean" default="true" />
-		<cfargument name="includeWebSafeFonts" required="false" type="boolean" default="false" />
+		<cfargument name="includeWebSafeFonts" required="false" type="boolean" default="true" />
 		
 		<cfset var Data = []>
 		
@@ -1877,6 +2507,7 @@
 					Font.Font as Font, 
 					FontAlias as FontAlias,
 					FontWeight as FontWeight,
+					Font.Font as FontFace,
 					Italic as Italic,
 					FileName as FileName,
 					SelfHosted as SelfHosted,
@@ -2134,37 +2765,22 @@
 			Templates
 	//**************************************************************************************************************--->
 			
-	<cffunction name="getCustomTemplate" access="public" returntype="array" output="false" hint="Returns custom templates that were specified by the blog owner. These templates are used to customize the appearance of the blog while keeping the original code intact. This should also aid when the user performs future blog software updates.">
-
-		<cfset var Data = []>
-			
-		<cfquery name="Data" dbtype="hql">
-			SELECT new Map (
-				CustomTemplateId as CustomTemplateId,
-				CoreLogicTemplate as CoreLogicTemplate,
-				HeaderTemplate as HeaderTemplate,
-				BodyString as BodyString,
-				FontTemplate as FontTemplate,
-				CssTemplate as CssTemplate,
-				TopMenuCssTemplate as TopMenuCssTemplate,
-				TopMenuHtmlTemplate as TopMenuHtmlTemplate, 
-				TopMenuJsTemplate as TopMenuJsTemplate, 
-				BlogCssTemplate as BlogCssTemplate,
-				BlogJsTemplate as BlogJsTemplate,
-				BlogHtmlTemplate as BlogHtmlTemplate,
-				BlogHtmlTemplate as BlogHtmlTemplate,
-				SideBarPanelHtmlTemplate as SideBarPanelHtmlTemplate,
-				FooterHtmlTemplate as FooterHtmlTemplate,
-				Date as Date
-			)
-			FROM 
-				CustomTemplate as CustomTemplate
-			WHERE 0 = 0
-			AND BlogRef = #application.BlogDbObj.getBlogId()#
-		</cfquery>
-			
-		<cfreturn Data>
-			
+	<cffunction name="getCoreOutputTemplatePath" dbtype="hql">
+		<cfargument name="templateName" default="">
+		<cfif templateName neq "">
+			<cfquery name="Data" dbtype="hql">
+				SELECT new Map (
+					CoreOutputTemplatePath as CoreOutputTemplatePath
+				)
+				FROM 
+					CoreOutputTemplate as CoreOutputTemplate
+				WHERE 
+					CoreOutputTemplateName = <cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.templateName#">
+			</cfquery>
+			<cfreturn Data>
+		<cfelse>
+			<cfreturn "Error: template not passed in.">	
+		</cfif>
 	</cffunction>
 			
 	<!--- //************************************************************************************************************
@@ -2173,12 +2789,13 @@
 		
 	<cffunction name="getCategoryList" access="public" returnType="string" output="false" 
 			hint="Returns a list of category id's or names depending upon the listType argument.">
-		<cfargument name="listType" type="string" required="true" hint="Either categoryList, categoryIdList, or categoryAliasList">
+		<cfargument name="listType" type="string" required="true" hint="Either categoryList, categoryIdList, or categoryAliasList. This is  used in the add category admin UI">
 			
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
 				Category.CategoryId as CategoryId,
 				Category.Category as Category, 
+				Category.CategoryDesc as CategoryDesc, 
 				Category.CategoryAlias as CategoryAlias
 				
 			)
@@ -2236,9 +2853,10 @@
 	</cffunction>
 
 	<cffunction name="getCategory" access="public" returnType="array" output="true" 
-			hint="Returns an array containing the category name and alias for a specific blog entry.">
+			hint="Returns an array containing the category name and alias for a specific blog entry. This is used in coreLogic.cfm, blogContentHtml.cfm, adminInterface.cfm, parsesses.cfm and xmlpc.cfm along with other places.">
 		<!--- All of the types are strings as empty strings are passed in --->
 		<cfargument name="categoryId" type="string" default="" required="false">
+		<cfargument name="parentCategoryId" type="string" default="" required="false">
 		<cfargument name="categoryUuid" type="string" default="" required="false">
 		<cfargument name="category" type="string" default="" required="false">
 		<cfargument name="categoryAlias" type="string" default="" required="false">
@@ -2247,7 +2865,10 @@
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
 				Category.CategoryId as CategoryId,
+				Category.ParentCategoryRef as ParentCategoryRef,
+				Category.CategorySubLevel as CategorySubLevel,
 				Category.Category as Category, 
+				Category.Category as CategoryDesc, 
 				Category.CategoryAlias as CategoryAlias,
 				Category.CategoryUuid as CategoryUuid
 			)
@@ -2265,6 +2886,9 @@
 			<cfif len(arguments.categoryAlias)>
 				AND CategoryAlias = <cfqueryparam value="#arguments.categoryAlias#" cfsqltype="cf_sql_varchar" maxlength="75">
 			</cfif>
+			<cfif len(arguments.parentCategoryId)>
+				AND ParentCategoryRef = <cfqueryparam value="#arguments.parentCategoryId#" cfsqltype="cf_sql_integer">
+			</cfif>
 				AND BlogRef = #application.BlogDbObj.getBlogId()#
 		</cfquery>
 		
@@ -2273,13 +2897,18 @@
 	</cffunction>
 			
 	<cffunction name="getCategories" access="public" returnType="array" output="false" 
-			hint="Returns a query containing all of the categories as well as their count for a specified blog.">
+			hint="Returns a query containing all of the categories as well as their count for a specified blog. This is uses in the search.cfm, searchResults.cfm, ProxyController.cfc, adminInterface.cfm xmlrpc.cfm and blogContentHtml.cfm templates">
+		
+		<cfargument name="parentCategory" type="boolean" default="false" required="false">
+		<cfargument name="childCategory" type="boolean" default="false" required="false">
+		
 		<cfset var getCategories = []>
 		<cfset var getTotal = "">
 
 		<cfquery name="getCategories" dbtype="hql">
 			SELECT new Map (
 				Category.CategoryId as CategoryId,
+				Category.ParentCategoryRef as ParentCategoryRef,
 				Category.CategoryUuid as CategoryUuid,
 				Category.Category as Category,
 				Category.CategoryAlias as CategoryAlias,
@@ -2289,6 +2918,12 @@
 				Category as Category
 			WHERE 
 				0=0
+			<cfif arguments.parentCategory>
+				AND ParentCategoryRef = 0
+			</cfif>
+			<cfif arguments.childCategory>
+				AND ParentCategoryRef > 0 
+			</cfif>
 				AND Category.BlogRef = #application.BlogDbObj.getBlogId()#	
 			ORDER BY Category
 		</cfquery>
@@ -2324,7 +2959,6 @@
 				<cfelse>
 					<cfset postCount = 0>
 				</cfif>
-				<!--- postCount: <cfoutput>#postCount#</cfoutput> --->
 
 				<!--- Modify the array values and add the post count --->
 				<cfset getCategories[i]["PostCount"] = postCount>
@@ -2336,9 +2970,10 @@
 	</cffunction>
 			
 	<cffunction name="getCategoriesForGrid" access="public" returnType="array" output="false" 
-			hint="Returns a query containing all of the categories as well as their count for a specified blog.">
+			hint="Returns a query containing all of the categories as well as their count for a specified blog. This is used in ProxyController.cfc and the categories grid">
 		<cfargument name="category" type="string" required="false" default="">
 		<cfargument name="alias" type="string" required="false" default="">
+		<cfargument name="date" type="string" required="false" default="">
 			
 		<cfset var getCategories = []>
 		<cfset var getTotal = "">
@@ -2354,7 +2989,8 @@
 				Category.CategoryUuid as CategoryUuid,
 				Category.Category as Category,
 				Category.CategoryAlias as CategoryAlias,
-				'' as PostCount
+				'' as PostCount,
+				Category.Date as Date
 			)
 			FROM  
 				Category as Category
@@ -2366,7 +3002,11 @@
 			<cfif arguments.alias neq ''>
 				AND Category.CategoryAlias LIKE <cfqueryparam value="%#arguments.alias#%">
 			</cfif>
-				AND Category.BlogRef = #application.BlogDbObj.getBlogId()#			
+			<cfif arguments.date neq ''>
+				AND Category.Date LIKE <cfqueryparam value="%#arguments.date#%">
+			</cfif>
+				AND Category.BlogRef = #application.BlogDbObj.getBlogId()#	
+				ORDER BY Category.Category
 		</cfquery>
 		<!---<cfdump var="#getCategories#">--->
 
@@ -2412,7 +3052,7 @@
 	</cffunction>
 
 	<cffunction name="getCategoriesForPost" access="public" returnType="array" output="false" 
-			hint="Returns a array containing all of the categories for a specific blog entry.">
+			hint="Returns a array containing all of the categories for a specific blog entry. Used in the adminInterface.cfm and xmlrpc.cfm templates">
 		<cfargument name="postId" type="numeric" required="true">
 		<cfset var Data = "[]">
 
@@ -2423,6 +3063,7 @@
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
 				Category.CategoryId as CategoryId,
+				Category.ParentCategoryRef as ParentCategoryRef,
 				Category.CategoryUuid as CategoryUuid, 
 				Category.Category as Category
 			)
@@ -2439,13 +3080,15 @@
 	</cffunction>
 			
 	<cffunction name="getCategoriesByPostId" access="public" returntype="array" output="false"
-		hint="Returns the categories for a given post id.">	
+		hint="Returns the categories for a given post id. Used in the blogContentHtml.cfm and Blog.cfc templates">	
 		<cfargument name="postId" type="numeric" required="true">
 			
 		<!--- Get the categories. --->
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
 				Category.CategoryId as CategoryId,
+				Category.ParentCategoryRef as ParentCategoryRef,
+				Category.CategorySubLevel as CategorySubLevel,
 				Category.CategoryUuid as CategoryUuid, 
 				Category.Category as Category
 			)
@@ -2462,10 +3105,63 @@
 			
 	</cffunction>
 			
+	<cffunction name="getParentCategoryQuery" 
+			hint="Finds and returns a query object of the parent categories to generate breadcrumb navigation.">
+		<cfargument name="categoryId" required="true" hint="Pass in the initial cateoryId to start things off">
+		<cfargument name="parentCategoriesQuery" required="false" default="" hint="this is the final list that will be returned when there are no more parentCategoryId's left">
+
+		<!---
+		Example usage:
+		<cfset categoryList = getParentCategoryQuery(56,'')> 
+		<cfdump var="#categoryList#">
+		--->
+
+		<!--- Get the current category (this is a HQL array) --->
+		<cfset getCategory = application.blog.getCategory(categoryId=arguments.categoryId)>
+		<!--- Extract the data --->
+		<cfset parentCategoryId = getCategory[1]["ParentCategoryRef"]>
+		<cfset categoryId = getCategory[1]["CategoryId"]>
+		<cfset category = getCategory[1]["Category"]>
+		<cfset categoryLevel = getCategory[1]["CategorySubLevel"]>
+
+		<!--- Create a new three-column query, specifying the column data types ---> 
+		<cfif not isQuery(parentCategoriesQuery)>
+			<cfset parentCategoriesQuery = queryNew("CategoryId, ParentCategoryId, Category, CategoryLink, CategoryLevel", "integer, integer, varchar, varchar, integer")> 
+			<!--- Create new rows in the query. We need as many rows as we have category levels ---> 
+			<cfset queryAddRow(parentCategoriesQuery, categoryLevel)>
+
+		</cfif><!---<cfif not isQuery(parentCategoriesQuery)>--->
+
+		<!--- Fallback condition --->
+		<cfif parentCategoriesQuery.recordcount gte 7>
+
+			<!---There should never be more than 7 rows in this query. Send the data back as is.--->
+			<cfreturn parentCategoriesQuery>
+
+		<cfelse><!---<cfif parentCategoriesQuery.recordcount gte 7>--->
+			<!--- Set the values of the cells in the query ---> 
+			<cfset querySetCell(parentCategoriesQuery, "CategoryId", categoryId, categoryLevel)> 
+			<cfset querySetCell(parentCategoriesQuery, "ParentCategoryId", parentCategoryId, categoryLevel)> 
+			<cfset querySetCell(parentCategoriesQuery, "Category", category, categoryLevel)> 
+			<cfset querySetCell(parentCategoriesQuery, "CategoryLink", application.blog.makeCategoryLink(categoryId), categoryLevel)> 
+			<cfset querySetCell(parentCategoriesQuery, "CategoryLevel", categoryLevel, categoryLevel)> 
+
+			<!--- If there is a parentCategoryId, call this function recursively and pass in the new parentCategoryId. Otherwise, return the categoryIdList. Note: we must use a cfreturn to call the function recursively, otherwise the categoryIdList will not be returned properly. --->
+			<cfif parentCategoryId>
+				<cfreturn getParentCategoryQuery(parentCategoryId,parentCategoriesQuery)>			
+			<cfelse>
+				<cfreturn parentCategoriesQuery>
+			</cfif>
+
+		</cfif><!---<cfif parentCategoriesQuery.recordcount gte 7>--->
+
+	</cffunction>
+			
 	<cffunction name="categoryExists" access="private" returnType="boolean" output="false"
-			hint="Returns true or false if an entry exists.">
+			hint="Returns true or false if an entry exists. Used in this cfc and ProxyController.cfc to verify that the category does not exist.">
 		<cfargument name="id" type="uuid" required="false">
 		<cfargument name="name" type="string" required="false">
+		
 		<cfset var checkC = "">
 
 		<!--- must pass either ID or name, but not obth --->
@@ -2626,6 +3322,7 @@
 		<cfset var checkC = "">
 		<cfset var uuid = createUUID()>
 
+		<!--- Don't create multiple categories. A new child category may be created programmatically tho. --->
 		<cfif categoryExists(name="#arguments.name#")>
 			<cfset variables.utils.throw("#arguments.name# already exists as a category.")>
 		</cfif>
@@ -2659,6 +3356,7 @@
 			hint="Saves a category.">
 		<!--- Pass in the categoryId if you want to update the record. The category is always required. --->
 		<cfargument name="categoryId" type="any" default="" required="false">
+		<cfargument name="parentCategoryId" type="any" default="0" required="false">
 		<cfargument name="categoryUuid" type="any" default="" required="false" hint="Used when importing data from previous versions of BlogCfc">
 		<cfargument name="category" type="string" required="true">
 		<cfargument name="categoryAlias" type="string" default="" required="false">
@@ -2699,6 +3397,7 @@
 					<cfif len(arguments.categoryAlias)>
 						CategoryAlias = <cfqueryparam value="#arguments.categoryAlias#" cfsqltype="cf_sql_varchar" maxlength="75">,
 					</cfif>
+						ParentCategoryRef = <cfqueryparam value="#arguments.parentCategoryId#" cfsqltype="cf_sql_integer">,
 						Category = <cfqueryparam value="#arguments.category#" cfsqltype="cf_sql_varchar" maxlength="50">
 					WHERE 0=0
 						AND CategoryId = <cfqueryparam value="#arguments.categoryId#" cfsqltype="cf_sql_integer">
@@ -2718,6 +3417,7 @@
 				<!--- Create a new category entity --->
 				<cfset CategoryDbObj = entityNew("Category")>
 				<cfset CategoryDbObj.setCategoryUuid(categoryUuid)>
+				<cfset CategoryDbObj.setParentCategoryRef(arguments.parentCategoryId)>
 				<cfset CategoryDbObj.setCategory(arguments.category)>
 				<cfset CategoryDbObj.setCategoryAlias(newAlias)>
 				<cfset CategoryDbObj.setDate(blogNow())> 
@@ -2733,7 +3433,7 @@
 
 	</cffunction>
 			
-	<cffunction name="savePostCategories" access="public" returnType="string" output="false"
+	<cffunction name="savePostCategories" access="public" returnType="string" output="true"
 			hint="Attaches a list of categories to a given post.">
 		<!--- Pass in the categoryId if you want to update the record. The category is always required. --->
 		<cfargument name="postId" type="any" default="" required="true">
@@ -2744,7 +3444,7 @@
 		<cfparam name="thisCategoryIdList" default="#arguments.categoryIdList#" type="string" maxlength="35">
 		<cfparam name="thisBlogId" default="#application.BlogDbObj.getBlogId()#" type="integer" maxlength="9">
 	
-		<!---Debugging carriage--->
+		<!--- Debugging carriage. Set output to true when debugging. You will have json errors when debugging due to the extra white space --->
 		<cfset debug = 0>
 
 		<!---******************************************************************************************************** 
@@ -2776,29 +3476,43 @@
 					FROM  
 						PostCategoryLookup as PostCategoryLookup
 					WHERE 
-						PostCategoryLookup.CategoryRef = #getCategoriesNotInList[i]["CategoryId"]#		
+						PostCategoryLookup.CategoryRef = #categoryId#		
 				</cfquery>
 			</cfloop>
 		</cfif>
 
 		<!---******************************************************************************************************** 
-			Determine whether to insert the record
+			Determine whether to insert or update the record
 		*********************************************************************************************************--->
 
-		<!--- Loop through the new category id list --->
+		<!--- Create a counter --->
+		<cfset categoryListCounter = 1>
+			
+		<!--- Loop through the new category id list. There can be multple categories in this list- the first catgory found is a parent category and every category found later is a subcategory. --->
 		<cfloop list="#categoryIdList#" index="i">
-			<cfif debug><cfoutput>i: #i#</cfoutput><br/></cfif>
-
-			<!---Reset the getPostCategory array prior to making a new query--->
+			
+			<!--- Reset the getPostCategory array prior to making a new query --->
 			<cfset getPostCategory = []>
+				
+			<!--- Determine if this is a parent or child category --->
+			<cfif categoryListCounter eq 1>
+				<cfset parentCategory = true>
+				<!--- The parentCategoryId is 0 --->
+				<cfset parentCategoryId = 0>
+			<cfelse>
+				<cfset parentCategory = false>
+				<!--- Get the parentCategoryId, which is the previous CategoryId in the list. --->
+				<cfset parentCategoryId = listGetAt(categoryIdList, categoryListCounter-1)>
+			</cfif>
+			<cfif debug><cfoutput>i:#i# categoryListCounter:#categoryListCounter# parentCategory:#parentCategory# parentCategoryId:#parentCategoryId#</cfoutput><br/></cfif>
 
 			<!--- 
-			Determine if this is record is already in the PostCategoryLookup table. 
+			Determine if this is record is already in the PostCategoryLookup table. However, we also need to get the proper sublevel so we will make a preliminary query based upon the category counter.
 			Note: 'PostCategoryLookup.CategoryRef as CategoryId' alone brings back the entire category entity object. 
 			--->
-			<cfquery name="getPostCategory" dbtype="hql">
+			<cfquery name="getPostCategoryAndSubLevel" dbtype="hql">
 				SELECT new Map (
-					PostCategoryLookup.CategoryRef.CategoryId as CategoryId
+					PostCategoryLookup.PostCategoryLookupId as PostCategoryLookupId
 				)
 				FROM  
 					PostCategoryLookup as PostCategoryLookup
@@ -2806,27 +3520,114 @@
 					JOIN PostCategoryLookup.PostRef as Post
 				WHERE 
 					PostCategoryLookup.PostRef = #thisPostId#
-					AND PostCategoryLookup.CategoryRef = #i#
 					AND Post.BlogRef = #thisBlogId#		
 			</cfquery>
-			<cfif debug><cfdump var="#getPostCategory#"></cfif>
+			<cfif debug><cfdump var="#getPostCategoryAndSubLevel#"></cfif>
+					
+			<!--- Try to get the proper Id by the sublevel --->
+			<cfif categoryListCounter lte arrayLen(getPostCategoryAndSubLevel)>
+				<cfset thisPostCategoryId = getPostCategoryAndSubLevel[categoryListCounter]["PostCategoryLookupId"]>
+				<cfif debug><br/>thisPostCategoryId: <cfoutput>#thisPostCategoryId#</cfoutput><br/></cfif>
+					
+				<!--- Get the data --->
+				<cfquery name="getPostCategory" dbtype="hql">
+					SELECT new Map (
+						PostCategoryLookup.PostCategoryLookupId as PostCategoryLookupId,
+						PostCategoryLookup.CategoryRef.CategoryId as CategoryId,
+						PostCategoryLookup.CategoryRef.Category as Category
+					)
+					FROM  
+						PostCategoryLookup as PostCategoryLookup
+						JOIN PostCategoryLookup.CategoryRef as Category
+						JOIN PostCategoryLookup.PostRef as Post
+					WHERE 
+						PostCategoryLookup.PostRef = #thisPostId#
+						AND PostCategoryLookup.PostCategoryLookupId = #thisPostCategoryId#
+						AND Post.BlogRef = #thisBlogId#		
+				</cfquery>
+				<!---
+				Test query
+				SELECT     
+					PostCategoryLookup.PostCategoryLookupId, 
+					Category.ParentCategoryRef, 
+					Category.CategorySubLevel, 
+					Category.Category
+				FROM        PostCategoryLookup INNER JOIN
+					  Category ON PostCategoryLookup.CategoryRef = Category.CategoryId
+				WHERE PostCategoryLookup.PostRef = 4153
+				--->
+					
+			<cfelse>
+				<!--- Set the getPostCategory to null in order to insert a new record. --->
+				<cfset getPostCategory = []>
+			</cfif>
+				
+			<cfif debug><cfdump var="#getPostCategory#"><br/></cfif>
 
-			<!--- If the record is not found, insert it. Otherwise leave the current record intact. --->
+			<!---******************************************************************************************************** 
+					If the record is not found, insert it into the PostCategoryLookup table. Otherwise leave the current record intact
+			*********************************************************************************************************--->
 			<cfif arrayLen(getPostCategory) eq 0>
-				<cfif debug>Insert categoryId: <cfoutput>#i#</cfoutput></cfif>
+				<cfif debug>Inserting new category <cfoutput>i:#i#</cfoutput><br/><br/></cfif>
 				<!--- Load the entities that will be used to populate the PostCategoryLookup entity --->
 				<cfset PostDbObj = entityLoadByPK("Post", postId)>
-				<cfset CategoryDbObj = entityLoadByPK("Category", i)>
-
-				<!--- Create a new post lookup entity --->
-				<cfset PostCategoryLookupDbObj = entityNew("PostCategoryLookup")>
-				<cfset PostCategoryLookupDbObj.setPostRef(PostDbObj)>
-				<cfset PostCategoryLookupDbObj.setCategoryRef(CategoryDbObj)>
-				<cfset PostCategoryLookupDbObj.setDate(blogNow())>
-				<!--- Save it --->
-				<<cfset EntitySave(PostCategoryLookupDbObj)>
+				
+				<!---******************************************************************************************************** 
+					Update the ParentCategoryRef into the category table
+				*********************************************************************************************************--->
+				<cftransaction>
+					<!--- Get a reference to the category entity --->
+					<cfset CategoryDbObj = entityLoadByPK("Category", i)>
+					<!--- Update the parentCategoryRef... --->
+					<cfset CategoryDbObj.setParentCategoryRef(parentCategoryId)>
+					<!--- And save the entity --->
+					<cfset EntitySave(CategoryDbObj)>
+				</cftransaction>
+				
+				<!---******************************************************************************************************** 
+					Now, create a new post lookup entity
+				*********************************************************************************************************--->
+				<cftransaction>
+					<cfset PostCategoryLookupDbObj = entityNew("PostCategoryLookup")>
+					<cfset PostCategoryLookupDbObj.setPostRef(PostDbObj)>
+					<cfset PostCategoryLookupDbObj.setCategoryRef(CategoryDbObj)>
+					<cfset CategoryDbObj.setCategorySubLevel(categoryListCounter)>
+					<cfset PostCategoryLookupDbObj.setDate(blogNow())>
+					<!--- Save it --->
+					<cfset EntitySave(PostCategoryLookupDbObj)>
+				</cftransaction>
+					
+			<!---******************************************************************************************************** 
+					Update the category and PostCategoryLookup tables. 
+			*********************************************************************************************************--->
+			<cfelse>
+				
+				<cfif debug><cfoutput>Updating record. i:#i# getPostCategory[1]["Category"]:#getPostCategory[1]["Category"]# PostCategoryLookupId:#getPostCategory[1]["PostCategoryLookupId"]#</cfoutput><br/><br/></cfif>
+				
+				<!--- Update the ParentCategoryRef and SubLevel into the category table --->
+				<cftransaction>
+					<!--- Get a reference to the category entity --->
+					<cfset CategoryDbObj = entityLoadByPK("Category", i)>
+					<!--- Update the parentCategoryRef... --->
+					<cfset CategoryDbObj.setParentCategoryRef(parentCategoryId)>
+					<!--- Update the sublevel --->
+					<cfset CategoryDbObj.setCategorySubLevel(categoryListCounter)>
+					<!--- And save the entity --->
+					<cfset EntitySave(CategoryDbObj)>
+				</cftransaction>
+					
+				<!--- Update the existing post category lookup record. This needs to be done as the category order may have been changed --->
+				<cftransaction>
+					<cfset PostCategoryLookupDbObj = entityLoadByPk("PostCategoryLookup", getPostCategory[1]["PostCategoryLookupId"])>
+					<cfset PostCategoryLookupDbObj.setCategoryRef(CategoryDbObj)>
+					<cfset PostCategoryLookupDbObj.setDate(blogNow())>
+					<!--- Save it --->
+					<cfset EntitySave(PostCategoryLookupDbObj)>
+				</cftransaction>
+						
 			</cfif>
-
+			<!--- Increment our counter --->
+			<cfset categoryListCounter = categoryListCounter + 1>
 		</cfloop>
 		
 		<cfreturn arguments.categoryIdList>
@@ -2877,6 +3678,725 @@
 		<cfset EntityDelete(CategoryDbObj)>
 		<!--- And delete the variable to ensure that the record is deleted from ORM memory. --->
 		<cfset void = structDelete( variables, "CategoryDbObj" )>
+
+	</cffunction>
+			
+			
+	<!--- //************************************************************************************************************
+			Tags
+	//**************************************************************************************************************--->
+		
+	<cffunction name="getTagList" access="public" returnType="string" output="false" 
+			hint="Returns a list of tag id's or names depending upon the listType argument.">
+		<cfargument name="listType" type="string" required="true" hint="Either tagList, tagIdList, or tagAliasList. This is  used in the add category admin UI">
+			
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				Tag.TagId as TagId,
+				Tag.Tag as Tag, 
+				Tag.TagDesc as TagDesc, 
+				Tag.TagAlias as TagAlias
+				
+			)
+			FROM Tag
+			WHERE 
+				BlogRef = #application.BlogDbObj.getBlogId()#
+		</cfquery>
+		
+		<cfif arguments.listType eq 'tagIdList'>
+			<cfparam name="tagIdList" default="">
+			<cfif arrayLen(Data)>
+				<!--- Loop through the array and get the roles --->
+				<cfloop from="1" to="#arrayLen(Data)#" index="i">
+					<cfif i lt arrayLen(Data)>
+						<cfset tagIdList = tagIdList & Data[i]["TagId"] & ",">
+					<cfelse>
+						<cfset tagIdList = tagIdList & Data[i]["TagId"]>
+					</cfif>
+				</cfloop>
+			</cfif> 
+			<!--- Return the list of id's --->
+			<cfreturn tagIdList>
+				
+		<cfelseif listType eq 'tagList'>
+			<cfparam name="tagList" default="">
+			<cfif arrayLen(Data)>
+				<!--- Loop through the array and get the roles --->
+				<cfloop from="1" to="#arrayLen(Data)#" index="i">
+					<cfif i lt arrayLen(Data)>
+						<cfset tagList = tagList & Data[i]["Tag"] & ",">
+					<cfelse>
+						<cfset tagList = tagList & Data[i]["Tag"]>
+					</cfif>
+				</cfloop>
+			</cfif> 
+			<!--- Return the list of categories --->
+			<cfreturn tagList>
+				
+		<cfelseif arguments.listType eq 'tagAliasList'>
+			<cfparam name="tagAliasList" default="">
+			<cfif arrayLen(Data)>
+				<!--- Loop through the array and get the roles --->
+				<cfloop from="1" to="#arrayLen(Data)#" index="i">
+					<cfif i lt arrayLen(Data)>
+						<cfset tagAliasList = tagAliasList & Data[i]["TagAlias"] & ",">
+					<cfelse>
+						<cfset tagAliasList = tagAliasList & Data[i]["TagAlias"]>
+					</cfif>
+				</cfloop>
+			</cfif> 
+			<!--- Return the list of id's --->
+			<cfreturn tagAliasList>
+		</cfif>
+						
+	</cffunction>
+
+	<cffunction name="getTag" access="public" returnType="array" output="true" 
+			hint="Returns an array containing the tag name and alias for a specific blog entry. This is used in coreLogic.cfm, blogContentHtml.cfm, adminInterface.cfm, parsesses.cfm and xmlpc.cfm along with other places.">
+		<!--- All of the types are strings as empty strings are passed in --->
+		<cfargument name="tagId" type="string" default="" required="false">
+		<cfargument name="tagUuid" type="string" default="" required="false">
+		<cfargument name="tag" type="string" default="" required="false">
+		<cfargument name="tagAlias" type="string" default="" required="false">
+		<cfset var Data = "[]">
+			
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				Tag.TagId as TagId,
+				Tag.Tag as Tag, 
+				Tag.Tag as TagDesc, 
+				Tag.TagAlias as TagAlias,
+				Tag.TagUuid as TagUuid
+			)
+			FROM Tag as Tag
+			WHERE 0=0
+			<cfif len(arguments.tagId)>
+				AND TagId = <cfqueryparam value="#arguments.tagId#" cfsqltype="cf_sql_integer">
+			</cfif>
+			<cfif len(arguments.tagUuid)>
+				AND TagUuid = <cfqueryparam value="#arguments.tagUuid#" cfsqltype="cf_sql_varchar" maxlength="75">
+			</cfif>
+			<cfif len(arguments.tag)>
+				AND Tag.Tag = <cfqueryparam value="#arguments.tag#" cfsqltype="cf_sql_varchar" maxlength="125">
+			</cfif>
+			<cfif len(arguments.tagAlias)>
+				AND TagAlias = <cfqueryparam value="#arguments.tagAlias#" cfsqltype="cf_sql_varchar" maxlength="75">
+			</cfif>
+				AND BlogRef = #application.BlogDbObj.getBlogId()#
+		</cfquery>
+		
+		<cfreturn Data>
+
+	</cffunction>
+			
+	<cffunction name="getTags" access="public" returnType="array" output="false" 
+			hint="Returns a query containing all of the tags as well as their count for a specified blog. This is uses in the search.cfm, searchResults.cfm, ProxyController.cfc, adminInterface.cfm xmlrpc.cfm and blogContentHtml.cfm templates">
+		<cfset var getTags = []>
+		<cfset var getTotal = "">
+
+		<cfquery name="getTags" dbtype="hql">
+			SELECT DISTINCT new Map (
+				Tag.TagId as TagId,
+				Tag.TagUuid as TagUuid,
+				Tag.Tag as Tag,
+				Tag.TagAlias as TagAlias,
+				'' as PostCount
+			)
+			FROM  
+				Tag as Tag
+			WHERE 
+				0=0
+				AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#	
+			ORDER BY Tag
+		</cfquery>
+		<!---<cfdump var="#getCategories#">--->
+
+		<!--- Loop thru the categories and get the post count. The post count is used on some interfaces to show how many posts belong to a given tag. --->
+		<cfif arrayLen(getTags)>
+			<cfloop from="1" to="#arrayLen(getTags)#" index="i">
+
+				<cfset tagId = getTags[i]["TagId"]>
+
+				<cfquery name="getTagPostCount" dbtype="hql">
+					SELECT new Map (
+						count(Post.PostId) as PostCount
+					)
+					FROM  
+						PostTagLookup as PostTagLookup
+						JOIN PostTagLookup.TagRef as Tag
+						JOIN PostTagLookup.PostRef as Post
+					WHERE     
+						PostTagLookup.TagRef = #getTags[i]["TagId"]#
+						AND Released = 1
+						AND Post.Remove = 0
+						AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
+						AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#
+					GROUP BY  
+						TagId			
+				</cfquery>
+
+				<!--- Set the post count --->
+				<cfif arrayLen(getTagPostCount) and isNumeric(getTagPostCount[1]["PostCount"])>
+					<cfset postCount = getTagPostCount[1]["PostCount"]>
+				<cfelse>
+					<cfset postCount = 0>
+				</cfif>
+				<!--- postCount: <cfoutput>#postCount#</cfoutput> --->
+
+				<!--- Modify the array values and add the post count --->
+				<cfset getTags[i]["PostCount"] = postCount>
+			</cfloop>
+		</cfif><!---<cfif arrayLen(getTags)>--->
+
+		<cfreturn getTags>
+		
+	</cffunction>
+			
+	<cffunction name="getTagsForGrid" access="public" returnType="array" output="false" 
+			hint="Returns a query containing all of the tags as well as their count for a specified blog. This is used in ProxyController.cfc and the tags grid">
+		<cfargument name="tag" type="string" required="false" default="">
+		<cfargument name="alias" type="string" required="false" default="">
+		<cfargument name="date" type="string" required="false" default="">
+			
+		<cfset var getTags = []>
+		<cfset var getTotal = "">
+
+		<!--- Note: caching may no longer be necessary here as the new ORM logic should fix some of the performance issues of the original ad-hoc BlogCfc query. --->
+		<cfif structKeyExists(variables, "tagCache") and arguments.usecache>
+			<cfreturn variables.tagCache>
+		</cfif>
+
+		<cfquery name="getTags" dbtype="hql">
+			SELECT new Map (
+				Tag.TagId as TagId,
+				Tag.TagUuid as TagUuid,
+				Tag.Tag as Tag,
+				Tag.TagAlias as TagAlias,
+				'' as PostCount,
+				Tag.Date as Date
+			)
+			FROM  
+				Tag as Tag
+			WHERE 
+				0=0
+			<cfif arguments.tag neq ''>
+				AND Tag.Tag LIKE <cfqueryparam value="%#arguments.tag#%">
+			</cfif>
+			<cfif arguments.alias neq ''>
+				AND Tag.TagAlias LIKE <cfqueryparam value="%#arguments.alias#%">
+			</cfif>
+			<cfif arguments.date neq ''>
+				AND Tag.Date LIKE <cfqueryparam value="%#arguments.date#%">
+			</cfif>
+				AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#			
+		</cfquery>
+		<!---<cfdump var="#getCategories#">--->
+
+		<!--- Loop thru the categories and get the post count. The post count is used on some interfaces to show how many posts belong to a given tag. --->
+		<cfif arrayLen(getTags)>
+			<cfloop from="1" to="#arrayLen(getTags)#" index="i">
+
+				<cfset tagId = getTags[i]["TagId"]>
+
+				<cfquery name="getTagPostCount" dbtype="hql">
+					SELECT new Map (
+						count(Post.PostId) as PostCount
+					)
+					FROM  
+						PostTagLookup as PostTagLookup
+						JOIN PostTagLookup.TagRef as Tag
+						JOIN PostTagLookup.PostRef as Post
+					WHERE 
+						PostTagLookup.TagRef = #tagId#
+						AND Released = 1
+						AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#
+					GROUP BY  
+						Tag.TagId			
+				</cfquery>
+
+				<!--- Set the post count --->
+				<cfif arrayLen(getTagPostCount)>
+					<cfset postCount = getTagPostCount[1]["PostCount"]>
+				<cfelse>
+					<cfset postCount = 0>
+				</cfif>
+				<!--- postCount: <cfoutput>#postCount#</cfoutput> --->
+
+				<!--- Modify the array values and add the post count --->
+				<cfset getTags[i]["PostCount"] = postCount>
+			</cfloop>
+		</cfif><!---<cfif arrayLen(getTags)>--->
+		
+		<cfreturn getTags>
+		
+	</cffunction>
+
+	<cffunction name="getTagsForPost" access="public" returnType="array" output="false" 
+			hint="Returns a array containing all of the categories for a specific blog entry. Used in the adminInterface.cfm and xmlrpc.cfm templates">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfset var Data = "[]">
+
+		<cfif not postExists(arguments.postId)>
+			<cfset variables.utils.throw("'#arguments.postId#' does not exist.")>
+		</cfif>
+
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				Tag.TagId as TagId,
+				Tag.TagUuid as TagUuid, 
+				Tag.Tag as Tag
+			)
+			FROM 
+				PostTagLookup as PostTagLookup,
+				Tag as Tag
+			WHERE 
+				PostTagLookup.TagRef = Tag.TagId
+				AND PostTagLookup.PostRef = #arguments.postId#		
+		</cfquery>
+
+		<cfreturn Data>
+
+	</cffunction>
+			
+	<cffunction name="getTagsByPostId" access="public" returntype="array" output="false"
+		hint="Returns the tags for a given post id. Used in the blogContentHtml.cfm and Blog.cfc templates">	
+		<cfargument name="postId" type="numeric" required="true">
+			
+		<!--- Get the categories. --->
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				Tag.TagId as TagId,
+				Tag.TagUuid as TagUuid, 
+				Tag.Tag as Tag
+			)
+			FROM 
+				PostTagLookup as PostTagLookup,
+				Tag as Tag
+			WHERE 
+				PostTagLookup.TagRef = Tag.TagId
+				<!--- Pass in the PostId --->
+				AND PostTagLookup.PostRef = #arguments.postId#
+		</cfquery>
+			
+		<cfreturn Data>
+			
+	</cffunction>
+			
+	<cffunction name="tagExists" access="private" returnType="boolean" output="false"
+			hint="Returns true or false if an entry exists. Used in this cfc and ProxyController.cfc to verify that the category does not exist.">
+		<cfargument name="id" type="uuid" required="false">
+		<cfargument name="name" type="string" required="false">
+		<cfset var checkC = "">
+
+		<!--- must pass either ID or name, but not obth --->
+		<cfif (not isDefined("arguments.id") and not isDefined("arguments.name")) or (isDefined("arguments.id") and isDefined("arguments.name"))>
+			<cfset variables.utils.throw("tagExists method must be passed id or name, but not both.")>
+		</cfif>
+			
+		<cfquery name="Data" dbtype="hql">
+			SELECT 
+				TagId
+			FROM Tag
+			WHERE 0=0
+			<cfif isDefined("arguments.id")>
+				AND TagUuid = <cfqueryparam value="#arguments.id#" cfsqltype="cf_sql_varchar" maxlength="35">
+			</cfif>
+			<cfif isDefined("arguments.name")>
+				AND Tag = <cfqueryparam value="#arguments.name#" cfsqltype="cf_sql_varchar" maxlength="100">
+			</cfif>
+				AND BlogRef = #application.BlogDbObj.getBlogId()#
+		</cfquery>
+			
+		<cfif arrayLen(Data)>
+			<cfset TagFound = true>
+		<cfelse>
+			<cfset TagFound = false>
+		</cfif>
+		
+		<cfreturn TagFound>
+
+	</cffunction>
+			
+	<cffunction name="postTagExists" access="private" returnType="boolean" output="false"
+			hint="Returns true or false if the relationship between a post and a tag exists. Used to determine whether to insert records into the PostTagLookup table in order to prevent duplicate records.">
+		<cfargument name="postId" type="numeric" required="true">
+		<!--- Either the tag, tagId or the tagUuid must be sent in --->
+		<cfargument name="tag" type="string" default="" required="false">
+		<cfargument name="tagId" type="numeric" default="" required="false">
+		<cfargument name="tagUuid" type="any" default="" required="false">
+			
+		<!--- Load the tag object by the tagId  --->
+		<cfif len(arguments.tagId) and isNumeric(tagId)>
+			<cfset TagRefObj = entityLoadByPK("Tag", arguments.tagId)>
+		<cfelseif len(arguments.tag)>
+			<!--- Load the tag object by the tag  --->
+			<cfset TagRefObj = entityLoad("Tag", { Tag = arguments.tag }, "true" )>
+		<cfelseif len(arguments.tagUuid)>
+			<!--- Load the tag object with the tag UUID  --->
+			<cfset TagRefObj = entityLoad("Tag", { TagUuid = arguments.tagUuid }, "true" )>
+		</cfif>
+			
+		<!--- Get the Post Id--->
+		<cfset PostRefObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
+			
+		<cfif isDefined("TagRefObj") and isDefined("PostRefObj")>
+			<cfquery name="Data" dbtype="hql">
+				SELECT new Map(
+					PostTagLookupId as PostTagLookupId
+				)
+				FROM PostTagLookup
+				WHERE 0=0
+					AND TagRef = #TagRefObj.getTagId()#
+					AND PostRef = #arguments.postId#
+			</cfquery>
+
+			<cfif arrayLen(Data)>
+				<cfset postTagExists = true>
+			<cfelse>
+				<cfset postTagExists = false>
+			</cfif>
+		<cfelse>
+			<cfset postTagExists = false>
+		</cfif>
+		
+		<cfreturn postTagExists>
+
+	</cffunction>
+			
+	<cffunction name="assignTag" access="public" returnType="numeric" output="false"
+			hint="Assigns postId to a Tag">
+		<cfargument name="postId" type="numeric" required="true">
+		<!--- Either the Tag, TagId or the TagUuid must be sent in --->
+		<cfargument name="tag" type="string" default="" required="false">
+		<cfargument name="tagId" type="numeric" default="" required="false">
+		<cfargument name="tagUuid" type="any" default="" required="false">
+		
+		<cfset var Data = "">
+			
+		<!--- Load the Tag object by the TagId  --->
+		<cfif len(arguments.tagId) and isNumeric(tagId)>
+			<cfset TagRefObj = entityLoadByPK("Tag", arguments.TagId)>
+		<cfelseif len(arguments.tag)>
+			<!--- Load the tag object by the tag  --->
+			<cfset TagRefObj = entityLoad("Tag", { Tag = arguments.tag }, "true" )>
+		<cfelseif len(arguments.tagUuid)>
+			<!--- Load the tag object with the tag UUID  --->
+			<cfset TagRefObj = entityLoad("Tag", { TagUuid = arguments.tagUuid }, "true" )>
+		</cfif>
+			
+		<!--- Get the Post Id--->
+		<cfset PostRefObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
+		
+		<!--- Are both of our objects defined? The entityLoad function will only create an object if the filters match existing records. --->
+		<cfif isDefined("TagRefObj") and isDefined("PostRefObj")>
+			
+			<!--- See if the relationship exists. Note: HQL does not like when the primary keys are in a cfqueryparam tag. Sigh. I think that this is OK here. --->
+			<cfquery name="Data" dbtype="hql">
+				SELECT new Map(
+					PostTagLookupId as PostTagLookupId
+				)
+				FROM PostTagLookup
+				WHERE 0=0
+					AND TagRef = #TagRefObj.getTagId()#
+					AND PostRef = #arguments.postId#
+			</cfquery>
+
+			<cfif arrayLen(Data)>
+				<cfreturn Data[1]["PostTagLookupId"]>
+			<cfelse><!---<cfif arrayLen(Data)>--->
+				<!--- Load the entity. --->
+				<cfset PostTagObj = entityNew("PostTagLookup")>
+				<!--- Use the entity objects to set the data. --->
+				<cfset PostTagObj.setTagRef(TagRefObj)>
+				<cfset PostTagObj.setPostRef(PostRefObj)>
+				<cfset PostTagObj.setDate(blogNow())>
+
+				<!--- Save it. Note: updates will automatically occur on persisted objects if the object notices any change. We don't  have to use entity save after the Entity has been loaded and saved. --->
+				<cfset EntitySave(PostTagObj)>
+
+				<!--- Return the TagId --->
+				<cfreturn PostTagObj.getPostTagLookupId()>
+			</cfif><!---<cfif arrayLen(Data)>--->
+		<cfelse><!---<cfif isDefined("TagRefObj") and isDefined("PostRefObj")>--->
+			<!--- Return a zero indicating that something went wrong. The Tag or post does not exist. --->
+			<cfreturn 0>
+		</cfif><!---<cfif isDefined("TagRefObj") and isDefined("PostRefObj")>--->
+				
+	</cffunction>
+
+	<cffunction name="assignTags" access="public" returnType="void" output="false"
+			hint="Assigns a postId to multiple categories">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfargument name="tagids" type="string" required="true">
+
+		<cfset var i=0>
+
+		<!--- Loop through categories --->
+		<cfloop index="i" from="1" to="#listLen(arguments.tagids)#">
+			<cfset assignTag(postId=arguments.postId,tagUuid=listGetAt(tagids,i))>
+		</cfloop>
+
+	</cffunction>
+			
+	<cffunction name="addTag" access="public" returnType="uuid" roles="admin,AddTag,ManageTag" output="true"
+			hint="Adds a tag.">
+		<cfargument name="name" type="string" required="true">
+		<cfargument name="alias" type="string" required="false">
+
+		<cfset var checkC = "">
+		<cfset var uuid = createUUID()>
+
+		<cfif tagExists(name="#arguments.name#")>
+			<cfset variables.utils.throw("#arguments.name# already exists as a tag.")>
+		</cfif>
+			
+		<!--- Create the alias if it was not sent --->
+		<cfif not len(arguments.alias)>
+			<!--- If the alias was not sent, create a new SES friendly alias using the tag --->
+			<cfset arguments.alias = application.blog.makeAlias(arguments.tag)>
+		</cfif>
+			
+		<cftransaction>
+			<!--- Load the blog table and get the first record (there only should be one record). This will pass back an object with the value of the blogId. --->
+			<cfset BlogDbObj = entityLoadByPK("Blog", application.BlogDbObj.getBlogId())>
+			<!--- Load the entity. --->
+			<cfset TagDbObj = entityNew("Tag")>
+			<!--- Use the entity objects to set the data. --->
+			<cfset TagDbObj.setBlogRef(blogRef)>
+			<cfset TagDbObj.setTagUuid(uuid)>
+			<cfset TagDbObj.setTagAlias(arguments.alias)>
+			<cfset TagDbObj.setTag(arguments.name)>
+			<cfset TagDbObj.setDate(blogNow())>
+
+			<!--- Save it. Note: updates will automatically occur on persisted objects if the object notices any change. We don't  have to use entity save after the Entity has been loaded and saved. --->
+			<cfset EntitySave(TagDbObj)>
+		</cftransaction>
+
+		<cfreturn id>
+	</cffunction>
+
+	<cffunction name="saveTag" access="public" returnType="numeric" output="false"
+			hint="Saves a tag.">
+		<!--- Pass in the tagId if you want to update the record. The tag is always required. --->
+		<cfargument name="tagId" type="any" default="" required="false">
+		<cfargument name="tagUuid" type="any" default="" required="false" hint="Used when importing data from previous versions of BlogCfc">
+		<cfargument name="tag" type="string" required="true">
+		<cfargument name="tagAlias" type="string" default="" required="false">
+			
+		<!--- Create the alias --->
+		<cfif not len(arguments.tagAlias)>
+			<!--- If the alias was not sent, create a new SES friendly alias using the tag --->
+			<cfset newAlias = application.blog.makeAlias(arguments.tag)>
+		<cfelse>
+			<!--- Check to see if the alias is formatted properly. --->
+			<cfif reFind("[^[:alnum:] -]", arguments.tagAlias)>
+				<!--- The alias contains something other than letters, numbers, spaces, or hyphens. Create a new alias using the tag and continue. --->
+				<!--- Create a new SES friendly alias using the tag --->
+				<cfset newAlias = application.blog.makeAlias(arguments.tag)>
+			<cfelse>
+				<!--- Use the provided alias --->
+				<cfset newAlias = arguments.tagAlias>
+			</cfif>
+		</cfif>
+					
+		<!--- See if the record exists --->
+		<cfset getTag = this.getTag(tag=arguments.tag)>
+		<cfif arrayLen(getTag) and isNumeric(getTag[1]["TagId"])>
+			<!--- Set the TagId --->
+			<cfset arguments.tagId = getTag[1]["TagId"]>
+		</cfif>
+		
+		<!--- Insert or update the record. --->
+		<cfif len(arguments.tagId)>
+			<cftransaction>
+				<!--- Update the record. --->
+				<cfquery name="Data" dbtype="hql">
+					UPDATE Tag
+					SET
+					<cfif len(arguments.tagUuid)>
+						TagUuid = <cfqueryparam value="#arguments.tagUuid#" cfsqltype="cf_sql_varchar" maxlength="75">,
+					</cfif>
+					<cfif len(arguments.tagAlias)>
+						TagAlias = <cfqueryparam value="#arguments.tagAlias#" cfsqltype="cf_sql_varchar" maxlength="75">,
+					</cfif>
+						Tag = <cfqueryparam value="#arguments.tag#" cfsqltype="cf_sql_varchar" maxlength="50">
+					WHERE 0=0
+						AND TagId = <cfqueryparam value="#arguments.tagId#" cfsqltype="cf_sql_integer">
+				</cfquery>
+			</cftransaction>
+			<cfreturn arguments.tagId>
+				
+		<cfelse><!---<cfif len(arguments.tagId)>--->
+			
+			<!--- Insert the record --->
+			<cfif len(arguments.tagUuid)>
+				<cfset tagUuid = arguments.tagUuid>
+			<cfelse>
+				<cfset tagUuid = createUUID()>
+			</cfif>
+			<cftransaction>
+				<!--- Create a new tag entity --->
+				<cfset TagDbObj = entityNew("Tag")>
+				<cfset TagDbObj.setTagUuid(TagUuid)>
+				<cfset TagDbObj.setTag(arguments.tag)>
+				<cfset TagDbObj.setTagAlias(newAlias)>
+				<cfset TagDbObj.setDate(blogNow())> 
+				<cfset TagDbObj.setBlogRef(application.BlogDbObj)>
+				<!---Save it--->
+				<cfset EntitySave(TagDbObj)>
+			</cftransaction>
+			
+			<!--- Return the new Id --->
+			<cfreturn TagDbObj.getTagId()>
+		
+		</cfif><!---<cfif len(arguments.tag)>--->
+
+	</cffunction>
+			
+	<cffunction name="savePostTags" access="public" returnType="string" output="false"
+			hint="Attaches a list of categories to a given post.">
+		<!--- Pass in the tagId if you want to update the record. The tag is always required. --->
+		<cfargument name="postId" type="any" default="" required="true">
+		<cfargument name="tagIdList" type="string" required="true">
+			
+		<!--- Paramaterize the arguments since these are entities and can't use cfqueryparam. --->
+		<cfparam name="thisPostId" default="#arguments.postId#" type="integer" maxlength="9">
+		<cfparam name="thisTagIdList" default="#arguments.tagIdList#" type="string" maxlength="35">
+		<cfparam name="thisBlogId" default="#application.BlogDbObj.getBlogId()#" type="integer" maxlength="9">
+	
+		<!---Debugging carriage--->
+		<cfset debug = 0>
+
+		<!---******************************************************************************************************** 
+			Delete categories that are no longer used
+		*********************************************************************************************************--->
+
+		<!--- Note: 'PostTagLookup.TagRef as TagId' alone brings back the entire Tag entity object. --->
+		<cfquery name="getTagsNotInList" dbtype="hql">
+			SELECT new Map (
+				PostTagLookup.TagRef.TagId as TagId
+			)
+			FROM  
+				PostTagLookup as PostTagLookup
+				JOIN PostTagLookup.TagRef as Tag
+				JOIN PostTagLookup.PostRef as Post
+			WHERE 
+				PostTagLookup.PostRef = #thisPostId#
+				AND PostTagLookup.TagRef NOT IN (#thisTagIdList#)
+				AND Post.BlogRef = #thisBlogId#		
+		</cfquery>
+
+		<!--- Loop through the recordset and delete these records in the PostTagLookup table. Unfortunately there is no clean way that I know of to get a value list from an Orm query, so we will do this one by one. --->
+		<cfif arrayLen(getTagsNotInList)>
+			<cfloop from="1" to="#arrayLen(getTagsNotInList)#" index="i">
+				<cfset tagId = getTagsNotInList[i]["TagId"]>
+				<cfif debug><cfdump var="#tagId#"></cfif>
+				<cfquery name="deleteExcessTags" dbtype="hql">
+					DELETE
+					FROM  
+						PostTagLookup as PostTagLookup
+					WHERE 
+						PostTagLookup.TagRef = #tagId#		
+				</cfquery>
+			</cfloop>
+		</cfif>
+
+		<!---******************************************************************************************************** 
+			Determine whether to insert the record
+		*********************************************************************************************************--->
+
+		<!--- Loop through the new tag id list --->
+		<cfloop list="#tagIdList#" index="i">
+			<cfif debug><cfoutput>i: #i#</cfoutput><br/></cfif>
+
+			<!---Reset the getPostTag array prior to making a new query--->
+			<cfset getPostTag = []>
+
+			<!--- 
+			Determine if this is record is already in the PostTagLookup table. 
+			Note: 'PostTagLookup.TagRef as TagId' alone brings back the entire tag entity object. 
+			--->
+			<cfquery name="getPostTag" dbtype="hql">
+				SELECT new Map (
+					PostTagLookup.TagRef.TagId as TagId
+				)
+				FROM  
+					PostTagLookup as PostTagLookup
+					JOIN PostTagLookup.TagRef as Tag
+					JOIN PostTagLookup.PostRef as Post
+				WHERE 
+					PostTagLookup.PostRef = #thisPostId#
+					AND PostTagLookup.TagRef = #i#
+					AND Post.BlogRef = #thisBlogId#		
+			</cfquery>
+			<cfif debug><cfdump var="#getPostTag#"></cfif>
+
+			<!--- If the record is not found, insert it. Otherwise leave the current record intact. --->
+			<cfif arrayLen(getPostTag) eq 0>
+				<cfif debug>Insert tagId: <cfoutput>#i#</cfoutput></cfif>
+				<!--- Load the entities that will be used to populate the PostTagLookup entity --->
+				<cfset PostDbObj = entityLoadByPK("Post", postId)>
+				<cfset TagDbObj = entityLoadByPK("Tag", i)>
+
+				<!--- Create a new post lookup entity --->
+				<cfset PostTagLookupDbObj = entityNew("PostTagLookup")>
+				<cfset PostTagLookupDbObj.setPostRef(PostDbObj)>
+				<cfset PostTagLookupDbObj.setTagRef(TagDbObj)>
+				<cfset PostTagLookupDbObj.setDate(blogNow())>
+				<!--- Save it --->
+				<<cfset EntitySave(PostTagLookupDbObj)>
+			</cfif>
+
+		</cfloop>
+		
+		<cfreturn arguments.tagIdList>
+
+	</cffunction>
+					
+	<cffunction name="removeTag" access="public" returnType="void" output="false"
+			hint="Deletes a relationshp between a post and a tag.">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfargument name="tagId" type="numeric" required="true">
+			
+		<!--- Load the post object --->
+		<cfset PostDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
+		<!--- Load the tag object --->
+		<cfset TagDbObj = entityLoad("Tag", { TagUuid = arguments.tagId }, "true" )>
+			
+		<!--- Delete the record in the lookup table. --->
+		<cfquery name="Data" dbtype="hql">
+			DELETE FROM PostTagLookup
+			WHERE PostRef = #PostDbObj#
+			AND TagRef = #TagDbObj#
+		</cfquery>
+
+	</cffunction>
+
+	<cffunction name="removeTags" access="public" returnType="void" output="false"
+			hint="Remove all tags from an entry.">
+		<cfargument name="postId" type="numeric" required="true">
+			
+		<!--- Load the post object --->
+		<cfset PostDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
+			
+		<!--- Delete the record in the lookup table. --->
+		<cfquery name="Data" dbtype="hql">
+			DELETE FROM PostTagLookup
+			WHERE PostRef = #PostDbObj#
+		</cfquery>
+
+	</cffunction>
+
+	<cffunction name="deleteTag" access="public" returnType="void" roles="admin,ManageTags" output="false"
+			hint="Deletes a tag.">
+		<cfargument name="id" type="uuid" required="true">
+			
+		<!--- Load the tag entity by the TagUuid --->
+		<cfset TagDbObj = entityLoad("Tag", { TagUuid = arguments.id }, "true" )>
+		<!--- Delete this record --->
+		<cfset EntityDelete(TagDbObj)>
+		<!--- And delete the variable to ensure that the record is deleted from ORM memory. --->
+		<cfset void = structDelete( variables, "TagDbObj" )>
 
 	</cffunction>
 			
@@ -3548,7 +5068,7 @@
 			hint="Deletes a comment based on the comment's uuid.">
 		<cfargument name="id" type="uuid" required="true">
 			
-		<!--- Load the Category entity by the CategoryUuid --->
+		<!--- Load the comment entity by the CommentUuid --->
 		<cfset CommentDbObj = entityLoad("Comment", { CommentUuid = arguments.id }, "true" )>
 		<!--- Delete this record --->
 		<cfset EntityDelete(CommentDbObj)>
@@ -3639,10 +5159,11 @@
 				SubscriberToken as SubscriberToken,
 				SubscriberVerified as SubscriberVerified,
 				SubscribeAll as SubscribeAll,
-				Subscriber.PostRef.PostId as PostId
+				PostRef as PostRef
 			)
 			FROM Subscriber as Subscriber 
 			WHERE 0=0
+				<!---AND SubscriberId = 3--->
 				AND SubscriberEmail <> ''
 				AND SubscriberToken <> ''
 			<cfif len(arguments.subscriberId)>
@@ -4580,6 +6101,7 @@
 		<cfargument name="description" required="no" default="">
 		<cfargument name="body" required="no" default="">
 		<cfargument name="moreBody" required="no" default="">
+		<cfargument name="numViews" required="no" default="">
 		<cfargument name="posted" required="no" default="">
 			
 		<cfset var Data = []>
@@ -4614,6 +6136,7 @@
 				MimeType.MimeType as MimeType,
 				Post.AllowComment as AllowComment,
 				Post.NumViews as NumViews,
+				Post.NumViews/(month(current_date())-month(DatePosted)+12*(year(current_date())-year(DatePosted))+1) as ViewsPerDay, 
 				Post.Mailed as Mailed,
 				Post.Released as Released,
 				Post.BlogSortDate as BlogSortDate,
@@ -4640,9 +6163,13 @@
 			<cfif body neq "">
 				AND Post.Body LIKE <cfqueryparam value="%#arguments.body#%" cfsqltype="cf_sql_varchar">
 			</cfif>
+			<cfif numViews neq "">
+				AND Post.NumViews = <cfqueryparam value="#arguments.numViews#" cfsqltype="cf_sql_integer">
+			</cfif>
 			<cfif posted neq "">
 				AND date(Post.DatePosted) = <cfqueryparam value="#arguments.datePosted#" cfsqltype="cf_sql_date">
 			</cfif>
+				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 			ORDER BY 
 				Post.BlogSortDate DESC,
 				Post.DatePosted DESC, 
@@ -4696,6 +6223,7 @@
 		<cfargument name="showRemovedPosts" type="boolean" required="false" default="false">
 		<cfargument name="showJsonLd" type="boolean" required="false" default="false" hint="The Json Ld sting can be quite large and it should not be included unless it is needed.">
 		<cfargument name="showPromoteAtTopOfQuery" type="boolean" required="false" default="true" hint="The RSS template needs to order the query by the date and can't have the promoted posts at the top of the query">
+		<cfargument name="showPopularPosts" type="boolean" required="false" default="false" hint="Orders the posts by the average number of monthly views.">	
 			
 		<cfset debug = false>
 			
@@ -4778,7 +6306,7 @@
 		</cfif>
 		<!--- Limit number returned. Thanks to Rob Brooks-Bilson --->
 		<cfif not structKeyExists(arguments.params,"maxEntries") or (structKeyExists(arguments.params,"maxEntries") and not val(arguments.params.maxEntries))>
-			<cfset arguments.params.maxEntries = 10>
+			<cfset arguments.params.maxEntries = 12>
 		</cfif>
 
 		<cfif not structKeyExists(arguments.params,"startRow") or (structKeyExists(arguments.params,"startRow") and not val(arguments.params.startRow))>
@@ -4825,6 +6353,8 @@
 				Post.Title as Title,
 				Post.Description as Description,
 				Post.PostHeader as PostHeader,
+				Post.CSS as CSS,
+				Post.JavaScript as JavaScript,
 				Post.Body as Body,
 				Post.MoreBody as MoreBody,
 			<cfif showJsonLd>
@@ -4842,12 +6372,14 @@
 				Enclosure.MediaVideoVttFileUrl as MediaVideoVttFileUrl,
 				Enclosure.ProviderVideoId as ProviderVideoId,
 				EnclosureMap.MapId as EnclosureMapId,
+				EnclosureCarousel.CarouselId as EnclosureCarouselId,
 				MediaType.MediaType as MediaType,
 				MimeType.MimeTypeId as MimeTypeId,
 				MimeType.MimeType as MimeType,
 				Post.AllowComment as AllowComment,
 				Post.Promote as Promote,
 				Post.NumViews as NumViews,
+				Post.NumViews/(month(current_date())-month(DatePosted)+12*(year(current_date())-year(DatePosted))+1) as ViewsPerDay, 
 				Post.Mailed as Mailed,
 				Post.Released as Released,
 				Post.BlogSortDate as BlogSortDate,
@@ -4864,6 +6396,8 @@
 			LEFT JOIN Enclosure.MimeTypeRef as MimeType
 			<!--- Get the Enclosure Map (there can only be one) --->
 			LEFT JOIN Post.EnclosureMap as EnclosureMap
+			<!--- Get the carousel, there is only one --->
+			LEFT JOIN Post.EnclosureCarousel as EnclosureCarousel
 			WHERE 0=0
 			<cfif not showRemovedPosts>
 				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
@@ -4885,6 +6419,13 @@
 					SELECT PostRef
 					FROM PostCategoryLookup
 					WHERE CategoryRef IN (#arguments.params.byCat#)
+				)
+			</cfif>
+			<cfif structKeyExists(arguments.params,"byTag") and arguments.params.byTag neq 'all'>
+				AND Post.PostId IN (
+					SELECT PostRef
+					FROM PostTagLookup
+					WHERE TagRef IN (#arguments.params.byTag#)
 				)
 			</cfif>
 			<cfif structKeyExists(arguments.params,"byPosted")>
@@ -4923,12 +6464,16 @@
 			<cfif not arguments.showPendingPosts>
 				AND Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
 			</cfif>
-			AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
+				AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
+		<cfif showPopularPosts>
+				ORDER BY NumViews/(month(current_date())-month(DatePosted)+12*(year(current_date())-year(DatePosted))+1) #arguments.params.orderByDir#
+		<cfelse>
 			<cfif showPromoteAtTopOfQuery>
-				ORDER BY Post.Promote DESC, Post.BlogSortDate DESC, Post.DatePosted DESC
+				ORDER BY Post.Promote DESC, Post.BlogSortDate DESC, Post.DatePosted #arguments.params.orderByDir#
 			<cfelse>
-				ORDER BY Post.DatePosted DESC
+				ORDER BY #arguments.params.orderBy# #arguments.params.orderByDir#
 			</cfif>
+		</cfif>
 			<!--- ORDER BY #arguments.params.orderBy# #arguments.params.orderByDir# --->
 		</cfquery>	
 		<!---<cfdump var="#Data#">--->
@@ -4964,7 +6509,7 @@
 						<cfset mapIds = mapIds & ',' & Data[i]["EnclosureMapId"]>
 					</cfif>
 					<!--- Increment the map count property --->
-					<cfset mapCount = mapCount + 1>
+					<cfset mapCount = mapCount + 1> 
 				</cfif>
 						
 				<!--- Determine if there is a scroll magic scene. We are doing this in order to load scroll magic only when it is needed. We only know if there may be a scene if the post header contains a cfinclude, or when there is a script with the string 'new ScrollMagic'. --->
@@ -5010,6 +6555,17 @@
 					<cfset PostStruct["PostHeader"] = Data[i]["PostHeader"]>
 				<cfelse>
 					<cfset PostStruct["PostHeader"] = "">
+				</cfif>
+				<!--- Perform the same steps for CSS and Javascript --->
+				<cfif structKeyExists(postRow, "CSS")>
+					<cfset PostStruct["CSS"] = Data[i]["CSS"]>
+				<cfelse>
+					<cfset PostStruct["CSS"] = "">
+				</cfif>
+				<cfif structKeyExists(postRow, "JavaScript")>
+					<cfset PostStruct["JavaScript"] = Data[i]["JavaScript"]>
+				<cfelse>
+					<cfset PostStruct["JavaScript"] = "">
 				</cfif>
 				<cfset PostStruct["Body"] = Data[i]["Body"]>
 				<cfset PostStruct["MoreBody"] = Data[i]["MoreBody"]>
@@ -5085,9 +6641,15 @@
 				<cfelse>
 					<cfset PostStruct["EnclosureMapId"] = "">
 				</cfif>
+				<cfif structKeyExists(postRow, "EnclosureCarouselId")>
+					<cfset PostStruct["EnclosureCarouselId"] = Data[i]["EnclosureCarouselId"]>
+				<cfelse>
+					<cfset PostStruct["EnclosureCarouselId"] = "">
+				</cfif>
 				<!--- These values should always be present. --->
 				<cfset PostStruct["AllowComment"] = Data[i]["AllowComment"]>
 				<cfset PostStruct["NumViews"] = Data[i]["NumViews"]>
+				<cfset PostStruct["ViewsPerDay"] = Data[i]["ViewsPerDay"]>
 				<cfset PostStruct["Mailed"] = Data[i]["Mailed"]>
 				<cfset PostStruct["Released"] = Data[i]["Released"]>
 				<!--- Note: we are now getting the proper time when we are inserting the records instead of manipulating the data after it is in the database. --->
@@ -5184,7 +6746,7 @@
 		</cfif>
 		<!--- Limit number returned. Thanks to Rob Brooks-Bilson --->
 		<cfif not structKeyExists(arguments.params,"maxEntries") or (structKeyExists(arguments.params,"maxEntries") and not val(arguments.params.maxEntries))>
-			<cfset arguments.params.maxEntries = 10>
+			<cfset arguments.params.maxEntries = 12>
 		</cfif>
 
 		<cfif not structKeyExists(arguments.params,"startRow") or (structKeyExists(arguments.params,"startRow") and not val(arguments.params.startRow))>
@@ -5251,6 +6813,13 @@
 					WHERE CategoryRef IN (#arguments.params.byCat#)
 				)
 			</cfif>
+			<cfif structKeyExists(arguments.params,"byTag")>
+				AND Post.PostId IN (
+					SELECT PostRef
+					FROM PostTagLookup
+					WHERE TagRef IN (#arguments.params.byTag#)
+				)
+			</cfif>
 			<cfif structKeyExists(arguments.params,"byPosted")>
 				AND User.UserName =  <cfqueryparam value="#arguments.params.byPosted#" cfsqltype="cf_sql_varchar" maxlength="50" list=true>
 			</cfif>
@@ -5281,7 +6850,7 @@
 				AND year(Post.DatePosted) = <cfqueryparam value="#arguments.params.byYear#" cfsqltype="integer">
 			</cfif>
 			<!--- Allow admin's to see non-released posts and future posts. --->
-			<cfif not isUserInRole("admin") or (structKeyExists(arguments.params, "releasedOnly") and arguments.params.releasedonly)>
+			<cfif not application.Udf.isLoggedIn() or (structKeyExists(arguments.params, "releasedOnly") and arguments.params.releasedonly)>
 				AND Post.DatePosted < <cfqueryparam cfsqltype="cf_sql_timestamp" value="#blogNow()#">
 				<cfif not application.Udf.isLoggedIn()>
 					AND Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
@@ -5386,9 +6955,10 @@
 		<cfargument name="promote" type="boolean" required="false" default="false">
 		<cfargument name="remove" type="boolean" required="false" default="false">
 		<cfargument name="postCategories" type="string" required="false" default="">
+		<cfargument name="postTags" type="string" required="false" default="">
 		<cfargument name="relatedPosts" type="string" required="false" default="">
 		<cfargument name="numViews" type="string" required="false" default="">
-		<cfargument name="emailSubscriber" type="boolean" required="false" default="true">
+		<cfargument name="emailSubscriber" type="boolean" required="false" default="false">
 
 		<cfif not postExists(arguments.postId)>
 			<cfset variables.utils.throw("The post, '#arguments.postid#', does not exist.")>
@@ -5529,6 +7099,13 @@
 		</cfif>
 					
 		<!--- **********************************************************************************************
+		Save post tags 
+		*************************************************************************************************--->
+		<cfif len(arguments.postTags)>
+			<cfset savePostTags(arguments.postId, arguments.postTags) />
+		</cfif>
+					
+		<!--- **********************************************************************************************
 		Save the related posts 
 		*************************************************************************************************--->
 		<cfset saveRelatedPosts(arguments.postId, arguments.relatedPosts) />
@@ -5639,13 +7216,65 @@
 		</cfif>
 
 		<!--- **********************************************************************************************
-		Populate the Post Alias. 
+		Populate the Post Header. 
 		*************************************************************************************************--->
 			
 		<cftransaction>
 			<!--- Load the entity. --->
 			<cfset PostDbObj = entityLoad("Post", { postId = arguments.postId }, "true" )>
 			<cfset PostDbObj.setPostHeader(arguments.postHeader)>
+			<cfset PostDbObj.setDate(blogNow())>		
+			<!--- Save the Post. --->
+			<cfset EntitySave(PostDbObj)>
+		</cftransaction>
+						
+		<cfreturn PostDbObj.getPostId()>
+
+	</cffunction>
+				
+	<cffunction name="savePostCss" access="public" returnType="numeric" output="true"
+			hint="Saves the post CSS.">
+		<cfargument name="postId" type="numeric" required="false">
+		<cfargument name="postCss" type="string" required="false" default="">
+
+		<cfif not postExists(arguments.postId)>
+			<cfset variables.utils.throw("The post, '#arguments.postId#', does not exist.")>
+		</cfif>
+
+		<!--- **********************************************************************************************
+		Populate the Post CSS. 
+		*************************************************************************************************--->
+			
+		<cftransaction>
+			<!--- Load the entity. --->
+			<cfset PostDbObj = entityLoad("Post", { postId = arguments.postId }, "true" )>
+			<cfset PostDbObj.setCSS(arguments.postCss)>
+			<cfset PostDbObj.setDate(blogNow())>		
+			<!--- Save the Post. --->
+			<cfset EntitySave(PostDbObj)>
+		</cftransaction>
+						
+		<cfreturn PostDbObj.getPostId()>
+
+	</cffunction>
+				
+	<cffunction name="savePostJavaScript" access="public" returnType="numeric" output="true"
+			hint="Saves the post JavaScript.">
+		<cfargument name="postId" type="numeric" required="false">
+		<cfargument name="postJavaScript" type="string" required="false" default="">
+
+		<cfif not postExists(arguments.postId)>
+			<cfset variables.utils.throw("The post, '#arguments.postId#', does not exist.")>
+		</cfif>
+
+		<!--- **********************************************************************************************
+		Populate the Post CSS. 
+		*************************************************************************************************--->
+			
+		<cftransaction>
+			<!--- Load the entity. --->
+			<cfset PostDbObj = entityLoad("Post", { postId = arguments.postId }, "true" )>
+			<cfset PostDbObj.setJavaScript(arguments.postJavaScript)>
 			<cfset PostDbObj.setDate(blogNow())>		
 			<!--- Save the Post. --->
 			<cfset EntitySave(PostDbObj)>
@@ -5692,8 +7321,12 @@
 			
 			<!--- Load the post object --->
 			<cfset PostDbObj = entityLoadByPK("Post", arguments.postId)>
-			<!--- Set the MediaEnclosureRef to null so that we don't get a constraint error --->
+			<!--- Remove the enclosures so that we don't get a constraint errors --->
 			<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
+			<!--- Set the enclosureMap column to null. --->
+			<cfset PostDbObj.setEnclosureMap(javaCast("null",""))>
+			<!---And set the enclosureCarousel to null--->
+			<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
 				
 			<!--- Delete the post media --->
 			<cfquery name="Data" dbtype="hql">
@@ -5744,6 +7377,52 @@
 				
 	</cffunction>
 				
+	<cffunction name="removeAllEnclosures" access="remote" output="true" returnformat="json"
+			hint="This removes all post enclosures from a post. This function is not used yet">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<cfargument name="postId" default="" required="yes">
+		
+		<!--- Error params --->
+		<cfparam name="error" default="false" type="boolean">
+		<cfparam name="errorMessage" default="" type="string">
+			
+		<cfset debug = false>
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON(false)>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+		
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('AssetEditor,EditComment,EditPost,ReleasePost')>
+			
+		<!---<cfoutput>arguments.externalUrl: #arguments.externalUrl#</cfoutput>--->
+			
+		<cfif application.Udf.isLoggedIn()>
+			
+			<cftransaction>
+				<!--- Load the entity. --->
+				<cfset PostDbObj = entityLoad("Post", { postId = arguments.postId }, "true" )>
+				<!--- Set the enclosureMedia column. Note: this is a psuedo name. The actual column is Post.EnclosureMediaRef --->
+				<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
+				<!--- Set the enclosureMap column to null. --->
+				<cfset PostDbObj.setEnclosureMap(javaCast("null",""))>
+				<!---And set the enclosureCarousel to null--->
+				<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
+				
+				<!--- Save the Post. --->
+				<cfset EntitySave(PostDbObj)>
+			</cftransaction>
+			
+			<cfreturn arguments.postId>
+		<cfelse>
+			<cfreturn 0>
+		</cfif>
+					
+	</cffunction>
+				
 	<!--- //***********************************************************************************************
 			Post Inspection Functions
 	//*************************************************************************************************--->
@@ -5758,7 +7437,7 @@
 				
 		<!--- 
 		Notes: as of version 3, all of these are placed in the PostHeader column.
-		Some may wonder why I chose this wierd format for the directives. Prior to version 3 I needed to include these tags in the actual post, and the original method allowed me to hide the tags and code from being displayed. Using <cfincludeTemplate>path</cfincludeTemplate> would show the content between the tags (ie path) and it was quick to deploy. However, in version 3 I don't need to display these tags in the actual post and am instead putting them in a different column in the database. 
+		Some may wonder why I chose this weird format for the directives. Prior to version 3 I needed to include these tags in the actual post, and the original method allowed me to hide the tags and code from being displayed. Using <cfincludeTemplate>path</cfincludeTemplate> would show the content between the tags (ie path) and it was quick to deploy. However, in version 3 I don't need to display these tags in the actual post and am instead putting them in a different column in the database. 
 		--->
 		<!--- Use a cfinclude. --->
 		<cfif arguments.postContent contains "<cfincludeTemplate:" or arguments.postContent contains "<cfincludeTemplate>">
@@ -5970,6 +7649,97 @@
 
 		<!--- Return it. --->
 		<cfreturn xmlKeyWords>
+
+	</cffunction>
+					
+	<cffunction name="getXmlKeywordStruct" access="public" returnType="any" output="true"
+			hint="Gets the XML keywords from the post header">
+		<cfargument name="postHeader" type="string" required="false" default="">
+
+		<!--- Inspect they xml keywords for directives. --->
+		<cfset xmlKeywords = application.blog.inspectPostContentForXmlKeywords(postHeader)>
+		<!---<cfoutput>xmlKeywords: #xmlKeywords#</cfoutput>--->
+			
+		<!--- Preset vars --->
+		<cfscript>
+		cfincludePath = "";
+		videoDirective = "";
+		videoType = "";
+		youTubeUrl = "";
+		vimeoVideoId = "";
+		videoPosterImageUrl = "";
+		smallVideoSourceUrl = "";
+		mediumVideoSourceUrl = "";
+		largeVideoSourceUrl = "";
+		videoCaptionsUrl = "";
+		videoCrossOrigin = "";			
+		</cfscript>
+
+		<!--- Get all of the xml keywords --->
+		<!--- Cfinclude. This takes precedent above the enclosure and post. If an include was made, no other post content will be displayed --->
+		<cfif findNoCase("cfincludeTemplate", xmlKeywords) gt 0>
+			<!--- Inject the include. Note: there is no enclosure or body here. --->
+			<cfset cfincludePath = application.blog.getXmlKeywordValue(postHeader, 'cfincludeTemplate')>
+		<cfelse><!---<cfif findNoCase("cfincludeTemplate", xmlKeywords) gt 0>--->
+
+			<!--- Handle video directives. --->				
+			<!--- Determine if there are video related directives --->
+			<cfif findNoCase("videoType", xmlKeywords) gt 0> 
+				<cfset videoType = application.blog.getXmlKeywordValue(postHeader, 'videoType')>
+				<cfset videoDirective = true>
+			</cfif>
+			<cfif findNoCase("youTubeUrl", xmlKeywords) gt 0> 
+				<cfset youTubeUrl = application.blog.getXmlKeywordValue(postHeader, 'youTubeUrl')>
+				<cfset videoDirective = true>
+			</cfif>
+			<cfif findNoCase("vimeoVideoId", xmlKeywords) gt 0> 
+				<cfset vimeoVideoId = application.blog.getXmlKeywordValue(postHeader, 'vimeoVideoId')>
+				<cfset videoDirective = true>
+			</cfif>
+			<cfif findNoCase("videoPosterImageUrl", xmlKeywords) gt 0> 
+				<cfset videoPosterImageUrl = application.blog.getXmlKeywordValue(postHeader, 'videoPosterImageUrl')>
+				<cfset videoDirective = true>
+			</cfif>	
+			<cfif findNoCase("smallVideoSourceUrl", xmlKeywords) gt 0> 
+				<cfset smallVideoSourceUrl = application.blog.getXmlKeywordValue(postHeader, 'smallVideoSourceUrl')>
+				<cfset videoDirective = true>
+			</cfif>
+			<cfif findNoCase("mediumVideoSourceUrl", xmlKeywords) gt 0> 
+				<cfset mediumVideoSourceUrl = application.blog.getXmlKeywordValue(postHeader, 'mediumVideoSourceUrl')>
+				<cfset videoDirective = true>
+			</cfif>
+			<cfif findNoCase("largeVideoSourceUrl", xmlKeywords) gt 0> 
+				<cfset largeVideoSourceUrl = application.blog.getXmlKeywordValue(postHeader, 'largeVideoSourceUrl')>
+				<cfset videoDirective = true>
+			</cfif>
+			<cfif findNoCase("videoCaptionsUrl", xmlKeywords) gt 0> 
+				<cfset videoCaptionsUrl = application.blog.getXmlKeywordValue(postHeader, 'videoCaptionsUrl')>
+				<cfset videoDirective = true>
+			</cfif>
+			<cfif findNoCase("videoCrossOrigin", xmlKeywords) gt 0> 
+				<cfset videoCrossOrigin = application.blog.getXmlKeywordValue(postHeader, 'videoCrossOrigin')>
+				<cfset videoDirective = true>
+			</cfif>
+		</cfif>
+
+		<!--- Preset vars and create a structure --->
+		<cfscript>			
+		xmlKeywordsStruct=StructNew();
+			
+		xmlKeywordsStruct.cfincludePath = cfincludePath;
+		xmlKeywordsStruct.videoDirective = videoDirective;
+		xmlKeywordsStruct.youTubeUrl = youTubeUrl;
+		xmlKeywordsStruct.vimeoVideoId = vimeoVideoId;
+		xmlKeywordsStruct.videoType = videoType;
+		xmlKeywordsStruct.videoPosterImageUrl = videoPosterImageUrl;
+		xmlKeywordsStruct.smallVideoSourceUrl = smallVideoSourceUrl;
+		xmlKeywordsStruct.mediumVideoSourceUrl = mediumVideoSourceUrl;
+		xmlKeywordsStruct.largeVideoSourceUrl = largeVideoSourceUrl;
+		xmlKeywordsStruct.videoCaptionsUrl = videoCaptionsUrl;
+		xmlKeywordsStruct.videoCrossOrigin = videoCrossOrigin;
+		</cfscript>
+
+		<cfreturn xmlKeywordsStruct>
 
 	</cffunction>
 
@@ -6254,8 +8024,12 @@
 				<cfif arguments.enclosure>
 					<!--- Set the enclosureMedia column. Note: this is a psuedo name. The actual column is Post.EnclosureMediaRef --->
 					<cfset PostDbObj.setEnclosureMedia(MediaDbObj)>
-					<!--- And set the enclosureMap column to null. Note: this is a psuedo name. The actual column name is Post.EnclosureMapRef. --->
+					
+					<!--- Remove all other enclosure types --->
+					<!--- Set the enclosureMap column to null. --->
 					<cfset PostDbObj.setEnclosureMap(javaCast("null",""))>
+					<!--- And set the enclosureCarousel to null--->
+					<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
 				</cfif>
 					
 				<!--- Create a new PostMedia entity --->
@@ -6386,8 +8160,11 @@
 				<!--- If this is an enclosure, populate the enclosure column with the mediaId --->
 				<!--- Note: this is a psuedo name. The actual column is Post.EnclosureMediaRef --->
 				<cfset PostDbObj.setEnclosureMedia(MediaDbObj)>
-				<!--- And set the enclosureMap to null. The actual column is Post.EnclosureMapRef. --->
+					
+				<!--- Remove other enclosures --->
 				<cfset PostDbObj.setEnclosureMap(javaCast("null",""))>
+				<!---And set the enclosureCarousel to null--->
+				<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
 			</cfif>
 
 			<!--- Save the post object if this is an enclosure --->
@@ -6558,10 +8335,14 @@
 				<cfset MapDbObj.setPostRef(PostDbObj)>
 				<!--- If this is an enclosure, remove the media enclosure and set the new map encosure with the map id --->
 				<cfif arguments.isEnclosure>
-					<!--- Set the enclosureMap. The actual column is Post.EnclosureMapRef There is an error here. --->
+					<!--- Set the enclosureMap. The actual column is Post.EnclosureMapRef. --->
 					<cfset PostDbObj.setEnclosureMap(MapDbObj)>
-					<!--- And set the enlosure media column to null. The actual column is Post.EnclosureMediaRef --->
+
+					<!--- Remove other enclosures --->
 					<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
+					<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
+						
+					<!--- Save it --->
 					<cfset EntitySave(PostDbObj)>
 				</cfif>
 			</cfif>
@@ -6647,15 +8428,17 @@
 			<cfif arguments.postId neq ''>
 				<!--- Load the post entity --->
 				<cfset PostDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
+					
 				<!--- Save the PostRef --->
 				<cfset MapDbObj.setPostRef(PostDbObj)>
 				<!--- If this is an enclosure, remove the media enclosure and set the new map encosure with the map id --->
 				<cfif arguments.isEnclosure>
 					<!--- Set the enclosureMap. The actual column is Post.EnclosureMapRef --->
-					<!--- There is an error here. --->
 					<cfset PostDbObj.setEnclosureMap(MapDbObj)>
-					<!--- And set the enlosure media column to null. The actual column is Post.EnclosureMediaRef --->
+					
+					<!--- Remove other enclosures --->
 					<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
+					<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
 				</cfif>
 				<cfset EntitySave(PostDbObj)>
 			</cfif>
@@ -6666,6 +8449,46 @@
 		<!--- Return the mapId --->
 		<cfreturn MapDbObj.getMapId()>
 			
+	</cffunction>
+						
+	<!---****************************************************************************************************
+		Carousel functions
+	******************************************************************************************************--->
+				
+	<cffunction name="getCarousel" access="public" returnType="any" output="true"
+			hint="Returns the carousel data for a given post">
+		<cfargument name="carouselId" required="true">
+				
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				Carousel.CarouselId as CarouselId, 
+				Carousel.CarouselName as CarouselName, 
+				Carousel.CarouselTitle as CarouselTitle, 
+				Carousel.CarouselEffect as CarouselEffect, 
+				Carousel.CarouselShader as CarouselShader,
+				CarouselItem.CarouselItemId as CarouselItemId,
+				CarouselItem.CarouselItemTitle as CarouselItemTitle, 
+				CarouselItem.CarouselItemTitleFontColor as CarouselItemTitleFontColor, 
+				CarouselItem.CarouselItemTitleFontSize as CarouselItemTitleFontSize, 
+				CarouselItem.CarouselItemBody as CarouselItemBody, 
+				CarouselItem.CarouselItemBodyFontColor as CarouselItemBodyFontColor, 
+				CarouselItem.CarouselItemBodyFontSize as CarouselItemBodyFontSize, 
+				CarouselItem.CarouselItemUrl as CarouselItemUrl,
+				CarouselItem.MediaRef.MediaUrl as MediaUrl,
+				CarouselItem.MediaRef.MediaThumbnailUrl as MediaThumbnailUrl,
+				Font.FontId as FontId,
+				Font.Font as Font
+			)
+			FROM 
+				Carousel as Carousel
+				JOIN Carousel.CarouselItems as CarouselItem
+				JOIN CarouselItem.CarouselItemTitleFontRef as Font
+			WHERE Carousel.CarouselId = <cfqueryparam value="#arguments.carouselId#" cfsqltype="cf_sql_integer">
+		</cfquery>
+		
+		<!--- Return the array. --->
+		<cfreturn Data>
+    
 	</cffunction>
 								
 	<!---******************************************************************************************************** 
@@ -6873,6 +8696,10 @@
 		<cfreturn true>
 			
 	</cffunction>
+				
+	<!---******************************************************************************************************** 
+		Anonymous Users
+	*********************************************************************************************************--->
 						
 	<!---******************************************************************************************************** 
 		Users
@@ -7116,23 +8943,28 @@
 		<!--- Note: we need to specify the IpAddress table using an alias (IpAddress.IpAddress) to ensure that we will not get the IP address object stored in the Users table if I load the Users entity. --->
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
-				IpAddress.IpAddress as IpAddress,
-				HttpUserAgent as HttpUserAgent,
-				Date as LoginDate
+				AdminLogId as AdminLogId,
+				UserRef.UserId as UserId,
+				UserRef.FullName as FullName,
+				IpAddressRef.IpAddressId as IpAddressId,
+				IpAddressRef.IpAddress as IpAddress,
+				HttpUserAgentRef.HttpUserAgentId as HttpUserAgentIdId,
+				HttpUserAgentRef.HttpUserAgent as HttpUserAgent,
+				AdminLog.Date as Date
 			)
-			FROM IpAddress as IpAddress 
+			FROM   AdminLog as AdminLog
 			WHERE 0=0
-				AND IpAddress.UserRef = #UserDbObj.getUserId()#
+				AND UserRef.UserId = #UserDbObj.getUserId()#
 			<cfif arguments.ipAddress neq ''>
-				AND IpAddress.IpAddress = <cfqueryparam value="#arguments.ipAddress#" cfsqltype="varchar">
+				AND IpAddressRef.IpAddress = <cfqueryparam value="#arguments.ipAddress#" cfsqltype="varchar">
 			</cfif>
 			<cfif arguments.userAgent neq ''>
-				AND HttpUserAgent = <cfqueryparam value="#arguments.userAgent#" cfsqltype="varchar">
+				AND HttpUserAgentRef.HttpUserAgent = <cfqueryparam value="#arguments.userAgent#" cfsqltype="varchar">
 			</cfif>
 			<cfif arguments.loginDate neq ''>
-				AND Date = <cfqueryparam value="#arguments.loginDate#" cfsqltype="timestamp">
+				AND AdminLog.Date = <cfqueryparam value="#arguments.loginDate#" cfsqltype="timestamp">
 			</cfif>
-			ORDER BY Date DESC
+			ORDER BY AdminLog.Date DESC
 		</cfquery>
 
 		<cfreturn Data>
@@ -7789,9 +9621,14 @@
 			hint="Generates RSSa 2 feeds. This was updated and validated in Galaxie Blog 3.0">
 		<cfargument name="mode" type="string" required="false" default="short" hint="If mode=short, show EXCERPT chars of entries. Otherwise, show all.">
 		<cfargument name="excerpt" type="numeric" required="false" default="750" hint="If mode=short, this how many chars to show. The excerpt only applies to the body.">
-		<cfargument name="params" type="struct" required="false" default="#structNew()#" hint="Passed to getPost. Note, maxEntries can't be bigger than 15.">
+		<cfargument name="params" type="struct" required="false" default="#structNew()#" hint="Passed to getPost. Note, maxEntries can't be bigger than 30.">
 		<cfargument name="version" type="numeric" required="false" default="2" hint="Depracated. No longer supporting version 1">
 		<cfargument name="additionalTitle" type="string" required="false" default="" hint="Adds a title to the end of your blog title. Used mainly by the cat view.">
+			
+		<!--- 
+		Important note: the feed now works with a ?category=categoryId in the url (ie https://gregoryalexander.com/blog/rss.cfm?category=59)
+		You can also use the original method to restrict by category, such as https://www.gregoryalexander.com/blog/rss.cfm?mode=full&mode2=cat&catid=59.
+		--->
 
 		<cfset var articles = "">
 		<cfset var z = getTimeZoneInfo()>
@@ -7816,6 +9653,10 @@
 		<cfif (structKeyExists(arguments.params,"maxEntries") and arguments.params.maxEntries gt 15) or not structKeyExists(arguments.params,"maxEntries")>
 			<cfset arguments.params.maxEntries = 15>
 		</cfif>
+		<!--- Allow the feed to be queried by the category alias. This is a new feature added in version GB 3.57. Note: this must use the categoryId, not the category name! --->
+		<cfif structKeyExists(url, 'category') and trim(url.category) neq "">
+			<cfset arguments.params.byCat = URL.category>
+		</cfif>
 		<!--- Get the array from the database. Do not show the promoted posts at the top of the query (getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery)).  --->
 		<cfset getPost = application.blog.getPost(arguments.params,false,false,false,false)>
 		<!---<cfdump var="#getPost#">--->
@@ -7839,7 +9680,7 @@
 			<link>#StringUtilsObj.trimStr(xmlFormat(application.blogHostUrl))#</link>
 			<description>#xmlFormat(instance.blogDescription)#</description>
 			<language>en</language>
-			<pubDate>#dateFormat(blogNow(),"ddd, dd mmm yyyy") & " " & timeFormat(blogNow(),"HH:mm:ss") & numberFormat(blogTimeZone,"00") & "00"#</pubDate>
+			<pubDate>#dateFormat(blogNow(),"ddd, dd mmm yyyy") & " " & timeFormat(blogNow(),"HH:mm:ss") & " " & numberFormat(blogTimeZone,"00") & "00"#</pubDate>
 			<lastBuildDate>{LAST_BUILD_DATE}</lastBuildDate>
 			<generator>Galaxie Blog</generator>
 			<docs>http://blogs.law.harvard.edu/tech/rss</docs>
@@ -7868,7 +9709,7 @@
 				<link>#xmlFormat(instance.blogUrl)#</link>
 			</image>
 			</cfif>
-			<itunes:explicit>#xmlFormat('no')#</itunes:explicit>
+			<itunes:explicit>#xmlFormat('false')#</itunes:explicit>
 			</cfoutput>
 		</cfsavecontent>
 
@@ -7894,18 +9735,19 @@
 				<cfset xmlLink = xmlFormat(makeLink(postId))>
 			</cfif>
 				
-			<cfset dateStr = dateFormat(datePosted,"ddd, dd mmm yyyy") & " " & timeFormat(datePosted,"HH:mm:ss") & numberFormat(blogTimeZone,"00") & "00">
+			<cfset dateStr = dateFormat(datePosted,"ddd, dd mmm yyyy") & " " & timeFormat(datePosted,"HH:mm:ss") & " " & numberFormat(blogTimeZone,"00") & "00">
 				
 			<!--- Description. --->
 			<cfif len(description)>
 				<cfset thisDesc = description>
-			<!--- Set the description if it is not available. --->
-			<cfif arguments.mode is "short" and len(body) gte arguments.excerpt>
-				<!--- Remove the HTML tags and get the first x characters of the text. --->
-				<cfset thisDesc = left( body, arguments.excerpt ) & "...">
 			<cfelse>
-				<cfset thisDesc = body & morebody>
-			</cfif>
+				<!--- Set the description if it is not available. --->
+				<cfif arguments.mode is "short" and len(body) gte arguments.excerpt>
+					<!--- Remove the HTML tags and get the first x characters of the text. --->
+					<cfset thisDesc = left( body, arguments.excerpt ) & "...">
+				<cfelse>
+					<cfset thisDesc = body & morebody>
+				</cfif>
 			</cfif>
 	
 			<cfoutput>
@@ -7941,7 +9783,7 @@
 		 	</cfloop>
 		</cfsavecontent>
 
-		<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & numberFormat(blogTimeZone,"00") & "00"#','one')>
+		<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & " " & numberFormat(blogTimeZone,"00") & "00"#','one')>
 		<cfset rssStr = trim(header & items & "</channel></rss>")>
 
 		<cfreturn rssStr>
@@ -8190,68 +10032,6 @@
 			<cfset CapabilityId = CapabilityDbObj.getCapabilityId()>
 		</cfif>
 		<cfif isDefined("debug") and debug>Capability Table succesfully populated.<br/></cfif>	
-
-		<!--- ******************************************************************************************
-		Populate the Custom Template table. For this version, we are just populating 1 empty row
-		********************************************************************************************--->
-		<cfif tablesToPopulate eq 'CustomTemplate' or tablesToPopulate eq 'all'>	
-			<cfif resetTables>
-				<cfquery name="reset">
-					DELETE FROM CustomTemplate;
-					DBCC CHECKIDENT ('[CustomTemplate]', RESEED, 0);
-				</cfquery>
-			</cfif>
-
-			<!--- Get the data stored in the ini file. --->
-			<cfset fileName = "getCustomTemplate.txt">
-			<cffile action="read" file="#dir##fileName#" variable="QueryObj">
-
-			<!--- Convert the wddx to a ColdFusion query object --->
-			<cfwddx action = "wddx2cfml" input = #QueryObj# output = "Data">
-			<!---<cfdump var="#Data#">--->
-
-			<!--- Save the records into the table. --->
-			<cftransaction>
-				<cfoutput query="Data" maxrows="1">
-
-					<cfquery name="getData" dbtype="hql">
-						SELECT CustomTemplateId FROM CustomTemplate
-					</cfquery>
-
-					<cfif arrayLen(getData) eq 0>
-						<cfset CustomTemplateDbObj = EntityNew("CustomTemplate")>
-					<cfelse>
-						<cfset CustomTemplateDbObj = EntityLoadByPk("CustomTemplate", getData[1])>
-					</cfif>
-
-					<!--- Only update records when the updateRecords flag is set or there are no existing records --->
-					<cfif not arrayLen(getData) or updateRecords>
-						<!--- Set the values. --->
-						<cfset CustomTemplateDbObj.setBlogRef(BlogDbObj)>
-						<cfset CustomTemplateDbObj.setCoreLogicTemplate(coreLogicTemplate)>
-						<cfset CustomTemplateDbObj.setHeaderTemplate(headerTemplate)>
-						<cfset CustomTemplateDbObj.setBodyString(bodyString)>
-						<cfset CustomTemplateDbObj.setFontTemplate(fontTemplate)>
-						<cfset CustomTemplateDbObj.setCssTemplate(cssTemplate)>
-						<cfset CustomTemplateDbObj.setTopMenuCssTemplate(topMenuCssTemplate)>
-						<cfset CustomTemplateDbObj.setTopMenuHtmlTemplate(topMenuHtmlTemplate)>
-						<cfset CustomTemplateDbObj.setTopMenuJsTemplate(topMenuJsTemplate)>
-						<cfset CustomTemplateDbObj.setBlogCssTemplate(blogCssTemplate)>
-						<cfset CustomTemplateDbObj.setBlogJsTemplate(blogJsTemplate)>
-						<cfset CustomTemplateDbObj.setBlogHtmlTemplate(blogHtmlTemplate)>
-						<cfset CustomTemplateDbObj.setSideBarPanelHtmlTemplate(sideBarPanelHtmlTemplate)>
-						<cfset CustomTemplateDbObj.setFooterHtmlTemplate(footerHtmlTemplate)>
-						<cfset CustomTemplateDbObj.setDate(now())>
-						<!--- Save it --->
-						<cfset EntitySave(CustomTemplateDbObj)>
-					</cfif>
-				</cfoutput>
-				
-			</cftransaction>
-
-			<cfset customTemplateId = CustomTemplateDbObj.getCustomTemplateId()>
-		</cfif>
-		<cfif isDefined("debug") and debug>Custom Template Table succesfully populated.<br/></cfif>
 
 		<!--- ******************************************************************************************
 		Populate the Font table.

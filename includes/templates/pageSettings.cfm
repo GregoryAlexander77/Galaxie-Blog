@@ -2,7 +2,7 @@
 			Get the post(s)
 //********************************************************************************************************--->
 
-<cfinclude template="#application.baseUrl#/includes/templates/getPost.cfm">
+<cfinclude template="#application.baseUrl#/includes/templates/getPost.cfm"> 
 
 <!--- //******************************************************************************************************
 			Global page settings and cache
@@ -31,7 +31,7 @@ Note: in order to debug- remove the cfsilent that wraps around the pageSettings.
 </cfif>
 	
 <!--- Do you want the page to automatically redirect using SSL? We are going to read the users setting set in the administrative interface (site URL) to determine if ssl should be enforced. It is is, we will use a server side redirect. You can change this by removing this code and setting useSsl to false.  --->
-<cfif application.useSsl and findNoCase("https", application.rooturl) eq 1>
+<cfif application.useSsl and findNoCase("https", application.baseUrl) eq 1>
 	<cfset useSsl = true>
 <cfelse>
 	<cfset useSsl = false>
@@ -299,51 +299,31 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 </cfif>
 	
 <!--- //******************************************************************************************************
-			Custom plugins and strings
-//************************************************************************************************************
-Notes: this is a template driven system. its not full featured at this time, however, the templates are stored in the database and this will be enhanced in future versions.
---->	
-			
-<!--- Get the custom template --->
-<cfset getCustomTemplate = application.blog.getCustomTemplate()>
-<!---<cfdump var="#getCustomTemplate#">--->
-	
-<!--- Core logic below this section. Deals with the getMode and entry logic. Include the full path of the logical template (ie #application.baseUrl#/plugin/coreLogic.cfm) --->
-<cfset customCoreLogicTemplate = getCustomTemplate[1]["CoreLogicTemplate"]>
-<!--- Content between the head tags can be customized with a custom template. Indicate the full path and the name of the custom template here. --->
-<cfset customHeadTemplate = getCustomTemplate[1]["HeaderTemplate"]>
-<!--- Setting to replace the default body string. This should be a <body .... > string. --->
-<cfset customBodyString = getCustomTemplate[1]["BodyString"]>
-<!--- Template to include fonts. --->
-<cfset customFontCssTemplate = getCustomTemplate[1]["FontTemplate"]>
-<!---Global css variables and the css for the body--->
-<cfset customGlobalAndBodyCssTemplate = getCustomTemplate[1]["CssTemplate"]>
-<!--- Template to include css rules for the top menu. --->
-<cfset customTopMenuCssTemplate = getCustomTemplate[1]["TopMenuCssTemplate"]>
-<!--- Template to include the html for the top menu. --->
-<cfset customTopMenuHtmlTemplate = getCustomTemplate[1]["TopMenuHtmlTemplate"]>
-<!--- Template to include the javascript for the top menu. Note: this template is within the code region of the customTopMenuHtmlTemplate. --->
-<cfset customTopMenuJsTemplate = getCustomTemplate[1]["TopMenuJsTemplate"]>
-<!--- Template to include the css rules for the blog content (blog posts). --->
-<cfset customBlogContentCssTemplate = getCustomTemplate[1]["BlogCssTemplate"]>
-<!--- Template to include Kendo's widget and UI javascripts for the main blog (not the header script) --->
-<cfset customBlogJsContentTemplate = getCustomTemplate[1]["BlogJsTemplate"]>
-<!--- Template to include blog content HTML (blog posts). This is a rather intensive bit of code that will be broken down further in a later version. --->
-<cfset customBlogContentHtmlTemplate = getCustomTemplate[1]["BlogHtmlTemplate"]>
-<!--- Template for the side bar panel --->
-<cfset customSideBarPanelHtmlTemplate =  getCustomTemplate[1]["SideBarPanelHtmlTemplate"]>
-<!--- Template to include a custom footer. --->
-<cfset customFooterHtmlTemplate = getCustomTemplate[1]["FooterHtmlTemplate"]>
-
+			showSidbar variable
+//********************************************************************************************************--->
+<!--- 
+	Determine if we should display the sidebar. 
+	This is partially dependent upon the breakpoint variable, set above, which is set to 0 when: 
+	1) the theme's breakpoint is set to 0
+	2) the screen is small 
+	3) or the device is mobile 
+	We are setting the showSidebar var to make it more clear what we are doing here and there probably will be extra logic in the future.
+--->
+<cfif breakPoint eq 0>
+	<cfset showSidebar = false>
+<cfelse>
+	<cfset showSidebar = true>
+</cfif>
+		
 <!--- //******************************************************************************************************
 			Kendo window settings
 //********************************************************************************************************--->
 		
 <!--- Window settings --->
 <cfif session.isMobile>
-	<cfset kendoWindowIcons = '"Minimize", "Refresh", "Close"'>
+	<cfset kendoWindowIcons = '"Minimize", "Pin", "Refresh", "Close"'>
 <cfelse>
-	<cfset kendoWindowIcons = '"Minimize", "Refresh", "Close"'>
+	<cfset kendoWindowIcons = '"Minimize", "Pin", "Refresh", "Close"'>
 </cfif>
 	
 <!--- Set default width and height for the kendo extended ui window elements (are you sure? There were errors, etc).--->

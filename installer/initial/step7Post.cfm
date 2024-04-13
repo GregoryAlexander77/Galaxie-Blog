@@ -24,7 +24,7 @@
 	<cfset setProfileString(application.iniFile, "default", "securityAnswer2", Form.securityAnswer2)>
 	<cfset setProfileString(application.iniFile, "default", "securityAnswer3", Form.securityAnswer3)>
 		
-	<!--- Redirect to the home page with a URL init argument in order to build the initial database and pass in a URL argument to continue processing the install. --->
+	<!--- Redirect to the home page with a URL init argument in order to build the initial database and pass in a URL argument to continue processing the install. After the database is installed, code in the Application.cfm template will then redirect the user to the /installer/userProfile.cfm page. --->
 	<cflocation url="../../index.cfm?init=1&install=true">
 <cfelse>
 	<!--- Redirect to the previous page. --->

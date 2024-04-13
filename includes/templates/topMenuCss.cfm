@@ -1,7 +1,4 @@
 	<style>
-	<cfif application.minimizeCode and 1 eq 2>
-		ul.k-hover{background-color:transparent !important;background-image:url('<cfoutput>#menuBackgroundImage#</cfoutput>');border:0;border-right:none}ul.k-link{background-color:transparent !important;background-image:url('<cfoutput>#menuBackgroundImage#</cfoutput>');border:0}#fixedNavHeader{position:fixed;visibility:hidden;top:0px;height: <cfif kendoTheme contains 'materialblack'><cfif session.isMobile>55<cfelse>65</cfif><cfelse><cfif session.isMobile>35<cfelse>45</cfif></cfif>px;color: <cfoutput>#blogNameTextColor#</cfoutput>;font-family:<cfoutput>'#menuFont#',#menuFontType#</cfoutput>;font-size: <cfif kendoTheme eq 'office365'><cfif session.isMobile>.75em<cfelse>1em</cfif><cfelse><cfif session.isMobile>.9em<cfelse>1em</cfif></cfif>;<cfif menuBackgroundImage neq ""> background-color: transparent !important;background-image:url('<cfoutput>#menuBackgroundImage#</cfoutput>');background-repeat:repeat-x;</cfif> box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);left:--contentPaddingPercent;right:--contentPaddingPercent;margin-left:auto;margin-right:auto;z-index:1}<cfsilent> <!--- Logic to determine what side the padding should occur when the alignBlogMenuWithBlogContent argument is true. ---> <!--- Don't set any padding unless the stretchHeaderAcrossPage is true. Otherwise the header will be scrunched up in the center of the page. ---> <cfif stretchHeaderAcrossPage and alignBlogMenuWithBlogContent> <cfif topMenuAlign eq 'left'> <cfset topWrapperCssString = "padding-left: var(--contentPaddingPixelWidth);"> <cfelseif topMenuAlign eq 'right'> <cfset topWrapperCssString = "padding-right: var(--contentPaddingPixelWidth);"> <cfelse> <cfset topWrapperCssString = "margin: auto;"> </cfif> <cfelse> <cfset topWrapperCssString = "margin: auto;"></cfif></cfsilent>#topWrapper{<cfoutput>#topWrapperCssString#</cfoutput>}#headerContainer{width:100%;<cfif headerBackgroundImage neq ''> box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0,0,0,0.19);</cfif>}#blogNameContainer{font-family:<cfoutput>'#blogNameFont#',#BlogNameFontType#</cfoutput>;font-size: <cfif session.isMobile>1.50em<cfelse>1.75em</cfif>;/*font-weight:bold;*/padding-left:13px;text-shadow:0px 4px 8px rgba(0, 0, 0, 0.19);color: <cfoutput>#blogNameTextColor#</cfoutput>;vertical-align:center}#topMenuContainer{visibility:none;position:relative;left:0px;<cfif menuBackgroundImage neq ""> background-color: transparent !important;</cfif> vertical-align: center}#topMenu{visibility:hidden;<cfif menuBackgroundImage neq ""> background-color: transparent !important;background-image:url('<cfoutput>#menuBackgroundImage#</cfoutput>');background-repeat:repeat-x;</cfif> border: 0;color: <cfoutput>#blogNameTextColor#</cfoutput>;font-family:<cfoutput>'#menuFont#',#menuFontType#</cfoutput>;font-size: <cfif kendoTheme eq 'office365'><cfif session.isMobile>.75em<cfelse>1em</cfif><cfelse><cfif session.isMobile>.9em<cfelse>1em</cfif></cfif>;top:32px;height:20px}.toggleSidebarPanelButton{padding-left:7px}.siteSearchButton{}.k-widget.k-menu-horizontal>.k-item{border:0}#fixedNavMenu{visibility:hidden}<cfif kendoTheme eq 'default' or kendoTheme eq 'highcontrast' or kendoTheme eq 'material' or kendoTheme eq 'silver'><!--- Both default and high contrast have the same header. Material needs to have a darker text when selecting a menu item---> #fixedNavMenu.k-menu .k-state-hover, #fixedNavMenu.k-menu .k-state-hover .k-link, #fixedNavMenu.k-menu .k-state-border-down{color: <cfoutput>#blogNameTextColor#</cfoutput>;font-family:<cfoutput>'#menuFont#',#menuFontType#</cfoutput>;background-image:url('<cfoutput>#menuBackgroundImage#</cfoutput>')}#topMenu.k-menu .k-state-hover, #topMenu.k-menu .k-state-hover .k-link, #topMenu.k-menu .k-state-border-down{color: <cfoutput>#blogNameTextColor#</cfoutput>;font-family:<cfoutput>'#menuFont#',#menuFontType#</cfoutput>;background-image:url('<cfoutput>#menuBackgroundImage#</cfoutput>')}</cfif><!---<cfif kendoTheme eq 'default' or kendoTheme eq 'highcontrast'>--->.k-widget.k-menu-horizontal>.k-item{border:0}.k-menu .k-item>.k-link{padding-left: <cfif session.isMobile>.7em<cfelse>1.1</cfif>;padding-right: <cfif session.isMobile>.7em<cfelse>1.1</cfif>}#logo{border:0;position:relative;padding-top: <cfoutput>#logoPaddingTop#</cfoutput>;padding-left: <cfoutput>#logoPaddingLeft#</cfoutput>;padding-right: <cfoutput>#logoPaddingRight#</cfoutput>;padding-bottom: <cfoutput>#logoPaddingBottom#</cfoutput>}<cfif session.isMobile> .k-window-titlebar .k-i-close{zoom:1.2}</cfif>.k-window-titlebar{font-size:16px}
-	<cfelse><!---<cfif application.minimizeCode>--->
 		/* States for the header menu */
 		ul.k-hover { 
 		  background-color: transparent !important;
@@ -24,7 +21,7 @@
 			visibility: hidden; /* This will be overridden and set to visible when the page fully loads */
 			top: 0px;
 			height: <cfif kendoTheme contains 'materialblack'><cfif session.isMobile>55<cfelse>65</cfif><cfelse><cfif session.isMobile>35<cfelse>45</cfif></cfif>px;
-			width: <cfif headerBannerWidth eq '100%' or session.isMobile>100%<cfelse>var(--contentWidth)</cfif>;
+			width: var(--contentWidth);
 			color: <cfoutput>#blogNameTextColor#</cfoutput>; /* text color */
 			font-family: <cfoutput>'#menuFont#', #menuFontType#</cfoutput>;
 			font-size: <cfif kendoTheme eq 'office365'><cfif session.isMobile>.75em<cfelse>1em</cfif><cfelse><cfif session.isMobile>.9em<cfelse>1em</cfif></cfif>;
@@ -36,8 +33,6 @@
 			/* Subtle drop shadow on the header banner that stretches across the page. */
 			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 			/* Center it */
-			left: calc(-50vw + 50%);
-			right: calc(-50vw + 50%);
 			margin-left: auto;
 			margin-right: auto;
 		}
@@ -63,10 +58,10 @@
 		
 		/* The headerContainer is a *child* flex container of the mainPanel below. This may be counter-intuitive, but the main content is stuffed into the blogContent and I want the header to play nicely and following along. This container will be resized if it does not match the parent mainPanel container using the setScreenProperties function at the top of the page. */
 		#headerContainer {
-			width: <cfif stretchHeaderAcrossPage>100%<cfelse>var(--contentWidth)</cfif>; 
+			width: 100%; 
 			/* Note: if the headerBackgroundImage is not specified, we will not use a drop shadow here */
 			<cfif headerBackgroundImage neq ''>
-			/* Subtle drop shadow on the header banner that stretches across the page. */
+			/* Subtle drop shadow on the header banner. */
 			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 			</cfif>
 		}
@@ -88,9 +83,9 @@
 			visibility: none;
 			position: relative; 
 			left: 0px; 
-			<cfif menuBackgroundImage neq "">
+		<cfif menuBackgroundImage neq "">
 			background-color: transparent !important;
-			</cfif>
+		</cfif>
 			vertical-align: center;
 		}
 
@@ -99,11 +94,11 @@
 		#topMenu {	
 			/* Hide the menu on page load */
 			visibility: hidden;
-			<cfif menuBackgroundImage neq "">
+		<cfif menuBackgroundImage neq "">
 			background-color: transparent !important;
 			background-image: url('<cfoutput>#menuBackgroundImage#</cfoutput>');/* Without this, there is a white ghosting around this div. */
 			background-repeat: repeat-x;
-			</cfif>
+		</cfif>
 			border: 0;
 			color: <cfoutput>#blogNameTextColor#</cfoutput>; /* text color */
 			font-family: <cfoutput>'#menuFont#', #menuFontType#</cfoutput>;
@@ -129,6 +124,11 @@
 		.k-widget.k-menu-horizontal>.k-item {
 		  border: 0;
 		}
+		
+		/* Override the menu and remove some of the extra padding to make it fit the page (default padding is 0.5em 1em 0.4em */
+		.k-menu .k-item>.k-link, .k-menu-scroll-wrapper .k-item>.k-link, .k-popups-wrapper .k-item>.k-link {
+			display: block;
+    		padding: 0.4em .7em 0.4em;
 			
 		/* Fixed nav menu. Note: the script at the tail end of the page will set this to visible after the page loads. */
 		#fixedNavMenu {
@@ -219,5 +219,4 @@
 		.k-window-titlebar {
 			font-size: 16px; /* set font-size */
 		}
-	</cfif><!---<cfif application.minimizeCode>--->
 	</style>

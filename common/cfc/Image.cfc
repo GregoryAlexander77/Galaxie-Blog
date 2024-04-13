@@ -18,6 +18,9 @@
 			<cfcase value="gallery">
 				<cfset destination = expandPath("#application.baseUrl#/enclosures/gallery")>
 			</cfcase>
+			<cfcase value="carousel">
+				<cfset destination = expandPath("#application.baseUrl#/enclosures/carousel")>
+			</cfcase>
 			<cfcase value="post">
 				<cfset destination = expandPath("#application.baseUrl#/enclosures/post")>
 			</cfcase>
@@ -90,16 +93,24 @@
 	<cffunction name="createThumbnail" access="public" output="true" returntype="string" hint="Creates thumbnail images 235 width by 138. These are used in the administrative interface as well as used for gallery thumbnail images when creating a gallery.">
 		<cfargument name="imagePath" type="string" required="yes" hint="Provide the path to the image.">
 		<cfargument name="imageName" type="string" required="yes" hint="The image name.">
+		<cfargument name="destination" type="string" required="no" default="" hint="This has logic to determine the destination, but you can over-ride it.">
 			
 		<cfset debug = false>
 			
 		<cfset thumbNailWidth = "235">
 		<cfset thumbNailHeight = "138">
 			
-		<!--- Set our final destination. --->
-		<cfset destination = expandPath("#application.baseUrl#/enclosures/thumbnails")>
+		<cfif len(arguments.destination)>
+			<!--- Set the destination if specified. --->
+			<cfset destination = expandPath(arguments.destination)>
+		<cfelse>
+			<!--- Set the default destination (#application.baseUrl#\enclosures\thumbnails). --->
+			<cfset destination = expandPath("#application.baseUrl#\enclosures\thumbnails")>
+		</cfif>
+		
+		<cfif debug>Destination:<cfoutput>#destination#\#arguments.imageName#</cfoutput><br/></cfif>
 			
-		<cfif debug>Reading image from: <cfoutput>#arguments.imagePath#</cfoutput><br/></cfif>
+		<cfif debug>Reading image from: <cfoutput>#destination#\#arguments.imagePath#</cfoutput><br/></cfif>
 		<!--- Read the image to determine how to scale it --->
 		<cfimage 
 			action = "info"
@@ -146,19 +157,25 @@
 		</cfif>
 				
 		<!--- Save the modified image to a file. --->
-		<cfimage source="#thumbnail#" action="write" destination="#destination#/#arguments.imageName#" overwrite="yes">
-		<cfif debug><cfoutput>#destination#/#arguments.imageName#</cfoutput></cfif>
-				
+		<cftry>
+			<cfimage source="#thumbnail#" action="write" destination="#destination#\#arguments.imageName#" overwrite="yes">
+			<cfcatch type="any">
+				<cfset destination = ""/>
+				<cfset error = "Folder permissions issue">
+			</cfcatch>
+		</cftry>
+		
 		<cfreturn destination>
 		
 	</cffunction>
 			
-	<cffunction name="createSocialMediaImages" access="public" output="false" returntype="any" hint="Creates images for social media sharing.">
+	<cffunction name="createSocialMediaImages" access="public" output="true" returntype="any" hint="Creates images for social media sharing.">
 		<cfargument name="imagePath" type="string" required="yes" hint="Provide the path to the image.">
 		<cfargument name="socialMediaPlatform" type="string" required="yes" hint="Provide the social media platform. The valid arguments are: facebook, twitter, instagram, linkedIn, and google. Logic will determine the best size for the image to fit the platform's image share specification.">
 		<cfargument name="socialMediaImageType" type="string" required="no" default="" hint="Unless you're trying to create Google images, this argument is optional in order to over-ride the default logic and force the type of image format that you want. If you specify this argument, it will over-ride the socialMediaPlatform argument. Logic will still be used to see if the images are valid for the large image types and substitute smaller images when necessary. Valid arguments are: facebookSharedImage, facebookLinkSquareImage, facebookLinkRectangleImage, twitterInstreamImage, twitterInstreamMinimumImage, instagramImage, instagramMinimumImage, linkedInImage, linkedInMinimumImage, google16_9Image, google4_3Image, and google1_1Image. This argument must be present when creating google images.">
-			
-		<cfset debug = false>
+		
+		<!--- Set output to true when debugging --->
+		<cfset imageDebug = false>
 			
 		<!--- Set the arguments. These may need to be updated anually. --->
 		<!--- Facebook shared image. --->
@@ -199,7 +216,7 @@
 			source = "#imagePath#"
 			structname="imageInfo">
 			
-		<cfif debug>Original image width: <cfoutput>#imageInfo.width# height: #imageInfo.height#</cfoutput><br/></cfif>
+		<cfif imageDebug>Original image width: <cfoutput>#imageInfo.width# height: #imageInfo.height#</cfoutput><br/></cfif>
 			
 		<!--- If the socialMediaImageType was not specified in the arguments, determine the type of image format that should be used. ---> 
 		<cfif arguments.socialMediaImageType eq ''>
@@ -358,7 +375,7 @@
 			<cfset preCrop = true>	
 		</cfif>
 				
-		<cfif debug><cfoutput>socialMediaImageType: #socialMediaImageType# thisImageWidth: #thisImageWidth# thisImageHeight: #thisImageHeight#</cfoutput><br/></cfif>
+		<cfif imageDebug><cfoutput>socialMediaImageType: #socialMediaImageType# thisImageWidth: #thisImageWidth# thisImageHeight: #thisImageHeight#</cfoutput><br/></cfif>
 
 		<!--- Handle small image formats- facebook squares and rectangles, the twitter and instagram minimum images, and really large images. We will pre-crop these images to get a larger part of the image, and then crop it again in the center. --->
 		<cfif preCrop>
@@ -408,18 +425,27 @@
 
 			<!--- Save the modified image to a file. --->
 			<cfif isDefined("shareImage")>
-				<cfimage source="#shareImage#" action="write" destination="#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#" overwrite="yes">
-
-				<cfif debug>
-					<cfdump var="#shareImage#" label="Share Image">
-					<cfoutput>#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#</cfoutput>
+				<cfif imageDebug>
+					<cfdump var="#shareImage#">
+					<cfoutput>
+					Source: #shareImage# Destination: #getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#
+					</cfoutput>
 				</cfif>
+			
+				<!--- Write the image --->
+				<cfimage source="#shareImage#" action="write" destination="#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#" overwrite="yes">
+				
 			</cfif>
 			
 		<cfelse><!---<cfif precrop>--->
 			
 			<!--- Handle landscape images. --->
 			<cfif getImageOrientation(imagePath) eq 'landscape'>
+				
+				<cfif imageDebug>
+					<cfdump var="#cfimageData#">
+					<cfoutput>#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#</cfoutput>
+				</cfif>
 
 				<!--- Determine the new width --->
 				<cfif imageInfo.width gte thisImageWidth>
@@ -437,15 +463,15 @@
 				<cfset thisImage = centerCrop(imagePath, imageInfo.width, imageInfo.height, newWidth, newHeight)>
 				<!--- Save the modified image to a file. --->
 				<cfimage source="#thisImage#" action="write" destination="#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#" overwrite="yes" structName="cfimageData">
-				
-				<cfif debug>
-					<cfdump var="#cfimageData#">
-					<cfoutput>#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#</cfoutput>
-				</cfif>
 
 			<cfelse>
 				<!--- Handle portrait images --->
-
+				
+				<cfif imageDebug>
+					<cfdump var="#cfimageData#">
+					<cfoutput>#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#</cfoutput>
+				</cfif>
+					
 				<!--- Determine the new width --->
 				<cfif imageInfo.width gte thisImageWidth>
 					<cfset newWidth = thisImageWidth>
@@ -459,11 +485,6 @@
 				<cfset thisImage = horizontalCrop(imagePath, imageInfo.height, newHeight, newWidth)>
 				<!--- Save the modified image to a file. --->
 				<cfimage source="#thisImage#" action="write" destination="#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#" overwrite="yes" structName="cfimageData">
-				
-				<cfif debug>
-					<cfdump var="#cfimageData#">
-					<cfoutput>#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#</cfoutput>
-				</cfif>
 
 			</cfif>
 				

@@ -1,15 +1,22 @@
-# get-video-id [![Build Status](https://travis-ci.org/radiovisual/get-video-id.svg?branch=master)](https://travis-ci.org/radiovisual/get-video-id) [![Coverage Status](https://coveralls.io/repos/github/radiovisual/get-video-id/badge.svg?branch=master)](https://coveralls.io/github/radiovisual/get-video-id?branch=master)
+# get-video-id [![codecov](https://codecov.io/gh/radiovisual/get-video-id/branch/master/graph/badge.svg?token=fG7V2VRDYY)](https://codecov.io/gh/radiovisual/get-video-id)
 
-> Get the YouTube, Vimeo, Vine, VideoPress or Microsoft Stream video id from a url or embed string.
+> Get the YouTube, Vimeo, Vine, VideoPress, TikTok, Microsoft Stream, Loom or Dailymotion video id from a url or embed string.
 
 **Pull Requests are welcome** if you would like to see support for other video services or if you find an unsupported video url pattern.
 
 ## Install
 
+You can install with npm:
+
 ```
 $ npm install --save get-video-id
 ```
 
+or with yarn:
+
+```
+$ yarn add get-video-id
+```
 
 ## Import
 
@@ -20,15 +27,26 @@ You can use this module in **Node.js** or in the **browser**. See below for the 
 const getVideoId = require('get-video-id');
 ```
 
-**ES2015 Module**
+**ES Module**
 ```js
 import getVideoId from 'get-video-id';
 ```
 
 **Browser**
 ```html
-<script src="get-video-id.umd.min.js"s><script>
+<script src="https://cdn.jsdelivr.net/npm/get-video-id/dist/get-video-id.umd.min.js"></script>
 ```
+
+###### Download
+
+- [Normal](https://cdn.jsdelivr.net/npm/get-video-id/dist/get-video-id.js)
+- [Minified](https://cdn.jsdelivr.net/npm/get-video-id/dist/get-video-id.min.js)
+
+###### CDN
+
+- [jsdelivr](https://www.jsdelivr.com/package/npm/get-video-id)
+- [unpkg](https://unpkg.com/get-video-id)
+
 
 ## Usage
 
@@ -37,18 +55,18 @@ Simply supply the module with a url or embed string matching any of the [pattern
 ```js
 import getVideoId from 'get-video-id';
 
-getVideoId('https://www.youtube.com/watch?v=8rSH8-pbHZ0');
-//=> { id: '8rSH8-pbHZ0', service: 'youtube' }
+getVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+//=> { id: 'dQw4w9WgXcQ', service: 'youtube' }
 
-const { id } = getVideoId('https://www.youtube.com/watch?v=8rSH8-pbHZ0');
-//=> '8rSH8-pbHZ0'
+const { id } = getVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+//=> 'dQw4w9WgXcQ'
 ```
 
-You can also use Google redirection URL (link from the search list) with YouTube, Vimeo or Vine as target url.
+get-video-id can also find the video buried in a Google redirection URL if it contains a reference to any of the supported URL patterns.
 
 ```js
-getVideoId('https://www.google.cz/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0ahUKEwj30L2MvpDVAhUFZVAKHb8CBaYQuAIIIjAA&url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DeG1uDU0rSLw&usg=AFQjCNECyDn3DQL7U6VW2CnXQQjB0gNKqA');
-//=> { id: 'eG1uDU0rSLw', service: 'youtube' }
+getVideoId('https://www.google.cz/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0ahUKEwj30L2MvpDVAhUFZVAKHb8CBaYQuAIIIjAA&url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DdQw4w9WgXcQ');
+//=> { id: 'dQw4w9WgXcQ', service: 'youtube' }
 ```
 
 ## API
@@ -59,8 +77,8 @@ Returns a metadata `Object` with the video `id` and `service` name:
 
 ```
 {
-  id: 'String',
-  service: 'String'
+  id: `String` | `undefined`,
+  service: `String` | `undefined`
 }
 ```
 
@@ -68,7 +86,7 @@ Returns a metadata `Object` with the video `id` and `service` name:
 
 Type: `String`
 
-The url (or embed code) from which you want to find the video id. See the
+The url (or embed code, or google redirect url) from which you want to find the video id. See the
 [Patterns section](https://github.com/radiovisual/get-video-id#patterns) to see the formats that can be supplied.
 
 ## Patterns
@@ -87,6 +105,12 @@ http://y2u.be/*
 youtube://
 ```
 
+**YouTube Shorts**
+```
+https://youtube.com/shorts/*
+https://www.youtube.com/shorts/*
+```
+
 **YouTube `/v/` or `/vi/`**
 ```
 http://www.youtube.com/v/*
@@ -102,6 +126,14 @@ https://www.youtube.com/watch?v=*
 http://youtube.com/watch?vi=*&
 http://youtube.com/?vi=*&
 http://youtube.com/?v=*
+```
+
+**YouTube `/e/`**
+```
+https://www.youtube.com/e/*
+https://www.youtube.com/e/*?
+http://www.youtube.com/e/*
+http://www.youtube.com/e/*?
 ```
 
 **YouTube image links `/vi/*/` or `/an_webp/*/`**
@@ -142,6 +174,13 @@ http://www.youtube.com/attribution_link?u=/watch?v=*
 http://www.youtube.com/attribution_link?/watch?v=*
 ```
 
+**YouTube live URLs**
+```
+https://www.youtube.com/live/*
+https://youtube.com/live/*
+https://youtube.com/live/*?
+```
+
 **Google Redirection to YouTube**
 
 ```
@@ -166,10 +205,21 @@ https://www.vimeo.com/*?
 http://vimeo.com/foo.swf?clip_id=1234
 ```
 
+**Vimeo events**
+```
+https://vimeo.com/event/*
+```
+
 **Vimeo iframe**
 ```
 <iframe src="https://player.vimeo.com/video/*" ...
 ```
+
+**Vimeo unlisted/private urls**
+```
+https://vimeo.com/*/privateHash
+```
+⚠️ **Please note**: That `get-video-id` _will_ extract the id from the private/unlisted URLs formats for Vimeo, but the private hash would still be required to rebuild the URL in order to make it reachable/sharable in a browser. If you use `get-video-id` to help you rebuild URLs, you will want to look for this pattern yourself and remember to include the privateHash in the url you want to share. `get-video-id` focuses on extracing video ids, and ignores any other special paramaters or formats at the moment.
 
 ### Vine
 
@@ -208,6 +258,49 @@ https://web.microsoftstream.com/embed/video/*
 **Microsoft Stream iframes**
 ```
 <iframe src="https://web.microsoftstream.com/embed/video/*?&" width="640" height="360"></iframe>
+```
+
+### TikTok
+
+**TikTok urls**
+```
+https://www.tiktok.com/*/video/*
+https://www.tiktok.com/*/video/*?
+````
+**:warning: Unsupported TikTok urls**
+ *  Shortlink URL (requires a fetch/redirect to find the real id) : `https://vm.tiktok.com/shorLinkId/`
+
+### Dailymotion
+
+**Dailymotion urls**
+```
+http://www.dailymotion.com/video/*_text
+http://www.dailymotion.com/video/*
+http://www.dailymotion.com/fr/relevance/search/search+query/1#video=*
+https://www.dailymotion.com/video/*?playlist=
+http://dai.ly/*
+```
+
+**Dailymotion iframes**
+```
+<iframe src="https://www.dailymotion.com/embed/video/*" width="600" height="600"></iframe>
+```
+
+**:warning: Unsupported Dailymotion urls**
+ *  Channel id urls: `http://www.dailymotion.com/hub/*_title`
+
+### Loom
+
+**Loom urls**
+```
+https://www.loom.com/share/*
+https://www.loom.com/share/*?
+https://www.loom.com/embed/*
+ ```
+
+**Loom iframes**
+```
+<iframe src="https://www.loom.com/embed/*" width="600" height="600"></iframe>
 ```
 
 ## Contributing

@@ -26,10 +26,6 @@
 	// Get the width of the main flex container ('mainBlog').
 	var parentContainerWidth = $( "#mainBlog" ).width();
 	
-<cfif not session.isMobile>
-	// Set the width of the fixed nav menu
-	$("#fixedNavMenu").width(parentContainerWidth);
-</cfif>
 	// Set the width of the footer
 	$("#footerDiv").width(parentContainerWidth);
 	
@@ -48,8 +44,6 @@
 		}
 	});	
 	
-	// Readjust the containers if necessary
-	setScreenProperties();
 </script>
 
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">

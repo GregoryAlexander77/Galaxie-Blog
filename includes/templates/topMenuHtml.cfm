@@ -1,12 +1,17 @@
+	<!--- Notification container (hidden on page load). Don't use on mobile --->
+<cfif not session.isMobile>
+	<div id="notification" style="display:none">
+		<div id="default">
+			<h2>#{title}</h2>
+			<p>#{text}</p>
+		</div>
+	</div>	
+</cfif>
 	<cfset divName = "fixedNavMenu">
 	<header>
 	<!--- This container will be displayed when the user scrolls down past the header. It is intended to allow for navigation when the user is down the page.--->
 	<div id="fixedNavHeader">
-		<cfif customTopMenuJsTemplate eq "">
-			<cfinclude template="#application.baseUrl#/includes/layers/topMenu.cfm">
-		<cfelse>
-			<cfinclude template="#customTopMenuJsTemplate#" />
-		</cfif>	
+		<cfinclude template="#application.baseUrl#/includes/layers/topMenu.cfm">
 	</div>
 				
 	<cfif session.isMobile>
@@ -17,11 +22,12 @@
 			<table id="topWrapper" name="topWrapper" cellpadding="0" cellspacing="0" border="0" align="<cfoutput>#topMenuAlign#</cfoutput>" valign="bottom">
 				<tr valign="middle">
 					<td id="logo" name="logo" valign="middle" width="<cfoutput>#logoMobileWidth#</cfoutput>">
-						<!--- To do: eliminate hardcoded width below. change logo to around 80 to 120px. --->
+						<!--- To do: eliminate hardcoded width below. change logo to around 80 to 120px. Put in if parentSiteName logic --->
 						<cfoutput><a href="#application.parentSiteLink#" aria-label="#application.parentSiteName#"><img src="#logoSourcePath#" style="padding-left: #logoPaddingLeft#px;" align="left" valign="center" alt="Header Logo" /></a></cfoutput>
 					</td>
 					<td id="blogNameContainer">
-						<cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput>
+						<!-- The blog name may not always be displayed. The blog name maybe in the logo for example. -->
+						<cfif getTheme[1]["DisplayBlogName"]><cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput></cfif>
 					</td>
 				</tr>
 				<tr>
@@ -32,11 +38,7 @@
 					//*************************************************************************************************--->
 					</cfsilent>
 					<cfset divName = "topMenu">
-					<cfif customTopMenuJsTemplate eq "">
-						<cfinclude template="#application.baseUrl#/includes/layers/topMenu.cfm">
-					<cfelse>
-						<cfinclude template="#customTopMenuJsTemplate#" />
-					</cfif>	
+					<cfinclude template="#application.baseUrl#/includes/layers/topMenu.cfm">
 					</td>
 			  </tr>
 			</table>
@@ -60,7 +62,8 @@
 						<cfoutput><cfif application.parentSiteLink neq ''><a href="#application.parentSiteLink#" aria-label="#application.parentSiteName#"></cfif><img src="#logoSourcePath#" style="padding-left: #logoPaddingLeft#px;" align="left" valign="center" alt="Header Logo" /><cfif application.parentSiteLink neq ''></a></cfif></cfoutput>
 					</td>
 					<td id="blogNameContainer">
-						<cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput>
+						<!-- The blog name may not always be displayed. The blog name maybe in the logo for example. -->
+						<cfif getTheme[1]["DisplayBlogName"]><cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput></cfif>
 					</td>
 				</tr>
 				<tr>
@@ -71,11 +74,7 @@
 					//*************************************************************************************************--->
 					</cfsilent>
 					<cfset divName = "topMenu">
-					<cfif customTopMenuJsTemplate eq "">
-						<cfinclude template="#application.baseUrl#/includes/layers/topMenu.cfm">
-					<cfelse>
-						<cfinclude template="#customTopMenuJsTemplate#" />
-					</cfif>	
+					<cfinclude template="#application.baseUrl#/includes/layers/topMenu.cfm">
 				 </td>
 			  </tr>
 			</table>

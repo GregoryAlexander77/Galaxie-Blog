@@ -80,6 +80,7 @@
 		
 	<!--- Preset vars that are not always used --->
 	<cfparam name="includeGallery" default="false">
+	<cfparam name="includeCarousel" default="false">
 	<cfparam name="includeCustomWindow" default="false">
 	<cfparam name="includeVideoUpload" default="false">
 	<cfparam name="includeFileUpload" default="false">
@@ -155,7 +156,7 @@
 				menu: {
 					file: {title: 'File', items: 'preview print'},
 					edit: {title: 'Edit', items: 'undo redo | cut copy paste | selectall'},
-					insert: {title: 'Insert', items: 'image | media | videoUpload webVttUpload videoCoverUpload | map mapRouting'},
+					insert: {title: 'Insert', items: 'image | media | carousel | videoUpload webVttUpload videoCoverUpload | map mapRouting'},
 					view: {title: 'View', items: 'code | visualaid | preview fullscreen'}
 				},
 				</cfcase>
@@ -192,7 +193,7 @@
 					file: { title: 'File', items: 'newdocument restoredraft | preview | print ' },
 					edit: { title: 'Edit', items: 'undo redo | cut copy paste | selectall | searchreplace' },
 					view: { title: 'View', items: 'code | visualaid visualchars visualblocks | spellchecker | preview fullscreen' },
-					insert: { title: 'Insert', items: 'image link media fancyBoxGallery customWindow | map mapRouting | template codesample inserttable | charmap emoticons hr | pagebreak nonbreaking anchor toc | insertdatetime' },
+					insert: { title: 'Insert', items: 'image link media | fancyBoxGallery carousel | customWindow | map mapRouting | template codesample inserttable | charmap emoticons hr | pagebreak nonbreaking anchor toc | insertdatetime' },
 					format: { title: 'Format', items: 'bold italic underline strikethrough superscript subscript codeformat | formats blockformats fontformats fontsizes align lineheight | forecolor backcolor | removeformat' },
 					table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
 				},
@@ -267,13 +268,14 @@
 						  	/* Define the boolean urlSentToServer var if it not defined. Since null === undefined is false, this statement will catch only null or undefined. If the var is defined, set it to the element.src. This is needed as this logical branch will be raised twice with tinymce and we only want to call the saveExternalUrl one time. */
 						  	if (typeof urlSentToServer === 'undefined') {
 						  		urlSentToServer = "";
+							} else {
 								urlSentToServer = e.element.src;
 						  	}
-						  	// alert('e.element.src: ' + e.element.src + 'urlSentToServer: ' + urlSentToServer + '!e.element.src != urlSentToServer:' + !e.element.src != urlSentToServer);
+							// alert('e.element.src: ' + e.element.src + ' urlSentToServer: ' + urlSentToServer);
 						  
 						  	// Send the data to the server to update the database. Also, don't invoke the saveExternalUrl if the image was just uploaded. Only do this once per URL. The last argument is used for debugging purposes
 						  	if ( (e.element.src != urlSentToServer) ){
-								// alert('saving URL')
+						
 								// Custom save external URL function is on the various interfaces that use this code
 								saveExternalUrl(e.element.src, 'image', '<cfoutput>#selectorId#</cfoutput>', '')
 								// Clear any previous url's
@@ -326,7 +328,7 @@
 							$('#image').val('');
 							// console.log('gallery' + tinymce.activeEditor.selection.getNode());
 							// Open up a new gallery window. The code for this window is the next switch block below.
-							createAdminInterfaceWindow(3, 'gallery');
+							createAdminInterfaceWindow(3,<cfoutput>#URL.optArgs#</cfoutput>,'gallery');
 						}
 					});
 				
@@ -334,7 +336,36 @@
 						icon: 'gallery',
 						text: 'Image Gallery',
 						onAction: function () {
-							createAdminInterfaceWindow(3, 'gallery');
+							createAdminInterfaceWindow(3,<cfoutput>#URL.optArgs#</cfoutput>,'gallery');
+						}
+					});
+				</cfif>
+				<cfif includeCarousel or 1 eq 1>
+					// Custom dialogs that are invoked via the toolbar
+					// Carousel. This opens up the same uppy dialog as the gallery. Note: this also needs to be added to the toolBarString	
+					
+					// Create the icon
+					editor.ui.registry.addIcon(
+						'carousel',
+						'<svg><span data-fa-symbol="carousel" class="fontAwesomeIcon fa-solid fa-panorama">&nbsp;</span></svg>'
+					);
+				
+					// Create the button (note: this also needs to be added to the toolBarString)
+					editor.ui.registry.addButton('carousel', {
+						text: '<i class="fontAwesomeIcon fa-solid fa-panorama"></i>',
+						tooltip: 'Carousel',
+						onAction: function (_) {
+							$('#image').val('');
+							// Open up the uppy upload window.
+							createAdminInterfaceWindow(3,<cfoutput>#URL.optArgs#</cfoutput>,'carousel');
+						}
+					});
+				
+					editor.ui.registry.addMenuItem('carousel', {
+						icon: 'carousel',
+						text: 'Carousel',
+						onAction: function () {
+							createAdminInterfaceWindow(3,<cfoutput>#URL.optArgs#</cfoutput>,'carousel');
 						}
 					});
 				</cfif>

@@ -36,8 +36,38 @@
 			hint="Used to determine if the csrf token is valid. This is also used to diagnose security issues when the csrf token fails.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 			
-		<!--- verifyCsrfToken is a built in ColdFusion function. --->
-		<cfreturn CSRFVerifyToken(arguments.csrfToken, 'admin')>
+		<!--- Trim the token --->
+		<cfset token = StringUtilsObj.trimStr(arguments.csrfToken)>
+			
+		<!--- Note: after one of the Chrome browser updates, my original logic that just used the csrfVerifyToken CF function stopped authenticating the token via AJAX requests when the browser was open for a long time and other tabs were opened with other sites. The workaround was to close the browser and reauthenticate, however, this was not per my original design and I don't want to have to close the browser everytime it fails. I have added logic here that the adminInterface page, used by the administrative site interfaces, creates a token and *then* creates a cookie and now I am also comparing if the cookie is the same as the passed in token to pass when the CSRFVerifyToken function is not working. This can be written in a much more concise way, however, I am making it verbose in order to understand the logic. ---> 
+		<cfif isdefined("arguments.csrfToken")>
+			<cfif CSRFVerifyToken(arguments.csrfToken, 'admin')>
+				<!--- The token passes- all is good. This is the original logic --->
+				<cfset tokenAuth = true>
+			<cfelse><!---<cfif CSRFVerifyToken(arguments.csrfToken, 'admin')>--->
+				<!--- This may sometimes fail if the browser has been opened and used with other sites. --->
+				<!--- Was the expected cookie set on the adminInterface.cfm template? --->
+				<cfif isDefined(cookie.csrfToken)>
+					<cfif arguments.csrfToken eq cookie.csrfToken>
+						<!--- Pass the request if the token matches the current csrfToken stored in the cookie --->
+						<cfset tokenAuth = true>
+					<cfelse><!---<cfif arguments.csrfToken eq cookie.csrfToken>--->
+						<!--- Ok, something is wrong here- fail it. --->
+						<cfset tokenAuth = false>
+					</cfif><!---<cfif arguments.csrfToken eq cookie.csrfToken>--->
+				<cfelse><!---<cfif isDefined(cookie.csrfToken)>--->
+					<!--- Ok, the expected cookie is not present- fail it. --->
+					<cfset tokenAuth = false>
+				</cfif><!---<cfif isDefined(cookie.csrfToken)>--->
+			</cfif><!---<cfif isDefined(cookie.csrfToken)>--->
+		<cfelse><!---<cfif isdefined("arguments.csrfToken")>--->
+			<!--- Pass in the token dummy! --->
+			<cfset tokenAuth = false>
+		</cfif><!---<cfif isdefined("arguments.csrfToken")>--->
+			
+		<!--- Return it --->
+		<cfreturn tokenAuth>
+			
 	</cffunction>
 	
 	<cffunction name="secureFunction" access="package" output="yes" returntype="boolean" 
@@ -125,13 +155,6 @@
 		<cfargument name="userName" required="yes" default="" hint="Pass in the userName">
 		<cfargument name="password" required="yes" default="" hint="Pass in the password">
 			
-		<!--- Verify the token --->
-		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken, 'admin'))>
-			<cfreturn serializeJSON(false)>	
-			<!--- Abort the process if the token is not validated. --->
-			<cfabort>
-		</cfif>
-			
 		<cfif application.blog.authenticate(left(trim(form.username),50),left(trim(form.password),50))>
 			<cfloginuser name="#trim(arguments.username)#" password="#trim(arguments.password)#" roles="admin">
 			<cfset session.userName = trim(username)>
@@ -149,8 +172,11 @@
 			<cfset session.capabilityList = application.blog.getCapabilitiesByRole(session.roles, 'capabilityList')>
 			<!--- Also get the capability id's --->
 			<cfset session.capabilityIdList =  application.blog.getCapabilitiesByRole(session.roles, 'capabilityIdList')>
+			<!--- Generate the session Cross-Site Request Forgery (CSRF) token. This will be validated on the server prior to the login logic for security. --->
+			<!--- The forceNew argument does not work for versions less than 2018, however, CF2021 needs this argument or the token will change every time causing errors. Note: while the forceNew argument was not introduced until 2018, having csrfGenerateToken on the page with a forceNew argument will cause an error with 2016, even if you put it in a catch block or have two logical branches depending upon the version. --->
+			<cfset csrfToken = csrfGenerateToken("admin", false)><!---forceNew=false--->
 			<!--- Drop a cookie. Using the cfcookie tag does not work with dynamic vars in the path. --->
-			<cfset cookie.isAdmin = { value="true", path="#application.baseUrl#", expires=30 }>
+			<cfset cookie.isAdmin = { value="true", path="#application.baseUrl#", expires=30 }>	
 		<cfelse>
 			<cfset session.loggedin = false>
 			<!--- Suggested by Shlomy Gantz to slow down brute force attacks (orginal BlogCfc code)--->
@@ -343,7 +369,7 @@
 			<!--- ************* Render email to new subscriber asking them to double opt in ************* --->
 			<cfset email = arguments.email>
 			<cfset emailTitle = application.BlogDbObj.getBlogTitle() & " subscription confirmation">
-			<cfset emailTitleLink = application.rooturl & '?confirmSubscription=true&token=' & token>
+			<cfset emailTitleLink = application.baseUrl & '?confirmSubscription=true&token=' & token>
 			<cfset emailDesc = "Please confirm your subscription to " & application.BlogDbObj.getBlogTitle()>
 			<cfset emailBody = "Please click on the 'Confirm Subscription' button below to confirm your subscription.">
 			<cfset callToActionText = "Confirm Subscription">
@@ -548,7 +574,7 @@
 					<!--- ************* Render email to new subscriber asking them to double opt in ************* --->
 					<cfset email = arguments.commenterEmail>
 					<cfset emailTitle = application.BlogDbObj.getBlogTitle() & " subscription confirmation">
-					<cfset emailTitleLink = application.rooturl & '?confirmSubscription=true&token=' & subscribeToPostAndReturnToken>
+					<cfset emailTitleLink = application.baseUrl & '?confirmSubscription=true&token=' & subscribeToPostAndReturnToken>
 					<cfset emailDesc = "Please confirm your subscription to " & application.BlogDbObj.getBlogTitle()>
 					<cfset emailBody = "Please click on the 'Confirm Subscription' button below to confirm your subscription.">
 					<cfset callToActionText = "Confirm Subscription">
@@ -629,7 +655,7 @@
 						<cfinvokeargument name="emailBody" value="#contentBody#">
 						<cfif application.commentModeration>
 							<cfinvokeargument name="callToActionText" value="Approve Comment">
-							<cfinvokeargument name="callToActionLink" value="#application.rooturl#/admin/">
+							<cfinvokeargument name="callToActionLink" value="#application.baseUrl#/admin/">
 						</cfif>
 					</cfinvoke>
 							
@@ -875,7 +901,7 @@
 	</cffunction>
 				
 	<cffunction name="updateSubscriberViaJsGrid" access="remote" returnformat="json" output="false" 
-			hint="Updates the category via the jsGrid.">
+			hint="Updates the subscriber via the jsGrid.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="subscriberId" type="numeric" required="no">
 		<cfargument name="subscriberEmail" type="string" required="no">
@@ -908,7 +934,7 @@
 		<cfif not error>
 			
 			<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
-			<cfset secureFunction('editCategory')>
+			<cfset secureFunction('EditSubscriber')>
 
 			<cftransaction>
 
@@ -924,7 +950,7 @@
 
 			</cftransaction>
 
-			<!---For the jsGrid, we need to return: updatedItem: 1 (ie the categoryid)--->
+			<!---For the jsGrid, we need to return: updatedItem: 1 (ie the primary key)--->
 			<cfset response[ "success" ] = true />
 			<cfset response[ "subscriberId" ] = arguments.subscriberId />
 		
@@ -1650,6 +1676,7 @@
 		<cfargument name="BlogBackgroundImageRepeat" required="no" default="no-repeat">
 		<cfargument name="BlogBackgroundColor" required="no" default="">
 		<!--- Title --->
+		<cfargument name="displayBlogName" required="no" default="">
 		<cfargument name="blogNameTextColor" required="no" default="whitesmoke">
 		<cfargument name="blogNameFontSize" required="no" default="28">
 		<cfargument name="blogNameFontSizeMobile" required="no" default="20">
@@ -1815,6 +1842,11 @@
 				<cfset ThemeSettingDbObj.setBlogBackgroundImageRepeat(arguments.blogBackgroundImageRepeat)>
 				<cfset ThemeSettingDbObj.setBlogBackgroundColor(arguments.blogBackgroundColor)>
 				<!--- Title --->
+				<cfif len(arguments.displayBlogName)>
+					<cfset ThemeSettingDbObj.setDisplayBlogName(true)>
+				<cfelse>
+					<cfset ThemeSettingDbObj.setDisplayBlogName(false)>
+				</cfif>
 				<cfset ThemeSettingDbObj.setBlogNameTextColor(arguments.blogNameTextColor)>
 				<!--- Header --->
 				<cfset ThemeSettingDbObj.setHeaderBackgroundColor(arguments.headerBackgroundColor)>
@@ -2010,6 +2042,27 @@
 					
 	<cffunction name="getCategoriesForDropdown" access="remote" returnformat="json" output="false" 
 		hint="Returns a json array to populate the categories dropdown.">
+		<cfargument name="parentCategory" default="false" required="false">
+		<cfargument name="childCategory" default="false" required="false">
+		<cfargument name="csrfToken" default="" required="false">
+			
+		<!--- Get the categories, don't use the cached values. --->
+		<cfset Data = application.blog.getCategories(false)>
+		
+		<!--- Return the data as a json object. --->
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#Data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<cfinvokeargument name="includeDataHandle" value="false">
+		</cfinvoke>
+		
+		<!--- Return the json string. --->
+		<cfreturn jsonString>
+    
+	</cffunction>
+				
+	<cffunction name="getTagsForDropdown" access="remote" returnformat="json" output="false" 
+		hint="Returns a json array to populate the tags dropdown.">
 		<cfargument name="csrfToken" default="" required="true">
 			
 		<!--- Verify the token --->
@@ -2023,7 +2076,7 @@
 		<cfset secureFunction('AssetEditor,EditComment,EditPost,ReleasePost')>
 			
 		<!--- Get the categories, don't use the cached values. --->
-		<cfset Data = application.blog.getCategories(false)>
+		<cfset Data = application.blog.getTags(false)>
 		
 		<!--- Return the data as a json object. --->
 		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
@@ -2053,7 +2106,7 @@
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('AssetEditor,EditComment,EditPost,ReleasePost')>
 			
-		<!--- Get the categories, don't  use the cached values. --->
+		<!--- Get the related posts, don't  use the cached values. --->
 		<cfset Data = application.blog.getRelatedPosts(postId=arguments.postId)>
 		
 		<!--- Return the data as a json object. --->
@@ -2127,18 +2180,7 @@
 	</cffunction>
 				
 	<cffunction name="getKendoThemesForDropdown" access="remote" returnformat="json" output="false" 
-			hint="Returns a json array to populate the kendo themes dropdown.">
-		<cfargument name="csrfToken" default="" required="true">
-			
-		<!--- Verify the token --->
-		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
-			<!--- Abort the process if the token is not validated. --->
-			<cfabort>
-		</cfif>
-			
-		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
-		<cfset secureFunction('EditTheme')>
+			hint="Returns a json array to populate the kendo themes dropdown. Note: this function is not locked down as it is used for demonstration purposes.">
 			
 		<!--- Get all of the kendo themes. --->
 		<cfset Data = application.blog.getKendoThemes()> 
@@ -2157,10 +2199,19 @@
 				
 	<cffunction name="getFontsForDropdown" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the font dropdown.">
+		<cfargument name="webSafeFont" default="false" required="no">
+		<cfargument name="themeFont" default="false" required="no">
+		<cfargument name="themeId" default="false" required="no" hint="Required when using themeFont">
 		<!--- Note: the csrfToken is not required for this query is also used on the external blog (non-admin). This query is not secured. --->
 			
 		<!--- Get the fonts, don't  use the cached values. --->
-		<cfset Data = application.blog.getFont()>
+		<cfif arguments.webSafeFont>
+			<cfset Data = application.blog.getFont(webSafeFont=true)>
+		<cfelseif arguments.themeFont>
+			<cfset Data = application.blog.getThemeFonts(themeId=arguments.themeId)>
+		<cfelse>
+			<cfset Data = application.blog.getFont()>
+		</cfif>
 		
 		<!--- Return the data as a json object. --->
 		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
@@ -2255,7 +2306,7 @@
 	</cffunction>
 					
 	<cffunction name="updateFontViaJsGrid" access="remote" returnformat="json" output="false" 
-			hint="Updates the category via the jsGrid.">
+			hint="Updates the font via the jsGrid.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="fontId" type="numeric" required="no">
 		<cfargument name="fontWeight" type="string" required="no">
@@ -2290,7 +2341,7 @@
 				<cfinvokeargument name="useFont" value="#arguments.useFont#">
 			</cfinvoke>
 
-			<!---For the jsGrid, we need to return: updatedItem: 1 (ie the categoryid)--->
+			<!---For the jsGrid, we need to return: updatedItem: 1 (ie the fontId)--->
 			<cfset response[ "success" ] = true />
 			<cfset response[ "fontId" ] = arguments.fontId />
 		
@@ -2681,6 +2732,79 @@
 	</cffunction>
 				
 	<!---****************************************************************************************************
+		Visitor Log grid (read only)
+	******************************************************************************************************--->
+		
+	<cffunction name="getVisitorLogForGrid" access="remote" returnformat="json" output="false" 
+			hint="Returns a json array to populate the visitor log grid.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
+		
+		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
+		<cfargument name="anonymousUserId" required="no" default="">
+		<cfargument name="fullName" required="no" default="">
+		<cfargument name="hitCount" required="no" default="">
+		<cfargument name="ipAddress" required="no" default="">
+		<cfargument name="userAgent" required="no" default="">
+		<cfargument name="date" required="no" default="">
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON(false)>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditProfile,EditUser')>			
+			
+		<cfinvoke component="#application.blog#" method="getVisitorLog" returnvariable="Data">			
+			<!--- Note: the following options are used on the open source jsGrid. The Kendo commercial grid has client side filtering and these are not used. --->	
+			<cfif arguments.anonymousUserId neq ''>
+				<cfinvokeargument name="anonymousUserId" value="#arguments.anonymousUserId#"/>
+			</cfif>
+			<cfif arguments.fullName neq ''>
+				<cfinvokeargument name="fullName" value="#arguments.fullName#"/>
+			</cfif>
+			<cfif arguments.hitCount neq ''>
+				<cfinvokeargument name="hitCount" value="#arguments.hitCount#"/>
+			</cfif>
+			<cfif arguments.ipAddress neq ''>
+				<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#"/>
+			</cfif>
+			<cfif arguments.userAgent neq ''>
+				<cfinvokeargument name="userAgent" value="#arguments.userAgent#"/>
+			</cfif>
+			<cfif arguments.date neq ''>
+				<cfinvokeargument name="date" value="#arguments.date#"/>
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the data as a json object. Note: this is using a standard CFQuery object- not a HQL array. --->
+		<cfinvoke component="#jsonArray#" method="convertCfQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="queryObj" value="#Data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<!--- When we use server side paging, we need to override the total and specify a new total which is the sum of the entire query. --->
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<!--- The Kendo grid is not using the data handle, the jsGrid does. --->
+			<cfif gridType eq 'jsGrid'>
+				<!--- The includeDataHandle is used when the format is json (or jsonp), however, the data handle is not included when you want to make a javascript object embedded in the page. ---> 
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<!--- If the data handle is not used, this can be left blank. If you are going to use a service on the cfc, typically, the value would be 'data'. --->
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the json string. --->
+		<cfreturn jsonString>
+    
+	</cffunction>
+				
+	<!---****************************************************************************************************
 		Post functions
 	******************************************************************************************************--->
 				
@@ -2792,6 +2916,7 @@
 		<cfargument name="videoMediaId" type="string" default="" required="false" hint="The video's mediaId">
 		<cfargument name="mapId" type="string" default="" required="false" hint="The mapId">
 		<cfargument name="postCategories" type="string" default="" required="false" hint="This can have 0 or more items">
+		<cfargument name="postTags" type="string" default="" required="false" hint="This can have 0 or more items">
 		<cfargument name="relatedPosts" type="string" default="" required="false" hint="This can have 0 or more items">
 		<cfargument name="released" type="boolean" default="true" required="no">
 		<cfargument name="allowComment" type="boolean" default="true" required="no">
@@ -2846,7 +2971,7 @@
 			<cfset getPost = application.blog.getPostByPostId(arguments.postId,true,true)>
 			<cfset postHeader = getPost[1]["PostHeader"]>
 			<!--- Raise an error if the post content is not sent and there is no cfinclude in the post header column --->
-			<cfif len(arguments.post) eq 0 and len(postHeader) and postHeader and findNoCase(postHeader, '<cfincludeTemplate>') eq 0>
+			<cfif not len(arguments.post) and not len(postHeader)>
 				<cfset error = true>
 				<cfset errorMessage = errorMessage & "<li>Post is required</li>">
 			</cfif>
@@ -2888,6 +3013,7 @@
 					<cfinvokeargument name="videoMediaId" value="#arguments.videoMediaId#">
 					<cfinvokeargument name="mapId" value="#arguments.mapId#">
 					<cfinvokeargument name="postCategories" value="#arguments.postCategories#">
+					<cfinvokeargument name="postTags" value="#arguments.postTags#">
 					<cfinvokeargument name="relatedPosts" value="#arguments.relatedPosts#">
 					<cfinvokeargument name="released" value="#arguments.released#">
 					<cfinvokeargument name="allowComment" value="#arguments.allowComment#">
@@ -2950,6 +3076,118 @@
 				<cfinvoke component="#application.blog#" method="savePostHeader" returnvariable="postId">
 					<cfinvokeargument name="postId" value="#arguments.postId#">
 					<cfinvokeargument name="postHeader" value="#postHeader#">
+				</cfinvoke>
+				
+				<!--- Set the success response --->
+				<cfset response[ "success" ] = true />
+				<!--- And send the new or updated postId --->
+				<cfset response[ "postId" ] = postId />
+			</cfif><!---<cfif not error>--->
+		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
+			<cfset error = true>
+			<cfset errorMessage = errorMessage & "<li>Not logged on</li>">	
+		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
+		
+		<!--- Prepare the default response objects --->
+		<cfif error>
+			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
+		</cfif>
+		<!--- Serialize the response --->
+    	<cfset serializedResponse = serializeJSON( response ) />
+    
+    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
+    	<cfreturn serializedResponse>
+	</cffunction>
+				
+	<cffunction name="savePostCss" access="remote" returnformat="json" output="true" 
+			hint="Saves data to the Post.Css column.">
+		<cfargument name="csrfToken" default="" required="true">
+		<!--- If the postId is passed, the function will update the post table. Otherwise it is an insertion. --->
+		<cfargument name="postId" type="string" default="" required="false">
+		<cfargument name="postCss" type="string" default="" required="false">
+			
+		<cfparam name="error" type="boolean" default="false">
+		<cfparam name="errorMessage" type="string" default="">
+		
+		<!---Set the default response objects.--->
+  		<cfset response[ "success" ] = false />
+    	<cfset response[ "errorMessage" ] = "" />
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON(false)>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in. Note: the user can edit their own profile when a new user is required to change their password --->
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<!--- Only admins can update this. --->
+		<cfif application.Udf.isLoggedIn()>
+			
+			<cfif not error>
+					
+				<!--- Save the data --->
+				<cfinvoke component="#application.blog#" method="savePostCss" returnvariable="postId">
+					<cfinvokeargument name="postId" value="#arguments.postId#">
+					<cfinvokeargument name="postCss" value="#postCss#">
+				</cfinvoke>
+				
+				<!--- Set the success response --->
+				<cfset response[ "success" ] = true />
+				<!--- And send the new or updated postId --->
+				<cfset response[ "postId" ] = postId />
+			</cfif><!---<cfif not error>--->
+		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
+			<cfset error = true>
+			<cfset errorMessage = errorMessage & "<li>Not logged on</li>">	
+		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
+		
+		<!--- Prepare the default response objects --->
+		<cfif error>
+			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
+		</cfif>
+		<!--- Serialize the response --->
+    	<cfset serializedResponse = serializeJSON( response ) />
+    
+    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
+    	<cfreturn serializedResponse>
+	</cffunction>
+				
+	<cffunction name="savePostJavaScript" access="remote" returnformat="json" output="true" 
+			hint="Saves data to the Post.JavaScript column.">
+		<cfargument name="csrfToken" default="" required="true">
+		<!--- If the postId is passed, the function will update the post table. Otherwise it is an insertion. --->
+		<cfargument name="postId" type="string" default="" required="false">
+		<cfargument name="postJavaScript" type="string" default="" required="false">
+			
+		<cfparam name="error" type="boolean" default="false">
+		<cfparam name="errorMessage" type="string" default="">
+		
+		<!---Set the default response objects.--->
+  		<cfset response[ "success" ] = false />
+    	<cfset response[ "errorMessage" ] = "" />
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON(false)>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in. Note: the user can edit their own profile when a new user is required to change their password --->
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<!--- Only admins can update this. --->
+		<cfif application.Udf.isLoggedIn()>
+			
+			<cfif not error>
+					
+				<!--- Save the data --->
+				<cfinvoke component="#application.blog#" method="savePostJavaScript" returnvariable="postId">
+					<cfinvokeargument name="postId" value="#arguments.postId#">
+					<cfinvokeargument name="postJavaScript" value="#postJavaScript#">
 				</cfinvoke>
 				
 				<!--- Set the success response --->
@@ -3259,6 +3497,9 @@
 			<cfif arguments.alias neq ''>
 				<cfinvokeargument name="alias" value="#arguments.alias#"/>
 			</cfif>
+			<cfif arguments.date neq ''>
+				<cfinvokeargument name="date" value="#arguments.date#"/>
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the data as a json object. --->
@@ -3289,6 +3530,7 @@
 			hint="Updates the category via the jsGrid.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="categoryId" type="numeric" required="yes">
+		<cfargument name="parentCategoryId" type="numeric" default="0" required="no">
 		<cfargument name="category" type="string" required="yes">
 		<cfargument name="categoryAlias" type="string" required="yes">
 			
@@ -3303,9 +3545,11 @@
 			
 		<!--- See if the category and category alias already exist before proceeding. --->
 		<cfinvoke component="#application.blog#" method="getCategory" returnvariable="getCategory">
+			<cfinvokeargument name="parentCategoryId" value="#arguments.parentCategoryId#">
 			<cfinvokeargument name="category" value="#arguments.category#">
 		</cfinvoke>
 		<cfinvoke component="#application.blog#" method="getCategory" returnvariable="getCategoryAlias">
+			<cfinvokeargument name="parentCategoryId" value="#arguments.parentCategoryId#">
 			<cfinvokeargument name="categoryAlias" value="#arguments.categoryAlias#">
 		</cfinvoke>
 			
@@ -3452,6 +3696,7 @@
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<!--- If the categoryId is passed, the function will update the category table. Otherwise it is an insertion. --->
 		<cfargument name="categoryId" type="string" default="" required="false">
+		<cfargument name="parentCategoryId" type="string" default="0" required="false">
 		<cfargument name="category" type="string" required="true">
 		<cfargument name="CategoryAlias" type="string" default="" required="false">
 			
@@ -3481,6 +3726,7 @@
 			</cfif>
 			<!--- See if the category exists. This will return a HQL array --->
 			<cfinvoke component="#application.blog#" method="getCategory" returnvariable="categoryExists">
+				<cfinvokeargument name="parentCategoryId" value="#arguments.parentCategoryId#">
 				<cfinvokeargument name="category" value="#arguments.category#">
 			</cfinvoke>
 			<!--- Raise an error if the category exists --->
@@ -3491,6 +3737,7 @@
 			<!--- And finally check the category alias --->
 			<cfif len(arguments.categoryAlias)>
 				<cfinvoke component="#application.blog#" method="getCategory" returnvariable="categoryAliasExists">
+					<cfinvokeargument name="parentCategoryId" value="#arguments.parentCategoryId#">
 					<cfinvokeargument name="categoryAlias" value="#arguments.categoryAlias#">
 				</cfinvoke>
 				<!--- Raise an error if the category exists --->
@@ -3503,6 +3750,7 @@
 			<cfif not error>
 				<!--- Insert or update the comment and return the categoryId. --->
 				<cfinvoke component="#application.blog#" method="saveCategory" returnvariable="categoryId">
+					<cfinvokeargument name="parentCategoryId" value="#arguments.parentCategoryId#">
 					<cfinvokeargument name="category" value="#arguments.category#">
 					<cfinvokeargument name="categoryAlias" value="#arguments.categoryAlias#">
 				</cfinvoke>
@@ -3510,6 +3758,305 @@
 				<cfset response[ "success" ] = true />
 				<!--- And send the new or updated categoryId --->
 				<cfset response[ "categoryId" ] = categoryId />
+				<cfset response[ "parentCategoryRef" ] = arguments.parentCategoryId />
+				<cfset response[ "category" ] = arguments.category />
+			</cfif><!---<cfif not error>--->
+		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
+			<cfset error = true>
+			<cfset errorMessage = errorMessage & "<li>Not logged on</li>">	
+		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
+		
+		<!--- Prepare the default response objects --->
+		<cfif error>
+			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
+		</cfif>
+		<!--- Serialize the response --->
+    	<cfset serializedResponse = serializeJSON( response ) />
+    
+    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
+    	<cfreturn serializedResponse>
+	</cffunction>
+				
+	<!---****************************************************************************************************
+		Tag Grid Functions
+	******************************************************************************************************--->
+				
+	<cffunction name="getTagsForGrid" access="remote" returnformat="json" output="true" 
+			hint="Returns a json array to populate the categories grid.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
+		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
+		<cfargument name="alias" required="no" default="">
+		<cfargument name="tag" required="no" default="">
+		<cfargument name="date" required="no" default="">
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON(false)>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditCategory,AddPost,EditPost,ReleasePost')>	
+			
+		<cfinvoke component="#application.blog#" method="getTagsForGrid" returnvariable="Data">
+			<!--- Note: the following options are used on the open source jsGrid. The Kendo commercial grid has client side filtering and these are not used. --->			
+			<cfif arguments.tag neq ''>
+				<cfinvokeargument name="tag" value="#arguments.tag#"/>
+			</cfif>
+			<cfif arguments.alias neq ''>
+				<cfinvokeargument name="alias" value="#arguments.alias#"/>
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the data as a json object. --->
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#Data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<!--- When we use server side paging, we need to override the total and specify a new total which is the sum of the entire query. --->
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<!--- The Kendo grid is not using the data handle, the jsGrid does. --->
+			<cfif gridType eq 'jsGrid'>
+				<!--- The includeDataHandle is used when the format is json (or jsonp), however, the data handle is not included when you want to make a javascript object embedded in the page. ---> 
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<!--- If the data handle is not used, this can be left blank. If you are going to use a service on the cfc, typically, the value would be 'data'. --->
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the json string. --->
+		<cfreturn jsonString>
+    
+	</cffunction>
+				
+	<cffunction name="updateTagViaJsGrid" access="remote" returnformat="json" output="false" 
+			hint="Updates the tag via the jsGrid.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<cfargument name="tagId" type="numeric" required="yes">
+		<cfargument name="tag" type="string" required="yes">
+		<cfargument name="tagAlias" type="string" required="yes">
+			
+		<cfparam name="error" type="boolean" default="false">
+		<cfparam name="errorMessage" type="string" default="">
+			
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset error = true>
+			<cfset errorMessage = errorMessage & "<li>Invalid token</li>">
+		</cfif>
+			
+		<!--- See if the tag and tag alias already exist before proceeding. --->
+		<cfinvoke component="#application.blog#" method="getTag" returnvariable="getTag">
+			<cfinvokeargument name="tag" value="#arguments.tag#">
+		</cfinvoke>
+		<cfinvoke component="#application.blog#" method="getTag" returnvariable="getTagAlias">
+			<cfinvokeargument name="tagAlias" value="#arguments.tagAlias#">
+		</cfinvoke>
+			
+		<!--- Validate the data --->
+		<cfif arrayLen(getTag) and getTag[1]["TagId"] neq arguments.tagId>
+			<cfset error = true>
+			<cfset errorMessage = errorMessage & "<li>Tag already exists</li>">
+		</cfif>
+		<cfif arrayLen(getTagAlias) and getTagAlias[1]["TagAlias"] neq arguments.tagAlias>
+			<cfset error = true>
+			<cfset errorMessage = errorMessage & "<li>Tag Alias already exists</li>">
+		</cfif>
+			
+		<cfif not error>
+			
+			<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+			<cfset secureFunction('editCategory')>
+
+			<cftransaction>
+
+				<!--- Update the database. --->
+				<!--- Load the tag entity. --->
+				<cfset TagDbObj = entityLoad("Tag", { TagId = arguments.tagId }, "true" )>
+				<!--- Set the tag and alias --->
+				<cfset TagDbObj.setTag( arguments.tag )>
+				<cfset TagDbObj.setTagAlias( arguments.tagAlias )>
+				<!--- Save it --->
+				<cfset EntitySave(TagDbObj)>
+
+			</cftransaction>
+
+			<!---For the jsGrid, we need to return: updatedItem: 1 (ie the tagId)--->
+			<cfset response[ "success" ] = true />
+			<cfset response[ "tagId" ] = arguments.tagId />
+		
+		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->
+			<cfset response[ "success" ] = false />
+			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
+		</cfif>
+			
+		<!--- Serialize the response --->
+    	<cfset serializedResponse = serializeJSON( response ) />
+    
+    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
+    	<cfreturn serializedResponse>	
+		
+	</cffunction>
+				
+	<cffunction name="deleteTagViaKendoGrid" access="remote" returnformat="json" output="false" 
+			hint="Returns a json array to populate the tags grid.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<!--- Note: when using the Kendo grid, the incoming string arguments will be like so:
+		models: [{"Hide":false,"PostUuid":"23B17AD3-B14A-1408-C282B3B6C49B0AC0","Comment":"test 3","UserName":null,"Approved":true,"Promote":false,"Subscribe":false,"Remove":false,"CommenterWebsite":"http://www.gregoryalexander.com","PostTitle":"test","PostId":13,"DatePosted":"August, 25 2020 23:44:00","Spam":false,"CommentId":32,"CommentUuid":"9F051589-CF87-E1AF-D2505B6B468293C4","CommenterFullName":"Gregory Alexander","CommenterEmail":"gregoryalexander77@gmail.com","Moderated":false,"PostAlias":"test"}]  --->
+		<cfargument name="models" type="string" required="yes" default="" hint="This argument is bound to the model of the kendo grid. The models is a json string that is sent to this function via ajax whenever a change has been made to the grid. Query kendo grid model or look at the comments in this function for clarification.">
+			
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON("Invalid token")>
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditComment,EditPost,ReleasePost')>
+
+		<!--- Remove the models in the string ---> 
+		<cfset thisStr = replaceNoCase(models, 'models=', '', 'one')>
+		<!--- Decode the string and make it into an array --->
+		<cfset thisStr = urlDecode(thisStr)>
+		<!--- Use the deserialize function to get at the underlying data. --->
+		<cfset thisStruct = deserializeJson(thisStr, false)>
+
+		<cftransaction>
+			<!--- Now that we have a clean array of structures, loop thru the array and get to the underlying values that were sent in the grid. ---> 
+			<!--- Loop thru the struct. --->
+			<cfloop array="#thisStruct#" index="i">
+				<!--- Extract the needed fields. Note: some of the variables may not come thru if they are empty. Use error catching here to catch and continue processing if there is an error.  --->
+				<cfparam name="tagId" default="" type="any">
+				<cftry>
+					<!--- Get the selected values of the fields --->
+					<cfset tagId = i['TagId']>
+					<cfcatch type="any">
+						<cfset error = "one of the variables was not defined.">
+					</cfcatch>
+				</cftry>
+
+				<!--- Update the database. --->
+				<!--- Load the tag entity. --->
+				<cfset TagDbObj = entityLoad("Tag", { TagId = tagId }, "true" )>
+				<!--- Set the remove column to true --->
+				<cfset TagDbObj.setRemove(1)>
+				<!--- Save it --->
+				<cfset EntitySave(TagDbObj)>
+
+			</cfloop>
+
+		</cftransaction>
+								
+    	<cfset jsonString = []><!--- '{"data":null}', --->
+    	
+		<cfreturn jsonString>
+	</cffunction>
+				
+	<cffunction name="deleteTagViaJsGrid" access="remote" returnformat="json" output="false" 
+			hint="Deletes a tag via the jsGrid.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<cfargument name="tagId" hint="Pass in the tagId" required="yes">
+			
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON("Invalid token")>
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditCategory')>
+			
+			<cftransaction>
+				<!--- Delete the association to the blog table. --->
+				<!--- Load the comment entity. --->
+				<cfset TagDbObj = entityLoad("Tag", { TagId = arguments.tagId }, "true" )>
+				<!--- Remove the blog reference in order to delete this record --->
+				<cfset TagDbObj.setBlogRef(javaCast("null",""))>
+				<!--- Save it --->
+				<cfset EntitySave(TagDbObj)>
+			</cftransaction>
+					
+			<cftransaction>
+				<!--- Now, in a different transaction, delete the record. --->
+				<!--- Load the comment entity. --->
+				<cfset TagDbObj = entityLoad("Tag", { TagId = arguments.tagId }, "true" )>
+				<!--- Delete it --->
+				<cfset EntityDelete(TagDbObj)>
+			</cftransaction>
+    	
+		<cfreturn serializeJSON(arguments.tagId)>
+	</cffunction>
+				
+	<cffunction name="saveTag" access="remote" returnformat="json" output="true" 
+			hint="Saves data from the tag user interfaces.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<!--- If the tagId is passed, the function will update the tag table. Otherwise it is an insertion. --->
+		<cfargument name="tagId" type="string" default="" required="false">
+		<cfargument name="tag" type="string" required="true">
+		<cfargument name="tagAlias" type="string" default="" required="false">
+			
+		<cfparam name="error" type="boolean" default="false">
+		<cfparam name="errorMessage" type="string" default="">
+			
+		<!--- Set the default response objects. --->
+		<cfset response[ "success" ] = false />
+		<cfset response[ "tagId" ] = "" />
+		<cfset response[ "tag" ] = "" />
+			
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfreturn serializeJSON("Invalid token")>
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in. Note: the user can edit their own profile when a new user is required to change their password --->
+		<cfset secureFunction('EditPost,EditPage,ReleasePost')>
+
+		<!--- Only admins can update this. --->
+		<cfif application.Udf.isLoggedIn()>
+
+			<!--- Validate the data --->
+			<cfif not len(tag)>
+				<cfset error = true>
+				<cfset errorMessage = errorMessage & "<li>Tag is required</li>">
+			</cfif>
+			<!--- See if the tag exists. This will return a HQL array --->
+			<cfinvoke component="#application.blog#" method="getTag" returnvariable="tagExists">
+				<cfinvokeargument name="tag" value="#arguments.tag#">
+			</cfinvoke>
+			<!--- Raise an error if the tag exists --->
+			<cfif arrayLen(tagExists)>
+				<cfset error = true>
+				<cfset errorMessage = errorMessage & "<li>Tag already exists</li>">
+			</cfif>
+			<!--- And finally check the tag alias --->
+			<cfif len(arguments.tagAlias)>
+				<cfinvoke component="#application.blog#" method="getTag" returnvariable="tagAliasExists">
+					<cfinvokeargument name="tagAlias" value="#arguments.tagAlias#">
+				</cfinvoke>
+				<!--- Raise an error if the tag exists --->
+				<cfif arrayLen(tagAliasExists)>
+					<cfset error = true>
+					<cfset errorMessage = errorMessage & "<li>Tag Alias already exists</li>">
+				</cfif>
+			</cfif>
+			
+			<cfif not error>
+				<!--- Insert or update the comment and return the tagId. --->
+				<cfinvoke component="#application.blog#" method="saveTag" returnvariable="tagId">
+					<cfinvokeargument name="tag" value="#arguments.tag#">
+					<cfinvokeargument name="tagAlias" value="#arguments.tagAlias#">
+				</cfinvoke>
+				<!--- Set the success response --->
+				<cfset response[ "success" ] = true />
+				<!--- And send the new or updated tagId and tag --->
+				<cfset response[ "tagId" ] = tagId />
+				<cfset response[ "tag" ] = arguments.tag />
 			</cfif><!---<cfif not error>--->
 		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
 			<cfset error = true>
@@ -3596,7 +4143,7 @@
 	</cffunction>
 				
 	<cffunction name="updateUserViaJsGrid" access="remote" returnformat="json" output="false" 
-			hint="Updates the category via the jsGrid.">
+			hint="Updates the user via the jsGrid.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="userId" type="numeric" required="yes">
 		<cfargument name="firstName" type="string" required="yes">
@@ -3631,9 +4178,9 @@
 			<cftransaction>
 
 				<!--- Update the database. --->
-				<!--- Load the category entity. --->
+				<!--- Load the users entity. --->
 				<cfset UsersDbObj = entityLoad("Users", { UserId = arguments.userId }, "true" )>
-				<!--- Set the category and alias --->
+				<!--- Set the user info --->
 				<cfset UsersDbObj.setFirstName( arguments.firstName )>
 				<cfset UsersDbObj.setLastName( arguments.lastName )>
 				<cfset UsersDbObj.setEmail( arguments.email )>
@@ -3933,7 +4480,7 @@
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('AddPost,AssetEditor,EditComment,ReleasePost')>
 		
-		<!---Set the default response objects.--->
+		<!--- Set the default response objects. --->
   		<cfset response[ "success" ] = false />
     	<cfset response[ "errorMessage" ] = "" />
 		<cfparam name="html" type="string" default="">
@@ -4043,18 +4590,20 @@
 			
 	</cffunction>
 				
-	<cffunction name="getGalleriesForGrid" access="remote" returnformat="json" output="false" 
-			hint="Returns a json array to populate the gallery grid.">
-		<!--- Note: this is not used yet. --->
+	<!---****************************************************************************************************
+		Carousel functions
+	******************************************************************************************************--->
+				
+	<cffunction name="saveCarousel" access="remote" output="true" returnformat="plain" 
+			hint="Saves carousel data.">
 		<cfargument name="csrfToken" default="" required="true">
-		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
-		<cfargument name="mediaIdList" required="yes" default="all" hint="Pass in an a list of media id's separated by an underscore">
-			
-		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
-		<cfargument name="mediaUrl" required="no" default="">
-		<cfargument name="mediaGalleryName" required="no" default="">
-		<cfargument name="mediaGalleryTitle" required="no" default="">
-		<cfargument name="mediaGalleryUrl" required="no" default="">
+		<cfargument name="action" hint="Either insert or update" default="insert">
+		<cfargument name="mediaIdList" type="string" required="true">
+		<cfargument name="postId" default="" required="true">
+		<cfargument name="darkTheme" type="string" required="true">
+
+		<cfparam name="error" type="boolean" default="false">
+		<cfparam name="errorMessage" type="string" default="">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -4063,43 +4612,134 @@
 			<cfabort>
 		</cfif>
 			
-		<cfquery name="getGallery" dbtype="hql">
-			SELECT new Map (
-				MediaId as MediaId,
-				MediaUrl as MediaUrl,
-				MediaThumbnailUrl as MediaThumbnailUrl,
-				MediaGallery.MediaGalleryName as MediaGalleryName,
-				MediaGallery.MediaGalleryTitle as MediaGalleryTitle,
-				MediaItem.MediaItemGalleryUrl as MediaItemGalleryUrl
-			)
-			FROM Media
-			LEFT JOIN MediaGallery
-			LEFT JOIN MediaGalleryItem
-			WHERE MediaId IN (<cfqueryparam value="#mediaIdList#" cfsqltype="integer" list="yes">)
-		</cfquery>
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('AddPost,AssetEditor,EditComment,ReleasePost')>
 		
-		<!--- Return the data as a json object. --->
-		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
-			<cfinvokeargument name="hqlQueryObj" value="#getGallery#">
-			<cfinvokeargument name="includeTotal" value="false">
-			<!--- When we use server side paging, we need to override the total and specify a new total which is the sum of the entire query. --->
-			<cfinvokeargument name="overRideTotal" value="false">
-			<cfinvokeargument name="newTotal" value="">
-			<!--- The Kendo grid is not using the data handle, the jsGrid does. --->
-			<cfif gridType eq 'jsGrid'>
-				<!--- The includeDataHandle is used when the format is json (or jsonp), however, the data handle is not included when you want to make a javascript object embedded in the page. ---> 
-				<cfinvokeargument name="includeDataHandle" value="true">
-				<!--- If the data handle is not used, this can be left blank. If you are going to use a service on the cfc, typically, the value would be 'data'. --->
-				<cfinvokeargument name="dataHandleName" value="data">
-			<cfelse>
-				<cfinvokeargument name="includeDataHandle" value="false">
-				<cfinvokeargument name="dataHandleName" value="">
-			</cfif>
-		</cfinvoke>
+		<!---Set the default response objects.--->
+  		<cfset response[ "success" ] = false />
+    	<cfset response[ "errorMessage" ] = "" />
+		<cfparam name="html" type="string" default="">
 		
-		<!--- Return the json string. --->
-		<cfreturn jsonString>
+		<cfif arguments.action eq 'insert'>
+			<!--- Only admins can update this. --->
+			<cfif application.Udf.isLoggedIn()>
+						
+				<cfif not error>
+					
+					<!--- Loop through the mediaId list --->
+					<cfloop from="1" to="#listLen(arguments.mediaIdList, '_')#" index="i">
+						<!--- Extract the values. The mediaIdList uses underscores as separaters. --->
+						<cfset thisMediaId = listGetAt(mediaIdList, i, '_')>
+						<!--- The title, body, and the url are coming in as a form like so: mediaItemTitle1, 2, 3, etc --->
+						<cfset title = evaluate("carouselTitle#i#")>
+						<cfset body = evaluate("carouselBody#i#")>
+						<cfset link = evaluate("mediaItemUrl#i#")>
+						<!--- Font --->
+						<cfset fontColor = evaluate("carouselFontColor#i#")>
+						<!--- And get the media URL to construct our new HTML --->
+						<cfset mediaUrl = evaluate("mediaUrl#i#")>
+						<!--- Note: the mediaUrl is the full image that was uploaded. We also want to use the thumbnail that was created when the image was uploaded on the client side (when the user clicked on the upload button) instead. The only difference between the paths is that the image is saved into the thumbnail folder.  --->
+						<cfset mediaThumbnailUrl = replaceNoCase(mediaUrl, 'enclosures', 'enclosures/thumbnails')>
+						<!---<cfoutput>i: #i# mediaId: #mediaId# title: #title# link: #link#<br/></cfoutput>--->
+							
+						<cftransaction>
+							
+							<cftransaction>
+								<!--- Load the media ORM database object. --->
+								<cfset MediaDbObj = entityLoad("Media", { MediaId = thisMediaId }, "true" )>
+								<!--- Save the media title into the media table as well. This may not be present --->
+								<cfset MediaDbObj.setMediaTitle(title)>
+								<!--- Save it. We're not going to set the date. --->
+								<cfset EntitySave(MediaDbObj)>
+							</cftransaction>
+								
+							<!--- Create a new carousel and carousel db object. We also want to create a single carousel record. Only do this once as we don't want to create multiple records in this table.  --->
+							<cfif i eq 1>
+								<cftransaction>
+									<cfset CarouselDbObj = entityNew("Carousel")>
+									<!--- Insert the new carousel name 'Gallery1, 2, 3, etc' --->
+									<cfset CarouselDbObj.setCarouselName(arguments.mediaIdList)>
+									<cfset CarouselDbObj.setCarouselEffect(arguments.effect)>
+									<cfset CarouselDbObj.setCarouselShader(arguments.shader)>
+									<cfset CarouselDbObj.setDate(application.blog.blogNow())>
+									<!---Save the entity--->
+									<cfset EntitySave(CarouselDbObj)>
+										
+									<!--- Get the Id --->
+									<cfset carouselId = CarouselDbObj.getCarouselId()>
+								</cftransaction>
+									
+								<!--- Now, assign the new carousel to the post. --->
+								<cftransaction>
+									<!--- Load the post entity --->
+									<cfset PostDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
+										
+									<!--- Set the enclosureCarousel --->
+									<cfset PostDbObj.setEnclosureCarousel(CarouselDbObj)>
+					
+									<!--- Remove other enclosures --->
+									<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
+									<cfset PostDbObj.setEnclosureMap(javaCast("null",""))>
+									
+									<!--- Save it. We're not going to set the date. --->
+									<cfset EntitySave(PostDbObj)>
+										
+								</cftransaction>
+										
+							</cfif><!---<cfif i eq 1>--->
+							
+							<cftransaction>
+								<!--- Load the font entity --->
+								<cfset FontDbObj = EntityLoadByPk("Font", carouselFontDropdown)>
+								
+								<!--- Create a new Media Gallery Item entity --->
+								<cfset CarouselItemDbObj = entityNew("CarouselItem")>
+								<!--- Set the mediaRef using the media db object --->
+								<cfset CarouselItemDbObj.setMediaRef(MediaDbObj)>
+								<!---And create the relationship to the carousel object--->
+								<cfset CarouselItemDbObj.setCarouselRef(CarouselDbObj)>
+								<!--- Save the font properties. Note: there is only one choice in the UI, however, I may add other dropdowns for each item in the future. I am keeping the font ref here instead of its logical placement in the parent carousel table.  --->
+								<cfset CarouselItemDbObj.setCarouselItemTitleFontRef(FontDbObj)>
+								<cfset CarouselItemDbObj.setCarouselItemTitleFontColor(fontColor)>	
+								<!--- Save the title, body, and the URL --->
+								<cfset CarouselItemDbObj.setCarouselItemTitle(title)>
+								<cfset CarouselItemDbObj.setCarouselItemBody(body)>
+								<cfset CarouselItemDbObj.setCarouselItemUrl(link)>
+								<cfset CarouselItemDbObj.setDate(application.blog.blogNow())>
+
+								<!--- Save the entity --->
+								<cfset EntitySave(CarouselItemDbObj)>
+							</cftransaction>
+								
+						</cftransaction>
+						
+					</cfloop><!---<cfloop from="1" to="#listLen(arguments.mediaIdList, '_')#" index="i">--->
+						
+					<!--- Return a gallery iframe to the client.--->
+					<!--- Get the HTML for this carousel.  --->
+					<cfset thumbnailHtml = RendererObj.renderCarouselPreview(carouselId,'postEditor')>
+						
+				</cfif><!---<cfif not error>--->
+			<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
+				<cfset error = true>
+				<cfset errorMessage = errorMessage & "<li>Not logged on</li>">	
+			</cfif><!---<cfif application.Udf.isLoggedIn()>--->
+		</cfif><!---<cfif arguments.action eq 'update'>--->
+		
+		<!--- Prepare the default response objects --->
+		<cfif error>
+			<!--- Set the error response --->
+			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
+			<!--- If there is an error, serialize the response --->
+    		<cfset response = serializeJSON( response ) />
+		<cfelse>
+			<!--- Send back our html --->
+			<cfset response = thumbnailHtml>
+		</cfif>
     
+    	<!--- Send the response back to the client. --->
+    	<cfreturn response>
+			
 	</cffunction>
 				
 	<!---******************************************************************************************************
@@ -4107,9 +4747,9 @@
 	*******************************************************************************************************--->
 		
 	<cffunction name="uploadImage" access="remote" output="true" returnformat="json"
-			hint="This function uploads an image and inserts a media record into the database. If the updates were successful, it returns an empty json array."><!---returnformat="json" --->
+			hint="This function uploads an image and inserts a media record into the database. If the updates were successful, it returns an empty json array.">
 		<cfargument name="csrfToken" default="" required="true">
-		<cfargument name="mediaProcessType" type="string" default="enclosure" required="false" hint="What media files are we processing? This string determines how to process the image. For example, with enclosures, we want to create social media sharing images for Facebook and Twitter, however, when we process a gallery or an embedded image in a comment, we are not going to need that.">
+		<cfargument name="mediaProcessType" type="string" default="enclosure" required="false" hint="What media files are we processing? This string determines how to process the image. For example, with enclosures, we want to create social media sharing images for Facebook and Twitter, we are also processing images for galleries and carousels.">
 		<cfargument name="mediaTitle" type="string" default="" required="false">
 		<!--- The media type determines what to do with the image. Supported types are found in the media type db table. --->
 		<cfargument name="mediaType" type="string" default="image" required="false">
@@ -4119,6 +4759,7 @@
 		<!--- Blog images (ie Logos) have a themeId --->
 		<cfargument name="themeId" default="" required="false">
 			
+		<!--- Make soure output is turned on when debugging --->
 		<cfset debug = false>
 		<!--- Save a list of actions taken --->
 		<cfparam name="mediaActions" default="">
@@ -4129,6 +4770,12 @@
 		<!--- Error params --->
 		<cfparam name="error" default="false" type="boolean">
 		<cfparam name="errorMessage" default="" type="string">
+			
+		<!--- Galleries and carousels are using Uppy's bundle option and sending the files all at once. The logic is different when using this pathway --->
+		<cfparam name="usingUppyBundleOption" default="false">
+		<cfif mediaProcessType eq 'gallery' or mediaProcessType eq 'carousel'> 
+			<cfset usingUppyBundleOption = true>
+		</cfif>
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -4162,7 +4809,17 @@
 			<!--- Put this in a catch block --->
 			<cftry>
 				
-				<!--- Upload all of the files to ColdFusion's temporary directory and then check the file(s) before we upload them to our permanent destination. The file field name may vary here, its different for the uppy (ie. files[]) and tinymce (ie file) interfaces, so don't  use it. --->
+				<!--- Upload all of the files to ColdFusion's temporary directory and then check the file(s) before we upload them to our permanent destination. The file field name may vary here, its different for the uppy (ie. files[]) and tinymce (ie file) interfaces, and we need some extra logic to differentiate them. --->
+				
+				<!--- When we are uploading for the gallery or carousel, we need to make sure to upload the files sequentially and are using Uppy's bundle option which sends all of the images at once. Since we are not looping through each image individually, we need to use a query object to store the file results ---> 
+				<cfif usingUppyBundleOption> 
+					
+					<!--- Create a query to hold the response sent back to the client. --->
+					<cfset responseQuery = queryNew("error,errorMessage,mediaId,location", "bit,varchar,integer,varchar")>
+						
+				</cfif><!---<cfif mediaProcessType eq 'gallery' or mediaProcessType eq 'carousel'>--->
+						
+				<!--- We are using using uploadAll for all uploads. --->
 				<cffile 
 					action="uploadAll" 
 					accept="#structKeyList(acceptedMimeTypes)#"
@@ -4170,6 +4827,11 @@
 					destination="#getTempDirectory()#" 
 					nameconflict="overwrite"
 					result="UploadObj">
+				
+				<cfif debug>
+					<!--- Note: the json will be malformed when using this, but it will show you the results of the upload --->
+					<cfdump var="#UploadObj#">
+				</cfif>
 					
 				<!--- **************************************** A3 Check for sanity  **************************************** --->
 				<cfcatch type="any">
@@ -4191,6 +4853,16 @@
 						<cfset error = true>
 						<cfset errorMessage = errorMessage & "<li>Unhandled File Upload Error: #cfcatch.message#</li>">
 					</cfif>
+							
+					<!--- If there is an error when using the bundled option, dump it into the result query --->
+					<cfif usingUppyBundleOption>
+						<cfset queryAddRow(responseQuery)>
+						<!--- Set the values --->
+						<cfset querySetCell(responseQuery,"error",true)>
+						<cfset querySetCell(responseQuery,"errorMessage","#errorMessage#")>
+						<cfset querySetCell(responseQuery,"mediaId","")>
+						<cfset querySetCell(responseQuery,"location","")>
+					</cfif><!---<cfif usingUppyBundleOption>--->
 				</cfcatch>
 			</cftry>
 							
@@ -4216,7 +4888,7 @@
 						<cfif isDefined("thumbnail")>
 							<cfset mediaActions = listAppend(mediaActions, 'Thumbnail Image')>
 						</cfif>
-						<!---<cfdump var="#thumbnail#">--->
+						<cfif debug><cfdump var="#thumbnail#"></cfif>
 					</cfif>
 					
 					<!--- Get image data. --->
@@ -4241,6 +4913,8 @@
 						<cfset imageUrl = application.baseUrl & "/enclosures/post/" & image.serverFile>
 					<cfelseif mediaProcessType eq 'gallery'>
 						<cfset imageUrl = application.baseUrl & "/enclosures/gallery/" & image.serverFile>
+					<cfelseif mediaProcessType eq 'carousel'>
+						<cfset imageUrl = application.baseUrl & "/enclosures/carousel/" & image.serverFile>
 					<cfelseif mediaProcessType eq 'headerBackgroundImage' or mediaProcessType eq 'menuBackgroundImage'>
 						<cfset imageUrl = application.baseUrl & "/images/header/" & image.serverFile>
 					<cfelseif mediaProcessType eq 'headerBodyDividerImage'>
@@ -4396,26 +5070,48 @@
 							</cfif><!---<cfif imageExists>--->
 						</cflock>
 					</cfif><!---<cfif arguments.mediaProcessType eq 'mediaVideoCoverUrl'>--->
+								
+					<!--- When using the bundled option, dump the response into the result query. We must do this for every file within the file loop --->
+					<cfif usingUppyBundleOption>
+						<cfset queryAddRow(responseQuery)>
+						<!--- Set the values --->
+						<cfset querySetCell(responseQuery,"error",false)>
+						<cfset querySetCell(responseQuery,"errorMessage","")>
+						<cfset querySetCell(responseQuery,"location","#imageUrl#")>
+						<cfset querySetCell(responseQuery,"mediaId","#mediaId#")>
+					</cfif><!---<cfif usingUppyBundleOption>--->
 
 				</cfloop><!---<cfloop array="#UploadObj#" item="image">--->
 							
 				<!--- C Return data to the client. --->
-					
-				<!--- Create a new location struct with the new image URL, the new mediaId, and all of the actions that were taken. This is needed as we have not yet saved the comment when the image is uploaded, and we want to diaply our actions to the user on success. --->
-				<!--- Note: this no longer works in CF2021 (it works in prior versions to CF11). It returns the keys in upper case: 
-				<cfset imageUrlString = { location="#imageUrl#", mediaId="#mediaId#", mediaActions="#mediaActions#" }>
-				--->
-				<cfset imageUrlString["location"] = "#imageUrl#">
-				<cfset imageUrlString["mediaId"] = "#mediaId#">
-				<cfset imageUrlString["mediaActions"] = "#mediaActions#">
-				<!--- Return the structure with the image back to the client --->
-				<cfreturn serializeJson(imageUrlString)>
+				
+				<cfif not usingUppyBundleOption>
+					<!--- Create a new location struct with the new image URL, the new mediaId, and all of the actions that were taken. This is needed as we have not yet saved the comment when the image is uploaded, and we want to diaply our actions to the user on success. --->
+					<!--- Note: this no longer works in CF2021 (it works in prior versions to CF11). It returns the keys in upper case: 
+					<cfset imageUrlString = { location="#imageUrl#", mediaId="#mediaId#", mediaActions="#mediaActions#" }>
+					--->
+					<cfset imageUrlString["location"] = "#imageUrl#">
+					<cfset imageUrlString["mediaId"] = "#mediaId#">
+					<cfset imageUrlString["mediaActions"] = "#mediaActions#">
+					<!--- Return the structure with the image back to the client --->
+					<cfreturn serializeJson(imageUrlString)>
+				</cfif><!---<cfif usingUppyBundleOption>--->
+						
 			<cfelse>
 				<!--- Serialize our error list --->
 				<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
-				<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-				<cfreturn serializeJSON( response )>
 			</cfif>
+				
+			<cfif usingUppyBundleOption> 
+				<!--- Return the data as a json object. --->  
+				<cfinvoke component="#application.cfJsonComponentPath#" method="convertCfQuery2JsonStruct" returnvariable="jsonResponse">
+					<cfinvokeargument name="queryObj" value="#responseQuery#">
+					<cfinvokeargument name="includeDataHandle" value="false">
+					<cfinvokeargument name="dataHandleName" value="">
+				</cfinvoke> 
+				<!--- Return it --->
+				<cfreturn jsonResponse>
+			</cfif><!---<cfif usingUppyBundleOption>--->
 		<cfelse>
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
 			<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
@@ -4633,7 +5329,7 @@
 	</cffunction>
 				
 	<cffunction name="saveExternalMediaEnclosure" access="remote" output="true" returnformat="json"
-			hint="We need to update the database when an external image is added to an enclosure. Note: this function is called whenever media is placed into the tinymce editor, even if there was just a successfull image upload. We are doing this as we don't  know every event that is taking place in the image editor- there are multiple things that can happen with an image, it can be changed, a link can be made, etc. We need to check to see if the mediaId exists and see if the image is the same as the current mediaId record, if it exists, to determine whether to update the database or not. And if the image was not modified, we may not do anything at all.">
+			hint="We need to update the database when an external image is added to an enclosure. Note: this function is called whenever media is placed into the tinymce editor, even if there was just a successfull image upload. We are doing this as we don't know every event that is taking place in the image editor- there are multiple things that can happen with an image, it can be changed, a link can be made, etc. We need to check to see if the mediaId exists and see if the image is the same as the current mediaId record, if it exists, to determine whether to update the database or not. And if the image was not modified, we may not do anything at all.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="mediaId" type="string" default="" required="false" hint="Pass in the mediaId if available.">
 		<cfargument name="externalUrl" type="string" default="" required="true" hint="What is the external URL?">
@@ -5613,7 +6309,7 @@
 	<cffunction name="saveBlogSettings" access="remote" output="true" returnformat="json"
 			hint="Updates the BlogSetting table">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
-		<cfargument name="blogId" default="" required="true">
+		<cfargument name="blogId" default="1" required="false">
 		<!--- Blog meta data --->
 		<cfargument name="blogName" default="" required="true">
 		<cfargument name="blogTitle" default="" required="true">

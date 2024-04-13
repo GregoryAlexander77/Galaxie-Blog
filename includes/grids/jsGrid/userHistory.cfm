@@ -184,12 +184,12 @@
 				{ 	
 					name: "LoginDate", 
 					type: "date",
-					title: "Posted",
+					title: "Date",
 					editing: false,
 					width: (pageWidth*(<cfif session.isMobile>50<cfelse>20</cfif>/100)),
 					itemTemplate: function (value, item) {
 						// Format the date using the dayjs lib.
-						return dayjs(item.LoginDate).format('MM/DD/YYYY h:mm A');
+						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');
 					}
 				},
 				{ 

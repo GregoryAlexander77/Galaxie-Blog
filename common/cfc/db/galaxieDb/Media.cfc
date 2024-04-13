@@ -21,7 +21,6 @@
 	<cfproperty name="MediaVideoCoverUrl" ormtype="string" length="255" default="" hint="The image URL to cover the video. Used for video types">
 	<cfproperty name="MediaVideoVttFileUrl" ormtype="string" length="255"  default="" hint="The URL to the subtitle file. Used for video types">
 	<cfproperty name="ProviderVideoId" ormtype="string" length="25" default="" hint="It is difficult to extract the proper YouTube and VimeoId's from a URL on the server side as the logic is constantly changing. Instead, I am using javascript libraries that are maintained on GIT to extract the ID's and saving them to the database.">
-	<cfproperty name="CommitMedia" ormtype="boolean" default="0" hint="Indicates that the image has been processed and the post has been released.">
 	<cfproperty name="Date" ormtype="timestamp" default="" >
 
 </cfcomponent>

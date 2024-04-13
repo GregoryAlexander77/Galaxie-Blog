@@ -437,7 +437,7 @@ This section has been completely redesigned by Gregory --->
 			<td>
 				<!--- Note that this forms type is 'email'. This is an HTML5 attribute and it will automatically be validated. --->
 				<input type="email" id="commenterEmail" name="commenterEmail" value="#commenterEmail#" class="k-textbox" 
-					   required validationMessage="Enter your email."
+					   required validationMessage="Enter your email." aria-label="Enter your email address"
 					   style="width: <cfoutput>#textInputWidth#</cfoutput>;" />
 			</td>
 		</tr>
@@ -592,9 +592,7 @@ This section has been completely redesigned by Gregory --->
 			<td width="5px"></td>
 			<td align="left">
 				<!--- Note that this forms type is 'email'. This is an HTML5 attribute and it will automatically be validated. --->
-				<input type="email" id="commenterEmail" name="commenterEmail" value="#commenterEmail#" class="k-textbox" 
-					   required validationMessage="Enter your email."
-					   style="width: <cfoutput>#textInputWidth#</cfoutput>;" />
+				<input type="email" id="commenterEmail" name="commenterEmail" value="#commenterEmail#" class="k-textbox" required validationMessage="Enter your email." aria-label="Enter your email address" style="width: <cfoutput>#textInputWidth#</cfoutput>;" />
 			</td>
 		</tr>
 	<cfif URL.uiElement neq 'subscribe'>

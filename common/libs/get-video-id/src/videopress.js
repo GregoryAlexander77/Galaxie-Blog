@@ -1,23 +1,23 @@
 /**
  * Get the VideoPress id.
- * @param {string} str - the url from which you want to extract the id
+ * @param {string} urlString - the url from which you want to extract the id
  * @returns {string|undefined}
  */
-export default function videopress(str) {
-  let idRegex;
+export default function videopress(urlString) {
+	let idRegex;
 
-  if (str.indexOf('embed') > -1) {
-    idRegex = /embed\/(\w{8})/;
-    return str.match(idRegex)[1];
-  }
+	if (urlString.includes('embed')) {
+		idRegex = /embed\/(\w{8})/;
+		return urlString.match(idRegex)[1];
+	}
 
-  idRegex = /\/v\/(\w{8})/;
+	idRegex = /\/v\/(\w{8})/;
 
-  const match = str.match(idRegex);
+	const matches = urlString.match(idRegex);
 
-  if (match && match.length > 0) {
-    return str.match(idRegex)[1];
-  }
+	if (matches && matches.length > 0) {
+		return matches[1];
+	}
 
-  return undefined;
+	return undefined;
 }

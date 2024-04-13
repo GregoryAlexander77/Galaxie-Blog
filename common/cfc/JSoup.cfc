@@ -381,9 +381,9 @@
     	
 		<!--- Init JSoup --->
 		<cfset JSoupObj = loadJSoup()>
-
 		<!--- Parse the input and create a new document --->
 		<cfset JSoupDocObj = JSoupObj.parse(arguments.html)>
+
 		<!--- Set pretty print to false in the output settings so that new lines (\\n) are not removed --->
 		<cfset outputSettings = JSoupDocObj.outputSettings().prettyPrint(false)>
 		<!--- The whole text should retain the new lines--->

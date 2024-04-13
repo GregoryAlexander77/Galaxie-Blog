@@ -17,7 +17,7 @@ Determine if the blog has been installed
 		<!--- Don't do anything --->
 		<cfset tablesToPopulate = 'none'>
 	<cfelse>
-		<!---Populate the database.--->
+		<!--- Populate the database. --->
 		<cfset tablesToPopulate = 'all'>
 	</cfif>
 </cfif>
@@ -227,65 +227,6 @@ Populate the capability table.
 	<cfset CapabilityId = CapabilityDbObj.getCapabilityId()>
 </cfif>
 <cfif isDefined("debug") and debug>Capability Table succesfully populated.<br/></cfif>	
-			
-<!--- ******************************************************************************************
-Populate the Custom Template table. For this version, we are just populating 1 empty row
-********************************************************************************************--->
-<cfif tablesToPopulate eq 'CustomTemplate' or tablesToPopulate eq 'all'>	
-	<cfif resetTables>
-		<cfquery name="reset">
-			DELETE FROM CustomTemplate;
-			DBCC CHECKIDENT ('[CustomTemplate]', RESEED, 0);
-		</cfquery>
-	</cfif>
-
-	<!--- Get the data stored in the ini file. --->
-	<cfset fileName = "getCustomTemplate.txt">
-	<cffile action="read" file="#dir##fileName#" variable="QueryObj">
-
-	<!--- Convert the wddx to a ColdFusion query object --->
-	<cfwddx action = "wddx2cfml" input = #QueryObj# output = "Data">
-	<!---<cfdump var="#Data#">--->
-
-	<!--- Save the records into the table. --->
-	<cftransaction>
-		<cfoutput query="Data" maxrows="1">
-
-			<cfquery name="getData" dbtype="hql">
-				SELECT CustomTemplateId FROM CustomTemplate
-			</cfquery>
-
-			<cfif arrayLen(getData) eq 0>
-				<cfset CustomTemplateDbObj = EntityNew("CustomTemplate")>
-			<cfelse>
-				<cfset CustomTemplateDbObj = EntityLoadByPk("CustomTemplate", getData[1])>
-			</cfif>
-
-			<!--- Set the values. --->
-			<cfset CustomTemplateDbObj.setBlogRef(BlogDbObj)>
-			<cfset CustomTemplateDbObj.setCoreLogicTemplate(coreLogicTemplate)>
-			<cfset CustomTemplateDbObj.setHeaderTemplate(headerTemplate)>
-			<cfset CustomTemplateDbObj.setBodyString(bodyString)>
-			<cfset CustomTemplateDbObj.setFontTemplate(fontTemplate)>
-			<cfset CustomTemplateDbObj.setCssTemplate(cssTemplate)>
-			<cfset CustomTemplateDbObj.setTopMenuCssTemplate(topMenuCssTemplate)>
-			<cfset CustomTemplateDbObj.setTopMenuHtmlTemplate(topMenuHtmlTemplate)>
-			<cfset CustomTemplateDbObj.setTopMenuJsTemplate(topMenuJsTemplate)>
-			<cfset CustomTemplateDbObj.setBlogCssTemplate(blogCssTemplate)>
-			<cfset CustomTemplateDbObj.setBlogJsTemplate(blogJsTemplate)>
-			<cfset CustomTemplateDbObj.setBlogHtmlTemplate(blogHtmlTemplate)>
-			<cfset CustomTemplateDbObj.setSideBarPanelHtmlTemplate(sideBarPanelHtmlTemplate)>
-			<cfset CustomTemplateDbObj.setFooterHtmlTemplate(footerHtmlTemplate)>
-			<cfset CustomTemplateDbObj.setDate(now())>
-			<!--- Save it --->
-			<cfset EntitySave(CustomTemplateDbObj)>
-		</cfoutput>
-
-	</cftransaction>
-
-	<cfset customTemplateId = CustomTemplateDbObj.getCustomTemplateId()>
-</cfif>
-<cfif isDefined("debug") and debug>Custom Template Table succesfully populated.<br/></cfif>
 				
 <!--- ******************************************************************************************
 Populate the Font table.

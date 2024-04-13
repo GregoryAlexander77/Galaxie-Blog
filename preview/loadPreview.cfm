@@ -28,6 +28,6 @@
 		<cfoutput>#thumbnailHtml#</cfoutput>
 	</cfcase>
 	<cfcase value="2">
-		<cfoutput>piss on it bithc</cfoutput>
+		<cfoutput></cfoutput>
 	</cfcase>
 </cfswitch>

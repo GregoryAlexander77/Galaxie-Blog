@@ -14,9 +14,9 @@
 	<cfproperty name="MinimizeCode" ormtype="boolean" default="true">
 	<cfproperty name="DisableCache" ormtype="boolean" default="false">
 	<cfproperty name="EntriesPerBlogPage" ormtype="int" default="10">
-	<cfproperty name="BlogModerated" ormtype="boolean" default="true">
 	<cfproperty name="UseCaptcha" ormtype="boolean" default="true">
 	<cfproperty name="AllowGravatar" ormtype="boolean" default="true">
+	<cfproperty name="BlogModerated" ormtype="boolean" default="true">
 	<cfproperty name="BackgroundImageResolution" ormtype="string" length="35" default="LowRes" hint="Either 'HiRes', 'MedRes', or 'LowRes'. LowRes is default.">
 	<cfproperty name="IncludeGsap" ormtype="boolean" default="false">
 	<cfproperty name="IncludeDisqus" ormtype="boolean" default="true">

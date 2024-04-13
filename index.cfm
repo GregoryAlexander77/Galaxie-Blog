@@ -20,7 +20,7 @@
 <cfset pageName = "Blog"><!--- Blog --->
 <cfset pageTypeId = 1><!--- Blog --->
 
-<!--- Common and theme settings. The pageSettings also determines when we should cache the page depending upon if the user is logged in. --->
+<!--- Common and theme settings and includes the getMode tag in order to set the params for the getPost query. The pageSettings also determines when we should cache the page depending upon if the user is logged in. --->
 <cfinclude template="#application.baseUrl#/includes/templates/pageSettings.cfm">
 	
 <!--- //******************************************************************************************************************
@@ -38,11 +38,7 @@
 </cfsilent>
 <html lang="en-US"><head><cfoutput>
 <!---<cfdump var="#getPost#">--->
-<cfif customHeadTemplate eq ""> 
-	<cfinclude template="#application.baseUrl#/includes/templates/head.cfm" />
-<cfelse>
-	<cfinclude template="#customHeadTemplate#" />
-</cfif>
+<cfinclude template="#application.baseUrl#/includes/templates/head.cfm" />
 </head>
 </cfoutput>	
 <cfsilent>
@@ -60,8 +56,7 @@
 	
 </cfsilent>
 <!---<cfdump var="#URL#">--->
-<cfif customBodyString eq "">
-<body onload="if(top != self) top.location.replace(self.location.href);" onresize="setScreenProperties()"><cfelse><cfoutput>#customBodyString#</cfoutput></cfif>
+<body onload="if(top != self) top.location.replace(self.location.href);" onresize="setScreenProperties()">
 <cfsilent>
 <!---//*******************************************************************************************************************
 			Font .css
@@ -74,13 +69,9 @@
 	<cfset cacheName = "fontTemplate#themeId#">
 </cfif>
 </cfsilent>
-<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#disableCache#">
-<cfif customFontCssTemplate eq "">
-	<cfinclude template="#application.baseUrl#/includes/templates/font.cfm" />	
-<cfelse>
-	<cfinclude template="#customFontCssTemplate#" />
-</cfif>
-</cfmodule>
+<cfcache action="cache" key="#cacheName#" stripwhitespace="#application.stripWhiteSpace#" usequerystring="false" useCache="#application.useCache#" expireURL="#application.baseUrl#/includes/flushCache.cfm">
+<cfinclude template="#application.baseUrl#/includes/templates/font.cfm" />
+</cfcache>
 
 <cfsilent>
 <!---//*******************************************************************************************************************
@@ -89,11 +80,7 @@
 	
 <!--- Cache notes: this template contains dynamic images and other elements that are dependent upon the theme. It should not be cached. It won't matter much as this code is minimized. --->
 </cfsilent>
-<cfif customGlobalAndBodyCssTemplate eq "">
-	<cfinclude template="#application.baseUrl#/includes/templates/globalAndBodyCss.cfm" />
-<cfelse>
-	<cfinclude template="#customGlobalAndBodyCssTemplate#" />
-</cfif>
+<cfinclude template="#application.baseUrl#/includes/templates/globalAndBodyCss.cfm" />
 	
 <cfsilent>
 <!---//*******************************************************************************************************************
@@ -102,11 +89,7 @@
 	
 <!--- Cache notes: this template contains dynamic images and other elements that are dependent upon the theme. It should not be cached. It won't matter much as this code is minimized. --->
 </cfsilent>
-<cfif customTopMenuCssTemplate eq "">
-	<cfinclude template="#application.baseUrl#/includes/templates/topMenuCss.cfm" />
-<cfelse>
-	<cfinclude template="#customTopMenuCssTemplate#" />
-</cfif>
+<cfinclude template="#application.baseUrl#/includes/templates/topMenuCss.cfm" />
 	
 <cfsilent>	
 <!---//*******************************************************************************************************************
@@ -114,11 +97,7 @@
 //********************************************************************************************************************--->
 <!--- This code is minimized --->
 </cfsilent>
-<cfif customBlogContentCssTemplate eq "">
-	<cfinclude template="#application.baseUrl#/includes/templates/blogContentCss.cfm" />
-<cfelse>
-	<cfinclude template="#customBlogContentCssTemplate#" />
-</cfif>
+<cfinclude template="#application.baseUrl#/includes/templates/blogContentCss.cfm" />
 <cfsilent>		
 <!---//*******************************************************************************************************************
 			Top menu html
@@ -132,31 +111,36 @@
 <cfelse>
 	<cfset cacheName = "topMenuHtml#themeId#">
 </cfif>
+	
+<!--- Note: there are two different layouts depending upon the stretchHeaderAcrossPage. --->
 </cfsilent>
 	
-<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. !!! We need to use the themeId as each theme uses different background images in the menu --->
-<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#disableCache#">
-	<cfif customTopMenuHtmlTemplate eq "">
-		<cfinclude template="#application.baseUrl#/includes/templates/topMenuHtml.cfm" />
-	<cfelse>
-		<cfset divName = "fixedNavMenu">
-		<cfinclude template="#customTopMenuHtmlTemplate#" />
-	</cfif>
-</cfmodule>
-		
-<table id="mainBlog" class="k-alt" cellpadding="0" cellspacing="0">
+<cfif not stretchHeaderAcrossPage>
+<table id="mainBlog" class="k-alt" cellpadding="0" cellspacing="0" align="center">
+	<tr>
+	 <td>
+		<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. !!! We need to use the themeId as each theme uses different background images in the menu --->
+		<cfcache action="cache" key="#cacheName#" stripwhitespace="#application.stripWhiteSpace#" usequerystring="false" useCache="#application.useCache#" expireURL="#application.baseUrl#/includes/flushCache.cfm">
+			<cfinclude template="#application.baseUrl#/includes/templates/topMenuHtml.cfm" />
+		</cfcache>
+	 </td>
+	</tr>
 	<cfsilent>
 	<!---//***************************************************************************************************************
 				Javascript for the blog's Kendo widgets and UI interactions.
 	//****************************************************************************************************************--->
 	</cfsilent>
+<cfelse><!---<cfif not stretchHeaderAcrossPage>--->
+	<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. !!! We need to use the themeId as each theme uses different background images in the menu --->
+<cfcache action="cache" key="#cacheName#" stripwhitespace="#application.stripWhiteSpace#" usequerystring="false" useCache="#application.useCache#" expireURL="#application.baseUrl#/includes/flushCache.cfm">
+	<cfinclude template="#application.baseUrl#/includes/templates/topMenuHtml.cfm" />
+</cfcache>
+	
+<table id="mainBlog" class="k-alt" cellpadding="0" cellspacing="0" align="center">
+</cfif><!---<cfif not stretchHeaderAcrossPage>--->
    <tr>
 	<td>
-	<cfif customBlogJsContentTemplate eq "">
 		<cfinclude template="#application.baseUrl#/includes/templates/blogJsContent.cfm" />
-	<cfelse>
-		<cfinclude template="#customBlogJsContentTemplate#" />
-	</cfif>
 	<cfsilent>
 	<!---//***************************************************************************************************************
 				Blog content html
@@ -166,7 +150,6 @@
 	</cfsilent>			
 	<!-- Blog body -->
 	<main>
-	<cfif customBlogContentHtmlTemplate eq "">
 		<cfif pageTypeId eq 1>
 			<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
 		<cfelseif pageTypeId eq 2>
@@ -175,9 +158,6 @@
 			<cfinclude template="#application.baseUrl##getTemplatePathByPageName(pageName)#" />
 		</div><!---<div id='adminContent'>--->
 		</cfif><!---<cfelseif pageTypeId eq 2>--->
-	<cfelse>
-		<cfinclude template="#customBlogContentHtmlTemplate#" />
-	</cfif>	
 	</main>
 	</td>
    </tr>
@@ -198,14 +178,10 @@
 
 	</cfsilent>			
 	<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. This needs to refresh every 30 minutes --->
-	<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" disabled="#disableCache#" timeout="30">
+	<cfcache action="cache" key="#cacheName#" stripwhitespace="#application.stripWhiteSpace#" usequerystring="true" useCache="#application.useCache#" expireURL="#application.baseUrl#/includes/flushCache.cfm">
 		<!-- Side Bar Panel -->
-		<cfif customSideBarPanelHtmlTemplate eq "">
-			<cfinclude template="#application.baseUrl#/includes/templates/sideBarPanel.cfm" />
-		<cfelse>
-			<cfinclude template="#customSideBarPanelHtmlTemplate#" />
-		</cfif>
-	</cfmodule>
+		<cfinclude template="#application.baseUrl#/includes/templates/sideBarPanel.cfm" />
+	</cfcache>
 </cfif><!---<cfif pageTypeId gt 1>--->
 <cfsilent>
 <!---//*****************************************************************************************************************
@@ -224,14 +200,14 @@
 	<cfelse>
 		<cfset useCache = true>
 	</cfif>
-</cfsilent>
-
-<cfcache action="cache" key="#cacheKey#" stripwhitespace="#application.minimizeCode#" usequerystring="true" useCache="#useCache#" expireURL="#application.baseUrl#/includes/flushCache.cfm">
-	<cfif customFooterHtmlTemplate eq "">
-		<cfinclude template="#application.baseUrl#/includes/templates/footerHtml.cfm" />
+	<cfif application.minimizeCode>
+		<cfset stripWhiteSpace = true>
 	<cfelse>
-		<cfinclude template="#customFooterHtmlTemplate#" />
+		<cfset stripWhiteSpace = false>
 	</cfif>
+</cfsilent>
+<cfcache action="cache" key="#cacheKey#" stripwhitespace="#stripWhiteSpace#" usequerystring="true" useCache="#useCache#" expireURL="#application.baseUrl#/includes/flushCache.cfm">
+	<cfinclude template="#application.baseUrl#/includes/templates/footerHtml.cfm" />
 </cache>
 	
 <cfsilent>

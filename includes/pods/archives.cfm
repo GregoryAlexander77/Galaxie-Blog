@@ -20,7 +20,7 @@
 	<cfset cacheName = "archives">
 </cfif>
 	
-<cfset categories = application.blog.getCategories()>
+<cfset categories = application.blog.getCategories(parentCategory=1)>
 	
 </cfsilent>
 	
@@ -31,13 +31,18 @@
 	</cfif>
 	<cfloop from="1" to="#arrayLen(categories)#" index="i">
 		<cfsilent>
-			<!--- Extract the values from the category array --->
-			<cfset categoryId = categories[i]["CategoryId"]>
-			<cfset categoryUuid = categories[i]["CategoryUuid"]>
-			<cfset category = categories[i]["Category"]>
-			<cfset categoryPostCount = categories[i]["PostCount"]>
-			<cfset categoryLink = #application.blog.makeCategoryLink(categoryId)#>
-			<cfparam name="categoryRowCount" default="1">
+			<cftry>
+				<!--- Extract the values from the category array --->
+				<cfset categoryId = categories[i]["CategoryId"]>
+				<cfset categoryUuid = categories[i]["CategoryUuid"]>
+				<cfset category = categories[i]["Category"]>
+				<cfset categoryPostCount = categories[i]["PostCount"]>
+				<cfset categoryLink = #application.blog.makeCategoryLink(categoryId)#>
+				<cfparam name="categoryRowCount" default="1">
+				<cfcatch type="any">
+					<cfset error = 'Error trying to render Archive Pod'>
+				</cfcatch>
+			</cftry>
 		</cfsilent>
 		<cfoutput>
 	<cfif isNumeric(categoryPostCount) and categoryPostCount gt 0>
@@ -49,7 +54,7 @@
 			<cfelse>
 				<td align="left" class="border" height="20px">
 			</cfif>
-			<a href="#categoryLink#" title="#category# RSS" <cfif darkTheme>style="color:whitesmoke"</cfif>>#category# (#categoryPostCount#)</a> [<a href="#application.rootURL#/rss.cfm?mode=full&amp;mode2=cat&amp;catid=#categoryId#" rel="noindex,nofollow" <cfif darkTheme>style="color:whitesmoke"</cfif>>RSS</a>]
+			<a href="#categoryLink#" title="#category# RSS" <cfif darkTheme>style="color:whitesmoke"</cfif>>#category# (#categoryPostCount#)</a> [<a href="#application.baseUrl#/rss.cfm?mode=full&amp;mode2=cat&amp;catid=#categoryId#" rel="noindex,nofollow" <cfif darkTheme>style="color:whitesmoke"</cfif>>RSS</a>]
 			</td>
 		</tr>
 		<!--- Increment our counter --->

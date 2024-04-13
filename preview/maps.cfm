@@ -12,10 +12,10 @@
 <cfif len(URL.mapId)>
 	<cfif URL.mapType eq 'route'>
 		<!--- Get route data --->
-		<cfset Data = application.blog.getMapRoutesByMapId(mapId)>
+		<cfset Data = application.blog.getMapRoutesByMapId(URL.mapId)>
 	<cfelse>
 		<!--- Get static map data --->
-		<cfset Data = application.blog.getMapByMapId(mapId)>
+		<cfset Data = application.blog.getMapByMapId(URL.mapId)>
 	</cfif>
 </cfif>
 </cfsilent>

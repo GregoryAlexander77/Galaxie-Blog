@@ -1,6 +1,9 @@
 <cfcomponent displayname="GalaxieBlog3" sessionmanagement="yes" clientmanagement="yes" output="true">
 	<cfsetting requesttimeout="60">
-	<cfset this.Name = "GalaxieBlog" /> 
+	<cfset this.name = "GalaxieBlog" /> 
+		
+	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
+	<cfset this.rootDirectoryPath = getDirectoryFromPath( getCurrentTemplatePath() )>
 
 	<!--- Putting here as I often restart the app when debugging <cfset applicationStop()> --->
 	<cfparam name="doInit" default="false">
@@ -74,8 +77,10 @@
 			<cfset this.ormsettings.hibernate.globally_quoted_identifiers = true>
 			<!--- Enable ORM offset in queries. --->
 			<cfset this.ormsettings.legacy_limit_handler = true>
-			<!--- Log SQL --->
-			<cfset this.ormsettings.logsql = true>
+			<!--- Typically we want to enable secondary cache allowing us to use the cachedwithin argument on HQL queries, however, a new CF2023 ColdFusion bug makes this problematic as there are errors. See https://tracker.adobe.com/#/view/CF-4219346.  --->
+			<cfset this.ormSettings.secondaryCacheEnabled = true> 
+			<!--- Log SQL (set to true in dev environments) --->
+			<cfset this.ormsettings.logsql = false>
 			<!--- Only use this when debugging <cfset this.ormsettings.skipCFCWithError = true> --->
 			<!--- Set a flag that ORM has been initialized --->
 			<cfset this.ormInitialized = true>
@@ -86,28 +91,27 @@
 		
 	<cffunction name="OnRequestStart">
 		
-		<!--- Reload the ORM schema --->
+		<!--- Reload the ORM schema. Note: forcing this to load on every page load will create ORM related errors when including the mapPreview.cfm template. The error is 'Orm not configured...' most likely due to the ORMReload statement interfering with the ORM initialization. ' --->
 		<cfif isDefined("URL.init") or isDefined("URL.reinit")>
 			
 			<!--- Reset the main app vars --->
-			<cfset getRootPath(true)>
+			<cfset getRootDirectoryPath(true)>
 			<cfset application.siteUrl = getSiteUrl(true)>
-			<!--- The blogHostUrl is the site URL minus the index.cfm. This should be the rootUrl in later versions. --->
+			<!--- The blogHostUrl is the site URL minus the index.cfm. --->
 			<cfset application.blogHostUrl = replaceNoCase(getSiteUrl(true), '/index.cfm', '')>
 			<cfset application.blogDomain = parseUri(application.blogHostUrl).host>
 			<cfset application.baseUrl = getBaseUrl(true)>
-			<cfset application.rootUrl = getRootUrl(true)>
 			<cfset application.dsn = getDsn(true)>
 			<cfset application.databaseType = getDatabaseType(true)>
 			<cfset application.installed = getInstalled(true)>
 			<!--- Ini file --->
-			<cfset application.iniFile = expandPath(blogIniPath)>
+			<cfset application.iniFile = expandPath(application.blogIniPath)>
 			<!--- Set the common component paths --->
 			<cfset application.baseProxyUrl = getBaseProxyUrl()>
 			<cfset application.baseComponentPath = getBaseComponentPath()>
 			<!--- Determine if the server supports webp images and woff fonts --->
-			<cfset application.serverSupportsWebP = serverSupportsWebP(true)>
-			<cfset application.serverSupportsWoff2 = serverSupportsWoff2(true)>
+			<cfset application.serverSupportsWebP = serverSupportsWebP(false)>
+			<cfset application.serverSupportsWoff2 = serverSupportsWoff2(false)>
 
 			<!--- Flush our cache. It will not exist when first installing the blog --->
 			<cftry>
@@ -120,16 +124,31 @@
 					<cfset error = 'cache does not exist'>
 				</cfcatch>
 			</cftry>
-				
-			<!--- And reload ORM --->
-			<cfset ORMReload()>
-				
 			<!--- 
 			Debugging note: if you change the blog folder after installation, you may need to print these vars to reset them.
 			<cfoutput>getSiteUrl(): #getSiteUrl()# application.BlogDbObj.getBlogUrl(): #application.BlogDbObj.getBlogUrl()# getProfileString(application.blogIniPath, "default", "blogUrl"): #getProfileString(application.blogIniPath, "default", "blogUrl")#<br/></cfoutput>
 			--->
 				
 		</cfif><!---<cfif isDefined("URL.init") or isDefined("URL.reinit")>--->
+				
+		<!--- TODO Check to see if ORM needs to be reloaded. Since CF2023 I have often had errors that one of the columns is missing in one of the entities. This function will check to see if the column exists. If the logic in this function throws an error, it will return a false and we will reload the page. --->
+		<cftry>
+			<cfquery name="Data" dbtype="hql">
+				SELECT new Map (
+					ThemeSettingRef.DisplayBlogName as DisplayBlogName
+				)
+				FROM 
+					Theme as Theme
+			</cfquery>
+			<cfcatch type="any">
+				<cfset ORMReload()>
+			</cfcatch>
+		</cftry>
+				
+		<!--- Reload ORM --->
+		<cfif isDefined("URL.reloadOrm")>
+			<cfset ORMReload()>
+		</cfif>
 				
 		<cfif isDefined("URL.appStop")>  
 			<!--- Stop the application --->  
@@ -141,12 +160,12 @@
 		<!--- Get the CF version. --->
 		<cfset application.cfVersion = listGetAt(Server.ColdFusion.ProductVersion, 1, ',')>
 
-		<!--- Set the base template path without the /index.cfm. don't  use the getCurrentTemplatePath() as this changes depending upon the page that you are viewing (for example the admin site). This should something like 'D:\home\gregoryalexander.com\wwwroot\galaxieBlog\'. This function is optimized for performance and you can use 'getRootPath(true)' to reset the path --->
-		<cfset application.rootPath = getRootPath() />
-		<!--- Get the path to the ini file. This should something like D:\home\gregoryalexander.com\wwwroot\galaxieBlog\test\org\camden\blog\blog.ini.cfm We need to get to the site URL and dsn properties stored in the file. --->
+		<!--- Set the base template path without the /index.cfm. This should something like 'D:\home\gregoryalexander.com\wwwroot\galaxieBlog\'. This function is optimized for performance and you can use 'getRootDirectoryPath(true)' to reset the path --->
+		<cfset application.rootDirectoryPath = getRootDirectoryPath() />
+		<!--- Get the path to the ini file. This should something like D:\home\gregoryalexander.com\wwwroot\galaxieBlog\org\camden\blog\blog.ini.cfm We need to get to the site URL and dsn properties stored in the file. --->
 		<cfset application.blogIniPath = getBlogIniPath()>
 		<!--- Set the ini file path as a var --->
-		<cfset application.iniFile = expandPath(blogIniPath)>
+		<cfset application.iniFile = expandPath(application.blogIniPath)>
 
 		<!--- Get the database vars. --->
 		<cfset application.dsn = getDsn()>
@@ -154,16 +173,15 @@
 		<!--- Was the blog installed --->
 		<cfset application.installed = getInstalled()>
 
-		<!--- Use the functions to set the siteUrl, rootUrl and baseUrl. The rootUrl is also the siteUrl, the baseUrl is just the directory after the domain name without the last forward slash (ie '/blog'). The entire site structure is driven by these two vars. These functions are optimized for efficiency. --->
+		<!--- Use the functions to set the siteUrl and baseUrl. The entire site structure is driven by these two vars. These functions are optimized for efficiency. --->
 
 		<!--- Get the site URL. This is one of the most essential settings as the entire path structure of the blog is based on this --->
 		<cfset application.siteUrl = getSiteUrl()>
-		<!--- The blogHostUrl is the site URL minus the index.cfm. This should be the rootUrl in later versions. --->
+		<!--- The blogHostUrl is the site URL minus the index.cfm. --->
 		<cfset application.blogHostUrl = replaceNoCase(getSiteUrl(), '/index.cfm', '')>
 		<!--- Get the domain. This is needed to append the domain to the media path when sending out images. The mediaPath contains the baseUrl which we will append the domain to to get the path to the email images. --->
 		<cfset application.blogDomain = parseUri(application.blogHostUrl).host>
-		<!--- And get the root and base URL. Note: for now these are the same thing. I'll standardize this in an upcoming version --->
-		<cfset application.rootUrl = getBaseUrl()>
+		<!--- And get the base URL --->
 		<cfset application.baseUrl = getBaseUrl()>
 		<cfset application.baseTemplatePath = getBaseTemplatePath()>
 		<!--- Set the common component paths --->
@@ -177,15 +195,15 @@
 		<cfif debug>
 			<cfoutput>
 			getBaseTemplatePath(): #getBaseTemplatePath()#<br/>
-			application.rootPath: #application.rootPath#<br/>
+			application.rootDirectoryPath: #application.rootDirectoryPath#<br/>
 			application.blogIniPath: #application.blogIniPath#<br/>
 			-- Site vars --<br/>
 			getInstalled(): #getInstalled()#<br/>
+			this.ormInitialized: #this.ormInitialized#<br/>
 			getSiteUrl(): #getSiteUrl()#<br/>
 			application.siteUrl: #application.siteUrl#<br/>
 			application.blogDomain: #application.blogDomain#<br/>
 			application.blogHostUrl = #application.blogHostUrl#<br/>
-			getRootUrl(): #getRootUrl()#<br/>
 			getBaseUrl(): #getBaseUrl()#<br/>
 			-- Database vars --<br/>
 			getDatabaseType(): #getDatabaseType()#<br/>
@@ -206,7 +224,9 @@
 			
 		<!--- After the ORM has been reloaded in order to create the initial database, continue to install the blog by populating the database. The saveDsnCredentials.cfm template in the install directory has just redirected to the index.cfm page with the init argument. If we continue processing without populating the database we will have errors here. Note: when testing run this from the root home (index.cfm) page --->
 		<cfif ( reinstallDb or isBoolean(getInstalled()) and not getInstalled() and len(getDsn()) )>
-			<cfif debug>The initial install has been completed. Trying to insert data by including the installer/insertData.cfm template<br/></cfif>
+			<cfif debug>
+				The initial install has been completed. Trying to insert data by including the installer/insertData.cfm template<br/>
+			</cfif>
 			<cfinclude template="installer/insertData.cfm">
 		</cfif>
 			
@@ -380,6 +400,13 @@
 		<cfset application.adminjQueryUiPath = getBaseUrl() & "/includes/jqueryui/jqueryui.js">
 			
 		<!--- //****************************************************************************************
+				Database version 
+				This may be less than the version indicated in the Blog.cfc template after uploading new files that overwrite the blog version. This is needed to determine if we need to update the database with new information when upgrading versions.
+		//******************************************************************************************--->
+			
+		<cfset application.dbBlogVersion = application.BlogDbObj.getBlogVersion()>
+			
+		<!--- //****************************************************************************************
 				User defined settings.
 		//******************************************************************************************--->
 		
@@ -389,12 +416,23 @@
 		<!--- Does the blog use URL rewrite rules to hide index.cfm from the URL? --->
 		<cfset application.serverRewriteRuleInPlace = application.BlogOptionDbObj.getServerRewriteRuleInPlace()>
 			
-		<!--- I minimized some of the code (such as the .css). The only reason to turn it off is to access the prettified source code. --->
-		<cfset application.minimizeCode = application.BlogOptionDbObj.getMinimizeCode()>
-			
 		<!--- The user can turn off the caching features in order to debug stuff --->
 		<cfset application.disableCache = application.BlogOptionDbObj.getDisableCache()>
+		<!--- I minimized some of the code (such as the .css). This only works when caching is enabled --->
+		<cfset application.minimizeCode = application.BlogOptionDbObj.getMinimizeCode()>
 			
+		<!--- Common cache settings --->
+		<cfif application.disableCache>
+			<cfset application.useCache = false>
+		<cfelse>
+			<cfset application.useCache = true>
+		</cfif>
+		<cfif application.minimizeCode>
+			<cfset application.stripWhiteSpace = true>
+		<cfelse>
+			<cfset application.stripWhiteSpace = false>
+		</cfif>
+		
 		<!--- How many posts should show up on the main blog page? --->
 		<cfset application.maxEntries = application.BlogOptionDbObj.getEntriesPerBlogPage()><!--- 10 --->
 
@@ -554,17 +592,18 @@
 			These are written to avoid using the file system again when the variables are already set. Use the reset argument to read the properties from the file.
 	//*****************************************************************************************--->
 			
-	<cffunction name="getRootPath" access="remote" returnType="string"
+	<cffunction name="getRootDirectoryPath" access="remote" returnType="string"
 			hint="Get the site's root path. This returns the full path of the root directory. This does not have any dependencies.">
 		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset the root path.">
 		
-		<cfif isDefined("application.rootPath") and len(application.rootPath) and not arguments.reset>
-			<cfset rootPath = application.rootPath>
+		<cfif isDefined("application.rootDirectoryPath") and len(application.rootDirectoryPath) and not arguments.reset>
+			<cfset rootDirectoryPath = application.rootDirectoryPath>
 		<cfelse>
-			<cfset rootPath = replaceNoCase( getDirectoryFromPath( getBaseTemplatePath()), "index.cfm", "") />
+			<cfset rootDirectoryPath = this.rootDirectoryPath />
 		</cfif>
 		
-		<cfreturn rootPath>
+		<!--- Return it --->
+		<cfreturn rootDirectoryPath>
 		
 	</cffunction>
 				
@@ -575,64 +614,46 @@
 		<cfif isDefined("application.blogIniPath") and len(application.blogIniPath) and not arguments.reset>
 			<cfset blogIniPath = application.blogIniPath>
 		<cfelse>
-			<cfset blogIniPath = getRootPath(true) & 'org\camden\blog\blog.ini.cfm'>
+			<cfset blogIniPath = this.rootDirectoryPath & 'org\camden\blog\blog.ini.cfm'>
 		</cfif>
-		
+
+		<!--- Return it --->
 		<cfreturn blogIniPath>
 		
 	</cffunction>
 				
 	<cffunction name="getSiteUrl" access="remote" returnType="string"
-			hint="Get the site's URL">
+			hint="Get the site's URL. The site URL is the full URL, with the http or https prefix and index.cfm, typed into the form when installing the blog and is also on the blog settings page and looks like so: https://www.gregoryalexander.com/blog/index.cfm">
 		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset the site url.">
 		
-		<!--- Return the current application.rootUrl if it exists. --->
+		<!--- Return the current application.siteUrl if it exists. --->
 		<cfif isDefined("application.siteUrl") and len(application.siteUrl) and not arguments.reset>
 			<cfset siteUrl = application.siteUrl>
-		<!--- Get the siteUrl from the db. --->
-		<cfelseif isDefined("this.ormInitialized") and isDefined("application.BlogDbObj")>
-			<!--- Get the siteUrl from the DB  --->
-			<cfset siteUrl = application.BlogDbObj.getBlogUrl()>
-		<!--- Get the rootUrl from the ini file. --->
+		<!--- Get the URL from the ini file. --->
 		<cfelseif isDefined("application.blogIniPath") and len(application.blogIniPath)>
 			<!--- Get the siteUrl from the blog.ini file  --->
 			<cftry>
 				<cfset siteUrl = getProfileString(application.blogIniPath, "default", "blogUrl")>
 				<cfcatch type="any">
 					<!--- This should only happen when initially installing the blog. --->
-					<cfset siteUrl = ""/>
+					<cfset siteUrl = "" />
 				</cfcatch>
 			</cftry>
 		<cfelse>
-			<!--- Determine the URL by the current page. --->
-			<cfset siteUrl = parseUri().source>
+			<!--- Determine the URL by the CGI URL. --->
+			<cfset siteUrl = CGI.HTTP_URL>
 		</cfif>
-				
+		
+		<!--- Return it --->
 		<cfreturn siteUrl>
-		
-	</cffunction>
-			
-	<cffunction name="getRootUrl" access="remote" output="yes" returnType="string"
-			hint="The rootUrl is the siteUrl minus the forward slash and the script name (ie. 'https://www.gregoryalexander.com/blog'. Everything filters from the rootUrl. It is imperative that this function gets the correct data and that it is set once. Use this to set the application.rootUrl">
-		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset the root url.">
-		
-		<!--- Return the current application.rootUrl if it exists. --->
-		<cfif isDefined("application.rootUrl") and len(application.rootUrl) and not arguments.reset>
-			<cfset rootUrl = application.rootUrl>
-		<cfelse>
-			<!--- Pass the site URL to the parseUri function and get the relative struct key. --->
-			<cfset rootUrl = parseUri(getSiteUrl()).relative>
-		</cfif>
-				
-		<cfreturn rootUrl>
 		
 	</cffunction>
 		
 	<cffunction name="getBaseUrl" access="remote" returnType="string"
-			hint="The baseUrl is the rootUrl minus the domain and the script name. It should look something like this '/galaxieBlog'. It must not have the final forward slash at the end. This is used to set the path on nearly everything in the site and it uses the function above to get the rootUrl. We are using the parseUri function below and getting the relative struct key.">
+			hint="The baseUrl is the URL minus the domain and the script name. It should look something like this '/galaxieBlog'. It must not have the final forward slash at the end. This is used to set the path on nearly everything in the site and it uses the function above to get the base URL. We are using the parseUri function below and getting the relative struct key.">
 		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset the base url.">
 		
-		<!--- Return the current application.rootUrl if it exists. --->
+		<!--- Return the current application.baseUrl if it exists. --->
 		<cfif isDefined("application.baseUrl") and len(application.baseUrl) and not arguments.reset>
 			<cfset baseUrl = application.baseUrl>
 		<cfelse>
@@ -641,7 +662,7 @@
 			<!--- Get the baseUrl from by parsing the URI using the new URL. --->
 			<cfset baseUrl = parseUri(cleanedUrl).relative>
 		</cfif>
-				
+		<!--- Return it --->
 		<cfreturn baseUrl>
 		
 	</cffunction>
@@ -649,13 +670,13 @@
 	<cffunction name="getDsn" access="remote" returnType="string">
 		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset this var.">
 		
-		<!--- Return the current application.rootUrl if it exists. --->
+		<!--- Return the current application.DSN if it exists. --->
 		<cfif isDefined("application.dsn") and len(application.dsn) and not arguments.reset>
 			<cfset dsn = application.dsn>
 		<cfelse>
 			<cftry>
 				<!--- Get the DSN from the ini file --->
-				<cfset dsn = getProfileString(application.blogIniPath, "default", "dsn")>
+				<cfset dsn = getProfileString("C:\inetpub\wwwroot\gregoryalexander.com\blog\org\camden\blog\blog.ini.cfm", "default", "dsn")>
 				<cfcatch type="any">
 					<!--- This should only happen when initially installing the blog. --->
 					<cfset dsn = ""/>
@@ -670,7 +691,7 @@
 	<cffunction name="getDatabaseType" access="remote" returnType="string">
 		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset this var.">
 		
-		<!--- Return the current application.rootUrl if it exists. --->
+		<!--- Return the current application.data base type if it exists. --->
 		<cfif isDefined("application.databaseType") and len(application.databaseType) and not arguments.reset>
 			<cfset databaseType = application.databaseType>
 		<cfelseif isDefined("this.ormInitialized") and isDefined("application.BlogDbObj")>
@@ -679,7 +700,7 @@
 		<cfelse>
 			<!--- Get the dialect from the ini file --->
 			<cftry>
-				<cfset databaseType = getProfileString(application.blogIniPath, "default", "databaseType")>
+				<cfset databaseType = getProfileString("C:\inetpub\wwwroot\gregoryalexander.com\blog\org\camden\blog\blog.ini.cfm", "default", "databaseType")>
 				<cfcatch type="any">
 					<!--- This should only happen when initially installing the blog. --->
 					<cfset databaseType = ""/>
@@ -694,7 +715,7 @@
 	<cffunction name="getInstalled" access="remote" returnType="string">
 		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset this var.">
 		
-		<!--- Return the current application.rootUrl if it exists. --->
+		<!--- Return the current application.installed if it exists. --->
 		<cfif isDefined("application.installed") and isBoolean(application.installed) and not arguments.reset>
 			<cfset installed = application.installed>
 		<cfelseif isDefined("this.ormInitialized") and isDefined("application.BlogDbObj")>
@@ -705,7 +726,7 @@
 		<cfelse>
 			<!--- Get it from the ini file --->
 			<cftry>
-				<cfset installed = getProfileString(application.blogIniPath, "default", "installed")>
+				<cfset installed = getProfileString("C:\inetpub\wwwroot\gregoryalexander.com\blog\org\camden\blog\blog.ini.cfm", "default", "installed")>
 				<cfcatch type="any">
 					<!--- This should only happen when initially installing the blog. --->
 					<cfset installed = false />
@@ -762,7 +783,7 @@
 			<cfset arguments.sourceUri = CGI.HTTP_URL>
 		</cfif>
 
-		<!--- Create an array containing the names of each key we will add to the uri struct --->
+		<!--- Create an array containing the names of each key we will add to the uri struct. Note: removing some of these (such as user and password) may cause the function to provide blank values on other fields --->
 		<cfset var uriPartNames = listToArray("source,protocol,authority,userInfo,user,password,host,port,relative,path,directory") />
 		<!--- Full list: source,protocol,authority,userInfo,user,password,host,port,relative,path,directory,file,query,anchor --->
 		<!--- Get arrays named len and pos, containing the lengths and positions of each URI part (all are optional) --->
@@ -858,7 +879,8 @@
 		</cfif>
 					
 		<!--- Return it. --->
-		<cfreturn woff2>
+		<!---TODO Hardcoding to false due to memory leak somewhere--->
+		<cfreturn false>
 	</cffunction>
 	
 </cfcomponent>

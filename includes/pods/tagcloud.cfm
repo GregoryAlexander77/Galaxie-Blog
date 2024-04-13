@@ -12,7 +12,7 @@
    Gregory's notes: This template has been completely overhauled. I converted this to ORM and simplified the logic quite a bit. 
 --->
 
-	<cfset categories = application.blog.getCategories()>
+	<cfset categories = application.blog.getCategories(parentCategory=1)>
 		
 	<!--- Cache note: this template does not need to differentiate between desktop and mobile. We do need to track the dark theme tho. --->
 	<cfset cacheName = "tagCloud">

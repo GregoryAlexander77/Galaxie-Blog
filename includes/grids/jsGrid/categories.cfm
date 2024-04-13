@@ -316,7 +316,7 @@
 					width: (pageWidth*(10/100)),
 					itemTemplate: function (value, item) {
 						// Format the date using the momentJs lib.
-						return dayjs(item.DatePosted).format('MM/DD/YYYY h:mm A');
+						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');
 					},
 				},
 				</cfif>

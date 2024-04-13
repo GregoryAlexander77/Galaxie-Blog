@@ -6,6 +6,8 @@
 <!--- Generate the session Cross-Site Request Forgery (CSRF) token. This will be validated on the server prior to the login logic for security. --->
 <!--- The forceNew argument does not work for versions less than 2018, however, CF2021 needs this argument or the token will change every time causing errors. Note: while the forceNew argument was not introduced until 2018, having csrfGenerateToken on the page with a forceNew argument will cause an error with 2016, even if you put it in a catch block or have two logical branches depending upon the version. --->
 <cfset csrfToken = csrfGenerateToken("admin", false)><!---forceNew=false--->
+<!--- Drop a cookie with the token. On occassion with Chrome, the validation on the server during and Ajax request does not work and we need to compare the validated token with the cookie as a backup approach to secure our ajax transactions  --->
+<cfset cookie.csrfToken = { value="#csrfToken#", path="#application.baseUrl#", expires=30 }>
 
 <!--- Get the current theme --->
 <cfset selectedThemeAlias= trim(application.blog.getSelectedThemeAlias())>
@@ -44,8 +46,10 @@
 	<cfset smallScreen = false>
 </cfif>
 
-<!--- Clear CF Caching --->
+<!--- Clear CF Caching 
+Note: this is broke with CF2023
 <cfcache action="flush"></cfcache>
+--->
 	
 <!--- Note:  --->
 <!--- Include tinymce. --->
@@ -61,12 +65,13 @@ If I place the tinymce scripts here, the setContent method does not work and the
 	<!---<cfdump var="#session#">--->
 	<!---<cfdump var="#cgi#">--->
 	<cfoutput>
-	adminInterfaceId: #adminInterfaceId# 
+	adminInterfaceId: #URL.adminInterfaceId# 
 	URL.optArgs: #URL.optArgs# 
 	<cfif isDefined("URL.otherArgs")> URL.otherArgs:  #URL.otherArgs#</cfif>
 	<cfif isDefined("URL.otherArgs1")> URL.otherArgs1: #URL.otherArgs1#</cfif><br/>
 	
 	csrfToken: #csrfToken#<br/>
+	cookie.csrfToken: #cookie.csrfToken#<br/>
 	CSRFVerifyToken('admin', csrfToken): #CSRFVerifyToken(csrfToken, 'admin')#<br/>
 	validCsrf: #validCsrf#<br/>
 	screenHeight: #screenHeight#<br/>
@@ -128,7 +133,7 @@ TinyMce styles
 
 <!--- This window handles many interfaces. Pass in the interfaceId. Other arguments may include the URL.optArgs, URL.otherArgs, and URL.otherArgs1. See the createAdminInterface javascript function in the /includes/templates/blogJsContent.cfm template for more information. --->
 
-<cfswitch expression="#adminInterfaceId#">
+<cfswitch expression="#URL.adminInterfaceId#">
 	
 <!---//***********************************************************************************************
 						Login
@@ -854,11 +859,13 @@ TinyMce styles
 </cfcase>
 			
 <!--- //************************************************************************************************
-		Photo Gallery
+		Photo Gallery and Carousel
 //**************************************************************************************************--->
 			
 <cfcase value="3">
+	<!---<cfdump var="#URL#">--->
 	<cfsilent>
+	<!--- URL.optArgs is the postId, URL.otherArgs is the calling interface --->
 	<!--- Set the uppy theme. --->
 	<cfif darkTheme>
 		<cfset uppyTheme = 'dark'>
@@ -866,14 +873,23 @@ TinyMce styles
 		<cfset uppyTheme = 'light'>
 	</cfif>
 		
-	<!--- Not used yet- Get the kendo primay button color in order to reset the uppy actionBtn--upload color --->
-	<cfset primaryButtonColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'accentColor')>
-	<!--- Set the selectorId so that we know what interface this request is coming from --->
-	<cfset selectorId = "gallery">
+	<!--- The URL.otherArgs specifies whether this used for a gallery (gallery) or carousel (carousel). --->
+	<cfif structKeyExists(URL, "otherArgs") and URL.otherArgs eq 'gallery'>
+		<!--- Set the selectorId so that we know what interface this request is coming from --->
+		<cfset selectorId = "gallery">
+		<cfset divId = "galleryUppyUpload">
+		<cfset adminInterfaceWindowId = 4>
+	<cfelseif structKeyExists(URL, "otherArgs") and URL.otherArgs eq 'carousel'>
+		<cfset selectorId = "carousel">
+		<cfset divId = "carouselUppyUpload">
+		<cfset adminInterfaceWindowId = 51>
+	</cfif>
 	</cfsilent>
-	<!---<cfoutput>primaryButtonColor: #primaryButtonColor#</cfoutput>--->
+	<form>
 	<input type="hidden" name="mediaIdList" id="mediaIdList" value=""/>
-    <div id="galleryUppyUpload"></div>
+	<input type="hidden" name="uppyFileList" id="uppyFileList" value=""/>
+	</form>
+    <div id="<cfoutput>#divId#</cfoutput>"></div>
     <script>
 		var uppy = Uppy.Core({
 			restrictions : {
@@ -881,15 +897,17 @@ TinyMce styles
 				allowedFileTypes: ['image/*'] // only allow images
         	}
 		})
+		
 		.use(Uppy.Dashboard, {
 			theme: '<cfoutput>#uppyTheme#</cfoutput>',
 			inline: true,
-			target: '#galleryUppyUpload',
-			proudlyDisplayPoweredByUppy: false,
+			target: '#<cfoutput>#divId#</cfoutput>', 
 			metaFields: [
 				{ id: 'mediaTitle', name: 'Title', placeholder: 'Please enter the image title' }
-			]
+			],
+			proudlyDisplayPoweredByUppy: false,
 		})
+		
 		// Allow users to take pictures via the onboard camera
 		.use(Uppy.Webcam, { target: Uppy.Dashboard })
 		// Use the built in image editor
@@ -897,24 +915,39 @@ TinyMce styles
 			target: Uppy.Dashboard,
 			quality: 0.8 // for the resulting image, 0.8 is a sensible default
 		})
-		// Use XHR and send the media to the server for processing
-		.use(Uppy.XHRUpload, { endpoint: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=uploadImage&mediaProcessType=gallery&selectorId=<cfoutput>#selectorId#</cfoutput>&csrfToken=<cfoutput>#csrfToken#</cfoutput>' })
+		
+		// This is used for debugging purposes and can be removed in production
+		uppy.on('file-added', (file) => {
+			// Store a list of the files in order to preserve the order that they were chosen by
+			appendValueToElement(file.name,'uppyFileList')
+		})
+		
+		// Use XHR and send the media to the server for processing. The selectorId ColdFusion var will either be gallery or carousel
+		.use(Uppy.XHRUpload, {  
+			// Change the name of the form to files instead of the default 'files[]'
+			fieldName: 'files',
+			// We are using formData in order to pass additonal arguments from the form
+			formData: true,
+			// Send all files in a single multipart request
+			bundle: true,
+			endpoint: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=uploadImage&mediaProcessType=<cfoutput>#selectorId#</cfoutput>&csrfToken=<cfoutput>#csrfToken#</cfoutput>' 
+		})
 		.on('upload-success', (file, response) => {
-			// The server is returning location and mediaId in a json object. We need to extract these.
-			//alert(response.status) // HTTP status code
-			//alert(response.body.location) // The full path of the file that was just uploaded to the server
-			//alert(response.body.mediaId) // The MediaId value saved to the Media table in the database.
-			
-			// Dump in the mediaId's to the hidden mediaId list and separate the values with underscores. We will use a listGetAt function on the back end to extract the mediaId's
-			// If there are any mediaId's in the form, separtate the new Id with an underscore.
-			mediaIdList = $("#mediaIdList").val();
-			if ( mediaIdList.length > 0){
-				newMediaIdList = mediaIdList + "_" + response.body.mediaId;
+			// Display the error message if available
+			if (response.body.errorMessage){
+				alert("Error: " + response.body.errorMessage);
 			} else {
-				newMediaIdList = response.body.mediaId;
+
+				// The server is returning location and imageId in a json object. We need to extract these.
+				//alert(response.status) // HTTP status code
+				//alert(response.body.location) // The full path of the file that was just uploaded to the server
+				//alert(response.body.imageId) // The ImageId value saved to the image table in the database.
+
+				/* Unfortunately, due to a documented uppy bug, this implementation is causing this bit of code to be called for every image. We still need to get the file data here and will set the following variable that we will use on the uppy oncomplete method. We could populate a hiden input form with unique values, however, that would require that we test for the existence of the imageId on each iteration. It's more efficient to set this variable every time an image is uploaded and then use it on the on complete method to populate our hidden form. */
+
+				// Set a variable that we will use later in the on complete method to populate the hidden form. This is populated by the json coming back from the server
+				jsonResponse = response.body;
 			}
-			// Dump the list into the hidden form. This will get passed to the new media item window.
-			$("#mediaIdList").val(newMediaIdList);
 		})
 		
 		// Events
@@ -937,6 +970,12 @@ TinyMce styles
 		
 		// 4) Error handling
 		uppy.on('upload-error', (file, error, response) => {
+			// Use a quick set timeout in order for the data to load.
+			setTimeout(function() {
+				// Close the wait window that was launched in the calling function.
+				kendo.ui.ExtWaitDialog.hide();
+			}, 500);
+			
 			// Alert the user
 			$.when(kendo.ui.ExtYesNoDialog.show({ 
 				title: "Upload failed",
@@ -955,16 +994,26 @@ TinyMce styles
 
 		// 5) When the upload is complete to the server
 		uppy.on('complete', (result) => {
+			
+			/* The complete event does not return the file information, the result only containes information regarding the operation such as success or fail. We have however set a jsonResponse variable inside of the upload-success method above. We will use this to populate a hidden input in order to pass the image id's to the next interface. */
+				
+			// a) Dump in the imageId's to the hidden mediaId list and separate the values with underscores. We will use a listGetAt function on the back end to extract the imageId's
+			for (i=0; i < jsonResponse.length; i++){
+				// alert(jsonResponse[i]['mediaId']);
+				// This appends an item to a list inside of a form: appendValueToElement(value, elementId, delimiter)*/
+				appendValueToElement(jsonResponse[i]['mediaId'],'mediaIdList','_');
+			}
 
-			// Close the please wait dialog
+			// b) Close the please wait dialog
 			// Use a quick set timeout in order for the data to load.
 			setTimeout(function() {
 				// Close the wait window that was launched in the calling function.
 				kendo.ui.ExtWaitDialog.hide();
 			}, 500);
-			// Create a new window in order to put in the fancy box group and the item details (such as the image title)
-			createAdminInterfaceWindow(4, $("#mediaIdList").val());
-		})
+			
+			// c) Create a new window in order to put in the fancy box group and the item details (such as the image title)
+			createAdminInterfaceWindow(<cfoutput>#adminInterfaceWindowId#,#URL.optArgs#</cfoutput>,$("#mediaIdList").val());
+		})		
 	
     </script>
 
@@ -976,7 +1025,7 @@ TinyMce styles
 		
 <cfcase value="4">
 	<!---  Replace the underscore with a comma so that we can use it in the query below. --->
-	<cfset mediaIdList = replaceNoCase(URL.optArgs, '_', ',', 'all')>
+	<cfset mediaIdList = replaceNoCase(URL.otherArgs, '_', ',', 'all')>
 	
 	<!--- Get the data from the db --->
 	<cfquery name="getMediaUrl" dbtype="hql">
@@ -1000,7 +1049,7 @@ TinyMce styles
 	<!--- Pass the csrfToken --->
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
 	<!--- Hidden input to pass the mediaIdList --->
-	<input type="hidden" name="mediaIdList" id="mediaIdList" value="<cfoutput>#URL.optArgs#</cfoutput>">
+	<input type="hidden" name="mediaIdList" id="mediaIdList" value="<cfoutput>#URL.otherArgs#</cfoutput>">
 	<!--- Store the number of galleries that were created by the user. We'll increment this for every gallery --->
 	<input type="hidden" name="numGalleries" id="numGalleries" value="1">
 	<table align="left" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0">
@@ -1293,9 +1342,20 @@ TinyMce styles
 	<!--- Drop down queries --->
 	<!--- Get all of the selected categories. We need this to display the current categories in the dropdown menu --->
 	<cfset getSelectedCategories = application.blog.getCategoriesForPost(URL.optArgs)>
-		
+	<cfset getSelectedTags = application.blog.getTagsForPost(URL.optArgs)>
 	<cfset getRelatedPosts = application.blog.getRelatedPosts(postId=URL.optArgs)>
 	<!---Related Posts: <cfdump var="#getRelatedPosts#">--->
+		
+	<!--- Create a list of categories --->
+	<cfset thisSelectedCategoryIdList = "">
+	<!--- Loop through the selected categories (note: listAppend can be used here too. I am used to this approach) --->
+	<cfloop from="1" to="#arrayLen(getSelectedCategories)#" index="i">
+		<cfif i eq 1>
+			<cfset thisSelectedCategoryIdList = getSelectedCategories[i]['CategoryId']>
+		<cfelse>
+			<cfset thisSelectedCategoryIdList = thisSelectedCategoryIdList & ',' & getSelectedCategories[i]['CategoryId']>
+		</cfif>
+	</cfloop>
 
 	<style>
 		label {
@@ -1344,23 +1404,28 @@ TinyMce styles
 	</cfsilent>
 	
 	<script>
+
 		$(document).ready(function() {
 			
-			var todaysDate = new Date();
+			var todaysDate = new Date(); 
+			// Are the post dates and sort dates the same? If so, we are assuming that the two dates are identical when suggesting a date change. If they are different dates, we will leave the sort date alone when suggesting dates.
+			var originalPostDate = <cfoutput>#application.Udf.jsDateFormat(getPost[1]['DatePosted'])#</cfoutput>;
+			var originalBlogSortDate = <cfoutput>#application.Udf.jsDateFormat(getPost[1]['BlogSortDate'])#</cfoutput>;
 			
-			// Kendo Dropdowns
-			// Date posted date/time picker			
-			$("#datePosted").kendoDateTimePicker({
-                componentType: "modern",
-				value: <cfif len(getPost[1]['DatePosted'])><cfoutput>#application.Udf.jsDateFormat(getPost[1]['DatePosted'])#</cfoutput><cfelse>new Date()</cfif>,
-				change: onDatePostedChange
-            });
+			// Compare the post date to the sort date and set a var
+			if (originalPostDate.getTime() === originalBlogSortDate.getTime() ){
+				var syncPostAndSortDate = true;
+			} else {
+				var syncPostAndSortDate = false;
+			}
 			
-			function onDatePostedChange() {
-                // alert("Change :: " + kendo.toString(this.value(), 'g'));
-				
+			// Set a var to determine if the post has been released. We also want to check the dates when the post is first released, but not afterward
+			var postReleased = <cfif getPost[1]["Released"]>true<cfelse>false</cfif>;
+			
+			// Check and recommend dates when the date is changed or the post has just been released.
+			function checkAndRecommendDates(selectedDate) {				
 				// Check to see if the selected date is greater than today
-				if (this.value() > todaysDate){
+				if (selectedDate > todaysDate){
 					$.when(kendo.ui.ExtYesNoDialog.show({ 
 							title: "Release post in the future?",
 							message: "You are posting at a later date in the future. If you continue and submit this post, it will be scheduled to be automatically published on your selected date in the future. Do you want to continue?",
@@ -1378,9 +1443,9 @@ TinyMce styles
 							});
 						}
 					});//).done(function (response)..
-					
-				} else if (this.value() < todaysDate){
-					
+				// Is the selected date less than today's date?
+				} else if (selectedDate < todaysDate){
+					// Suggest changing the post date
 					$.when(kendo.ui.ExtYesNoDialog.show({ 
 						title: "Can we change the post date to the current time and date?",
 						message: "You are using an older date and this may negatively impact the post placement and your RSS feeds. Can we change the post date using the current date?",
@@ -1390,22 +1455,40 @@ TinyMce styles
 						})
 					).done(function (response) { // If the user clicked 'yes'
 						if (response['button'] == 'Yes'){// remember that js is case sensitive.
-
 							// Change the date posted to now
 							$("#datePosted").kendoDateTimePicker({
 								value: new Date(Date.now())
 							});
-
-							// And change the sort date
-							$("#newBlogSortDate").kendoDateTimePicker({
-								value: new Date(Date.now())
-							});
+							// Change the sort date in the hidden field when they are the same
+							$("#newBlogSortDate").val( todaysDate );
 						} else {
 							// Do nothing
 						}
 					});//).done(function (response)..
 				}//} else if (this.value() < todaysDate){{..
             }//..onDatePostedChange
+			
+			// Kendo Dropdowns
+			// Date posted date/time picker			
+			$("#datePosted").kendoDateTimePicker({
+                componentType: "modern",
+				value: <cfif len(getPost[1]['DatePosted'])>originalPostDate<cfelse>new Date()</cfif>,
+				change: onDatePostedChange
+            });
+			
+			// Check the dates when the post date is changed.
+			function onDatePostedChange() {
+                // Check and recommend dates depending upon the selected date
+				checkAndRecommendDates(this.value());
+            }//..onDatePostedChange
+			
+			// Also check the dates when the released button is clicked
+			$('#released').click(function(){
+				if($(this).is(':checked')){
+					var selectedDate = kendo.toString($("#datePosted").data("kendoDateTimePicker").value());
+					checkAndRecommendDates(selectedDate);
+				}
+			});
 			
 			// ---------------------------- author dropdown. ----------------------------
 			var authorDs = new kendo.data.DataSource({
@@ -1449,6 +1532,8 @@ TinyMce styles
 				userId = this.value();
 			}//...function onAuthorChange(e)
 			
+			// ---------------------------- category dropdown. ----------------------------
+			
 			// Category datasource.
 			var categoryDs = new kendo.data.DataSource({
 				// serverFiltering: "true",// Since we are using serverFiltering, the values from the previous dropdown will be sent to the server for processing.
@@ -1478,9 +1563,52 @@ TinyMce styles
 					<cfset categoryId = getSelectedCategories[i]['CategoryId']>
 					<cfset category = getSelectedCategories[i]['Category']>
 					</cfsilent>
-                    { CategoryId: "<cfoutput>#categoryId#</cfoutput>", category: "<cfoutput>#category#</cfoutput>" },
-                </cfloop>]
+                    { CategoryId: "<cfoutput>#categoryId#</cfoutput>", Category: "<cfoutput>#category#</cfoutput>" },
+                </cfloop>],
+				change: function(e){
+					// Get the value
+					var selectedCategories = $("#postCategories").data("kendoMultiSelect").value();
+					// And set it into the hidden form
+					$("#selectedPostCategories").val(selectedCategories);
+				}
 			});//...$("#postCategories")
+			
+			// ---------------------------- tags dropdown. ----------------------------
+			
+			// tag datasource.
+			var tagDs = new kendo.data.DataSource({
+				// serverFiltering: "true",// Since we are using serverFiltering, the values from the previous dropdown will be sent to the server for processing.
+				transport: {
+					read: {
+						// We are using a function to pass additional selected arguments to the cfc.
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getTagsForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
+						dataType: "json",
+						contentType: "application/json; charset=utf-8", // Note: when posting json via the request body to a coldfusion page, we must use this content type or we will get a 'IllegalArgumentException' on the ColdFusion processing page.
+						type: "GET" //Note: for large payloads coming from the server, use the get method. The post method may fail as it is less efficient.
+					},//...read:
+				}//...transport:
+			});//...var tagDs...
+
+			// Note: categories is a reserved Kendo word- if you name this categories, it will fail.
+			$("#postTags").kendoMultiSelect({
+				autoBind: true,
+				filter: "contains",
+				// Template to add a new type when no data was found.
+				noDataTemplate: $("#addTagNoData").html(),
+				placeholder: "Select Tag...",
+				dataTextField: "Tag",
+				dataValueField: "TagId",
+				dataSource: tagDs,
+				value: [<cfloop from="1" to="#arrayLen(getSelectedTags)#" index="i">
+					<cfsilent>
+					<cfset tagId = getSelectedTags[i]['TagId']>
+					<cfset tag = getSelectedTags[i]['Tag']>
+					</cfsilent>
+                    { TagId: "<cfoutput>#tagId#</cfoutput>", Tag: "<cfoutput>#tag#</cfoutput>" },
+                </cfloop>]
+			});//...$("#postTags")
+			
+			// ---------------------------- related posts dropdown. ----------------------------
 			
 			// Related Posts datasource.
 			var relatedPostsDs = new kendo.data.DataSource({
@@ -1510,6 +1638,8 @@ TinyMce styles
                     { PostId: "<cfoutput>#PostId#</cfoutput>", Title: "<cfoutput>#Title#</cfoutput>" },
                 </cfloop>]
 			});//...$("#relatedPosts")
+			
+			// ---------------------------- form validation ----------------------------
 		
 			// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 			var postDetailFormValidator = $("#postDetails").kendoValidator({
@@ -1661,8 +1791,11 @@ TinyMce styles
 					promote: $('#promote').is(':checked'), // checkbox boolean value.
 					remove: $('#remove').is(':checked'), // checkbox boolean value.
 					description: $('#description').val(), 
+					// We are storing the post categories in a hidden field in order to preserve the selected category order
+					postCategories: $("#selectedPostCategories").val(),
 					// These multi-selects are in an array. We need to use the toString method to turn the array into comma separated values
-					postCategories: $("#postCategories").data("kendoMultiSelect").value().toString(),
+					//postCategories: $("#postCategories").data("kendoMultiSelect").value().toString(),
+					postTags: $("#postTags").data("kendoMultiSelect").value().toString(),
 					relatedPosts: $("#relatedPosts").data("kendoMultiSelect").value().toString(),
 					// The following media items are held in hidden forms. There should only be zero or one value that is sent
 					imageMediaId: $("#imageMediaId").val(),
@@ -1771,7 +1904,76 @@ TinyMce styles
 			}//..if (JSON.parse(response.success) == true){
 		}
 		
-	</cfif>	
+	</cfif>
+		
+		// Helper functions for the noData templates
+		// This adds a new option to the post author multi-select
+        function addNewPostAuthor(userId,fullName) {
+			// Get the multiselect 
+			var multiSelect = $("#author").data("kendoMultiSelect"); 
+			// Get the datasource
+            var multiSelectDs = $("#author").data("kendoMultiSelect").dataSource;
+			
+			// Add the new item to the multiselects datasource
+			multiSelectDs.add({
+				UserId: userId,
+				FullName: fullName 
+			});
+			
+			// Select the inserted value that was just added- it's in the last position in the list
+			multiSelectDs.one("sync", function() {
+				multiSelect.select(multiSelectDs.view().length - 1);
+			});
+			
+			// Sync the the datasource
+			multiSelectDs.sync();
+        };
+		
+		// This adds a new option to the post category multi-select
+        function addNewPostCategory(categoryId,category) {
+			// Get the multiselect 
+			var multiSelect = $("#postCategories").data("kendoMultiSelect"); 
+			// Get the datasource
+            var multiSelectDs = $("#postCategories").data("kendoMultiSelect").dataSource;
+			
+			// Add the new item to the multiselects datasource
+			multiSelectDs.add({
+				CategoryId: categoryId,
+				Category: category 
+			});
+			
+			// Select the inserted value that was just added- it's in the last position in the list
+			multiSelectDs.one("sync", function() {
+				multiSelect.select(multiSelectDs.view().length - 1);
+			});
+			
+			// Sync the the datasource
+			multiSelectDs.sync();
+        };
+		
+		// This adds a new option to the post tags multi-select
+        function addNewPostTag(tagId,tag) {
+			
+			// Get the multiselect 
+			var multiSelect = $("#postTags").data("kendoMultiSelect"); 
+			// Get the datasource
+            var multiSelectDs = $("#postTags").data("kendoMultiSelect").dataSource;
+		
+			// Add the new item to the multiselects datasource
+			multiSelectDs.add({
+				TagId: tagId,
+				Tag: tag 
+			});
+			
+			// Select the inserted value that was just added- it's in the last position in the list
+			multiSelectDs.one("sync", function() {
+				multiSelect.select(multiSelectDs.view().length - 1);
+			});
+			
+			// Sync the the datasource
+			multiSelectDs.sync();
+        };
+		
 	</script>
 		
 	<form id="postDetails" data-role="validator">
@@ -1790,6 +1992,8 @@ TinyMce styles
 	<input type="hidden" name="newBlogSortDate" id="newBlogSortDate" value="<cfoutput>#getPost[1]['BlogSortDate']#</cfoutput>" />
 	<!--- Pass the csrfToken --->
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
+	<!--- We need to store the categories since the postCategories Kendo multiselect widget does not pass them in order --->
+	<input type="hidden" name="selectedPostCategories" id="selectedPostCategories" value="<cfoutput>#thisSelectedCategoryIdList#</cfoutput>" />
 	
 	<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0">
 	  <cfsilent>
@@ -1838,7 +2042,7 @@ TinyMce styles
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="datePosted" name="datePosted" value="<cfoutput>#dateTimeFormat(getPost[1]['DatePosted'], "medium")#</cfoutput>" style="width: 95%" />   
+			<input id="datePosted" name="datePosted" value="<cfoutput>#dateTimeFormat(getPost[1]['DatePosted'], "medium")#</cfoutput>" style="width: 45" />   
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
@@ -1847,8 +2051,17 @@ TinyMce styles
 			<label for="datePosted">Date Posted</label>
 		</td>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>">
-		<input id="datePosted" name="datePosted" value="<cfoutput>#dateTimeFormat(getPost[1]['DatePosted'], "medium")#</cfoutput>" style="width: 45%" /> 
-		<button id="sortDate" class="k-button normalFontWeight" type="button" style="width: 105px" onClick="createAdminInterfaceWindow(43,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Sort Date</button>
+			<!--- Using a table to constrain the time picker after it changes --->
+			<table cellpadding="5" cellspacing="0" width="100%">
+				<tr>
+					<td width="45%">
+						<input id="datePosted" name="datePosted" value="<cfoutput>#dateTimeFormat(getPost[1]['DatePosted'], "medium")#</cfoutput>" style="width: 100%" /> 
+					</td>
+					<td width="65%">
+						<button id="sortDate" class="k-button normalFontWeight" type="button" style="width: 105px" onClick="createAdminInterfaceWindow(43,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Sort Date</button>
+					</td>
+				</tr>
+			</table>
 		</td>
 	  </tr>
 	</cfif>
@@ -2000,9 +2213,51 @@ TinyMce styles
 	  </cfsilent>
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>  
+	<!-- Form content -->
+	<cfif smallScreen>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<i class="far fa-edit"></i> 
+			<label for="post">CSS and Scripts</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(46,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">CSS</button>
+			<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(47,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JavaScript</button>
+		</td>
 	  </tr>
-	  <!-- Form content -->
-	  <!-- ****************************************** TinyMce Editor ****************************************** -->
+	<cfelse><!---<cfif smallScreen>--->
+	  <tr valign="middle" height="35">
+		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<i class="far fa-edit"></i> 
+			<label for="post">CSS and Scripts</label>
+		</td>
+		<td align="center" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<!--- Inner table --->
+			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0">
+				<tr>
+					<td width="20%">
+						<button id="cssButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(46,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">CSS</button>
+					</td>
+					<td width="20%">
+						<button id="javascriptButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(47,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JavaScript</button>
+					</td>
+					<td width="20%">
+						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
+					</td>
+					<td width="20%">
+					</td>
+					<td width="20%">
+					</td>
+				</tr>
+			</table>
+		</td>
+	  </tr>
+	</cfif>
+	<!-- Form content -->
+	<!-- ****************************************** TinyMce Editor ****************************************** -->
 	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2045,7 +2300,7 @@ TinyMce styles
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <!-- Form content -->
+	<!-- Form content -->
 	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2081,10 +2336,9 @@ TinyMce styles
 						<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Change Alias</button>
 					</td>
 					<td width="20%" align="left">
-						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
+						<button id="setTheme" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(44,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Set Theme</button>
 					</td>
 					<td width="20%" align="left">
-						<button id="setTheme" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(44,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Set Theme</button>
 						<!--- Next version:
 						<button id="scheduleRelease" class="k-button normalFontWeight" type="button" style="width: 175px">Schedule Release</button>
 						--->
@@ -2271,6 +2525,64 @@ TinyMce styles
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+		 
+	 <!-- Form content -->
+	<cfif smallScreen>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="postTags">Tags</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<!--- Inline template to add a new tag. --->
+			<select id="postTags" style="width: 95%"></select>
+			<!--- Inline template to add a new tag. Note: the noData templates are different depending upon the widget.--->
+			<script id="addTagNoData" type="text/x-kendo-tmpl">
+				# var value = instance.input.val(); #
+				# var id = instance.element[0].id; #
+				<div>
+					Tag not found. Do you want to add new tag - '#: value #' ?
+				</div>
+				<br />
+				 <button class="k-button" onclick="createAdminInterfaceWindow(49,'#: value #')" ontouchend="createAdminInterfaceWindow(49,'#: value #')">Add new item</button>
+			</script>    
+		</td>
+	  </tr>
+	<cfelse><!---<cfif smallScreen>--->
+	  <tr valign="middle" height="35">
+		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<label for="postTags">Tags</label>
+		</td>
+		<td align="left" width="90% class="<cfoutput>#thisContentClass#</cfoutput>">
+			<!--- Inline template to add a new tag. --->
+			<select id="postTags" style="width: 95%"></select>
+			<!--- Inline template to add a new tag. Note: the noData templates are different depending upon the widget.--->
+			<script id="addTagNoData" type="text/x-kendo-tmpl">
+				# var value = instance.input.val(); #
+				# var id = instance.element[0].id; #
+				<div>
+					Tag not found. Do you want to add new tag - '#: value #' ?
+				</div>
+				<br />
+				 <button class="k-button" onclick="createAdminInterfaceWindow(49,'#: value #')" ontouchend="createAdminInterfaceWindow(49,'#: value #')">Add new item</button>
+			</script> 
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+		  
 	  <!-- Form content -->
 	<cfif smallScreen>
 	  <tr valign="middle">
@@ -2722,6 +3034,13 @@ TinyMce styles
 			$('#userDetailWindow').kendoWindow('destroy');
 			// Close the wait window that was launched in the calling function.
 			kendo.ui.ExtWaitDialog.hide();
+			
+			// Get the userId and fullName from the response
+			var userId = response.userId;
+			var fullName = response.fullName;
+				
+			// If this request came from the post detail page, add the new author option to the multiselect. This function is on the post detail page.
+			addNewPostAuthor(userId, fullName);
 		}
 								  
 		// Create a list to validate that a user name is already in use.
@@ -3999,7 +4318,7 @@ TinyMce styles
 	</cfif>
 	<!--- Get a list of category names and aliases for validation purposes --->
 	<cfset categoryList = application.blog.getCategoryList('categoryList')>
-	<!--- And get a list of the aliases --->
+	<!--- Get a list of the aliases --->
 	<cfset categoryAliasList = application.blog.getCategoryList('categoryAliasList')>
 		
 	<script>
@@ -4018,7 +4337,7 @@ TinyMce styles
 					// The category must be unique. 
 					categoryIsUnique:
 					function(input){
-						// Do not continue if the user name is found in the currentUserName list 
+						// Do not continue if the category is found in the category list 
 						if (input.is("[id='category']") && ( listFind( categoryList, input.val() ) != 0 ) ){
 							// Display an error on the page.
 							input.attr("data-categoryIsUnique-msg", "Category already exists");
@@ -4130,24 +4449,37 @@ TinyMce styles
 		};
 
 		function saveCategoryResult(response){ 
+			
+			// Close the wait window that was launched in the calling function.
+			kendo.ui.ExtWaitDialog.hide();
+			
 			if (JSON.parse(response.success) == true){
-					// Close the wait window that was launched in the calling function.
-				kendo.ui.ExtWaitDialog.hide();
+					
 				try {
 					// Refresh the category grid window
 					$("#categoryGridWindow").data("kendoWindow").refresh();
 				} catch(e){
-					// Category window is not initialized. This is a normal condition when the category grid is not open
+					// Category grid is not initialized. This is a normal condition when the category grid is not open
 				}
-				// Close this window.
-				$('#addCategoryWindow').kendoWindow('destroy');
+				
+				// Get the categoryId and category from the response
+				var categoryId = response.categoryId;
+				var category = response.category;
+				
+				// Add the new post category option to the multiselect. This function is on the post detail page.
+				addNewPostCategory(categoryId, category);
+				
 			} else {
+				
 				// Display the errors
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving category", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
 				).done(function () {
 					// Do nothing
 				});
 			}//..if (JSON.parse(response.success) == true){
+			
+			// Close this window.
+			$('#addCategoryWindow').kendoWindow('destroy');
 		}
 		
 	</script>
@@ -4167,7 +4499,7 @@ TinyMce styles
 	  </tr>
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
-			Create new Category. The alias field is used when creating SES (Search Engine Safe) URLs. If wish to change the category alias yourself, do not use any non-alphanumeric characters or spaces in the alias- spaces should be replaced with dashes.
+			Create new category. <cfif len(URL.optArgs)>The alias field is used when creating SES (Search Engine Safe) URLs. If wish to change the category alias that was recommended, do not use any non-alphanumeric characters or spaces in the alias- spaces should be replaced with dashes.</cfif>
 		</td>
 	  </tr>
 	  <!-- Border -->
@@ -4298,6 +4630,8 @@ TinyMce styles
 		<!--- We are only getting the path and not the entire URL --->
 		<cfset mediaUrl = application.blog.getEnclosureUrlFromMediaPath(mediaPath, true)>
 	</cfif>
+	<!--- Carousel --->
+	<cfset enclosureCarouselId = getPost[1]["EnclosureCarouselId"]>
 	<!--- Optional video stuff --->
 	<cfset providerVideoId = getPost[1]["ProviderVideoId"]>
 	<cfset mediaVideoCoverUrl = getPost[1]["MediaVideoCoverUrl"]>
@@ -4321,6 +4655,12 @@ TinyMce styles
 		</cfif>
 	</cfif><!---<cfif len(mediaUrl)>--->
 	<!---<cfdump var="#mediaHtml#" label="mediaHtml">--->
+		
+	<!---*********************    Handle the carousel    *********************--->
+	<cfif len(enclosureCarouselId)>
+		<!--- Render the routes. This returns a iframe --->
+		<cfset mediaHtml = mediaHtml & RendererObj.renderCarouselPreview(enclosureCarouselId,'enclosureEditor')>
+	</cfif>
 					
 	<!---*********************    Handle the map    *********************--->
 	<!--- Extract the map id --->
@@ -4347,9 +4687,9 @@ TinyMce styles
 	<cfif session.isMobile>
 		<cfset toolbarString = "undo redo | image editimage | media videoUpload">
 	<cfelse>
-		<cfset toolbarString = "undo redo | image editimage | media videoUpload webVttUpload videoCoverUpload | map mapRouting">
+		<cfset toolbarString = "undo redo | image editimage | carousel | media videoUpload webVttUpload videoCoverUpload | map mapRouting">
 	</cfif>
-	<cfset includeGallery = false>
+	<cfset includeCarousel = true>
 	<cfset includeVideoUpload = true>
 	<cfset disableVideoCoverAndWebVttButtons = true>
 	</cfsilent>
@@ -4393,13 +4733,7 @@ TinyMce styles
 			
 			// Refresh the media preview- pass in the postId
 			reloadEnclosureThumbnailPreview(<cfoutput>#URL.optArgs#</cfoutput>);
-			
-			/* Do not raise a dialog here as this function is consumed every time that the submit button on the image editor is clicked. We need to exract the return from the server to see if it was an external image to determine what message to display in one of the next versions. 
-			// Raise a dialog
-			$.when(kendo.ui.ExtAlertDialog.show({ title: "Created external link", message: "The image will be displayed from an external link, however, no social media sharing images were made.", icon: "k-ext-information", width: "425px" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
-				).done(function () {
-				// Do nothing
-			}); */
+	
 		}
 		
 		function removeMediaEnclosure(){ 
@@ -4429,8 +4763,10 @@ TinyMce styles
 		function onPostEnclosureSubmit(){
 			// Get the editor content
 			var enclosureEditorContent = $("#<cfoutput>#imageMediaIdField#</cfoutput>").val();
-			// If there are no enclosures, remove any enclosures that exists in the db.
-			if (enclosureEditorContent == ""){
+			// Get the media URL if it is an existing image
+			var externalImageUrl = $("#externalImageUrl").val();
+			// If there are no enclosures or an existing media URL, remove any enclosures that exists in the db.
+			if (enclosureEditorContent == "" && externalImageUrl == ""){
 				removeMediaEnclosure();
 			}
 			// Refresh the thumbnail image on the post detail page to show the none image
@@ -4866,7 +5202,6 @@ Custom element markup example for videos:
 			'searchreplace visualblocks code codesample fullscreen',
 			'paste iconfonts'">
 		<cfset includeGallery = false>
-		<cfset includeVideoUpload = false>
 		<cfset includeFileUpload = true>
 		</cfsilent>
 		<!--- Include the tinymce js template --->
@@ -6175,9 +6510,6 @@ Custom element markup example for videos:
 				Create New Post
 //********************************************************************************************************************--->
 <cfcase value=24>
-	
-	<!--- Get the current logged in users Id --->
-	<cfset userId = application.blog.getUserIdByUserName(session.userName)>
 
 	<style>
 		label {
@@ -6264,7 +6596,7 @@ Custom element markup example for videos:
 
 			// Set default value by the value (this is used when the container is populated via the datasource).
 			var author = $("#author").data("kendoDropDownList");
-			author.value(<cfoutput>#userId#</cfoutput>);
+			author.value(<cfoutput>#session.userId#</cfoutput>);
 			author.trigger("change");
 
 			// On change function to save the selected value.
@@ -6928,6 +7260,7 @@ Custom element markup example for videos:
 	<cfset blogNameFontSize = getTheme[1]["BlogNameFontSize"]>
 	<cfset blogNameFontSizeMobile = getTheme[1]["BlogNameFontSizeMobile"]>
 	<cfset blogNameTextColor = getTheme[1]["BlogNameTextColor"]>
+	<cfset displayBlogName = getTheme[1]["DisplayBlogName"]>
 	<!--- Dividers --->
 	<cfset headerBodyDividerImage = getTheme[1]["HeaderBodyDividerImage"]>
 	<!--- Logos --->
@@ -7092,6 +7425,7 @@ Custom element markup example for videos:
 
 		function postThemeResult(response){
 			// Close the wait window that was launched in the calling function.
+
 			kendo.ui.ExtWaitDialog.hide();
 			// Refresh the subscriber grid window
 			$("#themeGridWindow").data("kendoWindow").refresh();
@@ -7164,11 +7498,10 @@ Custom element markup example for videos:
 					type: "GET" //Note: for large payloads coming from the server, use the get method. The post method may fail as it is less efficient.
 				}
 			} //...transport:
-		});//...var rolesDs...
+		});//...var fontDs...
 		
 		// Create the body font
 		var bodyFontDropdown = $("#bodyFontDropdown").kendoDropDownList({
-
 			autoBind: false,
 			dataTextField: "Font",
 			dataValueField: "FontId",
@@ -7445,6 +7778,7 @@ Custom element markup example for videos:
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
 	  <!---After the first row, the content class should be the current class. --->
+
 	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 	  </cfsilent>
 	  <tr height="2px">
@@ -8718,6 +9052,48 @@ Custom element markup example for videos:
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="displayBlogName">Display Blog Title:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<cfoutput>
+				<input type="checkbox" id="displayBlogName" name="displayBlogName"<cfif displayBlogName> checked</cfif> value="1" />
+				</cfoutput>
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+				<label for="displayBlogName">Display Blog Title:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<cfoutput>
+				<input type="checkbox" id="displayBlogName" name="displayBlogName"<cfif displayBlogName> checked</cfif> value="1" />
+				</cfoutput>
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+				
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<label for="blogNameTextColor">Blog Title Text Color:</label>
 			</td>
 		   </tr>
@@ -9285,6 +9661,7 @@ Custom element markup example for videos:
 		Font Items
 //**************************************************************************************************--->
 		
+
 <cfcase value="32">
 	<cfsilent>
 		<!---  Replace the underscore with a comma so that we can use it in the query below. --->
@@ -9657,6 +10034,7 @@ Custom element markup example for videos:
 			<cfset fontFileName = application.baseUrl & "/common/fonts/" & fileName & ".woff">
 		<cfelseif len(fileName)>
 			<!--- Woff2 is our standard font --->
+
 			<cfset fontFileName = application.baseUrl & "/common/fonts/" & fileName & ".woff2">
 		<cfelse>
 			<cfset fontFileName = "">
@@ -10074,10 +10452,8 @@ Custom element markup example for videos:
 	<cfset imageClass = "entryImage">
 
 	<cfset toolbarString = "undo redo | image editimage ">
-	<cfset includeGallery = false>
-	<cfset includeVideoUpload = false>
 	<cfset disableVideoCoverAndWebVttButtons = true>
-	<cfset includeMaps = false>
+
 	</cfsilent>
 	<!--- Include the tinymce js template --->
 	<cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">
@@ -10529,6 +10905,7 @@ Custom element markup example for videos:
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
 			<label for="copyThemeId">Current Theme:</label>  
 		</td>
+
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" width="80%">
 			<select id="copyThemeId" name="copyThemeId" style="width: 50%" required onchange="saveThemeIdValue(this.value)"></select>
 		</td>
@@ -10567,7 +10944,6 @@ Custom element markup example for videos:
 	<!---<cfdump var="#application.BlogOptionDbObj#">--->
 			
 	<!--- Blog options --->
-	<!--- Max Entries --->
 	<cfset maxEntries = application.BlogOptionDbObj.getEntriesPerBlogPage()>
 	<cfset commentModeration = application.BlogOptionDbObj.getBlogModerated()>
 	<cfset UseCaptcha = application.BlogOptionDbObj.getUseCaptcha()>
@@ -10761,7 +11137,7 @@ Custom element markup example for videos:
 			<ol>
 				<li>Install a SSL certificate on your server and check the use SSL checkbox</li>
 				<li>If you have a server re-write rule in place on the server to remove the index.cfm, check the server rewrite rule checkbox to make your links more concise</li>
-				<li>Obtaining an AddThis Key and using the AddThis sharing library</li>
+				<!--- <li>Obtaining an AddThis Key and using the AddThis sharing library</li> --->
 				<li>Obtaining a BingMaps Key in order to embed maps into your posts</li>
 				<li>Leaving the other default settings as they are unless you really want to use the Disqus commenting system or the Greensock animation library. </li>
 			</ol>
@@ -10847,7 +11223,7 @@ Custom element markup example for videos:
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <!-- Minimize Javascript -->
+	  <!-- Minimize c-->
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 			Galaxie Blog has logic to minimize the various Javascript and CSS in order to load the page quicker. This setting should be checked when you are in a production environment to improve page performance. You may want to turn this off if you are trying to debug code as the code is much easier to read when it is not compressed.
@@ -10909,7 +11285,7 @@ Custom element markup example for videos:
 	  <!-- Caching -->
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
-			You can adjust how many blog posts will appear on the blog landing page. The default setting is ten (10) posts per page, however, if you extensively use maps and or videos, you may want to consider adjusting this to five (5) posts per page as both maps and videos consume a lot of resources and will increase the page load time. Alternatively, if you are minimal in your usage of media, or use the &lt;more&gt; tag quite often to break up the content of your posts, you can set this to a max of twenty five (25) posts.
+			You can adjust how many blog posts will appear on the blog landing page. The default setting is twelve (12) posts per page, however, if you extensively use maps and or videos, you may want to consider adjusting this to three (3) or six (6) posts per page as both maps and videos consume a lot of resources and will increase the page load time. You will want to keep this setting using a multiple of three (3) as pages without the sidebar will show the posts in a 3x3 card format. Alternatively, if you are minimal in your usage of media, or use the &lt;more&gt; tag quite often to break up the content of your posts, you can set this to a max of thirty (30) posts.
 		</td>
 	  </tr>
 	  <tr height="1px">
@@ -11063,7 +11439,6 @@ Custom element markup example for videos:
 		  <tr height="2px">
 			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-		
 		</table>
 	</div>
 			
@@ -11135,102 +11510,105 @@ Custom element markup example for videos:
 		  </tr>
 		</table>
 	</div>
-			
-	<!---//***********************************************************************************************
-						Add This
-	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Add This Library</button>
-	<div class="content k-content">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
-			
-		  <cfsilent>
-			<!---The first content class in the table should be empty. --->
-			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
-			<!--- Set the colspan property for borders --->
-			<cfset thisColSpan = "2">
-		  </cfsilent>
-			 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
-			  	AddThis is the library that the blog uses to allow others to share your posts to various social sites such as Facebook. AddThis is a free library, however, you must enter your own personal AddThis key. Once you enter in an AddThis API key, Galaxie will replace its built in commenting system with AddThis. Go to <a href="https://www.addthis.com/login?next=/dashboard">https://www.addthis.com/login?next=/dashboard</a> for more information and to sign up for a free API key.
-			  </td>
-		  </tr>
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		<cfif session.isMobile>
-		  <tr valign="middle">
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<label for="addThisApiKey">AddThis API Key:</label>
-			</td>
-		   </tr>
-		   <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="text" name="addThisApiKey" id="addThisApiKey" value="<cfoutput>#addThisApiKey#</cfoutput>" class="k-textbox" style="width: 95%" />
-			</td>
-		  </tr>
-		<cfelse><!---<cfif session.isMobile>--->
-		  <tr>
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
-				<label for="addThisApiKey">AddThis API Key:</label>
-			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" name="addThisApiKey" id="addThisApiKey" value="<cfoutput>#addThisApiKey#</cfoutput>" class="k-textbox" style="width: 50%" />
-			</td>
-		  </tr>
-		</cfif>  
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
-		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
-			  	The AddThis Toolbox string is a string that AddThis provides to render the proper code. Type in the string exactly as it is given on the AddThis site when signing up for an API Key.
-			  </td>
-		  </tr>
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		<cfif session.isMobile>
-		  <tr valign="middle">
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<label for="addThisToolboxString">AddThis toolbox string:</label>
-			</td>
-		   </tr>
-		   <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="text" name="addThisToolboxString" id="addThisToolboxString" value="<cfoutput>#addThisToolboxString#</cfoutput>" class="k-textbox" style="width: 95%" /> 
-			</td>
-		  </tr>
-		<cfelse><!---<cfif session.isMobile>--->
-		  <tr>
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
-				<label for="addThisToolboxString">AddThis toolbox string:</label>
-			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" name="addThisToolboxString" id="addThisToolboxString" value="<cfoutput>#addThisToolboxString#</cfoutput>" class="k-textbox" style="width: 50%" /> 
-			</td>
-		  </tr>
-		</cfif>	  
-		  <!-- Border -->
-		  <tr height="2px">
-			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		</table>
-	</div>
+		
+	<cfif 1 eq 2>
+		<!---//***********************************************************************************************
+							Add This (depracated as of March 2023)
+		//************************************************************************************************--->
+
+		<button type="button" class="collapsible k-header">Add This Library</button>
+		<div class="content k-content">
+			<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+
+			  <cfsilent>
+				<!---The first content class in the table should be empty. --->
+				<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+				<!--- Set the colspan property for borders --->
+				<cfset thisColSpan = "2">
+			  </cfsilent>
+
+			  <tr height="1px">
+				  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  </tr>
+			  <tr height="1px">
+				  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+					AddThis is the library that the blog uses to allow others to share your posts to various social sites such as Facebook. AddThis is a free library, however, you must enter your own personal AddThis key. Once you enter in an AddThis API key, Galaxie will replace its built in commenting system with AddThis. Go to <a href="https://www.addthis.com/login?next=/dashboard">https://www.addthis.com/login?next=/dashboard</a> for more information and to sign up for a free API key.
+				  </td>
+			  </tr>
+			  <!-- Border -->
+			  <tr height="2px">
+				  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  </tr>
+			<cfif session.isMobile>
+			  <tr valign="middle">
+				<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+					<label for="addThisApiKey">AddThis API Key:</label>
+				</td>
+			   </tr>
+			   <tr>
+				<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+					<input type="text" name="addThisApiKey" id="addThisApiKey" value="<cfoutput>#addThisApiKey#</cfoutput>" class="k-textbox" style="width: 95%" />
+				</td>
+			  </tr>
+			<cfelse><!---<cfif session.isMobile>--->
+			  <tr>
+				<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+					<label for="addThisApiKey">AddThis API Key:</label>
+				</td>
+				<td class="<cfoutput>#thisContentClass#</cfoutput>">
+					<input type="text" name="addThisApiKey" id="addThisApiKey" value="<cfoutput>#addThisApiKey#</cfoutput>" class="k-textbox" style="width: 50%" />
+				</td>
+			  </tr>
+			</cfif>  
+			  <!-- Border -->
+			  <tr height="2px">
+				  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  </tr>
+			  <cfsilent>
+			  <!--- Set the class for alternating rows. --->
+			  <!---After the first row, the content class should be the current class. --->
+			  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+			  </cfsilent>
+			  <tr height="1px">
+				  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  </tr>
+			  <tr height="1px">
+				  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+					The AddThis Toolbox string is a string that AddThis provides to render the proper code. Type in the string exactly as it is given on the AddThis site when signing up for an API Key.
+				  </td>
+			  </tr>
+			  <!-- Border -->
+			  <tr height="2px">
+				  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  </tr>
+			<cfif session.isMobile>
+			  <tr valign="middle">
+				<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+					<label for="addThisToolboxString">AddThis toolbox string:</label>
+				</td>
+			   </tr>
+			   <tr>
+				<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+					<input type="text" name="addThisToolboxString" id="addThisToolboxString" value="<cfoutput>#addThisToolboxString#</cfoutput>" class="k-textbox" style="width: 95%" /> 
+				</td>
+			  </tr>
+			<cfelse><!---<cfif session.isMobile>--->
+			  <tr>
+				<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+					<label for="addThisToolboxString">AddThis toolbox string:</label>
+				</td>
+				<td class="<cfoutput>#thisContentClass#</cfoutput>">
+					<input type="text" name="addThisToolboxString" id="addThisToolboxString" value="<cfoutput>#addThisToolboxString#</cfoutput>" class="k-textbox" style="width: 50%" /> 
+				</td>
+			  </tr>
+			</cfif>	  
+			  <!-- Border -->
+			  <tr height="2px">
+				<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  </tr>
+			</table>
+		</div>
+	</cfif>
 			  
 	<!---//***********************************************************************************************
 						Bing Maps
@@ -13000,6 +13378,7 @@ Custom element markup example for videos:
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
 			The Post Header is used to attach <b>optional</b> code, such as Javascript, CSS, ColdFusion cfincludes, and Galaxie Blog Directives to a post. It is designed to keep the logic separate from the WYSIWYG Post Editor as the editor manipulates the DOM and HTML. You may also use <a href="https://gregoryalexander.com/blog/2019/12/14/Galaxie-Blog-XML-Post-Directives">Galaxie Blog Directives</a> to override ColdFusion's the Global Script Protection if it is turned on.
+			Including scripts requires an opening and closing <attachSript></attachSript> tags to avoid ColdFusion's global script protection, you can however use CSS style tags without any modifications (<style></style>)
 		</td>
 	  </tr>
 	</cfif>
@@ -14052,6 +14431,947 @@ Custom element markup example for videos:
 	
 </cfcase>
 	
+<!--- //************************************************************************************************
+		Post CSS
+//**************************************************************************************************--->
+
+			
+<cfcase value="46">
+	
+	<style>
+		textarea { width: 90%; height: auto; }
+	</style>
+	
+	<!--- Get the post. The last argument should also show posts that are removed ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ). --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
+	<!---<cfdump var="#getPost#">--->
+	<!--- Get the post header  --->
+	<cfset postCss = getPost[1]["CSS"]>
+		
+	<script>
+
+		function postCssContent(){
+
+			jQuery.ajax({
+				type: 'post', 
+				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=savePostCss&csrfToken=<cfoutput>#csrfToken#</cfoutput>',
+				data: { // arguments
+					postId: <cfoutput>#URL.optArgs#</cfoutput>,
+					postCss: $("#postCss").val()//$("#postCss").val()
+				},
+				dataType: "json",
+				success: postCssResult, // calls the result function.
+				error: function(ErrorMsg) {
+					console.log('Error' + ErrorMsg);
+				}
+			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			}).fail(function (jqXHR, textStatus, error) {
+				// Close the wait window that was launched in the calling function.
+				kendo.ui.ExtWaitDialog.hide();
+				// Display the error. The full response is: jqXHR.responseText, but we just want to extract the error.
+				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the postCss function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
+					).done(function () {
+					
+				});		
+			});
+		};
+
+		function postCssResult(response){
+			// Close this window.
+			$('#postCssWindow').kendoWindow('destroy');
+		}
+		
+	</script>
+		
+	<form id="postCssForm" action="#" method="post" data-role="validator">
+	<!--- Pass the csrfToken --->
+	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
+	<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0" border="0">
+	  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+	  </cfsilent>
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			Post CSS
+		</td>
+	   </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr height="30px">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
+			You may apply custom CSS to a particular post that will over-ride ColdFusion's built in Global Script Protection. Do not include the opending and ending style tag, the blog will do this for you. If you choose to create your own CSS, make sure that the CSS is not impacting other blog posts on the blog landing page. You may also want to <a href="https://jigsaw.w3.org/css-validator/validator">validate</a> your CSS.
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	<cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="postCss">Post CSS</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<textarea id="postCss" name="postCss" rows="10" cols="20"><cfoutput>#postCss#</cfoutput></textarea>
+		</td>
+	  </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr valign="middle" height="30px">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
+			<label for="postCss">Post CSS</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<textarea id="postCss" name="postCss" rows="30" cols="75"><cfoutput>#postCss#</cfoutput></textarea>
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!--- After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	  <tr valign="middle" height="30px">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<button id="postCssSubmit" name="postCssSubmit" class="k-button k-primary" type="button" onClick="postCssContent()">Submit</button>
+		</td>
+	  </tr>
+	</table>
+	</form>
+	
+</cfcase>
+		  
+<!--- //************************************************************************************************
+		Post JavaScript
+//**************************************************************************************************--->
+			
+<cfcase value="47">
+	
+	<style>
+		textarea { width: 90%; height: auto; }
+	</style>
+	
+	<!--- Get the post. The last argument should also show posts that are removed ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ). --->
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
+	<!---<cfdump var="#getPost#">--->
+	<!--- Get the post header  --->
+	<cfset postJavaScript = getPost[1]["JavaScript"]>
+		
+	<script>
+
+		function postJavaScriptContent(){
+
+			jQuery.ajax({
+				type: 'post', 
+				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=savePostJavaScript&csrfToken=<cfoutput>#csrfToken#</cfoutput>',
+				data: { // arguments
+					postId: <cfoutput>#URL.optArgs#</cfoutput>,
+					postJavaScript: $("#postJavaScript").val()//$("#postCss").val()
+				},
+				dataType: "json",
+				success: postJavaScriptResult, // calls the result function.
+				error: function(ErrorMsg) {
+					console.log('Error' + ErrorMsg);
+				}
+			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			}).fail(function (jqXHR, textStatus, error) {
+				// Close the wait window that was launched in the calling function.
+				kendo.ui.ExtWaitDialog.hide();
+				// Display the error. The full response is: jqXHR.responseText, but we just want to extract the error.
+				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the postJavaScript function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
+					).done(function () {
+					
+				});		
+			});
+		};
+
+		function postJavaScriptResult(response){
+			// Close this window.
+			$('#postJavaScriptWindow').kendoWindow('destroy');
+		}
+		
+	</script>
+		
+	<form id="postJavaScriptForm" action="#" method="post" data-role="validator">
+	<!--- Pass the csrfToken --->
+	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
+	<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0" border="0">
+	  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+	  </cfsilent>
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			Post JavaScript
+		</td>
+	   </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr height="30px">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
+			You may insert scripts that will over-ride ColdFusion's built in Global Script Protection. Do not include the opending and ending tags, the blog will do this for you. Be careful when inserting a script, the script may interfere with the rendering of the page if there are errors. You may want to <a href="https://codebeautify.org/jsvalidate">validate</a> your script before posting.
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	<cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="postJavaScript">Post JavaScript</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<textarea id="postJavaScript" name="postJavaScript" rows="10" cols="20"><cfoutput>#postJavaScript#</cfoutput></textarea>
+		</td>
+	  </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr valign="middle" height="30px">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
+			<label for="postJavaScript">Post JavaScript</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<textarea id="postJavaScript" name="postJavaScript" rows="30" cols="75"><cfoutput>#postJavaScript#</cfoutput></textarea>
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!--- After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	  <tr valign="middle" height="30px">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<button id="postJavaScriptSubmit" name="postJavaScriptSubmit" class="k-button k-primary" type="button" onClick="postJavaScriptContent()">Submit</button>
+		</td>
+	  </tr>
+	</table>
+	</form>
+	
+</cfcase>
+		  
+<cfcase value="48">
+		  
+		<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+		<!---//***********************************************************************************************
+						kendo grid Comments
+		//************************************************************************************************--->
+		<cfinclude template="../grids/kendo/userHistory.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//***********************************************************************************************
+						jsGrid Comments
+		//************************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/visitorLog.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->  
+		  
+</cfcase>
+			
+<!--- //************************************************************************************************
+		Add Tag 
+//**************************************************************************************************--->
+	
+<cfcase value=49>
+	
+	<!--- Note: this template is used in two spots- on the post page when the category is not found when the user types ina tag on the dropdown, and on the tag grid when the user clicks on the new tag button. On the post page, the typed in tag will appear along with the suggested alias. On the tag grid, only the tag will be shown with no alias. ---> 
+	
+	<cfif isDefined("URL.optArgs") and len(URL.optArgs)>
+		<!--- Preset the vars --->
+		<!--- Get the category from the url. --->
+		<cfset tag = URL.optArgs>
+		<!--- Make the category alias --->
+		<cfset tagAlias = application.blog.makeAlias(URL.optArgs)>
+	<cfelse>
+		<cfset tag = "">
+		<cfset tagAlias = "">
+	</cfif>
+	<!--- Get a list of tag names and aliases for validation purposes --->
+	<cfset tagList = application.blog.getTagList('tagList')>
+	<!--- And get a list of the aliases --->
+	<cfset tagAliasList = application.blog.getTagList('tagAliasList')>
+		
+	<script>
+		
+		// Create a list to validate if the tag is already in use.
+		var tagList = "<cfoutput>#tagList#</cfoutput>";
+		// Do the same for the alias
+		var tagAliasList = "<cfoutput>#tagAliasList#</cfoutput>";
+		
+		// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
+		$(document).ready(function() {
+
+			var addTagValidator = $("#tagForm").kendoValidator({
+				// Set up custom validation rules 
+				rules: {
+					// The tag must be unique. 
+					tagIsUnique:
+					function(input){
+						// Do not continue if the user name is found in the currentUserName list 
+						if (input.is("[id='tag']") && ( listFind( tagList, input.val() ) != 0 ) ){
+							// Display an error on the page.
+							input.attr("data-tagIsUnique-msg", "Tag already exists");
+							// Focus on the current element
+							$( "#tag" ).focus();
+							return false;
+						}                                    
+						return true;
+					},
+					// The alias must be unique. 
+					tagAliasIsUnique:
+					function(input){
+						// Do not continue if the user name is found in the currentUserName list 
+						if (input.is("[id='tagAlias']") && ( listFind( tagAliasList, input.val() ) != 0 ) ){
+							// Display an error on the page.
+							input.attr("data-tagAliasIsUnique-msg", "Tag Alias already exists");
+							// Focus on the current element
+							$( "#tagAlias" ).focus();
+							return false;
+						}                                    
+						return true;
+					},
+				<cfif len(URL.optArgs)>
+					// The alias must not contain a space. 
+					tagAliasNoSpace:
+					function(input){
+						// Do not continue if the user name is found in the currentUserName list 
+						if (input.is("[id='tagAlias']") && ( hasWhiteSpace(input.val()) ) ){
+							// Display an error on the page.
+							input.attr("data-tagAliasNoSpace-msg", "Alias must not contain a space");
+							// Focus on the current element
+							$( "#tagAlias" ).focus();
+							return false;
+						}                                    
+						return true;
+					},
+					// The alias must not contain any special chars. 
+					tagAliasNoSpecialChars:
+					function(input){
+						// Do not continue if the user name is found in the currentUserName list 
+						if (input.is("[id='tagAlias']") && ( input.val().includes('&')||input.val().includes('?')||input.val().includes(',') ) ){
+							// Display an error on the page.
+							input.attr("data-tagAliasNoSpecialChars-msg", "Alias must not contain a comma, question mark or an ampersand.");
+							// Focus on the current element
+							$( "#tagAlias" ).focus();
+							return false;
+						}                                    
+						return true;
+					},
+				</cfif>
+				}
+			}).data("kendoValidator");
+
+			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			var addTagSubmit = $('#addTagSubmit');
+			addTagSubmit.on('click', function(e){  
+				
+				e.preventDefault();         
+				if (addTagValidator.validate()) {
+					
+					// Open up a please wait dialog
+					$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we process the tag.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
+					
+					// Get the value of the tag that was typed in
+					newTag = $("#addTag").val();
+
+					// Send data to server after the new role was saved into the hidden form
+					setTimeout(function() {
+						postNewtag();
+					}, 250);
+					
+				} else {
+
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
+						).done(function () {
+						// Do nothing
+					});
+				}
+			});
+
+		});//...document.ready
+		
+		// Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		function postNewtag(){
+
+			jQuery.ajax({
+				type: 'post', 
+				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=savetag',
+				data: { // arguments
+					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
+					// Pass the form values
+					tag: $("#tag").val()<cfif len(URL.optArgs)>,
+					tagAlias: $("#tagAlias").val()
+					</cfif>
+				},
+				dataType: "json",
+				success: saveTagResult, // calls the result function.
+				error: function(ErrorMsg) {
+					console.log('Error' + ErrorMsg);
+				}
+			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			}).fail(function (jqXHR, textStatus, error) {
+				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the savetag function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
+					).done(function () {
+					// Do nothing
+				});		
+			});
+		};
+
+		function saveTagResult(response){ 
+			if (JSON.parse(response.success) == true){
+				
+				// Close the wait window that was launched in the calling function.
+				kendo.ui.ExtWaitDialog.hide();
+				
+				try {
+					// Refresh the tag grid window
+					$("#tagGridWindow").data("kendoWindow").refresh();
+				} catch(e){
+					// tag window is not initialized. This is a normal condition when the tag grid is not open
+				}
+				
+				// Get the tagId and tag from the response
+				var tagId = response.tagId;
+				var tag = response.tag;
+				
+				// Add the new post tag option to the multiselect when the post detail page is invoking this interface. This function is on the post detail page.
+				addNewPostTag(tagId, tag);
+
+			} else {
+				
+				// Display the errors
+				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving tag", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
+				).done(function () {
+					// Do nothing
+				});
+			}//..if (JSON.parse(response.success) == true){
+			
+			// Close this window.
+			$('#addTagWindow').kendoWindow('destroy');
+		}
+		
+	</script>
+		
+	<form id="tagForm" action="#" method="post" data-role="validator">
+	<!--- Pass the csrfToken --->
+	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
+	<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0" border="0">
+	  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+	  </cfsilent>
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr height="30px">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
+			Create new tag. The alias field is used when creating SES (Search Engine Safe) URLs. If wish to change the alias that was recommended, do not use any non-alphanumeric characters or spaces in the alias- spaces should be replaced with dashes.
+		</td>
+	  </tr>
+	  <!-- Border -->
+	  <tr height="2px">
+	    <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	<cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="tag">tag</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<input id="tag" name="tag" type="text" value="<cfoutput>#tag#</cfoutput>" required validationMessage="Tag is required" class="k-textbox" style="width: 66%" /> 
+		</td>
+	  </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr valign="middle" height="30px">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<label for="tage">Tag</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input id="tag" name="tag" type="text" value="<cfoutput>#tag#</cfoutput>" required validationMessage="Tag is required" class="k-textbox" style="width: 66%" />  
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+	    	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+<cfif len(URL.optArgs)>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="tagAlias">Tag Alias</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input id="tagAlias" name="tagAlias" type="text" value="<cfoutput>#tagAlias#</cfoutput>" class="k-textbox" style="width: 95%" /> 
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+	  <tr valign="middle" height="30px">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<label for="tagAlias">Tag Alias</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input id="tagAlias" name="tagAlias" type="text" value="<cfoutput>#tagAlias#</cfoutput>" class="k-textbox" style="width: 66%" /> 
+		</td>
+	  </tr>
+	</cfif>
+</cfif>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!--- After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	  <tr valign="middle" height="30px">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<button id="addTagSubmit" name="addTagSubmit" class="k-button k-primary" type="button">Submit</button>
+		</td>
+	  </tr>
+	</table>
+	</form>
+				
+</cfcase>
+		
+<!---//*******************************************************************************************************************
+				Tags Grid
+//********************************************************************************************************************--->
+			  
+<cfcase value=50>
+			  
+	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+		<!---//***********************************************************************************************
+						kendo grid 
+		//************************************************************************************************--->
+		<cfinclude template="../grids/kendo/tags.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//***********************************************************************************************
+						jsGrid 
+		//************************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/tags.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->
+		
+</cfcase>
+			
+<!--- //************************************************************************************************
+		Carousel Items
+//**************************************************************************************************--->
+			
+<cfcase value=51>
+		
+	<!---  Replace the underscore with a comma so that we can use it in the query below. --->
+	<cfset mediaIdList = replaceNoCase(URL.otherArgs, '_', ',', 'all')>
+	<cfset primaryColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'accentColor')>
+	<cfset fontId = getTheme[1]["BlogNameFontId"]>
+	
+	<!--- Get the data from the db --->
+	<cfquery name="getMediaUrl" dbtype="hql">
+		SELECT new Map (
+			MediaId as MediaId,
+			MediaUrl as MediaUrl,
+			MediaThumbnailUrl as MediaThumbnailUrl
+		)
+		FROM Media
+		WHERE MediaId IN (<cfqueryparam value="#mediaIdList#" cfsqltype="integer" list="yes">)
+	</cfquery>
+	<!--- 
+	Debugging:<br/>
+	<cfoutput>mediaIdList: #mediaIdList#</cfoutput>
+	<cfdump var="#getMediaUrl#"></cfdump>
+	--->
+
+	<h4>Carousel Titles and Body</h4>
+	<p>This is optional and the title and body may use HTML. If you enter text or HTML, the text will overlay the images on each carousel.</p>
+	<form id="carouselDetail" name="carouselDetail" data-role="validator">
+	<!--- Pass the csrfToken --->
+	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
+	<!--- Pass the postId --->
+	<input type="hidden" name="postId" id="postId" value="<cfoutput>#URL.optArgs#</cfoutput>" />
+	<!--- Hidden input to pass the mediaIdList --->
+	<input type="hidden" name="mediaIdList" id="mediaIdList" value="<cfoutput>#URL.otherArgs#</cfoutput>">
+	<!--- Store the number of galleries that were created by the user. We'll increment this for every gallery --->
+	<input type="hidden" name="numGalleries" id="numGalleries" value="1">
+	<table align="left" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0">
+		<tr>
+			<td><label for="carouselEffect">Effect:</label></td>
+			<td>
+				<script>
+					$("#effect").kendoDropDownList({ });
+				</script>
+				<select name="effect" id="effect" name="effect">
+					<option value="GL">GL</option>
+					<option value="slide">slide</option>
+					<option value="fade">fade</option>
+					<option value="cube">cube</option>
+					<option value="flip">flip</option>
+					<option value="coverflow">coverflow</option>
+					<option value="cards">cards</option>
+					<option value="panorama">panorama</option>
+					<option value="carousel">carousel</option>
+					<option value="shutters">shutters</option>
+					<option value="slicer">slicer</option>
+					<option value="tinder">tinder</option>
+					<option value="material">material</option>
+					<option value="creative">creative</option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td class="border k-alt"><label for="shader">Carousel Shader:</label></td>
+			<td class="k-alt">
+				<script>
+					$("#shader").kendoDropDownList({
+					});
+				</script>
+				<select name="shader" id="shader" name="shader">
+					<option value="random">random</option>
+					<option value="dots">dots</option>
+					<option value="flyeye">flyeye</option>
+					<option value="morph x">morph x</option>
+					<option value="morph y">morph y</option>
+					<option value="page curl">page curl</option>
+					<option value="peel x">peel x</option>
+					<option value="peel y">peel y</option>
+					<option value="polygons fall">polygons fall</option>
+					<option value="polygons morph">polygons morph</option>
+					<option value="polygons wind">polygons wind</option>
+					<option value="pixelize">pixelize</option>
+					<option value="ripple">ripple</option>
+					<option value="shutters">shutters</option>
+					<option value="slices">slices</option>
+					<option value="squares">squares</option>
+					<option value="stretch">stretch</option>
+					<option value="wave x">wave x</option>
+					<option value="wind">wind</option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td class="border"><label for="carouselFontDropdown">Carousel Font:</label></td>
+			<td>
+				<script>
+					// ---------------------------- font dropdowns. ----------------------------
+					var fontDs = new kendo.data.DataSource({
+						transport: {
+							read: {
+								cache: false,
+								// Note: since this template is in a different directory, we can't specify the cfc template without the full path name.
+								url: function() { // The cfc component which processes the query and returns a json string. 
+									return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getFontsForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>"; 
+								}, 
+								dataType: "json",
+								contentType: "application/json; charset=utf-8", // Note: when posting json via the request body to a coldfusion page, we must use this content type or we will get a 'IllegalArgumentException' on the ColdFusion processing page.
+								type: "GET" //Note: for large payloads coming from the server, use the get method. The post method may fail as it is less efficient.
+							}
+						} //...transport:
+					});//...var fontDs...
+
+
+					// Create the blog namedropdown
+					var carouselFontDropdown = $("#carouselFontDropdown").kendoDropDownList({
+						optionLabel: "Select...",
+						autoBind: false,
+						dataTextField: "Font",
+						dataValueField: "FontId",
+						template: '<label style="font-family:#:data.FontFace#">#:data.Font#</label>',
+						// Template to add a new type when no data was found.
+						noDataTemplate: $("#addFont").html(),
+						filter: "contains",
+						dataSource: fontDs,
+					}).data("kendoDropDownList");
+					
+					var dropdownlist = $("#carouselFontDropdown").data("kendoDropDownList");
+					dropdownlist.value("<cfoutput>#fontId#</cfoutput>");
+				</script>
+				<select id="carouselFontDropdown" name="carouselFontDropdown" style="width: 50%"></select>
+			</td>
+		</tr>
+	
+	<cfloop from="1" to="#arrayLen(getMediaUrl)#" index="i">
+		<cfsilent>
+			<!--- Set the variable values. I want to shorten the long variable names here. --->
+			<cfset mediaId = getMediaUrl[i]["MediaId"]>
+			<cfset mediaUrl = getMediaUrl[i]["MediaUrl"]>
+			<cfset mediaThumbnailUrl = getMediaUrl[i]["MediaThumbnailUrl"]>
+			<!--- Get the thumbnail image if possible. When the blog is upgraded from version 1x, there will be no thumbnails. This is a new feature in v2. --->
+			<cfif len(mediaThumbnailUrl)>
+				<cfset imageUrl = mediaThumbnailUrl>
+			<cfelse>
+				<cfset imageUrl = mediaUrl>
+			</cfif>
+		</cfsilent>
+		<!--- Pass along the imageUrl's in a hidden form  --->
+		<input type="hidden" name="mediaUrl<cfoutput>#i#</cfoutput>" id="mediaUrl<cfoutput>#i#</cfoutput>" value="<cfoutput>#mediaUrl#</cfoutput>">
+		<input type="hidden" name="mediaItemUrl<cfoutput>#i#</cfoutput>" id="mediaItemUrl<cfoutput>#i#</cfoutput>" value="<cfoutput>#mediaUrl#</cfoutput>">
+		<tr class="#iif(i MOD 2,DE('k-content'),DE('k-alt'))#" height="50px;">
+	<cfsilent>		
+	<!--- //************************************************************************************************
+			Mobile Carousel Items
+	//**************************************************************************************************--->
+	</cfsilent>
+			
+	<cfif session.isMobile>
+		<!--- Create alternating rows in the table. The Kendo classes which we will use are k-alt and k-content.
+		We will create a border between the rows if the current row is not the first row. --->
+		<cfif i eq 1>
+			<td valign="top" width="90%">
+		<cfelse>
+			<td align="left" valign="top" class="border" width="90%">
+		</cfif>
+				<a class="fancybox-effects" href="<cfoutput>#imageUrl#</cfoutput>"><img data-src="<cfoutput>#imageUrl#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#imageUrl#</cfoutput>"></a>
+			</td>
+		</tr>
+		<tr>
+			<td><label for="carouselTitle<cfoutput>#i#</cfoutput>">Title:</label></td>
+		</tr>
+		<tr>
+			<td>
+				<textarea name="carouselTitle<cfoutput>#i#</cfoutput>" id="carouselTitle<cfoutput>#i#</cfoutput>" value="" class="k-textbox" style="width: 100%;"></textarea>
+			</td>
+		</tr>
+		<tr>
+			<td class="border k-alt"><label for="mediaItemUrl<cfoutput>#i#</cfoutput>">Carousel Body:</label></td>
+		</tr>
+		<tr>
+			<td class="k-alt">
+				<textarea name="carouselBody<cfoutput>#i#</cfoutput>" id="carouselBody<cfoutput>#i#</cfoutput>" value="" class="k-textbox" style="width: 100%;"></textarea>
+			</td>
+		</tr>
+		<tr>
+			<td class="border k-alt"><label for="mediaItemUrl<cfoutput>#i#</cfoutput>">Carousel URL:</label></td>
+		</tr>
+	<cfsilent>		
+	<!--- //************************************************************************************************
+			Desktop Carousel Items
+	//**************************************************************************************************--->
+	</cfsilent>
+	<cfelse><!---<cfif session.isMobile>--->
+		<!--- Create alternating rows in the table. The Kendo classes which we will use are k-alt and k-content.
+		We will create a border between the rows if the current row is not the first row. --->
+		<cfif i eq 1>
+			<td valign="top" width="240px">
+		<cfelse>
+			<td align="left" valign="top" class="border" width="240px">
+		</cfif>
+			<a class="fancybox-effects" href="<cfoutput>#imageUrl#</cfoutput>"><img data-src="<cfoutput>#imageUrl#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#imageUrl#</cfoutput>"></a>
+		</td>
+		<cfif i eq 1>
+			<td valign="top">
+		<cfelse>
+			<td align="left" valign="top" class="border">
+		</cfif>
+				<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="2">
+					<tr>
+						<td><label for="carouselTitle<cfoutput>#i#</cfoutput>">Carousel Title:</label></td>
+					</tr>
+					<tr>
+						<td>
+							<textarea name="carouselTitle<cfoutput>#i#</cfoutput>" id="carouselTitle<cfoutput>#i#</cfoutput>" value="" class="k-textbox" style="width: 100%;"></textarea>
+						</td>
+					</tr>
+					<tr>
+						<td class="border k-alt"><label for="carouselBody<cfoutput>#i#</cfoutput>">Carousel Body:</label></td>
+					</tr>
+					<tr>
+						<td class="k-alt">
+							<textarea name="carouselBody<cfoutput>#i#</cfoutput>" id="carouselBody<cfoutput>#i#</cfoutput>" value="" class="k-textbox" style="width: 100%;"></textarea>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="0">
+								<tr>
+									<td style="width: 15%">
+										<label for="carouselFontColor<cfoutput>#i#</cfoutput>">Font Color:</label>
+									</td>
+									<td>
+										<script>
+											 $("#carouselFontColor<cfoutput>#i#</cfoutput>").kendoColorPicker({
+												input: false,
+												preview:false,
+												value: "#<cfoutput>#primaryColor#</cfoutput>",
+												buttons: false,
+												views: ["gradient"]
+											});
+										</script>
+										<input id="carouselFontColor<cfoutput>#i#</cfoutput>" name="carouselFontColor<cfoutput>#i#</cfoutput>">
+									</td>
+								</tr>
+							</table>
+						 
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</cfif><!---<cfif session.isMobile>--->
+	</cfloop>
+		<tr>
+		<!--- Create alternating rows in the table. The Kendo classes which we will use are k-alt and k-content.
+		We will create a border between the rows if the current row is not the first row. --->
+		<cfif i eq 1>
+			<td valign="top" <cfif not session.isMobile>colspan="2"</cfif>>
+		<cfelse>
+			<td align="left" valign="top" <cfif not session.isMobile>colspan="2"</cfif>>
+		</cfif>
+				<button id="carouselDetailSubmit" class="k-button k-primary" type="button">Submit</button>
+			</td>
+		</tr>
+	</table>
+				
+	</form>
+				
+	<script>
+		$(document).ready(function() {
+		
+			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			var carouselDetailSubmit = $('#carouselDetailSubmit');
+			carouselDetailSubmit.on('click', function(e){      
+                e.preventDefault();         
+
+				// submit the form. There is no validation at this time
+				// Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post.
+				// alert('posting');
+				postCarouselDetails('update');
+			});
+		});//...document.ready
+		
+		// Post method on the detail form called from the GalleryDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		function postCarouselDetails(action){
+			jQuery.ajax({
+				type: 'post', 
+				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveCarousel&selectorId=carousel&darkTheme=<cfoutput>#darkTheme#</cfoutput>&csrfToken=<cfoutput>#csrfToken#</cfoutput>',
+				// Serialize the carouselDetail form. The csrfToken is in the form.
+				data: $('#carouselDetail').serialize(),
+				// This is one of the few times that we will be sending back an html response. We are going to use this directly to set the content in the editor. its easier to craft the html on the server side than to manipulate the dom with a json object on the client. Normally this is always json
+				dataType: "html",
+				success: carouselUpdateResult, // calls the result function.
+				error: function(ErrorMsg) {
+					console.log('Error' + ErrorMsg);
+				}
+			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			}).fail(function (jqXHR, textStatus, error) {
+				// This is a secured function. Display the login screen.
+				if (jqXHR.status === 403) { 
+					createLoginWindow(); 
+				} else {//...if (jqXHR.status === 403) { 
+					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveCarousel function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
+						).done(function () {
+					// Do nothing
+					});		
+				}//...if (jqXHR.status === 403) { 
+			});
+		};
+		
+		function carouselUpdateResult(response){
+			// alert(response)
+			// Note: the response is an html string 
+			
+			// Get the numGalleries value in the hidden form. It starts at 1. This is used to determine what id we should use in our hidden inputs that are created on the fly here.
+			var carouselNum = $("#numCarousels").val();
+			// Insert an iframe into the editor
+			// $("#dynamicGalleryLabel").append('Gallery ' + galleryNum + ' Preview');
+			// Show the preview row and insert content into the preview div
+			// $("#dynamicGalleryInputFields").append(response);
+			// Finally insert the content into the active tinymce editor. The response here is plain HTML coming from the server
+			//$('textarea.post').html('Some contents...');
+			tinymce.activeEditor.insertContent(response + '<br/><br/>');
+			
+			// Close all of the windows associated with the gallery
+			// Close the uppy dashboard. We are using the uppy galleryWindow for both galleries and carousels
+			$('#galleryWindow').kendoWindow('destroy');
+			// Close the carousel items window
+			$('#carouselItemsWindow').kendoWindow('destroy');
+			
+		}
+		
+	</script>
+	
+</cfcase>
+			
 </cfswitch>	
 	
 </html>

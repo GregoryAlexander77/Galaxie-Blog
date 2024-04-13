@@ -4,6 +4,12 @@
 		Global CSS vars and body.
 		Create a content width global css var. We will change this with Javascript depending upon the screen resolution 
 		--------------------------------------------------------------------------------------------------------------*/
+		
+		html {
+			/* The scroll position needs to be adjusted due to the floating menu at the top of the page. When clicking on an anchor, without this, the content is behind the nav menu */
+		   	scroll-padding-top: 70px; 
+		}
+		
 		:root {
 			-- contentWidth: <cfoutput><cfif session.isMobile>95<cfelse>#contentWidth#</cfif></cfoutput>%;
 			-- contentPaddingPercent: <cfoutput>#round((contentWidth/2)/2)#</cfoutput>%;

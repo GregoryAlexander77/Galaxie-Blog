@@ -1,4 +1,9 @@
 	<!--- Note: this is already put inside of a cfsilent tag on the index.cfm page --->
+
+	<!--- Preset the condensedGridView var to false. We will reset this when in category mode --->
+	<cfset condensedGridView = false>
+	<!--- The popular posts are shown in a scrollable card widget when on the blog landing page --->
+	<cfset showPopularPosts = false>
 		
 	<!--- //**************************************************************************************************************
 			Create custom security token keys
@@ -17,7 +22,68 @@
 		<cfset session.encryptionKey = createTokenKeys.encryptionKey>
 		<cfset session.serviceKey = createTokenKeys.serviceKey>
 	</cfif>
+			
+	<!--- //**************************************************************************************************************
+			Visitor Logging (in blog mode)
+	//****************************************************************************************************************--->
+	<!--- Are we looking at the blog? --->
+	<cfif pageTypeId eq 1>
+		<cfif not structKeyExists(cookie, "gauid")>
+			<!--- Get client properties. These cookies only exist when an admin user has logged on and are used to set the interfaces depending upon the screen size --->
+			<cftry>
+				<cfset screenHeight = cookie['screenHeight']>
+				<cfset screenWidth = cookie['screenWidth']>
+				<cfcatch type="any">
+					<cfset screenHeight = 9999>
+					<cfset screenWidth = 9999>	   
+				</cfcatch>
+			</cftry>
 
+			<!--- Save the annonymous user --->
+			<cfinvoke component="#application.blog#" method="saveAnonymousUser" returnVariable="AnonymousUserDbObj">
+				<cfinvokeargument name="ipAddress" value="#CGI.Remote_Addr#">
+				<cfinvokeargument name="httpUserAgent" value="#CGI.Http_User_Agent#">
+				<cfinvokeargument name="screenWidth" value="#screenWidth#">
+				<cfinvokeargument name="screenHeight" value="#screenHeight#">
+			</cfinvoke>
+			<cfset anonymousUserId = AnonymousUserDbObj.getAnonymousUserId()>
+			<!--- Drop a cookie with the Galaxie Anonymous User Id --->
+			<cfcookie expires="NEVER" name="gauid" value="#anonymousUserId#">
+		<cfelse><!---<cfif not structKeyExists(cookie, "gauid")>--->
+			<cfset anonymousUserId = cookie.gauid>
+			<!--- Load the anonymousUser entity --->
+			<cfset AnonymousUserDbObj = entityLoadByPk("AnonymousUser", anonymousUserId)>
+		</cfif><!---<cfif not structKeyExists(cookie, "gauid")>--->
+
+		<!--- Save the HTTP Referrer if passed. --->
+		<cfif len(CGI.Http_Referer)>
+			<cfinvoke component="#application.blog#" method="saveHttpReferrer" returnVariable="httpReferrerId">
+				<cfinvokeargument name="HttpReferrer" value="#CGI.Http_Referer#">
+			</cfinvoke>
+		</cfif><!---<cfif len(CGI.Http_Referer)>--->
+
+		<!--- If the user is looking at a post, pass in the post object --->
+		<cfif postFound and getPageMode() eq 'post'>
+			<cfset postId = getPost[1]["PostId"]>
+		</cfif>
+
+		<!--- Finally, log the visitor --->
+		<cfinvoke component="#application.blog#" method="saveVisitorLog" returnVariable="visitorLog">
+			<cfinvokeargument name="anonymousUserId" value="#AnonymousUserDbObj.getAnonymousUserId()#">
+			<cfif application.blog.getUsersId()>
+				<cfinvokeargument name="userId" value="#application.blog.getUsersId()#">
+			</cfif>
+			<!--- Pass in the HTTP Referrer Object if it exists --->
+			<cfif len(CGI.Http_Referer) and httpReferrerId gt 0>
+				<cfinvokeargument name="httReferrer" value="#httpReffererId#">
+			</cfif>
+			<cfif postFound and getPageMode() eq 'post'>
+				<cfinvokeargument name="postId" value="#postId#">
+			</cfif>
+		</cfinvoke>
+			
+	</cfif><!---<cfif pageTypeId eq 1>--->
+			
 	<!--- //**************************************************************************************************************
 			Determine what to get based upon the URL and set parameters to get the articles
 	//********************************************************************************************************************
@@ -43,22 +109,15 @@
 				<cfset title = getPost[1]["Title"]>
 
 				<!--- ********************************************************************************************************
-				Increment the view count if the user has not seen this post. 
+				Obtain user information and increment the view count if the user has not seen this post. 
 				********************************************************************************************************  --->
-
-				<!--- Create a new structure to determine what pages have already been viewed in this session. 
-				<cfset logViewStruct = structNew()>--->
-
-				<!--- Populate the struct 
-				<cfset logViewStruct.postId = postId>
-				<cfset logViewStruct.title = title>
-				<cfset logViewStruct.entrymode = true>--->
 
 				<!--- Preset the dontLog --->
 				<cfset dontLog = false>
 				<cfif getPageMode() neq "alias" or structKeyExists(session.viewedpages, postId)>
 					<cfset dontLog = true>
 				<cfelse>
+					<!--- Mark the post that this user viewed --->
 					<cfset session.viewedpages[postId] = 1>
 				</cfif>
 
@@ -71,6 +130,16 @@
 			</cfcase>
 
 		</cfswitch>
+					
+		<!--- Determine if we should display popular posts --->
+		<cfif getPageMode() eq 'blog' and URL.startRow lte 1>
+			<cfset showPopularPosts = true>
+		</cfif>
+				
+		<!--- Determine if we should show the condensedGridView view. This is done for all modes other than when looking at an individual post --->
+		<cfif getPageMode() eq 'category' or getPageMode() eq 'postedBy' or getPageMode() eq 'month' or getPageMode() eq 'day' or getPageMode() eq 'blog'>
+			<cfset condensedGridView = true>
+		</cfif>
 
 		<!--- The original include to the layout.cfm template was done here. This include contained logic for the header, the includes, stylesheets, and pods, and then the layout.cfm logic ended. Older logic for the actual posts were resumed after the layout.cfm template include.
 		I have redesigned the page from here to include the entire logic for the presentation, including the logic found on the old layout.cfm template. I will be reusing Raymond's server side and ColdFusion functions, but the page has been vastly redesigned. --->
@@ -269,8 +338,8 @@
 		<cfparam name="canonicalUrl" default="#thisUrl#" type="string">
 		<cfparam name="addSocialMediaUnderEntry" default="false" type="boolean">
 
-		<!--- Write a <meta name="robots" content="noindex"> tag for categories, postedBy, month and day in order to eliminate any duplicate content. --->
-		<cfif isDefined("url.mode") and (url.mode is "cat" or url.mode is "postedBy" or url.mode is "month" or url.mode is "day")>
+		<!--- Write a <meta name="robots" content="noindex"> meta tag for tags, postedBy, month and day in order to eliminate any duplicate content. Note: we are allowing categories as there is a breadcrumb widget --->
+		<cfif isDefined("url.mode") and (url.mode is "tag" or url.mode is "postedBy" or url.mode is "month" or url.mode is "day")>
 			<cfset noIndex = true>
 		</cfif>
 

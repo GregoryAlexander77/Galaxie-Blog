@@ -36,8 +36,7 @@
 					imagine using disabled="#request.disabled#" to allow for a quick way to
 					turn on/off caching for the entire site. Of course, all calls to the tag
 					would have to use the same value.
-	getCacheItems:	Returns a list of keys in the cache. Exists the tag when called. NOTICE! Some items
-					may be expired. Items only get removed if you are fetching them or calling CLEAR on them.
+	getCacheItems:	Returns a list of keys in the cache. Exists the tag when called. NOTICE! Some 					items may be expired. Items only get removed if you are fetching them or calling 				 CLEAR on them.
 	getCacheData:	Returns the value directly.
 	data:			Sets the value directly.
 	file:			Fully qualified file name for file based caching.

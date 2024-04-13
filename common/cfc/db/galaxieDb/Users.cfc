@@ -4,8 +4,8 @@
 	<!--- Many users per blog. --->
 	<cfproperty name="BlogRef" ormtype="int" fieldtype="many-to-one" cfc="Blog" fkcolumn="BlogRef" cascade="all">
 	<!--- A psuedo column to extract the user roles. --->
-	<cfproperty name="UserRoles" singularname="UserRole" ormtype="int" fieldtype="one-to-many" cfc="UserRole" fkcolumn="UserRef" type="array" cascade="all" inverse="true" missingRowIgnored="true">
-	<cfproperty name="MediaRef" ormtype="int" fieldtype="many-to-one" cfc="Media" fkcolumn="MediaRef" cascade="all">
+	<cfproperty name="UserRoles" singularname="UserRole" ormtype="int" fieldtype="one-to-many" cfc="UserRole" fkcolumn="UserRef" type="array" cascade="all" inverse="true" missingRowIgnored="true">		
+	<cfproperty name="MediaRef" ormtype="int" fieldtype="many-to-one" cfc="Media" fkcolumn="MediaRef" cascade="all">		
 	<cfproperty name="UserToken" ormtype="string" length="35" default="" hint="">
 	<cfproperty name="FirstName" ormtype="string" default="" length="125">
 	<cfproperty name="LastName" ormtype="string" default="" length="125">

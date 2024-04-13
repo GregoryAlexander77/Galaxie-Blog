@@ -10,7 +10,6 @@
 				 : Security fix (rkc 3/9/07)
 				 : Added new pointers to the UDF (ga).
 --->
-<cfoutput>application.adminApplicationTemplateType: #application.adminApplicationTemplateType#</cfoutput>
 
 <!---<cfif not application.filebrowse>
 	<cflocation url="index.cfm" addToken="false">

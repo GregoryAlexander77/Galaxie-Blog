@@ -21,7 +21,7 @@
 
 	<p>Question for the seasoned developer- when was the last time that you actually bought a computer programming book? If you’re like me, it has been a long time ago when we had different stacks of different books filled with sticky notes laying next to us. Instead, I rely upon the web, and blogs like this to solve my programming needs. I often joke that my actual job is using search engines as a living. Often, meeting a goal depends on using the right search phrases to find an answer to the current challenge that I am facing. Developing this blog is one way that I can try to give back to this community.</p>
 
-	<p><b>Gregory’s Blog</b> is intended to be the most beautiful and functional open sourced ColdFusion based blog in the world. While I can’t go toe to toe with Wordpress functionality, I believe that Gregory’s Blog competes with Wordpress in core functionality, especially with its abundant theme related features. This blog was built from the ground up to be eminently themeable. Galaxie Blog is a responsive web application, and should be fully functional and work on any modern device: desktop: tablet: and mobile. With a limited amount of time and knowledge, a user can change the background and logo images, set the various container widths, opacities, and even skin and share their own personal themes. I have also developed a dozen or so professionally designed pre-defined themes.</p>
+	<p><b>Gregory’s Blog</b> is intended to be the most beautiful and functional open sourced ColdFusion based blog in the world. While I can’t go toe to toe with Wordpress functionality, I believe that Gregory’s Blog competes with Wordpress in core functionality, especially with its abundant theme related features. This blog was built from the ground up to be eminently themeable. Galaxie Blog is a responsive web application, and should be fully functional and work on any modern device: desktop: tablet: and mobile. With a limited amount of time and knowledge, a user can change the background and logo images, set the various container widths, opacities, and even skin and share their own personal themes. I have also developed scores of pre-defined themes.</p>
 
 	<p><b>Gregory’s Blog</b> is a HTML5 interface, has built in social sharing, theme-based code formatters, a web based installer, enclosure support, supports inline .CSS, scripts and HTML, engaging media and animation capabilities using <b><a href="https://greensock.com/">GreenSock</a></b>, an HTML 5 based media player, captcha, comment moderation, search capabilities, RSS feeds and CFBlogger integration, textblock support, and has a plug-in architecture where you can isolate and potentially share your own custom code. Additionally, this blog uses the exact same database and ColdFusion server side logic as another older popular ColdFusion blog engine, blogCfc, so if you are familiar with ColdFusion, or have used BlogCfc, you should be able to convert your current blog and get this up and running quite easily.</p>
 
@@ -83,11 +83,11 @@
 	<p><b>Installation</b></p>
 	<li>You must have a ColdFusion installed on a server.
 	<ul>
-	<li>Your web server must have ColdFusion installed. Galaxie Blog has been tested on ColdFusion 2016, 2018, and 2021.</li>
+	<li>Your web server must have ColdFusion installed. Galaxie Blog has been tested on ColdFusion 2016, 2018, 2021 and 2023 (2023.0.07.330663).</li>
 	<li>Theoretically, the blog may support any ColdFusion edition starting from ColdFusion 9, however, your mileage may vary.</li>
 	<li>We have successfully tested against Apache, TomCat and IIS.</li>
 	<li>We have not yet tested the blog on Lucee, an open-source version of Adobe ColdFusion. We intend on supporting Lucee in the future.</li>
-	<li>There are many ISPs which offer ColdFusion servers for as low as 12 dollars a month. Search the web for ColdFusion hosting to find out more.</li>
+	<li>There are many ISPs which offer ColdFusion servers for as low as 12 dollars a month. I use Media3.net, and they have been terrific. Search the web for ColdFusion hosting to find out more.</li>
 	</ul>
 	</li>
 	<li>Once downloaded, upload the entire contents into your desired location on a web server
@@ -96,7 +96,7 @@
 	<li>We have tested the blog in the root, and in 'blog' and 'galaxie' folders.</li>
 	</ul>
 	</li>
-	<li>You must have a database that is accessible to the webserver. The blog was <strong><em>should</em></strong> support the following databases, however, we have only tested the blog using SQL Server:
+	<li>You must have a database that is accessible to the webserver. The blog was <strong><em>should</em></strong> support the following databases, however, we have only tested the blog using SQL Server and various flavors of MySql:
 	<ul>
 	<li>Microsoft SQL Server</li>
 	<li>DB2</li>
@@ -146,9 +146,9 @@
 
 	<p>If you use this blog, I hope that you will give me credit and link back to <a href="http://www.gregoryalexander.com">www.gregoryalexander.com</a>, preferably by leaving this content found under 'about' - 'download' link intact in the menu. I also ask that you inform me if you find bugs, or have any suggestions.</p>
 
-	<p>Copyright 2022 Gregory Alexander</p>
+	<p>Copyright 2024 Gregory Alexander</p>
 
-	<p>Version <cfoutput>#application.blog.getVersion()#</cfoutput> April 15th 2022.</p>
+	<p>Version <cfoutput>#application.blog.getVersion()#</cfoutput> April 12th 2024.</p>
 		
 </cfif>
 

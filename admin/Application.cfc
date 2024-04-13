@@ -39,9 +39,11 @@
 				<!--- Note: there is no way to reconstruct a password. The only thing you can do is to re-create a the same hashed password if you know the existing password and hash key. If you have access to the code, you *can* however add or 1 eq 1 to the following line to log in and change the password. Just change it back after changing it. --->
 				<cfif application.blog.authenticate(left(trim(form.username),255),left(trim(form.password),50), cgi.remote_addr, cgi.http_User_Agent)>
 
-					<cfloginuser name="#trim(username)#" password="#trim(password)#" roles="admin">
-					<cfset session.userName = trim(username)>
-					<cfset session.key = trim(password)>
+					<cfloginuser name="#trim(form.username)#" password="#trim(form.password)#" roles="admin">
+					<cfset session.userName = trim(form.username)>
+					<cfset session.key = trim(form.password)>
+					<!--- Get the current logged in users Id --->
+					<cfset session.userId = application.blog.getUserIdByUserName(form.username)>
 					<!--- 
 						  This was added because CF's built in security system has no way to determine if a user is logged on.
 						  In the past, I used getAuthUser(), it would return the username if you were logged in, but
@@ -50,7 +52,7 @@
 					--->  
 					<cfset session.loggedin = true>
 					<!--- Add the blog user's specific roles to the session scope. --->
-					<cfset session.roles = application.blog.getUserBlogRoles(username, 'roleList')>
+					<cfset session.roles = application.blog.getUserBlogRoles(form.username, 'roleList')>
 					<!--- Set the capabilities. There are one or more capabilities for each role.--->
 					<cfset session.capabilityList = application.blog.getCapabilitiesByRole(session.roles, 'capabilityList')>
 					<!--- Also get the capability id's --->
@@ -76,7 +78,7 @@
 		<cfif findNoCase("/admin", cgi.script_name) and not application.Udf.isLoggedIn()>
 			<cfsetting enablecfoutputonly="false">
 			<!--- Here we are using a module instead of a cfinclude as the include would essentially place the login.cfm template, which has identical logic to the other admin templates, which causes errors as there are duplicate functions. --->
-			<cfmodule template="logonPage.cfm">
+			<cfmodule template="login.cfm">
 			<cfabort>
 		</cfif>
 				

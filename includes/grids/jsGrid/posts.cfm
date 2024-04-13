@@ -179,7 +179,13 @@
 						dataType: "json"
 					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
 					}).then(function(result) {
-						return result.data;
+						// The result will be false if the csrf token was not authorized.
+						if (!result){
+							createLoginWindow(); 
+						} else {
+							return result.data;
+						}
+						
 					// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
 					}).fail(function (jqXHR, textStatus, error) {
 						// This is a secured function. Display the login screen if there is a 403 response header.
@@ -305,7 +311,7 @@
 					type: "textarea",
 					title: "Post",
 					editing: false,
-					width: (pageWidth*(30/100)),
+					width: (pageWidth*(28/100)),
 					itemTemplate: function(value, item) {
 						// This does not work to strip out the HTML ($(value).text())
 					  	return '<a href="javascript:createAdminInterfaceWindow(6, ' + item.PostId + ');">' + truncateWithEllipses(removeStrBetween(value, "postData"), 125) + '</a>';
@@ -316,7 +322,7 @@
 					type: "date",
 					title: "Sort Date",
 					editing: true,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(8/100)),
 					sorttype: 'date', 
 					itemTemplate: function (value, item) {
 						// Format the date using the momentJs lib.
@@ -324,11 +330,20 @@
 					},
 				},
 				{ 	
+					name: "ViewsPerDay", 
+					type: "number",
+					title: "Monthly Views",
+					filtering: false,
+					editing: false,
+					width: (pageWidth*(8/100)),
+					sorttype: 'number'
+				},
+				{ 	
 					name: "DatePosted", 
 					type: "date",
 					title: "Posted",
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(8/100)),
 					sorttype: 'date', 
 					itemTemplate: function (value, item) {
 						// Format the date using the momentJs lib.
@@ -340,7 +355,7 @@
 					type: "checkbox",
 					// We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead.
 					title: '<cfif session.isMobile><i class="fas fa-thumbs-up"></i><cfelse>Released</cfif>',
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(8/100)),
 					<!--- editTemplate: function(value, item) {
 						return "<input type='checkbox'>" + item.Released;
 					} --->

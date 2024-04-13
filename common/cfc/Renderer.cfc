@@ -4,6 +4,40 @@
 	<cfset bingMapsUrl = 'https://sdk.virtualearth.net'>	
 		
 	<!--- //************************************************************************************************
+		Helper functinos
+	//**************************************************************************************************--->
+		
+	<cffunction name="getIframeDimensions" access="public" returnType="string" output="true"
+			hint="Determines the size of the iframe when rendering maps and carousels">
+		<cfargument name="renderThumbnail" type="boolean" required="false" default="false">
+		<cfargument name="renderMediumCard" type="boolean" required="false" default="false">
+			
+		<!---To get the dimensions, use something like this:
+		<cfset iframeDimensions = this.getIframeDimensions(true,true)>
+		<cfset height = getIframeDimensions.height>
+		--->
+	
+		<!--- Set the default iframe dimensions --->
+		<cfif arguments.renderThumbnail>
+			<cfif arguments.renderMediumCard>
+				<cfset width = "615">
+				<cfset height = "380"><!--- Corresponds to the k-card-media css declaration --->
+			<cfelse>
+				<cfset width = "235">
+				<cfset height = "130">
+			</cfif>
+		<cfelse>
+			<cfset width = "750">
+			<cfset height = "432">
+		</cfif>
+				
+		<cfset dimensions = {width=#width#,height=#height#}>
+			
+		<cfreturn dimensions>
+			
+	</cffunction>
+		
+	<!--- //************************************************************************************************
 		Composite post injection functions
 	//**************************************************************************************************--->
 			
@@ -11,10 +45,12 @@
 			hint="Renders html for a post. This will also render the directives from the post header, the enclosure images and media, and the post.">
 		<cfargument name="kendoTheme" type="string" required="false" default="">
 		<cfargument name="getPost" type="any" required="false" default="">
-		<cfargument name="currentRow" type="string" required="false" default="">
+		<cfargument name="currentRow" type="string" required="false" default="1" hint="If there is more than one row, we may be in blog mode (or category, tag, etc), if there is only one post, we are most likely reading a single post.">
 		
 		<!--- Extract the needed data from the query --->
 		<cfset postHeader = getPost[currentRow]["PostHeader"]>
+		<cfset css = getPost[currentRow]["CSS"]>
+		<cfset javaScript = getPost[currentRow]["JavaScript"]>
 		<cfset body = getPost[currentRow]["Body"]>
 			
 		<!--- Notes: 
@@ -192,30 +228,30 @@
 
 					<cfif scriptDirective>
 						<!--- Render the script, video enclosure and the body--->
-						<cfset post = postHeader & videoEnclosure & '<br/>' & renderBody(body)>
+						<cfset post = postHeader & videoEnclosure & '<br/>' & renderCssAndScript(css, javaScript) & renderBody(body)>
 					<cfelse>
 						<!--- Render the video enclosure and body --->
-						<cfset post = videoEnclosure & '<br/>' & renderBody(body)>
+						<cfset post = videoEnclosure & '<br/>' & renderCssAndScript(css, javaScript) & renderBody(body)>
 					</cfif>
 						
 				<cfelse><!---<cfif videoDirective>--->
 					
-					<!--- This is the standard pathway if there are no cfinclude, attachScripts or video directives. --->
+					<!--- This is the standard pathway if there are no cfincludes, attachScripts or video directives. --->
 					<!--- Render the enclosure. We need to pass in the kendoTheme, getPost query and the current row. This will render all of the enclosure types- images, video's and maps. --->
 					<cfset enclosure = renderEnclosure(arguments.kendoTheme,arguments.getPost,arguments.currentRow)>
 					<cfif scriptDirective>
 						<!--- Render the postHeader, enclosure and body --->
 						<cfif len(enclosure)>
-							<cfset post = postHeader & enclosure & '<br/>' & renderBody(body)>
+							<cfset post = postHeader & enclosure & '<br/>' & renderCssAndScript(css, javaScript) & renderBody(body)>
 						<cfelse>
-							<cfset post = postHeader & enclosure & renderBody(body)>
+							<cfset post = postHeader & enclosure & renderCssAndScript(css, javaScript) & renderBody(body)>
 						</cfif>
 					<cfelse>
 						<!--- Render the enclosure and body --->
 						<cfif len(enclosure)>
-							<cfset post = enclosure & '<br/>' & renderBody(body)>
+							<cfset post = enclosure & '<br/>' & renderCssAndScript(css, javaScript) & renderBody(body)>
 						<cfelse>
-							<cfset post = enclosure & renderBody(body)>
+							<cfset post = enclosure & renderCssAndScript(css, javaScript) & renderBody(body)>
 						</cfif>
 					</cfif>
 						
@@ -230,9 +266,9 @@
 			<cfset enclosure = renderEnclosure(arguments.kendoTheme,arguments.getPost,arguments.currentRow)>
 			<!--- Render the body --->
 			<cfif len(enclosure)>
-				<cfset post = enclosure & '<br/>' & renderBody(body)>
+				<cfset post = enclosure & '<br/>' & renderCssAndScript(css, javaScript) & renderBody(body)>
 			<cfelse>
-				<cfset post = enclosure & renderBody(body)>
+				<cfset post = enclosure & renderCssAndScript(css, javaScript) & renderBody(body)>
 			</cfif>
 		</cfif><!---<cfif len(postHeader)>--->
 
@@ -256,6 +292,43 @@
 			
 		<!--- Return it --->
 		<cfreturn postHeader>
+	</cffunction>
+			
+	<cffunction name="renderCssAndScript" returntype="string" output="true"
+			hint="Renders any css and or scripts that are attached to a given post">
+		<cfargument name="css" type="any" required="no"  default="" hint="The CSS for a post. Stored in the Post.CSS column">
+		<cfargument name="javaScript" type="any" required="no" default="" hint="The CSS for a post. Stored in the Post.CSS column">
+			
+		<cfparam name="thisCssAndScript" default="">
+		<cfparam name="thisCss" default="">
+		<cfparam name="thisScript" default="">	
+			
+		<!--- Set the style along with the opening and closing tags --->
+		<cfif len(arguments.css)>
+			<cfset thisCss = '<style>' & arguments.css & '</style>'>
+			<!--- Set the value of the var that will be returned. --->
+			<cfset thisCssAndScript = thisCss>
+		</cfif>
+			
+		<!--- Do the same for javascript --->
+		<cfif len(arguments.javaScript)>
+			<!--- Determine the script type (either javascript or deferjs) --->
+			<cfif application.deferScriptsAndCss>
+				<!--- Defers the loading of the script and css using the deferjs library. --->
+				<cfset scriptTypeString = "deferjs">
+			<cfelse>
+				<cfset scriptTypeString = "text/javascript">
+			</cfif>
+			<cfset openingScript = '<script type="' & scriptTypeString & '">'>
+			<cfset script = arguments.javaScript>
+			<cfset closingScript = '</script>'>
+			<cfset thisScript = openingScript & script & closingScript>
+			<!--- Set the value of the var that will be returned. --->
+			<cfset thisCssAndScript = thisCssAndScript & thisScript>
+		</cfif>
+			
+		<cfreturn thisCssAndScript>
+		
 	</cffunction>
 			
 	<cffunction name="renderBody" returntype="string" output="true"
@@ -288,6 +361,8 @@
 		<cfset mediaVideoVttFileUrl = ''>
 		<!--- Maps --->
 		<cfset enclosureMapId = ''>
+		<!--- Carousel --->
+		<cfset enclosureCarouselId = ''>
 	
 		<!--- There are two references to the media, a path and a URL. The previous versions of BlogCfc did not use the URL so we need to check if the mediaUrl is present and extract it from the path if it does not exist. --->
 		<cfset mediaId = getPost[currentRow]["MediaId"]>
@@ -309,6 +384,8 @@
 		<!--- Used to determine if there are multiple maps --->
 		<cfset enclosureMapCount = getPost[currentRow]["EnclosureMapCount"]>
 		<cfset enclosureMapIdList = getPost[currentRow]["EnclosureMapIdList"]>
+		<!--- Carousel --->
+		<cfset enclosureCarouselId = getPost[currentRow]["enclosureCarouselId"]>
 
 		<!---*********************    Handle the map  *********************--->
 				
@@ -320,7 +397,7 @@
 				
 			<!--- If there are multiple maps when looking at the blog on a mobile device, render the maps in an iframe. --->
 			<cfif session.isMobile and currentRow gt 1>
-				<!--- Render the map inside an iframe if this is a mobile device. Mobile can't handle multiple maps --->
+				<!--- Render the map inside an iframe if this is a mobile device. Mobile can't handle multiple maps renderMapPreview(mapId, thumbnail, renderKCardMediaClass, renderMediumCard, showSidebar)  --->
 				<cfset enclosureHtml = renderMapPreview(enclosureMapId, false)>
 			<cfelse>
 				<!--- Render the map using the bing maps api --->
@@ -331,6 +408,12 @@
 					<cfinvokeargument name="currentRow" value="#arguments.currentRow#">
 				</cfinvoke>
 			</cfif>
+		</cfif>
+						
+		<!---*********************    Handle the carousel  *********************--->
+		<cfif len(enclosureCarouselId)>	
+			<!--- Render the carousel using the renderCarousel method: renderCarousel(carouselId,renderCard) --->
+			<cfset enclosureHtml = this.renderCarousel(enclosureCarouselId,0)>
 		</cfif>
 						
 		<!---*********************    Handle the enclosure  *********************--->
@@ -365,6 +448,7 @@
 		<cfargument name="kendoTheme" type="string" required="yes" hint="Pass in the Kendo Theme">
 		<cfargument name="getPost" type="any" required="yes" hint="Pass in the getPost HQL query">
 		<cfargument name="renderThumbnail" type="boolean" required="yes" hint="You can render a preview for the tinymce editor or a thumbnail">
+		<cfargument name="showSidebar" type="boolean" required="false" default="false" hint="When the sidebar is shown, the popular posts cards need a separate class than the rest of the cards.">
 		<!---Debugging: <cfdump var="#getPost#">--->
 			
 		<cfparam name="thumbnailHtml" default="">
@@ -376,7 +460,7 @@
 		<cfset thumbnailUrl = getPost[1]["MediaThumbnailUrl"]>
 		<cfset mediaPath = getPost[1]["MediaPath"]>
 		<cfset mediaType = getPost[1]["MediaType"]>
-		<!--- Note: for external links, the mime type will not be available (YouTube and other media sources don't  always have a easilly read extension) --->
+		<!--- Note: for external links, the mime type will not be available (YouTube and other media sources don't always have a easilly read extension) --->
 		<cfset mimeType = getPost[1]["MimeType"]>
 		<cfif not len(mediaUrl)>
 			<!--- We are only getting the path and not the entire URL --->
@@ -388,6 +472,8 @@
 		<cfset mediaVideoVttFileUrl = getPost[1]["MediaVideoVttFileUrl"]>
 		<!--- Maps --->
 		<cfset enclosureMapId = getPost[1]["EnclosureMapId"]>
+		<!--- Carousel --->
+		<cfset enclosureCarouselId = getPost[1]["EnclosureCarouselId"]>
 
 		<cfif len(mediaUrl)>
 			<!--- We don't  always have a mime type. External links for example don't  always have a readable extension --->
@@ -399,7 +485,7 @@
 					<cfset thumnailSource = mediaUrl>
 				</cfif>
 				<!--- Render the image HTML string --->
-				<cfset thumbnailHtml = '<a class="fancybox-effects" onClick="javascript:createAdminInterfaceWindow(13,' & URL.optArgs & ')"><img id="thumbnailImage" data-src="' & thumnailSource & '" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="' & thumnailSource & '"></a>'>
+				<cfset thumbnailHtml = '<a class="fancybox-effects" aria-label="Thumnail Image Url" onClick="javascript:createAdminInterfaceWindow(13,' & URL.optArgs & ')"><img id="thumbnailImage" data-src="' & thumnailSource & '" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="' & thumnailSource & '"></a>'>
 			<!--- The media type string for video is Video - Large, Video - YouTube URL, etc. All of the video types start with 'Video' --->
 			<cfelseif left(mediaType, 5) eq 'Video'>
 				<!--- Note: this will return an iframe. --->
@@ -418,13 +504,19 @@
 		<!---*********************    Handle the map  *********************--->
 		<!--- Extract the map id --->
 		<cfif len(enclosureMapId)>
-			<!--- Render the map. This returns a iframe --->
+			<!--- Render the map. This returns a iframe. renderMapPreview(mapId, thumbnail, renderKCardMediaClass, renderMediumCard, showSidebar)  --->
 			<cfset thumbnailHtml = renderMapPreview(enclosureMapId, arguments.renderThumbnail)>
+		</cfif>
+		
+		<!---******************    Handle the carousel  ******************--->
+		<cfif len(enclosureCarouselId)>
+			<!--- Get the HTML for this carousel --->
+			<cfset thumbnailHtml = this.renderCarouselPreview(enclosureCarouselId,'postEditor')>
 		</cfif>
 			
 		<!--- Insert an circular image with a line to indicate that the media does not exist for this post. --->
 		<cfif renderThumbnail and thumbnailHtml eq ''>
-			<cfset thumbnailHtml = '<a class="fancybox-effects" onClick="javascript:createAdminInterfaceWindow(13,' & URL.optArgs & ')"><img id="thumbnailImage" data-src="#application.baseUrl#/images/icons/noMedia.png" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="#application.baseUrl#/images/icons/noMedia.png"></a>'>
+			<cfset thumbnailHtml = '<a class="fancybox-effects" aria-label="Thumnail Image Url" onClick="javascript:createAdminInterfaceWindow(13,' & URL.optArgs & ')"><img id="thumbnailImage" data-src="#application.baseUrl#/images/icons/noMedia.png" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="#application.baseUrl#/images/icons/noMedia.png"></a>'>
 		</cfif>
 			
 		<cfreturn thumbnailHtml>
@@ -435,7 +527,7 @@
 			hint="Renders a thumbnail">
 		<cfargument name="url" type="string" required="yes">
 	
-		<cfset thumbNailHtml = '<a class="fancybox-effects" href="<cfoutput>#arguments.url#</cfoutput>"><img data-src="<cfoutput>#arguments.url#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#arguments.url#</cfoutput>"></a>'>
+		<cfset thumbNailHtml = '<a class="fancybox-effects" aria-label="Image URL" href="<cfoutput>#arguments.url#</cfoutput>"><img data-src="<cfoutput>#arguments.url#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#arguments.url#</cfoutput>"></a>'>
 		
 		<cfreturn thumbNailHtml>
 				
@@ -601,6 +693,8 @@
 		<cfargument name="numImages" type="numeric" required="yes">
 		<cfargument name="darkTheme" type="boolean" default="false" required="no">
 			
+		<cfparam name="width" default="750">
+			
 		<!--- Set the height based upon the numer of images. --->
 		<cfset baseHeight = 150>
 		<cfif numImages lte 3>
@@ -615,8 +709,8 @@
 			
 		<!--- Create a custom tag and iframe --->
 		<cfset galleryHtmlStr = '<div data-type="gallery" data-id="' & arguments.galleryId & '" onDblClick="createAdminInterfaceWindow(14,' & galleryId & ')">'>
-		<cfset galleryHtmlStr = galleryHtmlStr & '<iframe data-type="gallery" data-id="#arguments.galleryId#" src="#application.baseUrl#/preview/gallery.cfm?galleryId=' & arguments.galleryId & '&darkTheme=' & arguments.darkTheme>
-		<cfset galleryHtmlStr = galleryHtmlStr & '" width="768" height="' & height & '" allowfullscreen="allowfullscreen"></iframe></div'>
+		<cfset galleryHtmlStr = galleryHtmlStr & '<iframe title="gallery" data-type="gallery" data-id="#arguments.galleryId#" src="#application.baseUrl#/preview/gallery.cfm?galleryId=' & arguments.galleryId & '&darkTheme=' & arguments.darkTheme>
+		<cfset galleryHtmlStr = galleryHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen"></iframe></div'>
 			
 		<cfreturn galleryHtmlStr>
 	
@@ -762,18 +856,41 @@
 		<cfargument name="posterUrl"  default="" type="string" required="no">
 		<cfargument name="videoCaptionsUrl" default="" type="string" required="no">
 		<cfargument name="renderThumbnail" type="boolean" required="no" default="false">
+		<cfargument name="renderKCardMediaClass" type="boolean" required="no" default="false">
+		<cfargument name="renderMediumCard" type="boolean" required="no" default="false">
+		<cfargument name="showSidebar" type="boolean" required="no" default="false" hint="determines the class of the thumbnail presentation">
+		
+			
+		<!--- Set a shorter kCard var for the URL. We don't want to pass in renderKCardMediaClass in the URL --->
+		<cfif renderKCardMediaClass>
+			<cfset kcard = true>
+		<cfelse>
+			<cfset kcard = false>
+		</cfif>
 			
 		<!--- Set the default iframe dimensions --->
 		<cfif renderThumbnail>
-			<cfset width = "235">
-			<cfset height = "130">
+			<cfif renderMediumCard>
+				<cfset width = "615">
+				<cfset height = "380"><!--- Corresponds to the k-card-media css declaration --->
+			<cfelse>
+				<cfset width = "235">
+				<cfset height = "130">
+			</cfif>
 		<cfelse>
-			<cfset width = "768">
+			<cfset width = "750">
 			<cfset height = "432">
+		</cfif>
+				
+		<!--- When the sidebar is shown, we want to use the k-card-scroll-image for the popular posts at the top of the page. Otherwise, use the k-card-media class since all of the card sizes will be the same for both popular and the main posts. --->
+		<cfif arguments.showSidebar and not renderMediumCard>
+			<cfset kCardVideoClass = "k-card-scroll-image">
+		<cfelse>
+			<cfset kCardVideoClass = "k-card-media">
 		</cfif>
 			
 		<!--- Note: we will not have an extension that we can read on an external URL --->
-		<cfset mediaHtmlStr = '<iframe data-type="video" data-id="#arguments.mediaId#" src="#application.baseUrl#/galaxiePlayer.cfm?videoUrl=' & arguments.mediaUrl & '&thumbnail=' & renderThumbnail>
+		<cfset mediaHtmlStr = '<iframe title="media player" data-type="video" data-id="#arguments.mediaId#" src="#application.baseUrl#/galaxiePlayer.cfm?videoUrl=' & arguments.mediaUrl & '&thumbnail=' & renderThumbnail & '&kcard=' & kcard>
 		<cfif len(arguments.providerVideoId)>
 			<cfset mediaHtmlStr = mediaHtmlStr & '&providerVideoId=' & arguments.providerVideoId>
 		</cfif>
@@ -783,8 +900,13 @@
 		<cfif len(arguments.videoCaptionsUrl)>
 			<cfset mediaHtmlStr = mediaHtmlStr & '&videoCaptionsUrl=' & arguments.videoCaptionsUrl>
 		</cfif>
-		<cfset mediaHtmlStr = mediaHtmlStr & '" width="' & width &'" height="' & height & '" allowfullscreen="allowfullscreen"></iframe>'>
-			
+		<cfif renderKCardMediaClass>
+			<!--- Height is missing here and the k-card-media class is used. --->
+			<cfset mediaHtmlStr = mediaHtmlStr & '" width="' & width & '" allowfullscreen="allowfullscreen" class="' & kCardVideoClass & '"></iframe>'>
+		<cfelse>
+			<cfset mediaHtmlStr = mediaHtmlStr & '" width="' & width &'" height="' & height & '" allowfullscreen="allowfullscreen"></iframe>'>
+		</cfif>
+		
 		<cfreturn mediaHtmlStr>
 	
 	</cffunction>
@@ -841,9 +963,9 @@
 			</cfif>	
 			<!--- Construct our anchor tag. --->
 			<cfif generateTinyMcePreview>
-				<cfset htmlStr = htmlStr & '<a class="fancybox-effects" data-fancybox-group="' & galleryName & '" title="' & galleryItemTitle & '" onDblClick="javascript:' & galleryItemLink & '">'>
+				<cfset htmlStr = htmlStr & '<a aria-label="Image Link" class="fancybox-effects" data-fancybox-group="' & galleryName & '" title="' & galleryItemTitle & '" onDblClick="javascript:' & galleryItemLink & '">'>
 			<cfelse>
-				<cfset htmlStr = htmlStr & '<a class="fancybox-effects" href="' & galleryItemLink & '" data-fancybox-group="' & galleryName & '" title="' & galleryItemTitle & '">'>
+				<cfset htmlStr = htmlStr & '<a aria-label="Image Link" class="fancybox-effects" href="' & galleryItemLink & '" data-fancybox-group="' & galleryName & '" title="' & galleryItemTitle & '">'>
 			</cfif>
 			
 			<!--- And now construct the image --->
@@ -857,6 +979,240 @@
 				
 		<!--- Return the HTML --->
 		<cfreturn htmlStr>
+	
+	</cffunction>
+				
+	<cffunction name="renderCarousel" returntype="string" output="true"
+			hint="Renders a carousel">
+		<cfargument name="carouselId" type="string" required="yes">
+		<cfargument name="card" type="boolean" required="no" default="false">
+		<cfargument name="height" type="any" required="no" default="">
+		<cfargument name="width" type="any" required="no" default="100%">
+			
+		<!--- Preset the return value --->
+		<cfparam name="carouselHtml" default="">
+			
+		<!--- Get the theme in order to get the font properties --->
+		<cfset themeAlias = application.blog.getSelectedThemeAlias()>
+			
+		<!--- Preset carousel height --->
+		<cfif not len(arguments.height)>
+			<cfif arguments.card eq true>
+				<cfset height = "150px">
+			<cfelse>
+				<cfset height = "534px">
+			</cfif>
+		</cfif>
+					
+		<!--- Set the width when using card layout --->
+		<cfif not len(arguments.width) and arguments.card>
+			<cfset height = "150px">
+		</cfif>
+			
+		<!--- Get the theme related font --->
+		<cfquery name="getTheme" dbtype="hql">
+			SELECT new Map (
+				KendoThemeRef.KendoTheme as KendoTheme,
+				ThemeSettingRef.FontRef.Font as Font
+			)
+			FROM 
+				Theme as Theme
+			WHERE Theme.ThemeAlias = <cfqueryparam value="#themeAlias#" cfsqltype="cf_sql_varchar">
+		</cfquery>
+		<!--- Set the Kendo Theme --->
+		<cfset themeFont = getTheme[1]["Font"]>
+		<!--- Set the Kendo Theme --->
+		<cfset kendoTheme = getTheme[1]["KendoTheme"]>
+			
+		<cfset alternateBgColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'alternateBgColor')>
+			
+		<!--- Get the data --->
+		<cfset getCarousel = application.blog.getCarousel(arguments.carouselId)>
+			
+		<!--- Don't proceed if there is no data --->
+		<cfif arrayLen(getCarousel)>
+			<!--- Set the global vars --->
+			<cfset carouselEffect = getCarousel[1]["CarouselEffect"]><!---This is always GL for now.--->
+			<cfset carouselShader = getCarousel[1]["CarouselShader"]>
+			<!--- Font properties --->
+			<cfset carouselFont = getCarousel[1]["Font"]>
+			<cfset carouselItemTitleFontColor = getCarousel[1]["CarouselItemTitleFontColor"]>
+			<cfset carouselItemTitleFontSize = getCarousel[1]["CarouselItemTitleFontSize"]>
+			<cfset carouselItemBodyFontColor = getCarousel[1]["CarouselItemBodyFontColor"]>
+			<cfset carouselItemBodyFontSize = getCarousel[1]["CarouselItemBodyFontSize"]>
+
+			<!--- Create the HTML --->
+			<cfsavecontent variable="carouselHtml">
+				<style>
+					/** Swiper styles **/
+					:root {
+						--swiper-pagination-color: <cfoutput>#chr(35)#</cfoutput>FFF;
+						--swiper-pagination-bullet-inactive-color: <cfoutput>#chr(35)#</cfoutput>FFF;
+					}
+
+					.swiper {
+						user-select: none;
+						box-sizing: border-box;
+						overflow: hidden;
+						width: <cfoutput>#width#</cfoutput>;/*was 100%*/
+						height: <cfoutput>#height#</cfoutput>;/*height should always be set, was 534px*/
+						padding: 0px 0px;
+					}
+
+					.swiper-slide {
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						width: 100%;
+						height: height:<cfoutput>#height#</cfoutput>;/*height should always be set, was 534px*/
+						position: relative;
+						box-sizing: border-box;
+						overflow: hidden;
+						border-radius: 0px;
+					}
+
+					.swiper-slide-content {
+						width: 100%;/* Container width */
+						height: 100%;/* Container height */
+						display: flex;
+						flex-direction: column;
+						position: relative;
+						z-index: 1;
+						box-sizing: border-box;
+						padding: 48px 48px;
+						align-items: flex-start;
+						justify-content: flex-end;
+						transform: translate3d(0, 0, 0);
+					}
+
+					.swiper-slide-title {
+						font-family: <cfoutput>"#themeFont#"</cfoutput>;
+						font-size: <cfoutput>#carouselItemTitleFontSize#</cfoutput>px;
+						font-weight: bold;
+						transform-origin: left bottom;
+						text-shadow: 4px 8px 16px rgba(0, 0, 0, 0.19); /* The drop shadow should closely mimick the shadow on the main blog layer.*/
+					}
+
+					.swiper-slide-text {
+						max-width: 640px;
+						font-size: <cfoutput>#carouselItemBodyFontSize#</cfoutput>px;
+						line-height: 1.4;
+						transform-origin: left bottom;
+						color: <cfoutput>#carouselItemBodyFontColor#</cfoutput>;
+					}
+
+					.swiper-slide-title + .swiper-slide-text {
+						margin-top: 8px;
+					}
+
+					.swiper-slide-image {
+						border-radius: 0px;
+						position: absolute;
+						object-fit: cover;
+						left: -10%;
+						top: -10%;
+						width: 120%;
+						height: 120%;
+						z-index: 0;
+					}
+					
+					/* back button */
+					.swiper-button-next:after,.swiper-button-next:after {
+						color: azure
+					}
+					/* forward button */
+					.swiper-button-next:after,.swiper-button-prev:after {
+						color: azure
+					}
+				</style>
+
+				<div class="swiper">
+					<div class="swiper-wrapper">
+						<cfloop from="1" to="#arrayLen(getCarousel)#" index="i">
+						<cfsilent>
+						<!--- Set the variable values. I want to shorten the long variable names here. --->
+						<cfset carouselItemTitle = getCarousel[i]["CarouselItemTitle"]>
+						<cfset carouselItemBody = getCarousel[i]["CarouselItemBody"]>
+						<!--- In card mode, grab the small thumbnail image. --->
+						<cfif arguments.card>
+							<cfset carouselItemMediaUrl = getCarousel[i]["MediaThumbnailUrl"]>
+						<cfelse>
+							<cfset carouselItemMediaUrl = getCarousel[i]["MediaUrl"]>
+						</cfif>
+						</cfsilent>
+						<div class="swiper-slide">
+							
+							<img id="cid<cfoutput>#carouselId#</cfoutput>" 
+								class="swiper-slide-image swiper-gl-image"  
+	 							src="<cfoutput>#carouselItemMediaUrl#</cfoutput>"
+								loading="lazy">
+							<div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>
+							<div class="swiper-slide-content">
+								<div class="swiper-slide-title" data-swiper-parallax="-100">
+									<cfif not arguments.card><cfoutput>#carouselItemTitle#</cfoutput></cfif>
+								</div>
+
+								<div class="swiper-slide-text" data-swiper-parallax="-200">
+									<cfif not arguments.card><cfoutput>#carouselItemBody#</cfoutput></cfif>
+								</div>
+							</div><!---<div class="swiper-slide-content">--->
+							<div class="swiper-button-next"></div>
+    						<div class="swiper-button-prev"></div>
+						</div><!---<div class="swiper-slide">--->
+						</cfloop>
+					</div><!---<div class="swiper-wrapper">--->
+
+					<div class="swiper-pagination"></div>
+				</div><!--<div class="swiper">-->
+
+				<!--- Include the Swiper scripts --->
+				<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+				<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/swiper/viper/swiper-gl.min.js"></script>
+
+				<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+				<link rel="stylesheet" href="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/swiper/viper/swiper-gl.min.css" />
+
+				<script>
+				  var swiper<cfoutput>#carouselId#</cfoutput> = new Swiper(".swiper", {
+					modules: [SwiperGL],
+					threshold: 5,
+					observer: true,
+					observeParents: true,
+					// Disable preloading of images
+    				preloadImages: false,
+    				// Enable lazy loading
+    				lazy: true,
+					watchSlidesProgress: true,
+					autoplay: { enabled: true },
+					grabCursor: true,
+					effect: "gl",
+					<cfif len(carouselShader)>gl: { shader: "<cfoutput>#carouselShader#</cfoutput>" },</cfif>
+					slidesPerGroupAuto: false,
+					creativeEffect: {
+					  next: { shadow: true },
+					  prev: { shadow: true },
+					  limitProgress: 5,
+					},
+					navigation: {
+					  nextEl: '.swiper-button-next',
+					  prevEl: '.swiper-button-prev',
+					},
+					pagination: {
+					  clickable: true,
+					  dynamicBullets: true,
+					  el: ".swiper-pagination",
+					},
+					parallax: { enabled: true },
+					speed: 600,
+					keyboard: { enabled: true },
+				  });
+				</script>
+			</cfsavecontent>
+						
+		</cfif><!---<cfif arrayLen(getCarousel)>--->
+		
+		<!--- Return the HTML --->
+		<cfreturn carouselHtml>
 	
 	</cffunction>
 				
@@ -1226,9 +1582,12 @@
 	</cffunction>
 			
 	<cffunction name="renderMapPreview" returntype="string" output="true"
-			hint="Renders the enclosure video at the top of a post">
+			hint="Renders the map thumbnail at the top of a post. Note: there are two sizes of the card, one when used with the sidebar, and one without. When there is no sidebar, all of the posts are in a small card format and both the popular posts and regular posts are using the same class, however, with the sidebar, the posts are in a medium sized card format but the popular posts at the top of the page need a separate class to render correctly.">
 		<cfargument name="mapId" type="string" required="yes">
 		<cfargument name="renderThumbnail" type="boolean" required="no" default="false">
+		<cfargument name="renderKCardMediaClass" type="boolean" required="no" default="false">
+		<cfargument name="renderMediumCard" type="boolean" required="no" default="true">
+		<cfargument name="showSidebar" type="boolean" required="no" default="false">
 			
 		<!--- There are two different types of maps- static and route. --->
 		<!--- Get the map data to determine if this is a static or route map --->
@@ -1243,26 +1602,81 @@
 			
 		<!--- Set the default iframe dimensions --->
 		<cfif renderThumbnail>
-			<cfset width = "235">
-			<cfset height = "130">
+			<cfif renderMediumCard>
+				<cfset width = "615">
+				<cfset height = "380"><!--- Corresponds to the k-card-media css declaration --->
+			<cfelse>
+				<cfset width = "235">
+				<cfset height = "130">
+			</cfif>
 		<!--- Rendering the iframe in a mobile client--->
 		<cfelseif session.isMobile>
 			<cfset width="100%">
 			<cfset height="390">
 		<cfelse>
-			<cfset width = "768">
+			<cfset width = "750">
 			<cfset height = "432">
+		</cfif>
+				
+		<!--- When the sidebar is shown, we want to use the k-card-scroll-image for the popular posts at the top of the page. Otherwise, use the k-card-media class since all of the card sizes will be the same for both popular and the main posts. --->
+		<cfif arguments.showSidebar>
+			<cfset kCardMapClass = "k-card-scroll-image">
+		<cfelse>
+			<cfset kCardMapClass = "k-card-media">
 		</cfif>
 			
 		<!--- Note: we will not have an extension that we can read on an external URL --->
 		<cfif arguments.renderThumbnail>
-			<cfset mapHtmlStr = '<iframe data-type="mapRoute" data-id="#arguments.mapId#" src="#application.baseUrl#/preview/maps.cfm?mapId=' & arguments.mapId & '&mapType=' & mapType & '&thumbnail=true'>
+			<cfset mapHtmlStr = '<iframe title="map route" data-type="mapRoute" data-id="#arguments.mapId#" src="#application.baseUrl#/preview/maps.cfm?mapId=' & arguments.mapId & '&mapType=' & mapType & '&thumbnail=true'>
 		<cfelse>
-			<cfset mapHtmlStr = '<iframe data-type="mapRoute" data-id="#arguments.mapId#" src="#application.baseUrl#/preview/maps.cfm?mapId=' & arguments.mapId & '&mapType=' & mapType & '&thumbnail=false'>
+			<cfset mapHtmlStr = '<iframe title="map route" data-type="mapRoute" data-id="#arguments.mapId#" src="#application.baseUrl#/preview/maps.cfm?mapId=' & arguments.mapId & '&mapType=' & mapType & '&thumbnail=false'>
 		</cfif>
-		<cfset mapHtmlStr = mapHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen"></iframe>'>
+		<cfif renderKCardMediaClass>
+			<!--- Render the map for a Kendo card --->
+			<cfset mapHtmlStr = mapHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen" class="' & kCardMapClass & '"></iframe>'>
+		<cfelse>
+			<cfset mapHtmlStr = mapHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen"></iframe>'>
+		</cfif>
 		
 		<cfreturn mapHtmlStr>
+	
+	</cffunction>
+			
+	<cffunction name="renderCarouselPreview" returntype="string" output="true"
+			hint="Renders the carousel thumbnail at the top of a post on the admin page. This is not used in the tinymce editor, only for the post and enclosure image editors">
+		<cfargument name="carouselId" type="string" required="yes">
+		<cfargument name="editorType" type="string" required="yes" default="postEditor" hint="either postEditor or enclosureEditor">
+			
+		<!--- Note: the height and width logic sets the size of the iframe and needs to be a bit bigger than the actual rendered size to remove scrollbars --->
+		<cfif arguments.editorType eq 'postEditor'>
+			<cfset thumbnail = true>
+			<!--- Smaller size --->
+			<cfif session.isMobile>
+				<cfset height = "105">
+				<cfset width = "225">
+			<cfelse>
+				<!--- The actual messurement are 236x140, but we need the iframes to be bigger to remove the scrollbars. --->
+				<cfset height = "185">
+				<cfset width = "320">
+			</cfif>
+		<cfelse>
+			<cfset thumbnail = false>
+			<!--- Medium size (not full size like on a post) --->
+			<cfif session.isMobile>
+				<cfset height = "147">
+				<cfset width = "285">
+			<cfelse>
+				<cfset height = "580">
+				<cfset width = "825">
+			</cfif>
+		</cfif>
+		<!---Used to be 300x149--->
+			
+		<cfsavecontent variable="carouselHtmlStr">
+			<iframe title="carousel" data-type="carousel" data-id="#arguments.carouselId#" src="#application.baseUrl#/preview/carousel.cfm?carouselId=#arguments.carouselId#&editorType=#arguments.editorType#&thumbnail=#thumbnail#" width="#width#" height="#height#"></iframe>
+		</cfsavecontent> 
+		
+		<cfreturn carouselHtmlStr>
 	
 	</cffunction>
 			
