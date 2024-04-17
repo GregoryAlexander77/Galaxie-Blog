@@ -4,7 +4,7 @@
 	<cfset bingMapsUrl = 'https://sdk.virtualearth.net'>	
 		
 	<!--- //************************************************************************************************
-		Helper functinos
+		Helper functions
 	//**************************************************************************************************--->
 		
 	<cffunction name="getIframeDimensions" access="public" returnType="string" output="true"
@@ -510,7 +510,7 @@
 		
 		<!---******************    Handle the carousel  ******************--->
 		<cfif len(enclosureCarouselId)>
-			<!--- Get the HTML for this carousel --->
+			<!--- Get the HTML for this carousel. renderCarouselPreview(carouselId, interface) --->
 			<cfset thumbnailHtml = this.renderCarouselPreview(enclosureCarouselId,'postEditor')>
 		</cfif>
 			
@@ -695,7 +695,7 @@
 			
 		<cfparam name="width" default="750">
 			
-		<!--- Set the height based upon the numer of images. --->
+		<!--- Set the height based upon the number of images. --->
 		<cfset baseHeight = 150>
 		<cfif numImages lte 3>
 			<cfset height = baseHeight>
@@ -710,7 +710,7 @@
 		<!--- Create a custom tag and iframe --->
 		<cfset galleryHtmlStr = '<div data-type="gallery" data-id="' & arguments.galleryId & '" onDblClick="createAdminInterfaceWindow(14,' & galleryId & ')">'>
 		<cfset galleryHtmlStr = galleryHtmlStr & '<iframe title="gallery" data-type="gallery" data-id="#arguments.galleryId#" src="#application.baseUrl#/preview/gallery.cfm?galleryId=' & arguments.galleryId & '&darkTheme=' & arguments.darkTheme>
-		<cfset galleryHtmlStr = galleryHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen"></iframe></div'>
+		<cfset galleryHtmlStr = galleryHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen" frameBorder="0" scrolling="no"></iframe></div'>
 			
 		<cfreturn galleryHtmlStr>
 	
@@ -902,9 +902,9 @@
 		</cfif>
 		<cfif renderKCardMediaClass>
 			<!--- Height is missing here and the k-card-media class is used. --->
-			<cfset mediaHtmlStr = mediaHtmlStr & '" width="' & width & '" allowfullscreen="allowfullscreen" class="' & kCardVideoClass & '"></iframe>'>
+			<cfset mediaHtmlStr = mediaHtmlStr & '" width="' & width & '" allowfullscreen="allowfullscreen" class="' & kCardVideoClass & '" frameBorder="0" scrolling="no"></iframe>'>
 		<cfelse>
-			<cfset mediaHtmlStr = mediaHtmlStr & '" width="' & width &'" height="' & height & '" allowfullscreen="allowfullscreen"></iframe>'>
+			<cfset mediaHtmlStr = mediaHtmlStr & '" width="' & width &'" height="' & height & '" allowfullscreen="allowfullscreen" frameBorder="0" scrolling="no"></iframe>'>
 		</cfif>
 		
 		<cfreturn mediaHtmlStr>
@@ -986,16 +986,18 @@
 			hint="Renders a carousel">
 		<cfargument name="carouselId" type="string" required="yes">
 		<cfargument name="card" type="boolean" required="no" default="false">
-		<cfargument name="height" type="any" required="no" default="">
 		<cfargument name="width" type="any" required="no" default="100%">
+		<cfargument name="height" type="any" required="no" default="">
 			
+		<cfparam name="debug" default="false">
+		
 		<!--- Preset the return value --->
 		<cfparam name="carouselHtml" default="">
 			
 		<!--- Get the theme in order to get the font properties --->
 		<cfset themeAlias = application.blog.getSelectedThemeAlias()>
 			
-		<!--- Preset carousel height --->
+		<!--- Preset carousel height when not sent in --->
 		<cfif not len(arguments.height)>
 			<cfif arguments.card eq true>
 				<cfset height = "150px">
@@ -1006,7 +1008,7 @@
 					
 		<!--- Set the width when using card layout --->
 		<cfif not len(arguments.width) and arguments.card>
-			<cfset height = "150px">
+			<cfset width = "295px">
 		</cfif>
 			
 		<!--- Get the theme related font --->
@@ -1043,6 +1045,8 @@
 
 			<!--- Create the HTML --->
 			<cfsavecontent variable="carouselHtml">
+				<!---<cfdump var="#getCarousel#">--->
+				<cfif debug>Debug card: #card# width: #width# height: #height#</cfif>
 				<style>
 					/** Swiper styles **/
 					:root {
@@ -1090,11 +1094,12 @@
 						font-size: <cfoutput>#carouselItemTitleFontSize#</cfoutput>px;
 						font-weight: bold;
 						transform-origin: left bottom;
+						color: <cfoutput>#carouselItemTitleFontColor#</cfoutput>;
 						text-shadow: 4px 8px 16px rgba(0, 0, 0, 0.19); /* The drop shadow should closely mimick the shadow on the main blog layer.*/
 					}
 
 					.swiper-slide-text {
-						max-width: 640px;
+						/* max-width: 640px; */
 						font-size: <cfoutput>#carouselItemBodyFontSize#</cfoutput>px;
 						line-height: 1.4;
 						transform-origin: left bottom;
@@ -1125,20 +1130,20 @@
 						color: azure
 					}
 				</style>
-
+				
 				<div class="swiper">
 					<div class="swiper-wrapper">
 						<cfloop from="1" to="#arrayLen(getCarousel)#" index="i">
 						<cfsilent>
 						<!--- Set the variable values. I want to shorten the long variable names here. --->
-						<cfset carouselItemTitle = getCarousel[i]["CarouselItemTitle"]>
-						<cfset carouselItemBody = getCarousel[i]["CarouselItemBody"]>
 						<!--- In card mode, grab the small thumbnail image. --->
 						<cfif arguments.card>
 							<cfset carouselItemMediaUrl = getCarousel[i]["MediaThumbnailUrl"]>
 						<cfelse>
 							<cfset carouselItemMediaUrl = getCarousel[i]["MediaUrl"]>
 						</cfif>
+						<cfset carouselItemTitle = getCarousel[i]["CarouselItemTitle"]>
+						<cfset carouselItemBody = getCarousel[i]["CarouselItemBody"]>
 						</cfsilent>
 						<div class="swiper-slide">
 							
@@ -1146,7 +1151,7 @@
 								class="swiper-slide-image swiper-gl-image"  
 	 							src="<cfoutput>#carouselItemMediaUrl#</cfoutput>"
 								loading="lazy">
-							<div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>
+							<!---<div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>--->
 							<div class="swiper-slide-content">
 								<div class="swiper-slide-title" data-swiper-parallax="-100">
 									<cfif not arguments.card><cfoutput>#carouselItemTitle#</cfoutput></cfif>
@@ -1180,8 +1185,6 @@
 					observeParents: true,
 					// Disable preloading of images
     				preloadImages: false,
-    				// Enable lazy loading
-    				lazy: true,
 					watchSlidesProgress: true,
 					autoplay: { enabled: true },
 					grabCursor: true,
@@ -1606,8 +1609,8 @@
 				<cfset width = "615">
 				<cfset height = "380"><!--- Corresponds to the k-card-media css declaration --->
 			<cfelse>
-				<cfset width = "235">
-				<cfset height = "130">
+				<cfset width = "246">
+				<cfset height = "135">
 			</cfif>
 		<!--- Rendering the iframe in a mobile client--->
 		<cfelseif session.isMobile>
@@ -1633,9 +1636,9 @@
 		</cfif>
 		<cfif renderKCardMediaClass>
 			<!--- Render the map for a Kendo card --->
-			<cfset mapHtmlStr = mapHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen" class="' & kCardMapClass & '"></iframe>'>
+			<cfset mapHtmlStr = mapHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen" class="' & kCardMapClass & '" frameBorder="0" scrolling="no"></iframe>'>
 		<cfelse>
-			<cfset mapHtmlStr = mapHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen"></iframe>'>
+			<cfset mapHtmlStr = mapHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen" frameBorder="0" scrolling="no"></iframe>'>
 		</cfif>
 		
 		<cfreturn mapHtmlStr>
@@ -1643,37 +1646,46 @@
 	</cffunction>
 			
 	<cffunction name="renderCarouselPreview" returntype="string" output="true"
-			hint="Renders the carousel thumbnail at the top of a post on the admin page. This is not used in the tinymce editor, only for the post and enclosure image editors">
+			hint="Renders the carousel thumbnail at the top of a post on for the condensed cars and admin page. This is not used in the tinymce editor, only for the post and enclosure image editors">
 		<cfargument name="carouselId" type="string" required="yes">
-		<cfargument name="editorType" type="string" required="yes" default="postEditor" hint="either postEditor or enclosureEditor">
+		<cfargument name="interface" type="string" required="no" default="postEditor" hint="either an empty string, postEditor or enclosureEditor. When this is specified, none of the other arguments are required or sent in">	
 			
-		<!--- Note: the height and width logic sets the size of the iframe and needs to be a bit bigger than the actual rendered size to remove scrollbars --->
-		<cfif arguments.editorType eq 'postEditor'>
+		<!--- Handle carousels for the editors. Note: the height and width logic is inside an iframe and needs to be a bit smaller than the iframes to remove scrollbars --->
+		<cfif arguments.interface eq 'postEditor' or arguments.interface eq 'card'>
 			<cfset thumbnail = true>
 			<!--- Smaller size --->
 			<cfif session.isMobile>
-				<cfset height = "105">
 				<cfset width = "225">
+				<cfset height = "105">
 			<cfelse>
-				<!--- The actual messurement are 236x140, but we need the iframes to be bigger to remove the scrollbars. --->
-				<cfset height = "185">
-				<cfset width = "320">
+				<!--- This is used for both the popular cards and when in card layout --->
+				<cfset width = "255">
+				<cfset height = "150">
 			</cfif>
-		<cfelse>
+		<cfelseif arguments.interface eq 'enclosureEditor'>
 			<cfset thumbnail = false>
 			<!--- Medium size (not full size like on a post) --->
 			<cfif session.isMobile>
-				<cfset height = "147">
 				<cfset width = "285">
+				<cfset height = "147">
 			<cfelse>
-				<cfset height = "580">
 				<cfset width = "825">
+				<cfset height = "580">
+			</cfif>
+		<cfelseif arguments.interface eq 'mediumCard'>
+			<!--- Handle previews for the main blog page --->
+			<cfset thumbnail = false>
+			<cfif session.isMobile>
+				<cfset width = "100%">
+				<cfset height = "285">
+			<cfelse>
+				<cfset width = "100%">
+				<cfset height = "640">
 			</cfif>
 		</cfif>
-		<!---Used to be 300x149--->
 			
 		<cfsavecontent variable="carouselHtmlStr">
-			<iframe title="carousel" data-type="carousel" data-id="#arguments.carouselId#" src="#application.baseUrl#/preview/carousel.cfm?carouselId=#arguments.carouselId#&editorType=#arguments.editorType#&thumbnail=#thumbnail#" width="#width#" height="#height#"></iframe>
+			<iframe title="carousel" data-type="carousel" data-id="#arguments.carouselId#" src="#application.baseUrl#/preview/carousel.cfm?carouselId=#arguments.carouselId#&interface=#arguments.interface#&thumbnail=#thumbnail#" width="#width#" height="#height#" frameBorder="0" scrolling="no"></iframe>
 		</cfsavecontent> 
 		
 		<cfreturn carouselHtmlStr>

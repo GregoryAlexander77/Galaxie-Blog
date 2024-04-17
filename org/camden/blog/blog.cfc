@@ -7163,6 +7163,9 @@
 		<cfif released>
 			<cfset application.blog.clearScopeCache()>
 		</cfif>
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 						
 		<cfreturn PostDbObj.getPostId()>
 

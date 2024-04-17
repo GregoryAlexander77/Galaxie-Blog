@@ -73,6 +73,7 @@
 	<cfset enclosureMapIdList = getPost[1]["EnclosureMapIdList"]>
 	<!--- Get the map Id of the current row in the list. --->
 	<cfset enclosureMapId = getPost[i]["EnclosureMapId"]>
+	<cfset enclosureCarouselId = getPost[i]["EnclosureCarouselId"]>
 	<cfset datePosted = getPost[i]["DatePosted"]> 
 		
 	<!--- Create the user link --->
@@ -123,7 +124,7 @@
 	<!--- Render the map --->
 	<cfif len(enclosureMapId)>
 		<!--- Render the map. This returns a iframe renderMapPreview(mapId, thumbnail, renderKCardMediaClass, renderMediumCard, showSidebar) --->
-		<cfset thumbnailMap = RendererObj.renderMapPreview(enclosureMapId, true, true, showSidebar)>
+		<cfset thumbnailMap = RendererObj.renderMapPreview(enclosureMapId, true, true, renderMediumCard, showSidebar)>
 	</cfif>
 
 	<!--- ************************* Handle self hosted videos ************************* --->
@@ -174,6 +175,17 @@
 			<cfdump var="#xmlKeywordStruct#">
 		</cfif>
 	</cfif>
+					
+	<!--- Handle carousels --->
+	<cfif len(enclosureCarouselId)>
+		<cfif renderMediumCard>
+			<cfset carouselInterface = "mediumCard">
+		<cfelse>
+			<cfset carouselInterface = "card">
+		</cfif>
+		<!--- Render the carousel and don't specify an editor type as this is used on the main blog page. This returns a iframe renderCarouselPreview(carouselId, interface) --->
+		<cfset thumbnailCarousel = RendererObj.renderCarouselPreview(enclosureCarouselId, carouselInterface)>
+	</cfif>
 
 	<!--- Remove HTML from the string --->
 	<cfinvoke component="#application.jsoupComponentPath#" method="jsoupConvertHtmlToText" returnvariable="postContent">
@@ -184,12 +196,23 @@
 	<cfif len(postContent) lt 100>
 		<cfset postContent = postContent & "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;">
 	</cfif>
+	
 	</cfsilent>	
 		<cfif isDebug><cfoutput>Rendering card- i:#i# arrayLen(getPost):#arrayLen(getPost)# len(postUrl):#len(postUrl)#<br/></cfoutput></cfif>
 		<cfif i lte arrayLen(getPost) and displayCard and len(postUrl)>
 			<div class="k-card <cfif promotedPost>highlightedWidget</cfif>" style="width: <cfoutput>#cardWidth#</cfoutput>%;"> 
 				<div class="k-card-body">
-					<a href="<cfoutput>#postUrl#</cfoutput>" aria-label="thumbnail map"><cfif len(enclosureMapId)><cfoutput>#thumbnailMap#</cfoutput><cfelseif len(thumbnailMedia)><cfoutput>#thumbnailMedia#</cfoutput><cfelse><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif></a>
+					<a href="<cfoutput>#postUrl#</cfoutput>" aria-label="thumbnail map">
+						<cfif len(thumbnailMedia)>
+							<cfoutput>#thumbnailMedia#</cfoutput>
+						<cfelseif len(enclosureMapId)>
+							<cfoutput>#thumbnailMap#</cfoutput>
+						<cfelseif len(thumbnailCarousel)>
+							<cfoutput>#thumbnailCarousel#</cfoutput>
+						<cfelse>
+							<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div>
+						</cfif>
+					</a>
 					<hr class="k-card-separator" />
 					<h2 class="k-card-title" style="font-size: 14pt"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" style="font-size: 14pt" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h2>
 					<hr class="k-card-separator" />

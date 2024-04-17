@@ -91,7 +91,7 @@
 						<cfset enclosureMapIdList = getPopularPosts[1]["EnclosureMapIdList"]>
 						<!--- Get the map Id of the current row in the list. --->
 						<cfset enclosureMapId = getPopularPosts[i]["EnclosureMapId"]>
-						<cfset enclosureCarouselId = getPopularPosts[i]["EnclosureMapId"]>
+						<cfset enclosureCarouselId = getPopularPosts[i]["EnclosureCarouselId"]>
 						<cfset datePosted = getPopularPosts[i]["DatePosted"]> 
 						
 						<!--- Get the categories for this post. --->
@@ -198,7 +198,7 @@
 						</cfsilent>
 							<!--- Note: this is using the k-card-deck image --->
 							<div class="k-card k-card-type-rich<cfif promotedPost>highlightedWidget</cfif>" style="width:235px;">
-								<a href="<cfoutput>#postUrl#</cfoutput>"><cfif len(enclosureMapId)><cfoutput>#thumbnailMap#</cfoutput><cfelseif len(thumbnailCarousel)><cfoutput>#thumbnailCarousel#</cfoutput><cfelseif len(thumbnailMedia)><cfoutput>#thumbnailMedia#</cfoutput><cfelse><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-scroll-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif></a>
+								<a href="<cfoutput>#postUrl#</cfoutput>"><cfif len(enclosureMapId)><cfoutput>#thumbnailMap#</cfoutput><cfelseif len(enclosureCarouselId)><cfoutput>#thumbnailCarousel#</cfoutput><cfelseif len(thumbnailMedia)><cfoutput>#thumbnailMedia#</cfoutput><cfelse><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-scroll-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif></a>
 								<div class="k-card-body">
 									<!-- The font should be 14pt for this compact widget -->
 									<h2 class="k-card-title" style="font-size: 14pt"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h4>
