@@ -21,7 +21,7 @@ Many ISPs offer ColdFusion servers for as low as 12 dollars a month. I use Media
 
 3. Create the database to install Galaxie Blog in.
 
-The blog should support the following databases; however, we have only tested the blog using SQL Server and various flavors of MySql:
+The blog uses Hibernate ORM and was designed to support the following databases; however, we have only tested the blog using SQL Server and various flavors of MySql:
 - Microsoft SQL Server
 - DB2
 - DB2AS400
