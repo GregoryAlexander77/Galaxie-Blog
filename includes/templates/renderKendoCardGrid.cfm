@@ -90,7 +90,7 @@
 
 	<!--- ************************* Handle enlosure ************************* --->
 	<!--- On desktop devices, use the original image if the sidebar is present, otherwise use the thumbnail image --->
-	<cfif not session.isMobile and showSidebar>
+	<cfif showSidebar>
 		<cfset cardImage = enclosure>
 		<cfset renderMediumCard = true>
 	<cfelse>
