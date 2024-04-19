@@ -106,7 +106,7 @@
 		<cfset cardImage = "/cfbloggers/images/external/thumbnails/noImage.jpg">
 	</cfif>
 	<cfif isDebug>
-		<cfoutput>cardImage: #cardImage#</cfoutput><br/>
+		<cfoutput>showSidebar: #showSidebar# renderMediumCard: #renderMediumCard# cardImage: #cardImage#</cfoutput><br/>
 	</cfif>
 
 	<!--- ************************* Handle maps ************************* --->
@@ -123,6 +123,7 @@
 	</cfif>
 	<!--- Render the map --->
 	<cfif len(enclosureMapId)>
+		<cfif isDebug>renderMediumCard: #renderMediumCard#</cfif>
 		<!--- Render the map. This returns a iframe renderMapPreview(mapId, thumbnail, renderKCardMediaClass, renderMediumCard, showSidebar) --->
 		<cfset thumbnailMap = RendererObj.renderMapPreview(enclosureMapId, true, true, renderMediumCard, showSidebar)>
 	</cfif>
@@ -198,7 +199,7 @@
 	</cfif>
 	
 	</cfsilent>	
-		<cfif isDebug><cfoutput>Rendering card- i:#i# arrayLen(getPost):#arrayLen(getPost)# len(postUrl):#len(postUrl)#<br/></cfoutput></cfif>
+		<cfif isDebug><cfoutput>Rendering card- i:#i# arrayLen(getPost):#arrayLen(getPost)# len(postUrl):#len(postUrl)# renderMediumCard: #renderMediumCard# <br/></cfoutput></cfif>
 		<cfif i lte arrayLen(getPost) and displayCard and len(postUrl)>
 			<div class="k-card <cfif promotedPost>highlightedWidget</cfif>" style="width: <cfoutput>#cardWidth#</cfoutput>%;"> 
 				<div class="k-card-body">

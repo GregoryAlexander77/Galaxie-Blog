@@ -496,6 +496,7 @@
 					<cfinvokeargument name="posterUrl" value="#mediaVideoCoverUrl#">
 					<cfinvokeargument name="videoCaptionsUrl" value="#mediaVideoVttFileUrl#">
 					<cfinvokeargument name="renderThumbnail" value="#arguments.renderThumbnail#">
+					<cfinvokeargument name="showSidebar" value="#arguments.showSidebar#">
 				</cfinvoke>
 			</cfif>
 		</cfif><!---<cfif len(mediaUrl)>--->
@@ -862,15 +863,15 @@
 		
 			
 		<!--- Set a shorter kCard var for the URL. We don't want to pass in renderKCardMediaClass in the URL --->
-		<cfif renderKCardMediaClass>
+		<cfif arguments.renderKCardMediaClass>
 			<cfset kcard = true>
 		<cfelse>
 			<cfset kcard = false>
 		</cfif>
 			
 		<!--- Set the default iframe dimensions --->
-		<cfif renderThumbnail>
-			<cfif renderMediumCard>
+		<cfif arguments.renderThumbnail>
+			<cfif arguments.renderMediumCard>
 				<cfset width = "615">
 				<cfset height = "380"><!--- Corresponds to the k-card-media css declaration --->
 			<cfelse>
@@ -883,10 +884,10 @@
 		</cfif>
 				
 		<!--- When the sidebar is shown, we want to use the k-card-scroll-image for the popular posts at the top of the page. Otherwise, use the k-card-media class since all of the card sizes will be the same for both popular and the main posts. --->
-		<cfif arguments.showSidebar and not renderMediumCard>
-			<cfset kCardVideoClass = "k-card-scroll-image">
-		<cfelse>
+		<cfif arguments.renderMediumCard><!---Changed from  <cfif arguments.showSidebar and not arguments.renderMediumCard>---> 
 			<cfset kCardVideoClass = "k-card-media">
+		<cfelse>
+			<cfset kCardVideoClass = "k-card-scroll-image">
 		</cfif>
 			
 		<!--- Note: we will not have an extension that we can read on an external URL --->
@@ -1015,14 +1016,24 @@
 		<cfquery name="getTheme" dbtype="hql">
 			SELECT new Map (
 				KendoThemeRef.KendoTheme as KendoTheme,
+				ThemeSettingRef.BlogNameFontRef as BlogNameFontRef,
 				ThemeSettingRef.FontRef.Font as Font
 			)
 			FROM 
 				Theme as Theme
 			WHERE Theme.ThemeAlias = <cfqueryparam value="#themeAlias#" cfsqltype="cf_sql_varchar">
 		</cfquery>
-		<!--- Set the Kendo Theme --->
-		<cfset themeFont = getTheme[1]["Font"]>
+		<!--- Get the theme related font info --->
+		<cfset getBlogNameFont = application.blog.getFont(fontId=getTheme[1]["BlogNameFontRef"])>
+
+		<cfif arrayLen(getBlogNameFont)>
+			<cfset blogNameFont = getBlogNameFont[1]["Font"]>
+			<cfset blogNameFontType = getBlogNameFont[1]["FontType"]>
+		<cfelse>
+			<cfset blogNameFont = ''>
+			<cfset blogNameFontType = ''>
+		</cfif>
+		
 		<!--- Set the Kendo Theme --->
 		<cfset kendoTheme = getTheme[1]["KendoTheme"]>
 			
@@ -1090,12 +1101,13 @@
 					}
 
 					.swiper-slide-title {
-						font-family: <cfoutput>"#themeFont#"</cfoutput>;
-						font-size: <cfoutput>#carouselItemTitleFontSize#</cfoutput>px;
-						font-weight: bold;
-						transform-origin: left bottom;
+						/* The blog title at the top of the page */
+						font-family: <cfoutput>'#blogNameFont#', #BlogNameFontType#</cfoutput>; 
+						font-size: <cfoutput><cfif session.isMobile>#blogNameFontSizeMobile#<cfelse>32</cfif></cfoutput>px; 
+						/* The container may need to have some padding as the menu underneath it is not going to left align with the text since the menu is going to start prior to the first text item. */
+						padding-left: 13px; 
+						text-shadow: 0px 4px 8px rgba(0, 0, 0, 0.19); /* The drop shadow should closely mimick the shadow on the main blog layer.*/
 						color: <cfoutput>#carouselItemTitleFontColor#</cfoutput>;
-						text-shadow: 4px 8px 16px rgba(0, 0, 0, 0.19); /* The drop shadow should closely mimick the shadow on the main blog layer.*/
 					}
 
 					.swiper-slide-text {
@@ -1606,8 +1618,8 @@
 		<!--- Set the default iframe dimensions --->
 		<cfif renderThumbnail>
 			<cfif renderMediumCard>
-				<cfset width = "615">
-				<cfset height = "380"><!--- Corresponds to the k-card-media css declaration --->
+				<cfset width = "100%">
+				<cfset height = "640"><!--- Corresponds to the k-card-media css declaration --->
 			<cfelse>
 				<cfset width = "246">
 				<cfset height = "135">
@@ -1622,10 +1634,10 @@
 		</cfif>
 				
 		<!--- When the sidebar is shown, we want to use the k-card-scroll-image for the popular posts at the top of the page. Otherwise, use the k-card-media class since all of the card sizes will be the same for both popular and the main posts. --->
-		<cfif arguments.showSidebar>
-			<cfset kCardMapClass = "k-card-scroll-image">
-		<cfelse>
+		<cfif arguments.renderMediumCard>
 			<cfset kCardMapClass = "k-card-media">
+		<cfelse>
+			<cfset kCardMapClass = "k-card-scroll-image">
 		</cfif>
 			
 		<!--- Note: we will not have an extension that we can read on an external URL --->

@@ -70,7 +70,6 @@
 			/* The blog title at the top of the page */
 			font-family: <cfoutput>'#blogNameFont#', #BlogNameFontType#</cfoutput>; 
 			font-size: <cfoutput><cfif session.isMobile>#blogNameFontSizeMobile#<cfelse>#blogNameFontSize#</cfif></cfoutput>px; 
-			/*font-weight: bold;*/
 			/* The container may need to have some padding as the menu underneath it is not going to left align with the text since the menu is going to start prior to the first text item. */
 			padding-left: 13px; 
 			text-shadow: 0px 4px 8px rgba(0, 0, 0, 0.19); /* The drop shadow should closely mimick the shadow on the main blog layer.*/

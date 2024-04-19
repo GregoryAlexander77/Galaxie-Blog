@@ -374,12 +374,10 @@
 			/* padding: 10px; The padding screws up the Kendo media player widget. */
 		}
 		
-		<cfif CGI.Remote_Addr eq '76.22.103.228'>
 		/* Title bar on blog post */
 		.widget h1.topContent {
     		margin-bottom: 10px;
 		}
-		</cfif>
 
 		/* Title bar */
 		.widget h3.topContent {
