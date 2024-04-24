@@ -2,6 +2,10 @@
 # Galaxie Blog
 Galaxie Blog is intended to be the most beautiful and functional free, open-source ColdFusion-based blog in the world. While it can’t go toe-to-toe with Wordpress functionality, I believe that Galaxie Blog competes with Wordpress in core blogging functionality, especially with its abundant theme-related features and support for various rich media.
 
+## Documentation
+
+Galaxie Blog documentation can be found at https://www.gregoryalexander.com/blog/Galaxie-Blog. There are also many how-to articles on Gregory's Blog discussing how we implemented some of the logic. 
+
 ## Installation
 
 You must have a ColdFusion installed on a server.
