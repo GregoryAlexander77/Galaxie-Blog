@@ -3348,6 +3348,9 @@
 			<!--- Save it. Note: updates will automatically occur on persisted objects if the object notices any change. We don't  have to use entity save after the Entity has been loaded and saved. --->
 			<cfset EntitySave(CategoryDbObj)>
 		</cftransaction>
+				
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 		<cfreturn id>
 	</cffunction>
@@ -3430,6 +3433,9 @@
 			<cfreturn CategoryDbObj.getCategoryId()>
 		
 		</cfif><!---<cfif len(arguments.categoryId)>--->
+					
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 			
@@ -3629,6 +3635,9 @@
 			<!--- Increment our counter --->
 			<cfset categoryListCounter = categoryListCounter + 1>
 		</cfloop>
+						
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 		
 		<cfreturn arguments.categoryIdList>
 
@@ -3650,6 +3659,9 @@
 			WHERE PostRef = #PostDbObj#
 			AND CategoryRef = #CategoryDbObj#
 		</cfquery>
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 
@@ -3665,6 +3677,9 @@
 			DELETE FROM PostCategoryLookup
 			WHERE PostRef = #PostDbObj#
 		</cfquery>
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 
@@ -3678,6 +3693,9 @@
 		<cfset EntityDelete(CategoryDbObj)>
 		<!--- And delete the variable to ensure that the record is deleted from ORM memory. --->
 		<cfset void = structDelete( variables, "CategoryDbObj" )>
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 			
@@ -4121,6 +4139,9 @@
 			<!--- Return a zero indicating that something went wrong. The Tag or post does not exist. --->
 			<cfreturn 0>
 		</cfif><!---<cfif isDefined("TagRefObj") and isDefined("PostRefObj")>--->
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 				
 	</cffunction>
 
@@ -4135,6 +4156,9 @@
 		<cfloop index="i" from="1" to="#listLen(arguments.tagids)#">
 			<cfset assignTag(postId=arguments.postId,tagUuid=listGetAt(tagids,i))>
 		</cfloop>
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 			
@@ -4171,6 +4195,9 @@
 			<!--- Save it. Note: updates will automatically occur on persisted objects if the object notices any change. We don't  have to use entity save after the Entity has been loaded and saved. --->
 			<cfset EntitySave(TagDbObj)>
 		</cftransaction>
+				
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 		<cfreturn id>
 	</cffunction>
@@ -4250,6 +4277,9 @@
 			<cfreturn TagDbObj.getTagId()>
 		
 		</cfif><!---<cfif len(arguments.tag)>--->
+					
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 			
@@ -4348,6 +4378,9 @@
 			</cfif>
 
 		</cfloop>
+					
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 		
 		<cfreturn arguments.tagIdList>
 
@@ -4369,6 +4402,9 @@
 			WHERE PostRef = #PostDbObj#
 			AND TagRef = #TagDbObj#
 		</cfquery>
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 
@@ -4384,6 +4420,9 @@
 			DELETE FROM PostTagLookup
 			WHERE PostRef = #PostDbObj#
 		</cfquery>
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 
@@ -4397,6 +4436,9 @@
 		<cfset EntityDelete(TagDbObj)>
 		<!--- And delete the variable to ensure that the record is deleted from ORM memory. --->
 		<cfset void = structDelete( variables, "TagDbObj" )>
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 			
@@ -5018,6 +5060,9 @@
 			<!---Return the existing commentId --->
 			<cfreturn getComment[1]["CommentId"]>
 		</cfif>
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 		
 	</cffunction>
 				
@@ -5061,6 +5106,9 @@
 				body=postSubscriberEmail)>
 
 		</cfloop>
+					
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 			
@@ -5074,6 +5122,9 @@
 		<cfset EntityDelete(CommentDbObj)>
 		<!--- And delete the variable to ensure that the record is deleted from ORM memory. --->
 		<cfset void = structDelete( variables, "CommentDbObj" )>
+			
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 
 	</cffunction>
 
@@ -8185,7 +8236,7 @@
 	</cffunction>
 				
 	<!---******************************************************************************************************** 
-		Media Type Helpers
+		Media Helpers
 	*********************************************************************************************************--->
 				
 	<cffunction name="getMediaTypeByVideoProvider" access="public" returnType="string" output="false"
@@ -8216,6 +8267,33 @@
 		</cfswitch>
 			
 	</cffunction>
+			
+	<cffunction name="getYouTubeVideoId" returnType="string" 
+			hint="Function to get the YouTube ID. This should work for most URL's. Gregory Alexander modified an approach suggested by Ray Camden">
+		<cfargument name="youTubeUrl" default="" required="yes">
+
+		<!---Check to see if this is a short YouTube URL (http://youtu.be/f89niPP64Hg) --->
+		<cfif listGetAt(arguments.youTubeUrl, 2, '/') eq 'youtu.be'>
+			<cfset youTubeId = listLast(arguments.youTubeUrl, '/')>
+		<cfelse>
+			<cfset youTubeId = reReplaceNoCase(arguments.youTubeUrl, ".*?v=([a-z0-9\-_]+).*","\1")>
+		</cfif>
+
+		<cfreturn youTubeId>
+
+	</cffunction>
+			
+	<cffunction name="getVimeoVideoId" returnType="string" 
+			hint="Function to get the Vimeo ID. This should work for most URL's. This gets all of the numeric values in a string">
+		<cfargument name="vimeoUrl" default="" required="yes">
+
+		<cfset arrUrl = rematch("[\d]+",arguments.vimeoUrl)>
+
+		<cfreturn arrUrl[1]>
+
+	</cffunction>
+			
+			
 			
 	<!---******************************************************************************************************** 
 		Map functions

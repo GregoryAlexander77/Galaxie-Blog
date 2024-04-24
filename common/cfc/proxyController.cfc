@@ -2634,6 +2634,9 @@
 			</cfloop>
 
 		</cftransaction>
+					
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 								
     	<cfset jsonString = []><!--- '{"data":null}', --->
     	
@@ -2665,6 +2668,9 @@
 				<cfset EntitySave(PostDbObj)>
 
 			</cftransaction>
+					
+			<!--- flush the cache --->
+			<cfcache action="flush"></cfcache>
     	
 		<cfreturn serializeJSON(arguments.postId)>
 	</cffunction>

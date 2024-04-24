@@ -109,7 +109,7 @@
 						<cfset cardImage = thumbnail>	
 						<!--- Use the noImage.jpg if the thumbnail does not exist (likely due to errors or a blog upgrade) --->
 						<cfif not len(cardImage)>
-							<cfset cardImage = "/cfbloggers/images/external/thumbnails/noImage.jpg">
+							<cfset cardImage = application.baseUrl & "/images/external/thumbnails/noImage.jpg">
 						</cfif>
 
 						<!--- ************************* Handle maps ************************* --->
@@ -145,7 +145,8 @@
 								<cfinvokeargument name="posterUrl" value="#mediaVideoCoverUrl#">
 								<cfinvokeargument name="videoCaptionsUrl" value="#mediaVideoVttFileUrl#">
 								<cfinvokeargument name="renderThumbnail" value="true">
-								<cfinvokeargument name="renderKCardMediaClass" value="true">	
+								<cfinvokeargument name="renderKCardMediaClass" value="true">
+								<cfinvokeargument name="renderMediumCard" value="#renderMediumCard#">
 								<cfinvokeargument name="showSidebar" value="#showSidebar#">
 							</cfinvoke> 
 						</cfif><!---<cfif len(mediaId) and mediaType contains 'Video'>--->

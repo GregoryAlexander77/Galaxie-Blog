@@ -505,8 +505,8 @@
 		<!---*********************    Handle the map  *********************--->
 		<!--- Extract the map id --->
 		<cfif len(enclosureMapId)>
-			<!--- Render the map. This returns a iframe. renderMapPreview(mapId, thumbnail, renderKCardMediaClass, renderMediumCard, showSidebar)  --->
-			<cfset thumbnailHtml = renderMapPreview(enclosureMapId, arguments.renderThumbnail)>
+			<!--- Render the map. This returns a iframe. When renderMediumCard is true, a large map will be rendered. renderMapPreview(mapId, thumbnail, renderKCardMediaClass, renderMediumCard, showSidebar). --->
+			<cfset thumbnailHtml = renderMapPreview(enclosureMapId, arguments.renderThumbnail, false, false, false)>
 		</cfif>
 		
 		<!---******************    Handle the carousel  ******************--->
@@ -853,6 +853,7 @@
 		<cfargument name="mediaUrl" type="string" required="yes">
 		<!--- Optional args --->
 		<cfargument name="mediaId" type="string" required="no">
+		<cfargument name="provider" default="" type="string" required="no">
 		<cfargument name="providerVideoId" default="" type="string" required="no">
 		<cfargument name="posterUrl"  default="" type="string" required="no">
 		<cfargument name="videoCaptionsUrl" default="" type="string" required="no">
@@ -892,8 +893,8 @@
 			
 		<!--- Note: we will not have an extension that we can read on an external URL --->
 		<cfset mediaHtmlStr = '<iframe title="media player" data-type="video" data-id="#arguments.mediaId#" src="#application.baseUrl#/galaxiePlayer.cfm?videoUrl=' & arguments.mediaUrl & '&thumbnail=' & renderThumbnail & '&kcard=' & kcard>
-		<cfif len(arguments.providerVideoId)>
-			<cfset mediaHtmlStr = mediaHtmlStr & '&providerVideoId=' & arguments.providerVideoId>
+		<cfif len(arguments.provider) and len(arguments.providerVideoId)>
+			<cfset mediaHtmlStr = mediaHtmlStr & '&provider=' & arguments.provider & '&providerVideoId=' & arguments.providerVideoId>
 		</cfif>
 		<cfif len(arguments.posterUrl)>
 			<cfset mediaHtmlStr = mediaHtmlStr & '&posterUrl=' & arguments.posterUrl>
@@ -1103,7 +1104,7 @@
 					.swiper-slide-title {
 						/* The blog title at the top of the page */
 						font-family: <cfoutput>'#blogNameFont#', #BlogNameFontType#</cfoutput>; 
-						font-size: <cfoutput><cfif session.isMobile>#blogNameFontSizeMobile#<cfelse>32</cfif></cfoutput>px; 
+						font-size: <cfoutput><cfif session.isMobile>18<cfelse>32</cfif></cfoutput>px; 
 						/* The container may need to have some padding as the menu underneath it is not going to left align with the text since the menu is going to start prior to the first text item. */
 						padding-left: 13px; 
 						text-shadow: 0px 4px 8px rgba(0, 0, 0, 0.19); /* The drop shadow should closely mimick the shadow on the main blog layer.*/

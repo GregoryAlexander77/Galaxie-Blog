@@ -76,6 +76,9 @@
 	<cfset enclosureCarouselId = getPost[i]["EnclosureCarouselId"]>
 	<cfset datePosted = getPost[i]["DatePosted"]> 
 		
+	<!--- The provider variable is determined by a potential blog directive (vimdoVideoId or youTubeVideoId) and can either be vimeo or youTube. --->
+	<cfparam name="provider" default="">
+		
 	<!--- Create the user link --->
 	<cfset userLink = application.blog.makeUserLink(getPost[i]["FullName"])>
 		
@@ -103,7 +106,7 @@
 	</cfif>--->
 	<!--- Use the noImage.jpg if the thumbnail does not exist (likely due to errors or a blog upgrade) --->
 	<cfif not len(cardImage)>
-		<cfset cardImage = "/cfbloggers/images/external/thumbnails/noImage.jpg">
+		<cfset cardImage = application.baseUrl & "/images/thumbnails/noImage.jpg">
 	</cfif>
 	<cfif isDebug>
 		<cfoutput>showSidebar: #showSidebar# renderMediumCard: #renderMediumCard# cardImage: #cardImage#</cfoutput><br/>
@@ -134,6 +137,7 @@
 		<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
 			<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
 			<cfinvokeargument name="mediaId" value="#mediaId#">
+			<cfinvokeargument name="provider" value="#provider#">
 			<cfinvokeargument name="providerVideoId" value="#providerVideoId#">
 			<cfinvokeargument name="posterUrl" value="#mediaVideoCoverUrl#">
 			<cfinvokeargument name="videoCaptionsUrl" value="#mediaVideoVttFileUrl#">
@@ -156,24 +160,34 @@
 		<cfelseif len(xmlKeywordStruct.largeVideoSourceUrl)>
 			<cfset mediaUrl = xmlKeywordStruct.largeVideoSourceUrl>
 		<cfelseif len(xmlKeywordStruct.youTubeUrl)>
+			<cfset provider = "YouTube">
 			<cfset mediaUrl = xmlKeywordStruct.youTubeUrl>
+		<!---<cfelseif len(xmlKeywordStruct.youTubeVideoId)>
+			<cfset providerVideoId = xmlKeywordStruct.youTubeVideoId>
+		<cfelseif len(xmlKeywordStruct.vimeoUrl)>
+			<cfset provider = "Vimeo">
+			<cfset mediaUrl = xmlKeywordStruct.vimeoUrl>--->
+		<cfelseif len(xmlKeywordStruct.vimeoVideoId)>
+			<cfset provider = "Vimeo">
+			<cfset providerVideoId = xmlKeywordStruct.vimeoVideoId>
 		</cfif>
 		
 		<!--- Render the video from the directives --->
-		<cfif len(mediaUrl)>	
+		<cfif len(mediaUrl) or vimeoVideoId>	
 			<!--- Render the video, this will return an iframe. --->
 			<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
 				<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
-				<!--- Galaxie Directives don't have a mediaId or a providerVideoId --->
+				<!--- Galaxie Directives have the providerVideoId in either <vimeoVideoId> or <youTubeVideoId> --->
 				<cfinvokeargument name="mediaId" value="">
-				<cfinvokeargument name="providerVideoId" value="">
+				<cfinvokeargument name="provider" value="#provider#">
+				<cfinvokeargument name="providerVideoId" value="#providerVideoId#">
 				<cfinvokeargument name="posterUrl" value="#xmlKeywordStruct.videoPosterImageUrl#">
 				<cfinvokeargument name="videoCaptionsUrl" value="#xmlKeywordStruct.videoCaptionsUrl#">
 				<cfinvokeargument name="renderThumbnail" value="true">
 				<cfinvokeargument name="renderKCardMediaClass" value="true">
+				<cfinvokeargument name="renderMediumCard" value="#renderMediumCard#">
 				<cfinvokeargument name="showSidebar" value="#showSidebar#">
 			</cfinvoke> 
-			<cfdump var="#xmlKeywordStruct#">
 		</cfif>
 	</cfif>
 					
