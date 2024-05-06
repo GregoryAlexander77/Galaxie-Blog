@@ -11993,6 +11993,7 @@ Custom element markup example for videos:
 	<cfset blogDescription = application.BlogDbObj.getBlogDescription()>
 	<!--- The blog URL contains an index.cfm at the end --->
 	<cfset blogUrl = application.BlogDbObj.getBlogUrl()>
+	<cfset isProd = application.BlogDbObj.getIsProd()>
 	<!--- SEO --->
 	<cfset blogMetaKeywords = application.BlogDbObj.getBlogMetaKeywords()>
 	<!--- Parent Site Links --->
@@ -12321,6 +12322,49 @@ Custom element markup example for videos:
 		</td>
 	  </tr>
 	</cfif>	
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+		
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!-- Form content -->
+	  <tr valign="middle" height="30px">
+		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
+			Uncheck this box if this is a development site. When unchecked, the site will block incoming robots and not be indexed by the search engines. Make sure that this is checked if you want the site to be indexed.
+		</td>
+	  </tr>
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	<cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="isProd">Production Site:</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<input type="checkbox" name="isProd" id="isProd" value="1" <cfif isProd>checked</cfif>>
+		</td>
+	  </tr>
+	<cfelse><!---<cfif session.isMobile>--->
+	  <tr valign="middle" height="30px">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<label for="isProd">Is Production:</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input type="checkbox" name="isProd" id="isProd" value="1" <cfif isProd>checked</cfif>>
+		</td>
+	  </tr>
+	</cfif>	 
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>

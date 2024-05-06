@@ -1410,35 +1410,35 @@
 		
 		<cfif theme neq ''>
 
-		<!--- Get the selected value --->
-		<cfset kendoTheme = Form.selectedTheme>
-		<!--- Determine the method to use (update or insert). --->
-		<cfif getUiPreference.recordcount gt 0>
-			<cfset UiPreferenceMethod = 'updateUiPreference'>
-		<cfelse><!--- <cfif getUiPreference.recordcount gt 0> --->
-			<cfset UiPreferenceMethod = 'insertUiPreference'>
-		</cfif><!--- <cfif getUiPreference.recordcount gt 0> --->
+			<!--- Get the selected value --->
+			<cfset kendoTheme = Form.selectedTheme>
+			<!--- Determine the method to use (update or insert). --->
+			<cfif getUiPreference.recordcount gt 0>
+				<cfset UiPreferenceMethod = 'updateUiPreference'>
+			<cfelse><!--- <cfif getUiPreference.recordcount gt 0> --->
+				<cfset UiPreferenceMethod = 'insertUiPreference'>
+			</cfif><!--- <cfif getUiPreference.recordcount gt 0> --->
 
-		<!--- TODO Version 1 Save the record into the database. --->
-		<cfif uiPreferenceMethod eq 'updateUiPreference'>
-			<cfquery name="updateUiPreference" datasource="#dsn#">
-				UPDATE dbo.UiPreference
-				SET UserRef = <cfqueryparam value="#getUserId()#" cfsqltype="cf_sql_integer">,
-				ApplicationId = <cfqueryparam value="#applicationId#" cfsqltype="cf_sql_integer">,
-				PreferenceName = <cfqueryparam value="kendoTheme" cfsqltype="cf_sql_varchar">,
-				PreferenceValue = <cfqueryparam value="#kendoTheme#" cfsqltype="cf_sql_varchar">
-				WHERE UserRef = <cfqueryparam value="#getUserId()#" cfsqltype="cf_sql_integer">
-				AND ApplicationId = <cfqueryparam value="#applicationId#" cfsqltype="cf_sql_integer">
-			</cfquery>
-		<cfelse><!--- <cfif uiPreferenceMethod eq 'updateUiPreference'> --->
-			<!--- Insert the record into the database. --->
-			<cfinvoke component="#UiPreferenceObj#" method="#UiPreferenceMethod#" returnvariable="UiPreferenceId">
-				<cfinvokeargument name="UserRef" value="#getUserId()#">
-				<cfinvokeargument name="ApplicationId" value="#applicationId#">
-				<cfinvokeargument name="PreferenceName" value="kendoTheme">
-				<cfinvokeargument name="PreferenceValue" value="#kendoTheme#">
-			</cfinvoke>
-		</cfif><!--- <cfif uiPreferenceMethod eq 'updateUiPreference'> --->
+			<!--- TODO Version 1 Save the record into the database. --->
+			<cfif uiPreferenceMethod eq 'updateUiPreference'>
+				<cfquery name="updateUiPreference" datasource="#dsn#">
+					UPDATE dbo.UiPreference
+					SET UserRef = <cfqueryparam value="#getUserId()#" cfsqltype="cf_sql_integer">,
+					ApplicationId = <cfqueryparam value="#applicationId#" cfsqltype="cf_sql_integer">,
+					PreferenceName = <cfqueryparam value="kendoTheme" cfsqltype="cf_sql_varchar">,
+					PreferenceValue = <cfqueryparam value="#kendoTheme#" cfsqltype="cf_sql_varchar">
+					WHERE UserRef = <cfqueryparam value="#getUserId()#" cfsqltype="cf_sql_integer">
+					AND ApplicationId = <cfqueryparam value="#applicationId#" cfsqltype="cf_sql_integer">
+				</cfquery>
+			<cfelse><!--- <cfif uiPreferenceMethod eq 'updateUiPreference'> --->
+				<!--- Insert the record into the database. --->
+				<cfinvoke component="#UiPreferenceObj#" method="#UiPreferenceMethod#" returnvariable="UiPreferenceId">
+					<cfinvokeargument name="UserRef" value="#getUserId()#">
+					<cfinvokeargument name="ApplicationId" value="#applicationId#">
+					<cfinvokeargument name="PreferenceName" value="kendoTheme">
+					<cfinvokeargument name="PreferenceValue" value="#kendoTheme#">
+				</cfinvoke>
+			</cfif><!--- <cfif uiPreferenceMethod eq 'updateUiPreference'> --->
 		</cfif><!--- <cfif isDefined("Form.selectedTheme")> --->
 	</cffunction>
 				
@@ -1731,7 +1731,7 @@
 				<cfset useTheme = false>
 			</cfif>
 				
-			<cfif len(arguments.selectedTheme) and isBoolean(arguments.selectedTheme)>
+			<cfif len(arguments.selectedTheme)>
 				<cfset selectedTheme = true>
 			<cfelse>
 				<cfset selectedTheme = false>
@@ -6321,6 +6321,7 @@
 		<cfargument name="blogTitle" default="" required="true">
 		<cfargument name="blogDescription" default="" required="true">
 		<cfargument name="blogUrl" default="" required="true">
+		<cfargument name="isProd" default="" required="false">
 		<cfargument name="blogMetaKeywords" default="" required="false">
 		<!--- Parent site --->
 		<cfargument name="parentSiteName" default="" required="false">
@@ -6360,6 +6361,13 @@
 			<cfset setProfileString(application.iniFile, "default", "username", arguments.dsnUserName)>
 			<cfset setProfileString(application.iniFile, "default", "password", arguments.dsnPassword)>
 				
+			<!--- Handle checkboxes --->
+			<cfif len(arguments.isProd)>
+				<cfset isProd = true>
+			<cfelse>
+				<cfset isProd = false>
+			</cfif>
+				
 			<cftransaction>
 			
 				<!--- Update the options --->
@@ -6370,6 +6378,7 @@
 				<cfset BlogDbObj.setBlogTitle(arguments.blogTitle)>
 				<cfset BlogDbObj.setBlogDescription(arguments.blogDescription)>
 				<cfset BlogDbObj.setBlogUrl(arguments.blogUrl)>
+				<cfset BlogDbObj.setIsProd(isProd)>
 				<!--- This is an optional field. --->
 				<cfset BlogDbObj.setBlogMetaKeywords(arguments.blogMetaKeywords)>
 				<!--- Parent site (optional) --->

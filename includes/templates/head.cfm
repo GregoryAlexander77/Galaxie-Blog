@@ -42,6 +42,11 @@
 <cfelse>
 	<cfset titleMetaTagValue = "Post Not Found">
 </cfif>
+	
+<!--- Determine if we should disable the robots for dev sites. The no index var is already determined when in prod --->
+<cfif not application.BlogDbObj.getIsProd()>
+	<cfset noIndex = true>
+</cfif>
 </cfsilent>
 <!--- Don't show the Google Analytics script on the admin page or if the string does not exist in the database. Note: there can be many gtag measurement Ids, we are going to grab the first one for the script and loop through all of them in the config line at the bottom of the script --->
 <cfif pageId neq 2 and len(application.googleAnalyticsString)>

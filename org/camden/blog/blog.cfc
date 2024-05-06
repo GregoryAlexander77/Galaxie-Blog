@@ -3927,6 +3927,7 @@
 					WHERE 
 						PostTagLookup.TagRef = #tagId#
 						AND Released = 1
+						AND Post.Remove = 0
 						AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#
 					GROUP BY  
 						Tag.TagId			

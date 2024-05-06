@@ -19,11 +19,15 @@
 	blogDbVersion: #blogDbVersion# application.blog.getVersion(): #application.blog.getVersion()# databaseUpdatedNeeded: #databaseUpdatedNeeded#
 </cfoutput>--->
 <!---<cftry>--->
+	
+	<!--- Works with flat XML (https://www.gregoryalexander.com/common/services/gregorysBlog/version.xml) --->
 		
-	<cfset serviceURL = "http://www.gregoryalexander.com/common/services/gregorysBlog/version.cfm?version=<cfoutput>#application.blog.getVersion()#&dbBlogVersion=#dbBlogVersion#</cfoutput>">
-	<cfhttp url="#serviceURL#" result="result">
+	<cfset serviceURL = "https://www.gregoryalexander.com/common/services/gregorysBlog/version.xml">
+	<cfhttp url="#serviceUrl#" result="result">
 	<cfset data = xmlParse(result.fileContent)>
 	<cfset latestVersion = data.version.number.xmlText>
+	<cfset dbVersion = data.version.dbVersion.xmlText>
+	<cfset dbUpdateInstruction = data.version.dbUpdateInstruction.xmlText>
 	<cfset latestUpdate = data.version.date.xmlText>
 	<cfset latestShortDescription = data.version.shortDescription.xmlText>
 	<cfset latestDescription = data.version.description.xmlText>
@@ -37,7 +41,7 @@
 	<!---<cfset stringClass = data.version.stringClass.xmlText>--->
 	<cfset nextUpdate = data.version.nextUpdate.xmlText>
 
-	<cfif databaseUpdatedNeeded or (latestVersion neq application.blog.getVersion())>
+	<cfif latestVersion neq application.blog.getVersion()>
 		<cfoutput>
 		<p class="k-block k-warning-colored">Note: when updating the file system, be sure not to overwrite your '/org/camden/blog/blog.ini.cfm' or '/admin/ApplicationProxyReference.cfc' files! Doing so will prevent you from obtaining access to the administrative site.<br/>
 		Although not necessary, as with any software before an upgrade, it is probably best to backup the entire codebase and database to your in case of an error or other custom logic needs to be restored.</p>
@@ -49,8 +53,7 @@
 			<p class="k-block k-success-colored">You're running Galaxie Blog version #latestVersion#. The file system version is up to date.</p>
 			<cfif databaseUpdatedNeeded>
 				<p class="k-block k-error-colored"><b>Your Galaxie Blog database is out of date.</b><br/>
-				There are changes in Font table as well as a new Joshua Tree Theme requiring a single record into the Theme and ThemeSettings table. If you don't need the new fonts or Joshua Tree theme, this update is not required. However, updating these records should be safe and not interfere with your other data.<br/><br/>
-				Click <a href="javascript:updateDb();">here</a> to update the database.</p>
+				<p>#dbUpdateInstruction#</p>
 			<cfelse>
 				<p class="k-block k-success-colored">The database is up to date.</p>
 			</cfif>
