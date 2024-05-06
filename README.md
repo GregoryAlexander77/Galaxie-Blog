@@ -2,6 +2,10 @@
 # Galaxie Blog
 Galaxie Blog is intended to be the most beautiful and functional free, open-source ColdFusion-based blog in the world. While it can’t go toe-to-toe with Wordpress functionality, I believe that Galaxie Blog competes with Wordpress in core blogging functionality, especially with its abundant theme-related features and support for various rich media.
 
+## Documentation
+
+The Galaxie Blog documentation can be found on Gregory's Blog at https://www.gregoryalexander.com/blog/Galaxie-Blog. Gregory's Blog runs on the same codebase found here. Many how-to articles on Gregory's Blog discuss how we have implemented some of the logic. 
+
 ## Installation
 
 You must have a ColdFusion installed on a server.
@@ -11,7 +15,7 @@ Theoretically, the blog may support any ColdFusion edition starting from ColdFus
 We have successfully tested using Apache, TomCat and IIS.
 We have not yet tested the blog on Lucee, an open-source version of Adobe ColdFusion, however, I intend on supporting Lucee in the future.
 
-Many ISPs offer ColdFusion servers for as low as 12 dollars a month. I use Media3.net, and they have been terrific. You can search the web for ColdFusion hosting to find out more.
+Many ISPs offer ColdFusion servers for as low as 12 dollars a month. I use Media3.net, and they have been terrific. You can find out more by searching the web for ColdFusion hosting.
 
 1. Galaxie Blog can be downloaded from the Galaxie Blog Git Hub Repository.
 
