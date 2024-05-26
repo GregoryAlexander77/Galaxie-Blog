@@ -682,6 +682,9 @@
 			<cfelse>
 				<cfset mediaHtmlStr = "<div class=""entryImage""><img data-type=""image"" data-id=""#arguments.mediaId#"" src=""#arguments.mediaUrl#"" alt=""""></div>">
 			</cfif>
+		<cfelse>
+			<!--- Render with the noImage.jpg --->
+			<cfset mediaHtmlStr = "<div class=""entryImage""><img data-type=""image"" src=""#application.baseUrl#/images/thumbnails/noImage.jpg"" alt=""""></div>">
 		</cfif>
 			
 		<cfreturn mediaHtmlStr>

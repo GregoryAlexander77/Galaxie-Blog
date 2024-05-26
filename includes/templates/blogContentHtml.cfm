@@ -107,9 +107,14 @@
 						<!--- ************************* Handle enlosure ************************* --->
 						<!--- For the popular posts widget, always use the thumbnail image --->
 						<cfset cardImage = thumbnail>	
-						<!--- Use the noImage.jpg if the thumbnail does not exist (likely due to errors or a blog upgrade) --->
+						<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and use the noImage.jpg if the share image or thumbnail does not exist (likely due to a cfinclude, errors or a blog upgrade) --->
 						<cfif not len(cardImage)>
-							<cfset cardImage = application.baseUrl & "/images/external/thumbnails/noImage.jpg">
+							<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'facebookImageUrlMetaData')>
+							<cfif len(facebookImageMetaTagValue)>
+								<cfset cardImage = facebookImageMetaTagValue>
+							<cfelse>
+								<cfset cardImage = application.baseUrl & "/images/thumbnails/noImage.jpg">
+							</cfif>
 						</cfif>
 
 						<!--- ************************* Handle maps ************************* --->
@@ -571,7 +576,7 @@
 												Render the post. 
 									**********************************************************************************************--->
 									</cfsilent>
-									<p>#post#</p>	
+									#post#	
 									<!--- If the more tag exists and we are not looking at a page, summarize the content (done when we set the postContent in logic above) and render a button to get to the full post. --->
 								<cfif len(morebody)>
 									<!--- Show a button in single page mode --->

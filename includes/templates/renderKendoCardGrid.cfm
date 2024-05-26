@@ -76,6 +76,9 @@
 	<cfset enclosureCarouselId = getPost[i]["EnclosureCarouselId"]>
 	<cfset datePosted = getPost[i]["DatePosted"]> 
 		
+	<!--- Also see if a video or enclosure should be rendered using xmlkeywords. This returns a structure. --->
+	<cfset xmlKeywordStruct = application.blog.getXmlKeywordStruct(getPost[i]["PostHeader"])>
+		
 	<!--- The provider variable is determined by a potential blog directive (vimdoVideoId or youTubeVideoId) and can either be vimeo or youTube. --->
 	<cfparam name="provider" default="">
 		
@@ -104,9 +107,14 @@
 	<cfif not len(thumbnail) and len(enclosure)>
 		<cfset cardImage = enclosure>
 	</cfif>--->
-	<!--- Use the noImage.jpg if the thumbnail does not exist (likely due to errors or a blog upgrade) --->
+	<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and use the noImage.jpg if the share image or thumbnail does not exist (likely due to a cfinclude, errors or a blog upgrade) --->
 	<cfif not len(cardImage)>
-		<cfset cardImage = application.baseUrl & "/images/thumbnails/noImage.jpg">
+		<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'facebookImageUrlMetaData')>
+		<cfif len(facebookImageMetaTagValue)>
+			<cfset cardImage = facebookImageMetaTagValue>
+		<cfelse>
+			<cfset cardImage = application.baseUrl & "/images/thumbnails/noImage.jpg">
+		</cfif>
 	</cfif>
 	<cfif isDebug>
 		<cfoutput>showSidebar: #showSidebar# renderMediumCard: #renderMediumCard# cardImage: #cardImage#</cfoutput><br/>
@@ -124,6 +132,7 @@
 	<cfelse>
 		<cfset loadMapScript = ''>
 	</cfif>
+	
 	<!--- Render the map --->
 	<cfif len(enclosureMapId)>
 		<cfif isDebug>renderMediumCard: #renderMediumCard#</cfif>
@@ -148,8 +157,6 @@
 		</cfinvoke> 
 	</cfif><!---<cfif len(mediaId) and mediaType contains 'Video'>--->
 				
-	<!--- Also see if a video should be rendered using xmlkeywords. This returns a structure. --->
-	<cfset xmlKeywordStruct = application.blog.getXmlKeywordStruct(getPost[i]["PostHeader"])>
 	<!--- Is there a video directive the xmlKeywords? --->
 	<cfif len(xmlKeywordStruct.VideoDirective)>
 		<!--- Get the smallest video if possible --->
@@ -213,7 +220,8 @@
 	</cfif>
 	
 	</cfsilent>	
-		<cfif isDebug><cfoutput>Rendering card- i:#i# arrayLen(getPost):#arrayLen(getPost)# len(postUrl):#len(postUrl)# renderMediumCard: #renderMediumCard# <br/></cfoutput></cfif>
+		
+		<cfif isDebug><cfoutput>xmlKeywordStruct: <cfdump var="#xmlKeywordStruct#"> Rendering card- i:#i# arrayLen(getPost):#arrayLen(getPost)# len(postUrl):#len(postUrl)# renderMediumCard: #renderMediumCard# <br/></cfoutput></cfif>
 		<cfif i lte arrayLen(getPost) and displayCard and len(postUrl)>
 			<div class="k-card <cfif promotedPost>highlightedWidget</cfif>" style="width: <cfoutput>#cardWidth#</cfoutput>%;"> 
 				<div class="k-card-body">

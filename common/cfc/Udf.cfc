@@ -1,7 +1,7 @@
 <cfcomponent displayname="Udf" hint="Common functions" name="Udf">
 			
 	<!---******************************************************************************************************
-		Security
+		Security (note: this looks like it can be removed)
 	******************************************************************************************************--->
 			
 	<cfscript>
@@ -172,6 +172,46 @@
 		Request.getRelativePath = getRelativePath;
 
 	</cfscript>
+	
+	<!--- Script by Saman W Jayasekara --->
+	<cffunction name="cleanup" access="private" returntype="string" output="Yes" hint="Possible Malicious html code from a given string"> 
+	 <cfargument name="str" type="string" required="yes">
+	 <cfargument name="action" type="string" required="no" default="cleanup" hint="If [cleanup], this will clean up the string and output new string, if [find], this will output a value or zero"> 
+	 <!--- **************************************************************************** ---> 
+	 <!--- Remove string between <script> <object><iframe><style><meta> and <link> tags ---> 
+	 <!--- @param str     String to clean up. (Required)                                ---> 
+	 <!--- @param action    Replace and Clean up or Find                                ---> 
+	 <!--- @author         Saman W Jayasekara (sam @ cflove . org)                      ---> 
+	 <!--- @version 1.1    May 22, 2010 												--->       
+	 <!--- Gregory added attachScript to the list 										--->
+	 <!--- **************************************************************************** ---> 
+	 <cfswitch expression="#arguments.action#"> 
+		<cfcase value="cleanup"> 
+			<cfset local.str = ReReplaceNoCase(arguments.str,"<script.*?</*.script*.>|<attachScript.*?</*.attachScript*.>|<applet.*?</*.applet*.>|<embed.*?</*.embed*.>|<ilayer.*?</*.ilayer*.>|<frame.*?</*.frame*.>|<object.*?</*.object*.>|<iframe.*?</*.iframe*.>|<style.*?</*.style*.>|<meta([^>]*[^/])>|<link([^>]*[^/])>|<script([^>]*[^/])>", "", "ALL")> 
+			<cfset local.str = local.str.ReplaceAll("<\w+[^>]*\son\w+=.*[ /]*>|<script.*/*>|</*.script>|<[^>]*(javascript:)[^>]*>|<[^>]*(onClick:)[^>]*>|<[^>]*(onDblClick:)[^>]*>|<[^>]*(onMouseDown:)[^>]*>|<[^>]*(onMouseOut:)[^>]*>|<[^>]*(onMouseUp:)[^>]*>|<[^>]*(onMouseOver:)[^>]*>|<[^>]*(onBlur:)[^>]*>|<[^>]*(onFocus:)[^>]*>|<[^>]*(onSelect:)[^>]*>","") > 
+			<cfset local.str = reReplaceNoCase(local.str, "</?(script|applet|embed|ilayer|frame|iframe|frameset|style|link)[^>]*>","","all")> 
+		</cfcase> 
+		<cfdefaultcase> 
+			<cfset local.str = REFindNoCase("<script.*?</script*.>|<applet.*?</applet*.>|<embed.*?</embed*.>|<ilayer.*?</ilayer*.>|<frame.*?</frame*.>|<object.*?</object*.>|<iframe.*?</iframe*.>|<style.*?</style*.>|<meta([^>]*[^/])>|<link([^>]*[^/])>|<\w+[^>]*\son\w+=.*[ /]*>|<[^>]*(javascript:)[^>]*>|<[^>]*(onClick:)[^>]*>|<[^>]*(onDblClick:)[^>]*>|<[^>]*(onMouseDown:)[^>]*>|<[^>]*(onMouseOut:)[^>]*>|<[^>]*(onMouseUp:)[^>]*>|<[^>]*(onMouseOver:)[^>]*>|<[^>]*(onBlur:)[^>]*>|<[^>]*(onFocus:)[^>]*>|<[^>]*(onSelect:)[^>]*>",arguments.str)> 
+		</cfdefaultcase> 
+	 </cfswitch> 
+	 <cfreturn local.str> 
+	</cffunction>
+				
+	<cffunction name="getYouTubeVideoId" returnType="string" 
+			hint="Function to get the YouTube ID. This should work for most URL's. Gregory Alexander modified an approach suggested by Ray Camden">
+		<cfargument name="youTubeUrl" default="" required="yes">
+
+		<!---Check to see if this is a short YouTube URL (http://youtu.be/f89niPP64Hg) --->
+		<cfif listGetAt(arguments.youTubeUrl, 2, '/') eq 'youtu.be'>
+			<cfset youTubeId = listLast(arguments.youTubeUrl, '/')>
+		<cfelse>
+			<cfset youTubeId = reReplaceNoCase(arguments.youTubeUrl, ".*?v=([a-z0-9\-_]+).*","\1")>
+		</cfif>
+
+		<cfreturn youTubeId>
+
+	</cffunction>
 			
 	<!--- This UDF from Steven Erat, http://www.talkingtree.com/blog --->
 	<cffunction name="replaceLinks" access="public" output="yes" returntype="string">
@@ -219,31 +259,6 @@
 			}
 		</cfscript>
 		<cfreturn inputReturn>
-	</cffunction>
-
-	<!--- Script by Saman W Jayasekara --->
-	<cffunction name="cleanup" access="private" returntype="string" output="Yes" hint="Possible Malicious html code from a given string"> 
-	 <cfargument name="str" type="string" required="yes">
-	 <cfargument name="action" type="string" required="no" default="cleanup" hint="If [cleanup], this will clean up the string and output new string, if [find], this will output a value or zero"> 
-	 <!--- **************************************************************************** ---> 
-	 <!--- Remove string between <script> <object><iframe><style><meta> and <link> tags ---> 
-	 <!--- @param str     String to clean up. (Required)                                ---> 
-	 <!--- @param action    Replace and Clean up or Find                                ---> 
-	 <!--- @author         Saman W Jayasekara (sam @ cflove . org)                      ---> 
-	 <!--- @version 1.1    May 22, 2010 												--->       
-	 <!--- Gregory added attachScript to the list 										--->
-	 <!--- **************************************************************************** ---> 
-	 <cfswitch expression="#arguments.action#"> 
-		<cfcase value="cleanup"> 
-			<cfset local.str = ReReplaceNoCase(arguments.str,"<script.*?</*.script*.>|<attachScript.*?</*.attachScript*.>|<applet.*?</*.applet*.>|<embed.*?</*.embed*.>|<ilayer.*?</*.ilayer*.>|<frame.*?</*.frame*.>|<object.*?</*.object*.>|<iframe.*?</*.iframe*.>|<style.*?</*.style*.>|<meta([^>]*[^/])>|<link([^>]*[^/])>|<script([^>]*[^/])>", "", "ALL")> 
-			<cfset local.str = local.str.ReplaceAll("<\w+[^>]*\son\w+=.*[ /]*>|<script.*/*>|</*.script>|<[^>]*(javascript:)[^>]*>|<[^>]*(onClick:)[^>]*>|<[^>]*(onDblClick:)[^>]*>|<[^>]*(onMouseDown:)[^>]*>|<[^>]*(onMouseOut:)[^>]*>|<[^>]*(onMouseUp:)[^>]*>|<[^>]*(onMouseOver:)[^>]*>|<[^>]*(onBlur:)[^>]*>|<[^>]*(onFocus:)[^>]*>|<[^>]*(onSelect:)[^>]*>","") > 
-			<cfset local.str = reReplaceNoCase(local.str, "</?(script|applet|embed|ilayer|frame|iframe|frameset|style|link)[^>]*>","","all")> 
-		</cfcase> 
-		<cfdefaultcase> 
-			<cfset local.str = REFindNoCase("<script.*?</script*.>|<applet.*?</applet*.>|<embed.*?</embed*.>|<ilayer.*?</ilayer*.>|<frame.*?</frame*.>|<object.*?</object*.>|<iframe.*?</iframe*.>|<style.*?</style*.>|<meta([^>]*[^/])>|<link([^>]*[^/])>|<\w+[^>]*\son\w+=.*[ /]*>|<[^>]*(javascript:)[^>]*>|<[^>]*(onClick:)[^>]*>|<[^>]*(onDblClick:)[^>]*>|<[^>]*(onMouseDown:)[^>]*>|<[^>]*(onMouseOut:)[^>]*>|<[^>]*(onMouseUp:)[^>]*>|<[^>]*(onMouseOver:)[^>]*>|<[^>]*(onBlur:)[^>]*>|<[^>]*(onFocus:)[^>]*>|<[^>]*(onSelect:)[^>]*>",arguments.str)> 
-		</cfdefaultcase> 
-	 </cfswitch> 
-	 <cfreturn local.str> 
 	</cffunction>
 			
 </cfcomponent>			
