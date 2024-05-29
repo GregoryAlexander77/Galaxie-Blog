@@ -10,7 +10,7 @@
 	<cfproperty name="CategoryUuid" ormtype="string" length="75" default="">
 	<cfproperty name="CategoryAlias" ormtype="string" length="75" default="">
 	<cfproperty name="Category" ormtype="string" length="125" default="">
-	<cfproperty name="CategoryDesc" ormtype="string" sqltype="varchar(max)" default="">
+	<cfproperty name="CategoryDesc" ormtype="string" length="1250" default="">
 	<cfproperty name="Date" ormtype="timestamp">
 
 </cfcomponent>

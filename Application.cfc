@@ -676,7 +676,7 @@
 		<cfelse>
 			<cftry>
 				<!--- Get the DSN from the ini file --->
-				<cfset dsn = getProfileString("C:\inetpub\wwwroot\gregoryalexander.com\blog\org\camden\blog\blog.ini.cfm", "default", "dsn")>
+				<cfset dsn = getProfileString(getBlogIniPath(), "default", "dsn")>
 				<cfcatch type="any">
 					<!--- This should only happen when initially installing the blog. --->
 					<cfset dsn = ""/>
@@ -700,7 +700,7 @@
 		<cfelse>
 			<!--- Get the dialect from the ini file --->
 			<cftry>
-				<cfset databaseType = getProfileString("C:\inetpub\wwwroot\gregoryalexander.com\blog\org\camden\blog\blog.ini.cfm", "default", "databaseType")>
+				<cfset databaseType = getProfileString(getBlogIniPath(), "default", "databaseType")>
 				<cfcatch type="any">
 					<!--- This should only happen when initially installing the blog. --->
 					<cfset databaseType = ""/>
@@ -726,7 +726,7 @@
 		<cfelse>
 			<!--- Get it from the ini file --->
 			<cftry>
-				<cfset installed = getProfileString("C:\inetpub\wwwroot\gregoryalexander.com\blog\org\camden\blog\blog.ini.cfm", "default", "installed")>
+				<cfset installed = getProfileString(getBlogIniPath(), "default", "installed")>
 				<cfcatch type="any">
 					<!--- This should only happen when initially installing the blog. --->
 					<cfset installed = false />
