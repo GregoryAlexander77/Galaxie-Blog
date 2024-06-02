@@ -8,7 +8,7 @@
 	<cfproperty name="TagUuid" ormtype="string"  length="75" default="">
 	<cfproperty name="TagAlias" ormtype="string"  length="75" default="">
 	<cfproperty name="Tag" ormtype="string"  length="125" default="">
-	<cfproperty name="TagDesc" ormtype="string" sqltype="varchar(max)" default="">
+	<cfproperty name="TagDesc" ormtype="string" length="1250" default="">
 	<cfproperty name="Date" ormtype="timestamp">
 
 </cfcomponent>
