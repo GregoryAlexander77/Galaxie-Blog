@@ -2786,9 +2786,9 @@
 			</cfif>
 		</cfinvoke>
 		
-		<!--- Return the data as a json object. Note: this is using a standard CFQuery object- not a HQL array. --->
-		<cfinvoke component="#jsonArray#" method="convertCfQuery2JsonStruct" returnvariable="jsonString">
-			<cfinvokeargument name="queryObj" value="#Data#">
+		<!--- Return the data as a json object. --->
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#Data#">
 			<cfinvokeargument name="includeTotal" value="false">
 			<!--- When we use server side paging, we need to override the total and specify a new total which is the sum of the entire query. --->
 			<cfinvokeargument name="overRideTotal" value="false">

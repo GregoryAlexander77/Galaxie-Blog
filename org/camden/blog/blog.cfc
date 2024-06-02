@@ -412,7 +412,7 @@
 							
 	<!--- ************************** Visitor Logs ************************** --->
 			
-	<cffunction name="getVisitorLog" access="public" returnType="query" output="true" hint="Gets the visitor log by a variety of args. This returns a ColdFusion query object.">
+	<cffunction name="getVisitorLog" access="public" returnType="array" output="true" hint="Gets the visitor log by a variety of args. This returns a ColdFusion query object.">
 		<cfargument name="anonymousUserId" type="string" required="false" default="">
 		<cfargument name="userId" type="string" required="false" default="">
 		<cfargument name="fullName" type="string" required="false" default="">
@@ -421,36 +421,34 @@
 		<cfargument name="httpUserAgent" type="string" required="false" default="">
 		<cfargument name="postId" type="string" required="false" default="">
 			
-		<cfset maxRows = 10000>
-			
-		<!--- Note: using ORM here is inefficient as I need to load too many tables and am using vanilla SQL instead. This should work on all SQL databases and has been tested on MYSql 5.6-8, MariaDb, Postgres, and Oracle. --->			
-		<cfquery name="Data" datasource="#application.dsn#" maxrows="#maxRows#">		
-			SELECT
-			  VisitorLog.VisitorLogId,
-			  AnonymousUser.AnonymousUserId,
-			  Users.UserId,
-			  Users.FullName,
-			  IpAddress.IpAddressId,
-			  IpAddress.IpAddress,
-			  HttpUserAgent.HttpUserAgentId,
-			  HttpUserAgent.HttpUserAgent,
-			  AnonymousUser.HitCount,
-			  AnonymousUser.ScreenHeight,
-			  AnonymousUser.ScreenWidth,
-			  HttpReferrer.HttpReferrer,
-			  Post.PostId,
-			  Post.Title,
-			  VisitorLog.Date
-			FROM
-			  Users
-			  RIGHT OUTER JOIN AnonymousUser
-			  INNER JOIN HttpUserAgent ON AnonymousUser.HttpUserAgentRef = HttpUserAgent.HttpUserAgentId
-			  INNER JOIN IpAddress ON AnonymousUser.IpAddressRef = IpAddress.IpAddressId
-			  INNER JOIN VisitorLog ON AnonymousUser.AnonymousUserId = VisitorLog.AnonymousUserRef ON Users.UserId = AnonymousUser.UserRef
-			  LEFT OUTER JOIN Post ON VisitorLog.PostRef = Post.PostId
-			  LEFT OUTER JOIN HttpReferrer ON VisitorLog.HttpReferrerRef = HttpReferrer.HttpReferrerId
-			WHERE 
-				VisitorLog.BlogRef = 1
+		<!--- This needs to be limited to the first 10000 rows --->			
+		<cfquery name="Data" dbtype="hql" ormoptions="#{maxresults=10000}#">		
+			SELECT new Map (
+				VisitorLog.VisitorLogId as VisitorLogId,
+				IpAddress.IpAddressId as IpAddressId,
+				IpAddress.IpAddress as IpAddress,
+			 	HttpUserAgent.HttpUserAgentId as HttpUserAgentId,
+			 	HttpUserAgent.HttpUserAgent as HttpUserAgent,
+				HttpReferrer.HttpReferrer as HttpReferrer,
+				AnonymousUser.AnonymousUserId as AnonymousUserId,
+				AnonymousUser.HitCount as HitCount,
+				AnonymousUser.ScreenHeight as ScreenHeight,
+				AnonymousUser.ScreenWidth as ScreenWidth,
+				Users.UserId as UserId,
+				Users.FullName as FullName,
+				Post.PostId as PostId,
+				Post.Title as Title,
+				VisitorLog.Date as Date
+			)
+			FROM 
+				VisitorLog as VisitorLog
+				LEFT OUTER JOIN VisitorLog.AnonymousUserRef as AnonymousUser
+				LEFT OUTER JOIN VisitorLog.AnonymousUserRef.HttpUserAgentRef as HttpUserAgent
+				LEFT OUTER JOIN VisitorLog.HttpReferrerRef as HttpReferrer
+				LEFT OUTER JOIN VisitorLog.AnonymousUserRef.IpAddressRef as IpAddress
+				LEFT OUTER JOIN VisitorLog.PostRef as Post
+				LEFT OUTER JOIN VisitorLog.AnonymousUserRef.UserRef as Users
+				WHERE 0=0
 			<cfif len(arguments.anonymousUserId)>
 				AND AnonymousUser.AnonymousUserId = <cfqueryparam value="#arguments.anonymousUserId#" cfsqltype="integer"> 
 			</cfif>
@@ -472,7 +470,7 @@
 			<cfif len(arguments.postId) and isNumeric(postId)>
 				AND Post = <cfqueryparam value="#arguments.postId#" cfsqltype="integer">
 			</cfif>
-				ORDER BY dbo.VisitorLog.Date DESC
+				ORDER BY VisitorLog.Date DESC
 		</cfquery>
 			
 		<cfreturn Data>
