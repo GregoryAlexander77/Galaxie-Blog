@@ -22,7 +22,7 @@ Determine if the blog has been installed
 	</cfif>
 </cfif>
 	
-<cfset dir = application.rootDirectoryPath & "/installer/dataFiles/">
+<cfset dir = "../installer/dataFiles/">
 	
 <!--- Let's insert the data. First we need to populate the database. --->
 	
