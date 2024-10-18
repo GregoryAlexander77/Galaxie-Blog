@@ -37,7 +37,7 @@
 		<cfelse>
 
 			<cfoutput>
-			<p>Unfortunately, I had a problem finding your config file. The ini file does not reside at #application.iniFile#.
+			<p>Unfortunately, I had a problem finding your config file. The ini file does not reside at #expandPath(blogIniPath)#.
 			Galaxie Blog may be "stuck" trying to run the installer. Please contact Gregory Alexander (gregory@gregoryalexander.com) for support.</p>
 			</cfoutput>
 			<cfabort>

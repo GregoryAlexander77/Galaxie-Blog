@@ -14931,8 +14931,12 @@ Custom element markup example for videos:
 				var tagId = response.tagId;
 				var tag = response.tag;
 				
-				// Add the new post tag option to the multiselect when the post detail page is invoking this interface. This function is on the post detail page.
-				addNewPostTag(tagId, tag);
+				// Add the new post tag option to the multiselect when the post detail page is invoking this interface. This function is on the post detail page. It is in a try block as it is also used on the tag interface where this function is not available.
+				try {
+					addNewPostTag(tagId, tag);
+				} catch (error) {
+					// do nothing
+				}
 
 			} else {
 				
