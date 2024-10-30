@@ -109,7 +109,7 @@
 						<cfset cardImage = thumbnail>	
 						<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and use the noImage.jpg if the share image or thumbnail does not exist (likely due to a cfinclude, errors or a blog upgrade) --->
 						<cfif not len(cardImage)>
-							<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'facebookImageUrlMetaData')>
+							<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPopularPosts[i]["PostHeader"], 'facebookImageUrlMetaData')>
 							<cfif len(facebookImageMetaTagValue)>
 								<cfset cardImage = facebookImageMetaTagValue>
 							<cfelse>
@@ -929,101 +929,8 @@
 				orientation: "left",
 				autoClose: true,// Note: autoclose true will cause the panel to fly off to the left. It looks a bit funny, but it works.. 
 				open: onSidebarOpen,
-				close: onSidbarClose
+				close: onSidebarClose
 			})
 		});//..document.ready
-		
-		function onSidebarOpen(){
-			// Change the value of the hidden input field to keep track of the state. We need some lag time and need to wait half of a second in order to allow the form to be changed, otherwise, we can't keep an accurate state and the panel will always think that the panel is closed and always open when you click on the button.
-			// Display the sidebar 
-			$('#sidebarPanel').fadeTo(0, 500, function(){
-				$('#sidebarPanel').css('visibility','visible'); 
-				// Set the state
-				$('#sidebarPanelState').val("open");
-			}); // duration, opacity, callback
-		}
-		
-		// Event handler for close event for mobile devices. Note: this is not consumed with desktop devices.
-		function onSidbarClose(){
-			// Hide the sideBar
-			$('sidebarPanel').css("visibility", "hidden"); 
-			$('#sidebarPanel').fadeTo(500, 0, function(){
-				// Change the value of the hidden input field to keep track of the state.
-				$('#sidebarPanelState').val("closed");
-			}); // duration, opacity, callback
-		};
-
-		// Function to open the side bar panel. We need to have the name of the div that is consuming this in order to adjust the top padding.
-		function toggleSideBarPanel(layer){
-			// Determine if we should open or close the sidebar.
-			if (getSidebarPanelState() == 'open'){
-				// On desktop, set visibility to hidden, otherwise there will be an animation on desktop devices that just looks wierd.
-				if (!isMobile){
-					$('#sidebarPanel').css("visibility", "hidden"); 
-				}
-				// Close the sidebar
-				$("#sidebarPanel").kendoResponsivePanel("close");
-				// Change the value of the hidden input field to keep track of the state.
-				$('#sidebarPanelState').val("closed");
-			} else { //if ($('#sidebarPanel').css('display') == 'none'){ 
-				// Set the padding.
-				setSidebarPadding(layer);
-				// Open the sidebar
-				$("#sidebarPanel").kendoResponsivePanel("open");
-			}//if ($('#sidebarPanel').css('display') == 'none'){ 
-		}
-		
-		// Sidebar helper functions.
-		function getSidebarPanelState(){
-			// Note: There is no way to automatically get the state, so I am toggling a hidden form with the state using the onSideBarOpen and close. Also, when the user clicks on the button the first time, there will be an error 'Uncaught TypeError: Cannot read property 'style' of undefined', so we will put this in a try block and iniitialize the panel if there is an error. 
-			
-			// The hidden sidebarPanelState form is set to initial on page load. We need to initialize the sidebarPanel css by setting the css to display: 'block'
-			if ($('#sidebarPanelState').val() == 'initial'){
-				// Set the display property to block. 
-				$('#sidebarPanel').css('display', 'block');
-				var sidebarPanelState = 'closed';
-			} else if (($('#sidebarPanelState').val() == 'open')){
-				var sidebarPanelState = 'open';
-			} else if (($('#sidebarPanelState').val() == 'closed')){
-				var sidebarPanelState = 'closed';
-			} else {
-				// Default state is closed (if anything goes wrong)
-				var sidebarPanelState = 'closed';
-			}
-			return sidebarPanelState;
-		}
-		
-		function setSidebarPadding(layer){
-			// !! Note: there are setSidebarPadding functions. One for the blog, and the other for all other pages. When looking at the blog requires different logic as the sideBar container is to the right of the blog content when in classic mode. 
-			if (layer == 1){// The topMenu element is invoking this method.
-				// Set the margin (its different between mobile and desktop).
-				if (isMobile){
-					// The header is 105px for mobile.
-					var marginTop = "105px";
-				} else {
-					// When this is invoked in the blog, there is no padding for desktop. The layer is correctly positioned within the mainContainer
-					var marginTop = "0px";
-				}
-				var marginTop = marginTop;
-
-				// Set the css margin-top property. We want this underneath the calling menu.
-				$('#sidebarPanel').css('margin-top', marginTop);
-			} else if (layer == 2){// The fixed 'fixedNavHeader' element is invoking this method.
-				// The height of the fixedMenu is 35 or 45 pixels depening upon device.
-				// Set the margin (its different between mobile and desktop).
-				if (isMobile){
-					// The fixedNavHeader is 35 pixels for mobile. We'll add another 2px.
-					var marginTop = "37px";
-				} else {
-					// We need to find out how far from the top we are to figure out how many pixes to drop the Kendo responsive panel down as we have scrolled away from the top of the screen.
-					var pixelsToTop = window.pageYOffset || document.documentElement.scrollTop;
-					// Subtract 60 pixes from the pixels to top to determine the placement of the sidebar panel. 
-					var marginTop = (pixelsToTop - 60) + "px";
-				}
-				var marginTop = marginTop;
-				// Set the margin-top css property. We want this underneath the calling menu.
-				$('#sidebarPanel').css('margin-top', marginTop);
-			}
-		}//..function setSidebarPadding(layer){
 	</script>
 	<div class="responsive-message"></div>

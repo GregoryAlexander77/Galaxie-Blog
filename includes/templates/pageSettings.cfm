@@ -299,7 +299,7 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 </cfif>
 	
 <!--- //******************************************************************************************************
-			showSidbar variable
+			showSidebar variable
 //********************************************************************************************************--->
 <!--- 
 	Determine if we should display the sidebar. 

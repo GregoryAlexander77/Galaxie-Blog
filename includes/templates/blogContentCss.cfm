@@ -290,7 +290,7 @@
 			overflow: hidden;
 		}
 		
-		/* The side bar panel is essentially a duplicate of the sidbar div, however, it is a responsive panel used when the screen size gets small. */
+		/* The side bar panel is essentially a duplicate of the sidebar div, however, it is a responsive panel used when the screen size gets small. */
 		#sidebarPanel {
 			/* Hide the sidebarPanel */
 			visibility: hidden;
