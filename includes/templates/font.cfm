@@ -24,18 +24,18 @@
 	</cfif>
 	</cfsilent>
 <cfif application.minimizeCode>
-	<cfif arrayLen(getSelfHostedFonts)><style rel="preload" as="font"><cfloop from="1" to="#arrayLen(getSelfHostedFonts)#" index="i"><cfoutput>@font-face{font-family:"#getSelfHostedFonts[i]['Font']#";src:url(#application.baseUrl#/common/fonts/#getSelfHostedFonts[i]['FileName']#.#fontExtension#) format("#fontExtension#");font-display:swap;}</cfoutput></cfloop></style></cfif>
+	<cfif arrayLen(getSelfHostedFonts)><style rel="preload" as="font"><cfloop from="1" to="#arrayLen(getSelfHostedFonts)#" index="i"><cfif len(getSelfHostedFonts[i]['FileName'])><cfoutput>@font-face{font-family:"#getSelfHostedFonts[i]['Font']#";src:url(#application.baseUrl#/common/fonts/#getSelfHostedFonts[i]['FileName']#.#fontExtension#) format("#fontExtension#");font-display:swap;}</cfoutput></cfif></cfloop></style></cfif>
 <cfelse><!---<cfif application.minimizeCode>--->
 	<cfif arrayLen(getSelfHostedFonts)>
 	<!--- Preload the fonts. --->
-	<style rel="preload" as="font"><cfloop from="1" to="#arrayLen(getSelfHostedFonts)#" index="i"><cfoutput>
+	<style rel="preload" as="font"><cfloop from="1" to="#arrayLen(getSelfHostedFonts)#" index="i"><cfif len(getSelfHostedFonts[i]['FileName'])><cfoutput>
 		/* #getSelfHostedFonts[i]['Font']# */
 		@font-face {
 			font-family: "#getSelfHostedFonts[i]['Font']#";
 			src: url(#application.baseUrl#/common/fonts/#getSelfHostedFonts[i]['FileName']#.#fontExtension#) format("#fontExtension#")<cfif getSelfHostedFonts[i]['Woff']>, url(#application.baseUrl#/common/fonts/#getSelfHostedFonts[i]['FileName']#.#fontExtension#) format("woff")</cfif>;
 			font-display:swap;
 		}
-	</cfoutput></cfloop></style>
+	</cfoutput></cfif></cfloop></style>
 	</cfif><!---<cfif arrayLen(getSelfHostedFonts)>--->
 </cfif><!---<cfif application.minimizeCode>--->
 <cfif 1 eq 2 and arrayLen(getGoogleFonts)>

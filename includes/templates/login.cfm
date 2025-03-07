@@ -4,6 +4,7 @@
 <!--- Include our string utils object to trim strings --->
 <cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
 </cfsilent>
+<!---application.Udf.isLoggedIn():<cfoutput>#application.Udf.isLoggedIn()#</cfoutput>--->
 
 <!--- Forms that hold state. --->
 <!--- This is the sidebar responsive navigation panel that is triggered when the screen gets to a certain size. It is a duplicate of the sidebar div above, however, I can't properly style the sidebar the way that I want to within the blog content, so it is duplicated withoout the styles here. --->

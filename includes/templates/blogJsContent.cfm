@@ -99,7 +99,7 @@
 		//**************************************************************************************************************
 		<cfif isDefined("URL.unsubscribe")>
 			<cfset openUnsubscribeForm = true>
-			alert(<cfoutput>#URL.email#</cfoutput>)
+			// alert(<cfoutput>#URL.email#</cfoutput>)
 		<cfelse>
 			<cfset openUnsubscribeForm = false>
 		</cfif>
@@ -169,7 +169,7 @@
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: '85%',// We must leave room if the user wants to select a bunch of categories.
 				iframe: false, // don't  use iframes unless it is content derived outside of your own site. 
-				content: "<cfoutput>#application.baseUrl#</cfoutput>/about.cfm?aboutWhat=" + Id,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/about.cfm?aboutWhat=" + Id,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -219,7 +219,7 @@
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: '315px',// We must leave room if the user wants to select a bunch of categories.
 				iframe: false, // don't  use iframes unless it is content derived outside of your own site. 
-				content: "<cfoutput>#application.baseUrl#</cfoutput>/search.cfm",// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/search.cfm",// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -267,7 +267,7 @@
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: "85%",
 				iframe: false, // don't  use iframes unless it is content derived outside of your own site. 
-				content: "<cfoutput>#application.baseUrl#</cfoutput>/searchResults.cfm?searchTerm=" + searchTerm + "&category=" + category,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/searchResults.cfm?searchTerm=" + searchTerm + "&category=" + category,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -387,7 +387,17 @@
 				}
 			<cfelse>
 				close: function() {
-					$("#" + windowName).kendoWindow('destroy');
+					// Put this in a try block. There may be duplicate windows which causes the following line to fail
+					try {
+						$("#" + windowName).kendoWindow('destroy');
+					} catch(e){
+						// destroy everything within the body. This should only close the kendo window
+						kendo.destroy(document.body);
+						/*  Other methods to potentially close a Kendo window (these don't work here):
+						var thisWindow = $( this ).closest(".k-window-content").data("kendoWindow");
+						$("#" +thisWindow).kendoWindow('destroy');
+					*/
+					}
 				}
 			</cfif>
 			}).data('kendoWindow').center();// Center the window.
@@ -408,7 +418,7 @@
 			if (Id == 0){
 				var windowName = "loginWindow";
 				var windowTitle = "Log In";
-				var windowHeight = "33%";
+				var windowHeight = "40%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>33%</cfif>";
 			} else if (Id == 1){
 				var windowName = "recentCommentsGridWindow";
@@ -449,20 +459,22 @@
 				var windowName = "userDetailWindow";
 				var windowHeight = "85%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>66%</cfif>";
-				// This window handles updates and inserts. If the otherArgs is 'addUser', we will insert data. Otherwise, the optArgs should be the numeric User.UserId.
+				// This window handles user and profile updates as well as adding new users. If the otherArgs is 'addUser', we will insert data. Otherwise, the optArgs should be the numeric User.UserId.
 				if (otherArgs == 'addUser'){
 					var windowTitle = "Add User";
+				} else if (otherArgs == 'editProfile'){
+					var windowTitle = "User Profile";
 				} else {
 				 	var windowTitle = "Edit User";
 				}
 			} else if (Id == 8){
 				var windowName = "roleNameWindow";
-				var windowHeight = "33%";
+				var windowHeight = "40%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>33%</cfif>";
 				var windowTitle = "Add New Role";
 			} else if (Id == 9){
 				var windowName = "confirmPasswordWindow";
-				var windowHeight = "33%";
+				var windowHeight = "40%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>33%</cfif>";
 				var windowTitle = "Confirm Password";
 			} else if (Id == 10){
@@ -477,7 +489,7 @@
 				var windowTitle = "Edit Profile";
 			} else if (Id == 12){
 				var windowName = "addCategoryWindow";
-				var windowHeight = "33%";
+				var windowHeight = "40%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>33%</cfif>";
 				var windowTitle = "Add Category";
 			} else if (Id == 13){
@@ -532,7 +544,7 @@
 				var windowTitle = "Actual JSON LD";
 			} else if (Id == 23){ 
 				var windowName = "postAliasWindow";
-				var windowHeight = "33%";
+				var windowHeight = "40%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>33%</cfif>";
 				var windowTitle = "Edit Alias"; 
 			} else if (Id == 24){
@@ -554,7 +566,7 @@
 				var windowName = "addSubscriberWindow";
 				var windowTitle = "Add Subscriber";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>40%</cfif>";
-				var windowHeight = "30%";
+				var windowHeight = "40%";
 			} else if (Id == 28){
 				var windowName = "userGridWindow";
 				var windowTitle = "Users";
@@ -632,12 +644,12 @@
 				var windowTitle = "Post Header";
 			} else if (Id == 43){
 				var windowName = "blogSortDateWindow";
-				var windowHeight = "35%";
+				var windowHeight = "40%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>45%</cfif>";
 				var windowTitle = "Change Post Sort Date";
 			} else if (Id == 44){
 				var windowName = "setPostThemeWindow";
-				var windowHeight = "35%";
+				var windowHeight = "45%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>45%</cfif>";
 				var windowTitle = "Set Post Theme";
 			} else if (Id == 45){
@@ -662,7 +674,7 @@
 				var windowTitle = "Visitor Logs";
 			} else if (Id == 49){
 				var windowName = "addTagWindow";
-				var windowHeight = "33%";
+				var windowHeight = "40%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>33%</cfif>";
 				var windowTitle = "Add Tag";
 			} else if (Id == 50){
@@ -675,6 +687,26 @@
 				var windowTitle = "Carousel Images";
 				var windowHeight = "85%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+			} else if (Id == 52){
+				var windowName = "codeMirrorEditor";
+				var windowTitle = "Code Editor";
+				var windowHeight = "66%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+			} else if (Id == 53){
+				var windowName = "contentTemplateEditor";
+				var windowTitle = "Content Template Editor";
+				var windowHeight = "85%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+			} else if (Id == 54){
+				var windowName = "contentTemplateEditor";
+				var windowTitle = "Content Editor";
+				var windowHeight = "85%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+			} else if (Id == 55){
+				var windowName = "contentTemplates";
+				var windowTitle = "Content Template Properties";
+				var windowHeight = "85%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
 			}
 			
 			// Remove the window if it already exists
@@ -740,6 +772,63 @@
 			}, 500);
 		}
 	</cfif><!---<cfif pageTypeId eq 2>--->
+	
+		// Content output preview window ----------------------------------------------------------
+		function createContentOutputPreviewWindow(optArgs, otherArgs, otherArgs1) {
+			/* Note: optArgs generally is the theme id, otherArgs is the template, and otherArgs is if this is a mobile device. The arguments were meant to be generic. */
+			
+			// Initialize non required args
+			otherArgs1 = typeof otherArgs1 !== 'undefined' ? otherArgs1 : '';
+			
+			// Set the window name, title, height and width
+			if (otherArgs == 'CompositeHeaderDesktop'){
+				var windowName = "headerPreviewDesktopWindow";
+				var windowTitle = "Desktop Header Preview";
+				var windowHeight = "33%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>33%</cfif>";
+			} else if (otherArgs == 'CompositeHeaderMobile'){
+				var windowName = "headerPreviewMobilepWindow";
+				var windowTitle = "Mobile Header Preview";
+				var windowHeight = "<cfif session.isMobile>85%<cfelse>75%</cfif>%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>85%</cfif>";
+			}
+			
+			// Remove the window if it already exists
+			if ($("#" + windowName).length > 0) {
+				$("#" + windowName).parent().remove();
+			}
+
+			// Typically we would use a div outside of the script to attach the window to, however, since this is inside of a function call, we are going to dynamically create a div via the append js method. If we were to use a div outside of this script, lets say underneath the 'mainBlog' container, it would cause wierd problems, such as the page disappearing behind the window.
+			$(document.body).append('<div id="' + windowName + '"></div>');
+			$("#" + windowName).kendoWindow({
+				title: windowTitle,
+				// The search window can't be set to full screen per design.
+				actions: [<cfoutput>#kendoWindowIcons#</cfoutput>],
+				modal: false,
+				iframe: false,
+				resizable: <cfif session.isMobile>false<cfelse>true</cfif>,
+				draggable: <cfif session.isMobile>false<cfelse>true</cfif>,
+				// For desktop, we are subtracting 5% off of the content width setting found near the top of this template.
+				width: windowWidth,
+				height: windowHeight,// We must leave room if the user wants to select a bunch of categories.
+				iframe: false, // don't  use iframes unless it is content derived outside of your own site. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/contentOutputPreview.cfm?optArgs=" + optArgs + "&otherArgs=" + otherArgs + "&otherArgs1=" + otherArgs1,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+			<cfif session.isMobile>
+				animation: {
+					close: {
+						effects: "slideIn:right",
+						reverse: true,
+						duration: 500
+					},
+				}
+			<cfelse>
+				close: function() {
+					$("#" + windowName).kendoWindow('destroy');
+				}
+			</cfif>
+			}).data('kendoWindow').center();// Center the window.
+						  
+		}//..function createContentOutputPreviewWindow(Id, optArgs, otherArgs, otherArgs1) {
 		
 		// Note: comments are either provided with the Galaxi Blog interface, or disqus. We need to open up new kendo windows for each interface.
 	<cfif application.includeDisqus>
@@ -837,7 +926,7 @@
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: windowHeight,
 				iframe: false, // don't  use iframes unless it is content derived outside of your own site. 
-				content: "<cfoutput>#application.baseUrl#</cfoutput>/addCommentSubscribe.cfm?id=" + Id + '&uiElement=' + uiElement,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/addCommentSubscribe.cfm?id=" + Id + '&uiElement=' + uiElement,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -855,7 +944,8 @@
 		}//..function createAddCommentSubscribeWindow(Id, uiElement, isMobile) {
 		
 		// The mobile app has a dedicated button to close the window as the x at the top of the window is small and hard to see 
-		function closeAddCommentSubscribeWindow(){
+		function closeAddCommentSubscribeWindow(windowName){
+			//alert(windowName)
 			$("#addCommentWindow").kendoWindow();
 			var addCommentWindow = $("#addCommentWindow").data("kendoWindow");
 			setTimeout(function() {
@@ -894,7 +984,7 @@
 		// Post Comment ------------------------------------------------------------------------------------------------
 		// Invoked via the addCommentSubscribe.cfm window after Kendo validation occurs.
 		function postCommentSubscribe(postId, uiInterface){
-			//alert(uiInterface);
+			// alert('postCommentSubscribe interface:' + uiInterface);
 			// Note: the subscribe functionality uses the same logic as postComment with an empty comment and a comment only flag.
 			// Get the value of the forms
 			var postTitle = $( "#postTitle" ).val();
@@ -903,10 +993,10 @@
 			var commenterEmail = $( "#commenterEmail" ).val();
 			var commenterWebSite = $( "#commenterWebSite" ).val();
 			var comments = $( "#comments" ).val();
-			<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
+		<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
 			var captchaText = $( "#captchaText" ).val();
 			var captchaHash = $( "#captchaHash" ).val();
-			</cfif>
+		</cfif>
 			var rememberMe = $('#rememberMe').is(':checked')
 			var subscribe = $('#subscribe').is(':checked')  // checkbox boolean value.
 
@@ -950,6 +1040,7 @@
 				success: function(data) {
 					// Note: allow around 1/4 of a second before posting.
 					setTimeout(function () {
+						//alert('success');
 						postCommentSubscribeResponse(data, uiInterface);
 					}, 250);//..setTimeout(function () {
 				}//..success: function(data) {
@@ -967,7 +1058,7 @@
 		}//..function postCommentSubscribe(postId, uiInterface){
 
 		function postCommentSubscribeResponse(response, uiInterface){
-			//alert(uiInterface);
+			// alert('postCommentSubscribeResponse interface: ' + uiInterface);
 			// Extract the data in the response.
 			// General vars	
 			var postId = response.postId;
@@ -1015,6 +1106,7 @@
 			
 			// Display a success message.	
 			} else { 
+			
 				// Create the success message.
 				// The moderateComments will be returned either as 'YES/NO'. 
 				var moderateComments = '<cfoutput>#application.commentmoderation#</cfoutput>'; 
@@ -1023,16 +1115,19 @@
 						var successTitle = 'Email Sent to moderator';
 						var successMessage = 'Your comment has been sent to the administrator for approval.';
 					} else  {
-							var successTitle = 'Your comment has been posted';
+						var successTitle = 'Your comment has been posted';
 						var successMessage = 'Your comment has been posted. Refresh the page to display.';
 					}
 				} else if (uiInterface == 'addComment'){
+					var windowName = "addCommentWindow";
 					var successTitle = 'Subscribed';
 					var successMessage = 'You are now subscribed to this thread.';
 				} else if (uiInterface == 'contact'){
+					var windowName = "contactWindow";
 					var successTitle = 'Email Sent';
 					var successMessage = 'Your message was sent.';
 				} else if (uiInterface == 'subscribe'){
+					var windowName = "addCommentSubWindow";
 					// Determine the message based upon the data sent from the server
 					if (alreadySubscribed){
 						var successTitle = 'Subscribed';
@@ -1050,7 +1145,7 @@
 					// Close the success message window.
 					kendo.ui.ExtWaitDialog.hide();
 					// Close the window
-					closeAddCommentSubscribeWindow();
+					closeAddCommentSubscribeWindow(windowName);
 				}, 2000);
 			}
 		}//..function postCommentSubscribeResponse(response, uiInterface){
@@ -1096,7 +1191,7 @@
 		}//..function subscribeToBlog(email){
 						  
 		function subscribeResponse(response){
-			//alert(uiInterface);
+			//alert('subscribeResponse ' + uiInterface);
 			// Extract the data in the response.
 			var message = response.message;
 			// Display it.			  
@@ -1152,7 +1247,7 @@
 		}//..function confirmSubscription(token){
 						  
 		function confirmSubscriptionResponse(response){
-			//alert(uiInterface);
+			//alert('confirmSubscription ' + uiInterface);
 			// Extract the data in the response.
 			var message = "Thank-you for subscribing to the blog!";
 			// Display it.			  
@@ -1214,15 +1309,16 @@
 
 		}//..function unsubscribe(email){
 						  
-		function unsubscribeResponse(response){  
-			//alert(uiInterface);
+		function unsubscribeResponse(response){
+			//alert('unsubscribeResponse ' + uiInterface);
 			// Extract the data in the response.
 			var message = "You have unsubscribed";
 			// Display it.			  
 			$.when(kendo.ui.ExtAlertDialog.show({ title: "Unsubscribed", message: message, icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
 		}
-	</cfif><!---<cfif isDefined("URL.email") and isDefined("URL.token")>--->
-		// Sidebar -----------------------------------------------------------------------------------------------------  
+	</cfif><!---<cfif isDefined("URL.email") and isDefined("URL.token")>--->	
+	
+		// Sidebar -----------------------------------------------------------------------------------------------------
 		
 		// Function to open the side bar panel. We need to have the name of the div that is consuming this in order to adjust the top padding.
 		function toggleSideBarPanel(layer){
@@ -1315,7 +1411,6 @@
 				$('#sidebarPanel').css('margin-top', marginTop);
 			}
 		}//..function setSidebarPadding(layer){
-			  
 		//**************************************************************************************************************
 		// Helper functions 
 		//**************************************************************************************************************
@@ -1514,6 +1609,29 @@
 		}
 		
 		// String utilities
+		
+		/* Functions to bypass ColdFusion Global Script Protection
+		These scripts will find any tags that are protected by ColdFusion/Lucee Global Script Protection and replace the tags with the same tags prefixed with an 'attach' string. For example, '<script' will be replaced with '<attachScript', <style will be '<attachStyle', and '<meta' will become '<attachMeta' before these strings are sent to ColdFusion and Lucee for processing. If these strings are not replaced, ColdFusion and Lucee will replace these strings as 'InvalidTag' which would break any desired functionality. When we retrieve these strings from the database or file system, we will use ColdFusion or Lucee to remove our 'attach' strings and change the case using the StringUtils.cfc sanitizeStrForDb method */
+		
+		function bypassScriptProtection(s){
+			// Replace '<script' with '<attachScript'. 
+			var s = replaceNoCase(s,'<script','<attachScript', 'all');
+			// Replace the end tag
+			var s = replaceNoCase(s,'</script','</attachScript', 'all');
+			// Use the same logic for stylesheets
+			var s = replaceNoCase(s,'<style','<attachStyle', 'all');
+			// Replace the end tag
+			var s = replaceNoCase(s,'</style','</attachStyle', 'all');
+			// Replace iframes
+			var s = replaceNoCase(s,'<iframe','<attachIframe', 'all');
+			var s = replaceNoCase(s,'</iframe','</attachIframe', 'all');
+			// Now replace the meta tag. There is no closing '</meta' to worry about
+			var s = replaceNoCase(s,'<meta','<attachMeta', 'all');
+			
+			// Return it
+			return s;
+		}
+		
 		/* 
 		Generic remove function using jQuery. This is the fastest and cleanest approach that I have found and I don't have to use regex. It will remove content between tags (<postData>), elements using an ID, and classes if you use a '.' to prefix the class name.
 		Usage to remove our postData tag that indicates that LD+Json is being used: removeStr(value, "postData") 

@@ -3,7 +3,7 @@
 	<cfproperty name="PageId" fieldtype="id" generator="native" setter="false">
 	<!--- Many Pages for one blog. --->
 	<cfproperty name="BlogRef" ormtype="int" fieldtype="many-to-one" cfc="Blog" fkcolumn="BlogRef" cascade="all">
-	<!--- Many pages can have one page type. Do not use a cascade argument here as it causes errors when a media gallery is uploaded. According to Adobe, cascade should not be used with many-to-one relationships. --->
+	<!--- Many pages can have one page type. Do not use a cascade argument here. According to Adobe, cascade should not be used with many-to-one relationships. --->
 	<cfproperty name="PageTypeRef" ormtype="int" fieldtype="many-to-one" cfc="PageType" fkcolumn="PageTypeRef" missingrowignored="true">
 		
 	<!--- There can one page with many zones. --->

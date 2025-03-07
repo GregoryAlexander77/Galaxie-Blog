@@ -30,13 +30,13 @@
 	<cfproperty name="NoIndex" ormtype="boolean" default="false">
 	<cfproperty name="DisplayOnRss" ormtype="boolean" default="true">
 	<cfproperty name="CanonicalURL" ormtype="string" length="1000" default="">
-	<!--- The following 4 items are configured for SQL Server. Change these depending upon your db --->
-	<cfproperty name="JsonLd" ormtype="string" sqltype="varchar(max)" default="">
-	<cfproperty name="PostHeader" ormtype="string" sqltype="varchar(max)" default="">
-	<cfproperty name="CSS" ormtype="string" sqltype="varchar(max)" default="">
-	<cfproperty name="JavaScript" ormtype="string" sqltype="varchar(max)" default="">
-	<cfproperty name="Body" ormtype="string" sqltype="varchar(max)" default="">
-	<cfproperty name="MoreBody" ormtype="clob" default="">
+	<!--- The following 6 items are configured for MySql. Change these depending upon your db --->
+	<cfproperty name="JsonLd" ormtype="text" sqltype="longtext" default="">
+	<cfproperty name="PostHeader" ormtype="text" sqltype="longtext" default="">
+	<cfproperty name="CSS" ormtype="text" sqltype="longtext" default="">
+	<cfproperty name="JavaScript" ormtype="text" sqltype="longtext" default="">
+	<cfproperty name="Body" ormtype="text" sqltype="longtext" default="">
+	<cfproperty name="MoreBody" ormtype="text" sqltype="longtext" default="">
 	<cfproperty name="Released" ormtype="boolean" default="false">
 	<cfproperty name="Promote" ormtype="boolean" default="false">
 	<cfproperty name="AllowComment" ormtype="boolean" default="true">

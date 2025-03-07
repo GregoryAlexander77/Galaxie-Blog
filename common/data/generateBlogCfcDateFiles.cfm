@@ -299,7 +299,7 @@ Helper functions
 *****************************************************************************************--->	
 	
 <!--- Post functions --->
-<cffunction name="getBlogCfcPostTitleById" returntype="string" output="true"
+<cffunction name="getBlogCfcPostTitleById" returntype="string" output="false"
 		hint="Gets the post title by the post.id">
 	<cfargument name="blogCfcPostId" type="string" required="yes" hint="Pass in the BlogCfc tblblogentries id.">
 
@@ -315,7 +315,7 @@ Helper functions
 </cffunction>
 	
 <!--- Category functions --->
-<cffunction name="getBlogCfcCategoryById" returntype="string" output="true"
+<cffunction name="getBlogCfcCategoryById" returntype="string" output="false"
 		hint="Gets the category name by the category.id">
 	<cfargument name="blogCfcCategoryId" type="string" required="yes" hint="Pass in the BlogCfc tblblogentries id.">
 

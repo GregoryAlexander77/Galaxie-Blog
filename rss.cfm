@@ -1,5 +1,4 @@
 <cfsetting enablecfoutputonly=true showdebugoutput=false>
-<cfprocessingdirective pageencoding="utf-8">
 <!---
 	Name         : RSS
 	Author       : Raymond Camden / Gregory Alexander

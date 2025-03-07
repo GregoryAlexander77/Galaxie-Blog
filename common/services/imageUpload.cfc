@@ -1,4 +1,4 @@
-<cfcomponent displayName="imageUpload" output="true" hint="Handles tinymce image uploads">
+<cfcomponent displayName="imageUpload" output="false" hint="Handles tinymce image uploads">
 	
 <cffunction name="handleImage" access="remote" returnformat="json" hint="Generates an key to use for encryption. This is a private function only available to other functions on this page.">
 	<cfsilent>
@@ -6,7 +6,7 @@
 	<cfset destination = expandPath("#application.baseUrl#/enclosures")>
 
 	<!--- Upload it (GA) --->
-	<cffile action="upload" filefield="file" destination="#destination#" nameconflict="makeunique">
+	<cffile action="upload" filefield="file" mode="644" destination="#destination#" nameconflict="makeunique">
 
 	<!--- Get the full path and the name of the file --->
 	<cfset imageUrl = "/enclosures/" & cffile.serverFile>

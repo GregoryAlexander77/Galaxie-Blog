@@ -4,7 +4,10 @@
 	
 	<cffunction name="loadJSoup" access="public" output="false" returntype="any" hint="Loads the JSoup library">
     	
-		<!--- We are now using the this.javaSettings approach to load Jsoup instead of using the class loader. The class that we need in the jar is org.jsoup.Jsoup. There are no other methods needed to initialize. --->
+		<!--- We are now using the this.javaSettings approach to load Jsoup instead of using the class loader. The class that we need in the jar is org.jsoup.Jsoup. There are no other methods needed to initialize. 
+		You can also use the following code to make sure that we are using the 1.15 jar:
+		<cfset JSoupObj = createObject( "java", "org.jsoup.Jsoup", expandPath(application.baseUrl & "/common/java/jSoup/jsoup-1.15.1.jar") )>
+		--->
 		<cfset JSoupObj = createObject( "java", "org.jsoup.Jsoup" )>
 		<!--- Original approach:
 		<cfset JSoupObj = application.jsoupJavaloader.create("org.jsoup.Jsoup")>
@@ -46,7 +49,7 @@
 		
 	</cffunction>
 			
-	<cffunction name="removeGalleryIframes" access="public" output="true" returntype="any" 
+	<cffunction name="removeGalleryIframes" access="public" output="false" returntype="any" 
 			hint="This function will remove iframes that are generated for gallery preview for the tinymce editor and replace them with inline gallery code. This function is used to inspect the post contents when they are posted to the server to remove the iframes and store the inline code in the database.">
 		<cfargument name="post" type="string" required="yes" hint="Pass in the content of the post">
 			
@@ -98,7 +101,7 @@
 					</cfif>
 						
 				<cfelse>
-					<!---There is no iframe here, return the html--->
+					<!--- There is no iframe here, return the html--->
 					<cfset newPostContent = PostJSoupObj.html()>
 				</cfif>
 						
@@ -176,7 +179,7 @@
 		
 	</cffunction>
 			
-	<cffunction name="getCodeBlocksFromPost" access="public" output="true" returntype="any" 
+	<cffunction name="getCodeBlocksFromPost" access="public" output="false" returntype="any" 
 			hint="Returns or removes the string between code blocks that may be in a post.">
 		<cfargument name="post" type="string" required="yes" hint="provide the post content">
 		<cfargument name="action" type="string" required="no" default="get" hint="Either get or remove">
@@ -207,7 +210,7 @@
 		
 	</cffunction>
 				
-	<cffunction name="renderCodeBlocksForPrism" access="public" output="true" returntype="any" 
+	<cffunction name="renderCodeBlocksForPrism" access="public" output="false" returntype="any" 
 			hint="Renders the content between code tags for prism">
 		<cfargument name="post" type="string" required="yes" hint="provide the post content">
 			
@@ -226,11 +229,12 @@
 		<!--- Init the parser object. We will use this to parse ColdFusion tags without Jsoup normalizing the CF code and ending end tags (ie <cfset x = 'foo'></cfset>) --->
 		<cfset ParserObj = createObject("java", "org.jsoup.parser.Parser")>
 		
-		<!--- Load the post. To minimize the normalization of the code, we are using the XML parser --->
+		<!--- 
+		Load the post. To minimize the normalization of the code, we are using the XML parser. The empty URI string causes an error with Lucee. 
+		Old logic (pre-Lucee):
 		<cfset PostJSoupObj = JSoupObj.parse( arguments.post, "", ParserObj.xmlParser() )>
-			
-		<!--- Create a new var holding the post content to work with --->
-		<cfset cleanedPost = arguments.post>
+		--->
+		<cfset PostJSoupObj = JSoupObj.parse( arguments.post, ParserObj.xmlParser() )>
 			
 		<!--- Select the code --->
 		<cfset JSoupCodeObj = PostJSoupObj.select('code')>
@@ -264,15 +268,20 @@
 			<cfif debug>
 				<cfoutput>codeBlocks (with escaped closing tags): #codeBlocks#</cfoutput><br/>
 			</cfif>
+				
+			<!--- Return the html. --->
+			<cfreturn codeBlocks>
+				
+		<cfelse>
+			
+			<!-- Return the post --->
+			<cfreturn arguments.post>
 					
 		</cfif><!---<cfif arrayLen(JSoupCodeObj)>--->
 		
-		<!--- Return the html. --->
-		<cfreturn codeBlocks>
-		
 	</cffunction>
 					
-	<cffunction name="fixJsoupCFDefects" access="public" output="true" returntype="any" 
+	<cffunction name="fixJsoupCFDefects" access="public" output="false" returntype="any" 
 			hint="Removes the ColdFusion closing tags that are added with Jsoup">
 		<cfargument name="post" type="string" required="yes" hint="provide the post content">
 			
@@ -300,35 +309,6 @@
 		
 		<!--- Return the code without the closing tags. --->
 		<cfreturn fixedCode>
-		
-	</cffunction>
-			
-	<cffunction name="getAttachScriptsFromPost" access="public" output="true" returntype="any" 
-			hint="Returns the string between the attachScript blocks that may be in a post.">
-		<cfargument name="post" type="string" required="yes" hint="provide the post content">
-		<cfargument name="action" type="string" required="no" default="get" hint="Either get or remove">
-    	
-		<!--- Init JSoup --->
-		<cfset JSoupObj = loadJSoup()>
-		<!--- Load the post --->
-		<cfset JSoupPostObj = JSoupObj.parse( arguments.post )>
-		<!--- Get the scripts --->
-		<cfset JSoupDocObj = JSoupPostObj.getElementsByTag('code')>
-		<!--- Don't do anything if it's code --->
-		<cfif not findNoCase('<code>', JSoupDocObj.html()) and not findNoCase('</code>', JSoupDocObj.html())>
-			<cfif arguments.action eq 'get'>
-				<!--- Get the data between the postData tags --->
-				<cfset JSoupDocObj = JSoupPostObj.getElementsByTag('code')>
-			<cfelseif arguments.action eq 'remove'>
-				<!--- Select and remove the code elements --->
-				<cfset JSoupDocObj = JSoupPostObj.select("code").remove()>
-			</cfif>
-		<cfelse>
-			<cfset JSoupDocObj = ''>
-		</cfif>
-		
-		<!--- Return the html. --->
-		<cfreturn JSoupDocObj.html()>
 		
 	</cffunction>
 			
@@ -367,15 +347,20 @@
 		<!--- Init the Safelist object. We need this for the clean method later on. This was named Whitelist. --->
 		<cfset SafelistObj = createObject("java", "org.jsoup.safety.Safelist")>
 		
-		<!--- Sanitize the string. Note: this method is in the JSoup parent object. --->
-		<cfset sanitizedStr = JSoupObj.clean(arguments.str, SafelistObj.relaxed())>
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Note: the clean method does not work with Lucee. Instead we are returning the text --->
+			<cfset sanitizedStr = jsoupConvertHtmlToText(arguments.str)>
+		<cfelse>
+			<!--- Sanitize the string. Note: this method is in the JSoup parent object. --->
+			<cfset sanitizedStr = JSoupObj.clean(arguments.str, SafelistObj.relaxed())>
+		</cfif>
 			
 		<!--- Return the new string --->
 		<cfreturn sanitizedStr>
 		
 	</cffunction>
 			
-	<cffunction name="jsoupConvertHtmlToText" access="public" output="true" returntype="any" 
+	<cffunction name="jsoupConvertHtmlToText" access="public" output="false" returntype="any" 
 		hint="Converts HTML to text. Used in the WebVTT tinymce editor.">
 		<cfargument name="html" type="string" required="yes" hint="provide the html to convert">
     	
@@ -394,7 +379,7 @@
 		
 	</cffunction>
 			
-	<cffunction name="jsoupConvertHtmlToText2" access="public" output="true" returntype="any" 
+	<cffunction name="jsoupConvertHtmlToText2" access="public" output="false" returntype="any" 
 			hint="Converts HTML to text. I gave up on this as it was taking too long to figure out- but I am keeping it to revisit in the future">
 		<cfargument name="html" type="string" required="yes" hint="provide the html to convert. See https://www.baeldung.com/jsoup-line-breaks. Also see https://github.com/bennadel/Best-Of-ColdFusion-10/blob/master/wwwroot/model/DOMWrapper.cfc">
 			

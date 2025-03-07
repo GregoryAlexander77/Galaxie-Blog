@@ -178,7 +178,11 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <cfset fontSizeMobile = getTheme[1]["FontSizeMobile"]>
 	
 <!--- Opacity --->
-<cfset siteOpacity = getTheme[1]["SiteOpacity"]>
+<cfif len(getTheme[1]["SiteOpacity"])>
+	<cfset siteOpacity = getTheme[1]["SiteOpacity"]>
+<cfelse>
+	<cfset siteOpacity = 99>
+</cfif>
 	
 <!--- Are the webp image formats included? This is only relevant for the distribution package of the blog. Users that have donloaded the blog are recommended to use the webp format if the server supports it. --->
 <cfset webPImagesIncluded = getTheme[1]["WebPImagesIncluded"]>
@@ -234,7 +238,11 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 	<cfset headerBackgroundImage = replaceNoCase(headerBackgroundImage, '.png', '.webp')>
 </cfif>
 <!--- The background image for the top menu. This should be a consistent color and not gradiated. --->
-<cfset menuBackgroundImage = application.baseUrl & getTheme[1]["MenuBackgroundImage"]>	
+<cfif getTheme[1]["MenuBackgroundImage"] neq "">
+	<cfset menuBackgroundImage = application.baseUrl & getTheme[1]["MenuBackgroundImage"]>
+<cfelse>
+	<cfset menuBackgroundImage = "">
+</cfif>
 <!--- We will try to substitute a webp image here. --->
 <cfif webPImagesIncluded and webpImageSupported>
 	<!--- Overwrite the headerBodyDividerImage var and change the extension to .webp--->
@@ -265,6 +273,25 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <cfset blogNameFontSizeMobile = getTheme[1]["BlogNameFontSizeMobile"]>
 <!--- FavIcon --->
 <cfset favIconHtml = getTheme[1]["FavIconHtml"]>
+<!--- Lucee and ColdFusion handle null values in Java hashmaps differently --->
+<cftry>
+	<cfif application.serverProduct eq 'Lucee'>
+		<cfif isDefined("getTheme[1]['FavIconHtmlApplyAcrossThemes']") and len(getTheme[1]["FavIconHtmlApplyAcrossThemes"])>
+			<cfset favIconHtmlApplyAcrossThemes = getTheme[1]["FavIconHtmlApplyAcrossThemes"]>
+		<cfelse>
+			<cfset favIconHtmlApplyAcrossThemes = false>
+		</cfif>
+	<cfelse><!---<cfif application.serverProduct eq 'Lucee'>--->
+		<cfif structKeyExists(getTheme[1],"FavIconHtmlApplyAcrossThemes") and len(getTheme[1]["FavIconHtmlApplyAcrossThemes"])>
+			<cfset favIconHtmlApplyAcrossThemes = getTheme[1]["FavIconHtmlApplyAcrossThemes"]>
+		<cfelse>
+			<cfset favIconHtmlApplyAcrossThemes = false>
+		</cfif>	
+	</cfif><!---<cfif application.serverProduct eq 'Lucee'>--->
+	<cfcatch type="any">
+		<cfset favIconHtmlApplyAcrossThemes = false>	
+	</cfcatch>
+</cftry>
 	
 <!--- Logo image check (there may be one common logo for all things). --->
 <cfif session.isMobile>
@@ -283,6 +310,47 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <!--- Footer image --->
 <cfset footerImage = trim(getTheme[1]["FooterImage"])>
 	
+<!--- tail end scripts --->
+<!--- Lucee and ColdFusion handle null values in Java hashmaps differently --->
+<cftry>
+	<cfif application.serverProduct eq 'Lucee'>
+		<cfif isDefined('getTheme[1]["TailEndScripts"]')>
+			<cfset tailEndScripts = getTheme[1]["TailEndScripts"]>
+		<cfelse>
+			<cfset tailEndScripts = ""/>
+		</cfif>
+	<cfelse>
+		<cfif structKeyExists(getTheme[1],"TailEndScripts") and len(getTheme[1]["TailEndScripts"])>
+			<cfset tailEndScripts = getTheme[1]["TailEndScripts"]>
+		<cfelse>
+			<cfset tailEndScripts = ""/>
+		</cfif>
+	</cfif>
+<cfcatch type="any">
+	<cfset tailEndScripts = ""/>
+</cfcatch>
+</cftry>
+		
+<cftry>
+	<!--- Lucee and ColdFusion handle null values in Java hashmaps differently --->
+	<cfif application.serverProduct eq 'Lucee'>
+		<cfif isDefined('getTheme[1]["TailEndScriptsApplyAcrossThemes"]')>
+			<cfset tailEndScriptsApplyAcrossThemes = getTheme[1]["TailEndScriptsApplyAcrossThemes"]>
+		<cfelse>
+			<cfset tailEndScriptsApplyAcrossThemes = ""/>
+		</cfif>
+	<cfelse>
+		<cfif structKeyExists(getTheme[1],"TailEndScriptsApplyAcrossThemes") and len(getTheme[1]["TailEndScriptsApplyAcrossThemes"])>
+			<cfset tailEndScriptsApplyAcrossThemes = getTheme[1]["TailEndScriptsApplyAcrossThemes"]>
+		<cfelse>
+			<cfset tailEndScriptsApplyAcrossThemes = ""/>
+		</cfif>
+	</cfif>
+<cfcatch type="any">
+	<cfset tailEndScriptsApplyAcrossThemes = ""/>
+</cfcatch>
+</cftry>
+
 <!--- //******************************************************************************************************
 			Logic to set vars for the client
 //********************************************************************************************************--->
@@ -299,7 +367,7 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 </cfif>
 	
 <!--- //******************************************************************************************************
-			showSidebar variable
+			showSidbar variable
 //********************************************************************************************************--->
 <!--- 
 	Determine if we should display the sidebar. 
@@ -348,6 +416,22 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 		<cfset kendoButtonStyle = "width:90px; font-size:0.75em;">
 	<cfelse>	
 		<cfset kendoButtonStyle = "width:125px; font-size:0.875em;">
+	</cfif>
+</cfif><!---<cfif kendoTheme contains 'material'>--->
+			
+<!--- The icon buttons are smaller as there is no text, just an icon such as a facebook link --->
+<cfif kendoTheme contains 'material'>
+	<cfif session.isMobile>
+		<cfset kendoIconButtonStyle = "width:45px; font-size:0.55em;">
+
+	<cfelse>	
+		<cfset kendoIconButtonStyle = "width:45px; font-size:0.70em;">
+	</cfif>
+<cfelse><!---<cfif kendoTheme contains 'material'>--->
+	<cfif session.isMobile>
+		<cfset kendoIconButtonStyle = "width:45px; font-size:0.75em;">
+	<cfelse>	
+		<cfset kendoIconButtonStyle = "width:55px; font-size:0.875em;">
 	</cfif>
 </cfif><!---<cfif kendoTheme contains 'material'>--->
 			

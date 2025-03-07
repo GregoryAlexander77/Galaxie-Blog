@@ -1,30 +1,30 @@
-<cfcomponent displayname="GalaxieBlog3" sessionmanagement="yes" clientmanagement="yes" output="true">
+<cfcomponent displayname="GalaxieBlog4" sessionmanagement="yes" clientmanagement="yes" output="false">
 	<cfsetting requesttimeout="60">
-	<cfset this.name = "GalaxieBlog" /> 
-		
+	<cfset this.name = "GalaxieBlog4" /> 
+	<!--- Preserve the case for database columns --->
+	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
 	<cfset this.rootDirectoryPath = getDirectoryFromPath( getCurrentTemplatePath() )>
 
-	<!--- Putting here as I often restart the app when debugging <cfset applicationStop()> --->
-	<cfparam name="doInit" default="false">
-	<!--- Print out some of the vars for debugging purposes. --->
-	<cfset debug = false>  
+	<!--- Print out some of the vars for debugging purposes. Change the first line to read output="true" --->
+	<cfset debug = false>
 		
-	<!--- Used for testing purposes. Setting these vars to true will allow you to re-run the installer --->
+	<!--- Used for testing purposes only. Setting this var to true will allow you to re-run the 7 part initial in. Note: if you want to run the entire install process, change the installed variable to an empty string in the ini file.  --->
 	<cfset reinstallIni = false>
+	<!--- Reinstalls the database from the installer files. Note: this allows you to recover from a partially installed database if there are data errors, timeouts, or database issues, such as too many connections when using MySql. Open the insertData.cfm template in the installer folder to see your available recovery options. When you're done, make sure that you change this back to false! --->
 	<cfset reinstallDb = false>
+		
+	<!--- Allows the owner to access the admin portal without the proper user credentials. --->
+	<cfset disableAuth = false>
 
 	<!--- 7 day application timeout. Be careful when you change this to a shorter timeout otherwise the variables on the admin pages won't stick --->
 	<cfset this.applicationTimeout = createTimeSpan(7,0,0,0) />
 	<cfset this.sessionManagement="yes"/>
 	<!--- 4 hour session timeout. It can take a long time to create a post and I don't  want to force the user to reload the page --->
 	<cfset this.sessiontimeout = createTimeSpan(0,4,0,0) >
-	<!--- Since the Ajax requests go through a security mechanism, we need to have the session persist until the user closes the browser. I don't  want the user to type in a long comment only to have it fail if the session timeout has expired. 
-
-	This is a Ben Nadel technique. See https://www.bennadel.com/blog/1131-ask-ben-ending-coldfusion-session-when-user-closes-browser.htm
-	When creating session-only cookies so that the user's session ends when the browser is closed, we must turn off ColdFusion's automatic cookie storage. If we let ColdFusion store the cookies, then it will set an expiration date which will cause us trouble.
+	<!--- I had set this to false prior to version 4 as I did not want the user to type in a long comment only to have it fail if the session timeout has expired. However, with Lucee, I can't set sesison variables unless the client has signed in the admin site.
 	--->
-	<cfset this.setClientCookies = false />
+	<cfset this.setClientCookies = true />
 	<cfset this.enablerobustexception = true />
 		
 	<!--- Turn on script protection. The admin site has this disabled tho --->
@@ -46,7 +46,7 @@
 	//*****************************************************************************************--->
 		
 	<!--- Create the path. This is bracketed as the init function expects an array --->
-	<cfset application.jSoupPath = [expandPath("common/java/jSoup/jsoup-1.15.1.jar")]>
+	<cfset application.jSoupPath = [expandPath(getBaseUrl() & "/common/java/jSoup/jsoup-1.15.1.jar")]>
 	<!--- Load Jsoup using this.javaSettings. Don't create the object until it is needed. This will be done in Jsoup.cfc --->
 	<cfset this.javaSettings = { loadPaths = application.jSoupPath, loadColdFusionClassPath=true, reloadOnChange=false }>
 		
@@ -63,12 +63,17 @@
 		<cfif len(getDsn())>
 		
 			<cfset this.ormEnabled = "true">
-			<!--- Get the datasource from the ini file. This is required as the database may not be set up yet prior to installing the blog and we need somewhere to store the db credentials. --->
-			<cfset this.datasource = getDsn()>
+			<cfif getServerProduct() eq 'Lucee'>
+				<!--- For Lucee, this must be set manually (for the time being) --->
+				<cfset this.datasource = "GalaxieDb"><!--- GalaxieDb --->
+			<cfelse>
+				<!--- Get the datasource from the ini file. This is required as the database may not be set up yet prior to installing the blog and we need somewhere to store the db credentials. --->
+				<cfset this.datasource = getDsn()>
+			</cfif>
 			<!--- At this time, the dialect is always 'auto'. --->
 			<cfset this.dialect = 'auto'>
-			<!--- Allow ColdFusion to update and create the tables when they do not already exist. --->
-			<cfset this.ormSettings.dbcreate = "update">
+			<!--- Allow ColdFusion to update and create the tables when they do not already exist. Use none if you are migrating between ColdFusion and Lucee --->
+			<cfset this.ormSettings.dbcreate = "update"><!---update--->
 			<!--- Set a pointer to the cfc directory --->
 			<cfset this.ormSettings.cfclocation = expandPath(getBaseUrl() & "/common/cfc/db/galaxieDb/")>
 			<!--- Note: without this argument, you will have a 'Session is closed!' error everytime you hit a function that processes a database transaction simultaneously. Use a transaction tag to commit the data instead. --->
@@ -77,8 +82,12 @@
 			<cfset this.ormsettings.hibernate.globally_quoted_identifiers = true>
 			<!--- Enable ORM offset in queries. --->
 			<cfset this.ormsettings.legacy_limit_handler = true>
+			<!--- Always throw errors if present --->
+			<cfset this.ormsettings.skipCFCWithError = false>
+			<!--- Inspects the database for mapping --->
+			<cfset this.ormsettings.useDBForMapping = false>
 			<!--- Typically we want to enable secondary cache allowing us to use the cachedwithin argument on HQL queries, however, a new CF2023 ColdFusion bug makes this problematic as there are errors. See https://tracker.adobe.com/#/view/CF-4219346.  --->
-			<cfset this.ormSettings.secondaryCacheEnabled = true> 
+			<cfset this.ormSettings.secondaryCacheEnabled = false> 
 			<!--- Log SQL (set to true in dev environments) --->
 			<cfset this.ormsettings.logsql = false>
 			<!--- Only use this when debugging <cfset this.ormsettings.skipCFCWithError = true> --->
@@ -104,8 +113,8 @@
 			<cfset application.dsn = getDsn(true)>
 			<cfset application.databaseType = getDatabaseType(true)>
 			<cfset application.installed = getInstalled(true)>
-			<!--- Ini file --->
-			<cfset application.iniFile = expandPath(application.blogIniPath)>
+			<!--- Ini file. Lucee change from application.blogIniPath to getIniPath() --->
+			<cfset application.iniFile = expandPath(getBlogIniPath())>
 			<!--- Set the common component paths --->
 			<cfset application.baseProxyUrl = getBaseProxyUrl()>
 			<cfset application.baseComponentPath = getBaseComponentPath()>
@@ -132,18 +141,20 @@
 		</cfif><!---<cfif isDefined("URL.init") or isDefined("URL.reinit")>--->
 				
 		<!--- TODO Check to see if ORM needs to be reloaded. Since CF2023 I have often had errors that one of the columns is missing in one of the entities. This function will check to see if the column exists. If the logic in this function throws an error, it will return a false and we will reload the page. --->
-		<cftry>
-			<cfquery name="Data" dbtype="hql">
-				SELECT new Map (
-					ThemeSettingRef.DisplayBlogName as DisplayBlogName
-				)
-				FROM 
-					Theme as Theme
-			</cfquery>
-			<cfcatch type="any">
-				<cfset ORMReload()>
-			</cfcatch>
-		</cftry>
+		<cfif len(dsn)>
+			<cftry>
+				<cfquery name="Data" dbtype="hql">
+					SELECT new Map (
+						ThemeSettingRef.DisplayBlogName as DisplayBlogName
+					)
+					FROM 
+						Theme as Theme
+				</cfquery>
+				<cfcatch type="any">
+					<cfset ORMReload()>
+				</cfcatch>
+			</cftry>
+		</cfif>
 				
 		<!--- Reload ORM --->
 		<cfif isDefined("URL.reloadOrm")>
@@ -188,6 +199,8 @@
 		<cfset application.baseProxyUrl = getBaseProxyUrl()>
 		<!--- Set the base component path by replacing the baseProxyURl forward slashes with dots. --->
 		<cfset application.baseComponentPath = getBaseComponentPath()>
+		<!--- Get the blog owner. This returns the user name who installed the blog and is used on the bio page. --->
+		<cfset application.blogOwner = getBlogOwner()>
 
 		<!--- Enable ORM. --->
 		<cfset initOrm()>
@@ -197,9 +210,12 @@
 			getBaseTemplatePath(): #getBaseTemplatePath()#<br/>
 			application.rootDirectoryPath: #application.rootDirectoryPath#<br/>
 			application.blogIniPath: #application.blogIniPath#<br/>
-			-- Site vars --<br/>
+			-- Installation vars --<br/>
+			reinstallIni: #reinstallIni#<br/>
+			reinstallDb: #reinstallDb#<br/>
 			getInstalled(): #getInstalled()#<br/>
-			this.ormInitialized: #this.ormInitialized#<br/>
+			<!--- Lucee throws an error here (	Component [galaxie.Application] has no accessible Member with name [ORMINITIALIZED]) --->
+			this.ormInitialized: <cftry>#this.ormInitialized#<cfcatch type="any">false</cfcatch></cftry><br/>
 			getSiteUrl(): #getSiteUrl()#<br/>
 			application.siteUrl: #application.siteUrl#<br/>
 			application.blogDomain: #application.blogDomain#<br/>
@@ -214,20 +230,23 @@
 			serverSupportsWoff2(): #serverSupportsWoff2()#<br/>
 			</cfoutput>
 		</cfif>
-				
-		<!--- Determine if we need to run the installer. Do not run the installer prior to the ORM declaration. --->
-		<cfif reinstallIni or (isBoolean(getInstalled()) and not getInstalled() and not len(dsn))>
+			
+		<!--- Determine if we need to run the initial 7 part installer. --->
+		<cfif reinstallIni or (not getInstalled() and not len(getDsn()))>
 			<cfif debug>Redirecting to installer/initial/index.cfm?notInstalled<br/></cfif>
 			<!--- Display the inital welcome screen and get the DSN from the user to create the initial database --->
 			<cflocation url="installer/initial/index.cfm?notInstalled" addToken="false">
 		</cfif>
 			
-		<!--- After the ORM has been reloaded in order to create the initial database, continue to install the blog by populating the database. The saveDsnCredentials.cfm template in the install directory has just redirected to the index.cfm page with the init argument. If we continue processing without populating the database we will have errors here. Note: when testing run this from the root home (index.cfm) page --->
-		<cfif ( reinstallDb or isBoolean(getInstalled()) and not getInstalled() and len(getDsn()) )>
+		<!--- After the ORM has been reloaded in order to create the initial database, continue to install the blog by populating the database. The step7Post.cfm template in the install directory has just redirected to the index.cfm page with the init argument. This should populate the user data and redirect to the home page. If we continue processing without populating the database we will have errors here. 
+		Notes: 
+		1) when testing, set the installed string to null or false in the ini file and run this from the home page (index.cfm) page
+		2) If you're having a too many connections error with MySql, you can break the data insertion into parts by opening up the insertData.cfm template and harcoding the tablesToPopulate variable and only inserting data for a few tables at a time. --->
+		<cfif ( reinstallDb or ( len(getDsn()) and not len(getInstalled()) or isBoolean(getInstalled()) and not getInstalled() ) )>
 			<cfif debug>
 				The initial install has been completed. Trying to insert data by including the installer/insertData.cfm template<br/>
 			</cfif>
-			<cfinclude template="installer/insertData.cfm">
+			<cfinclude template="#getBaseUrl()#/installer/insertData.cfm">
 		</cfif>
 			
 		<!---//****************************************************************************************
@@ -272,6 +291,13 @@
 		<cfelse>
 			<cfset application.imageComponentPath = "common.cfc.Image">
 		</cfif>	
+			
+		<!--- The default content object is used to suggest the initial HTML when the user is manually changing the design of the page, such as the composite header. --->
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset application.defaultContentObjPath = application.baseComponentPath & ".common.cfc.DefaultContent">
+		<cfelse>
+			<cfset application.defaultContentObjPath = "common.cfc.DefaultContent">
+		</cfif>
 
 		<!--- The StringUtils component is used to peform string formatting, such as an enhanced trim funtion. --->
 		<cfif len(application.baseProxyUrl) gt 0>
@@ -330,7 +356,7 @@
 		<!--- Check to see if the server is set up with the webp mime type. If so, we will deliver images via webp, which is a next gen image format. --->
 		<cfset application.serverSupportsWebP = serverSupportsWebP()>
 		<!--- Does the server have the woff2 mime type for woff2 fonts? --->
-		<cfset application.serverSupportsWoff2 = serverSupportsWoff2()>			
+		<cfset application.serverSupportsWoff2 = serverSupportsWoff2()>		
 			
 		<!---//****************************************************************************************
 				Load the blog Db Object
@@ -347,7 +373,8 @@
 		<cfset blogname = "Default">
 		<!--- load and init blog --->
 		<cfset application.blog = createObject("component","#application.blogComponentPath#").init(blogname)>
-			
+		<!--- Load the proxy controller --->
+		<cfset application.proxyController = createObject("component","#application.proxyControllerComponentPath#")>
 		<!--- load the UDF component --->
 		<cfset application.Udf = createObject("component","#application.udfComponentPath#")>
 		
@@ -434,7 +461,7 @@
 		</cfif>
 		
 		<!--- How many posts should show up on the main blog page? --->
-		<cfset application.maxEntries = application.BlogOptionDbObj.getEntriesPerBlogPage()><!--- 10 --->
+		<cfset application.maxEntries = 9><!--- Used to be application.BlogOptionDbObj.getEntriesPerBlogPage() --->
 
 		<!--- Optional libraries --->
 		<!--- GSAP and scrollMagic allows for animations and parallax effects in the blog entries. don't include by default. --->
@@ -536,30 +563,23 @@
 		<!--- Do we need to run the installer? --->
 		<!--- Determine if we need to run the installer. Do not run the installer prior to the ORM declaration. --->
 		<cfif not getInstalled()>
+			<!--- This is the original ACF location, but it does not work with Lucee
 			<cflocation url="installer/initial/index.cfm?notInstalled" addToken="false">
+			--->
 		</cfif>
-
-		<!--- Path may be different if admin. --->
-		<cfset currentPath = getDirectoryFromPath(getCurrentTemplatePath()) />
-		<cfset theFile = currentPath & "includes/main" />
-		<cfset lylaFile = application.Udf.getRelativePath(currentPath & "includes/captcha.xml") />
 
 		<!--- Use Captcha? --->
 		<cfset application.useCaptcha = application.BlogOptionDbObj.getUseCaptcha()>
 
-		<cfif application.usecaptcha>
-			<cfset application.captcha = createObject("component","org.captcha.captchaService").init(configFile="#lylaFile#") />
-			<cfset application.captcha.setup() />
-		</cfif>
-
 		<!--- clear scopecache --->
 		<cfmodule template="tags/scopecache.cfm" scope="application" clearall="true">
 
-		<cfset majorVersion = listFirst(server.coldfusion.productversion)>
-		<cfset minorVersion = listGetAt(server.coldfusion.productversion,2,",.")>
-		<cfset cfversion = majorVersion & "." & minorVersion>
+		<cfset application.serverProduct = getServerProduct()>
+		<cfset majorVersion = listFirst(Server.coldFusion.productVersion)>
+		<cfset minorVersion = listGetAt(server.coldfusion.productVersion,2,",.")>
+		<cfset cfversion = majorVersion & "." & minorVersion>		
 
-		<cfset application.isColdFusionMX7 = server.coldfusion.productname is "ColdFusion Server" and cfversion gte 7>
+		<cfset application.isColdFusionMX7 = server.coldFusion.productName is "ColdFusion Server" and cfversion gte 7>
 
 		<!--- used for cache purposes is 60 minutes --->
 		<cfset application.timeout = 60*60>
@@ -588,9 +608,24 @@
 	</cffunction>
 			
 	<!---//****************************************************************************************
-			Functions that set vars based upon the blog.ini file.
+			System Functions 
 			These are written to avoid using the file system again when the variables are already set. Use the reset argument to read the properties from the file.
 	//*****************************************************************************************--->
+			
+	<cffunction name="getServerProduct" access="remote" returnType="string"
+			hint="Determines whether the server is using ACF or Lucee. Will return ColdFusion or Lucee">
+		<cfargument name="reset" default="false">
+		
+		<cfif isDefined("application.serverProduct") and not arguments.reset>
+			<cfset serverProduct = application.serverProduct>
+		<cfelse>
+			<cfset serverProduct = server.coldFusion.Productname>
+		</cfif>
+		
+		<!--- Return it --->
+		<cfreturn serverProduct>
+		
+	</cffunction>
 			
 	<cffunction name="getRootDirectoryPath" access="remote" returnType="string"
 			hint="Get the site's root path. This returns the full path of the root directory. This does not have any dependencies.">
@@ -646,6 +681,27 @@
 		
 		<!--- Return it --->
 		<cfreturn siteUrl>
+		
+	</cffunction>
+			
+	<cffunction name="getBlogOwner" access="remote" returnType="string" hint="This gets the user name of the person who installed the blog. It is used to gather the bio">
+		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset this var.">
+		
+		<!--- Return the current application.DSN if it exists. --->
+		<cfif isDefined("application.blogOwner") and len(application.blogOwner) and not arguments.reset>
+			<cfset owner = application.blogOwner>
+		<cfelse>
+			<cftry>
+				<!--- Get the username from the ini file --->
+				<cfset owner = getProfileString(getBlogIniPath(), "default", "username")>
+				<cfcatch type="any">
+					<!--- This should only happen when initially installing the blog. --->
+					<cfset owner = ""/>
+				</cfcatch>
+			</cftry>
+		</cfif>
+				
+		<cfreturn owner><!---gregory--->
 		
 	</cffunction>
 		
@@ -881,6 +937,11 @@
 		<!--- Return it. --->
 		<!---TODO Hardcoding to false due to memory leak somewhere--->
 		<cfreturn false>
+	</cffunction>
+						
+	<cffunction name="onApplicationEnd">
+		<cfargument name="ApplicationScope" required=true/>
+		<!--- Do nothing --->
 	</cffunction>
 	
 </cfcomponent>

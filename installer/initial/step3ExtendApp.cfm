@@ -15,7 +15,7 @@
 
 <!--- Save the title --->
 <cfif structKeyExists(Form, "blogTitle")>
-	<cfset blogTitle = blogTitle>
+	<cfset blogTitle = Form.blogTitle>
 	<!--- Save it in the session --->
 	<cfset session.blogTitle = blogTitle>
 	<!--- Save the data to the ini file --->
@@ -31,7 +31,7 @@
 	
 	<!--- If we are using SSL, check to see if there is a https:// prefix--->
 	<cfif useSsl and Form.blogUrl contains 'https://'>
-		<cfset blogUrl = blogUrl>
+		<cfset blogUrl = Form.blogUrl>
 	<cfelse>
 		<cfif blogUrl contains 'http://'>
 			<cfset blogUrl = replaceNoCase(blogUrl, 'http', 'https')>
@@ -42,9 +42,9 @@
 	
 	<!--- The blogUrl must contain a .cfm --->
 	<cfif blogUrl contains '/index.cfm'>
-		<cfset blogUrl = blogUrl>
+		<cfset blogUrl = Form.blogUrl>
 	<cfelse>
-		<cfset blogUrl = blogUrl & "/index.cfm">
+		<cfset blogUrl = Form.blogUrl & "/index.cfm">
 	</cfif>
 	<!--- Save it in the session --->
 	<cfset session.blogUrl = blogUrl>
@@ -63,15 +63,15 @@
 		<cfset extending = 'root'>
 		<cfset extendsStr = 'Proxy'>
 	<cfelse>
-	<!--- Extend using the ApplicationProxy --->
+		<!--- Extend using the ApplicationProxy --->
 		<cfset extending = replaceNoCase(basePath, '/', '', 'all') & ' subdirectory'>
-		<!--- Append the directory with 'Proxy' --->
-		<cfset extendsStr = extendsPath & 'Proxy'>
+		<!--- Append the directory with 'Application' --->
+		<cfset extendsStr = extendsPath & 'Application'>
 	</cfif>
 	<!--- Save this to the sesion. --->
 	<cfset session.extendsStr = extendsStr>
 
-	<cfif extendsStr eq 'blog.Proxy'>
+	<cfif extendsStr eq 'blog.Application'>
 		<cfset extendsStrOk = true>
 	<cfelse>
 		<cfset extendsStrOk = false>
@@ -171,13 +171,13 @@
 					<p>Please click on button at the bottom of the page to continue.</p>
 				  <cfelse>
 				    <p>
-					 We need you to add the folder name to one word of code to extend the core application logic. We have tried to perform this programatically, but unfortunately, there is no reliable way to extend our application code with all of the various ColdFusion configurations. Here, we are just appending the folder name with a '.Proxy' if your site is in a subfolder. You will not need to make any more manual code adjustments to install the blog. 
+					 We need you to add the folder name to one line of code to extend the core application logic. We have tried to perform this programatically, but unfortunately, there is no reliable way to extend our application code with all of the various ColdFusion configurations. On ACF, you should not need to make any more manual code adjustments to install the blog.  	
 					</p>
 
 					<ul>
 						<li>Please open the ApplicationProxyReference.cfc template in the /admin/ folder.</li>
-						<li>On the very first line of code locate the extends="blog.Proxy" string.</li>
-						<li>Change this extends argument from 'blog.Proxy' to <cfoutput><b>#extendsStr#</b></cfoutput> and save the file.</li>
+						<li>On the very first line of code locate the extends="blog.Application" string.</li>
+						<li>If this string is set to blog.Application, change the extends argument from 'blog.Application' to <cfoutput><b>#extendsStr#</b></cfoutput> and save the file.</li>
 						<li>Upload this file to your server.</li>
 					</ul>
 				</cfif>  

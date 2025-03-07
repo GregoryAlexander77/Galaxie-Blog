@@ -1,4 +1,4 @@
-<cfcomponent displayname="Installer" sessionmanagement="yes" clientmanagement="yes" output="true">
+<cfcomponent displayname="Installer" sessionmanagement="yes" clientmanagement="yes" output="false">
 	<cfset this.sessionManagement="yes"/>
 	<cfset this.enablerobustexception = true />
 	

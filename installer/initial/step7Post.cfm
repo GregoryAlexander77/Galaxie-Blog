@@ -24,10 +24,10 @@
 	<cfset setProfileString(application.iniFile, "default", "securityAnswer2", Form.securityAnswer2)>
 	<cfset setProfileString(application.iniFile, "default", "securityAnswer3", Form.securityAnswer3)>
 		
-	<!--- Redirect to the home page with a URL init argument in order to build the initial database and pass in a URL argument to continue processing the install. After the database is installed, code in the Application.cfm template will then redirect the user to the /installer/userProfile.cfm page. --->
+	<!--- Redirect to the home page with a URL init argument in order to build the initial database and pass in a URL argument to continue processing the install using insertData.cfm. We can't use in include here as the page needs to be refreshed to initialize orm after we have written the datasource into the ini file. After the database is installed, code in the Application.cfm template will then redirect the user to the /installer/step6UserProfile.cfm page. --->
 	<cflocation url="../../index.cfm?init=1&install=true">
 <cfelse>
 	<!--- Redirect to the previous page. --->
-	<cflocation url="userProfile.cfm">
+	<cflocation url="step6UserProfile.cfm">
 </cfif>
 

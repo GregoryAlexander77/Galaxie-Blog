@@ -5,6 +5,40 @@ Develop and upload any database installer. Use the installer/update/updateDb.cfm
 Update the version in the Blog.cfc template.
 Change the version at http://www.gregoryalexander.com/common/services/gregorysBlog/version.cfm
 
+cfcache is on index.cfm/ admin/index.cfm /admin/login.cfm and /includes/templates/blogContent.cfm
+
+add post id to blogcontenthtml near line 79 cfset postId = getPopularPosts[i]["PostId"]>
+
+/includes/pods/calendar.cfm
+
+/Application.cfm change setProfileString(getBlogIniPath)...
+install/initial/step3ExtendApp.cfm
+step5OrmSetup.cfm
+installer/insertData.cfm
+Add /common/cfc/db/galaxie/carousel.cfc
+/common/cfc/db/galaxie/post.cfc (enclosureMediaRef is missing!) Replace this in all of the database installer files!
+after enclosure map
+<!--- There can be many posts to one carousel. If there was a unique carousel for every post, this would be a one to one relationship. However, many posts don't have carousels (where there would be multipe nulls) and many posts can share the same carousel. --->
+<cfproperty name="EnclosureCarousel" ormtype="int" fieldtype="many-to-one" cfc="Carousel" fkcolumn="EnclosureCarouselRef" inversejoincolumn="PostRef" inverse="true" cascade="all" missingRowIgnored="true">
+after desc
+<!--- SEO Stuff (I will break this into it's own table in a future version) --->
+<cfproperty name="NoIndex" ormtype="boolean" default="false">
+<cfproperty name="DisplayOnRss" ormtype="boolean" default="true">
+<cfproperty name="CanonicalURL" ormtype="string" length="1000" default="">
+after post header
+<cfproperty name="CSS" ormtype="string" sqltype="varchar(max)" default="">
+	
+addNewPostTag on add tag interface. put a try block there when using the tag ui. its thinking that it is on the post detail page.
+	
+/includes/templates/blogContentHtml.cfm cfcache
+admin icons for tags and visitors
+	
+/common/cfc/cfjson.cfc (also remove htmlParse function)
+/org/camden/blog/blog.cfc (monthly archives)
+	
+	
+
+
 V.3.57 
 Application.cfc
 index.cfm

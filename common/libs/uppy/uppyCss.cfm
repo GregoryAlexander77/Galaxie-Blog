@@ -1,4 +1,5 @@
-<cfset accentColor = "application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'accentColor')">
+<!--- Get the primary accent color to highlight the submit button --->
+<cfset accentColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'accentColor')>
 <style>
 @charset "UTF-8";
 .uppy-Root {

@@ -19,7 +19,7 @@
 	<cfset session.databaseType = Form.databaseType>
 		
 	<!--- Determine the files that we need to have the user replace --->
-	<cfset dbCfcFilePath = session.basePath & "common/cfc/db/galaxieDb/" & databaseType>
+	<cfset dbCfcFilePath = session.basePath & "common/cfc/db/galaxieDb/">
 	<cfset newDbCfcFilePath = session.basePath & "installer/databaseOrmFiles/" & databaseType>
 		
 	<!--- Save these paths to the session --->
@@ -137,13 +137,14 @@
 							<ul>
 								<li>Comment.cfc</li>
 								<li>Container.cfc</li>
-								<li>PodContainer.cfc</li>
+								<li>ContentOutput.cfc</li>
+								<li>CustomWindowContent.cfc</li>
 								<li>Post.cfc</li>
 								<li>Users.cfc</li>
 							</ul>
 						</li>
 						<li>Paste these files into the <cfoutput>#dbCfcFilePath#</cfoutput> directory and over-write the orginal Sql Server specific files.</li>
-						<li>Upload the new files in the <cfoutput>#dbCfcFilePath#</cfoutput> to your server.</li>
+						<li>Upload the new files in the <cfoutput>#dbCfcFilePath#</cfoutput> to your server if necessary.</li>
 					</ul>
 					<p>When you are done, click the button below to continue.</p>
 				</cfif>  

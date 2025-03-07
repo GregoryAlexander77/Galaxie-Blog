@@ -36,7 +36,7 @@
 	<cfproperty name="CSS" ormtype="text" sqltype="longtext" default="">
 	<cfproperty name="JavaScript" ormtype="text" sqltype="longtext" default="">
 	<cfproperty name="Body" ormtype="text" sqltype="longtext" default="">
-	<cfproperty name="MoreBody" ormtype="clob" default="">
+	<cfproperty name="MoreBody" ormtype="text" sqltype="longtext" default="">
 	<cfproperty name="Released" ormtype="boolean" default="false">
 	<cfproperty name="Promote" ormtype="boolean" default="false">
 	<cfproperty name="AllowComment" ormtype="boolean" default="true">

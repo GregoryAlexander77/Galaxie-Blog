@@ -28,6 +28,22 @@
 	//****************************************************************************************************************--->
 	<!--- Are we looking at the blog? --->
 	<cfif pageTypeId eq 1>
+		
+		<!--- Get the IP address. I am having issues on the Linux server getting the actual IP using the http_referrer and am using the x-forwarded-for header instead. Without this logic I am getting 127.0.0.1 for all traffic when using Lucee, which I don't want. I am breaking this out by the middleware as I don't want to make multiple calls to the cgi and header vars for performance reasons. In my envinroments Lucee uses the header whereas CF uses the CGI var --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfif len(getHTTPRequestData()['headers']['x-forwarded-for'])>
+				<cfset ipAddress = getHTTPRequestData()['headers']['x-forwarded-for']>
+			<cfelse>
+				<cfset ipAddress = CGI.Http_Referer>
+			</cfif>
+		<cfelse><!---<cfif application.serverProduct eq 'Lucee'>--->
+			<cfif CGI.Http_Referer eq '127.0.0.1'>
+				<cfset ipAddress = getHTTPRequestData()['headers']['x-forwarded-for']>
+			<cfelse>
+				<cfset ipAddress = CGI.Http_Referer>
+			</cfif>
+		</cfif><!---<cfif application.serverProduct eq 'Lucee'>--->
+				
 		<cfif not structKeyExists(cookie, "gauid")>
 			<!--- Get client properties. These cookies only exist when an admin user has logged on and are used to set the interfaces depending upon the screen size --->
 			<cftry>
@@ -41,7 +57,7 @@
 
 			<!--- Save the annonymous user --->
 			<cfinvoke component="#application.blog#" method="saveAnonymousUser" returnVariable="AnonymousUserDbObj">
-				<cfinvokeargument name="ipAddress" value="#CGI.Remote_Addr#">
+				<cfinvokeargument name="ipAddress" value="#ipAddress#">
 				<cfinvokeargument name="httpUserAgent" value="#CGI.Http_User_Agent#">
 				<cfinvokeargument name="screenWidth" value="#screenWidth#">
 				<cfinvokeargument name="screenHeight" value="#screenHeight#">
@@ -56,9 +72,9 @@
 		</cfif><!---<cfif not structKeyExists(cookie, "gauid")>--->
 
 		<!--- Save the HTTP Referrer if passed. --->
-		<cfif len(CGI.Http_Referer)>
+		<cfif len(ipAddress)>
 			<cfinvoke component="#application.blog#" method="saveHttpReferrer" returnVariable="httpReferrerId">
-				<cfinvokeargument name="HttpReferrer" value="#CGI.Http_Referer#">
+				<cfinvokeargument name="HttpReferrer" value="#ipAddress#">
 			</cfinvoke>
 		</cfif><!---<cfif len(CGI.Http_Referer)>--->
 
@@ -67,21 +83,24 @@
 			<cfset postId = getPost[1]["PostId"]>
 		</cfif>
 
-		<!--- Finally, log the visitor --->
-		<cfinvoke component="#application.blog#" method="saveVisitorLog" returnVariable="visitorLog">
-			<cfinvokeargument name="anonymousUserId" value="#AnonymousUserDbObj.getAnonymousUserId()#">
-			<cfif application.blog.getUsersId()>
-				<cfinvokeargument name="userId" value="#application.blog.getUsersId()#">
-			</cfif>
-			<!--- Pass in the HTTP Referrer Object if it exists --->
-			<cfif len(CGI.Http_Referer) and httpReferrerId gt 0>
-				<cfinvokeargument name="httReferrer" value="#httpReffererId#">
-			</cfif>
-			<cfif postFound and getPageMode() eq 'post'>
-				<cfinvokeargument name="postId" value="#postId#">
-			</cfif>
-		</cfinvoke>
-			
+		<!--- Finally, log the visitor. On rare occasions, this causes an error with Lucee so put it in a try block --->			
+		<cftry>
+			<cfinvoke component="#application.blog#" method="saveVisitorLog" returnVariable="visitorLog">
+				<cfinvokeargument name="anonymousUserId" value="#AnonymousUserDbObj.getAnonymousUserId()#">
+				<cfif application.blog.getUsersId()>
+					<cfinvokeargument name="userId" value="#application.blog.getUsersId()#">
+				</cfif>
+				<!--- Pass in the HTTP Referrer Object if it exists --->
+				<cfif len(ipAddress) and httpReferrerId gt 0>
+					<cfinvokeargument name="httpReferrer" value="#ipAddress#">
+				</cfif>
+				<cfif postFound and getPageMode() eq 'post'>
+					<cfinvokeargument name="postId" value="#postId#">
+				</cfif>
+			</cfinvoke>
+			<cfcatch type="any">
+			</cfcatch>
+		</cftry>
 	</cfif><!---<cfif pageTypeId eq 1>--->
 			
 	<!--- //**************************************************************************************************************
@@ -132,7 +151,7 @@
 		</cfswitch>
 					
 		<!--- Determine if we should display popular posts --->
-		<cfif getPageMode() eq 'blog' and URL.startRow lte 1>
+		<cfif getPageMode() eq 'blog' and URL.startRow lte 1 and arrayLen(getPost) gte 9>
 			<cfset showPopularPosts = true>
 		</cfif>
 				

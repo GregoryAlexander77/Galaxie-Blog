@@ -57,10 +57,7 @@
 			<cfset templatePath = "/includes/templates/login.cfm">
 		</cfcase>
 		<cfcase value="admin">
-			<cfset templatePath = "/includes/templates/admin/htmlContent/index.cfm">
-		</cfcase>
-		<cfcase value="comments">
-			<cfset templatePath = "/includes/templates/admin/htmlContent/comments.cfm">
+			<cfset templatePath = "/includes/templates/admin/index.cfm">
 		</cfcase>
 	</cfswitch>
 	

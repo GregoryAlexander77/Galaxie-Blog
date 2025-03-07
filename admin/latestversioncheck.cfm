@@ -1,5 +1,4 @@
 <cfsetting enablecfoutputonly=true> 
-<cfprocessingdirective pageencoding="utf-8">	
 <!--- Note: we are starting from version one and moving towards the latest version --->
 <!--- Important note: this must have a cfoutput tag to render --->
 	
@@ -150,9 +149,9 @@
 						  
 		function updateDbResponse(response){
 			// Extract the data in the response.
-			var message = "New fonts and Joshua Tree Theme have been successfully imported.";
+			var message = "Updated Database";
 			// Display it.			  
-			$.when(kendo.ui.ExtAlertDialog.show({ title: "The database has been updated", message: message, icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
+			$.when(kendo.ui.ExtAlertDialog.show({ title: "The database has been sucessfully updated", message: message, icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
 			// Close the admin window
 			$('#chr(35)#updatesWindow').kendoWindow('destroy');
 		}

@@ -46,6 +46,8 @@
 <!--- Determine if we should disable the robots for dev sites. The no index var is already determined when in prod --->
 <cfif not application.BlogDbObj.getIsProd()>
 	<cfset noIndex = true>
+<cfelse>
+	<cfset noIndex = false>
 </cfif>
 </cfsilent>
 <!--- Don't show the Google Analytics script on the admin page or if the string does not exist in the database. Note: there can be many gtag measurement Ids, we are going to grab the first one for the script and loop through all of them in the config line at the bottom of the script --->
@@ -64,11 +66,19 @@
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="title" content="#titleMetaTagValue#" />
+<meta name="keywords" content="#application.BlogDbObj.getBlogMetaKeywords()#" />
+<meta name="robots" content="<cfif noIndex>noindex<cfelse>index, follow</cfif>" />
+<cfif len(favIconHtml)>
+	<cfsilent>
+		<!--- Fix ColdFusions script protection where it substitues meta name wtih InvalidTag name. This should not occur as we are handling this programmatically, but it is here just in case --->
+		<cfset favIconHtml = replaceNoCase(favIconHtml, 'InvalidTag name', 'meta name', 'all')>
+	</cfsilent>
+	<!-- FavIcons --> 
+	#favIconHtml#
+</cfif>
 <cfif postFound>
 	<meta name="description" content="#descriptionMetaTagValue#" />
-	<meta name="keywords" content="#application.BlogDbObj.getBlogMetaKeywords()#" />
 	<link rel="canonical" href="#canonicalUrl#" />
-	<meta name="robots" content="<cfif noIndex>noindex<cfelse>index, follow</cfif>" />
 	<!-- Twitter meta tags. -->			
 	<meta name="twitter:card" content="#twitterCardType#">
 	<meta name="twitter:site" content="@#canonicalUrl#">
@@ -79,7 +89,7 @@
 <cfif videoType neq "" and getPageMode() eq 'post'>
 	<!-- Twitter player card meta types -->
 	<!-- The twitter video must be on a mimimal page that just includes the video, and nothing else. Also, the providerMediaId must be passed here. -->
-	<meta property="twitter:player" content="<cfoutput>#application.blogHostUrl#/galaxiePlayer.cfm?videoUrl=#ogVideo#&providerVideoId=#getPost[1]['ProviderVideoId']#</cfoutput>">
+	<meta property="twitter:player" content="<cfoutput>#application.blogHostUrl#/galaxiePlayer.cfm?postId=#getPost[1]['PostId']#&videoUrl=#ogVideo#&providerVideoId=#getPost[1]['ProviderVideoId']#</cfoutput>">
 	<meta property="twitter:player:width" content="#ogVideoWidth#">	
 	<meta property="twitter:player:height" content="#ogVideoHeight#">	
 </cfif><!---<cfif videoType neq "" and getPageMode() eq 'post'>--->
@@ -104,14 +114,6 @@
 </cfif><!---<cfif videoType neq "" and getPageMode() eq 'post'>--->
 	<!--TODO <meta property="og:type" content="blog" />-->
  	<link rel="alternate" type="application/rss+xml" title="RSS" href="#thisUrl#/rss.cfm?mode=full" />
-<cfif len(favIconHtml)>
-	<cfsilent>
-		<!--- Fix ColdFusions script protection where it substitues meta name wtih InvalidTag name. --->
-		<cfset favIconHtml = replaceNoCase(favIconHtml, 'InvalidTag name', 'meta name', 'all')>
-	</cfsilent>
-	<!-- FavIcons --> 
-	#favIconHtml#
-</cfif>
 	<cfsilent>
 	<!--- We are only including the top level ld json when we are not in blog mode. The ld json will be in the body of the post.  ---->
 	<cfif getPageMode() eq 'blog'>
@@ -206,7 +208,7 @@
 <!--- The Kendo css locations are set in the includes/templates/pageSettings.cfm template and use the Kendo folder path when using Kendo commercial. Otherwise they point to the embedded Kendo Core package. --->
 </cfsilent>	
 	<!-- Kendo scripts -->
-	<script type="#scriptTypeString#" src="#application.kendoSourceLocation#/js/<cfif application.kendoCommercial>kendo.all.min<cfelse>kendo.ui.core.min</cfif>.js"></script>
+	<script type="#scriptTypeString#" src="#application.kendoSourceLocation#js/<cfif application.kendoCommercial>kendo.all.min<cfelse>kendo.ui.core.min</cfif>.js"></script>
 	<!-- Note: the Kendo stylesheets are critical to the look of the site and I am not deferring them. -->
 	<script type="text/javascript">
 		// Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings.
@@ -240,12 +242,33 @@
 	</script>
 	<!-- Note: the prism.min.js library (our code hightlighter) should not be placed here in the header. It is in the footer prior to the end body tag. This library must be placed between the body tags. -->
 <cfif pageId eq 2 and application.Udf.isLoggedIn()>
+	<!--- Load scripts used for the admin page. We don't want the extra resources to be downloaded unless the is already logged in the admin site --->
 	<!-- TinyMce must also be placed in the head in order for the set and get content methods to work. Read the notes in the /includes/templates/js/tinymce.cfm template for more information. -->
 	<script src="#application.baseUrl#/common/libs/tinymce/tinymce.min.js"></script>
 	<script src="#application.baseUrl#/common/libs/tinymce/jquery.tinymce.min.js"></script>
 	<!-- Uppy Css (only used when logged on) -->
 	<cfinclude template="#application.baseUrl#/common/libs/uppy/uppyCss.cfm">
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/uppy/uppy.min.js"></script>
+	<!-- Load codemirror (only used when logged on) -->
+	<link rel="stylesheet" href="#application.baseUrl#/common/libs/codemirror5/lib/codemirror.css">
+	<link rel="stylesheet" href="#application.baseUrl#/common/libs/codemirror5/addon/hint/show-hint.css">
+	<script src="#application.baseUrl#/common/libs/codemirror5/lib/codemirror.js"></script>
+	<!-- Include the auto refresh script- otherwise the content will not load unless you click on the editors div -->
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/addon/display/autorefresh.js"></script>
+	<!-- Codemirror Addons -->
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/addon/edit/matchtags.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/addon/edit/closebrackets.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/addon/fold/xml-fold.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/addon/hint/html-hint.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/addon/hint/show-hint.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/addon/hint/xml-hint.js"></script>
+	<!-- Codemirror Modes -->
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/mode/css/css.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/mode/javascript/javascript.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/mode/htmlmixed/htmlmixed.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/mode/markdown/markdown.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/mode/sql/sql.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/mode/xml/xml.js"></script>
 </cfif>
 	<!-- Optional libs -->
 	<!-- FontAwesome 6.1 -->
@@ -292,10 +315,3 @@
 }());
 </script>
 <!--- Some optional libraries are included at the tail end of the page. --->
-<cfsilent>
-<!---
-Removed jQuery include as they are now included in the application in the kendoScripts.cfm template (ga 10/27/2018).
-Removed launchComment(id) and launchCommentSub(id) and replaced functions with a Kendo window. (ga)
-Also removed 'tweetback' logic as it was causing errors.
---->
-</cfsilent>

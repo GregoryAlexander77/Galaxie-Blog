@@ -1,8 +1,12 @@
-<!--- Note: this page depends on the pageSettings.cfm template. And, this page is often used in a standalone environment to pass css vars to the tinymce editor. If the page is standalone, we need to include the pageSettings template. --->
-<cfparam name="URL.standalone" default="false" type="boolean">
-<cfif URL.standalone>
+<!---<cfdump var="#getTheme#">--->
+<cfsilent><!--- Note: this page depends on the pageSettings.cfm template. And, this page is often used in a standalone environment to pass css vars to the tinymce editor. If the page is standalone, we need to include the pageSettings template, remove the style tags and set the page content as css. --->
+<cfparam name="URL.standalone" default="" type="any">
+<cfif isDefined("URL.standalone") and len(URL.standalone)>
+	<cfset standAlone = true>
 	<cfset pageTypeId = 1><!--- Blog --->
 	<cfinclude template="pageSettings.cfm">	
+<cfelse>
+	<cfset standAlone = false>
 </cfif>
 		
 <!--- Get Kendo Theme color properties --->
@@ -23,14 +27,100 @@
 <cfset successColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'success')>
 <cfset infoColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'info')>
 	
+<!--- Logic to determine what side the padding should occur when the alignBlogMenuWithBlogContent argument is true. --->
+<!--- Don't set any padding unless the stretchHeaderAcrossPage is true. Otherwise the header will be scrunched up in the center of the page. --->
+<cfif stretchHeaderAcrossPage and alignBlogMenuWithBlogContent>
+	<cfif topMenuAlign eq 'left'>
+		<cfset topWrapperCssString = "padding-left: var(--contentPaddingPixelWidth);">
+	<cfelseif topMenuAlign eq 'right'>
+		<cfset topWrapperCssString = "padding-right: var(--contentPaddingPixelWidth);">
+	<cfelse>
+		<cfset topWrapperCssString = "margin: auto;">
+	</cfif>
+<cfelse>
+	<cfset topWrapperCssString = "margin: auto;">
+</cfif>
+	
 <!--- Breadcrumb and stepper vars. --->
 <cfset customSeparater = "#application.baseUrl#/images/separator/cd-custom-separator.svg">
 <cfset customIcon = "#application.baseUrl#/images/icons/small/cd-custom-icons-01.svg">
 <!--- The following sets the height of the triangles. The height includes additional padding and 15px is aproximately 45pixels in actual height. --->
 <cfset breadCrumbTrianagleHeight = "15px">
-	
+</cfsilent>
 	<!--- Minimized using https://minifycode.com/css-minifier/ --->
+<cfif not standAlone>
 	<style>
+<cfelse>
+	<cfcontent type="text/css" />
+</cfif>
+<!--- We don't want the background images to show up in the tinymce editor --->
+	<cfif not standAlone>
+		/* ------------------------------------------------------------------------------------------------------------
+		Global CSS vars and body.
+		Create a content width global css var. We will change this with Javascript depending upon the screen resolution 
+		--------------------------------------------------------------------------------------------------------------*/
+		html {
+			/* The scroll position needs to be adjusted due to the floating menu at the top of the page. When clicking on an anchor, without this, the content is behind the nav menu */
+		   	scroll-padding-top: 70px; 
+		}
+		
+		:root {
+			-- contentWidth: <cfoutput><cfif session.isMobile>95<cfelse>#contentWidth#</cfif></cfoutput>%;
+			-- contentPaddingPercent: <cfoutput>#round((contentWidth/2)/2)#</cfoutput>%;
+			-- mainContainerWidth: <cfoutput>#mainContainerWidth#</cfoutput>%;
+		}
+
+		<cfif session.isMobile>/* This should work to apply a fixed background on iOs */
+		body:before {
+			content: "";
+			display: block;
+			position: fixed;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			z-index: -10;
+			<cfif includeBackgroundImages>background-image: url(<cfoutput>#application.baseUrl##blogBackgroundImage#</cfoutput>);
+			background-repeat: <cfoutput>#blogBackgroundImageRepeat#</cfoutput>;
+			background-position: <cfoutput>#blogBackgroundImagePosition#</cfoutput>; /* Center the image */
+			-webkit-background-size: cover;
+			-moz-background-size: cover;
+			-o-background-size: cover;
+			background-size: cover;
+			<cfelseif len(blogBackgroundColor)>background-color: <cfoutput>#blogBackgroundColor#</cfoutput>;</cfif>
+		}
+		
+		html, body {
+			font-family: <cfoutput>'#font#', #fontType#</cfoutput>;
+			/* Set the global font size. Mobile should be two sizes smaller to maximize screen real estate. */
+			font-size: <cfoutput>#fontSizeMobile#</cfoutput>pt;
+		}
+			
+		<cfelse>body {
+			<cfif includeBackgroundImages>background-image: url(<cfoutput>#application.baseUrl##blogBackgroundImage#</cfoutput>);
+			background-repeat: <cfoutput>#blogBackgroundImageRepeat#</cfoutput>;
+			background-position: <cfoutput>#blogBackgroundImagePosition#</cfoutput>; /* Center the image */
+			<cfif blogBackgroundImageRepeat eq "no-repeat">background-size: cover;</cfif>
+			background-attachment: fixed;
+			<cfelseif len(blogBackgroundColor)>background-color: <cfoutput>#blogBackgroundColor#</cfoutput>;</cfif>
+			/* Opacity trick */
+			filter: alpha(Opacity=<cfoutput>#siteOpacity#</cfoutput>);
+			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
+			/* Set the global font properties. */
+			font-family: <cfoutput>'#font#', #fontType#</cfoutput>;
+			font-size: <cfoutput>#fontSize#</cfoutput>pt;
+		}</cfif><!---<cfif session.isMobile>--->
+				
+	</cfif><!---<cfif not standAlone>--->
+				
+		/* Decrease the size of the h1 tag */
+		h1 {
+			font-size: <cfif session.isMobile>14<cfelse>18</cfif>pt;
+		}
+			
+		/* -------------------------------- 
+			Header Styles
+		-------------------------------- */
 		/* Headers. The H1 header is already set for the blog title and set at 18pt */
 		h2 {
 		  font-size: 1.2em;
@@ -39,12 +129,314 @@
 		  font-size: 1.1em;
 		}
 		
+		/* -------------------------------- 
+			Link Styles
+		-------------------------------- */
+		a {
+		<cfif darkTheme>color: whitesmoke;
+			text-decoration: underline;
+			<cfelse>text-decoration: underline;</cfif>
+		}
+			
+		/* States for the header menu */
+		ul.k-hover { 
+		  background-color: transparent !important;
+		  background-image: url('<cfoutput>#menuBackgroundImage#</cfoutput>');
+		  border: 0;
+		  border-right: none;
+		} 
+
+		ul.k-link { 
+		  background-color: transparent !important;
+		  background-image: url('<cfoutput>#menuBackgroundImage#</cfoutput>');
+		  border: 0;
+		} 
+				
+		/* -------------------------------- 
+			Flex Classes
+		-------------------------------- */
+		.flexParent {
+			display: flex;
+			justify-content: center;
+			align-items: stretch;
+		}
+				
+		/* Force items to be 100% width, via flex-basis */
+		.flexParent > * {
+		  flex: 1 100%;
+		}
+
+		.flexHeader { 
+			order: 1;
+		}
+		
+		.flexMainContent { 
+			order: 2; 
+		}
+		
+		.flexSidebar { 
+			order: 3; 
+		}
+				
+		.flexFooter { 
+			order: 4; 
+		}
+				
+		.flexItem {
+  			flex: 0 0 auto; 
+		}
+		
+		/*
+		[1]: Make a flex container so all our items align as necessary
+		[2]: Prevent items from wrapping
+		[3]: Automatic overflow means a scroll bar won’t be present if it isn’t needed
+		[4]: Make it smooth scrolling on iOS devices
+		[5]: Hide the ugly scrollbars in Edge until the scrollable area is hovered
+		[6]: Hide the scroll bar in WebKit browsers
+		*/
+		.flexScroll {
+			display: flex; /* [1] */
+			flex-wrap: nowrap; /* [1] */
+			overflow-x: auto; /* [1] */
+			-webkit-overflow-scrolling: touch; /* [4] */
+			-ms-overflow-style: -ms-autohiding-scrollbar; /* [5] */ 
+		}
+
+		/* [6] */
+		.scroll::-webkit-scrollbar {
+			display: none; 
+		}
+		
 		/* Reset the z-index of the code-toolbar class as the code will float above the staticly positioned fixedNavBar at the top of the page */
 		div.code-toolbar {
 			z-index:0 !important;
 		}
+				
+		/* -------------------------------- 
+			Header Classes
+		-------------------------------- */
+		#logo {
+			border: 0;
+			position: relative;
+			padding-top: <cfoutput>#logoPaddingTop#</cfoutput>;
+			padding-left: <cfoutput>#logoPaddingLeft#</cfoutput>;
+			padding-right: <cfoutput>#logoPaddingRight#</cfoutput>;
+			padding-bottom: <cfoutput>#logoPaddingBottom#</cfoutput>;
+		}		
 		
-		/* Blog styles */
+		/* Fixed navigation menu at the top of the page when the user scrolls down */
+		#fixedNavHeader {
+			position: fixed;
+			z-index: 1;
+			visibility: hidden; /* This will be overridden and set to visible when the page fully loads */
+			top: 0px;
+			height: <cfif kendoTheme contains 'materialblack'><cfif session.isMobile>55<cfelse>65</cfif><cfelse><cfif session.isMobile>35<cfelse>45</cfif></cfif>px;
+			width: var(--contentWidth);
+			color: <cfoutput>#blogNameTextColor#</cfoutput>; /* text color */
+			font-family: <cfoutput>'#menuFont#', #menuFontType#</cfoutput>;
+			font-size: <cfif kendoTheme eq 'office365'><cfif session.isMobile>.75em<cfelse>1em</cfif><cfelse><cfif session.isMobile>.9em<cfelse>1em</cfif></cfif>;
+		<cfif menuBackgroundImage neq "">
+			background-color: transparent !important;
+			background-image: url('<cfoutput>#menuBackgroundImage#</cfoutput>');/* Without this, there is a white ghosting around this div. */
+			background-repeat: repeat-x;
+		</cfif>
+			/* Subtle drop shadow on the header banner that stretches across the page. */
+			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+			/* Center it */
+			margin-left: auto;
+			margin-right: auto;
+		}
+		
+		/* Main wrapper within the header table. */
+		#topWrapper {
+			<cfoutput>#topWrapperCssString#</cfoutput>
+		}
+		
+		.headerBackground {
+			background: url(<cfoutput>#headerBackgroundImage#</cfoutput>);
+			background-repeat: repeat-x;
+		}
+				
+		/* The headerContainer is a *child* flex container of the mainPanel below. This may be counter-intuitive, but the main content is stuffed into the blogContent and I want the header to play nicely and following along. This container will be resized if it does not match the parent mainPanel container using the setScreenProperties function at the top of the page. */
+		#headerContainer {
+			width: 100%; 
+			/* Note: if the headerBackgroundImage is not specified, we will not use a drop shadow here */
+			<cfif headerBackgroundImage neq ''>
+			/* Subtle drop shadow on the header banner. */
+			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+			</cfif>
+		}
+
+		#blogNameContainer {
+			/* The blog title at the top of the page */
+			font-family: <cfoutput>'#blogNameFont#', #BlogNameFontType#</cfoutput>; 
+			font-size: <cfoutput><cfif session.isMobile>#blogNameFontSizeMobile#<cfelse>#blogNameFontSize#</cfif></cfoutput>px; 
+			/* The container may need to have some padding as the menu underneath it is not going to left align with the text since the menu is going to start prior to the first text item. */
+			padding-left: 13px; 
+			text-shadow: 0px 4px 8px rgba(0, 0, 0, 0.19); /* The drop shadow should closely mimick the shadow on the main blog layer.*/
+			color: <cfoutput>#blogNameTextColor#</cfoutput>; /* Plain white has too high of a contrast imo. */
+			vertical-align: center;
+		}
+
+		/* Menu container. Controls the placement of the menu and creates a transparency so that the menu and menu background image is seen */
+		#topMenuContainer {
+			visibility: none;
+			position: relative; 
+			left: 0px; 
+		<cfif menuBackgroundImage neq "">
+			background-color: transparent !important;
+		</cfif>
+			vertical-align: center;
+		}
+
+		/* Menu's */
+		#topMenu {	
+			/* We need to hide the menu momentarilly on page load as the menu looks scrunched up initially. The menu will fade in as soon as the page loads. However, we also need to remove this when the page is in admin preview mode otherwise the menu will not appear in the preview. */
+			visibility: hidden;
+		}
+		
+		#topMenuPreview {	
+			visibility: visible;
+		}
+			
+		/* Common properties for the both topMenu and topMenuPreview. */
+		#topMenu, #topMenuPreview {	
+		<cfif menuBackgroundImage neq "">
+			background-color: transparent !important;
+			background-image: url('<cfoutput>#menuBackgroundImage#</cfoutput>');/* Without this, there is a white ghosting around this div. */
+			background-repeat: repeat-x;
+		</cfif>
+			border: 0;
+			color: <cfoutput>#blogNameTextColor#</cfoutput>; /* text color */
+			font-family: <cfoutput>'#menuFont#', #menuFontType#</cfoutput>;
+			font-size: <cfif kendoTheme eq 'office365'><cfif session.isMobile>.75em<cfelse>1em</cfif><cfelse><cfif session.isMobile>.9em<cfelse>1em</cfif></cfif>;
+			/* Note: the top menu is handled differently depending upon the version of Kendo */
+			<cfif not application.kendoCommercial>top: 32px;</cfif>
+			height: 20px;
+			/* Note: an incorrect width setting will stretch the table container and skew the center allignment if not set properly. */
+		}
+		
+		/* Apply a little bit of padding to the bars icon */
+		.toggleSidebarPanelButton {
+			padding-left: 7px;
+		}
+		
+		.siteSearchButton {
+			/* Set the site search icon to match the blog text color 
+			color: <cfoutput>#blogNameTextColor#</cfoutput>; 
+			*/
+		}
+			
+		<cfif kendoTheme eq 'nova'>
+		/* Override some of the Kendo buttons to improve the contrast of the text against certain button backgrounds. Added in V4 */
+		.k-button {
+			color: #000!important;
+		}
+		</cfif>
+		
+		/* Remove the vertical border. The borders display a vertical line between the menu items and since we have custom images and colors on the banners, I want to remove these. */
+		.k-widget.k-menu-horizontal>.k-item {
+		  border: 0;
+		}
+		
+		/* Override the menu and remove some of the extra padding to make it fit the page (default padding is 0.5em 1em 0.4em */
+		.k-menu .k-item>.k-link, .k-menu-scroll-wrapper .k-item>.k-link, .k-popups-wrapper .k-item>.k-link {
+			display: block;
+    		padding: 0.4em .7em 0.4em;
+		}
+			
+		/* Fixed nav menu. Note: the script at the tail end of the page will set this to visible after the page loads. */
+		#fixedNavMenu {
+			/* Hide the menu on page load */
+			visibility: hidden;
+			<cfif not stretchHeaderAcrossPage>
+			/* Center it */
+			left: calc(-50vw + 50vw);
+			right: calc(-50vw + 50vw);
+			margin-left: auto;
+			margin-right: auto;
+			</cfif>
+		}
+		
+	<cfif kendoTheme eq 'default' or kendoTheme eq 'highcontrast' or kendoTheme eq 'material' or kendoTheme eq 'silver'><!--- Both default and high contrast have the same header. Material needs to have a darker text when selecting a menu item--->
+		/* fixedNavMenu states. */
+		#fixedNavMenu.k-menu .k-state-hover,
+		#fixedNavMenu.k-menu .k-state-hover .k-link,
+		#fixedNavMenu.k-menu .k-state-border-down
+		 /* 
+		.k-menu .k-state-hover, (background and selected item when hovering)
+		.k-menu .k-state-hover .k-link (background and selected item with a link when hovering)
+		.k-menu .k-state-border-down, (backgound and selected item when scrolling down)
+		*/
+		{
+			color: <cfoutput>#blogNameTextColor#</cfoutput>;
+			font-family: <cfoutput>'#menuFont#', #menuFontType#</cfoutput>;
+			background-image: url('<cfoutput>#menuBackgroundImage#</cfoutput>');
+		}
+		
+		/* topMenu States (also for the preview). This allows the menu to become visible as well as placing the menu background image when the menu is first clicked. This must be applied to both the topMenu and topMenuPreview divs */
+		.topMenu.k-menu .k-state-hover,
+		.topMenu.k-menu .k-state-hover .k-link,
+		.topMenu.k-menu .k-state-border-down
+		 /* 
+		.k-menu .k-state-hover, (background and selected item when hovering)
+		.k-menu .k-state-hover .k-link (background and selected item with a link when hovering)
+		.k-menu .k-state-border-down, (backgound and selected item when scrolling down)
+		*/
+		{
+			color: <cfoutput>#blogNameTextColor#</cfoutput>;
+			font-family: <cfoutput>'#menuFont#', #menuFontType#</cfoutput>;
+			background-image: url('<cfoutput>#menuBackgroundImage#</cfoutput>');
+		}
+	</cfif><!---<cfif kendoTheme eq 'default' or kendoTheme eq 'highcontrast'>--->
+		
+	<cfif application.kendoCommercial>
+		/* When using Kendo commercial, the link overrides the menu's text color */
+		/*#topMenu.k-menu .k-link {*/
+		.topMenu.k-item.k-link.k-header {
+			color: <cfoutput>#blogNameTextColor#</cfoutput>;
+		}
+		
+		/* Also remove the vertical borders on the menu */
+		.topMenu.k-menu-horizontal .k-menu-link {
+			border: 0px;
+		}
+	</cfif>
+		
+		/* Remove the vertical border. The borders display a vertical line between the menu items and since we have custom images and colors on the banners, I want to remove these. */
+		.k-widget.k-menu-horizontal>.k-item {
+		  border: 0;
+		}
+		
+		/* Adjust the padding of the menu to try to evenly distribute the search and hamburger icons across devices. */
+		.k-menu .k-item>.k-link {
+			padding-left: <cfif session.isMobile>.7em<cfelse>1.1</cfif>;/* The default Kendo setting is 1.1em */
+			padding-right: <cfif session.isMobile>.7em<cfelse>1.1</cfif>;
+		}
+		
+		/* Kendo class over-rides. */
+		<cfif session.isMobile>
+		/* Increase the close button on mobile */
+		.k-window-titlebar .k-i-close {
+			zoom: 1.2;
+		}
+		</cfif>
+		/* Change the window font size (its too big for mobile). The Kendo window is not responsive, and has its own internal properties that are hardcoded, so I need to reset properties using inline styles, such as font-size. */
+		.k-window-titlebar {
+			font-size: 16px; /* set font-size */
+		}
+		
+		/* -------------------------------- 
+			Blog Styles
+		-------------------------------- */
+		.innerContentContainer { 
+			/* Apply padding to all of the elements within a blog post. */ 
+			margin-top: 5px; 
+			padding-left: 20px; 
+			padding-right: 20px; 
+			display:block; 
+		}
+				
 		#mainBlog {
 			/* This is the main flex container (set by class) and essentially the outer table */
 			position: relative;
@@ -124,6 +516,9 @@
 		  position: absolute;
 		  /* Set the font size to 14px */
 		  font-size: <cfif session.isMobile>0.55em<cfelse>0.70em</cfif>;
+		  /* The next two properties are new as of v4 */
+		  color: #<cfoutput>#selectedTextColor#</cfoutput>;
+		  background-color: #<cfoutput>#accentColor#</cfoutput>;
 		  /* Note: the additional 'k-primary' kendo class attached to the span will set the background */
 		  border-bottom: 1px solid #fff;
 		  /* The width is set at 36px for the dark themes. If set to 100%, the white line that surrounds the date will disappear on the right side of the date. */
@@ -169,21 +564,16 @@
 		  height: 38px;
 		  line-height: 100%;
 		}
-				
-		.innerContentContainer {
-			/* Apply padding to all of the elements within a blog post. */
-			margin-top: 5px; 
-			padding-left: <cfif session.isMobile>10<cfelse>20</cfif>px; 
-			padding-right: <cfif session.isMobile>10<cfelse>20</cfif>px;
-			display:block;
-		}
 
 		.postContent {
 			/* Apply padding to post content. */
 			margin-top: 5px; 
 			display: block;
 		}
-		
+				
+		/* -------------------------------- 
+			Image and Map Hero Classes 
+		-------------------------------- */
 		/* Constraining images to a max width so that they don't  push the content containers out to the right */
 		.entryImage img {
 			max-width: 100%;
@@ -199,7 +589,9 @@
 			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 		}
 		
-		/* Image transitions */
+		/* -------------------------------- 
+			Image Transitions 
+		-------------------------------- */
 		.img-hover-zoom {
 			height: auto;
 			overflow: hidden;
@@ -218,6 +610,33 @@
 			transform: scale(1.2);
 		}
 		
+		/* Login screen needs some extra height otherwise it will be at the top of the screen */
+		.login {
+			height: 480px;
+			margin-bottom: -240px; /* half of width */
+			margin-top: -240px;  /* half of height */
+			top: 50%;
+			left: 50%;
+		}
+		
+		/* -------------------------------- 
+			Lazy loading image classes
+		-------------------------------- */
+		/* hide the element with opacity is set to 0 */
+		.fade {
+			transition: opacity 500ms ease-in-out;
+			opacity: 0;
+		}
+
+		/* show it with the 'shown' class */
+		.fade.shown {
+			opacity: 1;
+			background: 0 0;
+		}
+		
+		/* -------------------------------- 
+			Panel Classes 
+		-------------------------------- */
 		/* Class to force the div to expand in width */
 		.panel {
 			margin: 0;
@@ -243,35 +662,17 @@
       		overflow: hidden;
 		}
 		
-		/* Login screen needs some extra height otherwise it will be at the top of the screen */
-		.login {
-			height: 480px;
-			margin-bottom: -240px; /* half of width */
-			margin-top: -240px;  /* half of height */
-			top: 50%;
-			left: 50%;
+		.panel-wrap {
+			display: table;
+			margin: 0 0 20px;
+			/* Controls the width of the container */
+			border: 1px solid #e5e5e5;
 		}
 		
-		applyPadding { 
-			padding: <cfif session.isMobile>10<cfelse>20</cfif>px !important;
-		} 
-		
-		.wide {
-			min-width: 100% !important;
-		}
-		
-		/* Lazy loading image classes */
-		/* hide the element with opacity is set to 0 */
-		.fade {
-			transition: opacity 500ms ease-in-out;
-			opacity: 0;
-		}
-
-		/* show it with the 'shown' class */
-		.fade.shown {
-			opacity: 1;
-			background: 0 0;
-		}
+		/* Kendo UI applies default min-width (320px) to left and right panel elements, which causes the difference in width between top and left/right panels. We are overriding this default style with the following CSS rule: */
+		.k-rpanel-left, .k-rpanel-right {
+			min-width: 0px;
+		 }
 		
 		/* Sidebar elements */
 		#sidebar {
@@ -290,7 +691,7 @@
 			overflow: hidden;
 		}
 		
-		/* The side bar panel is essentially a duplicate of the sidebar div, however, it is a responsive panel used when the screen size gets small. */
+		/* The side bar panel is essentially a duplicate of the sidbar div, however, it is a responsive panel used when the screen size gets small. */
 		#sidebarPanel {
 			/* Hide the sidebarPanel */
 			visibility: hidden;
@@ -298,7 +699,9 @@
 		<cfif not session.isMobile>/* On desktop, we want the sidebar panel to also scroll with the page. Otherwise, the padding that places it underneath the header is disruped and it looks wierd. */
 			position: absolute;
 		</cfif>
-    		height: 100%;
+			height: 100%;
+			/* The panel needs to drop down below the page when the page does not have a lot of content */
+    		min-height: 1440px;
     		width: <cfif session.isMobile>275px<cfelse>425px</cfif>;
 			-webkit-touch-overflow: scroll;
 			/* Note: the panel will not scroll with the blog content unless there is a css position: absolute. */
@@ -311,14 +714,9 @@
 			border-right: thin;
 		}
 		
-		/* Kendo UI applies default min-width (320px) to left and right panel elements, which causes the difference in width between top and left/right panels. We are overriding this default style with the following CSS rule: */
-		.k-rpanel-left, .k-rpanel-right {
-			min-width: 0px;
-		 }
-		
 		/* Place the layer where we want it and put a drop shadow on the panel when it is expanded. Note! the setSidebarPadding javascript function also sets some style properties. */
 		#sidebarPanel.k-rpanel-expanded {
-		<cfif pageTypeId eq 1>/* The sidebar panel is inside the main container and we don't  want any top margin*/<cfelse><cfif session.isMobile>/* On mobile, the table height is 100px. We want to give about 5 pixels more height to allow the divider to be seen. */<cfelse>/* On desktop, the table height is 105px. We want to give about 5 pixels more height to allow the divider to be seen. */</cfif></cfif>
+		<cfif pageTypeId eq 1>/* The sidebar panel is inside the main container and we don't want any top margin*/<cfelse><cfif session.isMobile>/* On mobile, the table height is 100px. We want to give about 5 pixels more height to allow the divider to be seen. */<cfelse>/* On desktop, the table height is 105px. We want to give about 5 pixels more height to allow the divider to be seen. */</cfif></cfif>
 			margin-top: <cfif pageTypeId eq 1>0px<cfelse><cfif session.isMobile>105px<cfelse>110px</cfif></cfif>;
 			margin-left: <cfif pageTypeId eq 1>0px<cfelse>var(--contentPaddingPixelWidth)</cfif>;
 			-webkit-box-shadow: 0px 0 10px 0 rgba(0,0,0,.3);
@@ -335,6 +733,24 @@
 			/* iOs and mobile */
 			-webkit-touch-overflow: scroll;
 		}
+		
+		/* -------------------------------- 
+			Calendar Classes 
+		-------------------------------- */
+		#blogCalendar {
+			/* Push this behind the fixedNavContainer */
+			z-index: 0;
+			/* Align the calendar in the center. We must use the text-align property for this (I know that this is counter-intuitive). */
+			text-align: center;
+			width: 100%;
+		}
+		
+		#blogCalendarPanel {
+			/* Align the calendar in the center. We must use the text-align property for this (I know that this is counter-intuitive). */
+			text-align: center;
+			width: 100%;
+		}
+		
 		
 		/* Title bar of the calendar (we need more space for this widget) */
 		.calendarWidget h3.topContent {
@@ -368,6 +784,8 @@
 			border-radius: 3px;
 			/* cursor: move; */
 		}
+				
+		
 
 		/* This syle affects the div containers within the widget on the left side of the page. */
 		.widget div {
@@ -421,38 +839,25 @@
 			/* cursor: move; */
 		}
 		
-		/* Custom dialogs */
-		/* Hide scrollbar for Chrome, Safari and Opera */
-		#extAlertDialog::-webkit-scrollbar {
-		  display: none;
+		/* Nearly identical to the widget class without any boder */
+		.author-bio {
+			margin-top: 0px;
+			margin-right: 0px;
+			margin-bottom: 20px;
+			margin-left: 0px;
+			padding: 0;
+			border-radius: 3px;
 		}
-
-		/* Hide scrollbar for IE, Edge and Firefox */
-		#extAlertDialog {
-		  -ms-overflow-style: none;  /* IE and Edge */
-		  scrollbar-width: none;  /* Firefox */
-		}
-		
-		/* Hide scrollbar for Chrome, Safari and Opera */
-		#extOkCancelDialog::-webkit-scrollbar {
-		  display: none;
-		}
-
-		/* Hide scrollbar for IE, Edge and Firefox */
-		#extOkCancelDialog {
-		  -ms-overflow-style: none;  /* IE and Edge */
-		  scrollbar-width: none;  /* Firefox */
-		}
-		
-		/* Hide scrollbar for Chrome, Safari and Opera */
-		#yesNoDialog::-webkit-scrollbar {
-		  display: none;
-		}
-
-		/* Hide scrollbar for IE, Edge and Firefox */
-		#yesNoDialog {
-		  -ms-overflow-style: none;  /* IE and Edge */
-		  scrollbar-width: none;  /* Firefox */
+				
+		/* Author name */
+		.author-bio h3.topContent {
+			font-size: 1em;
+			padding-top: 0px;
+			padding-right: 0px;
+			padding-bottom: 10px;
+			padding-left: 0px;
+			border-bottom: 1px solid #e2e2e2;
+			text-align: left;
 		}
 		
 		/* These arrows are used to indicate that this is a promoted post */
@@ -470,7 +875,7 @@
 			top: 0.1em;
 			border-width: 0.5em;
 			border-style: solid;
-			border-color: <cfoutput>#accentColor#</cfoutput>;
+			border-color: #<cfoutput>#accentColor#</cfoutput>;
 			position: absolute;
 			width: calc(100% - 0.5em);
 			border-left-color: transparent;
@@ -484,7 +889,7 @@
 			top: 0.1em;
 			border-width:0.5em;
 			border-style: solid;
-			border-color: <cfoutput>#accentColor#</cfoutput>;
+			border-color: #<cfoutput>#accentColor#</cfoutput>;
 			position: absolute;
 			border-top-color: transparent;
 			border-bottom-color: transparent;
@@ -492,29 +897,10 @@
 			transform: rotate(180deg);
 			transform-origin: center right;
 		}
-				
-		.panel-wrap {
-			display: table;
-			margin: 0 0 20px;
-			/* Controls the width of the container */
-			border: 1px solid #e5e5e5;
-		}
-
-		#blogCalendar {
-			/* Push this behind the fixedNavContainer */
-			z-index: 0;
-			/* Align the calendar in the center. We must use the text-align property for this (I know that this is counter-intuitive). */
-			text-align: center;
-			width: 100%;
-		}
 		
-		#blogCalendarPanel {
-			/* Align the calendar in the center. We must use the text-align property for this (I know that this is counter-intuitive). */
-			text-align: center;
-			width: 100%;
-		}
-		
-		/* Other than the recent comment pod, don't  wrap pod content, and if the text exceeds the size of the html tables, ellipsis the text (like so 'and...')  */
+		/* -------------------------------- 
+			Media Classes 
+		-------------------------------- */
 		.mediaPlayer {
 			white-space: nowrap;
 			overflow: hidden;
@@ -549,7 +935,9 @@
 			height: 100%;
 		}
 		
-		/* Table classes */
+		/* -------------------------------- 
+			Table Classes 
+		-------------------------------- */
 		/* Applies a border on the outside of the table */
 		table.tableBorder {
 			border: 1px solid <cfif darkTheme>whitesmoke<cfelse>black</cfif>;
@@ -602,7 +990,7 @@
 		.rowDivider{
 			font-size: 0px;
 			height: 1px; 
-			background:#F00
+			background:#F00;
 			border: solid 1px #F00;
 			width: 100%;   
 			overflow: hidden;
@@ -629,6 +1017,9 @@
 			-webkit-border-radius: 50%;
 		}
 	<cfif isDefined("condensedGridView") and condensedGridView>
+		/* -------------------------------- 
+			Cards 
+		-------------------------------- */
 		/* Handle the k-cards when in condensed mode (for the categories for example) */
 		.cards-container {
 			display: flex;
@@ -697,9 +1088,81 @@
 			word-break: break-word !important;
 		}
 	</cfif>
-	/* Breadcrumb and stepper classes */
-	/* -------------------------------- 
-		xnugget info 
+				
+		/* -------------------------------- 
+			Footer Classes 
+		-------------------------------- */
+		#footerDiv {
+			/* Note: opacity and transform will set this block to behave like a z-index:0 on mobile devices, so we need to set a position and a z-index here to make the fixedNavHeader menu float above this layer */
+			position: relative;
+			z-index: 0;
+		<cfif session.isMobile>
+			/* Opacity for iOs */
+			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
+			visibility: visible;
+		<cfelse>
+			/* Apply a min width of 600 pixels. We are making an assumption that the minimum display resolution will be 800 pixels and apply the 200 pixels to the outer container. */
+			min-width: 600px;
+		</cfif>
+			width: var(--contentWidth);
+			/* Subtle drop shadow on the header banner that stretches across the page. */
+			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+			/* Center it */
+			left: calc(-50vw + 50vw);
+			right: calc(-50vw + 50vw);
+			margin-left: auto;
+			margin-right: auto;
+			border: 1px solid #e2e2e2;
+			border-radius: 3px;
+		}
+		
+		#footerInnerContainer {
+			/* Apply padding to all of the elements. */
+			margin-top: <cfif session.isMobile>10<cfelse>20</cfif>px; 
+			margin-left: <cfif session.isMobile>10<cfelse>20</cfif>px; 
+			margin-right: <cfif session.isMobile>10<cfelse>20</cfif>px;
+			margin-bottom: <cfif session.isMobile>10<cfelse>20</cfif>px; 
+			padding: <cfif session.isMobile>10<cfelse>20</cfif>px; 
+			/*background-color: whitesmoke;*/
+			display: block;
+			border: 1px solid #e2e2e2;
+			border-radius: 3px;
+		}
+		
+		/* Title bar for the footer */
+		#footerInnerContainer h4 {
+			font-size: 1em;
+			padding-top: 0px;
+			padding-right: 0px;
+			padding-bottom: 10px;
+			padding-left: 0px;
+			border-bottom: 1px solid #e2e2e2;
+			text-align: left;
+		}
+
+		/* Footer main content */
+		#footerInnerContainer p {
+			padding-top: 10px;
+			padding-right: 0px;
+			padding-bottom: 0px;
+			padding-left: 0px;
+		}
+		
+		/* Center the logo */
+		#footerInnerContainer img {
+			display: block;
+  			margin-left: auto;
+  			margin-right: auto;
+		}
+		
+		/* Center the logo */
+		#footerInnerContainer a {
+			/* color: whitesmoke; */
+		}
+				
+		/* Breadcrumb and stepper classes */
+		/* -------------------------------- 
+			xnugget info 
 		-------------------------------- */
 		.cd-nugget-info {
 		  text-align: center;
@@ -732,7 +1195,7 @@
 		  fill: #<cfoutput>#accentColor#</cfoutput>;
 		}
 		/* -------------------------------- 
-		Basic Style
+		Basic Breadcrumb Styles
 		-------------------------------- */
 		.cd-breadcrumb, .cd-multi-steps {
 		  max-width: 768px;
@@ -932,12 +1395,11 @@
 		  }
 
 		  @-moz-document url-prefix() {
-			.cd-breadcrumb.triangle li::after,
-			.cd-breadcrumb.triangle li > *::after {
-			  /* fix a bug on Firefix - tooth edge on css triangle */
-			  border-left-style: dashed;
+				.cd-breadcrumb.triangle li::after,
+				.cd-breadcrumb.triangle li > *::after {
+					/* fix a bug on Firefix - tooth edge on css triangle */
+					border-left-style: dashed;
 			}
-		  }
 		}
 		/* -------------------------------- 
 		Custom icons hover effects - breadcrumb and multi-steps
@@ -1136,77 +1598,54 @@
 			padding-top: 24px;
 		  }
 		}
-	
-		/* Footer classes */
-		#footerDiv {
-			/* Note: opacity and transform will set this block to behave like a z-index:0 on mobile devices, so we need to set a position and a z-index here to make the fixedNavHeader menu float above this layer */
-			position: relative;
-			z-index: 0;
-		<cfif session.isMobile>
-			/* Opacity for iOs */
-			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
-			visibility: visible;
-		<cfelse>
-			/* Apply a min width of 600 pixels. We are making an assumption that the minimum display resolution will be 800 pixels and apply the 200 pixels to the outer container. */
-			min-width: 600px;
-		</cfif>
-			width: var(--contentWidth);
-			/* Subtle drop shadow on the header banner that stretches across the page. */
-			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-			/* Center it */
-			left: calc(-50vw + 50vw);
-			right: calc(-50vw + 50vw);
-			margin-left: auto;
-			margin-right: auto;
-			border: 1px solid #e2e2e2;
-			border-radius: 3px;
-		}
 		
-		#footerInnerContainer {
-			/* Apply padding to all of the elements. */
-			margin-top: <cfif session.isMobile>10<cfelse>20</cfif>px; 
-			margin-left: <cfif session.isMobile>10<cfelse>20</cfif>px; 
-			margin-right: <cfif session.isMobile>10<cfelse>20</cfif>px;
-			margin-bottom: <cfif session.isMobile>10<cfelse>20</cfif>px; 
-			padding: <cfif session.isMobile>10<cfelse>20</cfif>px; 
-			/*background-color: whitesmoke;*/
-			display: block;
-			border: 1px solid #e2e2e2;
-			border-radius: 3px;
-		}
-		
-		/* Title bar for the footer */
-		#footerInnerContainer h4 {
-			font-size: 1em;
-			padding-top: 0px;
-			padding-right: 0px;
-			padding-bottom: 10px;
-			padding-left: 0px;
-			border-bottom: 1px solid #e2e2e2;
-			text-align: left;
+		/* -------------------------------- 
+			Dialogs 
+		-------------------------------- */
+		/* Hide scrollbar for Chrome, Safari and Opera */
+		#extAlertDialog::-webkit-scrollbar {
+		  display: none;
 		}
 
-		/* Footer main content */
-		#footerInnerContainer p {
-			padding-top: 10px;
-			padding-right: 0px;
-			padding-bottom: 0px;
-			padding-left: 0px;
+		/* Hide scrollbar for IE, Edge and Firefox */
+		#extAlertDialog {
+		  -ms-overflow-style: none;  /* IE and Edge */
+		  scrollbar-width: none;  /* Firefox */
 		}
 		
-		/* Center the logo */
-		#footerInnerContainer img {
-			display: block;
-  			margin-left: auto;
-  			margin-right: auto;
+		/* Hide scrollbar for Chrome, Safari and Opera */
+		#extOkCancelDialog::-webkit-scrollbar {
+		  display: none;
+		}
+
+		/* Hide scrollbar for IE, Edge and Firefox */
+		#extOkCancelDialog {
+		  -ms-overflow-style: none;  /* IE and Edge */
+		  scrollbar-width: none;  /* Firefox */
 		}
 		
-		/* Center the logo */
-		#footerInnerContainer a {
-			/* color: whitesmoke; */
+		/* Hide scrollbar for Chrome, Safari and Opera */
+		#yesNoDialog::-webkit-scrollbar {
+		  display: none;
+		}
+
+		/* Hide scrollbar for IE, Edge and Firefox */
+		#yesNoDialog {
+		  -ms-overflow-style: none;  /* IE and Edge */
+		  scrollbar-width: none;  /* Firefox */
 		}
 		
-		/* Utility classes */
+		/* -------------------------------- 
+			Utility Classes 
+		-------------------------------- */
+		applyPadding { 
+			padding: <cfif session.isMobile>10<cfelse>20</cfif>px !important;
+		} 
+		
+		.wide {
+			min-width: 100% !important;
+		}
+		
 		/* The constrainer table will constrain one or many different div's and spans to a certain size. It is handy to use when you are trying to contain the size of elements created by an older libary that does not use responsive design. */
 		.constrainerTable {
 			/* The parent element (this table) should be positioned relatively. */
@@ -1253,7 +1692,9 @@
 			list-style-type: none;
 		}
 		
-		/* FancyBox */
+		/* -------------------------------- 
+			Fancybox 
+		-------------------------------- */
 		.fancybox-effects img {
 			border: 1px solid #808080; /* Gray border */
 			border-radius: 3px;  /* Rounded border */
@@ -1276,7 +1717,9 @@
 			border-radius: 3px;
 		}
 		
-		/* Kendo FX */
+		/* -------------------------------- 
+			Kendo FX 
+		-------------------------------- */
 		 #fxZoom {
 			left: 0px;
             position: relative;
@@ -1352,7 +1795,9 @@
 			height: auto;
 		}
 		
-		/* Kendo Theme Color Properties */
+		/* -------------------------------- 
+			Kendo Theme Color Properties
+		-------------------------------- */
 		.kendo-accent-color {background-color: #<cfoutput>#accentColor#</cfoutput>; }
 		.kendo-base-color {background-color: #<cfoutput>#baseColor#</cfoutput>; }
 		.kendo-header-bg-color {background-color: #<cfoutput>#headerBgColor#</cfoutput>; }
@@ -1366,7 +1811,7 @@
 		.kendo-warning-color {background-color: #<cfoutput>#warningColor#</cfoutput>; }
 		.kendo-success-color {background-color: #<cfoutput>#successColor#</cfoutput>; }
 		.kendo-info-color {background-color: #<cfoutput>#infoColor#</cfoutput>; }
-	
+<cfif not standAlone>
 	</style>
 	<!--- Script to resize the square thumnails. --->
 	<script>
@@ -1390,3 +1835,4 @@
 			}
 		});
 	</script>
+</cfif><!---<cfif not standAlone>--->

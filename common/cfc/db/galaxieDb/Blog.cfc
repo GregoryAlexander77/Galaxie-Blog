@@ -2,7 +2,7 @@
 	
 	<cfproperty name="BlogId" fieldtype="id" generator="native" setter="false">
 	<!--- Many blog types to one blog --->
-	<cfproperty name="BlogTypeRef" ormtype="int" fieldtype="many-to-one" cfc="BlogType" fkcolumn="BlogTypeRef" cascade="all" missingrowignored="true" hint="Foreign Key to the BlogType.BlogTypeId" default="1">
+	<cfproperty name="BlogTypeRef" ormtype="int" fieldtype="many-to-one" cfc="BlogType" fkcolumn="BlogTypeRef" cascade="all" missingrowignored="true" hint="Foreign Key to the BlogType.BlogTypeId">
 	<cfproperty name="BlogName" ormtype="string" length="50" default="">
 	<cfproperty name="BlogTitle" ormtype="string" length="75" default="">
 	<cfproperty name="BlogUrl" ormtype="string" length="255" default="">
@@ -31,7 +31,7 @@
 	<cfproperty name="HashAlgorithm" ormtype="string" length="255" default="">
 	<cfproperty name="ServiceKeyEncryptionPhrase" ormtype="string" length="255" default="">
 	<cfproperty name="BlogVersion" ormtype="string" default="3">
-	<cfproperty name="BlogVersionName" ormtype="string" default="Galaxie Blog 3.0" length="30">
+	<cfproperty name="BlogVersionName" ormtype="string" default="Galaxie Blog 4.0" length="30">
 	<cfproperty name="BlogVersionDate" ormtype="timestamp" default="">
 	<cfproperty name="IsProd" ormtype="boolean" default="true">
 	<cfproperty name="BlogInstalled" ormtype="boolean" default="false">

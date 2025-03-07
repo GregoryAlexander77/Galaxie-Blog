@@ -1,11 +1,18 @@
-<!doctype html>
-<!--- <cfdump var="#URL#" label="url"> --->
 <cfsilent>
+<cfset isDebug = false><!--- Remove the cfsilent when debugging is needed --->
+<cfparam name="auth" default="false">
+<!--- 
+Note: this page is mainly used to create previews on the admin page.
+Check to see we are calling this to preview or display a video within a post. If not- we will reject the request. We don't want others to use this player to host porn using a videoUrl argument! 
+--->
 	
-<cfset isDebug = 0>
-	
-<!--- There can be multiple arguments to get the file. We can get the full path from the URL, or extract it from the database using the MediaId like we do when we are using the tinymce editor in the administrative site. --->
+<cfif isDebug>
+	<cfdump var="#URL#" label="url">
+</cfif>
 
+<!--- There can be multiple arguments to get the file. We can get the full path from the URL, or extract it from the database using the MediaId like we do when we are using the tinymce editor in the administrative site. --->
+<!--- Note: the postId must be sent in or the page will abort --->
+	
 <!--- If the mediaId is in the URL, get the file path from the database --->
 <cfparam name="URL.mediaId" default="">
 <!--- We can pass in the full video file in the videoUrl --->
@@ -30,6 +37,59 @@
 <cfparam name="YouTubeUrl" default="">
 <cfparam name="VimeoUrl" default="">
 <cfparam name="providerVideoId" default="">
+	
+<cfif !structKeyExists(URL, "postId")>
+	<!--- Set the resonse header to 403 (denied) --->
+	<cfset getpagecontext().getresponse().setstatus(403)>
+	<!--- And abort --->
+	<cfabort>
+<cfelse>
+	<!--- Get the individual post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) )--->
+	<cfset getPost = application.blog.getPostByPostId(URL.postId,true,true)>
+	<cfif isDebug>
+		<cfdump var="#getPost#">
+		<cfoutput>
+			Post Header: #getPost[1]["PostHeader"]#<br/>
+			#getPost[1]["MediaUrl"]# (MediaUrl)<br/>
+			#URL.videoUrl# (URL.videoUrl)<br/>
+			findNoCase(URL.videoUrl, getPost[1]["MediaUrl"]): #findNoCase(URL.videoUrl, getPost[1]["MediaUrl"])#<br/>
+		</cfoutput>
+	</cfif>
+		
+	<!--- Videos will either have a mediaUrl in the getPost array or be within a post header (a directive in this case). If there is a videoUrl present, it must match the mediaUrl in the database. --->
+	<cfif len( URL.videoUrl)>
+		<!--- Only play the video if the videoUrl specified in the URL matches the media URL in the database. --->
+		<cfif findNoCase(URL.videoUrl, getPost[1]["MediaUrl"])>
+			<cfset auth = true>
+		<cfelse>
+			<!--- See if the media is in the media table. --->
+			<cfset getMediaByUrl = application.blog.getMediaIdByMediaUrl(URL.videoUrl)>
+			<cfif isDebug>
+				<cfdump var="#getMediaByUrl#">
+			</cfif>
+			<cfif len(getMediaByUrl)>
+				<cfset auth = true>
+			</cfif>
+			<!--- Finally, see if the post header contains the media URL. It will when there is a Galaxie Blog Directive --->
+			<cfif getPost[1]["PostHeader"] contains URL.videoUrl>
+				<cfset auth = true>
+			</cfif>
+		</cfif>
+	<cfelse>
+		<!--- Play the videio if there is a mediaUrl and there is no videoUrl --->
+		<cfif len(getPost[1]["MediaUrl"])>
+			<cfset auth = true>
+		</cfif>
+	</cfif><!---<cfif len( URL.videoUrl)>--->
+	
+	<!--- Abort the request if not found --->	
+	<cfif !auth>
+		<!--- Set the resonse header to 403 (denied) --->
+		<cfset getpagecontext().getresponse().setstatus(403)>
+		<!--- And abort --->
+		<cfabort>
+	</cfif>
+</cfif>
 	
 <!--- Get the current blog theme if it was not passed in --->
 <cfif URL.kendoTheme eq ''>
@@ -102,11 +162,10 @@ We need to inspect the URL to determine the provider, ie youtube, vimeo or a loc
 <cfelseif provider eq 'vimeo'>
 	<cfset vimeoUrl = "https://player.vimeo.com/video/" & URL.providerVideoId & "?loop=false&byline=false&portrait=false&title=false&speed=true&transparent=0&gesture=media">
 </cfif>
-			
-<!--- Construct our URL to prompt the edit dialog's --->
 	
-
-</cfsilent><head>
+</cfsilent>
+<!doctype html>
+<head>
 	<!-- Plyr (our HTML5 media player) -->
 	<cfoutput><script src="#application.baseUrl#/common/libs/plyr/plyr.js"></script>
 	<!-- Defer the plyr css. -->
@@ -158,12 +217,12 @@ mediaPlayer video {
 		</div>
 	<cfelse>
 		<video 
-			<cfif not URL.kcard>
+		<cfif not URL.kcard>
 			width="<cfoutput>#width#</cfoutput>"
 			height="<cfoutput>#height#</cfoutput>"
-			<cfelse>
+		<cfelse>
 			width="<cfoutput>100%</cfoutput>"
-			</cfif>
+		</cfif>
 			controls
 			<cfif URL.crossOrigin eq true>crossorigin</cfif>
 			playsinline

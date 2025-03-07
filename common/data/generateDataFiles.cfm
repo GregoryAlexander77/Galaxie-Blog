@@ -91,7 +91,7 @@ Blog Option table
 		  ,1 as DeferScriptsAndCss
 		  ,1 as MinimizeCode
 		  ,0 as DisableCache
-		  ,12 as EntriesPerBlogPage
+		  ,9 as EntriesPerBlogPage
 		  ,1 as BlogModerated
 		  ,1 as UseCaptcha
 		  ,1 as AllowGravatar

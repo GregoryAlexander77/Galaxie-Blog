@@ -1,4 +1,4 @@
-<cfcomponent displayname="InitialInstaller" sessionmanagement="yes" clientmanagement="yes" output="true">
+<cfcomponent displayname="InitialInstaller" sessionmanagement="yes" clientmanagement="yes" output="false">
 	<cfset this.sessionManagement="yes"/>
 	<cfset this.enablerobustexception = true />
 	
@@ -17,7 +17,11 @@
 		<!--- Abort if the blog is already installed. --->
 		<cfset blogInstalled = getProfileString(blogIniPath, "default", "installed")>
 		<cfif len(blogInstalled)>
-			<p>This blog is already installed. Please upload a new /org/camden/blog/blog.ini.cfm file from the GitHub repo or set the installed argument to to an empty string to reinstall the blog again.</p>
+			<p>This blog is already installed. 
+			If you manually set the application.reinstallIni variable, set it back to false in the Application.cfc in the root directory to false to continue.
+			
+			Alternatively, you may reinstall the blog again by uploading a new /org/camden/blog/blog.ini.cfm file from the GitHub repo or set the installed argument to to an empty string.
+			</p>
 			<cfabort>
 		</cfif>
 
@@ -37,7 +41,7 @@
 		<cfelse>
 
 			<cfoutput>
-			<p>Unfortunately, I had a problem finding your config file. The ini file does not reside at #expandPath(blogIniPath)#.
+			<p>Unfortunately, I had a problem finding your config file. The ini file does not reside at #application.iniFile#.
 			Galaxie Blog may be "stuck" trying to run the installer. Please contact Gregory Alexander (gregory@gregoryalexander.com) for support.</p>
 			</cfoutput>
 			<cfabort>

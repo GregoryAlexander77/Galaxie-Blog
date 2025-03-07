@@ -1,4 +1,4 @@
-<cfcomponent displayName="ProxyController" output="true" hint="The proxy between the client and the backend blog cfc."> 
+<cfcomponent displayName="ProxyController" output="false" hint="The proxy between the client and the backend blog cfc."> 
 	
 <!--- 
 	*************************************************************************************************************
@@ -19,20 +19,23 @@
 	<!--- Notes: this template has access to the isLoggedIn() function and other session vars. However, ColdFusion's native isUserLoggedIn() is not available here. --->
 	
 	<!--- Common libraries. --->
-	<!--- We need the image object to save an manipulate images. --->
-	<cfobject component="#application.imageComponentPath#" name="ImageObj">
-	<!--- The jsonArray function turns a native ColdFusion query into an array of structs that can be easily used with jQuery. ---> 
-	<cfobject component="#application.cfJsonComponentPath#" name="jsonArray">
-	<!--- Include our string utils object to trim strings --->
-	<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
-	<!--- Instantiate the Render.cfc. --->
-	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
+	<!--- We need the image object to save an manipulate images. These may fail when initally installing the blog with Lucee--->
+	<cftry>
+		<cfobject component="#application.imageComponentPath#" name="ImageObj">
+		<!--- The jsonArray function turns a native ColdFusion query into an array of structs that can be easily used with jQuery. ---> 
+		<cfobject component="#application.cfJsonComponentPath#" name="jsonArray">
+		<!--- Include our string utils object to trim strings --->
+		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
+		<!--- Instantiate the Render.cfc. --->
+		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
+	<cfcatch type="any"></cfcatch>
+	</cftry>
 
 	<!---******************************************************************************************************
 		Security tokens and keys.
 	******************************************************************************************************--->
 		
-	<cffunction name="verifyCsrfToken" access="remote" output="true"
+	<cffunction name="verifyCsrfToken" access="remote" output="false"
 			hint="Used to determine if the csrf token is valid. This is also used to diagnose security issues when the csrf token fails.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 			
@@ -131,8 +134,9 @@
 		<cfparam name="capabilityAuth" default="false" type="boolean">
 			
 		<!--- The authorizedCapabilities is either a string or a ColdFusion list --->
-		<cfloop list="#authorizedCapabilities#" index="i">
-			<cfif findNoCase(i, session.capabilityList)>
+		<cfloop list="#arguments.authorizedCapabilities#" index="i">
+			<!--- All users may edit their own profile. --->
+			<cfif findNoCase(i, session.capabilityList) or i eq 'EditProfile'>
 				<cfset capabilityAuth = true>
 			</cfif>
 		</cfloop>
@@ -208,12 +212,6 @@
 		<cfset encryptionPhrase = application.BlogDbObj.getServiceKeyEncryptionPhrase()>
 		<cfreturn encryptionPhrase>
 	</cffunction>
-
-	<cffunction name="createEncryptionKey" access="package" returntype="string" hint="Generates an key to use for encryption. This is a private function only available to other functions on this page. This function is depracated.">
-		<!--- Generate a secret key. --->
-		<cfset encryptionKey = generateSecretKey( "AES" ) />
-		<cfreturn encryptionKey>
-	</cffunction>
 	
 	<!--- Generate the 'serviceKey'. This is the encrypted key that is created using the random phrase and the encryption key. I am calling this a 'service key' in order to obsfucate the logic as it is used on the client side. --->
 	<cffunction name="createTokenKeys" access="public" returntype="struct" hint="Generates and saves our service key that is a comination of a phrase and an encryptionKey. Returns the encryption and service keys back to the client as a structure. This should be the only 'key' related security function that is accessible to the client without having to pass in a 'serviceKey'. This function is depracated.">
@@ -232,8 +230,14 @@
 		<cfreturn tokenKeys>
 
 	</cffunction>
+			
+	<cffunction name="createEncryptionKey" access="package" returntype="string" hint="Generates an key to use for encryption. This is a private function only available to other functions on this page. This function is depracated.">
+		<!--- Generate a secret key. --->
+		<cfset encryptionKey = generateSecretKey( "AES" ) />
+		<cfreturn encryptionKey>
+	</cffunction>
 
-	<cffunction name="decryptServiceKey" access="package" returntype="string" hint="Decrypts the encrypted key sent by the client. This is a private function only available to other functions on this page. This function is depracated.">
+	<cffunction name="decryptServiceKey" access="package" returntype="string" hint="Decrypts a security key sent by the client. This is a private function only available to other functions on this page. This function is depracated.">
 		
 		<cfargument name="encryptionKey" required="yes" hint="Pass in the encryptionKey. The 'encryptionKey' a key provided using ColdFusion's generateSecretKey function.">
 		<cfargument name="serviceKey" required="yes" hint="Pass in the serviceKey. This is the encrypted key that is created using the random phrase and the encryption key. I am calling this a 'service key' in order to obsfucate the logic as it is used on the client side.">
@@ -248,7 +252,7 @@
 		<cfreturn decodedServiceKey>
 
 	</cffunction>
-
+			
 	<cffunction name="isClientKeyAuthorized" access="public" returntype="boolean" hint="Compares the decoded client key and see if it matches the encryptionPhrase. If it does, the client is authorized. This function is depracated.">
 		
 		<cfargument name="encryptionKey" required="yes" hint="The 'encryptionKey' is generated using the generateSecretKey ColdFusion method.">
@@ -270,46 +274,74 @@
 		<cfreturn isAuth>
 
 	</cffunction>
+			
+	<!---******************************************************************************************************
+		JSON functions
+	*******************************************************************************************************--->
+	<cffunction name="serializeMessage" access="remote" returnformat="json" hint="Returns a json string back to the client for both ColdFusion and Lucee. This should only be used to send back simple strings such as 'invalid token'">
+		<cfargument name="message" required="yes" default="">
+			
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn arguments.message>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( arguments.message ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>		
+			
+	</cffunction>
 	
 	<!---******************************************************************************************************
 		UI Specific functions
-	******************************************************************************************************--->
+	*******************************************************************************************************--->
 
 	<!--- Captcha.  --->
 	<cffunction name="getCaptchaAsJson" access="remote" returnformat="json" output="false" 
 			hint="Returns a json object to populate the captcha UI in the addComment and addCommentSub templates. This is used to populate a kendo.observable model (a Kendo UI MVVM framework) on the page.">
 		<cfargument name="csrfToken" required="yes" default="">
 			
-		<!--- Verify the token --->
-		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
-			<!--- Abort the process if the token is not validated. --->
-			<cfabort>
-		</cfif>
+		<!--- Anyone can access this function --->
 
 		<!--- There are no arguments for this function. --->
 		<cfsetting enablecfoutputonly="true" />
-		<!--- Create the needed variables from Raymond's blog cfc--->
-		<cfset variables.captcha = application.captcha.createHashReference() />
-		<!--- Create a two column query, specifying the column data types --->
-		<cfset data = queryNew("captchaImageUrl, captchaHashReference", "VarChar, VarChar")> 
+				
+		<!--- Create a random string --->
+		<cfset session.captchaText = application.blog.makeRandomString()>
+		<!--- And hash it --->
+		<cfset session.captchaHash = hash(session.captchaText)>
+		<!--- Create a URL --->
+		<cfset captchaUrl = application.baseUrl & "/showCaptcha.cfm?hashReference=" & session.captchaHash>
+			
+		<!--- Create a two column query with the hash and URL, specifying the column data types --->
+		<cfset data = queryNew("captchaImageUrl, captchaHash", "varchar, varchar")> 
 		<!--- Add one row. --->
 		<cfset newRow = queryAddRow(data, 1)>
 		<!--- Populate the image URL--->
-		<cfset temp = querySetCell(data, "captchaImageUrl", application.blog.getRootURL() & "showCaptcha.cfm?hashReference=" & variables.captcha.hash, 1)> 
-		<!--- Populate the hash reference. --->
-		<cfset temp = querySetCell(data, "captchaHashReference", variables.captcha.hash, 1)> 
+		<cfset temp = querySetCell(data, "captchaImageUrl", captchaUrl, 1)> 
+		<!--- Populate the hash reference with the session var. --->
+		<cfset temp = querySetCell(data, "captchaHash", session.captchaHash, 1)> 
 
-		<!--- Package the data. --->
-		<cfinvoke component="cfJson" method="convertCfQuery2JsonStruct" returnvariable="jsonString" >
-			<cfinvokeargument name="queryObj" value="#data#">
-			<cfinvokeargument name="contentType" value="json">
-			<cfinvokeargument name="includeTotal" value="false">
-			<!--- don't  include the data handle for dropdown menu's ---> 
-			<cfinvokeargument name="includeDataHandle" value="false">
-			<!--- Force the database columns coming from the database into lower case. --->
-			<cfinvokeargument name="convertColumnNamesToLowerCase" value="false">
-		</cfinvoke>
+		<!--- Since Lucee automatically converts a ColdFusion object to JSON when the returnformat="json" is set, and that we need to serialize the query to a structure using serializeJson(data,"struct"), we will serialize the query to a structure and then deserialize it to a plain object and return it. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Serialize the ColdFusion query into an array of structures --->
+			<cfset data = serializeJson(data,"struct")>
+			<!--- Now deserialize --->
+			<cfset jsonString = deserializeJSON(data)>
+		<cfelse>
+			<!--- Package the data. --->
+			<cfinvoke component="cfJson" method="convertCfQuery2JsonStruct" returnvariable="jsonString" >
+				<cfinvokeargument name="queryObj" value="#data#">
+				<cfinvokeargument name="contentType" value="json">
+				<cfinvokeargument name="includeTotal" value="false">
+				<!--- don't  include the data handle for dropdown menu's ---> 
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<!--- Force the database columns coming from the database into lower case. --->
+				<cfinvokeargument name="convertColumnNamesToLowerCase" value="false">
+			</cfinvoke>
+		</cfif>
 
 		<!--- And sent it. --->
 		<cfreturn jsonString>
@@ -325,7 +357,7 @@
 		<cfargument name="debugging" required="no" type="boolean" default="false" hint="For testing purposes, we may need to not use the session.captchValidated value to prevent a true value from being incorreclty reset." />
 			
 		<!--- Does the text that the user entered match the hashed value? --->
-		<cfif application.captcha.validateCaptcha(arguments.captchaHash,arguments.captchaText)>
+		<cfif arguments.captchaText eq session.captchaText>
 			<cfset captchaPass  = true />
 			<!--- Set the captcha validated cookie to true. It will expire in one minute. --->
 			<cfcookie name="captchaValidated" expires="#dateAdd('n', 1, now())#" value="true">
@@ -348,7 +380,7 @@
 		Subscribe
 	******************************************************************************************************--->
 				
-	<cffunction name="subscribe" returnFormat="json" output="true" access="remote" 
+	<cffunction name="subscribe" returnFormat="json" output="false" access="remote" 
 			hint="Subscribes a user to the blog. Also sends out an email asking the user to confirm the subscription.">
 		<cfargument name="email" required="true" default="" hint="Pass in the subscribers email address." />
 		
@@ -400,14 +432,20 @@
 			
 		<!--- Prepare the response object. --->
 		<cfset response[ "message" ] = message />
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-		<!--- Send the response back to the client. --->
-		<cfreturn serializedResponse>
+			
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>
 
 	</cffunction>
 					
-	<cffunction name="postCommentSubscribe" returnFormat="json" output="true" access="remote" 
+	<cffunction name="postCommentSubscribe" returnFormat="json" output="false" access="remote" 
 			hint="Handles the generic web contact, subscribe to a given post, and adding a comment to a post.">
 		
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken. This is not used yet to handle non authenticated users.">
@@ -504,7 +542,7 @@
 		
 		<!--- See https://www.telerik.com/blogs/extending-the-kendo-ui-validator-with-custom-rules on how we are going to get server side validation working on the client end. --->
 
-		<!--- If there are no errors, proceed.--->
+		<!--- If there are no errors, proceed. --->
 		<cfif valid>
 
 			<!--- Handle the contact form --->
@@ -608,7 +646,7 @@
 			<!--- The user is adding a comment. --->
 			<cfelseif arguments.uiInterface eq 'addComment'><!---<cfif arguments.uiInterface eq 'contact'>--->
 
-				<!---<cftry>--->
+				<cftry>
 					<cfinvoke component="#application.blog#" method="addComment" returnVariable="commentId">
 						<cfinvokeargument name="postId" value="#arguments.postId#">
 						<cfinvokeargument name="name" value="#left(arguments.commenterName, 255)#">
@@ -707,28 +745,33 @@
 						
 					</cfif><!---<cfif not application.BlogOptionDbObj.getBlogModerated() or application.Udf.isLoggedIn()>--->
 
-					<!---<cfcatch>
+					<cfcatch>
 						<cfset valid = false>
 						<cfif cfcatch.message eq "Comment blocked for spam.">
 							<cfset response[ "errorMessage" ] = "Your comment has been flagged as spam." />
 						<cfelse>
 							<cfset response[ "errorMessage" ] = cfcatch.message & ',' & cfcatch.detail />		
 						</cfif>
-					</cfcatch>--->
+					</cfcatch>
 
-				<!---</cftry>--->
+				</cftry>
 			</cfif><!---<cfif arguments.uiInterface eq 'contact'>--->	
 
 		</cfif><!---<cfif valid>--->
 			
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-		<!--- Send the response back to the client. --->
-		<cfreturn serializedResponse>
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>
 		
 	</cffunction>
 							
-	<cffunction name="confirmSubscription" returnFormat="json" output="true" access="remote" 
+	<cffunction name="confirmSubscription" returnFormat="json" output="false" access="remote" 
 			hint="Confirms a user subscription to the blog. This is used on the admin interfaces.">
 		<cfargument name="email" required="true" default="" hint="Pass in the subscribers email address." />
 		<cfargument name="token" required="true" default="" hint="Pass in the user token." />
@@ -755,14 +798,20 @@
 			
 		<!--- Prepare the response object. --->
 		<cfset response[ "message" ] = message />
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-		<!--- Send the response back to the client. --->
-		<cfreturn serializedResponse>
+					
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>
 
 	</cffunction>
 					
-	<cffunction name="confirmSubscriptionViaToken" returnFormat="json" output="true" access="remote" 
+	<cffunction name="confirmSubscriptionViaToken" returnFormat="json" output="false" access="remote" 
 			hint="Confirms a user subscription to the blog. The confirm subscription email is sent out with just the token and an Ajax request is made to confirm the users subscription once the user clicks on the call to action link.">
 		<cfargument name="token" required="true" default="" hint="Pass in the subscription token." />
 		
@@ -791,14 +840,20 @@
 			
 		<!--- Prepare the response object. --->
 		<cfset response[ "message" ] = message />
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-		<!--- Send the response back to the client. --->
-		<cfreturn serializedResponse>
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>
 
 	</cffunction>
 								
-	<cffunction name="unSubscribe" returnFormat="json" output="true" access="remote" 
+	<cffunction name="unSubscribe" returnFormat="json" output="false" access="remote" 
 			hint="Unsubscribes a user to the blog.">
 		<cfargument name="email" required="true" default="" hint="Pass in the subscribers email address." />
 		<cfargument name="token" required="true" default="" hint="Pass in the user token." />
@@ -835,10 +890,16 @@
 			
 		<!--- Prepare the response object. --->
 		<cfset response[ "message" ] = message />
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-		<!--- Send the response back to the client. --->
-		<cfreturn serializedResponse>
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>
 
 	</cffunction>
 			
@@ -858,7 +919,15 @@
 		
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn false>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( false ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -892,6 +961,10 @@
 			<cfelse>
 				<cfinvokeargument name="includeDataHandle" value="false">
 				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
 			</cfif>
 		</cfinvoke>
 		
@@ -958,12 +1031,17 @@
 			<cfset response[ "success" ] = false />
 			<cfset response[ "errorMessage" ] = errorMessage />
 		</cfif>
-			
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-    
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>	
+		
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
 		
 	</cffunction>
 				
@@ -976,7 +1054,17 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<cfset reponse = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort further processing --->
 			<cfabort>
 		</cfif>
 			
@@ -1028,7 +1116,20 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort processing --->
 			<cfabort>
 		</cfif>
 			
@@ -1053,8 +1154,19 @@
 				<!--- Delete it --->
 				<cfset EntityDelete(SubscriberDbObj)>
 			</cftransaction>
-    	
-		<cfreturn serializeJSON(arguments.subscriberId)>
+			<!--- Set the response --->
+			<cfset response = arguments.subscriberId>
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+				
 	</cffunction>
 							
 	<!---*****************************************************************************************************
@@ -1077,7 +1189,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = false>
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -1126,6 +1249,10 @@
 				<cfinvokeargument name="includeDataHandle" value="false">
 				<cfinvokeargument name="dataHandleName" value="">
 			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -1143,7 +1270,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort further processing --->
 			<cfabort>
 		</cfif>
 			
@@ -1195,8 +1334,19 @@
 		</cfif>
 				
 		<!--- For the jsGrid, we need to return: updatedItem: 1 (ie the commentId)--->
-    
-    	<cfreturn serializeJSON(arguments.commentId)>
+   
+		<!--- Set the response --->
+		<cfset response = arguments.commentId>
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
 		
 	</cffunction>
 				
@@ -1209,7 +1359,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort further processing --->
 			<cfabort>
 		</cfif>
 			
@@ -1261,26 +1423,49 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort further processing --->
 			<cfabort>
 		</cfif>
 			
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('EditComment,EditPost,ReleasePost')>
 			
-			<cftransaction>
+		<cftransaction>
 
-				<!--- Update the database. --->
-				<!--- Load the comment entity. --->
-				<cfset CommentDbObj = entityLoad("Comment", { CommentId = arguments.commentId }, "true" )>
-				<!--- Set the remove column to true --->
-				<cfset CommentDbObj.setRemove(1)>
-				<!--- Save it --->
-				<cfset EntitySave(CommentDbObj)>
+			<!--- Update the database. --->
+			<!--- Load the comment entity. --->
+			<cfset CommentDbObj = entityLoad("Comment", { CommentId = arguments.commentId }, "true" )>
+			<!--- Set the remove column to true --->
+			<cfset CommentDbObj.setRemove(1)>
+			<!--- Save it --->
+			<cfset EntitySave(CommentDbObj)>
 
-			</cftransaction>
-    	
-		<cfreturn serializeJSON(arguments.commentId)>
+		</cftransaction>
+
+		<!--- Set the response --->
+		<cfset response = arguments.commentId>
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
 	</cffunction>
 			
 	<cffunction name="saveComment" access="remote" returnformat="json" output="false" 
@@ -1309,7 +1494,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = false>
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -1364,11 +1560,18 @@
 		<cfif error>
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-    
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
+
 	</cffunction>
 				
 	<!---//*****************************************************************************************
@@ -1383,7 +1586,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = false>
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -1396,7 +1610,18 @@
 			
 		<cfset response[ "emailSent" ] = emailSent />
 			
-		<cfreturn serializeJson("sucess")>
+		<!--- Set the response --->
+		<cfset response = "sucess">
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
 	
 	</cffunction>
 				
@@ -1460,7 +1685,19 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Abort the process if the token is not validated. --->
+			<!--- Set the response --->
+			<cfset response = false>
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -1494,6 +1731,10 @@
 			<cfelse>
 				<cfinvokeargument name="includeDataHandle" value="false">
 				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
 			</cfif>
 		</cfinvoke>
 		
@@ -1596,7 +1837,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Inavalid Token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -1628,11 +1881,20 @@
 		<cfset response[ "success" ] = true />
 		<cfset response[ "themeId" ] = ThemeDbObj.getThemeId() />
     
-    	<cfreturn serializeJSON(response)>
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
 		
 	</cffunction>
 				
-	<cffunction name="saveTheme" access="remote" returnformat="json" output="false" 
+	<cffunction name="saveTheme" access="remote" returnformat="json" output="yes" 
 			hint="Saves the theme details.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="themeId" required="no" default="" hint="When editting an existing theme, pass in the theme Id">
@@ -1660,7 +1922,11 @@
 		<cfargument name="mainContainerWidth" required="no" default="66">	
 		<cfargument name="sideBarContainerWidth" required="no" default="34">
 		<cfargument name="siteOpacity" required="no" default="93">
-		<cfargument name="favIconHtml" required="no" default="">
+		<!--- Header HTML --->
+		<cfargument name="customHeaderHtmlCode" required="no" default="">
+		<cfargument name="applyCustomHeaderHtmlAcrossThemes" required="no" default="">
+		<!--- Favicon --->
+		<cfargument name="favIconHtmlCode" required="no" default="">
 		<cfargument name="applyFavIconToAllThemes" required="no" default="">
 		<!--- Logos --->
 		<cfargument name="logoImage" required="no" default="">
@@ -1692,185 +1958,332 @@
 		<cfargument name="topMenuAlign" required="no" default="left">
 		<!--- Footer --->
 		<cfargument name="footerImage" required="no" default="">
+		<!--- Content related variables --->
+		<!--- Content templates: navigationMenu, aboutWindow, bioWindow, downloadWindow, downloadPod, subscribePod, cfblogsFeedPod, recentPostsPod, recentCommentsPod, categoriesPod, monthlyArchivesPod, calendarPod, compositeFooter. The desktop and mobile code, along with the theme selections and revert are all on a separate editor interface --->
+		<!--- The following are global and are not specific to the device --->
+		<cfargument name="navigationMenuEnable" default="true">
+		<cfargument name="aboutWindowEnable" default="true">
+		<cfargument name="bioWindowEnable" default="true">
+		<cfargument name="downloadWindowEnable" default="true">
+		<cfargument name="downloadPodEnable" default="true">
+		<cfargument name="subscribePodEnable" default="true">
+		<cfargument name="cfblogsFeedPodEnable" default="true">
+		<cfargument name="recentPostsPodEnable" default="true">
+		<cfargument name="recentCommentsPodEnable" default="true">
+		<cfargument name="categoriesPodEnable" default="true">
+		<cfargument name="monthlyArchivesPodEnable" default="true"> 
+		<cfargument name="calendarPodEnable" default="true">
+		<cfargument name="compositeFooterEnable" default="true">
+		<!--- Tail end scripts --->
+		<cfargument name="customFooterHtmlCode" default="">
+		<cfargument name="applyCustomFooterHtmlToAllThemes"  default="">
 			
+		<!--- Invoke the stringUtils object to send the proper file path for theme related images. By design, the theme image locations are only using part of the file path starting from /images. This was initially done as I wanted to keep the theme images from using specific domain and blog path information. This simplifies the logic when installing the blog and allows the blog to be more portable from server to server. However, we need this information when using the editors and the full paths will be sent in. We need to remove the path info here. I may revisit this decision in future editions. 
+
+		We are also using the sanitizeStrForDbForDb to sanitize the attach strings that we are using to bypass ColdFusions Global Security. All of the forms that use the code mirror editor are being sanitized below --->
+		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
+		
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("#arguments.csrfToken#")>
+			<!--- Set the response --->
+			<cfset response = false>
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('EditTheme')>
 			
-			<!--- Handle font args from the UI. These were named via the UI as the form is serialized and is very long) --->
-			<cfif len(arguments.blogNameFontDropdown)>
-				<cfset blogNameFontId = arguments.blogNameFontDropdown>
-			</cfif>
-			<cfif len(arguments.menuFontDropdown)>
-				<cfset menuFontId = arguments.menuFontDropdown>
-			</cfif>
-			<cfif len(arguments.bodyFontDropdown)>
-				<cfset fontId = arguments.bodyFontDropdown>
-			</cfif>
-			
-			<!--- Handle arguments coming from the new theme function (and other potential new functions) --->
-			<cfif len(arguments.blogNameFontRef)>
-				<cfset blogNameFontId = arguments.blogNameFontRef>
-			</cfif>
-			<cfif len(arguments.menuFontRef)>
-				<cfset menuFontId = arguments.menuFontRef>
-			</cfif>
-			<cfif len(arguments.fontRef)>
-				<cfset fontId = arguments.fontRef>
-			</cfif>
-				
-			<!--- The folowing four args are checkboxes and will not come through unless clicked --->
-			<cfif len(arguments.useTheme)>
-				<cfset useTheme = true>
-			<cfelse>
-				<cfset useTheme = false>
-			</cfif>
-				
-			<cfif len(arguments.selectedTheme)>
-				<cfset selectedTheme = true>
-			<cfelse>
-				<cfset selectedTheme = false>
-			</cfif>
-				
-			<cfif len(arguments.darkTheme)>
-				<cfset darkTheme = true>
-			<cfelse>
-				<cfset darkTheme = false>
-			</cfif>
-				
-			<cfif len(stretchHeaderAcrossPage)>
-				<cfset stretchHeaderAcrossPage = true>
-			<cfelse>
-				<cfset stretchHeaderAcrossPage = false>
-			</cfif>
-				
-			<cfif len(applyFavIconToAllThemes)>
-				<cfset applyFavIconToAllThemes = true>
-			<cfelse>
-				<cfset applyFavIconToAllThemes = false>
-			</cfif>
-				
-			<!--- Create the themeAlias. This is always done as the user may have changed the theme name --->
-			<cfset themeAlias = application.blog.makeAlias(arguments.theme)>
-				
-			<!--- Invoke the stringUtils object to send the proper file path for theme related images. By design, the theme image locations are only using part of the file path starting from /images. This was initially done as I wanted to keep the theme images from using specific domain and blog path information. This simplifies the logic when installing the blog and allows the blog to be more portable from server to server. However, we need this information when using the editors and the full paths will be sent in. We need to remove the path info here. I may revisit this decision in future editions. --->
-			<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
-			
-			<cftransaction>
-				
-				<!--- First, if a theme was selected, deselect any other selected themes. There can only be on selected theme. --->
-				<cfif selectedTheme>
-					<cfquery name="deselectAllThemes" dbtype="hql">
-						UPDATE Theme
-						SET SelectedTheme = ''
-						WHERE SelectedTheme = 1
-					</cfquery>
-				</cfif>
-				
-				<!--- Second, if the applyFavIconToAllThemes argument is set, apply the favorite icon string across all themes. --->
-				<cfif applyFavIconToAllThemes and len(arguments.favIconHtml)>
-					<cfquery name="deselectAllThemes" dbtype="hql">
-						UPDATE ThemeSetting
-						SET FavIconHtml = <cfqueryparam value="#arguments.FavIconHtml#" cfsqltype="cf_sql_longvarchar">
-					</cfquery>
-				</cfif>
+		<!--- Handle font args from the UI. These were named via the UI as the form is serialized and is very long) --->
+		<cfif len(arguments.blogNameFontDropdown)>
+			<cfset blogNameFontId = arguments.blogNameFontDropdown>
+		</cfif>
+		<cfif len(arguments.menuFontDropdown)>
+			<cfset menuFontId = arguments.menuFontDropdown>
+		</cfif>
+		<cfif len(arguments.bodyFontDropdown)>
+			<cfset fontId = arguments.bodyFontDropdown>
+		</cfif>
 
-				<!--- Now, save the record to the database. --->
-				<cfif len(arguments.themeId) and len(arguments.themeSettingId)>
-					<!--- Load the theme entity. --->
-					<cfset ThemeDbObj = entityLoadByPK("Theme", arguments.themeId)>
-					<!--- Load the theme setting entity --->
-					<cfset ThemeSettingDbObj = entityLoad("ThemeSetting", { ThemeSettingId = arguments.themeSettingId }, "true" )>
-				<cfelse>
-					<!--- Create the theme entity. --->
-					<cfset ThemeDbObj = entityNew("Theme")>
-					<!--- Create the theme setting entity --->
-					<cfset ThemeSettingDbObj = entityNew("ThemeSetting")>
-				</cfif>
-				<!--- Load the kendo theme entity --->
-				<cfset KendoThemeDbObj = entityLoadByPK("KendoTheme", arguments.kendoThemeId)>
-				<!--- And finally the font entity (the fontId is derived by logic, see above) --->
-				<cfset FontDbObj = entityLoadByPK("Font", fontId)>
-				<!--- Set theme columns --->
-				<cfset ThemeDbObj.setThemeName(arguments.theme)>
-				<cfset ThemeDbObj.setThemeAlias(themeAlias)>
-				<cfset ThemeDbObj.setKendoThemeRef(KendoThemeDbObj)>
-				<cfset ThemeDbObj.setThemeGenre(arguments.themeGenre)>
-				<!--- Checkbox logic for the following three args are at top of the page. ---> 
-				<cfset ThemeDbObj.setSelectedTheme(selectedTheme)>
-				<cfset ThemeDbObj.setUseTheme(useTheme)>
-				<cfset ThemeDbObj.setDarkTheme(darkTheme)>
-				<!--- If the theme style is modern, set the breakpoint to 0 --->
-				<cfif arguments.themeStyle eq 'modern'>
-					<cfset ThemeSettingDbObj.setBreakpoint(0)>
-					<!--- Set the content width to 50 if it was not changed in the interface. --->
-					<cfif arguments.contentWidth eq '66'>
-						<cfset ThemeSettingDbObj.setContentWidth('50')>	
-					<cfelse>
-						<cfset ThemeSettingDbObj.setContentWidth(arguments.contentWidth)>
-					</cfif>
-				</cfif>
-				<!--- Fonts (the arguments are from the UI) --->
-				<cfset ThemeSettingDbObj.setFontRef(FontDbObj)>	
-				<!--- The next two font arguments are derived by logic (see above). --->
-				<cfset ThemeSettingDbObj.setBlogNameFontRef(blogNameFontId)>
-				<cfset ThemeSettingDbObj.setMenuFontRef(menuFontId)>
-				<cfset ThemeSettingDbObj.setFontSize(arguments.fontSize)>
-				<cfset ThemeSettingDbObj.setFontSizeMobile(arguments.fontSizeMobile)>
-				<cfset ThemeSettingDbObj.setBlogNameFontSize(arguments.blogNameFontSize)>
-				<cfset ThemeSettingDbObj.setBlogNameFontSizeMobile(arguments.blogNameFontSizeMobile)>
-				<!--- Content Widths --->
-				<cfset ThemeSettingDbObj.setMainContainerWidth(arguments.mainContainerWidth)>
-				<cfset ThemeSettingDbObj.setSideBarContainerWidth(arguments.sideBarContainerWidth)>
-				<cfset ThemeSettingDbObj.setSiteOpacity(arguments.siteOpacity)>
-				<cfset ThemeSettingDbObj.setFavIconHtml(arguments.favIconHtml)>
-				<cfset ThemeSettingDbObj.setLogoImage(StringUtilsObj.setThemeFilePath(arguments.logoImage))>
-				<cfset ThemeSettingDbObj.setLogoImageMobile(StringUtilsObj.setThemeFilePath(arguments.logoImageMobile))>
-				<cfset ThemeSettingDbObj.setLogoMobileWidth(arguments.logoMobileWidth)>
-				<cfset ThemeSettingDbObj.setLogoPaddingLeft(arguments.logoPaddingLeft)>
-				<cfset ThemeSettingDbObj.setDefaultLogoImageForSocialMediaShare(StringUtilsObj.setThemeFilePath(arguments.defaultLogoImageForSocialMediaShare))>
-				<!--- Background images --->
-				<cfset ThemeSettingDbObj.setIncludeBackgroundImages(arguments.includeBackgroundImages)>
-				<cfset ThemeSettingDbObj.setBlogBackgroundImage(StringUtilsObj.setThemeFilePath(arguments.blogBackgroundImage))>
-				<cfset ThemeSettingDbObj.setBlogBackgroundImageMobile(StringUtilsObj.setThemeFilePath(arguments.blogBackgroundImageMobile))>
-				<cfset ThemeSettingDbObj.setBlogBackgroundImagePosition(arguments.blogBackgroundImagePosition)>
-				<cfset ThemeSettingDbObj.setBlogBackgroundImageRepeat(arguments.blogBackgroundImageRepeat)>
-				<cfset ThemeSettingDbObj.setBlogBackgroundColor(arguments.blogBackgroundColor)>
-				<!--- Title --->
-				<cfif len(arguments.displayBlogName)>
-					<cfset ThemeSettingDbObj.setDisplayBlogName(true)>
-				<cfelse>
-					<cfset ThemeSettingDbObj.setDisplayBlogName(false)>
-				</cfif>
-				<cfset ThemeSettingDbObj.setBlogNameTextColor(arguments.blogNameTextColor)>
-				<!--- Header --->
-				<cfset ThemeSettingDbObj.setHeaderBackgroundColor(arguments.headerBackgroundColor)>
-				<cfset ThemeSettingDbObj.setHeaderBackgroundImage(StringUtilsObj.setThemeFilePath(arguments.headerBackgroundImage))>
-				<cfset ThemeSettingDbObj.setHeaderBodyDividerImage(StringUtilsObj.setThemeFilePath(arguments.headerBodyDividerImage))>
-				<cfset ThemeSettingDbObj.setStretchHeaderAcrossPage(arguments.stretchHeaderAcrossPage)>
-				<!--- Menu --->
-				<cfset ThemeSettingDbObj.setMenuBackgroundImage(StringUtilsObj.setThemeFilePath(arguments.menuBackgroundImage))>
-				<cfset ThemeSettingDbObj.setAlignBlogMenuWithBlogContent(arguments.alignBlogMenuWithBlogContent)>
-				<cfset ThemeSettingDbObj.setCoverKendoMenuWithMenuBackgroundImage(arguments.coverKendoMenuWithMenuBackgroundImage)>
-				<cfset ThemeSettingDbObj.setTopMenuAlign(arguments.topMenuAlign)>
-				<!--- Footer --->
-				<cfset ThemeSettingDbObj.setFooterImage(StringUtilsObj.setThemeFilePath(arguments.footerImage))>
-				<!--- On new themes, save the theme setting ref --->
-				<cfif len(themeId) eq 0 and len(themeSettingId) eq 0>
-					<cfset ThemeDbObj.setThemeSettingRef(ThemeSettingDbObj.getThemeSettingId())>
-				</cfif>
-				<!--- Save the entities --->
-				<cfset EntitySave(ThemeSettingDbObj)>
-				<cfset EntitySave(ThemeDbObj)>
+		<!--- Handle arguments coming from the new theme function (and other potential new functions) --->
+		<cfif len(arguments.blogNameFontRef)>
+			<cfset blogNameFontId = arguments.blogNameFontRef>
+		</cfif>
+		<cfif len(arguments.menuFontRef)>
+			<cfset menuFontId = arguments.menuFontRef>
+		</cfif>
+		<cfif len(arguments.fontRef)>
+			<cfset fontId = arguments.fontRef>
+		</cfif>
 
-			</cftransaction>
+		<!--- The folowing four args are checkboxes and will not come through unless clicked --->
+		<cfif len(arguments.useTheme)>
+			<cfset useTheme = true>
+		<cfelse>
+			<cfset useTheme = false>
+		</cfif>
+
+		<cfif len(arguments.selectedTheme)>
+			<cfset selectedTheme = true>
+		<cfelse>
+			<cfset selectedTheme = false>
+		</cfif>
+
+		<cfif len(arguments.darkTheme)>
+			<cfset darkTheme = true>
+		<cfelse>
+			<cfset darkTheme = false>
+		</cfif>
+
+		<cfif len(stretchHeaderAcrossPage)>
+			<cfset stretchHeaderAcrossPage = true>
+		<cfelse>
+			<cfset stretchHeaderAcrossPage = false>
+		</cfif>
+
+		<cfif len(applyFavIconToAllThemes)>
+			<cfset applyFavIconToAllThemes = true>
+		<cfelse>
+			<cfset applyFavIconToAllThemes = false>
+		</cfif>
+			
+		<cfif len(applyCustomHeaderHtmlAcrossThemes)>
+			<cfset applyCustomHeaderHtmlAcrossThemes = true>
+		<cfelse>
+			<cfset applyCustomHeaderHtmlAcrossThemes = false>
+		</cfif>
+			
+		<cfif len(applyCustomFooterHtmlToAllThemes)>
+			<cfset applyCustomFooterHtmlToAllThemes = true>
+		<cfelse>
+			<cfset applyCustomFooterHtmlToAllThemes = false>
+		</cfif>
+
+		<!--- Create the themeAlias. This is always done as the user may have changed the theme name --->
+		<cfset themeAlias = application.blog.makeAlias(arguments.theme)>
+		
+		<cftransaction>
+
+			<!--- First, if a theme was selected, deselect any other selected themes. There can only be on selected theme. --->
+			<cfif selectedTheme>
+				<cfquery name="deselectAllThemes" dbtype="hql">
+					UPDATE Theme
+					SET SelectedTheme = ''
+					WHERE SelectedTheme = 1
+				</cfquery>
+			</cfif>
+
+			<!--- Second, deal with settings that can be applied to all themes. --->
+			<cfif len(arguments.favIconHtmlCode)>
+				<!--- Sanitize the form value --->
+				<cfset sanitizedFavIconHtml = StringUtilsObj.sanitizeStrForDb(arguments.favIconHtmlCode)>
+			</cfif>
+			<!--- If the applyFavIconToAllThemes argument is set, apply the favorite icon string across all themes. --->
+			<cfif applyFavIconToAllThemes and len(arguments.favIconHtmlCode)>
+				<!--- Save it --->
+				<cfquery name="updateTheme" dbtype="hql">
+					UPDATE ThemeSetting
+					SET FavIconHtml = <cfqueryparam value="#sanitizedFavIconHtml#" cfsqltype="cf_sql_longvarchar">,
+					FavIconHtmlApplyAcrossThemes = 1
+				</cfquery>
+			</cfif>
+			<cfif not applyFavIconToAllThemes>
+				<cfquery name="updateTheme" dbtype="hql">
+					UPDATE ThemeSetting
+					SET FavIconHtmlApplyAcrossThemes = 0
+				</cfquery>
+			</cfif>
+			<cfif len(arguments.customHeaderHtmlCode)>
+				<!--- Sanitize the custom header --->
+				<cfset sanitizedCustomHeaderHtml = StringUtilsObj.sanitizeStrForDb(arguments.CustomHeaderHtml)>
+			</cfif>
+			<!--- If the applyCustomHeaderHtmlToAllThemes argument is set, apply the custom header HTML string across all themes. --->
+			<cfif applyCustomHeaderHtmlAcrossThemes and len(arguments.customHeaderHtmlCode)>
+				<!--- Save it --->
+				<cfquery name="updateTheme" dbtype="hql">
+					UPDATE ThemeSetting
+					SET CustomHeaderHtml = <cfqueryparam value="#sanitizedCustomHeaderHtml#" cfsqltype="cf_sql_longvarchar">,
+					CustomHeaderHtmlApplyAcrossThemes = 1
+				</cfquery>
+			</cfif>
+			<cfif not applyCustomHeaderHtmlAcrossThemes>
+				<cfquery name="updateTheme" dbtype="hql">
+					UPDATE ThemeSetting
+					SET CustomHeaderHtmlApplyAcrossThemes = 0
+				</cfquery>
+			</cfif>
+			<cfif len(arguments.customFooterHtmlCode)>
+				<!--- Sanitize the form value --->
+				<cfset sanitizedCustomFooterHtmlCode = StringUtilsObj.sanitizeStrForDb(arguments.customFooterHtmlCode)>
+			</cfif>
+			<!--- If the applyCustomFooterHtmlToAllThemes argument is set, apply the custom header HTML string across all themes. --->
+			<cfif applyCustomFooterHtmlToAllThemes and len(arguments.customFooterHtmlCode)>
+				<!--- Save it --->
+				<cfquery name="updateTheme" dbtype="hql">
+					UPDATE ThemeSetting
+					SET TailEndScripts = <cfqueryparam value="#sanitizedCustomFooterHtmlCode#" cfsqltype="cf_sql_longvarchar">,
+					TailEndScriptsApplyAcrossThemes = 1
+				</cfquery>
+			</cfif>
+			<cfif not applyCustomFooterHtmlToAllThemes>
+				<cfquery name="updateTheme" dbtype="hql">
+					UPDATE ThemeSetting
+					SET TailEndScripts = '',
+					TailEndScriptsApplyAcrossThemes = 0
+				</cfquery>
+			</cfif>
+
+			<!--- Now, save the record to the database. --->
+			<cfif len(arguments.themeId) and len(arguments.themeSettingId)>
+				<!--- Load the theme entity. --->
+				<cfset ThemeDbObj = entityLoadByPK("Theme", arguments.themeId)>
+				<!--- Load the theme setting entity --->
+				<cfset ThemeSettingDbObj = entityLoadByPk("ThemeSetting", arguments.themeSettingId )>
+			<cfelse>
+				<!--- Create the theme entity. --->
+				<cfset ThemeDbObj = entityNew("Theme")>
+				<!--- Create the theme setting entity --->
+				<cfset ThemeSettingDbObj = entityNew("ThemeSetting")>
+			</cfif>
+			<!--- Load the kendo theme entity --->
+			<cfset KendoThemeDbObj = entityLoadByPK("KendoTheme", arguments.kendoThemeId)>
+			<!--- And finally the font entity (the fontId is derived by logic, see above) --->
+			<cfset FontDbObj = entityLoadByPK("Font", fontId)>
+			<!--- Set theme columns --->
+			<cfset ThemeDbObj.setThemeName(arguments.theme)>
+			<cfset ThemeDbObj.setThemeAlias(themeAlias)>
+			<cfset ThemeDbObj.setKendoThemeRef(KendoThemeDbObj)>
+			<cfset ThemeDbObj.setThemeGenre(arguments.themeGenre)>
+			<!--- Checkbox logic for the following three args are at top of the page. ---> 
+			<cfset ThemeDbObj.setSelectedTheme(selectedTheme)>
+			<cfset ThemeDbObj.setUseTheme(useTheme)>
+			<cfset ThemeDbObj.setDarkTheme(darkTheme)>
+			<!--- If the theme style is modern, set the breakpoint to 0 --->
+			<cfif arguments.themeStyle eq 'modern'>
+				<cfset ThemeSettingDbObj.setBreakpoint(0)>
+				<!--- Set the content width to 50 if it was not changed in the interface. --->
+				<cfif arguments.contentWidth eq '66'>
+					<cfset ThemeSettingDbObj.setContentWidth('50')>	
+				<cfelse>
+					<cfset ThemeSettingDbObj.setContentWidth(arguments.contentWidth)>
+				</cfif>
+			</cfif>
+			<!--- Fonts (the arguments are from the UI) --->
+			<cfset ThemeSettingDbObj.setFontRef(FontDbObj)>	
+			<!--- The next two font arguments are derived by logic (see above). --->
+			<cfset ThemeSettingDbObj.setBlogNameFontRef(blogNameFontId)>
+			<cfset ThemeSettingDbObj.setMenuFontRef(menuFontId)>
+			<cfset ThemeSettingDbObj.setFontSize(arguments.fontSize)>
+			<cfset ThemeSettingDbObj.setFontSizeMobile(arguments.fontSizeMobile)>
+			<cfset ThemeSettingDbObj.setBlogNameFontSize(arguments.blogNameFontSize)>
+			<cfset ThemeSettingDbObj.setBlogNameFontSizeMobile(arguments.blogNameFontSizeMobile)>
+			<!--- Content Widths --->
+			<cfset ThemeSettingDbObj.setMainContainerWidth(arguments.mainContainerWidth)>
+			<cfset ThemeSettingDbObj.setSideBarContainerWidth(arguments.sideBarContainerWidth)>
+			<cfset ThemeSettingDbObj.setSiteOpacity(arguments.siteOpacity)>
+			<!--- Custom Header Html --->
+			<cfif len(arguments.customHeaderHtmlCode)>
+				<cfset ThemeSettingDbObj.setCustomHeaderHtml(sanitizedCustomHeaderHtml)>
+				<cfset ThemeSettingDbObj.setCustomHeaderHtmlApplyAcrossThemes(applyCustomHeaderHtmlAcrossThemes)>
+			</cfif>
+			<!--- FavIcon --->
+			<cfif len(arguments.favIconHtmlCode)>
+				<cfset ThemeSettingDbObj.setFavIconHtml(sanitizedFavIconHtml)>
+				<cfset ThemeSettingDbObj.setFavIconHtmlApplyAcrossThemes(applyFavIconToAllThemes)>
+			</cfif>
+			<!--- Logo's --->
+			<cfset ThemeSettingDbObj.setLogoImage(StringUtilsObj.setThemeFilePath(arguments.logoImage))>
+			<cfset ThemeSettingDbObj.setLogoImageMobile(StringUtilsObj.setThemeFilePath(arguments.logoImageMobile))>
+			<cfset ThemeSettingDbObj.setLogoMobileWidth(arguments.logoMobileWidth)>
+			<cfset ThemeSettingDbObj.setLogoPaddingLeft(arguments.logoPaddingLeft)>
+			<cfset ThemeSettingDbObj.setDefaultLogoImageForSocialMediaShare(StringUtilsObj.setThemeFilePath(arguments.defaultLogoImageForSocialMediaShare))>
+			<!--- Background images --->
+			<cfset ThemeSettingDbObj.setIncludeBackgroundImages(arguments.includeBackgroundImages)>
+			<cfset ThemeSettingDbObj.setBlogBackgroundImage(StringUtilsObj.setThemeFilePath(arguments.blogBackgroundImage))>
+			<cfset ThemeSettingDbObj.setBlogBackgroundImageMobile(StringUtilsObj.setThemeFilePath(arguments.blogBackgroundImageMobile))>
+			<cfset ThemeSettingDbObj.setBlogBackgroundImagePosition(arguments.blogBackgroundImagePosition)>
+			<cfset ThemeSettingDbObj.setBlogBackgroundImageRepeat(arguments.blogBackgroundImageRepeat)>
+			<cfset ThemeSettingDbObj.setBlogBackgroundColor(arguments.blogBackgroundColor)>
+			<!--- Title --->
+			<cfif len(arguments.displayBlogName)>
+				<cfset ThemeSettingDbObj.setDisplayBlogName(true)>
+			<cfelse>
+				<cfset ThemeSettingDbObj.setDisplayBlogName(false)>
+			</cfif>
+			<cfset ThemeSettingDbObj.setBlogNameTextColor(arguments.blogNameTextColor)>
+			<!--- Header --->
+			<cfset ThemeSettingDbObj.setHeaderBackgroundColor(arguments.headerBackgroundColor)>
+			<cfset ThemeSettingDbObj.setHeaderBackgroundImage(StringUtilsObj.setThemeFilePath(arguments.headerBackgroundImage))>
+			<cfset ThemeSettingDbObj.setHeaderBodyDividerImage(StringUtilsObj.setThemeFilePath(arguments.headerBodyDividerImage))>
+			<cfset ThemeSettingDbObj.setStretchHeaderAcrossPage(arguments.stretchHeaderAcrossPage)>
+			<!--- Menu --->
+			<cfset ThemeSettingDbObj.setMenuBackgroundImage(StringUtilsObj.setThemeFilePath(arguments.menuBackgroundImage))>
+			<cfset ThemeSettingDbObj.setAlignBlogMenuWithBlogContent(arguments.alignBlogMenuWithBlogContent)>
+			<cfset ThemeSettingDbObj.setCoverKendoMenuWithMenuBackgroundImage(arguments.coverKendoMenuWithMenuBackgroundImage)>
+			<cfset ThemeSettingDbObj.setTopMenuAlign(arguments.topMenuAlign)>
+			<!--- Footer --->
+			<cfset ThemeSettingDbObj.setFooterImage(StringUtilsObj.setThemeFilePath(arguments.footerImage))>
+			<!--- Tail end scripts --->
+			<cfif len(arguments.customFooterHtmlCode)>
+				<cfset ThemeSettingDbObj.setTailEndScripts(sanitizedCustomFooterHtmlCode)>
+				<cfset ThemeSettingDbObj.setTailEndScriptsApplyAcrossThemes(applyCustomFooterHtmlToAllThemes)>
+			</cfif>
+			<!--- On new themes, save the theme setting ref --->
+			<cfif len(themeId) eq 0 and len(themeSettingId) eq 0>
+				<cfset ThemeDbObj.setThemeSettingRef(ThemeSettingDbObj.getThemeSettingId())>
+			</cfif>
+			<!--- Save the entities --->
+			<cfset EntitySave(ThemeSettingDbObj)>
+			<cfset EntitySave(ThemeDbObj)>
+
+		</cftransaction>
+				
+		<!--- Update the conent output if new content was sent in. 
+		We are going to loop through the content templates and update the data. Everything related to the content is based upon the contentTemplate name that we will loop through. Note: we will handle the calendarPod below as it does not have any code. --->
+		<cfset contentTemplates = "navigationMenu,aboutWindow,bioWindow,downloadWindow,downloadPod,subscribePod,cfblogsFeedPod,recentPostsPod,recentCommentsPod,categoriesPod,monthlyArchivesPod,compositeFooter">
+			
+		<cfloop list="#trim(contentTemplates)#" index="i">
+			<cfset thisContentTemplateEnable = evaluate(i & 'Enable')>
+				
+			<!--- The enable and revert variables will come thru as either on or off. Chage this to true or false --->
+			<cfif thisContentTemplateEnable eq 'on'>
+				<cfset thisContentTemplateEnable = true>
+			<cfelse>
+				<cfset thisContentTemplateEnable = false>
+			</cfif>
+
+			<!--- Load the content template ---> 
+			<cfset ContentTemplateDbObj = entityLoad("ContentTemplate", {ContentTemplateName=i}, "true" )>
+			<!--- Set the active flag --->
+			<cfset ContentTemplateDbObj.setActive(thisContentTemplateEnable)>
+			<!--- Save it --->
+			<cfset entitySave(ContentTemplateDbObj)>
+				
+		</cfloop>
     	
-		<cfreturn serializeJSON(ThemeDbObj.getThemeId())>
+		<!--- Return true --->
+		<cfset response = true><!--- or process to debug the result --->
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
+		
 	</cffunction>
 					
 	<cffunction name="createNewThemeFromCurrentTheme" access="remote" returnformat="json" output="false" 
@@ -1881,7 +2294,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("#arguments.csrfToken#")>
+			<!--- Set the response --->
+			<cfset response = false>
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -1949,7 +2374,15 @@
 		</cfloop>
 			
 		<!--- Return the new theme id --->
-		<cfreturn serializeJSON(response)>
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
 	
 	</cffunction>
 				
@@ -1962,7 +2395,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -2014,7 +2459,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -2035,6 +2492,92 @@
     	
 		<cfreturn serializeJSON(arguments.themeId)>
 	</cffunction>
+					
+	<!---******************************************************************************************************
+		Content Output
+	*******************************************************************************************************--->
+				
+	<cffunction name="saveContentTemplate" access="remote" returntype="string" output="true" 
+		hint="Returns a json array to populate the categories dropdown.">
+		<cfargument name="action" default="" required="true" hint="Either updateCode or revertCode">
+		<cfargument name="selectedContentThemes" default="" required="true">
+		<cfargument name="contentTemplate" default="" required="true">
+		<cfargument name="codeColumn" default="" required="false" hint="The column in the contentOutput table that stores the code (example 'aboutWindowDesktop')"> 
+		<cfargument name="code" default="" required="false">
+		<cfargument name="applyAcrossDevices" default="" required="false">	
+		
+			
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Send the response back to the client. --->
+				<cfreturn serializeJSON( response )>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditTheme')>
+			
+		<!--- Include the string utilities. --->
+		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
+			
+		<!--- The code or action argument set to revertCode is necessary --->
+		<cfif len(arguments.code) or ( len(arguments.action) and arguments.action eq 'revertCode' )>
+			<!--- Each theme will have its own record. There can be one or more themes. A zero indicates that all was themes were selected and we will not create a unique theme record --->
+			<cfloop list="#arguments.selectedContentThemes#" index="thisThemeId">
+				
+				<!--- Save it --->
+				<cfinvoke component="#application.blog#" method="saveContentOutput" returnvariable="contentTemplateId">
+					<cfinvokeargument name="contentTemplate" value="#arguments.contentTemplate#">
+					<!--- Pass in the themeId, if it is 0 we wil not use it. --->
+					<cfif thisThemeId is not 0>
+						<cfinvokeargument name="themeId" value="#thisThemeId#">
+					</cfif>
+					<cfif arguments.action eq 'updateCode' and len(arguments.code)>
+						<!--- Send the sanitized code with all forms used in the code mirror editor. If the applyAcrossDevices argument is true, update both columns --->
+						<cfif arguments.applyAcrossDevices>
+							<cfinvokeargument name="contentOutputMobile" value="#StringUtilsObj.sanitizeStrForDb(arguments.code)#">
+							<cfinvokeargument name="contentOutputDesktop" value="#StringUtilsObj.sanitizeStrForDb(arguments.code)#">
+						<cfelse>
+							<!--- Only update one column --->
+							<cfif arguments.codeColumn contains 'Mobile'>
+								<cfinvokeargument name="contentOutputMobile" value="#StringUtilsObj.sanitizeStrForDb(arguments.code)#">
+							<cfelse>
+								<cfinvokeargument name="contentOutputDesktop" value="#StringUtilsObj.sanitizeStrForDb(arguments.code)#">
+							</cfif> 
+						</cfif>
+						
+						<!--- Set the active flag to true --->
+						<cfinvokeargument name="active" value="1">
+					<cfelseif arguments.action eq 'revertCode'>
+						<cfif arguments.codeColumn contains 'Mobile'>
+							<cfinvokeargument name="revertMobile" value="true">
+						<cfelse>
+							<cfinvokeargument name="revertDesktop" value="true">
+						</cfif> 
+					</cfif>
+					<!--- Set the active flag to false --->
+					<cfinvokeargument name="active" value="0">
+				</cfinvoke>
+				
+			</cfloop><!---<cfloop list="#thisContentTemplateThemes#" index="themeId">--->
+			
+			<!--- Return the last content template Id --->
+			<cfreturn 1>
+			
+		<cfelse>
+			<cfreturn "Must send code or revert arguments">
+		</cfif>
+			
+	</cffunction>
 				
 	<!---******************************************************************************************************
 		Kendo Dropdowns
@@ -2054,6 +2597,10 @@
 			<cfinvokeargument name="hqlQueryObj" value="#Data#">
 			<cfinvokeargument name="includeTotal" value="false">
 			<cfinvokeargument name="includeDataHandle" value="false">
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2067,7 +2614,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -2083,6 +2641,10 @@
 			<cfinvokeargument name="hqlQueryObj" value="#Data#">
 			<cfinvokeargument name="includeTotal" value="false">
 			<cfinvokeargument name="includeDataHandle" value="false">
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2098,7 +2660,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -2114,6 +2687,10 @@
 			<cfinvokeargument name="hqlQueryObj" value="#Data#">
 			<cfinvokeargument name="includeTotal" value="false">
 			<cfinvokeargument name="includeDataHandle" value="false">
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2127,7 +2704,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -2143,6 +2731,10 @@
 			<cfinvokeargument name="hqlQueryObj" value="#Data#">
 			<cfinvokeargument name="includeTotal" value="false">
 			<cfinvokeargument name="includeDataHandle" value="false">
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2153,25 +2745,28 @@
 	<cffunction name="getThemesForDropdown" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the themes dropdown used to create a new theme.">
 		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="themeId" type="string" required="false" default="">
+		<cfargument name="themeIdList" type="string" required="false" default="">
+		<cfargument name="themeIdNotInList" type="string" required="false" default="">
+		<cfargument name="includeAllLabel" type="boolean" required="false" default="false">
 			
-		<!--- Verify the token --->
-		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
-			<!--- Abort the process if the token is not validated. --->
-			<cfabort>
-		</cfif>
-			
-		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
-		<cfset secureFunction('EditTheme')>
-			
-		<!--- Get all of the kendo themes. --->
-		<cfset Data = application.blog.getThemes()> 
+		<!--- Get the theme name and id. --->
+		<cfinvoke component="#application.blog#" method="getThemeNameAndId" returnvariable="Data">
+			<cfinvokeargument name="themeId" value="#arguments.themeId#">
+			<cfinvokeargument name="themeIdList" value="#arguments.themeIdList#">
+			<cfinvokeargument name="themeIdNotInList" value="#arguments.themeIdNotInList#">
+			<cfinvokeargument name="includeAllLabel" value="#arguments.includeAllLabel#">
+		</cfinvoke>
 		
 		<!--- Return the data as a json object. --->
 		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
 			<cfinvokeargument name="hqlQueryObj" value="#Data#">
 			<cfinvokeargument name="includeTotal" value="false">
 			<cfinvokeargument name="includeDataHandle" value="false">
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2190,6 +2785,10 @@
 			<cfinvokeargument name="hqlQueryObj" value="#Data#">
 			<cfinvokeargument name="includeTotal" value="false">
 			<cfinvokeargument name="includeDataHandle" value="false">
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2218,6 +2817,10 @@
 			<cfinvokeargument name="hqlQueryObj" value="#Data#">
 			<cfinvokeargument name="includeTotal" value="false">
 			<cfinvokeargument name="includeDataHandle" value="false">
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2245,7 +2848,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -2298,6 +2912,10 @@
 				<cfinvokeargument name="includeDataHandle" value="false">
 				<cfinvokeargument name="dataHandleName" value="">
 			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2349,12 +2967,16 @@
 			<cfset response[ "success" ] = false />
 			<cfset response[ "errorMessage" ] = errorMessage />
 		</cfif>
-			
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
+					
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
     
     	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>	
+    	<cfreturn thisResponse>	
 		
 	</cffunction>	
 					
@@ -2365,7 +2987,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -2381,15 +3015,22 @@
 				<cfset EntityDelete(FontDbObj)>
 
 			</cftransaction>
+					
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfset thisResponse = arguments.fontId />
+			<cfelse>
+				<cfset thisResponse = serializeJSON( arguments.fontId ) />
+			</cfif>
     	
-		<cfreturn serializeJSON(arguments.fontId)>
+		<cfreturn thisResponse>
 	</cffunction>
 				
 	<!---****************************************************************************************************
 		Post Grid functions
 	******************************************************************************************************--->
 
-	<cffunction name="getPostsForGrid" access="remote" returnformat="json" output="true" 
+	<cffunction name="getPostsForGrid" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the recent comments grid.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
@@ -2404,7 +3045,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -2454,6 +3106,11 @@
 				<cfinvokeargument name="includeDataHandle" value="false">
 				<cfinvokeargument name="dataHandleName" value="">
 			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
+			
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2473,7 +3130,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -2527,11 +3196,16 @@
 					
 		<!--- Send back the postId --->	
 		<cfset response[ "postId" ] = arguments.postId />
-		<!--- Serialize it	--->
-		<cfset serializedResponse = serializeJSON( response ) />
+					
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
     
 		<!--- Send the response back to the client. --->
-    	<cfreturn serializedResponse>
+    	<cfreturn thisResponse>
 		
 	</cffunction>
 			
@@ -2546,7 +3220,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -2577,11 +3263,16 @@
 		
 		<!--- Send back the postId --->	
 		<cfset response[ "postId" ] = arguments.postId />
-		<!--- Serialize it	--->
-		<cfset serializedResponse = serializeJSON( response ) />
+		
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
     
 		<!--- Send the response back to the client. --->
-    	<cfreturn serializedResponse>
+    	<cfreturn thisResponse>
 		
 	</cffunction>
 				
@@ -2594,7 +3285,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -2650,29 +3353,48 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('ReleasePost')>
 			
-			<cftransaction>
+		<cftransaction>
 
-				<!--- Update the database. --->
-				<!--- Load the entity. --->
-				<cfset PostDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
-				<!--- Set the remove column to true --->
-				<cfset PostDbObj.setRemove(1)>
-				<!--- Save it --->
-				<cfset EntitySave(PostDbObj)>
+			<!--- Update the database. --->
+			<!--- Load the entity. --->
+			<cfset PostDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
+			<!--- Set the remove column to true --->
+			<cfset PostDbObj.setRemove(1)>
+			<!--- Save it --->
+			<cfset EntitySave(PostDbObj)>
 
-			</cftransaction>
+		</cftransaction>
+
+		<!--- flush the cache --->
+		<cfcache action="flush"></cfcache>
 					
-			<!--- flush the cache --->
-			<cfcache action="flush"></cfcache>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = arguments.postId />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( arguments.postId ) />
+		</cfif>
     	
-		<cfreturn serializeJSON(arguments.postId)>
+		<cfreturn thisResponse>
 	</cffunction>
 				
 	<!---****************************************************************************************************
@@ -2691,7 +3413,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -2730,6 +3463,10 @@
 				<cfinvokeargument name="includeDataHandle" value="false">
 				<cfinvokeargument name="dataHandleName" value="">
 			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2756,7 +3493,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -2803,6 +3551,10 @@
 				<cfinvokeargument name="includeDataHandle" value="false">
 				<cfinvokeargument name="dataHandleName" value="">
 			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -2814,7 +3566,7 @@
 		Post functions
 	******************************************************************************************************--->
 				
-	<cffunction name="insertNewPost" access="remote" returnformat="json" output="true" 
+	<cffunction name="insertNewPost" access="remote" returnformat="json" output="false" 
 			hint="Saves data from the admin user interfaces.">
 		<cfargument name="csrfToken" type="string" default="" required="yes">
 		<cfargument name="postAlias" type="string" default="" required="false">
@@ -2833,7 +3585,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -2894,25 +3658,32 @@
 			<cfset error = true>
 			<cfset errorMessage = errorMessage & "<li>Not logged on</li>">	
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
-		
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
+				
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
     
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+    	<!--- Send the response back to the client. --->
+    	<cfreturn thisResponse>
+			
 	</cffunction>
 	
-	<cffunction name="savePost" access="remote" returnformat="json" output="true" 
+	<cffunction name="savePost" access="remote" returnformat="json" output="false" 
 			hint="Saves data from the admin user interfaces.">
 		<cfargument name="csrfToken" default="" required="true">
 		<!--- If the postId is passed, the function will update the post table. Otherwise it is an insertion. --->
 		<cfargument name="postId" type="string" default="" required="false">
 		<cfargument name="postAlias" type="string" default="" required="false">
-		<cfargument name="blogSortDate" type="string" required="true">
 		<cfargument name="datePosted" type="string" required="true">
 		<cfargument name="timePosted" type="string" required="true">
+		<cfargument name="blogSortDate" type="string" required="true">
+		<cfargument name="blogSortDateChanged" type="string" required="true">
 		<cfargument name="author" type="string" default="" required="true" hint="This will be the userId of the author">
 		<cfargument name="title" type="string" default="" required="true">
+		<cfargument name="changeTitleAndLink" type="string" default="false" required="false">
 		<cfargument name="description" type="string" default="" required="true">
 		<cfargument name="themeId" type="string" default="0" required="false">
 		<cfargument name="jsonLd" type="string" default="" required="false" hint="A Json Ld string">
@@ -2941,7 +3712,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -2983,8 +3765,8 @@
 			</cfif>
 					
 			<!--- *************************** Format the post content. *************************** --->
-			<!--- Remove any <attachScript tags and replace them with <script --->
-			<cfset arguments.post = RendererObj.renderScriptsToDb(arguments.post)> 
+			<!--- Remove any <attachScript tags and replace them with <script as well as handling css and meta tags the same way --->
+			<cfset arguments.post = StringUtilsObj.sanitizeStrForDb(arguments.post)>
 					
 			<!--- Render the more tag if it has &lt; and &gt; or comments surrounding it. --->
 			<cfset arguments.post = RendererObj.renderMoreTagFromTinyMce(arguments.post)>
@@ -3004,11 +3786,13 @@
 					<cfif len(arguments.postId)>
 						<cfinvokeargument name="postId" value="#arguments.postId#">
 					</cfif>
-					<cfinvokeargument name="blogSortDate" value="#arguments.blogSortDate#">
 					<cfinvokeargument name="datePosted" value="#arguments.datePosted#">
 					<cfinvokeargument name="timePosted" value="#arguments.timePosted#">
+					<cfinvokeargument name="blogSortDate" value="#arguments.blogSortDate#">
+					<cfinvokeargument name="blogSortDateChanged" value="#arguments.blogSortDateChanged#">
 					<cfinvokeargument name="author" value="#arguments.author#">
 					<cfinvokeargument name="title" value="#arguments.title#">
+					<cfinvokeargument name="changeTitleAndLink" value="#arguments.changeTitleAndLink#">	
 					<!--- The post alias is dependent upon the title. --->
 					<cfinvokeargument name="postAlias" value="#postAlias#">
 					<cfinvokeargument name="description" value="#arguments.description#">
@@ -3042,14 +3826,20 @@
 		<cfif error>
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
+				
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
     
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+    	<!--- Send the response back to the client. --->
+    	<cfreturn thisResponse>
+	
 	</cffunction>
 				
-	<cffunction name="savePostHeader" access="remote" returnformat="json" output="true" 
+	<cffunction name="savePostHeader" access="remote" returnformat="json" output="false" 
 			hint="Saves data to the Post.PostHeader column. Used for cfincludes and directives.">
 		<cfargument name="csrfToken" default="" required="true">
 		<!--- If the postId is passed, the function will update the post table. Otherwise it is an insertion. --->
@@ -3065,7 +3855,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -3098,14 +3899,18 @@
 		<cfif error>
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
     
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+    	<!--- Send the response back to the client. --->
+    	<cfreturn thisResponse>
 	</cffunction>
 				
-	<cffunction name="savePostCss" access="remote" returnformat="json" output="true" 
+	<cffunction name="savePostCss" access="remote" returnformat="json" output="false" 
 			hint="Saves data to the Post.Css column.">
 		<cfargument name="csrfToken" default="" required="true">
 		<!--- If the postId is passed, the function will update the post table. Otherwise it is an insertion. --->
@@ -3121,7 +3926,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -3154,14 +3970,18 @@
 		<cfif error>
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
     
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+    	<!--- Send the response back to the client. --->
+    	<cfreturn thisResponse>
 	</cffunction>
 				
-	<cffunction name="savePostJavaScript" access="remote" returnformat="json" output="true" 
+	<cffunction name="savePostJavaScript" access="remote" returnformat="json" output="false" 
 			hint="Saves data to the Post.JavaScript column.">
 		<cfargument name="csrfToken" default="" required="true">
 		<!--- If the postId is passed, the function will update the post table. Otherwise it is an insertion. --->
@@ -3177,7 +3997,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -3210,19 +4041,23 @@
 		<cfif error>
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
     
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+    	<!--- Send the response back to the client. --->
+    	<cfreturn thisResponse>
 	</cffunction>
 				
-	<cffunction name="savePostAlias" access="remote" returnformat="json" output="true" 
+	<cffunction name="savePostAlias" access="remote" returnformat="json" output="false" 
 			hint="Saves data from the admin user interfaces.">
 		<cfargument name="csrfToken" default="" required="true">
 		<!--- If the postId is passed, the function will update the post table. Otherwise it is an insertion. --->
-		<cfargument name="postId" type="string" default="" required="false">
-		<cfargument name="postAlias" type="string" default="" required="false">
+		<cfargument name="postId" type="string" default="" required="true">
+		<cfargument name="postAlias" type="string" default="" required="true">
 			
 		<cfparam name="error" type="boolean" default="false">
 		<cfparam name="errorMessage" type="string" default="">
@@ -3233,7 +4068,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -3245,14 +4091,14 @@
 		<cfif application.Udf.isLoggedIn()>
 
 			<!--- Validate the data --->
-			<cfif not len(postAlias)>
+			<cfif not len(arguments.postAlias)>
 				<cfset error = true>
 				<cfset errorMessage = errorMessage & "<li>Alias is required</li>">
 			</cfif>
 					
-			<cfset postAlias = application.blog.getPostAlias(arguments.postAlias)>
+			<cfset currentPostAlias = application.blog.getPostAlias(arguments.postAlias)>
 				
-			<cfif len(postAlias)>
+			<cfif len(currentPostAlias)>
 				<cfset error = true>
 				<cfset errorMessage = errorMessage & "<li>Alias already exists</li>">
 			</cfif>
@@ -3262,13 +4108,15 @@
 				<!--- Save the data --->
 				<cfinvoke component="#application.blog#" method="savePostAlias" returnvariable="postId">
 					<cfinvokeargument name="postId" value="#arguments.postId#">
-					<cfinvokeargument name="postAlias" value="#postAlias#">
+					<cfinvokeargument name="postAlias" value="#arguments.postAlias#">
 				</cfinvoke>
 				
 				<!--- Set the success response --->
 				<cfset response[ "success" ] = true />
+				<!--- Send the post alias that was sent for debugging purposes --->
+				<cfset response[ "postAlias" ] = arguments.postAlias />
 				<!--- And send the new or updated postId --->
-				<cfset response[ "postId" ] = postId />
+				<cfset response[ "postId" ] = arguments.postId />
 			</cfif><!---<cfif not error>--->
 		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
 			<cfset error = true>
@@ -3279,14 +4127,18 @@
 		<cfif error>
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
     
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+    	<!--- Send the response back to the client. --->
+    	<cfreturn thisResponse>
 	</cffunction>
 				
-	<cffunction name="deletePost" access="remote" returnformat="json" output="true" 
+	<cffunction name="deletePost" access="remote" returnformat="json" output="false" 
 			hint="Permenantly removes a post from the system">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="postId" type="string" default="" required="false">
@@ -3300,7 +4152,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -3330,11 +4193,15 @@
 		<cfif error>
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
     
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+    	<!--- Send the response back to the client. --->
+    	<cfreturn thisResponse>
 	</cffunction>
 				
 	<!---****************************************************************************************************
@@ -3348,7 +4215,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -3381,6 +4259,10 @@
 			<cfinvokeargument name="newTotal" value="">
 			<cfinvokeargument name="includeDataHandle" value="false">
 			<cfinvokeargument name="dataHandleName" value="">
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -3395,7 +4277,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -3414,6 +4307,10 @@
 			<cfinvokeargument name="newTotal" value="">
 			<cfinvokeargument name="includeDataHandle" value="false">
 			<cfinvokeargument name="dataHandleName" value="">
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -3425,13 +4322,6 @@
 			hint="Returns a json array to populate the capability dropdown in the user interfaces.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="role" required="no" default="" hint="Pass in the userId">
-			
-		<!--- Verify the token --->
-		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
-			<!--- Abort the process if the token is not validated. --->
-			<cfabort>
-		</cfif>
 			
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('EditUser')>
@@ -3465,6 +4355,10 @@
 			<cfinvokeargument name="newTotal" value="">
 			<cfinvokeargument name="includeDataHandle" value="false">
 			<cfinvokeargument name="dataHandleName" value="">
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
 		</cfinvoke>
 		
 		<!--- Return the json string. --->
@@ -3476,7 +4370,7 @@
 		Category Grid Functions
 	******************************************************************************************************--->
 				
-	<cffunction name="getCategoriesForGrid" access="remote" returnformat="json" output="true" 
+	<cffunction name="getCategoriesForGrid" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the categories grid.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
@@ -3487,7 +4381,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -3524,6 +4429,10 @@
 			<cfelse>
 				<cfinvokeargument name="includeDataHandle" value="false">
 				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
 			</cfif>
 		</cfinvoke>
 		
@@ -3596,11 +4505,14 @@
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
 			
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-    
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>	
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 		
 	</cffunction>
 				
@@ -3613,7 +4525,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -3665,39 +4589,59 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('EditCategory')>
 			
-			<cftransaction>
-				<!--- Delete the association to the blog table. --->
-				<!--- Load the comment entity. --->
-				<cfset CategoryDbObj = entityLoad("Category", { CategoryId = arguments.categoryId }, "true" )>
-				<!--- Remove the blog reference in order to delete this record --->
-				<cfset CategoryDbObj.setBlogRef(javaCast("null",""))>
-				<!--- Save it --->
-				<cfset EntitySave(CategoryDbObj)>
-			</cftransaction>
+		<cftransaction>
+			<!--- Delete the association to the blog table. --->
+			<!--- Load the comment entity. --->
+			<cfset CategoryDbObj = entityLoad("Category", { CategoryId = arguments.categoryId }, "true" )>
+			<!--- Remove the blog reference in order to delete this record --->
+			<cfset CategoryDbObj.setBlogRef(javaCast("null",""))>
+			<!--- Save it --->
+			<cfset EntitySave(CategoryDbObj)>
+		</cftransaction>
+
+		<cftransaction>
+			<!--- Now, in a different transaction, delete the record. --->
+			<!--- Load the comment entity. --->
+			<cfset CategoryDbObj = entityLoad("Category", { CategoryId = arguments.categoryId }, "true" )>
+			<!--- Delete it --->
+			<cfset EntityDelete(CategoryDbObj)>
+		</cftransaction>
 					
-			<cftransaction>
-				<!--- Now, in a different transaction, delete the record. --->
-				<!--- Load the comment entity. --->
-				<cfset CategoryDbObj = entityLoad("Category", { CategoryId = arguments.categoryId }, "true" )>
-				<!--- Delete it --->
-				<cfset EntityDelete(CategoryDbObj)>
-			</cftransaction>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = arguments.categoryId />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( arguments.categoryId ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
     	
-		<cfreturn serializeJSON(arguments.categoryId)>
 	</cffunction>
 							
 	<!---****************************************************************************************************
 		Category functions
 	******************************************************************************************************--->
 				
-	<cffunction name="saveCategory" access="remote" returnformat="json" output="true" 
+	<cffunction name="saveCategory" access="remote" returnformat="json" output="false" 
 			hint="Saves data from the comment user interfaces.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<!--- If the categoryId is passed, the function will update the category table. Otherwise it is an insertion. --->
@@ -3715,7 +4659,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -3776,18 +4732,21 @@
 		<cfif error>
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-    
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 	</cffunction>
 				
 	<!---****************************************************************************************************
 		Tag Grid Functions
 	******************************************************************************************************--->
 				
-	<cffunction name="getTagsForGrid" access="remote" returnformat="json" output="true" 
+	<cffunction name="getTagsForGrid" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the categories grid.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
@@ -3798,7 +4757,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -3832,6 +4802,10 @@
 			<cfelse>
 				<cfinvokeargument name="includeDataHandle" value="false">
 				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
 			</cfif>
 		</cfinvoke>
 		
@@ -3901,11 +4875,14 @@
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
 			
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-    
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>	
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 		
 	</cffunction>
 				
@@ -3918,7 +4895,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -3970,35 +4959,55 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('EditCategory')>
 			
-			<cftransaction>
-				<!--- Delete the association to the blog table. --->
-				<!--- Load the comment entity. --->
-				<cfset TagDbObj = entityLoad("Tag", { TagId = arguments.tagId }, "true" )>
-				<!--- Remove the blog reference in order to delete this record --->
-				<cfset TagDbObj.setBlogRef(javaCast("null",""))>
-				<!--- Save it --->
-				<cfset EntitySave(TagDbObj)>
-			</cftransaction>
+		<cftransaction>
+			<!--- Delete the association to the blog table. --->
+			<!--- Load the comment entity. --->
+			<cfset TagDbObj = entityLoad("Tag", { TagId = arguments.tagId }, "true" )>
+			<!--- Remove the blog reference in order to delete this record --->
+			<cfset TagDbObj.setBlogRef(javaCast("null",""))>
+			<!--- Save it --->
+			<cfset EntitySave(TagDbObj)>
+		</cftransaction>
+
+		<cftransaction>
+			<!--- Now, in a different transaction, delete the record. --->
+			<!--- Load the comment entity. --->
+			<cfset TagDbObj = entityLoad("Tag", { TagId = arguments.tagId }, "true" )>
+			<!--- Delete it --->
+			<cfset EntityDelete(TagDbObj)>
+		</cftransaction>
 					
-			<cftransaction>
-				<!--- Now, in a different transaction, delete the record. --->
-				<!--- Load the comment entity. --->
-				<cfset TagDbObj = entityLoad("Tag", { TagId = arguments.tagId }, "true" )>
-				<!--- Delete it --->
-				<cfset EntityDelete(TagDbObj)>
-			</cftransaction>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = arguments.tagId />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( arguments.tagId ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
     	
-		<cfreturn serializeJSON(arguments.tagId)>
 	</cffunction>
 				
-	<cffunction name="saveTag" access="remote" returnformat="json" output="true" 
+	<cffunction name="saveTag" access="remote" returnformat="json" output="false" 
 			hint="Saves data from the tag user interfaces.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<!--- If the tagId is passed, the function will update the tag table. Otherwise it is an insertion. --->
@@ -4016,7 +5025,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -4073,18 +5094,21 @@
 		<cfif error>
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-    
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 	</cffunction>
 				
 	<!---****************************************************************************************************
 		User Grid Functions
 	******************************************************************************************************--->
 				
-	<cffunction name="getUsersForGrid" access="remote" returnformat="json" output="true" 
+	<cffunction name="getUsersForGrid" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the categories grid.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
@@ -4098,7 +5122,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -4140,6 +5176,10 @@
 			<cfelse>
 				<cfinvokeargument name="includeDataHandle" value="false">
 				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
 			</cfif>
 		</cfinvoke>
 		
@@ -4204,11 +5244,14 @@
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
 			
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-    
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>	
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 		
 	</cffunction>
 				
@@ -4221,7 +5264,19 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -4266,14 +5321,26 @@
 		<cfreturn jsonString>
 	</cffunction>
 				
-	<cffunction name="deleteUserViaJsGrid" access="remote" returnformat="json" output="true" 
+	<cffunction name="deleteUserViaJsGrid" access="remote" returnformat="json" output="false" 
 			hint="Removes a user via the jsGrid.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="userId" hint="Pass in the userId" required="yes">
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -4290,24 +5357,38 @@
 				<cfset EntitySave(UserDbObj)>
 			</cftransaction>
     	
-		<cfreturn serializeJSON(arguments.userId)>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = arguments.userId />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( arguments.userId ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 	</cffunction>
 				
 	<!---****************************************************************************************************
 		User functions
 	******************************************************************************************************--->
 				
-	<cffunction name="saveUser" access="remote" returnformat="json" output="true" 
+	<cffunction name="saveUser" access="remote" returnformat="json" output="false" 
 			hint="Saves data from the comment user interfaces.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
-		<cfargument name="action" hint="Either insert or update, or updateProfile" default="">
+		<cfargument name="action" hint="Either insert, newProfile or update, or updateProfile" default="">
 		<cfargument name="pkey" hint="The encrypted password string in the users table. This is only used for new users that have to change their password when setting up the initial account" required="false" default="">
 		<cfargument name="userId" type="numeric" required="false">
 		<cfargument name="firstName" type="string" required="true">
 		<cfargument name="lastName" type="string" required="true">
 		<cfargument name="displayName" type="string" required="false" default="">
 		<cfargument name="email" type="string" required="true">
+		<cfargument name="displayEmail" type="string" required="false">
+		<cfargument name="biography" type="string" required="false" default="">
+		<cfargument name="profilePicture" type="string" required="false">
 		<cfargument name="website" type="string" required="false">
+		<cfargument name="facebookUrl" type="string" required="false">
+		<cfargument name="linkedInUrl" type="string" required="false">
+		<cfargument name="instagramUrl" type="string" required="false">
+		<cfargument name="twitterUrl" type="string" required="false">
 		<cfargument name="userName" type="string" required="true">
 		<cfargument name="password" type="string" required="true">
 		<!--- The confirmed password will only be sent when the user is changing the password --->
@@ -4316,8 +5397,6 @@
 		<cfargument name="securityAnswer1" type="string" default="" required="false">
 		<cfargument name="securityAnswer2" type="string" default="" required="false">
 		<cfargument name="securityAnswer3" type="string" default="" required="false">
-		<!--- Biography is not used yet. its a future thing... --->
-		<cfargument name="biography" type="string" required="false" default="">
 		<!--- Notify sends an email out to the new user asking them to fill out their profile. --->
 		<cfargument name="notify" type="boolean" required="false">
 		<!--- Either role or new role is required. --->
@@ -4356,11 +5435,23 @@
 			<cfset userName = Data[1]["UserName"]>
 			<cfset arguments.notify = true>
 				
-		</cfif>
+		</cfif><!---<cfif len(arguments.pkey)>--->
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON("Invalid token")>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
 			
@@ -4397,14 +5488,15 @@
 				<cfset errorMessage = errorMessage & "<li>Password is required</li>">
 			</cfif>
 			<!--- For update and insert, either a roleId or newRole is required. --->
-			<cfif action eq 'updateProfile' and (not len(roleId) and not len(newRole))>
+			<cfif action eq 'update' and (not len(roleId) and not len(newRole))>
 				<cfset error = true>
 				<cfset errorMessage = errorMessage & "<li>Role is required</li>">
 			</cfif>
-			<cfif action eq 'updateProfile' and not len(capabilities)>
+			<cfif action eq 'update' and not len(capabilities)>
 				<cfset error = true>
 				<cfset errorMessage = errorMessage & "<li>Capabilities are required</li>">
 			</cfif>
+			<!--- This is only required when the user is setting up the blog --->
 			<cfif action eq 'updateProfile' and not len(securityAnswer1)>
 				<cfset error = true>
 				<cfset errorMessage = errorMessage & "<li>Favorite pet name is required</li>">
@@ -4427,7 +5519,16 @@
 					<cfinvokeargument name="lastName" value="#arguments.lastName#">
 					<cfinvokeargument name="displayName" value="#arguments.displayName#">
 					<cfinvokeargument name="email" value="#arguments.email#">
-					<cfinvokeargument name="website" value="#arguments.website#">
+					<cfif action neq 'insert'>
+						<cfinvokeargument name="displayEmail" value="#arguments.displayEmail#">
+						<cfinvokeargument name="biography" value="#arguments.biography#">
+						<cfinvokeargument name="profilePicture" value="#arguments.profilePicture#">
+						<cfinvokeargument name="website" value="#arguments.website#">
+						<cfinvokeargument name="facebookUrl" value="#arguments.facebookUrl#">
+						<cfinvokeargument name="linkedInUrl" value="#arguments.linkedInUrl#">
+						<cfinvokeargument name="instagramUrl" value="#arguments.instagramUrl#">
+						<cfinvokeargument name="twitterUrl" value="#arguments.twitterUrl#">
+					</cfif><!---<cfif action neq 'insert'>--->
 					<cfinvokeargument name="userName" value="#arguments.userName#">
 					<cfinvokeargument name="password" value="#arguments.password#">
 					<cfinvokeargument name="confirmedPasword" value="#arguments.confirmedPasword#">
@@ -4443,7 +5544,7 @@
 						<cfinvokeargument name="capabilities" value="#arguments.capabilities#">
 					</cfif><!---<cfif action neq 'updateProfile'>--->
 				</cfinvoke>
-				<!--- Set the success resopnse --->
+				<!--- Set the success response --->
 				<cfset response[ "success" ] = true />
 			</cfif><!---<cfif not error>--->
 		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
@@ -4455,18 +5556,21 @@
 		<cfif error>
 			<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 		</cfif>
-		<!--- Serialize the response --->
-    	<cfset serializedResponse = serializeJSON( response ) />
-    
-    	<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-    	<cfreturn serializedResponse>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 	</cffunction>
 				
 	<!---****************************************************************************************************
 		Gallery functions
 	******************************************************************************************************--->
 				
-	<cffunction name="saveGallery" access="remote" output="true" returnformat="plain" 
+	<cffunction name="saveGallery" access="remote" output="false" returnformat="plain" 
 			hint="Saves data from the comment detail page.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="action" hint="Either insert or update" default="insert">
@@ -4478,7 +5582,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -4600,7 +5715,7 @@
 		Carousel functions
 	******************************************************************************************************--->
 				
-	<cffunction name="saveCarousel" access="remote" output="true" returnformat="plain" 
+	<cffunction name="saveCarousel" access="remote" output="false" returnformat="plain" 
 			hint="Saves carousel data.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="action" hint="Either insert or update" default="insert">
@@ -4613,7 +5728,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -4752,7 +5878,7 @@
 		Media functions
 	*******************************************************************************************************--->
 		
-	<cffunction name="uploadImage" access="remote" output="true" returnformat="json"
+	<cffunction name="uploadImage" access="remote" output="false" returnformat="json"
 			hint="This function uploads an image and inserts a media record into the database. If the updates were successful, it returns an empty json array.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="mediaProcessType" type="string" default="enclosure" required="false" hint="What media files are we processing? This string determines how to process the image. For example, with enclosures, we want to create social media sharing images for Facebook and Twitter, we are also processing images for galleries and carousels.">
@@ -4762,13 +5888,17 @@
 		<cfargument name="postId" default="" required="false">
 		<!--- Some images may not have a comment (ie a post) --->
 		<cfargument name="commentId" default="" required="false">
-		<!--- Blog images (ie Logos) have a themeId --->
+		<!--- Blog images (ie Logos, backgrounds, etc) have a themeId --->
 		<cfargument name="themeId" default="" required="false">
+		<!--- User profile images have a userId --->
+		<cfargument name="userId" default="" required="false">
 			
-		<!--- Make soure output is turned on when debugging --->
+		<!--- Make sure that output is turned on when debugging --->
 		<cfset debug = false>
 		<!--- Save a list of actions taken --->
 		<cfparam name="mediaActions" default="">
+		<!--- The mediaId is not returned when saving a profile image or an image used in themes (logos, etc) --->
+		<cfparam name="mediaId" default="">
 		<!--- Image optimizations for social sharing. These should be set to true if the image is an enclosure and it is large enough to optimize. --->
 		<cfparam name="facebookOptimized" default="false" type="boolean">
 		<cfparam name="twitterOptimized" default="false" type="boolean">
@@ -4785,7 +5915,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -4825,12 +5966,13 @@
 						
 				</cfif><!---<cfif mediaProcessType eq 'gallery' or mediaProcessType eq 'carousel'>--->
 						
-				<!--- We are using using uploadAll for all uploads. --->
+				<!--- We are using using uploadAll for all uploads. We are using mode 644 for Linux clients to set permissions --->
 				<cffile 
 					action="uploadAll" 
 					accept="#structKeyList(acceptedMimeTypes)#"
 					strict="true" 
 					destination="#getTempDirectory()#" 
+					mode = "644"
 					nameconflict="overwrite"
 					result="UploadObj">
 				
@@ -4888,8 +6030,14 @@
 						<cfset imageExists = false>
 					</cfif>
 					
-					<!--- Create our thumbnail image (for presentation in the administrative interface). Will also be used with fancybox when creating a gallery (createThumbnail(source, fileName). We do not want to create thumbnails of smaller images, such as our Logos --->
-					<cfif not mediaProcessType eq 'headerBackgroundImage' and not mediaProcessType contains 'Logo' and not mediaProcessType eq 'footerImage'>
+					<!--- Create our thumbnail image (for presentation in the administrative interface). The thumbnails are created for enclosures (posts), carousels, and fancybox when creating a gallery (createThumbnail(source, fileName). We do not want to create thumbnails of smaller images, such as our Logos, user profile images, etc --->
+					<cfif mediaProcessType eq 'enclosure' or mediaProcessType eq 'carousel' or mediaProcessType eq 'gallery'>
+						<cfset createThumbnail = true>
+					<cfelse>
+						<cfset createThumbnail = false>
+					</cfif>
+					<!--- Create the thumbnail --->
+					<cfif createThumbnail>
 						<cfset thumbnail = ImageObj.createThumbnail('#image.ServerDirectory & '/' & image.ServerFile#', '#image.ServerFile#')>
 						<cfif isDefined("thumbnail")>
 							<cfset mediaActions = listAppend(mediaActions, 'Thumbnail Image')>
@@ -4931,16 +6079,32 @@
 						<cfset imageUrl = application.baseUrl & "/images/logo/" & image.serverFile>
 					<cfelseif arguments.mediaProcessType eq 'mediaVideoCoverUrl'>
 						<cfset imageUrl = application.baseUrl & "/enclosures/videos/" & image.serverFile>
+					<cfelseif arguments.mediaProcessType eq 'profilePicture' or arguments.mediaProcessType eq 'userBio'>
+						<cfset imageUrl = application.baseUrl & "/images/photo/" & image.serverFile>
+					<!--- Custom content types --->
+					<cfelseif arguments.mediaProcessType contains 'header'>
+						<cfset imageUrl = application.baseUrl & "/images/header/" & image.serverFile>
+					<cfelseif arguments.mediaProcessType contains 'window'>
+						<cfset imageUrl = application.baseUrl & "/images/windows/" & image.serverFile>
+					<cfelseif arguments.mediaProcessType contains 'pod'>
+						<cfset imageUrl = application.baseUrl & "/images/pods/" & image.serverFile>
+					<cfelseif arguments.mediaProcessType contains 'footer'>
+						<cfset imageUrl = application.baseUrl & "/images/footer/" & image.serverFile>
 					<cfelse>
 						<!--- Standard pathway --->
 						<cfset imageUrl = application.baseUrl & "/enclosures/" & image.serverFile>
 					</cfif>
 						
 					<!--- Set the thumbnail path --->
-					<cfif mediaProcessType contains 'Background'>
-						<cfset imageThumbnailUrl = application.baseUrl & "/images/background/thumbnails/" & image.serverFile>
+					<cfif createThumbnail>
+						<cfif mediaProcessType contains 'Background'>
+							<cfset imageThumbnailUrl = application.baseUrl & "/images/background/thumbnails/" & image.serverFile>
+						<cfelse>
+							<cfset imageThumbnailUrl = application.baseUrl & "/enclosures/thumbnails/" & image.serverFile>
+						</cfif>
 					<cfelse>
-						<cfset imageThumbnailUrl = application.baseUrl & "/enclosures/thumbnails/" & image.serverFile>
+						<!--- There is no thumbnail --->
+						<cfset imageThumbnailUrl = ''>
 					</cfif>
 						
 					<!--- A5 Create social media images for enclosures --->
@@ -4999,7 +6163,7 @@
 					
 					<!--- B1) Update the theme setting table. --->
 					<cfif arguments.mediaProcessType contains 'Background' or arguments.mediaProcessType eq 'footerImage'>
-						<cfinvoke component="#application.blog#" method="saveTheme" returnvariable="mediaId">
+						<cfinvoke component="#application.blog#" method="saveTheme" returnvariable="themeId">
 							<cfinvokeargument name="themeId" value="#arguments.themeId#" />
 							<cfinvokeargument name="#arguments.mediaProcessType#" value="#imageUrl#" />
 						</cfinvoke>
@@ -5012,6 +6176,13 @@
 						<cfinvoke component="#application.blog#" method="updateMediaRecord" returnvariable="mediaId">
 							<cfinvokeargument name="mediaId" value="#mediaId#" />
 							<cfinvokeargument name="mediaVideoCoverUrl" value="#imageUrl#" />
+						</cfinvoke>
+							
+					<cfelseif arguments.mediaProcessType eq 'profilePicture'>
+
+						<cfinvoke component="#application.blog#" method="saveUserProfileImage">
+							<cfinvokeargument name="userId" value="#arguments.userId#" />
+							<cfinvokeargument name="profilePicture" value="#imageUrl#" />
 						</cfinvoke>
 							
 					<cfelse>
@@ -5090,7 +6261,6 @@
 				</cfloop><!---<cfloop array="#UploadObj#" item="image">--->
 							
 				<!--- C Return data to the client. --->
-				
 				<cfif not usingUppyBundleOption>
 					<!--- Create a new location struct with the new image URL, the new mediaId, and all of the actions that were taken. This is needed as we have not yet saved the comment when the image is uploaded, and we want to diaply our actions to the user on success. --->
 					<!--- Note: this no longer works in CF2021 (it works in prior versions to CF11). It returns the keys in upper case: 
@@ -5099,8 +6269,17 @@
 					<cfset imageUrlString["location"] = "#imageUrl#">
 					<cfset imageUrlString["mediaId"] = "#mediaId#">
 					<cfset imageUrlString["mediaActions"] = "#mediaActions#">
+					
 					<!--- Return the structure with the image back to the client --->
-					<cfreturn serializeJson(imageUrlString)>
+					<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+					<cfif application.serverProduct eq 'Lucee'>
+						<cfset thisResponse = imageUrlString />
+					<cfelse>
+						<cfset thisResponse = serializeJSON( imageUrlString ) />
+					</cfif>
+
+					<cfreturn thisResponse>
+						
 				</cfif><!---<cfif usingUppyBundleOption>--->
 						
 			<cfelse>
@@ -5118,10 +6297,16 @@
 				<!--- Return it --->
 				<cfreturn jsonResponse>
 			</cfif><!---<cfif usingUppyBundleOption>--->
-		<cfelse>
+		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
-			<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-			<cfreturn serializeJSON( response )>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfset thisResponse = response />
+			<cfelse>
+				<cfset thisResponse = serializeJSON( response ) />
+			</cfif>
+			
+			<cfreturn thisResponse>
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 
 	</cffunction>
@@ -5132,7 +6317,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -5142,7 +6338,7 @@
 		<cfset destination = expandPath("#application.baseUrl#/enclosures")>
 
 		<!--- Upload it --->
-		<cffile action="upload" filefield="file" destination="#destination#" nameconflict="overwrite">
+		<cffile action="upload" filefield="file" destination="#destination#" mode = "644" nameconflict="overwrite">
 
 		<!--- Get the full path and the name of the file --->
 		<cfset imageUrl = application.baseUrl & "/enclosures/" & cffile.serverFile>
@@ -5173,7 +6369,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -5204,6 +6411,7 @@
 					accept="#structKeyList(acceptedMimeTypes)#"
 					strict="true" 
 					destination="#getTempDirectory()#" 
+					mode = "644"
 					nameconflict="overwrite"
 					result="UploadObj">
 					
@@ -5239,7 +6447,7 @@
 					<cfset mimeType = fileGetMimeType( video.ServerDirectory & '/' & video.ServerFile, true )>
 
 					<!--- Set our final destination. --->
-					<cfset destination = expandPath("#application.baseUrl#/enclosures/Videos/")>
+					<cfset destination = expandPath("#application.baseUrl#/enclosures/videos/")>
 					
 					<!--- Move the file to the final destination. --->
 					<cffile 
@@ -5249,7 +6457,7 @@
 						mode="644">
 						
 					<!--- Get the full path and the name of the file --->
-					<cfset videoUrl = application.baseUrl & "/enclosures/Videos/" & video.serverFile>
+					<cfset videoUrl = application.baseUrl & "/enclosures/videos/" & video.serverFile>
 						
 					<!--- See if the enclosure record already exists --->
 					<cfif len(arguments.postId)>
@@ -5329,12 +6537,18 @@
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 			
-		<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-		<cfreturn serializeJSON( response )>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 				
 	</cffunction>
 				
-	<cffunction name="saveExternalMediaEnclosure" access="remote" output="true" returnformat="json"
+	<cffunction name="saveExternalMediaEnclosure" access="remote" output="false" returnformat="json"
 			hint="We need to update the database when an external image is added to an enclosure. Note: this function is called whenever media is placed into the tinymce editor, even if there was just a successfull image upload. We are doing this as we don't know every event that is taking place in the image editor- there are multiple things that can happen with an image, it can be changed, a link can be made, etc. We need to check to see if the mediaId exists and see if the image is the same as the current mediaId record, if it exists, to determine whether to update the database or not. And if the image was not modified, we may not do anything at all.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="mediaId" type="string" default="" required="false" hint="Pass in the mediaId if available.">
@@ -5343,7 +6557,7 @@
 		<cfargument name="postId" default="" required="false">
 		<cfargument name="themeId" default="" required="false">
 		<cfargument name="mediaType" default="image" required="false" hint="Either image or video">
-		<cfargument name="themeImageType" default="image" required="false" hint="This is the column of the theme setting table that we need to update with the external URL. Only used when the themeId is present.">
+		<cfargument name="imageType" default="image" required="false" hint="Used to determine the image type when updating a user profile image or a theme type image. Only used for users and themes">
 		<cfargument name="videoProvider" default="" required="false" hint="The video provider (i.e. Google (Google YouTube Redirect), Microsoft Stream, VideoPress, Vimeo or YouTube). In this version, we are only supporting Vimeo and YouTube, but I will add support for other video providers in the future.">
 		<cfargument name="providerVideoId" default="" required="false" hint="The providers video Id (i.e. the Vimeo or YouTube Id)">
 		<cfargument name="selectorId" default="" required="false" hint="We need to know where this request is being posted from to determine the logic as necessary.">
@@ -5359,7 +6573,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -5392,13 +6617,23 @@
 				</cftry>
 			</cfif>
 				
-			<!--- Update the theme record --->
+			<!--- Update the user or theme record. The selectorId for a post is 'enclosureEditor'. Profile pictures and theme oriented images Theme use the image uploader ('imageUploadEditor') --->
 			<cfif arguments.selectorId neq "" and arguments.selectorId eq 'imageUploadEditor'>
-				<cfinvoke component="#application.blog#" method="saveTheme" returnvariable="themeId">
-					<cfinvokeargument name="themeId" value="#arguments.themeId#" />
-					<cfinvokeargument name="#arguments.themeImageType#" value="#externalUrl#" />
-				</cfinvoke>
-			
+				<!--- Handle the profile picture and update the user table. --->
+				<cfif imageType eq 'profilePicture'>
+					<cfinvoke component="#application.blog#" method="saveUserProfileImage" returnvariable="userId">
+						<cfinvokeargument name="userId" value="#arguments.userId#" />
+						<cfinvokeargument name="profilePicture" value="#arguments.externalUrl#" />
+					</cfinvoke>
+				<!--- All of the other images used by the imageUploadEditor are theme oriented --->
+				<cfelse><!---<cfif imageType eq 'profilePicture'>--->
+					<cfinvoke component="#application.blog#" method="saveThemeSettingImage" returnvariable="themeId">
+						<cfinvokeargument name="themeId" value="#arguments.themeId#" />
+						<cfinvokeargument name="imageType" value="#arguments.imageType#" />
+						<cfinvokeargument name="externalURL" value="#arguments.externalUrl#" />
+					</cfinvoke>
+				</cfif><!---<cfif imageType eq 'profilePicture'>--->
+					
 			<!--- Update the current media record with the URL of the video cover. --->
 			<cfelseif arguments.selectorId neq "" and arguments.selectorId eq 'videoCoverEditor'>
 				<!--- Get the mediaId for this enclosure. --->
@@ -5457,17 +6692,25 @@
 							<cfset updateMediaTable = true>
 						</cfif>
 					<cfelse><!---<cfif len(mediaUrl)>--->
-						<!---Insert the record--->
+						<!--- Insert the record --->
 						<cfset insertMediaTable = true>
 						<cfset updateMediaTable = false>
 					</cfif><!---<cfif len(mediaUrl)>--->
 						
 				<cfelse><!---<cfif len(arguments.mediaId)>--->
 					
-					<!--- The mediaId is not present, insert a record into the media table. --->
-					<cfset insertMediaTable = true>
-					<!--- There is no need to update the media table. --->
-					<cfset updateMediaTable = false>
+					<!--- See if the media record exists via the externalUrl. This only occurs when the mediaId is not passed. --->
+					<cfset arguments.mediaId = application.blog.getMediaIdByMediaUrl(arguments.externalUrl)>
+					
+					<cfif len(arguments.mediaId)>
+						<!--- Update the record --->
+						<cfset insertMediaTable = false>
+						<cfset updateMediaTable = true>
+					<cfelse>
+						<!--- Insert the record --->
+						<cfset insertMediaTable = true>
+						<cfset updateMediaTable = false>	
+					</cfif>
 				
 				</cfif><!---<cfif len(arguments.mediaId)>--->
 						
@@ -5505,7 +6748,7 @@
 						<cfinvokeargument name="providerVideoId" value="#arguments.providerVideoId#" />
 					</cfinvoke>
 				
-				<cfelse><!---<cfif not len(arguments.mediaId)>--->
+				<cfelse><!---<cfif insertMediaTable>--->
 					
 					<cfif updateMediaTable>
 						<!--- Update the record to the database. --->
@@ -5531,21 +6774,28 @@
 							<cfinvokeargument name="providerVideoId" value="#arguments.providerVideoId#" />
 						</cfinvoke>
 					</cfif><!---<cfif updateMediaTable>--->
-				</cfif><!---<cfif not len(arguments.mediaId)>--->
+				</cfif><!---<cfif insertMediaTable>--->
 					
 			</cfif><!---<cfif arguments.selectorId and arguments.selectorId eq 'videoCoverEditor'>--->
 			
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 				
-		<!--- We don't  need to return anything. --->
-		<cfif arguments.selectorId neq "" and arguments.selectorId eq 'imageUploadEditor'>
-			<cfreturn themeId>
+		<!--- Prepare the response object --->
+		<cfset response[ "postId" ] = arguments.postId />
+    	<cfset response[ "mediaId" ] = arguments.mediaId />
+		<cfset response[ "externalUrl" ] = arguments.externalUrl />
+					
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
 		<cfelse>
-			<cfreturn mediaId>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
 		</cfif>
 	</cffunction>
 				
-	<cffunction name="removeMediaEnclosure" access="remote" output="true" returnformat="json"
+	<cffunction name="removeMediaEnclosure" access="remote" output="false" returnformat="json"
 			hint="This removes any existing post enclosures from the database">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="postId" default="" required="yes">
@@ -5558,7 +6808,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -5590,7 +6851,7 @@
 		Custom Window functions 
 	******************************************************************************************************--->
 				
-	<cffunction name="saveCustomWindow" access="remote" output="true" returnformat="json" 
+	<cffunction name="saveCustomWindow" access="remote" output="false" returnformat="json" 
 			hint="Saves data from the create custom window interface.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="postId" type="string" default="">
@@ -5609,7 +6870,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -5716,8 +6988,14 @@
 			<cfset response[ "buttonHtml" ] = customWindowButton />
 		</cfif>
     
-    	<!--- Send the response back to the client. --->
-    	<cfreturn serializeJSON( response )>
+    	<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 			
 	</cffunction>
 					
@@ -5725,7 +7003,7 @@
 		Fonts
 	*******************************************************************************************************--->
 									
-	<cffunction name="uploadFont" access="remote" output="true" returnformat="json"
+	<cffunction name="uploadFont" access="remote" output="false" returnformat="json"
 			hint="Very similiar to the uploadImage and uploadVideo functions, but this function uploads fonts and inserts a font record into the database. If the updates were successful, it returns an empty json array.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="fontName" type="string" default="" required="false">
@@ -5735,7 +7013,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -5758,6 +7047,7 @@
 					accept=".otf, .ttf, .woff, .woff2"
 					strict="false" 
 					destination="#getTempDirectory()#" 
+					mode = "644"
 					nameconflict="overwrite"
 					result="UploadObj">
 					
@@ -5862,25 +7152,45 @@
 				--->
 				<cfset uploadedFontStruct["fontUrl"] = "#fontUrl#">
 				<cfset uploadedFontStruct["fontId"] = "#fontId#">
-				<!--- Return the structure with the video back to the client --->
-				<cfreturn serializeJson(uploadedFontStruct)>
+					
+				<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+				<cfif application.serverProduct eq 'Lucee'>
+					<cfset thisResponse = uploadedFontStruct />
+				<cfelse>
+					<cfset thisResponse = serializeJSON( uploadedFontStruct ) />
+				</cfif>
+
+				<cfreturn thisResponse>
 					
 			<cfelse>
 				
 				<!--- Serialize our error list --->
 				<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
-				<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-				<cfreturn serializeJSON( response )>
+				
+				<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+				<cfif application.serverProduct eq 'Lucee'>
+					<cfset thisResponse = response />
+				<cfelse>
+					<cfset thisResponse = serializeJSON( response ) />
+				</cfif>
+
+				<cfreturn thisResponse>
 			</cfif>
 		<cfelse>
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
-			<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-			<cfreturn serializeJSON( response )>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfset thisResponse = response />
+			<cfelse>
+				<cfset thisResponse = serializeJSON( response ) />
+			</cfif>
+
+			<cfreturn thisResponse>
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 
 	</cffunction>
 				
-	<cffunction name="saveFontAfterUpload" access="remote" output="true" returnformat="json"
+	<cffunction name="saveFontAfterUpload" access="remote" output="false" returnformat="json"
 			hint="This takes a list of font id's and passes what the user entered into the form to upload the font records after an upload.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="fontIdList" type="string" required="true">
@@ -5891,7 +7201,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -5951,12 +7272,18 @@
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 				
-		<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-		<cfreturn serializeJSON( response )>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 
 	</cffunction>
 				
-	<cffunction name="saveFont" access="remote" output="true" returnformat="json"
+	<cffunction name="saveFont" access="remote" output="false" returnformat="json"
 			hint="Used to save a font in the database. If the updates were successful, it returns an empty json array.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="fontId" type="string" required="true">
@@ -5977,7 +7304,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -6033,8 +7371,14 @@
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 				
-		<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-		<cfreturn serializeJSON( response )>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 
 	</cffunction>
 						
@@ -6042,7 +7386,7 @@
 		FavIcon
 	*******************************************************************************************************--->
 						
-	<cffunction name="uploadFavIcon" access="remote" output="true" returnformat="json"
+	<cffunction name="uploadFavIcon" access="remote" output="false" returnformat="json"
 			hint="Very similiar to the uploadImage, uploadFont and uploadVideo functions, but this function uploads FavoriteIcons to the root directory of the blog. If the updates were successful, it returns a 1 indicating success">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<!--- Error params --->
@@ -6051,7 +7395,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -6074,6 +7429,7 @@
 					accept=".png, .webmanifest, .json, .ico"
 					strict="false" 
 					destination="#getTempDirectory()#" 
+					mode = "644"
 					nameconflict="overwrite"
 					result="UploadObj">
 					
@@ -6121,20 +7477,40 @@
 				<!---CF2021 converts this to uppercase.			
 				<cfset successStruct = { success="1" }>--->
 				<cfset successStruct["success"] = "1">
-				<!--- Return the structure with the video back to the client --->
-				<cfreturn serializeJson(successStruct)>
+				
+					<!--- Return the structure with the video back to the client --->
+				<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+				<cfif application.serverProduct eq 'Lucee'>
+					<cfset thisResponse = successStruct />
+				<cfelse>
+					<cfset thisResponse = serializeJSON( successStruct ) />
+				</cfif>
+
+				<cfreturn thisResponse>
 					
 			<cfelse>
 				
 				<!--- Serialize our error list --->
 				<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
-				<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-				<cfreturn serializeJSON( response )>
+				<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+				<cfif application.serverProduct eq 'Lucee'>
+					<cfset thisResponse = response />
+				<cfelse>
+					<cfset thisResponse = serializeJSON( response ) />
+				</cfif>
+			
+		<cfreturn thisResponse>
 			</cfif>
 		<cfelse>
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
-			<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-			<cfreturn serializeJSON( response )>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfset thisResponse = response />
+			<cfelse>
+				<cfset thisResponse = serializeJSON( response ) />
+			</cfif>
+
+			<cfreturn thisResponse>
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 
 	</cffunction>
@@ -6143,16 +7519,26 @@
 		JSON Ld 
 	*******************************************************************************************************--->
 					
-	<cffunction name="saveJsonLd" access="remote" output="true" returnformat="json"
+	<cffunction name="saveJsonLd" access="remote" output="false" returnformat="json"
 			hint="Updates the Post.JsonLd column in the database with a Json Ld string">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="postId" default="" required="true">
-
 		<cfargument name="jsonLd" default="string" required="true" hint="Pass in the Json LD string">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -6178,7 +7564,7 @@
 		Blog Options
 	*******************************************************************************************************--->
 					
-	<cffunction name="saveBlogOptions" access="remote" output="true" returnformat="json"
+	<cffunction name="saveBlogOptions" access="remote" output="false" returnformat="json"
 			hint="Updates the BlogOption table">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="blogOptionId" default="" required="true">
@@ -6208,7 +7594,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -6312,7 +7709,7 @@
 		Blog Settings
 	*******************************************************************************************************--->
 					
-	<cffunction name="saveBlogSettings" access="remote" output="true" returnformat="json"
+	<cffunction name="saveBlogSettings" access="remote" output="false" returnformat="json"
 			hint="Updates the BlogSetting table">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="blogId" default="1" required="false">
@@ -6346,7 +7743,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -6360,6 +7768,8 @@
 			<cfset setProfileString(application.iniFile, "default", "dsn", arguments.dsn)>
 			<cfset setProfileString(application.iniFile, "default", "username", arguments.dsnUserName)>
 			<cfset setProfileString(application.iniFile, "default", "password", arguments.dsnPassword)>
+			<!--- Allow users to change the URL in the ini file as well --->
+			<cfset setProfileString(application.iniFile, "default", "blogUrl", arguments.blogUrl)>
 				
 			<!--- Handle checkboxes --->
 			<cfif len(arguments.isProd)>
@@ -6418,7 +7828,7 @@
 		File functions
 	*******************************************************************************************************--->
 				
-	<cffunction name="uploadFile" access="remote" output="true" returnformat="json"
+	<cffunction name="uploadFile" access="remote" output="false" returnformat="json"
 			hint="This function uploads and processes files. At the moment, it is only used for webVtt files"><!---returnformat="json" --->
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="fileType" type="string" default="" required="false" hint="What files are we processing? This string determines how to process the file.">
@@ -6460,6 +7870,7 @@
 					strict="true" 
 					destination="#getTempDirectory()#" 
 					nameconflict="overwrite"
+					mode = "644"
 					result="UploadObj">
 					
 				<cfcatch type="any">
@@ -6495,7 +7906,7 @@
 
 					<!--- Set our final destination. --->
 					<cfif arguments.fileType eq 'webVttFile'>
-						<cfset destination = expandPath("#application.baseUrl#/enclosures/Videos/")>
+						<cfset destination = expandPath("#application.baseUrl#/enclosures/videos/")>
 					</cfif>
 					
 					<!--- Move the file to the final destination. --->
@@ -6522,23 +7933,43 @@
 					
 				<!--- Create a new location struct with the new image URL, the new mediaId, and all of the actions that were taken. This is needed as we have not yet saved the comment when the image is uploaded, and we want to diaply our actions to the user on success. --->
 				<cfset fileUrlString = { location="#fileUrl#", mediaId="#mediaId#", fileContent="#fileContent#" }>
+				
 				<!--- Return the structure with the image back to the client --->
-				<cfreturn serializeJson(fileUrlString)>
+				<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+				<cfif application.serverProduct eq 'Lucee'>
+					<cfset thisResponse = fileUrlString />
+				<cfelse>
+					<cfset thisResponse = serializeJSON( fileUrlString ) />
+				</cfif>
+
+				<cfreturn thisResponse>
 			<cfelse>
 				<!--- Serialize our error list --->
 				<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
-				<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-				<cfreturn serializeJSON( response )>
+				<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+				<cfif application.serverProduct eq 'Lucee'>
+					<cfset thisResponse = response />
+				<cfelse>
+					<cfset thisResponse = serializeJSON( response ) />
+				</cfif>
+
+				<cfreturn thisResponse>
 			</cfif>
 		<cfelse>
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
-			<!--- Send the response back to the client. This is a custom function in the jsonArray.cfc template. --->
-			<cfreturn serializeJSON( response )>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfset thisResponse = response />
+			<cfelse>
+				<cfset thisResponse = serializeJSON( response ) />
+			</cfif>
+			
+			<cfreturn thisResponse>
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 
 	</cffunction>
 				
-	<cffunction name="saveFile" access="remote" output="true" returnformat="json"
+	<cffunction name="saveFile" access="remote" output="false" returnformat="json"
 			hint="Saves a file on the server from the contents of a tinymce editor">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="file" type="string" default="" required="true" hint="Pass in the path to the file location">
@@ -6547,7 +7978,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -6577,7 +8019,7 @@
 		Map functions
 	*******************************************************************************************************--->
 				
-	<cffunction name="saveMap" access="remote" output="true" returnformat="json"
+	<cffunction name="saveMap" access="remote" output="false" returnformat="json"
 			hint="This function saves the address and waypoints when creating a map route"><!---returnformat="json" --->
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="isEnclosure" default="true" required="true">
@@ -6595,7 +8037,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -6633,12 +8086,18 @@
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 			
-		<!--- Return the resonse object --->
-		<cfreturn serializeJSON( response )>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 			
 	</cffunction>
 				
-	<cffunction name="saveMapRoute" access="remote" output="true" returnformat="json"
+	<cffunction name="saveMapRoute" access="remote" output="false" returnformat="json"
 			hint="This function saves the address and waypoints when creating a map route"><!---returnformat="json" --->
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="locationGeoCoordinates" default="" required="true">
@@ -6650,7 +8109,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
@@ -6686,8 +8156,14 @@
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 			
-		<!--- Return the resonse object --->
-		<cfreturn serializeJSON( response )>
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+			
+		<cfreturn thisResponse>
 			
 	</cffunction>
 						
@@ -6695,7 +8171,7 @@
 		Update DB
 	*******************************************************************************************************--->
 				
-	<cffunction name="updateDb" access="remote" output="true" returnFormat="json"
+	<cffunction name="updateDb" access="remote" output="false" returnFormat="json"
 			hint="This function updates the database to a new version">
 		<cfargument name="blogVersion" required="true">
 		<cfargument name="csrfToken" required="true">
@@ -6705,7 +8181,18 @@
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfreturn serializeJSON(false)>	
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>

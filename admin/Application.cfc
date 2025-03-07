@@ -37,7 +37,7 @@
 			<cfif isDefined("form.userName") and isDefined("form.password") and len(trim(form.username)) and len(trim(form.password))>
 				
 				<!--- Note: there is no way to reconstruct a password. The only thing you can do is to re-create a the same hashed password if you know the existing password and hash key. If you have access to the code, you *can* however add or 1 eq 1 to the following line to log in and change the password. Just change it back after changing it. --->
-				<cfif application.blog.authenticate(left(trim(form.username),255),left(trim(form.password),50), cgi.remote_addr, cgi.http_User_Agent)>
+				<cfif disableAuth or application.blog.authenticate(left(trim(form.username),255),left(trim(form.password),50), cgi.remote_addr, cgi.http_User_Agent)>
 
 					<cfloginuser name="#trim(form.username)#" password="#trim(form.password)#" roles="admin">
 					<cfset session.userName = trim(form.username)>
@@ -60,7 +60,7 @@
 					<!--- Drop a cookie on this machine to allow administators to preview posts that are not yet released (GA) --->
 					<!--- Using the cfcookie tag does not work with dynamic vars in the path. --->
 					<cfset cookie.isAdmin = { value="true", path="#application.baseUrl#", expires=30 }>
-						
+
 				<cfelse>
 					<!--- Suggested by Shlomy Gantz to slow down brute force attacks --->
 					<cfset createObject("java", "java.lang.Thread").sleep(500)>

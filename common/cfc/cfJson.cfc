@@ -92,7 +92,7 @@
 	}
 	--->
     
-    <cffunction name="convertCfQuery2JsonStruct" access="public" output="true" hint="convert a ColdFusion query object into to array of structures returned as a json array.">
+    <cffunction name="convertCfQuery2JsonStruct" access="public" output="false" hint="convert a ColdFusion query object into to array of structures returned as a json array.">
     	<cfargument name="queryObj" type="query" required="true">
         <cfargument name="contentType" type="string" required="false" default="json">
         <cfargument name="includeDataHandle" type="boolean" required="false" default="false">
@@ -111,10 +111,21 @@
 
 		<cfset var rs = {} /> <!--- implicit structure --->
 		<cfset rs.results = [] /> <!--- implicit array --->
+		
+		<!--- Set the convertColumnNamesToLowerCase var. I don't want to write arguments.convertColumnNamesToLowerCase everytime I reference this --->
+		<cfset convertColumnNamesToLowerCase = arguments.convertColumnNamesToLowerCase>
 			
         <!--- Get the columns. ---> 
-        <cfset rs.columnList = lCase(listSort(queryObj.columnlist, "text" )) />
-        <cfif not convertColumnNamesToLowerCase>
+		<cfif application.serverProduct eq 'Lucee' and !convertColumnNamesToLowerCase>
+			<!--- Get a list of columns for Lucee if we are not converting to lcase. The getColumnList method in Lucee preserves the column case --->
+			<cfset rs.columnList = listSort(queryObj.getColumnlist(false), "text" ) />
+		<cfelse>
+			<!--- Force the columns into lower case --->
+			<cfset rs.columnList = lCase(listSort(queryObj.columnlist, "text" )) />
+		</cfif>
+        
+		<!--- We need to use special logic to preserve the case when using ColdFusion. Revisit this as it may no longer be needed after CF11 --->
+        <cfif !application.serverProduct eq 'Lucee' and !convertColumnNamesToLowerCase>
         	<!--- Get the column label, which is the actual name of the column that is not forced into uppercase as the columnList is. Note: the getMeta() function will return a two column array object with the numeric index along with the value. We need to convert this into a list. --->
 			<cfset realColumnList = arrayToList(queryObj.getMeta().getcolumnlabels())>
         </cfif>
@@ -129,8 +140,8 @@
 			<cfloop list="#rs.columnList#" index="rs.col">
             	
 				<!--- To remove any formatting and get the string, we will use a Java object to turn an html object into a valid xml doc, and then use xml processing to get to the underlying string. --->
-                <cfif convertColumnNamesToLowerCase>
-                	<!--- Get the lower cased column name (it was forced into a lower case up above). --->
+                <cfif convertColumnNamesToLowerCase or application.serverProduct eq 'Lucee'>
+                	<!--- Get the column name. When using ACF we have already lower cased the column names above. With Lucee, the column names should already be in the proper case --->
                     <cfset columnName = rs.col>
         		<cfelse><!---<cfif convertColumnNamesToLowerCase>--->
                 	<!--- Find the index in our realColumnList --->
@@ -179,9 +190,15 @@
 		<cfelse>
 			<cfset json.data = rs.results />
 		</cfif>
+			
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset jsonString = json.data>
+		<cfelse>
+			<cfset jsonString = serializeJson(json.data,"struct")>
+		</cfif>
         
 		<!--- Return it --->
-		<cfreturn serializeJson(json.data,"struct") />
+		<cfreturn jsonString />
 			
 	</cffunction>
 				
@@ -193,11 +210,12 @@
 		<!--- Optional arguments to over ride the total which is used when the grids use serverside paging. ---> 
 		<cfargument name="overRideTotal" type="boolean" required="false" default="false">
 		<cfargument name="newTotal" type="any" default="false" hint="On grids that use serverside paging on kendo grids, we need to override the total.">
+		<cfargument name="serializeData" type="any" default="true" hint="When using Lucee, the data is serialized twice when using a json return format with AJAX. Set this to false when using Lucee with AJAX. Only use this with Lucee and AJAX.">
 		
 		<!--- I revised this function that was orginally found at
 		https://adrianmoreno.com/2012/05/11/arraycollectioncfc-a-custom-json-renderer-for-coldfusion-queries.html
 		--->
-		<!---Create the outer structure--->
+		<!--- Create the outer structure --->
 		<cfset json.data = {} />
 
 		<!--- Include the data handle if needed --->
@@ -217,11 +235,16 @@
 			</cfif>
 		</cfif>
 				
-		<!--- Return it. --->		
-		<cfreturn serializeJson(json.data)>
+		<!--- Note: Lucee's JSON response will have backslashes as it is serializing the data twice when using AJAX. To prevent this, we will test if the data is already in JSON format before serializing it. --->
+		<cfif serializeData>
+			<cfreturn serializeJson(json.data)>	
+		<cfelse>
+			<cfreturn json.data>
+		</cfif>
+			
 	</cffunction>
 				
-	<cffunction name="convertCfQuery2JsonStructForVirtualGrid" access="public" output="true" hint="convert a ColdFusion query object into to array of structures returned as a json array. This has been specially designed for for Kendo virtual Grids">
+	<cffunction name="convertCfQuery2JsonStructForVirtualGrid" access="public" output="false" hint="convert a ColdFusion query object into to array of structures returned as a json array. This has been specially designed for for Kendo virtual Grids">
     	<cfargument name="queryObj" type="query" required="true">
         <cfargument name="contentType" type="string" required="false" default="json">
         <cfargument name="includeDataHandle" type="boolean" required="false" default="true">
@@ -295,7 +318,7 @@
 		<cfreturn serializeJSON(rs.data) />
 	</cffunction>
     
-    <cffunction name="convertQueryRow2JavascriptObj" access="public" output="true" hint="Very similiar to convertCfQuery2JsonStruct, but this function convert a row within a query into a simple javascript object without the square brackets. This is used on the client side when populating the query results into an array that can be manipulated using javascript in order to stuff the array object into forms.">
+    <cffunction name="convertQueryRow2JavascriptObj" access="public" output="false" hint="Very similiar to convertCfQuery2JsonStruct, but this function convert a row within a query into a simple javascript object without the square brackets. This is used on the client side when populating the query results into an array that can be manipulated using javascript in order to stuff the array object into forms.">
     	<cfargument name="queryObj" type="query" required="true">
         <cfargument name="rowNumber" type="numeric" required="true" hint="Pass in the row number of the query object in order to create a separate javascript object for the given row">
 		
@@ -470,7 +493,7 @@
 	// I take an HTML string and parse it into an XML(XHTML)
 	// document. This is returned as a standard ColdFusion XML
 	// document.
-	function htmlParse( htmlContent, disableNamespaces = true ){
+	function customHtmlParse( htmlContent, disableNamespaces = true ){
 		if ( len(htmlContent) gt 0 ){
 
 			// Create an instance of the Xalan SAX2DOM Java class as the
@@ -530,7 +553,7 @@
 
 		if ( len(htmlContent) gt 0 ){
 			// Parse the HTML into a valid XML document.
-			xhtml = htmlParse( htmlContent );
+			xhtml = customHtmlParse( htmlContent );
 			// Now that we have a proper xhtml document, we will use ColdFusions native xml search method to extract the innner text.
 		
 			// Extract the entire string from the notes section and get rid of all other formatting tags.

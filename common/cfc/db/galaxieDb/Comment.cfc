@@ -15,8 +15,8 @@
 	<!--- The CommentAssets column below is a psuedo column that is used by this object. The CommentMedia table is our link table. There are many comments with many different types of media (images and video) --->
 	<cfproperty name="CommentAssets" singularname="CommentAsset" ormtype="int" fieldtype="one-to-many" cfc="CommentMedia" fkcolumn="CommentRef" inversejoincolumn="MediaRef" cascade="all" inverse="true" missingRowIgnored="true">
 	<cfproperty name="CommentUuid" ormtype="string" default="">
-	<!--- This is configured for SQL Server. Manually change the varchar(max) property if you use another db --->
-	<cfproperty name="Comment" ormtype="string" sqltype="varchar(max)" default="">
+	<!--- This is configured for MySql. Manually change this property if you use another db --->
+	<cfproperty name="Comment" ormtype="text" sqltype="longtext" default="">
 	<cfproperty name="DatePosted" ormtype="timestamp">
 	<cfproperty name="Subscribe" ormtype="boolean" default="false">
 	<cfproperty name="Moderated" ormtype="boolean" default="false">

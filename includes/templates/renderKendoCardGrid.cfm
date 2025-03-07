@@ -109,7 +109,7 @@
 	</cfif>--->
 	<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and use the noImage.jpg if the share image or thumbnail does not exist (likely due to a cfinclude, errors or a blog upgrade) --->
 	<cfif not len(cardImage)>
-		<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'facebookImageUrlMetaData')>
+		<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[i]["PostHeader"], 'facebookImageUrlMetaData')>
 		<cfif len(facebookImageMetaTagValue)>
 			<cfset cardImage = facebookImageMetaTagValue>
 		<cfelse>
@@ -144,6 +144,7 @@
 	<cfif len(mediaId) and mediaType contains 'Video'>
 		<!--- Note: this will return an iframe. --->
 		<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
+			<cfinvokeargument name="postId" value="#getPost[i]['PostId']#">
 			<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
 			<cfinvokeargument name="mediaId" value="#mediaId#">
 			<cfinvokeargument name="provider" value="#provider#">
@@ -183,6 +184,7 @@
 		<cfif len(mediaUrl) or vimeoVideoId>	
 			<!--- Render the video, this will return an iframe. --->
 			<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
+				<cfinvokeargument name="postId" value="#getPost[i]['PostId']#">
 				<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
 				<!--- Galaxie Directives have the providerVideoId in either <vimeoVideoId> or <youTubeVideoId> --->
 				<cfinvokeargument name="mediaId" value="">
@@ -233,7 +235,11 @@
 						<cfelseif len(thumbnailCarousel)>
 							<cfoutput>#thumbnailCarousel#</cfoutput>
 						<cfelse>
+							<cfif len(enclosure)>
+							<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#enclosure#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#enclosure#</cfoutput>"></div>
+							<cfelse>
 							<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div>
+							</cfif>
 						</cfif>
 					</a>
 					<hr class="k-card-separator" />

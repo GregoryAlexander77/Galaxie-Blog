@@ -12,7 +12,7 @@
 	</cfoutput><!-- Fontawesome css -->
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 	
-	<p>All columns are sortable and searchable. To search, enter the search term on top of the column and click the search link at the right of the page. Note: this query only returns the last 10k rows</p>
+	<p>All columns are sortable and searchable. To search, enter the search term on top of the column and click the search link at the right of the page. Note: this query only returns the last 10000 rows of data. However, all of data is intact in the VisitorLog table in the database if you need to perform further manual analsis.</p>
 	
 	<style>
 		body {

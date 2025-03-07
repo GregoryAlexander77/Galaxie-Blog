@@ -4,18 +4,26 @@
 	<!--- Many users per blog. --->
 	<cfproperty name="BlogRef" ormtype="int" fieldtype="many-to-one" cfc="Blog" fkcolumn="BlogRef" cascade="all">
 	<!--- A psuedo column to extract the user roles. --->
-	<cfproperty name="UserRoles" singularname="UserRole" ormtype="int" fieldtype="one-to-many" cfc="UserRole" fkcolumn="UserRef" type="array" cascade="all" inverse="true" missingRowIgnored="true">		
-	<cfproperty name="MediaRef" ormtype="int" fieldtype="many-to-one" cfc="Media" fkcolumn="MediaRef" cascade="all">		
+	<cfproperty name="UserRoles" singularname="UserRole" ormtype="int" fieldtype="one-to-many" cfc="UserRole" fkcolumn="UserRef" type="array" cascade="all" inverse="true" missingRowIgnored="true">
+	<cfproperty name="MediaRef" ormtype="int" fieldtype="many-to-one" cfc="Media" fkcolumn="MediaRef" cascade="all">
 	<cfproperty name="UserToken" ormtype="string" length="35" default="" hint="">
 	<cfproperty name="FirstName" ormtype="string" default="" length="125">
 	<cfproperty name="LastName" ormtype="string" default="" length="125">
 	<cfproperty name="FullName" ormtype="string" default="" length="255">
 	<cfproperty name="DisplayName" ormtype="string" default="" length="225">
 	<cfproperty name="Email" ormtype="string" default="" length="255">
+	<cfproperty name="DisplayEmailOnBio" ormtype="boolean" default="false">
 	<cfproperty name="Website" ormtype="string" default="" length="255">
 	<!--- The ProfileBody can be HTML that creates a page. --->
-	<!--- This is configured for SQL Server. Manually change the varchar(max) property if you use another db --->
-	<cfproperty name="Biography" ormtype="string" sqltype="varchar(max)" default="">
+	<cfproperty name="ProfilePicture" ormtype="string" default="" length="255">
+	<!--- This is configured for MySql. Manually change this property if you use another db --->
+	<cfproperty name="Biography" ormtype="text" sqltype="longtext" default="">
+	<!--- Social Media --->
+	<cfproperty name="FacebookUrl" ormtype="string" default="" length="255">
+	<cfproperty name="LinkedInUrl" ormtype="string" default="" length="255">
+	<cfproperty name="InstagramUrl" ormtype="string" default="" length="255">
+	<cfproperty name="TwitterUrl" ormtype="string" default="" length="255">
+	<!--- Account details --->
 	<cfproperty name="Status" ormtype="string" default="" length="255">
 	<!--- An email can be used as the user name. Authentication may be broken out into a new table eventually. --->
 	<cfproperty name="UserName" ormtype="string" default="" length="255">

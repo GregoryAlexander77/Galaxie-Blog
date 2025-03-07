@@ -256,7 +256,7 @@ Import the Blog.
 	<cfset BlogDbObj.setBlogEmail(blogEmail)>
 	<cfset BlogDbObj.setBlogEmailFailToAddress(failTo)>
 	<cfset BlogDbObj.setIpBlockList(ipblocklist)>
-	<cfset BlogDbObj.setEntriesPerBlogPage(10)>
+	<cfset BlogDbObj.setEntriesPerBlogPage(9)>
 	<cfset BlogDbObj.setBlogModerated(moderate)>
 	<cfset BlogDbObj.setUseCaptcha(usecaptcha)>
 	<cfset BlogDbObj.setAllowGravatar(allowgravatars)>

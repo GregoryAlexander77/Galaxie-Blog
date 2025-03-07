@@ -31,7 +31,7 @@ This tag sets the params that are sent to the getPost query.
 </cfif>
 	
 <cfset params.startrow = url.startrow>
-<!--- Preset the maxEntries var. This will be reset to a higher value when looking at categorys or reset to 1 when in alias or entry mode. --->
+<!--- Preset the maxEntries var. This will be reset to a higher value when looking at categories or reset to 1 when in alias or entry mode. --->
 <cfset params.maxEntries = application.maxEntries>
 
 <!--- //******************************************************************************************************************

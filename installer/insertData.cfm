@@ -1,7 +1,6 @@
 <cfif isDefined("debug") and debug>Running the installer/insertData.cfm template.<br/></cfif>
 <!---<cfsilent>--->
 <!--- This is consumed from the Application.cfm template after ORM creates the initial database. --->
-
 <!--- Setting this to true will delete data from the tables and reseed the index. Only use in development. This only works with SQL Server. I may use ORM's truncate statement if this causes any issues. --->
 <cfset resetTables = false>
 	
@@ -11,6 +10,11 @@ Determine if the blog has been installed
 --->
 <cfset blogInstalled = getProfileString(application.blogIniPath, "default", "installed")>
 	
+<!---
+You can also use this after a major version and changing the data in the database like so:		
+<cfset tablesToPopulate = 'version3_85'>
+--->
+
 <!--- You can manually define the tables to populate on the administrator.cfc template for testing purposes. --->
 <cfif not isDefined("tablesToPopulate")>
 	<cfif blogInstalled>
@@ -22,7 +26,9 @@ Determine if the blog has been installed
 	</cfif>
 </cfif>
 	
-<cfset dir = "../installer/dataFiles/">
+<cfset dir = application.rootDirectoryPath & "/installer/dataFiles/">
+<cfset saltAlgorithm = "AES">
+<cfset hashAlgorithm = "SHA-512">
 	
 <!--- Let's insert the data. First we need to populate the database. --->
 	
@@ -86,14 +92,14 @@ Populate the blog table.
 			<cfset BlogDbObj.setBlogEmailFailToAddress('')>	
 			<cfset BlogDbObj.setBlogEmail('')>
 			<!--- Encryption --->
-			<cfset BlogDbObj.setSaltAlgorithm('AES')>
+			<cfset BlogDbObj.setSaltAlgorithm(saltAlgorithm)>
 			<cfset BlogDbObj.setSaltAlgorithmSize('256')>
 			<cfset BlogDbObj.setHashAlgorithm('SHA-512')>
 			<cfset BlogDbObj.setServiceKeyEncryptionPhrase(generateRandomPhrase())>	
 			<!--- IP Block list --->
 			<cfset BlogDbObj.setIpBlockList(ipBlockList)>
-			<cfset BlogDbObj.setBlogVersionName('3.0')>
-			<cfset BlogDbObj.setBlogVersionName('Galaxie Blog 3.0')>
+			<cfset BlogDbObj.setBlogVersionName('3.9')>
+			<cfset BlogDbObj.setBlogVersionName('Galaxie Blog 3.9')>
 			<!--- Installed --->
 			<cfset BlogDbObj.setBlogInstalled(true)>
 			<!--- Date --->
@@ -843,7 +849,7 @@ Populate the User table using the form values sent in
 	<cfset securityAnswer2 = getProfileString(application.blogIniPath, "default", "securityAnswer2")>
 	<cfset securityAnswer3 = getProfileString(application.blogIniPath, "default", "securityAnswer3")>
 		
-	<cfset salt = generateSecretKey('AES', 256)>
+	<cfset salt = generateSecretKey("AES", 256)>
 	<cfset uuid = createUUID()>
 		
 	<cfif isDefined("debug") and debug>Captured profile information.<br/></cfif>
@@ -922,12 +928,437 @@ Populate the User table using the form values sent in
 
 	</cftransaction>
 
-	<!--- Mark the blog as installed in the ini file--->
-	<cfset setProfileString(application.blogIniPath, "default", "installed", true)>
-
 </cfif>
 
+<!--- ******************************************************************************************
+Populate the Content Template Type table.
+********************************************************************************************--->
+<cfif tablesToPopulate eq 'ContentTemplateType' or tablesToPopulate eq 'version3_85' or tablesToPopulate eq 'all'>	
+	<cfif debug>Populating ContentTemplateType</cfif>
+	<cfif resetTables>
+		<cfquery name="reset">
+			DELETE FROM ContentTemplateType;
+			DBCC CHECKIDENT ('[ContentTemplateType]', RESEED, 0);
+		</cfquery>
+	</cfif>
+
+	<!--- Get the data stored in the ini file. --->
+	<cfset fileName = "getContentTemplateType.txt">
+	<cffile action="read" file="#dir##fileName#" variable="QueryObj">
+
+	<!--- Convert the wddx to a ColdFusion query object --->
+	<cfwddx action = "wddx2cfml" input = #QueryObj# output = "Data">
+	<!---<cfdump var="#Data#">--->
+
+	<cfoutput query="Data">
+
+		<!--- Save the records into the table. --->
+		<cftransaction>
+			
+			<cfquery name="getData" dbtype="hql">
+				SELECT ContentTemplateTypeId FROM ContentTemplateType 
+				WHERE ContentTemplateType = <cfqueryparam value="#contentTemplateType#" cfsqltype="varchar">
+			</cfquery>
+			<!---<cfdump var="#getData#">--->
+
+			<!---Load the object--->
+			<cfif arrayLen(getData) eq 0>
+				<cfset DbObj = EntityNew("ContentTemplateType")>
+			<cfelse>
+				<cfset DbObj = EntityLoadByPk("ContentTemplateType", getData[1])>
+			</cfif>
+			<!---<cfdump var="#DbObj#">--->
+
+			<!--- Set the values. --->
+			<cfset DbObj.setContentTemplateType(contentTemplateType)>
+			<cfset DbObj.setContentTemplateTypeDesc(contentTemplateTypeDesc)>
+			<cfset DbObj.setDate(now())>
+			<!--- Save it --->
+			<cfset EntitySave(DbObj)>
+
+		</cftransaction>
+
+	</cfoutput>
+
+	<cfset contentTemplateTypeId = DbObj.getContentTemplateTypeId()>
+	<cfif isDefined("debug") and debug>Content template type Table succesfully populated.<br/></cfif>
+</cfif>	
+
+<!--- ******************************************************************************************
+Populate the Content Template table.
+********************************************************************************************--->
+<cfif tablesToPopulate eq 'ContentTemplate' or tablesToPopulate eq 'version3_85' or tablesToPopulate eq 'all'>	
+	<cfif debug>Populating ContentTemplate</cfif>
+	<cfif resetTables>
+		<cfquery name="reset">
+			DELETE FROM ContentTemplate;
+			DBCC CHECKIDENT ('[ContentTemplate]', RESEED, 0);
+		</cfquery>
+	</cfif>
+
+	<!--- Get the data stored in the ini file. --->
+	<cfset fileName = "getContentTemplate.txt">
+	<cffile action="read" file="#dir##fileName#" variable="QueryObj">
+
+	<!--- Convert the wddx to a ColdFusion query object --->
+	<cfwddx action = "wddx2cfml" input = #QueryObj# output = "Data">
+	<!---<cfdump var="#Data#">--->
+
+	<cfoutput query="Data">
+
+		<!--- Save the records into the table. --->
+		<cftransaction>
+
+			<cfquery name="getData" dbtype="hql">
+				SELECT ContentTemplateId FROM ContentTemplate 
+				WHERE ContentTemplateName = <cfqueryparam value="#contentTemplateName#" cfsqltype="varchar">
+			</cfquery>
+			<!---<cfdump var="#getData#">--->
+
+			<!---Load the object--->
+			<cfif arrayLen(getData) eq 0>
+				<cfset DbObj = EntityNew("ContentTemplate")>
+			<cfelse>
+				<cfset DbObj = EntityLoadByPk("ContentTemplate", getData[1])>
+			</cfif>
+			<!---<cfdump var="#DbObj#">--->
+
+			<!--- Get the content template type --->
+			<cfset contentTemplateTypeDbObj = entityLoadByPk("ContentTemplateType", contentTemplateTypeRef)>
+
+			<!--- Set the values. --->
+			<cfset DbObj.setContentTemplateTypeRef(contentTemplateTypeDbObj)>
+			<cfset DbObj.setContentTemplateDesc(contentTemplateDesc)>
+			<cfset DbObj.setParentTemplatePath(parentTemplatePath)>
+			<cfset DbObj.setContentTemplateName(contentTemplateName)>
+			<cfset DbObj.setContentTemplatePath(contentTemplatePath)>
+			<cfset DbObj.setContentTemplateUrl(contentTemplateUrl)>
+			<cfset DbObj.setCustomOutput(false)>
+			<cfset DbObj.setActive(true)>
+			<cfset DbObj.setDate(now())>
+			<!--- Save it --->
+			<cfset EntitySave(DbObj)>
+
+		</cftransaction>
+
+	</cfoutput>
+
+	<cfset contentTemplateType = DbObj.getContentTemplateId()>
+	<cfif isDefined("debug") and debug>Content template Table succesfully populated.<br/></cfif>
+</cfif>
+
+<!--- ******************************************************************************************
+Populate the Content Zone table.
+********************************************************************************************--->
+<cfif tablesToPopulate eq 'ContentZone' or tablesToPopulate eq 'version3_85' or tablesToPopulate eq 'all'>	
+	<cfif debug>Populating ContentZone</cfif>
+	<cfif resetTables>
+		<cfquery name="reset">
+			DELETE FROM ContentZone;
+			DBCC CHECKIDENT ('[ContentZone]', RESEED, 0);
+		</cfquery>
+	</cfif>
+
+	<!--- Get the data stored in the ini file. --->
+	<cfset fileName = "getContentZone.txt">
+	<cffile action="read" file="#dir##fileName#" variable="QueryObj">
+
+	<!--- Convert the wddx to a ColdFusion query object --->
+	<cfwddx action = "wddx2cfml" input = #QueryObj# output = "Data">
+	<!---<cfdump var="#Data#">--->
+
+	<!--- Load the blog table and get the first record (there only should be one record at this time). This will pass back an object with the value of the blogId. This is needed as the setBlogRef is a foreign key and for some odd reason ColdFusion or Hybernate must have an object passed as a reference instead of a hardcoded value. --->
+	<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+
+	<cfoutput query="Data">
+
+		<!--- Save the records into the table. --->
+		<cftransaction>
+
+			<cfquery name="getData" dbtype="hql">
+				SELECT ContentZoneId FROM ContentZone
+				WHERE ContentZoneName = <cfqueryparam value="#ContentZoneName#" cfsqltype="varchar">
+			</cfquery>
+			<!---<cfdump var="#getData#">--->
+
+			<!---Load the object--->
+			<cfif arrayLen(getData) eq 0>
+				<cfset DbObj = EntityNew("ContentZone")>
+			<cfelse>
+				<cfset DbObj = EntityLoadByPk("ContentZone", getData[1])>
+			</cfif>
+			<!---<cfdump var="#DbObj#">--->
+
+			<!--- Set the values. --->
+			<cfset DbObj.setBlogRef(BlogDbObj)>
+			<cfset DbObj.setContentZoneName(contentZoneName)>
+			<cfset DbObj.setContentZoneDesc(contentZoneDesc)>
+			<cfset DbObj.setDefaultZone(defaultZone)>
+			<cfset DbObj.setDate(now())>
+			<!--- Save it --->
+			<cfset EntitySave(DbObj)>
+
+		</cftransaction>
+
+	</cfoutput>
+
+	<cfset contentZoneId = DbObj.getContentZoneId()>
+	<cfif isDefined("debug") and debug>Content Zone Table succesfully populated.<br/></cfif>
+</cfif>	
+
+<!--- ******************************************************************************************
+Populate the Content Template Content Zone table.
+********************************************************************************************--->
+<cfif tablesToPopulate eq 'ContentTemplateContentZone' or tablesToPopulate eq 'version3_85' or tablesToPopulate eq 'all'>	
+	<cfif debug>Populating ContentTemplateContentZone</cfif>
+	<cfif resetTables>
+		<cfquery name="reset">
+			DELETE FROM ContentTemplateContentZone;
+			DBCC CHECKIDENT ('[ContentTemplateContentZone]', RESEED, 0);
+		</cfquery>
+	</cfif>
+
+	<!--- Get the data stored in the ini file. --->
+	<cfset fileName = "getContentTemplateContentZone.txt">
+	<cffile action="read" file="#dir##fileName#" variable="QueryObj">
+
+	<!--- Convert the wddx to a ColdFusion query object --->
+	<cfwddx action = "wddx2cfml" input = #QueryObj# output = "Data">
+	<!---<cfdump var="#Data#">--->
+
+	<cfoutput query="Data">
+
+		<!--- Save the records into the table. --->
+		<cftransaction>
+
+			<cfif isNumeric(contentTemplateRef) and isNumeric(contentZoneRef)>
+				<!--- Load both the content template and content zone objects --->
+				<cfset ContentTemplateDbObj = entityLoadByPK('ContentTemplate', contentTemplateRef)>
+				<cfset ContentZoneDbObj = entityLoadByPK('ContentZone', contentZoneRef)>
+
+				<cfquery name="getData" dbtype="hql">
+					SELECT ContentTemplateContentZoneId FROM ContentTemplateContentZone
+					WHERE ContentTemplateRef = #contentTemplateRef#
+					AND ContentZoneRef = #contentZoneRef#
+				</cfquery>
+				<!---<cfdump var="#getData#">--->
+
+				<!---Load the object--->
+				<cfif arrayLen(getData) eq 0>
+					<cfset DbObj = EntityNew("ContentTemplateContentZone")>
+				<cfelse>
+					<cfset DbObj = EntityLoadByPk("ContentTemplateContentZone", getData[1])>
+				</cfif>
+				<!---<cfdump var="#DbObj#">--->
+
+				<!--- Set the values. --->
+				<cfset DbObj.setContentTemplateRef(ContentTemplateDbObj)>
+				<cfset DbObj.setContentZoneRef(ContentZoneDbObj)>
+				<cfset DbObj.setDate(now())>
+				<!--- Save it --->
+				<cfset EntitySave(DbObj)>
+
+			</cfif><!---<cfif isNumeric(contentTemplateRef) and isNumeric(contentZoneRef)>--->
+
+		</cftransaction>
+
+	</cfoutput>
+
+	<cfset contentTemplateContentZoneId = DbObj.getContentTemplateContentZoneId()>
+	<cfif isDefined("debug") and debug>Content Tempate Content Zone Table succesfully populated.<br/></cfif>
+</cfif>
+
+<!--- ******************************************************************************************
+Populate the Page Type table.
+********************************************************************************************--->
+<cfif tablesToPopulate eq 'PageType' or tablesToPopulate eq 'version3_85' or tablesToPopulate eq 'all'>	
+	<cfif debug>Populating PageType</cfif>
+	<cfif resetTables>
+		<cfquery name="reset">
+			DELETE FROM PageType;
+			DBCC CHECKIDENT ('[PageType]', RESEED, 0);
+		</cfquery>
+	</cfif>
+
+	<!--- Get the data stored in the ini file. --->
+	<cfset fileName = "getPageType.txt">
+	<cffile action="read" file="#dir##fileName#" variable="QueryObj">
+
+	<!--- Convert the wddx to a ColdFusion query object --->
+	<cfwddx action = "wddx2cfml" input = #QueryObj# output = "Data">
+	<!---<cfdump var="#Data#">--->
+
+	<!--- Load the blog table and get the first record (there only should be one record at this time). This will pass back an object with the value of the blogId. This is needed as the setBlogRef is a foreign key and for some odd reason ColdFusion or Hybernate must have an object passed as a reference instead of a hardcoded value. --->
+	<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+
+	<cfoutput query="Data">
+
+		<!--- Save the records into the table. --->
+		<cftransaction>
+
+			<cfquery name="getData" dbtype="hql">
+				SELECT PageTypeId FROM PageType
+				WHERE PageTypeName = <cfqueryparam value="#pageTypeName#" cfsqltype="varchar">
+			</cfquery>
+			<!---<cfdump var="#getData#">--->
+
+			<!---Load the object--->
+			<cfif arrayLen(getData) eq 0>
+				<cfset DbObj = EntityNew("PageType")>
+			<cfelse>
+				<cfset DbObj = EntityLoadByPk("PageType", getData[1])>
+			</cfif>
+			<!---<cfdump var="#DbObj#">--->
+
+			<!--- Set the values. --->
+			<cfset DbObj.setBlogRef(BlogDbObj)>
+			<cfset DbObj.setPageTypeName(pageTypeName)>
+			<cfset DbObj.setPageTypeDescription(pageTypeDescription)>
+			<cfset DbObj.setDate(now())>
+			<!--- Save it --->
+			<cfset EntitySave(DbObj)>
+
+		</cftransaction>
+
+	</cfoutput>
+
+	<cfset pageTypeId = DbObj.getPageTypeId()>
+	<cfif isDefined("debug") and debug>Page Type Table succesfully populated.<br/></cfif>
+</cfif>	
+
+<!--- ******************************************************************************************
+Populate the Page table.
+********************************************************************************************--->
+<cfif tablesToPopulate eq 'Page' or tablesToPopulate eq 'version3_85' or tablesToPopulate eq 'all'>	
+	<cfif debug>Populating Page</br/></cfif>
+	<cfif resetTables>
+		<cfquery name="reset">
+			DELETE FROM Page;
+			DBCC CHECKIDENT ('[Page]', RESEED, 0);
+		</cfquery>
+	</cfif>
+
+	<!--- Get the data stored in the ini file. --->
+	<cfset fileName = "getPage.txt">
+	<cffile action="read" file="#dir##fileName#" variable="QueryObj">
+
+	<!--- Convert the wddx to a ColdFusion query object --->
+	<cfwddx action = "wddx2cfml" input = #QueryObj# output = "Data">
+	<!---<cfdump var="#Data#">--->
+
+	<!--- Load the blog table and get the first record (there only should be one record at this time). This will pass back an object with the value of the blogId. This is needed as the setBlogRef is a foreign key and for some odd reason ColdFusion or Hybernate must have an object passed as a reference instead of a hardcoded value. --->
+	<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+
+	<cfoutput query="Data">
+
+		<!--- Save the records into the table. --->
+		<cftransaction>
+
+			<cfset PageTypeDbObj = entityLoadByPk("PageType", pageTypeRef)>
+
+			<cfquery name="getData" dbtype="hql">
+				SELECT PageId FROM Page
+				WHERE PageName = <cfqueryparam value="#pageName#" cfsqltype="varchar">
+			</cfquery>
+			<!---<cfdump var="#getData#">--->
+
+			<!---Load the object--->
+			<cfif arrayLen(getData) eq 0>
+				<cfset DbObj = EntityNew("Page")>
+			<cfelse>
+				<cfset DbObj = EntityLoadByPk("Page", getData[1])>
+			</cfif>
+			<!---<cfdump var="#DbObj#">--->
+
+			<!--- Set the values. --->
+			<cfset DbObj.setBlogRef(BlogDbObj)>
+			<cfset DbObj.setPageTypeRef(PageTypeDbObj)>
+			<cfset DbObj.setPageName(pageName)>
+			<cfset DbObj.setPageDescription(pageDescription)>
+			<cfset DbObj.setPagePath(pagePath)>
+			<cfset DbObj.setPageUrl(pageUrl)>
+			<cfset DbObj.setActive(active)>
+			<cfset DbObj.setDate(now())>
+			<!--- Save it --->
+			<cfset EntitySave(DbObj)>
+
+		</cftransaction>
+
+	</cfoutput>
+
+	<cfset pageId = DbObj.getPageId()>
+	<cfif isDefined("debug") and debug>Page table succesfully populated.<br/></cfif>
+</cfif>	
+
+<!--- ******************************************************************************************
+Populate the Page Content Template table.
+********************************************************************************************--->
+<cfif tablesToPopulate eq 'PageContentTemplate' or tablesToPopulate eq 'version3_85' or tablesToPopulate eq 'all'>	
+	<cfif debug>Populating PageContentTemplate table</br/></cfif>
+	<cfif resetTables>
+		<cfquery name="reset">
+			DELETE FROM PageContentTemplate;
+			DBCC CHECKIDENT ('[PageContentTemplate]', RESEED, 0);
+		</cfquery>
+	</cfif>
+
+	<!--- Get the data stored in the ini file. --->
+	<cfset fileName = "getPageContentTemplate.txt">
+	<cffile action="read" file="#dir##fileName#" variable="QueryObj">
+
+	<!--- Convert the wddx to a ColdFusion query object --->
+	<cfwddx action = "wddx2cfml" input = #QueryObj# output = "Data">
+	<!---<cfdump var="#Data#">--->
+
+	<!--- Load the blog table and get the first record (there only should be one record at this time). This will pass back an object with the value of the blogId. This is needed as the setBlogRef is a foreign key and for some odd reason ColdFusion or Hybernate must have an object passed as a reference instead of a hardcoded value. --->
+	<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+
+	<cfoutput query="Data">
+
+		<!--- Save the records into the table. --->
+		<cftransaction>
+
+			<cfif isNumeric(pageRef) and isNumeric(contentTemplateRef)>
+
+				<!--- Load the page and content template objects --->
+				<cfset PageDbObj = entityLoadByPk("Page", pageRef)>
+				<cfset ContentTemplateDbObj = entityLoadByPk("ContentTemplate", contentTemplateRef)>
+
+				<cfquery name="getData" dbtype="hql">
+					SELECT PageContentTemplateId FROM PageContentTemplate
+					WHERE PageRef = #pageRef#
+					AND ContentTemplateRef = #contentTemplateRef#
+				</cfquery>
+				<!---<cfdump var="#getData#">--->
+
+				<!---Load the object--->
+				<cfif arrayLen(getData) eq 0>
+					<cfset DbObj = EntityNew("PageContentTemplate")>
+				<cfelse>
+					<cfset DbObj = EntityLoadByPk("PageContentTemplate", getData[1])>
+				</cfif>
+				<!---<cfdump var="#DbObj#">--->
+
+				<!--- Set the values. --->
+				<cfset DbObj.setPageRef(PageDbObj)>
+				<cfset DbObj.setContentTemplateRef(ContentTemplateDbObj)>
+				<cfset DbObj.setDate(now())>
+				<!--- Save it --->
+				<cfset EntitySave(DbObj)>
+
+			</cfif>
+
+		</cftransaction>
+
+	</cfoutput>
+
+	<cfset pageId = DbObj.getPageContentTemplateId()>
+	<cfif isDefined("debug") and debug>Page Content Template table succesfully populated.<br/></cfif>
+</cfif>	
 <cfif isDefined("debug") and debug>Completed installation.<br/></cfif>
+
+<!--- Mark the blog as installed in the ini file--->
+<cfset setProfileString(application.blogIniPath, "default", "installed", true)>
 			
 <!--- Note: this is a copy of the blog.cfc's generateRandomString() --->
 <cffunction name="generateRandomPhrase" returntype="string" access="public" output="false">

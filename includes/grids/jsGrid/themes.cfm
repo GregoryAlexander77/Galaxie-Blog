@@ -1,6 +1,12 @@
 <!doctype html>
 <cfsilent>
-<cfset gridName = "themeGrid">
+<!--- Note: this is used in two interfaces, the theme property and theme content grid. This is determined by the themeGridType variable --->
+<cfif themeGridType eq 'themeProperty'>
+	<cfset gridName = "themeGrid">
+<cfelseif themeGridType eq 'contentTemplate'>
+	<cfset gridName = "themeContentGrid">
+</cfif>
+
 </cfsilent>
 <html>
 <head><cfoutput>
@@ -12,7 +18,12 @@
 	</cfoutput><!-- Fontawesome css -->
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 	
-	<p>All columns are sortable and most are searchable. To search, enter the search term on top of the column and click the search link at the right of the page. To make one of the themes your only default theme, click on the selected theme checkbox and click on the update checkmark on the right of the page. There are extensive theme details available by clicking on the theme name links.</p>
+	<cfif themeGridType eq 'themeProperty'>
+		<p>All columns are sortable and most are searchable. To search, enter the search term on top of the column and click the search link at the right of the page. To make one of the themes your only default theme, click on the selected theme checkbox and click on the update checkmark on the right of the page. There are extensive theme properties available by clicking on the theme name links.</p>
+	<cfelseif themeGridType eq 'contentTemplate'>
+		Each content template can have one or more themes. This allows you to create customized pages for a blog post or category.
+	</cfif>
+	
 	
 	<style>
 		body {
@@ -91,7 +102,11 @@
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
 		<td align="left" width="75%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<button id="newTheme" name="newTheme" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(37, 'newTheme');">Create New Theme</button>
+			<cfif themeGridType eq 'themeProperty'>
+				<button id="newTheme" name="newTheme" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(37, 'newTheme');">Create New Theme</button>
+			<cfelseif themeGridType eq 'contentTemplate'>
+				<b>Please select a theme to continue.</b>
+			</cfif>
 		</td>
 	  </tr>
 	  <cfsilent>
@@ -287,7 +302,11 @@
 					title: "Theme",
 					editing: false,
 					itemTemplate: function(value, item) {
-					  return '<a href="javascript:createAdminInterfaceWindow(30, ' + item.ThemeId + ');">' + value + '</a>';
+					  	<cfif themeGridType eq 'themeProperty'>
+							return '<a href="javascript:createAdminInterfaceWindow(30, ' + item.ThemeId + ');">' + value + '</a>';
+						<cfelseif themeGridType eq 'contentTemplate'>
+							return '<a href="javascript:createAdminInterfaceWindow(55, ' + item.ThemeId + ');">' + value + '</a>';
+						</cfif>
 					},
 					width: (pageWidth*(<cfif session.isMobile>40<cfelse>20</cfif>/100)),
 				},

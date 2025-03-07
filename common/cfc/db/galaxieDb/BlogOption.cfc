@@ -4,10 +4,9 @@
 	<!--- There are many blog options for every blog record. --->
 	<!--- Multiple ORM database error occurs below --->
 	<cfproperty name="BlogRef" ormtype="int" fieldtype="many-to-one" cfc="Blog" fkcolumn="BlogRef" cascade="all">
-	<cfproperty name="JQueryCDNPath" ormtype="string" default="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js">
+	<cfproperty name="JQueryCDNPath" ormtype="string" length="225" default="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js">
 	<cfproperty name="KendoCommercial" ormtype="boolean" default="false">
-	<cfproperty name="KendoFolderPath" ormtype="string" default="
-/common/libs/kendoCore/">
+	<cfproperty name="KendoFolderPath" ormtype="string" length="225" default="/common/libs/kendoCore/">
 	<cfproperty name="DeferScriptsAndCss" ormtype="boolean" default="true">
 	<cfproperty name="UseSsl" ormtype="boolean" default="true">
 	<cfproperty name="ServerRewriteRuleInPlace" ormtype="boolean" default="false">	

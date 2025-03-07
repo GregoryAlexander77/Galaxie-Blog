@@ -1,5 +1,11 @@
 <cfcomponent displayname="Renderer" hint="Functions to render client side code." name="Renderer">
 	
+	<!--- Instantiate the StringUtils cfc. We are going to remove the post data using the removeTag and getTextFromBody methods. This may fail when initally installing the blog with Lucee --->
+	<cftry>
+		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+	
 	<!--- Note: the bing maps URL changes. For example, the orginal URL was https://www.bing.com, however, Bing is now recommending to use https://sdk.virtualearth.net/ instead due to the way that the browser handles cookies. --->
 	<cfset bingMapsUrl = 'https://sdk.virtualearth.net'>	
 		
@@ -7,7 +13,7 @@
 		Helper functions
 	//**************************************************************************************************--->
 		
-	<cffunction name="getIframeDimensions" access="public" returnType="string" output="true"
+	<cffunction name="getIframeDimensions" access="public" returnType="string" output="false"
 			hint="Determines the size of the iframe when rendering maps and carousels">
 		<cfargument name="renderThumbnail" type="boolean" required="false" default="false">
 		<cfargument name="renderMediumCard" type="boolean" required="false" default="false">
@@ -41,13 +47,13 @@
 		Composite post injection functions
 	//**************************************************************************************************--->
 			
-	<cffunction name="renderPost" access="public" returnType="string" output="true"
+	<cffunction name="renderPost" access="public" returnType="string" output="false"
 			hint="Renders html for a post. This will also render the directives from the post header, the enclosure images and media, and the post.">
 		<cfargument name="kendoTheme" type="string" required="false" default="">
 		<cfargument name="getPost" type="any" required="false" default="">
 		<cfargument name="currentRow" type="string" required="false" default="1" hint="If there is more than one row, we may be in blog mode (or category, tag, etc), if there is only one post, we are most likely reading a single post.">
 		
-		<!--- Extract the needed data from the query --->
+		<!--- Extract the needed data from the query. These variables are from the post header and not the actual post body --->
 		<cfset postHeader = getPost[currentRow]["PostHeader"]>
 		<cfset css = getPost[currentRow]["CSS"]>
 		<cfset javaScript = getPost[currentRow]["JavaScript"]>
@@ -65,9 +71,11 @@
 			<cfset scriptDirective=false>
 			<cfset videoDirective=false>
 			
-			<!--- First things first... I need to allow users to include script tags in the blog entry. My current provider, Hostek, has 'enable global script protection' turned on creating an invalidTag response when submitting code that includes scripts. The following code injects the script tags if the user entered in the folllowing tag: <attachScript> </attachScript>. You can also use <attachScript type="deferjs"> to defer the script. --->
-			<cfif findNoCase("<attachScript",postHeader) and findNoCase("</attachScript>",postHeader)>
-				<cfset postHeader = replaceNoCase(postHeader, "attachScript", "script", "all")>
+			<!--- First things first... I need to allow users to include script tags in the blog entry. My current provider, Hostek, has 'enable global script protection' turned on creating an invalidTag response when submitting code that includes scripts. The following code injects the script tags if the user manually entered in the folllowing tag: <attachScript> </attachScript>. You can also use <attachScript type="deferjs"> to defer the script. --->
+			<!--- Sanitize the 'attach' strings. --->
+			<cfset postHeader = StringUtilsObj.sanitizeStrForDb(postHeader)>
+			<!--- Determine if there are scripts to render --->
+			<cfif findNoCase("<script",postHeader) and findNoCase("</script>",postHeader)>
 				<cfset scriptDirective = true>
 			</cfif>	
 
@@ -236,7 +244,7 @@
 						
 				<cfelse><!---<cfif videoDirective>--->
 					
-					<!--- This is the standard pathway if there are no cfincludes, attachScripts or video directives. --->
+					<!--- This is the standard pathway if there are no cfincludes, scripts or video directives. --->
 					<!--- Render the enclosure. We need to pass in the kendoTheme, getPost query and the current row. This will render all of the enclosure types- images, video's and maps. --->
 					<cfset enclosure = renderEnclosure(arguments.kendoTheme,arguments.getPost,arguments.currentRow)>
 					<cfif scriptDirective>
@@ -275,26 +283,8 @@
 		<!--- Return the entire post --->
 		<cfreturn post />
 	</cffunction>
-				
-	<cffunction name="renderPostHeader" returntype="string" output="true"
-			hint="This cleans up any changes to the code that ColdFusion's Global Script protection makes to the header">
-		<cfargument name="postHeader" type="any" required="yes" hint="Pass in the postHeader">
-		<!--- Fix script tags if they exist --->
-		<!--- Allow users to include script tags in the blog entry. The following code injects the script tags if the user entered in the folllowing tag: <attachScript> </attachScript>. You can also use <attachScript type="deferjs"> to defer the script. --->
-		<cfif findNoCase("<attachScript",arguments.postHeader) and findNoCase("</attachScript>",arguments.postHeader)>
-			<cfset postHeader =replaceNoCase(arguments.postHeader, "attachScript", "script", "all")>	
-		</cfif>
-
-		<!--- InvalidTag (bypassing CF Global Script Protection) --->
-		<cfif findNoCase("InvalidTag",arguments.body)>
-			<cfset postHeader = postHeader & replaceNoCase(arguments.postHeader, "InvalidTag", "script", "all")>
-		</cfif>
 			
-		<!--- Return it --->
-		<cfreturn postHeader>
-	</cffunction>
-			
-	<cffunction name="renderCssAndScript" returntype="string" output="true"
+	<cffunction name="renderCssAndScript" returntype="string" output="false"
 			hint="Renders any css and or scripts that are attached to a given post">
 		<cfargument name="css" type="any" required="no"  default="" hint="The CSS for a post. Stored in the Post.CSS column">
 		<cfargument name="javaScript" type="any" required="no" default="" hint="The CSS for a post. Stored in the Post.CSS column">
@@ -331,7 +321,7 @@
 		
 	</cffunction>
 			
-	<cffunction name="renderBody" returntype="string" output="true"
+	<cffunction name="renderBody" returntype="string" output="false"
 			hint="Renders the the body of the post">
 		<cfargument name="body" type="any" required="yes" hint="This takes the body column from the post and injects textblocks if they exist. Note: this does not handle more tag logic. That is done in the blogContentHtml template.">
 		
@@ -342,7 +332,7 @@
 		
 	</cffunction>
 		
-	<cffunction name="renderEnclosure" returntype="string" output="true"
+	<cffunction name="renderEnclosure" returntype="string" output="false"
 			hint="Renders the enclosure for the top of the post. This is designed to render all of the media types">
 		<cfargument name="kendoTheme" type="any" required="yes" hint="Pass in the kendo theme">
 		<cfargument name="getPost" type="any" required="yes" hint="Pass in the getPost HQL query">
@@ -443,7 +433,7 @@
 			
 	</cffunction>
 			
-	<cffunction name="renderMediaPreview" returntype="string" output="true"
+	<cffunction name="renderMediaPreview" returntype="string" output="false"
 			hint="Renders the media thumbnail for the admin edit post editor page">
 		<cfargument name="kendoTheme" type="string" required="yes" hint="Pass in the Kendo Theme">
 		<cfargument name="getPost" type="any" required="yes" hint="Pass in the getPost HQL query">
@@ -490,6 +480,7 @@
 			<cfelseif left(mediaType, 5) eq 'Video'>
 				<!--- Note: this will return an iframe. --->
 				<cfinvoke component="#this#" method="renderEnclosureVideoPreview" returnvariable="thumbnailHtml">
+					<cfinvokeargument name="postId" value="#getPost[1]['PostId']#">
 					<cfinvokeargument name="mediaId" value="#mediaId#">
 					<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
 					<cfinvokeargument name="providerVideoId" value="#providerVideoId#">
@@ -524,7 +515,7 @@
 			
 	</cffunction>
 	
-	<cffunction name="renderThumnail" returntype="string" output="true"
+	<cffunction name="renderThumnail" returntype="string" output="false"
 			hint="Renders a thumbnail">
 		<cfargument name="url" type="string" required="yes">
 	
@@ -538,62 +529,7 @@
 		Independent functions
 	//**************************************************************************************************--->
 			
-	<!--- Functions to handle strings that are formatted to bypass CF's Global Script Protection --->
-	<cffunction name="renderScriptsToDb" returntype="string" output="false" hint="Not used yet!">
-		<cfargument name="str" type="string" required="yes">
-			
-		<!--- Replaces the comment outside of the script tags. The comment is necessary to render the script in the tinymce editor. This may occur when the user is editting an existing post with a script. --->
-		<cfif findNoCase("<!--<attachScript",str) and findNoCase("</attachScript>-->",str)>
-			<!--- Replace the opening comment --->
-			<cfset str = replaceNoCase(str, "<!--<attachScript", "<script", "all")>
-			<!--- Replace the end comment --->
-			<cfset str = replaceNoCase(str, "</attachScript>-->", "</script>", "all")>
-		</cfif>
-		<!--- Replaces <attachScript with <script. This may occur when a new post is made with a script. --->
-		<cfif findNoCase("<attachScript",str) and findNoCase("</attachScript>",str)>
-			<cfset str = replaceNoCase(str, "attachScript", "script", "all")>
-		</cfif>	
-		<!--- Allows for style sheets. --->
-		<cfif findNoCase("<attachStyle",str) and findNoCase("</attachStyle>",str)>
-			<cfset str = replaceNoCase(str, "attachStyle", "style", "all")>
-		</cfif>
-			
-		<cfreturn str>
-	</cffunction>
-			
-	<cffunction name="renderScriptsToTinyMce" returntype="string" output="false" 
-			hint="Renders script tags surrounded by HTML comments before sending to TinyMce. TinyMce does not allow scripts to be inside of the setContent method which we use so we need to escape theme.">
-		<cfargument name="str" type="string" required="yes">
-			
-		<cfif str contains '<script' and str contains '</script>'>
-			<!--- Put comments around the opening tag --->
-			<cfset str = replaceNoCase(str,'<script','<!--<script','all')>
-			<!--- and the closing tag --->
-			<cfset str = replaceNoCase(str,'</script>','</script>-->','all')>
-		</cfif>
-		<cfreturn str>
-			
-	</cffunction>
-			
-	<!--- Fix tinymce limitations that require us to use comments and symbols around custom HTML tags. --->
-	<cffunction name="renderMoreTagFromTinyMce" returntype="string" output="false" 
-			hint="Renders the more tag when it is encountered. We can't use <more> in the tinymce editor as it will remove it, so we are surrounding the more tag with &lt; and &gt;. We also can surround it using an HTML comment">
-		<cfargument name="str" type="string" required="yes">
-		
-		<!--- Depracated cases when there are &lt; + &gt; codes --->
-		<cfif findNoCase(arguments.str, '&lt;more/&gt;')>
-			<cfset arguments.str = replaceNoCase(arguments.str, '&lt;more/&gt;', '<more/>', 'all')>
-		</cfif>
-			
-		<!--- New more logic. TinyMce puts in a closing more tag --->
-		<cfif findNoCase(arguments.str, '<more>') and findNoCase(arguments.str, '</more>')>
-			<cfset arguments.str = replaceNoCase(arguments.str, '<more></more>', '<more/>', 'all')>
-		</cfif>
-			
-		<cfreturn arguments.str>
-	</cffunction>
-			
-	<cffunction name="injectCfinclude" returntype="string" output="true"
+	<cffunction name="injectCfinclude" returntype="string" output="false"
 			hint="Note: this function takes precendent over all other post content functions">
 		<cfargument name="cfincludeTemplatePath" type="string" required="yes" default="" hint="template path to include">
 
@@ -611,7 +547,7 @@
 			
 	</cffunction>
 			
-	<cffunction name="injectTextBlocks" returntype="string" output="true"
+	<cffunction name="injectTextBlocks" returntype="string" output="false"
 			hint="Allows for textblocks in the post body">
 		<cfargument name="body" type="string" required="yes" hint="Pass in the post body.">
 			
@@ -644,7 +580,7 @@
 			
 	</cffunction>
 	
-	<cffunction name="renderImage" returntype="string" output="true"
+	<cffunction name="renderImage" returntype="string" output="false"
 			hint="Renders an image. This is used on all images, not just an enclosure image.">
 		<cfargument name="imageUrl" type="string" required="yes">
 		<cfargument name="mediaId" type="string" required="no" hint="Only pass this when a mediaId exists. This will often be null for generic images as it is not stored into the media table, such as a map location cursor.">
@@ -666,7 +602,7 @@
 				
 	</cffunction>
 	
-	<cffunction name="renderEnclosureImage" returntype="string" output="true"
+	<cffunction name="renderEnclosureImage" returntype="string" output="false"
 			hint="Renders the enclosure image at the top of a post">
 		<cfargument name="mediaUrl" type="string" required="yes">
 		<cfargument name="mediaId" type="string" default="" required="no">
@@ -691,7 +627,7 @@
 				
 	</cffunction>
 					
-	<cffunction name="renderImageGalleryPreview" returntype="string" output="true"
+	<cffunction name="renderImageGalleryPreview" returntype="string" output="false"
 			hint="Renders a gallery preview within an iframe. This is used in the tinymce editor.">
 		<cfargument name="galleryId" type="string" required="yes">
 		<cfargument name="numImages" type="numeric" required="yes">
@@ -720,7 +656,7 @@
 	
 	</cffunction>
 			
-	<cffunction name="renderEnclosureVideo" returntype="string" output="true"
+	<cffunction name="renderEnclosureVideo" returntype="string" output="false"
 			hint="Renders the enclosure video at the top of a post">
 		<cfargument name="getPost" type="any" required="yes">
 		<cfargument name="currentRow" type="any" required="no" default="1" hint="What row of the query to you want extracted? This is needed as the blog may have many rows. Specify 1 if there is only 1 row, otherwise, put in the current row that you want inspected. The default value is 1.">
@@ -851,8 +787,9 @@
 		<cfreturn videoHtml>
 	</cffunction>
 					
-	<cffunction name="renderEnclosureVideoPreview" returntype="string" output="true"
+	<cffunction name="renderEnclosureVideoPreview" returntype="string" output="false"
 			hint="Renders the enclosure video at the top of a post">
+		<cfargument name="postId" type="string" required="yes">
 		<cfargument name="mediaUrl" type="string" required="yes">
 		<!--- Optional args --->
 		<cfargument name="mediaId" type="string" required="no">
@@ -895,7 +832,7 @@
 		</cfif>
 			
 		<!--- Note: we will not have an extension that we can read on an external URL --->
-		<cfset mediaHtmlStr = '<iframe title="media player" data-type="video" data-id="#arguments.mediaId#" src="#application.baseUrl#/galaxiePlayer.cfm?videoUrl=' & arguments.mediaUrl & '&thumbnail=' & renderThumbnail & '&kcard=' & kcard>
+		<cfset mediaHtmlStr = '<iframe title="media player" data-type="video" data-id="#arguments.postId#" src="#application.baseUrl#/galaxiePlayer.cfm?postId=' & arguments.postId & '&videoUrl=' & arguments.mediaUrl & '&thumbnail=' & renderThumbnail & '&kcard=' & kcard>
 		<cfif len(arguments.provider) and len(arguments.providerVideoId)>
 			<cfset mediaHtmlStr = mediaHtmlStr & '&provider=' & arguments.provider & '&providerVideoId=' & arguments.providerVideoId>
 		</cfif>
@@ -916,7 +853,7 @@
 	
 	</cffunction>
 			
-	<cffunction name="renderImageGalleryFromDb" returntype="string" output="true"
+	<cffunction name="renderImageGalleryFromDb" returntype="string" output="false"
 			hint="Renders the HTML for an image gallery via the database. This is used to insert the code into the databasepreview the gallery in the tinymce editor.">
 		<cfargument name="mediaGalleryId" type="string" required="yes">
 		<cfargument name="generateTinyMcePreview" type="boolean" required="no" default="false">
@@ -962,9 +899,9 @@
 				<cfset galleryItemLink = getGallery[i]["MediaUrl"]>
 			</cfif>
 
-			<!--- Wrap the gallery with a '<gallery>' tag --->
+			<!--- Wrap the gallery with a '<figure>' tag --->
 			<cfif i eq 1>
-				<cfset htmlStr = '<gallery data-galleryid="#galleryId#" data-name="' & galleryName & '">'>	
+				<cfset htmlStr = '<figure data-galleryid="#galleryId#" data-name="' & galleryName & '">'>	
 			</cfif>	
 			<!--- Construct our anchor tag. --->
 			<cfif generateTinyMcePreview>
@@ -977,7 +914,7 @@
 			<cfset htmlStr = htmlStr & '<img data-src="' & galleryItemThumbnailUrl & '" data-galleryid="' & galleryId & '" data-galleryitemid="' & galleryItemId & '"  alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="' & galleryItemThumbnailUrl & '"></a>'>
 			<!--- Create the end gallery tag --->
 			<cfif i eq arrayLen(getGallery)>
-				<cfset htmlStr = htmlStr & '</gallery>'>
+				<cfset htmlStr = htmlStr & '</figure>'>
 			</cfif>
 
 		</cfloop><!---<cfloop from="1" to="#arrayLen(getGallery)#" index="i">--->
@@ -987,7 +924,7 @@
 	
 	</cffunction>
 				
-	<cffunction name="renderCarousel" returntype="string" output="true"
+	<cffunction name="renderCarousel" returntype="string" output="false"
 			hint="Renders a carousel">
 		<cfargument name="carouselId" type="string" required="yes">
 		<cfargument name="card" type="boolean" required="no" default="false">
@@ -1235,7 +1172,7 @@
 	
 	</cffunction>
 				
-	<cffunction name="renderLoadMapScript" returntype="string" output="true"
+	<cffunction name="renderLoadMapScript" returntype="string" output="false"
 			hint="Renders a script to load multiple maps on a page">
 		<cfargument name="kendoTheme" type="string" required="yes" hint="Required to determine the polygon colors">
 		<cfargument name="enclosureMapIdList" type="string" required="yes">
@@ -1323,8 +1260,13 @@
 				<!--- At the very end of the loop, create the bing maps callback script. --->
 
 				<cfif enclosureMapIdLoopCounter eq listLen(enclosureMapIdList)>
-					<cfsavecontent variable="bingMapsCallbackScript">
+					<!--- 
+						Original Bing Maps SDK link
 						<script type='text/javascript' src='<cfoutput>#bingMapsUrl#</cfoutput>/api/maps/mapcontrol?key=<cfoutput>#application.bingMapsApiKey#</cfoutput>&callback=loadMaps()' async defer></script>
+					--->
+					<cfsavecontent variable="bingMapsCallbackScript">
+						<link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css" type="text/css">
+						<script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js"></script>
 					</cfsavecontent>
 				</cfif>
 
@@ -1356,7 +1298,7 @@
 								
 	</cffunction>
 				
-	<cffunction name="renderMap" returntype="string" output="true"
+	<cffunction name="renderMap" returntype="string" output="false"
 			hint="Renders the enclosure map at the top of a post">
 		<cfargument name="kendoTheme" type="string" required="yes" hint="Required to determine the polygon colors">
 		<cfargument name="getMap" type="array" required="yes" hint="Pass in the getMap query">
@@ -1463,7 +1405,7 @@
 				
 	</cffunction>
 					
-	<cffunction name="renderCommonMapScript" returntype="string" output="true"
+	<cffunction name="renderCommonMapScript" returntype="string" output="false"
 			hint="Renders certain parts of a map. This is meant to be able to reuse code as there are multiple map related functions that share the common map elements.">
 		<cfargument name="kendoTheme" type="string" required="yes" hint="Required to determine the polygon colors">
 		<cfargument name="mapType" type="string" required="no" default="road" hint="Either: route or static at this time">
@@ -1486,7 +1428,22 @@
 						// ***********************************************************************
 						// Script for Map <cfoutput>#arguments.mapId#</cfoutput>
 						// ***********************************************************************
-			<cfsilent><!--- The GeoCoordinates will be blank with map routes ---></cfsilent>
+			<cfsilent><!--- The GeoCoordinates will be blank with map routes --->
+				<!---
+				New logic for Azure maps
+				function InitMap(){
+					var map = new atlas.Map('myMap', {
+						center: [-122.33, 47.6],
+						zoom: 12,
+						language: 'en-US',
+						authOptions: {
+							authType: 'subscriptionKey',
+							subscriptionKey: '<Your Azure Maps Key>'
+						}
+					});
+				}
+				--->
+			</cfsilent>
 			<cfif len(arguments.GeoCoordinates)>
 						// Create a location. This should be outside of the map declaration when drawing multiple maps on a page. However, this works when there is just one map, or there are many, so we are using this approach with both map options.
 						var location<cfoutput>#arguments.mapId#</cfoutput> = new Microsoft.Maps.Location(<cfoutput>#arguments.GeoCoordinates#</cfoutput>);
@@ -1600,7 +1557,7 @@
 				
 	</cffunction>
 			
-	<cffunction name="renderMapPreview" returntype="string" output="true"
+	<cffunction name="renderMapPreview" returntype="string" output="false"
 			hint="Renders the map thumbnail at the top of a post. Note: there are two sizes of the card, one when used with the sidebar, and one without. When there is no sidebar, all of the posts are in a small card format and both the popular posts and regular posts are using the same class, however, with the sidebar, the posts are in a medium sized card format but the popular posts at the top of the page need a separate class to render correctly.">
 		<cfargument name="mapId" type="string" required="yes">
 		<cfargument name="renderThumbnail" type="boolean" required="no" default="false">
@@ -1661,7 +1618,7 @@
 	
 	</cffunction>
 			
-	<cffunction name="renderCarouselPreview" returntype="string" output="true"
+	<cffunction name="renderCarouselPreview" returntype="string" output="false"
 			hint="Renders the carousel thumbnail at the top of a post on for the condensed cars and admin page. This is not used in the tinymce editor, only for the post and enclosure image editors">
 		<cfargument name="carouselId" type="string" required="yes">
 		<cfargument name="interface" type="string" required="no" default="postEditor" hint="either an empty string, postEditor or enclosureEditor. When this is specified, none of the other arguments are required or sent in">	
@@ -1701,7 +1658,7 @@
 		</cfif>
 			
 		<cfsavecontent variable="carouselHtmlStr">
-			<iframe title="carousel" data-type="carousel" data-id="#arguments.carouselId#" src="#application.baseUrl#/preview/carousel.cfm?carouselId=#arguments.carouselId#&interface=#arguments.interface#&thumbnail=#thumbnail#" width="#width#" height="#height#" frameBorder="0" scrolling="no"></iframe>
+			<cfoutput><iframe title="carousel" data-type="carousel" data-id="#arguments.carouselId#" src="#application.baseUrl#/preview/carousel.cfm?carouselId=#arguments.carouselId#&interface=#arguments.interface#&thumbnail=#thumbnail#" width="#width#" height="#height#" frameBorder="0" scrolling="no"></iframe></cfoutput>
 		</cfsavecontent> 
 		
 		<cfreturn carouselHtmlStr>
@@ -1713,7 +1670,7 @@
 	//**************************************************************************************************--->
 			
 	<!--- Common HTML escape functions --->
-	<cffunction name="simpleHtmlEscape" returntype="string" output="true"
+	<cffunction name="simpleHtmlEscape" returntype="string" output="false"
 			hint="Note: I often need to escape the HTML tag characters, and only the tags, when converting text to be used in the tinyMce editor and for Prism. ColdFusion does not have a simple escape/unescape function, and I don't  want to have to worry about escaping/unescaping everything- I just need the tags to be escaped. This function is used primarilly to remove the opening and closing tags in code blocks for prism.">
 		<cfargument name="str" type="string" required="yes" hint="Pass in the string">
 		
@@ -1730,7 +1687,7 @@
 				
 	</cffunction>
 				
-	<cffunction name="simpleHtmlUnescape" returntype="string" output="true"
+	<cffunction name="simpleHtmlUnescape" returntype="string" output="false"
 			hint="Note: I often need to escape the HTML tag characters, and only the tags, when converting text to be used in the tinyMce editor and for Prism. ColdFusion does not have a simple escape/unescape function, and I don't  want to have to worry about escaping/unescaping everything- I just need the tags to be escaped">
 		<cfargument name="str" type="string" required="yes" hint="Pass in the string">
 		<cfargument name="action" type="string" required="no" default="escape" hint="Either escape or unescape">
@@ -1752,8 +1709,42 @@
 		Render for TinyMce
 	//**************************************************************************************************--->
 			
+	<cffunction name="renderScriptsToTinyMce" returntype="string" output="false" 
+			hint="Renders script tags surrounded by HTML comments before sending to TinyMce. TinyMce does not allow scripts to be inside of the setContent method and we need to escape them.">
+		<cfargument name="str" type="string" required="yes">
+			
+		<cfif str contains '<script' and str contains '</script>'>
+			<!--- Put comments around the opening tag --->
+			<cfset str = replaceNoCase(str,'<script','<!--<script','all')>
+			<!--- and the closing tag --->
+			<cfset str = replaceNoCase(str,'</script>','</script>-->','all')>
+		</cfif>
+		<!--- We need to sanitize any literal template strings --->
+		<cfset str = replaceNoCase(str,'`','"','all')>
+		<cfreturn str>
+			
+	</cffunction>
+			
+	<!--- Fix tinymce limitations that require us to use comments and symbols around custom HTML tags. --->
+	<cffunction name="renderMoreTagFromTinyMce" returntype="string" output="false" 
+			hint="Renders the more tag when it is encountered. We can't use <more> in the tinymce editor as it will remove it, so we are surrounding the more tag with &lt; and &gt;. We also can surround it using an HTML comment">
+		<cfargument name="str" type="string" required="yes">
+		
+		<!--- Depracated cases when there are &lt; + &gt; codes --->
+		<cfif findNoCase(arguments.str, '&lt;more/&gt;')>
+			<cfset arguments.str = replaceNoCase(arguments.str, '&lt;more/&gt;', '<more/>', 'all')>
+		</cfif>
+			
+		<!--- New more logic. TinyMce puts in a closing more tag --->
+		<cfif findNoCase(arguments.str, '<more>') and findNoCase(arguments.str, '</more>')>
+			<cfset arguments.str = replaceNoCase(arguments.str, '<more></more>', '<more/>', 'all')>
+		</cfif>
+			
+		<cfreturn arguments.str>
+	</cffunction>
+			
 	<!--- TinyMce does not render our Galaxie Blog directives. In order to have them be seen, we need to replace the first opening tag with a &lt; symbol. We will replace the symbols again when we insert the record into the database (see function below) --->
-	<cffunction name="renderGalaxieDirectiveToTinyMce" returntype="string" output="true"
+	<cffunction name="renderGalaxieDirectiveToTinyMce" returntype="string" output="false"
 			hint="Render the Galaxie directive without the opening tag. Replace the opening tag with a &lt; symbol">
 		<cfargument name="postContent" type="string" required="yes" hint="Pass in the post body.">
 			
@@ -1771,7 +1762,7 @@
 			
 	</cffunction>
 			
-	<cffunction name="renderGalaxieDirectiveFromTinyMceToDb" returntype="string" output="true"
+	<cffunction name="renderGalaxieDirectiveFromTinyMceToDb" returntype="string" output="false"
 			hint="Render the Galaxie directive with the opening tag. Replace the &lt; &gt symbols with tags. This is not used but I am keeping it around in case this type of logic needs to be applied to a post in the future.">
 		<cfargument name="postContent" type="string" required="yes" hint="Pass in the post body.">
 			
@@ -1791,7 +1782,7 @@
 	</cffunction>
 				
 	<!--- Directive tag helpers. --->
-	<cffunction name="renderDirectiveTagsForTinyMce" returntype="string" output="true"
+	<cffunction name="renderDirectiveTagsForTinyMce" returntype="string" output="false"
 			hint="Removes the opening and closing tags to allow the directive to be previewed with tinymce">
 		<cfargument name="postContent" type="string" required="yes" hint="Pass in the post content.">
 		<cfargument name="directive" type="string" required="yes" hint="Pass in the directive.">
@@ -1815,7 +1806,7 @@
 			
 	</cffunction>
 			
-	<cffunction name="renderDirectiveTagsFromTinyMceToDb" returntype="string" output="true"
+	<cffunction name="renderDirectiveTagsFromTinyMceToDb" returntype="string" output="false"
 			hint="Recreate the opening and closing tags to allow the directive to be saved to the database properly from tinymce. This is depracated in version 3">
 		<cfargument name="postContent" type="string" required="yes" hint="Pass in the post content.">
 		<cfargument name="directive" type="string" required="yes" hint="Pass in the directive.">
@@ -1843,7 +1834,7 @@
 		Render for Prism
 	//**************************************************************************************************--->
 				
-	<cffunction name="renderPreTagsForPrism" returntype="string" output="true"
+	<cffunction name="renderPreTagsForPrism" returntype="string" output="false"
 			hint="For prism to work, we need to render all of the code tags with a pre tag">
 		<cfargument name="postContent" type="string" required="yes" hint="Pass in the string">
 		<cfargument name="renderScriptTags" type="boolean" required="no" default="false" hint="Set to true if you want to put a script around the code. This should only be done if the content between the code tags is not escaped.">
@@ -1865,7 +1856,7 @@
 				
 	</cffunction>
 				
-	<cffunction name="renderCodeForPrism" returntype="string" output="true"
+	<cffunction name="renderCodeForPrism" returntype="string" output="false"
 			hint="For prism to work, we need to render all of the code tags with a pre tag and remove the opening and closing tags between the code blocks.">
 		<cfargument name="postContent" type="string" required="yes" hint="Pass in the string">
 		<cfargument name="action" type="string" required="no" default="cleanForPrism" hint="Either 'renderPreTags' which will keep the opening and closing brackets and add a pre and script tag around the code blocks or 'cleanForPrism' which will clean the code for prism. 'cleanForPrism' will be the default setting.">
@@ -1887,7 +1878,7 @@
 		Global email function. All emails and email related functions should eventually use this composite function
 	//**************************************************************************************************--->
 	
-	<cffunction name="renderEmail" returntype="string" output="true"
+	<cffunction name="renderEmail" returntype="string" output="false"
 			hint="Renders an email with a title, description, and body.">
 		<cfargument name="email" type="string" required="yes">
 		<cfargument name="emailTitle" type="string" required="yes">
@@ -2323,7 +2314,7 @@
 		Specific common email functions 
 	//**************************************************************************************************--->
 			
-	<cffunction name="renderPostEmailToSubscribers" returntype="string" output="true"
+	<cffunction name="renderPostEmailToSubscribers" returntype="string" output="false"
 			hint="Renders and sends out an email to the subscriber when a new post is made. Pass in the postId.">
 		<cfargument name="postId" type="string" required="yes">
 		<cfargument name="email" type="string" required="yes">
@@ -2361,7 +2352,7 @@
 				
 	</cffunction>
 			
-	<cffunction name="renderCommentEmailToPostSubscribers" returntype="string" output="true"
+	<cffunction name="renderCommentEmailToPostSubscribers" returntype="string" output="false"
 			hint="Renders email that will be sent to the post subscribers when a comment is made or approved.">
 		<!--- Required args --->
 		<cfargument name="commentId" type="any" required="yes" hint="Pass in the commentId">
@@ -2473,13 +2464,15 @@
 		LD Json injection
 	//**************************************************************************************************--->
 		
-	<cffunction name="renderLdJson" returntype="string" output="true"
+	<cffunction name="renderLdJson" returntype="string" output="false"
 			hint="Renders the enclosure video at the top of a post">
 		<cfargument name="getPost" type="any" required="yes" hint="Pass in the getPost HQL query">
 		<cfargument name="prettify" type="boolean" required="no" default="false">
 		<!--- <cfdump var="#getPost#"> --->
 			
 		<!--- Preset some vars that may not be available --->
+		<cfparam name="imageBasePath" default="">
+		<cfparam name="imageBaseUrl" default="">
 		<cfparam name="ldJson" default="">
 		<cfparam name="numGoogleImages" default="0">
 		<cfparam name="google16_9Thumbnail" default="">
@@ -2518,11 +2511,12 @@
 		<cfset logo = application.baseUrl & '/' & application.blog.getLogoPathByTheme(kendoTheme=trim(application.blog.getSelectedKendoTheme()))>
 			
 		<!--- Get the google thumbnails. These have the same name as the enclosure and they are in the google folders. --->
-			
 		<!--- Get the image name and path --->
 		<cfset enclosureImageName = listLast(mediaPath, "\")>
-		<cfset imageBasePath = replaceNoCase(mediaPath, enclosureImageName, '')>
-		<cfset imageBaseUrl = application.blogHostUrl & replaceNoCase(mediaUrl, enclosureImageName, '')>
+		<cfif len(enclosureImageName)>
+			<cfset imageBasePath = replaceNoCase(mediaPath, enclosureImageName, '')>
+			<cfset imageBaseUrl = application.blogHostUrl & replaceNoCase(mediaUrl, enclosureImageName, '')>
+		</cfif>
 			
 		<!--- Note: there may not be an enclosure.--->
 		<cfif enclosureImageName neq "">
@@ -2584,8 +2578,6 @@
 		
 		<!--- Yes, I know that this is a horrendous way of doing this, but it is fast and it works. Next version write a function to handle the formatting.--->
 		<cfoutput>
-		<!---<cfset ldJson = '<postData>'>--->
-		<!---<cfset ldJson = ldJson & '<attachScript type="application/ld+json">'>--->
 		<cfset ldJson = ''>
 		<cfset ldJson = ldJson & '{'>
 		  <cfset ldJson = ldJson & '"@context":"http://schema.org",'>
@@ -2653,6 +2645,7 @@
 					<cfif prettify><cfset ldJson = ldJson & cr></cfif>
 				</cfif>
 				<cfif len(google4_3Thumbnail)>
+
 					<cfif prettify><cfset ldJson = ldJson & tab></cfif>
 					<cfset ldJson = ldJson & '"' & google4_3Thumbnail & '",'>
 					<cfif prettify><cfset ldJson = ldJson & cr></cfif>
@@ -2687,8 +2680,6 @@
 			<cfset ldJson = ldJson & ','>
 		</cfif>
 		<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		<!---<cfset ldJson = ldJson & '</attachScript>'>
-		<cfset ldJson = ldJson & '</postData>'>--->
 			
 		<!--- Note: videos should be attached at the end of the document --->
 		<cfif mimeType eq 'video/mp4'>
@@ -2707,7 +2698,7 @@
 					<cfif prettify><cfset ldJson = ldJson & cr></cfif>
 				</cfif>
 				<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-				<cfset ldJson = ldJson & '"contentUrl":"#application.baseUrl#/galaxiePlayer.cfm?videoUrl=' & mediaUrl & '",'>
+				<cfset ldJson = ldJson & '"contentUrl":"#application.baseUrl#/galaxiePlayer.cfm?postId=' & getPost[1]["EnclosureMapId"] & '&videoUrl=' & mediaUrl & '",'>
 				<cfif prettify><cfset ldJson = ldJson & cr></cfif>
 			  	<cfif prettify><cfset ldJson = ldJson & tab></cfif>
 				<cfset ldJson = ldJson & '"uploadDate":"' & application.Udf.getIsoTimeString(datePosted)>

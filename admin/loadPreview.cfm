@@ -1,5 +1,4 @@
 <cfsetting enablecfoutputonly=true>
-<cfprocessingdirective pageencoding="utf-8">
 
 <!--- This is designed to be extendable similiarly to the adminInterface.cfm template and takes several arguments: URL.previewId, URL.optArgs, URL.otherArgs, and URL.otherArgs1 --->
 <!--- <cfdump var="#URL#" label="url"> --->

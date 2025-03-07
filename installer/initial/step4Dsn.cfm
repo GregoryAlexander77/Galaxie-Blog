@@ -3,6 +3,9 @@
 <!--- We don't need to store anything from the extend application template --->
 <!--- Get the current form data from the ini file if possible. This is done as the user may come back to this page. --->
 <cfset dsn = getProfileString(application.iniFile, "default", "dsn")>
+<cfif !len(dsn)>
+	<cfset dsn = "GalaxieDb">
+</cfif>
 <cfset databaseType = getProfileString(application.iniFile, "default", "databaseType")>
 </cfsilent>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
@@ -128,7 +131,7 @@
 								<!---<option value="Informix">Informix</option>--->
 								<option value="sqlServer">Microsoft Access</option>
 								<option value="SqlServer" selected>MS Sql Server</option>
-								<option value="mySql">MySQL (any version)</option>
+								<option value="mySql">MySQL or MariaDb (any version)</option>
 								<option value="oracle">Oracle (any version)</option>
 								<option value="postgre">Postgre SQL</option>
 								<option value="sybase">Sybase</option>

@@ -45,6 +45,7 @@
 	License		 : Use this as you will. If you enjoy it and it helps your application, 
 				   consider sending me something from my Amazon wish list:
 				   http://www.amazon.com/o/registry/2TCL1D08EZEYE
+	Gregory added mode to cffile upload (mode = "644")
 --->
 
 <!--- allow for quick exit --->
@@ -165,7 +166,7 @@
 					<cflock name="#attributes.file#" type="exclusive" timeout="30">
 						<cfset data.hitCount = data.hitCount + 1>
 						<cfwddx action="cfml2wddx" input="#data#" output="packet">
-						<cffile action="write" file="#attributes.file#" output="#packet#" charset="UTF-8">		
+						<cffile action="write" file="#attributes.file#" mode="644" output="#packet#" charset="UTF-8">		
 					</cflock>
 				</cfif>
 				<cfexit method="exitTag">						

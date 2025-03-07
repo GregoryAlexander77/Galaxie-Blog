@@ -90,7 +90,7 @@
 
 	</cffunction>
 			
-	<cffunction name="createThumbnail" access="public" output="true" returntype="string" hint="Creates thumbnail images 235 width by 138. These are used in the administrative interface as well as used for gallery thumbnail images when creating a gallery.">
+	<cffunction name="createThumbnail" access="public" output="false" returntype="string" hint="Creates thumbnail images 235 width by 138. These are used in the administrative interface as well as used for gallery thumbnail images when creating a gallery.">
 		<cfargument name="imagePath" type="string" required="yes" hint="Provide the path to the image.">
 		<cfargument name="imageName" type="string" required="yes" hint="The image name.">
 			
@@ -162,7 +162,7 @@
 		
 	</cffunction>
 			
-	<cffunction name="createSocialMediaImages" access="public" output="true" returntype="any" hint="Creates images for social media sharing.">
+	<cffunction name="createSocialMediaImages" access="public" output="false" returntype="any" hint="Creates images for social media sharing.">
 		<cfargument name="imagePath" type="string" required="yes" hint="Provide the path to the image.">
 		<cfargument name="socialMediaPlatform" type="string" required="yes" hint="Provide the social media platform. The valid arguments are: facebook, twitter, instagram, linkedIn, and google. Logic will determine the best size for the image to fit the platform's image share specification.">
 		<cfargument name="socialMediaImageType" type="string" required="no" default="" hint="Unless you're trying to create Google images, this argument is optional in order to over-ride the default logic and force the type of image format that you want. If you specify this argument, it will over-ride the socialMediaPlatform argument. Logic will still be used to see if the images are valid for the large image types and substitute smaller images when necessary. Valid arguments are: facebookSharedImage, facebookLinkSquareImage, facebookLinkRectangleImage, twitterInstreamImage, twitterInstreamMinimumImage, instagramImage, instagramMinimumImage, linkedInImage, linkedInMinimumImage, google16_9Image, google4_3Image, and google1_1Image. This argument must be present when creating google images.">
@@ -487,7 +487,7 @@
 
 	</cffunction>
 				
-	<cffunction name="getSocialMediaDestination" access="public" output="true" returnType="string" hint="Determines the destination to store the images for social media sharing.">
+	<cffunction name="getSocialMediaDestination" access="public" output="false" returnType="string" hint="Determines the destination to store the images for social media sharing.">
 		<cfargument name="socialMediaImagePath" required="yes" hint="Specify the path of the original image.">
 		<cfargument name="socialMediaPlatform" required="yes" hint="Specify the social media platform.">
 		<cfargument name="socialMediaImageType" required="no" default="" hint="Required for google images as we are creating 3 types. Not used for the other social media platforms.">
@@ -508,7 +508,7 @@
 		<cfreturn socialMediaDestination>
 	</cffunction>
 				
-	<cffunction name="ratioCalculator" access="public" output="true" returnType="numeric" hint="This is used to determine the new dimensions needed to fit a certain width while maintaining the specified aspect ratio. I am using this to determine how to resize an image to meet the aspect ratio used by varius social media sites.">
+	<cffunction name="ratioCalculator" access="public" output="false" returnType="numeric" hint="This is used to determine the new dimensions needed to fit a certain width while maintaining the specified aspect ratio. I am using this to determine how to resize an image to meet the aspect ratio used by varius social media sites.">
 		<cfargument name="aspectRatioWidth" required="yes" hint="Specify the original width of the image.">
 		<cfargument name="aspectRatioHeight" required="yes" hint="Specify the original height of the image.">
 		<cfargument name="newWidth" required="yes" hint="Specify the desired width of the new image.">
@@ -518,7 +518,7 @@
 		<cfreturn newHeight>
 	</cffunction>
 			
-	<cffunction name="centerCrop" access="public" output="true" returnType="string" hint="Used to crop an image with a desired size that is smaller both horizontally and vertically than the original image. This will crop the image from the center.">
+	<cffunction name="centerCrop" access="public" output="false" returnType="string" hint="Used to crop an image with a desired size that is smaller both horizontally and vertically than the original image. This will crop the image from the center.">
 		<cfargument name="imagePath" required="yes" hint="Provide either the full original path of the image, or the actual ColdFusion image using the newImage function.">
 		<cfargument name="originalWidth" required="yes" hint="Provide the original width of the image.">
 		<cfargument name="originalHeight" required="yes" hint="Provide the original width of the image.">
@@ -556,7 +556,7 @@
 			
 	</cffunction>
 			
-	<cffunction name="horizontalCrop" access="public" output="true" returnType="string" hint="Used to crop a horizontal image that has a horizontally size that is greater than the desired size of the new image. This will crop the image from the horizontal center.">
+	<cffunction name="horizontalCrop" access="public" output="false" returnType="string" hint="Used to crop a horizontal image that has a horizontally size that is greater than the desired size of the new image. This will crop the image from the horizontal center.">
 		<cfargument name="imagePath" required="yes" hint="Provide the full original path of the image.">
 		<cfargument name="originalHeight" required="yes" hint="Provide the original width of the image.">
 		<cfargument name="newHeight" required="yes" hint="Provide the desired height of the new cropped image.">

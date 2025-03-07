@@ -31,7 +31,7 @@
 			</cfif>
 			</cfsilent>
 			<!--- Cache this for a day --->
-			<cfcache action="cache" key="#cacheKey#" stripwhitespace="#application.stripWhiteSpace#" usequerystring="true" useCache="#application.useCache#" timespan="#createTimespan(1,0,0,0)#" expireURL="#application.baseUrl#/includes/flushCache.cfm">
+			<cfcache action="cache" key="#cacheKey#" timespan="#createTimespan(1,0,0,0)#" expireURL="#application.baseUrl#/includes/flushCache.cfm">
 				<cfinvoke component="#application.blog#" method="getPost" returnvariable="getPopularPosts">
 					<cfinvokeargument name="showPopularPosts" value="true">
 				</cfinvoke>
@@ -51,6 +51,7 @@
 						<cfif i lte arrayLen(getPopularPosts)>
 						<cfsilent>	
 						<!--- Preset vars --->
+						<cfset postId = ''>
 						<cfset promotedPost = ''>  
 						<cfset title = ''>
 						<cfset author = ''>
@@ -74,6 +75,7 @@
 
 						<!--- Get the data --->		
 						<cfset thisBlogId = 1>
+						<cfset postId = getPopularPosts[i]["PostId"]>
 						<cfset promotedPost = getPopularPosts[i]["Promoted"]>
 						<cfset title = getPopularPosts[i]["Title"]>
 						<cfset author = getPopularPosts[i]["FullName"]>
@@ -144,6 +146,7 @@
 						<cfif len(mediaId) and mediaType contains 'Video'>
 							<!--- Note: this will return an iframe. --->
 							<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
+								<cfinvokeargument name="postId" value="#getPopularPosts[i]['PostId']#">
 								<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
 								<cfinvokeargument name="mediaId" value="#mediaId#">
 								<cfinvokeargument name="providerVideoId" value="#providerVideoId#">
@@ -175,6 +178,7 @@
 							<cfif len(mediaUrl)>	
 								<!--- Render the video, this will return an iframe. --->
 								<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
+									<cfinvokeargument name="postId" value="#getPopularPosts[i]['PostId']#">
 									<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
 									<!--- Galaxie Directives don't have a mediaId or a providerVideoId --->
 									<cfinvokeargument name="mediaId" value="">
@@ -187,7 +191,7 @@
 									<cfinvokeargument name="renderMediumCard" value="false">
 									<cfinvokeargument name="showSidebar" value="#showSidebar#">
 								</cfinvoke> 
-								<cfdump var="#xmlKeywordStruct#">
+								<!---<cfdump var="#xmlKeywordStruct#">--->
 							</cfif>
 						</cfif>
 
@@ -265,7 +269,7 @@
 				</style>
 
 			</cfif><!---<cfif arrayLen(getPost)>--->
-		</cfcache><!---TODO --->
+		</cfcache>
 		</cfif><!---<cfif showPopularPosts>--->
 			</div>
 			
@@ -292,6 +296,8 @@
 				<cfif session.isMobile or showSidebar>
 					<cfset numColumns = 1>
 					<cfset loopCount = arrayLen(getPost)>
+
+
 					<cfset cardWidth = "100">
 					<cfset mainContainerWidth = 65>
 					<cfset buttonWidth = "155px">
@@ -421,6 +427,19 @@
 					<cfset enclosureMapId = getPost[i]["EnclosureMapId"]>
 					<!--- Get the enclosure carousel --->
 					<cfset enclosureCarouselId = getPost[i]["EnclosureCarouselId"]>
+						
+					<!--- Parent link logic- if the parent site is specified in the admin site, link it to the home button. Otherwise, link to the blog. --->
+					<cfif len(application.parentSiteLink)>
+						<cfset parentSite = true>
+						<cfset parentLink = application.parentSiteLink>
+						<cfset parentLabel = application.parentSiteName>
+						<cfset parentLoopIndex = 2>
+					<cfelse>
+						<cfset parentSite = false>
+						<cfset parentLink = application.blogHostUrl>
+						<cfset parentLabel = application.BlogDbObj.getBlogTitle()>
+						<cfset parentLoopIndex = 1>
+					</cfif>
 
 					<!--- Get the categories for this post. --->
 					<cfset getCategories = application.blog.getCategoriesByPostId(getPost[i]["PostId"])>
@@ -468,13 +487,14 @@
 					  "itemListElement": [{
 						"@type": "ListItem",
 						"position": 1,
-						"name": "#application.ParentSiteName#",
-						"item": "#application.parentSiteLink#"
-					  },{
+						"name": "#parentLabel#",
+						"item": "#parentLink#"
+					  },{<cfif parentSite>
 						"@type": "ListItem",
 						"position": 2,
 						"name": "Blog",
 						"item": "#application.blogHostUrl#"
+					  },{</cfif>
 					<cfloop from="1" to="#arrayLen(getCategories)#" index="i">
 						<cfsilent>
 						<cfset category = getCategories[i]["Category"]>
@@ -482,13 +502,12 @@
 						<cfset categoryLevel = getCategories[i]["CategorySubLevel"]>
 						<cfset categoryLink = application.blog.makeCategoryLink(categoryId)>
 						</cfsilent>
-					  },{
 						"@type": "ListItem",
-						"position": #round(categoryLevel+2)#,
+						"position": #round(categoryLevel+parentLoopIndex)#,
 						"name": "#category#",
 						"item": "#categoryLink#"
-					</cfloop>
-					  }]
+					<cfif i lt arrayLen(getCategories)> },{</cfif>
+					</cfloop>}]
 					}</cfoutput> 
 					</script>
 					<article>
@@ -507,8 +526,8 @@
 								<cfsilent><!--- Debugging: currentRow(i): #i# arrayLen(getPost): #arrayLen(getPost)# postId: #postId#<br/>---></cfsilent>
 							<cfif session.isMobile>
 								<p class="postDate">
-									<!-- We are using Kendo's 'k-primary' class to render the primary accent color background. The primay color is set by the theme that is declared. -->
-									<span class="month k-primary">#dateFormat(datePosted, "mmm")#</span>
+									<!--- We are getting the accent color to set the color in the month class instead of using Kendo's 'k-primary' class to render the primary accent color background. This is a change that I implemented chasing a perfect Google Lighthouse Score (background and foreground contrast issue ) --->
+									<span class="month">#dateFormat(datePosted, "mmm")#</span>
 									<span class="day k-alt">#day(datePosted)#</span>
 								</p>
 								<p class="postAuthor">
@@ -535,8 +554,8 @@
 									<tr>
 										<td style="vertical-align: top">
 											<p class="postDate">
-												<!-- We are using Kendo's 'k-primary' class to render the primary accent color background. The primay color is set by the theme that is declared. -->
-												<span class="month k-primary">#dateFormat(datePosted, "mmm")#</span>
+												<!--- We are getting the accent color to set the color in the month class instead of using Kendo's 'k-primary' class to render the primary accent color background. This is a change that I implemented chasing a perfect Google Lighthouse Score (background and foreground contrast issue ) --->
+												<span class="month">#dateFormat(datePosted, "mmm")#</span>
 												<span class="day k-alt">#day(datePosted)#</span>
 											</p>
 										</td>
@@ -544,8 +563,10 @@
 										<td>
 											<nav>
 												<ol class="cd-breadcrumb triangle">
-													<li><a href="<cfoutput>#application.parentSiteLink#</cfoutput>" aria-label="Home"><i class="fas fa-house" style="alignment-baseline:middle;"></i></a></li>
+													<li><a href="<cfoutput>#parentLink#</cfoutput>" aria-label="Home"><i class="fas fa-house" style="alignment-baseline:middle;"></i></a></li>
+												<cfif parentSite>
 													<li><a href="<cfoutput>#application.blogHostUrl#</cfoutput>"  aria-label="Blog">Blog</a></li>
+												</cfif>
 													<cfloop from="1" to="#arrayLen(getCategories)#" index="i">
 													<cfsilent>
 													<cfset category = getCategories[i]["Category"]>
@@ -642,14 +663,64 @@
 										<a href="#tagLink#" aria-label="#tagLink#" class="k-content" rel="noindex,nofollow">#tag#</a><cfif i lt arrayLen(getTags)>, </cfif> 
 									</cfloop>
 								</span>	
-								<!-- Create an empty rule -->
 								<h3 class="topContent"></h3>
 							</cfif><!---<cfif arrayLen(getTags)>--->
-								<cfsilent>
-								<!--- ********************************************************************************************
-									Comment interfaces (Disqus and Galaxie Blog)
-								**********************************************************************************************--->
-								</cfsilent>
+							<cfsilent>
+							<!--- ********************************************************************************************
+								Author Bio
+							**********************************************************************************************--->
+							<!--- Get the author from the user table --->
+							<cfset authorData = application.blog.getUser(userId=userId, includeSecurityCredentials=false)>
+							</cfsilent>
+							<!---<cfdump var="#authorData#">--->
+							<cfif len( authorData[1]["Biography"] ) >
+								<table align="center" class="k-content" width="100%" cellpadding="0" cellspacing="0" border="0">
+									<tr>
+										<td width="100">
+											<img src="<cfoutput>#authorData[1]['ProfilePicture']#</cfoutput>" title="<cfoutput>#authorData[1]['FullName']#</cfoutput> Profile" alt="<cfoutput>#authorData[1]['FullName']#</cfoutput> Profile" border="0" class="avatar avatar-64 photo" height="85" width="85" align="left">
+										</td>
+										<td>
+											<div class="author-bio k-content flexItem">
+												<h3 class="topContent"><cfoutput>#authorData[1]['FullName']#</cfoutput></h3>
+											</div>
+											<div class="author-bio k-content flexItem">
+											<cfif structKeyExists(authorData[1], "FacebookUrl") and len(authorData[1]['FacebookUrl'])>
+												<a href="<cfoutput>#authorData[1]['FacebookUrl']#</cfoutput>" aria-label="<cfoutput>#authorData[1]['FacebookUrl']#</cfoutput>" class="k-content"><button id="facebookUrl" aria-label="facebook" class="k-button" style="#kendoIconButtonStyle#">
+													&nbsp;<i class="fa-brands fa-facebook"></i>&nbsp;
+												</button></a>
+											</cfif><cfif structKeyExists(authorData[1], "LinkedInUrl") and len(authorData[1]['LinkedInUrl'])>
+												<a href="<cfoutput>#authorData[1]['LinkedInUrl']#</cfoutput>" aria-label="<cfoutput>#authorData[1]['LinkedInUrl']#</cfoutput>" class="k-content"><button id="linkedInUrl" aria-label="linkedIn" class="k-button" style="#kendoIconButtonStyle#">
+													&nbsp;<i class="fa-brands fa-linkedin"></i>&nbsp;
+												</button></a>
+											</cfif><cfif structKeyExists(authorData[1], "InstagramUrl") and len(authorData[1]['InstagramUrl'])>
+												<a href="<cfoutput>#authorData[1]['InstagramUrl']#</cfoutput>" aria-label="<cfoutput>#authorData[1]['InstagramUrl']#</cfoutput>" class="k-content"><button id="instagramUrl" aria-label="instagram" class="k-button" style="#kendoIconButtonStyle#">
+													&nbsp;<i class="fa-brands fa-instagram"></i>&nbsp;
+												</button></a>
+											</cfif><cfif structKeyExists(authorData[1], "TwitterUrl") and len(authorData[1]['InstagramUrl'])>
+												<a href="<cfoutput>#authorData[1]['TwitterUrl']#</cfoutput>" aria-label="<cfoutput>#authorData[1]['InstagramUrl']#</cfoutput>" class="k-content"><button id="twitterUrl" aria-label="twitter" class="k-button" style="#kendoIconButtonStyle#">
+													&nbsp;<i class="fa-brands fa-twitter"></i>&nbsp;
+												</button></a>
+											</cfif><cfif structKeyExists(authorData[1], "DisplayEmailOnBio") and authorData[1]["DisplayEmailOnBio"]>
+												<a href="mailto:<cfoutput>#authorData[1]['Email']#</cfoutput>" aria-label="mailto:<cfoutput>#authorData[1]['Email']#</cfoutput>" class="k-content"><button id="email" aria-label="email" class="k-button" style="#kendoIconButtonStyle#">
+													&nbsp;<i class="fa-solid fa-envelope"></i>&nbsp;
+												</button></a>
+											</cfif>
+											</div>
+										</td>
+									</tr>
+									<tr>
+										<td colspan="2">
+											<cfoutput>#authorData[1]["Biography"]#</cfoutput>
+										</td>
+									</tr>
+								</table>
+								<h3 class="topContent"></h3>
+							</cfif><!---<cfif len( authorData[1]["Biography"] ) >--->
+							<cfsilent>
+							<!--- ********************************************************************************************
+								Comment interfaces (Disqus and Galaxie Blog)
+							**********************************************************************************************--->
+							</cfsilent>
 							<!-- Button navigation. -->
 							<!-- Set a smaller font in the kendo buttons. Note: adjusting the .k-button class alone also adjusts the k-input in the multi-select so we will set it here.-->
 							<cfif allowComment>
@@ -719,12 +790,11 @@
 								</cfsilent>
 
 								<cfif len(commentCount) gt 0 and not application.includeDisqus>
-
 									<!-- Comments that are shown when the user clicks on the arrow button to open the container. -->
 									<div id="comment#postId#" class="widget k-content" style="display:none;"> 
 										<table cellpadding="3" cellspacing="0" border="0" class="fixedCommentTable">
 										 <tr width="100%">
-										 <!---<cftry>--->
+										 <cftry>
 										 <!--- Get the comments and loop through them. --->
 										 <cfset comments = application.blog.getComments(postId)>
 										 <cfparam name="commentLoopCount" default="1">
@@ -739,7 +809,6 @@
 										 <cfset commenterWebsite = comments[i]["CommenterWebsite"]>
 										 <cfset commentDatePosted = comments[i]["DatePosted"]>
 										 </cfsilent>
-
 										 <!--- Note: the URL is appended with an extra 'c' in front of the commentId. --->
 										 <tr id="c#CommentId#" name="" class="<cfif commentLoopCount mod 2>k-content<cfelse>k-alt</cfif>">
 											<td class="fixedCommentTableContent">
@@ -769,35 +838,24 @@
 									 </cfif>
 									 <cfset commentLoopCount = commentLoopCount + 1>
 								</cfloop>
-									 <!---<cfcatch type="any">
+									 <cfcatch type="any">
 										<tr>
 											<td>
 												#cfcatch.detail#
 											</td>
 										</tr>
 									 </cfcatch>
-									 </cftry>--->
+									 </cftry>
 									</table>
 								</div><!---<div id="comment#CommentId#" class="widget k-content" style="display:none;">--->
 							</cfif><!---<cfif application.includeDisqus>--->
-
 							</span><!---<span class="innerContentContainer">--->
 						</div><!---<div class="blogPost">--->
 					</article>
 				</cfoutput></cfloop><!---<cfloop from="1" to="#arrayLen(getPost)#" index="i">--->
 			</cfif><!---<cfif condensedGridView>--->
 		</cfif><!---<cfif arrayLen(getPost)>--->					
-			<a href="#chr(35)#" id="pagerAnchor" aria-label="Pager+"></a>
-			<cfsilent>
-			<!--- ********************************************************************************************************
-				Add social media icons when there is only one entry
-			**********************************************************************************************************--->
-			</cfsilent>					
-		<cfif addSocialMediaUnderEntry>
-			<p class="bottomContent">
-				<!-- AddThis is depracated. --> 
-			</p>
-		</cfif><!---<cfif addSocialMediaUnderEntry>--->
+			<a href="#chr(35)#" id="pagerAnchor" aria-label="Pager+"></a>			
 			<cfsilent>
 			<!--- *******************************************************************************************************
 				Pagination 
@@ -899,11 +957,16 @@
 				</div><!---<div class="blogPost">--->
 			</cfif><!---<cfif articles.recordcount eq 0>--->
 		</div><!---blogContent--->
-		<!--- Side bar is to the right of the main panel container. It is also used as a responsive panel below when the screen size is small. We will not include it if the break point is not 0 or is equal or above 50000 --->
+	<cfsilent>
+	<!---//***************************************************************************************************************
+				Sidebar div
+	In classic mode, the side bar div is always displayed on the right side of the blog page. It is also used as a responsive panel on desktop devices when the screen size is small. We will not include it if the break point is not 0 or is equal or above 50000. If the chosen theme type is classic, this get's loaded first and then the panel below gets loaded. If the device is mobile or the theme is a modern theme, this sidebar does not exist.
+	//****************************************************************************************************************--->
+	</cfsilent>	
 	<cfif breakpoint gt 0>
 		<div id="sidebar">
-			<!---Suppply the sideBarType argument before loading the side bar--->
-			<cfmodule template="#application.baseUrl#/includes/layers/sidebar.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#" kendoTheme="#kendoTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
+			<!--- Make sure to supply the sidebar type. This is a duplicate sidebar when using desktop and the theme type is classic --->
+			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#" themeId="#themeId#" kendoTheme="#kendoTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 		</div><!---<nav id="sidebar">--->
 		</cfif>
 	</div><!---<div class="mainPanel hiddenOnNarrow">--->
@@ -911,13 +974,13 @@
 	<cfsilent>
 	<!---//***************************************************************************************************************
 				Sidebar panel
+	This sidebar panel is always a fly-out panel on the left of the page. This panel is a duplicate of the sidebar div when the theme type is classic. If the theme type is modern or when the device is mobile, this is the only panel on the page. This panel is invoked when the user clicks on the hamburger icon in the menu at the top of the page.
 	//****************************************************************************************************************--->
 	</cfsilent>		
-	<!--- Side bar is to the right of the main panel container. It is also used as a responsive panel below when the screen size is small. --->
 	<nav id="sidebarPanel" class="k-content">
 		<div id="sidebarPanelWrapper" name="sidebarPanelWrapper" class="flexScroll">
-			<!---Suppply the sideBarType argument before loading the side bar--->
-			<cfmodule template="#application.baseUrl#/includes/layers/sidebar.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#" kendoTheme="#kendoTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
+			<!--- Make sure to suppply the sideBarType argument. DIV --->
+			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#" themeId="#themeId#" kendoTheme="#kendoTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 		</div>
 	</nav><!---<nav id="sidebar">--->
 	<!--- This script must be placed underneath the layer that is being used in order to effectively work as a flyout menu.--->
