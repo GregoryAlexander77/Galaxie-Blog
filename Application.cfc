@@ -1,6 +1,6 @@
-<cfcomponent displayname="GalaxieBlog4" sessionmanagement="yes" clientmanagement="yes" output="false">
+<cfcomponent displayname="GalaxieBlog4_1" sessionmanagement="yes" clientmanagement="yes" output="false">
 	<cfsetting requesttimeout="60">
-	<cfset this.name = "GalaxieBlog4" /> 
+	<cfset this.name = "GalaxieBlog4_1" /> 
 	<!--- Preserve the case for database columns --->
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
@@ -890,7 +890,7 @@
 		<cfelse>
 			<cftry>
 				<!--- Note: we need to eliminate https from the root URL if it exists. I ran into errors trying this with https (a cryptic certificate error). --->
-				<cfset thisUrl = replaceNoCase(application.siteUrl, "https", "http")>
+				<cfset thisUrl = replaceNoCase(application.blogHostUrl, "https", "http")>
 				<!--- The headerBodyDivider image is a tiny .webp image (around 1k). We are going to read this, and if it was found and the mime type is correct, we will assumed that the mime type is correct. Otherwise, we will determine that the server does not support the webp mime type. --->
 				<cfhttp method="get" URL="#thisUrl#/images/divider/headerBodyDivider.webp">
 
@@ -944,4 +944,4 @@
 		<!--- Do nothing --->
 	</cffunction>
 	
-</cfcomponent>
+</cfcomponent>get

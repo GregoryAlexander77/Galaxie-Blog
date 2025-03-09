@@ -2244,7 +2244,7 @@
 										   	<tr>
 												<td align="center" valign="top" style="padding: 0 0 10px;">
 													 <!--- Full width image (no LR padding) --->
-													 <a href="http://<cfoutput>#application.blogDomain##mediaUrl#</cfoutput>" target="_blank"><img src="http://<cfoutput>#application.blogDomain##mediaUrl#</cfoutput>" class="fadeimg" width="<cfoutput>#maxWidth#</cfoutput>" height="400" alt="<cfoutput>#arguments.emailTitle#</cfoutput>" style="width: 100%; max-width: <cfoutput>#maxWidth#px</cfoutput>px; height: auto;" /></a>
+													 <a href="http://<cfoutput>#application.blogHostUrl##mediaUrl#</cfoutput>" target="_blank"><img src="http://<cfoutput>#application.blogHostUrl##mediaUrl#</cfoutput>" class="fadeimg" width="<cfoutput>#maxWidth#</cfoutput>" height="400" alt="<cfoutput>#arguments.emailTitle#</cfoutput>" style="width: 100%; max-width: <cfoutput>#maxWidth#px</cfoutput>px; height: auto;" /></a>
 												</td>
 										   	</tr>
 										</cfif><!---<cfif len(arguments.mediaUrl)>--->
