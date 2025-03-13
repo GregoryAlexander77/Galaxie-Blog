@@ -53,7 +53,20 @@
 		<cfset promptEmailTitle = "Do you want to email the post?">
 		<cfset promptEmailMessage = "Do you want to send this post out to your subscribers?">
 	</cfif>
-
+			
+	<!--- When a post is being removed, we will warn the user that the post will be removed. If the user accepts, we will prompt the user again to ask them if they want to redirect the URL. --->
+	<cfset postRemoved = getPost[1]['Remove']>
+	<cfset postRedirectUrl = getPost[1]['RedirectUrl']>
+	<cfset postRedirectType = getPost[1]['RedirectType']>
+		
+	<cfif postRemoved>
+		<cfif len(postRedirectUrl)>
+			<cfset postRemovedHtml = '<div class="k-block k-error-colored" align="left"><p>This post has been removed and there is a <a href="javascript:promptForUrlRedirect()">#postRedirectType# URL redirect</a> in place.</p><p>You may permanently <a href="javascript:deletePost();">delete it</a>, however, doing so will delete the redirect as well.</p></div>'>
+		<cfelse>
+			<cfset postRemovedHtml = '<p class="k-block k-error-colored" align="left">This post has been removed. You may permanently <a href="javascript:deletePost();">delete it</a>.</p>'>
+		</cfif>
+	</cfif>
+	
 	<!--- Render the thumnbail HTML. Pass in the getPost obj and if you want to render the thumbnail --->
 	<cfset thumbnailHtml = RendererObj.renderMediaPreview(kendoTheme, getPost, true)>
 		
@@ -159,9 +172,6 @@
 			
 			// Set a var to determine if the post has been released. We also want to check the dates when the post is first released, but not afterward
 			var postReleased = <cfif getPost[1]["Released"]>true<cfelse>false</cfif>;
-			
-			
-			
 			var todaysDate = new Date(); 
 			// Are the post dates and sort dates the same? If so, we are assuming that the two dates are identical when suggesting a date change. If they are different dates, we will leave the sort date alone when suggesting dates.
 			var originalPostDate = <cfoutput>#application.Udf.jsDateFormat(getPost[1]['DatePosted'])#</cfoutput>;
@@ -451,7 +461,7 @@
 			postDetailSubmit.on('click', function(e){  
                 e.preventDefault();         
 				if (postDetailFormValidator.validate()) {
-					
+					<cfif !postRemoved><!--- We don't want to ask if the post should be removed when it already is removed --->
 					 if ( ($('#remove').is(':checked')) ) {
 						// Raise a warning if the user chose to remove or make something as spam
 						// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
@@ -464,25 +474,51 @@
 						})
 						).done(function (response) { // If the user clicked 'yes', post it.
 							if (response['button'] == 'Yes'){// remember that js is case sensitive.
-								// Post it
-								verifyPostEmail('update');
-								//postDetails('update');
+								// Raise a dialog asking the admin if they want to send email to subscribers
+								promptForUrlRedirect('update');
 							}//..if (response['button'] == 'Yes'){
 						});
 					} else {
-						// submit the form.
-						// Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post.
-						// alert('posting');
+						// Raise a dialog asking the admin if they want to send email to subscribers
 						verifyPostEmail('update');
 					}
-				} else {
+					<cfelse><!---<cfif !postRemoved>--->
+					// Raise a dialog asking the admin if they want to send email to subscribers
+					verifyPostEmail('update');
+					</cfif><!---<cfif !postRemoved>--->
+				} else { //if (postDetailFormValidator.validate()) {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Required fields have not been filled out. Please correct the highlighted fields and try again", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
 						// Do nothing
 					});
-				}
+				}//if (postDetailFormValidator.validate()) {
 			});
 		});//...document.ready
+		
+		function promptForUrlRedirect(action){
+			// If the post is released and it removed, prompt to see if we should create a URL redirect
+			if ( $('#released').is(':checked') && $('#remove').is(':checked') ){
+				$.when(kendo.ui.ExtYesNoDialog.show({ 
+					title: "Create URL Redirect?",
+					message: "Do you want to redirect this post to another URL?",
+					icon: "k-ext-question",
+					width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
+					height: "215px"
+				})
+				).done(function (response) { // If the user clicked 'yes'
+					if (response['button'] == 'Yes'){// remember that js is case sensitive.
+						// Open a new interface to enter the new URL 
+						createAdminInterfaceWindow(56,<cfoutput>#getPost[1]['PostId']#</cfoutput>)
+					} else {
+						// postDetails(action, sendEmail)
+						postDetails('update', false);
+					}//..if (response['button'] == 'Yes'){
+				});//..if ($('#released').is(':checked')){
+			} else {
+				// postDetails(action, sendEmail)
+				postDetails('update', false);
+			}
+		}
 		
 		function verifyPostEmail(action){
 			// Create a var to determine whether we sould prompt the user to email
@@ -542,6 +578,8 @@
 					allowComment: $('#allowComment').is(':checked'), // checkbox boolean value.
 					promote: $('#promote').is(':checked'), // checkbox boolean value.
 					remove: $('#remove').is(':checked'), // checkbox boolean value.
+					redirectUrl: $("#redirectUrl").val(),
+					redirectType: $("#redirectType").val(),
 					description: $('#description').val(), 
 					// We are storing the post categories in a hidden field in order to preserve the selected category order
 					postCategories: $("#selectedPostCategories").val(),
@@ -600,7 +638,7 @@
 			}//..if (JSON.parse(response.success) == true){
 		}
 		
-	<cfif getPost[1]['Remove']>	
+	<cfif postRemoved>	
 		function deletePost(){
 
 			jQuery.ajax({
@@ -751,6 +789,10 @@
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
 	<!--- We need to store the categories since the postCategories Kendo multiselect widget does not pass them in order --->
 	<input type="hidden" name="selectedPostCategories" id="selectedPostCategories" value="<cfoutput>#thisSelectedCategoryIdList#</cfoutput>" />
+	<!--- Redirects. These values are only used when the post is being removed and there is a new URL --->
+	<input type="hidden" name="redirectUrl" id="redirectUrl" value="<cfoutput>#getPost[1]['RedirectUrl']#</cfoutput>" />
+	<!--- We need to store the categories since the postCategories Kendo multiselect widget does not pass them in order --->
+	<input type="hidden" name="redirectType" id="redirectType" value="<cfoutput>#getPost[1]['RedirectType']#</cfoutput>" />
 	
 	<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0">
 	  <cfsilent>
@@ -760,20 +802,20 @@
 		<cfset thisColSpan = "2">
 	  </cfsilent>
 	<!--- Delete post interface (only shows up when a post is removed) --->
-	<cfif getPost[1]['Remove']>	
+	<cfif postRemoved>	
 	  <tr height="1px">
 		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
     <cfif session.isMobile or session.isTablet>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<p class="k-block k-error-colored" align="left">This post has been removed. You may permanently <a href="javascript:deletePost();">delete it</a>.</p>
+			<cfoutput>#postRemovedHtml#</cfoutput>
 		</td>
 	   </tr>
 	<cfelse><!---<cfif session.isMobile or session.isTablet>--->
 	  <tr>
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<p class="k-block k-error-colored" align="left">This post has been removed. You may permanently <a href="javascript:deletePost();">delete it</a>.</p>
+			<cfoutput>#postRemovedHtml#</cfoutput>
 		</td>
 	  </tr>
 	</cfif><!---<cfif session.isMobile or session.isTablet>--->

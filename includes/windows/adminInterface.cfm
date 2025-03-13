@@ -727,12 +727,18 @@ TinyMce styles
 //********************************************************************************************************************--->
 			
 <cfcase value=55>
-	
 	<!--- Instantiate the sting utility object.. We are using this to remove empty strings from the code preview windows. --->
 	<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
-		
 	<!--- Not used yet --->
 			
+</cfcase>
+	
+<!--- //************************************************************************************************
+		Content Template Editor
+//**************************************************************************************************--->
+				
+<cfcase value=56>
+	<cfinclude template="../../admin/adminInterface/postUrlRedirect.cfm"> 			
 </cfcase>
 			
 </cfswitch>	

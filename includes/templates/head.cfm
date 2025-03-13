@@ -183,7 +183,7 @@
  	<!--- The jQuery script can't be defered as the Kendo controls won't work. Wa're using jQuery 1.2. Later jQuery versions don't work with Kendo UI core unfortunately. --->
 <cfif application.kendoCommercial>
 	<!--- Use the 3.5.1 version if using commercial. --->
-	<script
+	<script rel="preconnect"
   		src="https://code.jquery.com/jquery-3.5.1.min.js"
   		integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
   		crossorigin="anonymous"></script>
@@ -196,7 +196,7 @@
 	  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
 	  crossorigin="anonymous"></script>
 	--->
-	<script
+	<script rel="preconnect"
 	  src="#application.jQueryCDNPath#"
 	  crossorigin="anonymous"></script>
 </cfif>

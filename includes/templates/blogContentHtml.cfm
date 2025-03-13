@@ -861,9 +861,9 @@
 				Pagination 
 			**********************************************************************************************************--->
 			</cfsilent>
-			<!---  
+			<!---  --->
 			Debugging: <cfoutput>url.startRow: #url.startRow# maxEntries: #maxEntries# arrayLen(getPost): #arrayLen(getPost)# URL.startRow + maxEntries: #round(URL.startRow + maxEntries)#</cfoutput>
-			<cfdump var="#getPost#">--->
+			<cfdump var="#getPost#">
 			<cfif (URL.startRow gt 1) or (arrayLen(getPost) gte maxEntries)>
 				<cfsilent>
 				<!--- Get the number of pages --->

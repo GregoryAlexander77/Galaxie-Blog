@@ -18,15 +18,28 @@ Get the post count (getPostCount(params,showRemovedPosts))
 	<cfset showPendingPosts = false>
 </cfif>
 
+<!--- Note: a post may be removed and have a redirect to another URL. We need to allow for removed posts to get the redirect if it exists. --->
 <!--- Get the posts ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ) --->
-<cfset getPost = application.blog.getPost(params, showPendingPosts, false, true, true)>
-
+<cfset getPost = application.blog.getPost(params, showPendingPosts, true, true, true)>
+	
 <!--- Determine if the post was found --->
 <cfif arrayLen(getPost) eq 0>
 	<cfset postFound = false>
 <cfelse>
 	<cfset postFound = true>
 </cfif>
+	
+<cfif postFound>
+	<!--- See if there is a redirect --->
+	<cfset redirectUrl = getPost[1]["RedirectUrl"]>
+	<!--- Get the themes. This is a HQL array --->
+	<cfset redirectType = getPost[1]["RedirectType"]>
+	<cfif len(redirectUrl)>
+		<!--- Redirect the URL with the status code --->
+		<cflocation url="#redirectUrl#" statusCode="#redirectType#">
+	</cfif>
+</cfif>
+
 <!--- 
 Debugging: 
 <cfdump var="#params#" label="params">

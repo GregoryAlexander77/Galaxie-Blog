@@ -407,15 +407,17 @@
 		<!--- Get the path to the Kendo UI folder. --->
 		<cfset application.kendoFolderPath = application.BlogOptionDbObj.getKendoFolderPath()>
 
-		<!--- Kendo version (is Kendo the open source or commercial version?) default on the open source blog is true. --->
+		<!--- Kendo version (is Kendo the open source or commercial version?) default on the open source blog, Kendo Core, is true. --->
 		<cfif application.kendoCommercial>
-			<cfset application.kendoOpensource = "false">
 			<!--- The location of the commercial Kendo is the application.kendoFolderPath.  --->
 			<cfset kendoSourceLocation = application.kendoFolderPath>
 		<cfelse>
-			<!--- Point to the embedded Kendo Core folder. --->
-			<cfset application.kendoOpensource = "true">
-			<cfset kendoSourceLocation = getBaseUrl() & "/common/libs/kendoCore">
+			<cfif len(application.kendoFolderPath)>
+				<cfset kendoSourceLocation = application.kendoFolderPath>
+			<cfelse>
+				<!--- Point to the embedded Kendo Core folder. --->
+				<cfset kendoSourceLocation = getBaseUrl() & "/common/libs/kendoCore/">
+			</cfif>
 		</cfif>
 		
 		<!--- Kendo library locations --->

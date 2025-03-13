@@ -1478,7 +1478,7 @@
 			
 			<!--- Note: we are not including the script tags. These tags will be different depending upon if there are multiple maps or not. This will be handed by a different function. We are just rendering common elements here. --->
 			<cfsavecontent variable="staticMapHtml">
-						#commonMapHtml#
+						<cfoutput>#commonMapHtml#</cfoutput>
 
 						// Create a center variable for the pushpin
 						var center<cfoutput>#arguments.mapId#</cfoutput> = map<cfoutput>#arguments.mapId#</cfoutput>.getCenter();
@@ -1525,7 +1525,7 @@
 			<cfset Data = application.blog.getMapRoutesByMapId(mapId)>
 			
 			<cfsavecontent variable="MapRouteHtml">
-						#commonMapHtml#
+						<cfoutput>#commonMapHtml#</cfoutput>
 
 						// Routes for map#arguments.mapId# ***************************************
 						Microsoft.Maps.loadModule('Microsoft.Maps.Directions', function () {
@@ -2561,6 +2561,7 @@
 			<cfset articleImage = google4_3Url>
 		<cfelseif isDefined("google1_1ThumbnailPath") and len(google1_1ThumbnailPath)>
 			<cfset articleImage = google1_1ThumbnailPath>	
+
 		<cfelse>
 			<cfset articleImage = "">	
 		</cfif>

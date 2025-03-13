@@ -707,6 +707,11 @@
 				var windowTitle = "Content Template Properties";
 				var windowHeight = "85%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+			} else if (Id == 56){
+				var windowName = "postUrlRedirectWindow";
+				var windowHeight = "40%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>33%</cfif>";
+				var windowTitle = "Post URL Redirect";
 			}
 			
 			// Remove the window if it already exists

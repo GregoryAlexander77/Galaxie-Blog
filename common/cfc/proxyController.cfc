@@ -3066,6 +3066,8 @@
 			
 		<cfinvoke component="#application.blog#" method="getPosts" returnvariable="Data">
 			<!--- Note: the following options are used on the open source jsGrid. The Kendo commercial grid has client side filtering and these are not used. --->			
+			<!--- We always want to show removed posts on this grid --->
+			<cfinvokeargument name="showRemovedPosts" value="true"/>
 			<cfif arguments.user neq ''>
 				<cfinvokeargument name="user" value="#arguments.user#"/>
 			</cfif>
@@ -3677,12 +3679,12 @@
 		<!--- If the postId is passed, the function will update the post table. Otherwise it is an insertion. --->
 		<cfargument name="postId" type="string" default="" required="false">
 		<cfargument name="postAlias" type="string" default="" required="false">
-		<cfargument name="datePosted" type="string" required="true">
-		<cfargument name="timePosted" type="string" required="true">
-		<cfargument name="blogSortDate" type="string" required="true">
-		<cfargument name="blogSortDateChanged" type="string" required="true">
-		<cfargument name="author" type="string" default="" required="true" hint="This will be the userId of the author">
-		<cfargument name="title" type="string" default="" required="true">
+		<cfargument name="datePosted" type="string" required="false">
+		<cfargument name="timePosted" type="string" required="false">
+		<cfargument name="blogSortDate" type="string" required="false">
+		<cfargument name="blogSortDateChanged" type="string" required="false">
+		<cfargument name="author" type="string" default="" required="false" hint="This will be the userId of the author">
+		<cfargument name="title" type="string" default="" required="false">
 		<cfargument name="changeTitleAndLink" type="string" default="false" required="false">
 		<cfargument name="description" type="string" default="" required="true">
 		<cfargument name="themeId" type="string" default="0" required="false">
@@ -3699,6 +3701,8 @@
 		<cfargument name="allowComment" type="boolean" default="true" required="no">
 		<cfargument name="promote" type="boolean" default="false" required="no">
 		<cfargument name="remove" type="boolean" default="false" required="no">
+		<cfargument name="redirectUrl" type="string" required="false" default="">
+		<cfargument name="redirectType" type="string" required="false" default="">
 		<cfargument name="emailSubscriber" required="no" default="true" hint="Determines whether to email the subscribers">
 			
 		<cfparam name="error" type="boolean" default="false">
@@ -3809,6 +3813,8 @@
 					<cfinvokeargument name="allowComment" value="#arguments.allowComment#">
 					<cfinvokeargument name="promote" value="#arguments.promote#">
 					<cfinvokeargument name="remove" value="#arguments.remove#">
+					<cfinvokeargument name="redirectUrl" value="#arguments.redirectUrl#">
+					<cfinvokeargument name="redirectType" value="#arguments.redirectType#">
 					<cfinvokeargument name="emailSubscriber" value="#arguments.emailSubscriber#">
 				</cfinvoke>
 				

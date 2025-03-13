@@ -53,7 +53,7 @@ Note: the following logic should not be cached as each theme may return a differ
 				</p>
 				<p>
 				<cfif application.serverProduct eq 'Lucee'>
-					<a href="https://www.viviotech.net/"><img src="<cfoutput>#application.baseUrl#</cfoutput>/images/logo/viviotech/vivioTechSmallLogo.png" alt="Lucee Linux Hosting provided by www.viviotech.net"></a>
+					<a href="https://www.viviotech.net/"><img src="<cfoutput>#application.baseUrl#</cfoutput>/images/logo/viviotech/vivioTechSmallLogo.<cfif application.serverSupportsWebP>webp<cfelse>png</cfif>" alt="Lucee Linux Hosting provided by www.viviotech.net"></a>
 				<cfelse>
 					<a href="https://www.media3.net"><img src="<cfoutput>#application.baseUrl#</cfoutput>/images/logo/m3/m3-cloud-logo-hosting-small.gif" alt="ColdFusion Windows Hosting provided by www.media3.net"></a>
 				</cfif>

@@ -41,6 +41,8 @@
 	<cfproperty name="Promote" ormtype="boolean" default="false">
 	<cfproperty name="AllowComment" ormtype="boolean" default="true">
 	<cfproperty name="Remove" ormtype="boolean" default="false">
+	<cfproperty name="RedirectUrl" ormtype="string" length="250" default="" hint="A post can be redirected when removed">
+	<cfproperty name="RedirectType" ormtype="string" length="35" default="" hint="Either permanent or tempoary">
 	<cfproperty name="NumViews" ormtype="int" default="0">
 	<cfproperty name="Mailed" ormtype="boolean" default="false">
 	<cfproperty name="BlogSortDate" ormtype="timestamp" default="" hint="This is used change the sort order of the articles on the main blog.">

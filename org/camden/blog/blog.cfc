@@ -2102,6 +2102,9 @@
 			<cfset theme = URL.theme>
 		<cfelseif isDefined("cookie.theme")>
 			<cfset theme = cookie.theme>
+		<cfelseif application.serverProduct eq 'Lucee'>
+			<!--- With Lucee, I want the default theme to be abstract blue if the theme is not selected. --->
+			<cfset theme = "abstract-blue">
 		<cfelse>
 			<!--- Get a random theme by the day. --->
 			<cfset theme = getThemeAliasByDay()>
@@ -2109,7 +2112,7 @@
 
 		<!--- Safety check in case something goes wrong. --->
 		<cfif theme eq "">
-			<cfset theme = "zion">
+			<cfset theme = "delicate-arch">
 		</cfif>
 
 		<!--- Return it --->
@@ -3337,6 +3340,8 @@
 		<cfargument name="googleFont" type="string" default="" required="false">
 		<cfargument name="selfHosted" type="string" default="" required="false">
 		<cfargument name="useFont" type="string" default="" required="false"> 
+
+
 			
 		<cfparam name="fontAlias" type="string" default="">
 			
@@ -3652,6 +3657,7 @@
 						AND Released = 1
 						AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 						AND Category.BlogRef = #application.BlogDbObj.getBlogId()#
+
 					GROUP BY  
 						CategoryId			
 				</cfquery>
@@ -4941,6 +4947,7 @@
 				PostTagLookup.PostRef = #thisPostId#
 				AND PostTagLookup.TagRef NOT IN (#thisTagIdList#)
 				AND Post.BlogRef = #thisBlogId#		
+
 		</cfquery>
 
 		<!--- Loop through the recordset and delete these records in the PostTagLookup table. Unfortunately there is no clean way that I know of to get a value list from an Orm query, so we will do this one by one. --->
@@ -5165,6 +5172,7 @@
 			</cfquery>
 			
 		</cftransaction>
+
 
 		<cfreturn Data>
 
@@ -6786,7 +6794,8 @@
 		<cfargument name="moreBody" required="no" default="">
 		<cfargument name="numViews" required="no" default="">
 		<cfargument name="posted" required="no" default="">
-			
+		<cfargument name="showRemovedPosts" type="boolean" required="false" default="false">
+		
 		<cfset var Data = []>
 			
 		<!--- **********************************************************************************************
@@ -6852,7 +6861,9 @@
 			<cfif posted neq "">
 				AND date(Post.DatePosted) = <cfqueryparam value="#arguments.datePosted#" cfsqltype="cf_sql_date">
 			</cfif>
+			<cfif !showRemovedPosts>
 				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+			</cfif>
 			ORDER BY 
 				Post.BlogSortDate DESC,
 				Post.DatePosted DESC, 
@@ -6914,7 +6925,6 @@
 			<cfset arguments.params.maxEntries = 12>
 		</cfif>
 		
-			
 		<!--- Preset vars. --->
 		<cfset var getComments = "">
 		<cfset var getCategories = "">
@@ -7049,6 +7059,8 @@
 				Post.JsonLd as JsonLd,
 			</cfif>
 				Post.Remove as Remove,
+				Post.RedirectUrl as RedirectUrl,
+				Post.RedirectType as RedirectType,
 				Enclosure.MediaId as MediaId,
 				Enclosure.MediaTitle as MediaTitle,
 				Enclosure.MediaPath as MediaPath,
@@ -7238,6 +7250,17 @@
 					</cfif>
 				</cfif>
 				<cfset PostStruct["Remove"] = Data[i]["Remove"]>
+				<!--- The PostRedirect and redirectType may be null --->
+				<cfif structKeyExists(postRow, "RedirectUrl")>
+					<cfset PostStruct["RedirectUrl"] = Data[i]["RedirectUrl"]>
+				<cfelse>
+					<cfset PostStruct["RedirectUrl"] = "">
+				</cfif>
+				<cfif structKeyExists(postRow, "RedirectType")>
+					<cfset PostStruct["RedirectType"] = Data[i]["RedirectType"]>
+				<cfelse>
+					<cfset PostStruct["RedirectType"] = "">
+				</cfif>
 				<!--- The post header may be null as well --->
 				<cfif structKeyExists(postRow, "PostHeader")>
 					<cfset PostStruct["PostHeader"] = Data[i]["PostHeader"]>
@@ -7649,6 +7672,8 @@
 		<cfargument name="released" type="boolean" required="false" default="true">
 		<cfargument name="promote" type="boolean" required="false" default="false">
 		<cfargument name="remove" type="boolean" required="false" default="false">
+		<cfargument name="redirectUrl" type="string" required="false" default="">
+		<cfargument name="redirectType" type="string" required="false" default="">
 		<cfargument name="postCategories" type="string" required="false" default="">
 		<cfargument name="postTags" type="string" required="false" default="">
 		<cfargument name="relatedPosts" type="string" required="false" default="">
@@ -7660,7 +7685,7 @@
 		</cfif>
 			
 		<!--- We need to inspect this post to determine if it had been released ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ). --->
-		<cfset getPost = application.blog.getPostByPostId(arguments.postId,true,false)>
+		<cfset getPost = application.blog.getPostByPostId(arguments.postId,true,true)>
 		<!---<cfdump var="#getPost#" label="getPost"><br/>--->
 			
 		<!--- Only certain authorized users may release a post. However, we don't  want to change a currently released post if the editor changed some of the text. Note: the session.capabilityList will not be present when importing data from a previous blog version. --->
@@ -7684,7 +7709,7 @@
 			<!--- Sync the alias and title --->
 			<cfset postAlias = application.blog.makeAlias(arguments.title)>
 		<cfelse>
-			<!--- Use the previous post alias for the link --->
+			<!--- Use the previous post alias for the link. If there is an error here it generally means that the getPost method did not return a post. Check the arguments for the getPost function above. --->
 			<cfset postAlias = getPost[1]["PostAlias"]>
 		</cfif>
 			
@@ -7747,6 +7772,12 @@
 			<cfset PostDbObj.setAllowComment(arguments.allowcomments)>
 			<cfset PostDbObj.setPromote(arguments.promote)>	
 			<cfset PostDbObj.setRemove(arguments.remove)>
+			<cfif len(arguments.redirectUrl)>
+				<cfset PostDbObj.setRedirectUrl(arguments.redirectUrl)>
+			</cfif>
+			<cfif len(arguments.redirectType)>
+				<cfset PostDbObj.setRedirectType(arguments.redirectType)>
+			</cfif>
 			<cfif isNumeric(arguments.numViews)>
 				<cfset PostDbObj.setNumViews(arguments.numViews)>
 			</cfif>
@@ -9565,6 +9596,12 @@
 
 		<cfreturn Data>
 		
+	</cffunction>
+					
+	<cffunction name="getBlogOwner" access="public" returnType="array" output="false" 
+			hint="Returns the user information for the blog owner">
+		<cfset blogOwner = this.getUser(userName=application.blogOwner)>
+		<cfreturn blogOwner>
 	</cffunction>
 				
 	<cffunction name="getUsers" access="public" returnType="array" output="false" 
