@@ -629,7 +629,7 @@ This section has been completely redesigned by Gregory --->
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->
 		</cfoutput>
-		<cfif ( application.useCaptcha and not application.Udf.isLoggedIn() ) or 1 eq 1>
+		<cfif ( application.useCaptcha and not application.Udf.isLoggedIn() )>
 		<tr class="k-alt">
 			<td colspan="3" align="left">
 				<!--- Captcha logic in its own table. This is a Kendo Mvvm template.  --->

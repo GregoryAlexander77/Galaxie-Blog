@@ -146,6 +146,7 @@
 					<!--- You Tube videos --->
 					<cfif findNoCase("youTubeUrl", xmlKeywords) gt 0>
 						<cfsavecontent variable="videoEnclosure">
+						<cfoutput>
 						<script type="#application.blog.getScriptTypeString()#">
 							const mediaplayer#currentRow#Options = {
 							  autoplay: false,
@@ -162,12 +163,14 @@
 							<br/>
 							<div id="mediaplayer#currentRow#" data-plyr-embed-id="#youTubeUrl#" data-plyr-provider="youtube" class="mediaPlayer lazy"></div>
 						</div>
+						</cfoutput>
 						</cfsavecontent>
 					</cfif><!---<cfif findNoCase("youTubeUrl", xmlKeywords) gt 0>--->
 
 					<!--- Vimeo videos --->
 					<cfif findNoCase("vimeoVideoId", xmlKeywords) gt 0>
 						<cfsavecontent variable="videoEnclosure">
+						<cfoutput>
 						<script type="#application.blog.getScriptTypeString()#">
 							const mediaplayer#currentRow#Options = {
 							  autoplay: false,
@@ -184,6 +187,7 @@
 							<br/>
 							<div id="mediaplayer#currentRow#" data-plyr-provider="vimeo" data-plyr-embed-id="#vimeoVideoId#" class="mediaPlayer lazy"></div>
 						</div>
+						</cfoutput>
 						</cfsavecontent>
 						
 					</cfif><!---<cfif findNoCase("vimeoVideoId", xmlKeywords) gt 0>--->
@@ -192,6 +196,7 @@
 					<cfif findNoCase("mediumVideoSourceUrl", xmlKeywords) gt 0>
 						
 						<cfsavecontent variable="videoEnclosure">
+						<cfoutput>
 						<div id="mediaplayer#currentRow#" class="mediaPlayer">
 							<video
 								controls
@@ -231,6 +236,7 @@
 								/></cfif>
 							</video>
 						</div>
+						</cfoutput>
 						</cfsavecontent>
 					</cfif>
 
@@ -998,7 +1004,7 @@
 			<!--- Create the HTML --->
 			<cfsavecontent variable="carouselHtml">
 				<!---<cfdump var="#getCarousel#">--->
-				<cfif debug>Debug card: #card# width: #width# height: #height#</cfif>
+				<cfif debug>Debug card: #card# width: <cfoutput>#width# height: #height#</cfoutput></cfif>
 				<style>
 					/** Swiper styles **/
 					:root {

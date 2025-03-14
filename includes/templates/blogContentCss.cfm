@@ -8,7 +8,10 @@
 <cfelse>
 	<cfset standAlone = false>
 </cfif>
-		
+
+<!--- Get the theme properties --->
+<cfset theme = getTheme[1]["Theme"]>
+<cfset selectedTheme = getTheme[1]["SelectedTheme"]>
 <!--- Get Kendo Theme color properties --->
 <cfset accentColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'accentColor')>
 <cfset baseColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'baseColor')>
@@ -358,6 +361,13 @@
 			</cfif>
 		}
 		
+	 <!--- When a theme is not selected, we must descrease the font size as the theme menu is displayed taking up more room on the page. The menu font size is smaller when using the Delicate Arch theme, otherwise, the menu will wrap as the content size is smaller than usual to show the background --->
+	<cfif !selectedTheme and (theme eq 'Delicate Arch' or theme eq 'Joshua Tree')>
+		.k-menu .k-menu-item {
+        	font-size: 18px; /* Don't wrap the menu */
+    	}
+	</cfif>
+				
 	<cfif kendoTheme eq 'default' or kendoTheme eq 'highcontrast' or kendoTheme eq 'material' or kendoTheme eq 'silver'><!--- Both default and high contrast have the same header. Material needs to have a darker text when selecting a menu item--->
 		/* fixedNavMenu states. */
 		#fixedNavMenu.k-menu .k-state-hover,

@@ -8654,7 +8654,7 @@
 			hint="Extract the mediaId by the media URL. This is used to determine if we have media in our system prior to playing it using the galaxiePlayer.cfm template. We need to make sure that we are only playing videos that we have in the media table, otherwise, bad actors can use the videoUrl to host bad stuff, like porn.">
 		<cfargument name="mediaUrl" type="string" required="true">
 			
-		<cfparam name="mediaUrl" default="">
+		<cfparam name="mediaId" default="">
 			
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
