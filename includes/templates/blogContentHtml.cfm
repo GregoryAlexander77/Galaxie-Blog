@@ -143,7 +143,7 @@
 						</cfif>
 
 						<!--- ************************* Handle self hosted videos ************************* --->
-						<cfif len(mediaId) and mediaType contains 'Video'>
+						<cfif len(mediaId) and mediaType contains 'Video'>								
 							<!--- Note: this will return an iframe. --->
 							<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
 								<cfinvokeargument name="postId" value="#getPopularPosts[i]['PostId']#">
@@ -154,7 +154,7 @@
 								<cfinvokeargument name="videoCaptionsUrl" value="#mediaVideoVttFileUrl#">
 								<cfinvokeargument name="renderThumbnail" value="true">
 								<cfinvokeargument name="renderKCardMediaClass" value="true">
-								<cfinvokeargument name="renderMediumCard" value="#renderMediumCard#">
+								<cfinvokeargument name="renderMediumCard" value="false">
 								<cfinvokeargument name="showSidebar" value="#showSidebar#">
 							</cfinvoke> 
 						</cfif><!---<cfif len(mediaId) and mediaType contains 'Video'>--->
@@ -296,8 +296,6 @@
 				<cfif session.isMobile or showSidebar>
 					<cfset numColumns = 1>
 					<cfset loopCount = arrayLen(getPost)>
-
-
 					<cfset cardWidth = "100">
 					<cfset mainContainerWidth = 65>
 					<cfset buttonWidth = "155px">
@@ -860,10 +858,10 @@
 			<!--- *******************************************************************************************************
 				Pagination 
 			**********************************************************************************************************--->
+			<!---  
+			Debugging: <cfoutput>url.startRow: #url.startRow# maxEntries: #maxEntries# arrayLen(getPost): #arrayLen(getPost)# URL.startRow + maxEntries: #round(URL.startRow + maxEntries)# postCount:#postCount# </cfoutput>
+			<cfdump var="#getPost#">--->
 			</cfsilent>
-			<!---  --->
-			Debugging: <cfoutput>url.startRow: #url.startRow# maxEntries: #maxEntries# arrayLen(getPost): #arrayLen(getPost)# URL.startRow + maxEntries: #round(URL.startRow + maxEntries)#</cfoutput>
-			<cfdump var="#getPost#">
 			<cfif (URL.startRow gt 1) or (arrayLen(getPost) gte maxEntries)>
 				<cfsilent>
 				<!--- Get the number of pages --->
