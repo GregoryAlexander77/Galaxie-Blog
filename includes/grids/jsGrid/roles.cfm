@@ -173,7 +173,7 @@
 					console.log(filter);
 					return $.ajax({
 						type: "GET",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=getUsersForGrid&gridType=jsGrid&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getUsersForGrid&gridType=jsGrid&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
 						data: filter,
 						dataType: "json"
 					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
@@ -197,7 +197,7 @@
 					//alert(mydump(value));//"Approved" => "true"
 					return $.ajax({
 						type: "post",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=updateUserViaJsGrid",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=updateUserViaJsGrid",
 						// Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end.
 						data: {
 							// Note: the UserId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available.
@@ -242,7 +242,7 @@
 				deleteItem: function(value, item) {
 					return $.ajax({
 						type: "post",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=deleteUserViaJsGrid",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteUserViaJsGrid",
 						// Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end.
 						data: {
 							csrfToken: $("#csrfToken").val(),

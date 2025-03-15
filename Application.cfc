@@ -264,9 +264,9 @@
 		<!--- Proxy controller --->
 		<!--- Append the base URL with the proxyController. if there is a base url. If the site is installed in the root directory, we don't  want to append a dot to the proxyControllerComponentPath. --->
 		<!--- Set the URL to the new proxy controller. The ProxyController is used to pass data to the blog.cfc and is extensively used in Ajax operations. --->
-		<cfset application.proxyControllerUrl = getBaseUrl() & '/common/cfc/proxyController.cfc' / >
+		<cfset application.proxyControllerUrl = getBaseUrl() & '/common/cfc/ProxyController.cfc' / >
 		<cfif len(application.baseProxyUrl) gt 0>
-			<cfset application.proxyControllerComponentPath = application.baseComponentPath & ".common.cfc.proxyController">
+			<cfset application.proxyControllerComponentPath = application.baseComponentPath & ".common.cfc.ProxyController">
 		<cfelse>
 			<cfset application.proxyControllerComponentPath = "common.cfc.proxyController">
 		</cfif>

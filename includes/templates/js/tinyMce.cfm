@@ -12,7 +12,7 @@
 	<cfset mediaProcessType = "enclosure">// either enclosure (which can be an image or video), gallery, post, or comment.
 	<cfset selectorName = "post" & second(now())>
 	<cfset eidtorHeight = "300">
-	<cfset imageHandlerUrl = "../../common/cfc/proxyController.cfc?method=uploadImage&mediaProcessType=enclosure&postId=" & getPost[1]["PostId"]>
+	<cfset imageHandlerUrl = "../../common/cfc/ProxyController.cfc?method=uploadImage&mediaProcessType=enclosure&postId=" & getPost[1]["PostId"]>
 	<cfset contentVar = getPost[1]["Body"]>
 	<cfset imageMediaIdField = "imageMediaId">
 	<cfset imageClass = "entryImage">
@@ -615,7 +615,7 @@
 			convert_urls: true,
 			// What is the URL on the server side that will save this image? This URL will return a json string indicating the full path of the image.
 			/* images_upload_url does not set a header on mobile devices. This causes an 'tinymce image upload failed due to a xhr transport error. Code 0' error when using an iPhone. When using mobile, we need to use a custom function that is used with the images_upload_handler argument instead. */ 
-			//images_upload_url: 'https://gregorysblog.org/common/cfc/proxyController.cfc?method=uploadImage',
+			//images_upload_url: 'https://gregorysblog.org/common/cfc/ProxyController.cfc?method=uploadImage',
 			images_upload_handler: imageUploadHandler,
 			// Custom function that is called when we embed videos using the media plugin. We need to use this for enclosures in order to save the URL to the database.
 			media_url_resolver: function (data, resolve/*, reject*/) { 
@@ -624,7 +624,7 @@
 				// Upload post related media
 				jQuery.ajax({
 					type: 'post', 
-					url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=saveExternalMediaEnclosure&template=tinyMce',
+					url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveExternalMediaEnclosure&template=tinyMce',
 					data: { // arguments
 						csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 						// Pass the mediaId saved in the mediaId hidden form if it is available

@@ -64,7 +64,7 @@
 			formData: true,
 			// Send all files in a single multipart request
 			bundle: true,
-			endpoint: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=uploadImage&mediaProcessType=<cfoutput>#selectorId#</cfoutput>&csrfToken=<cfoutput>#csrfToken#</cfoutput>' 
+			endpoint: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=uploadImage&mediaProcessType=<cfoutput>#selectorId#</cfoutput>&csrfToken=<cfoutput>#csrfToken#</cfoutput>' 
 		})
 		.on('upload-success', (file, response) => {
 			// Display the error message if available

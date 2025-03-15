@@ -94,7 +94,7 @@
 		<cfelse>
 			<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | tox | hr | link | image editimage | media | fancyBoxGallery | map mapRouting | customWindow | emoticons">
 		</cfif>
-		<cfset imageHandlerUrl = "#application.baseUrl#/common/cfc/proxyController.cfc?method=uploadImage&mediaProcessType=" & URL.otherArgs & "&csrfToken=" & csrfToken>
+		<cfset imageHandlerUrl = "#application.baseUrl#/common/cfc/ProxyController.cfc?method=uploadImage&mediaProcessType=" & URL.otherArgs & "&csrfToken=" & csrfToken>
 		<cfset imageMediaIdField = "imageMediaId">
 		<cfset imageClass = "entryImage">
 		<!--- We want to include common CSS --->

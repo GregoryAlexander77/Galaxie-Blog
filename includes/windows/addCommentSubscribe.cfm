@@ -130,7 +130,7 @@ This section has been completely redesigned by Gregory --->
 			captchaTextObj: captchaTextDs = new kendo.data.DataSource({
 			  transport: {
 				read:  {
-					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=getCaptchaAsJson", // the cfc component which processes the query and returns a json string. 
+					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getCaptchaAsJson", // the cfc component which processes the query and returns a json string. 
 					dataType: "json", // Use json if the template is on the current server. If not, use jsonp for cross domain reads.
 					method: "post" // Note: when the method is set to "get", the query will be cached by default. This is not ideal. 
 				},//..read

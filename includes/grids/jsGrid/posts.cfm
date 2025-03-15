@@ -174,7 +174,7 @@
 					console.log(filter);
 					return $.ajax({
 						type: "GET",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=getPostsForGrid&gridType=jsGrid&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getPostsForGrid&gridType=jsGrid&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
 						data: filter,
 						dataType: "json"
 					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
@@ -204,7 +204,7 @@
 					//alert(mydump(value));//"Approved" => "true"
 					return $.ajax({
 						type: "post",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=updatePostViaJsGrid",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=updatePostViaJsGrid",
 						// Pass the needed data. The only thing editable in this grid is the released checkbox
 						data: {
 							// Note: the PostId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available.
@@ -252,7 +252,7 @@
 				deleteItem: function(value, item) {
 					return $.ajax({
 						type: "post",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=removePostViaJsGrid",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removePostViaJsGrid",
 						// Pass the needed data. 
 						data: {
 							// Pass the Post to the cfc on the back end. 
@@ -384,7 +384,7 @@
 
 				jQuery.ajax({
 					type: 'post', 
-					url: '../../common/cfc/proxyController.cfc?method=sendPostEmailToSubscribers',
+					url: '../../common/cfc/ProxyController.cfc?method=sendPostEmailToSubscribers',
 					dataType: "json",
 					data: { // arguments
 						csrfToken: '<cfoutput>#csrfToken#</cfoutput>',

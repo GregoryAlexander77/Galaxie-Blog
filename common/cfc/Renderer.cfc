@@ -2558,8 +2558,6 @@
 			</cfif>
 		</cfif><!---<cfif enclosureImageName neq "">--->
 		
-		
-			
 		<!--- Get the largest thumbnail for the article image --->
 		<cfif isDefined("google16_9Thumbnail") and len(google16_9Thumbnail)>
 			<cfset articleImage = google16_9Thumbnail>

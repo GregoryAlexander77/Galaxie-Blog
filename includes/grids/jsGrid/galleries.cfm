@@ -141,7 +141,7 @@ Note: not used yet
 					console.log(filter);
 					return $.ajax({
 						type: "GET",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=getCommentsForGrid&gridType=jsGrid",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getCommentsForGrid&gridType=jsGrid",
 						data: filter,
 						dataType: "json"
 					}).then(function(result) {
@@ -152,7 +152,7 @@ Note: not used yet
 					//alert(mydump(value));//"Approved" => "true"
 					return $.ajax({
 						type: "post",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=updateCommentViaJsGrid",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=updateCommentViaJsGrid",
 						// Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end.
 						data: {
 							// Note: the PostId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available.
@@ -167,7 +167,7 @@ Note: not used yet
 				deleteItem: function(value, item) {
 					return $.ajax({
 						type: "post",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=deleteCommentViaGrid&gridType=jsGrid",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteCommentViaGrid&gridType=jsGrid",
 						// Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end.
 						data: {
 							// Pass the postId to the cfc on the back end. 

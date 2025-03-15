@@ -3769,7 +3769,7 @@
 			</cfif>
 					
 			<!--- *************************** Format the post content. *************************** --->
-			<!--- Remove any <attachScript tags and replace them with <script as well as handling css and meta tags the same way --->
+			<!--- Remove special tags that we changed to bypass Global Script Protection- this removes any <attachScript tags and replaces them with <script as well as handling css and meta tags the same way.  --->
 			<cfset arguments.post = StringUtilsObj.sanitizeStrForDb(arguments.post)>
 					
 			<!--- Render the more tag if it has &lt; and &gt; or comments surrounding it. --->
@@ -6930,6 +6930,9 @@
 			
 			<cfif not error>
 				
+				<!--- Remove special tags that we changed to bypass Global Script Protection- this removes any <attachScript tags and replaces them with <script as well as handling css and meta tags the same way.  --->
+				<cfset windowContent = StringUtilsObj.sanitizeStrForDb(arguments.windowContent)>
+				
 				<!--- Set the windowHeight and width along with the unit of measurement --->
 				<cfset thisWindowHeight = arguments.windowHeight & arguments.unitMeasurement>
 				<cfset thisWindowWidth = arguments.windowWidth & arguments.unitMeasurement>
@@ -6952,7 +6955,8 @@
 					<cfset CustomWindowObj.setWindowHeight(thisWindowHeight)>
 					<cfset CustomWindowObj.setWindowWidth(thisWindowWidth)>
 					<cfset CustomWindowObj.setCfincludePath(arguments.cfincludePath)>
-					<cfset CustomWindowObj.setContent(arguments.windowContent)>
+					<!--- The windowContent variable strips out any special tags that we are using to bypass Global Script Protection. In this case, we are stripping out the attachIframe tag that the bypassScriptProtection javascript function places to allow iframes to be sent over using Ajax --->
+					<cfset CustomWindowObj.setContent(windowContent)>
 					<cfset CustomWindowObj.setActive(arguments.active)>
 					<cfset CustomWindowObj.setDate(application.blog.blogNow())>
 					<!--- And finally, load the blog entity. This is not functional at the moment to have several blogs on a site, but the logic is in the database. --->
@@ -6965,7 +6969,9 @@
 
 				<!--- Return the HTML for the button to the client.--->
 				<cfsavecontent variable="customWindowButton">
+					<cfoutput>
 					<button id="customWindow#CustomWindowObj.getCustomWindowContentId()#" name="customWindow#CustomWindowObj.getCustomWindowContentId()#" class="k-button k-primary" onclick="javascript:createCustomInterfaceWindow(#CustomWindowObj.getCustomWindowContentId()#,#postId#);"><span class="fa-solid fa-up-right-from-square fa-2xs"></span> &nbsp;#buttonLabel#</button>
+					</cfoutput>
 				</cfsavecontent>
 			<cfelse>
 				<cfset error = true>

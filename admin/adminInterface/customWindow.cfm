@@ -300,6 +300,11 @@
 			}
 			
 			function postCustomWindowDetail(){
+				
+				// Get the contents of the editor
+				var customWindowCode = tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent();
+				// Modify any tags that may be deleted by ColdFusion on the server when using Global Script Protection and place an attach string in front of scripts, styles and meta tags.
+				customWindowCode = bypassScriptProtection(customWindowCode);
 
 				jQuery.ajax({
 					type: 'post', 
@@ -313,7 +318,7 @@
 						windowHeight: $("#windowHeight").val(),
 						windowWidth: $("#windowWidth").val(),
 						cfincludePath: $("#cfincludePath").val(),
-						windowContent: tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent(),
+						windowContent: customWindowCode,
 						active: $('#active').is(':checked'), // checkbox boolean value.
 						selectorId: '<cfoutput>#selectorId#</cfoutput>'
 					},

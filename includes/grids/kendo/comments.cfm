@@ -45,17 +45,17 @@
 			// Determines which method and cfc to get and set data.
 			transport: {
 			   read:  {
-					url: "<cfoutput>#application.blog.getRootUrl()#</cfoutput>/common/cfc/proxyController.cfc?method=getCommentsForGrid&commentType=<cfoutput>#commentType#</cfoutput>&gridType=kendo", // the cfc component which processes the query and returns a json string. 
+					url: "<cfoutput>#application.blog.getRootUrl()#</cfoutput>/common/cfc/ProxyController.cfc?method=getCommentsForGrid&commentType=<cfoutput>#commentType#</cfoutput>&gridType=kendo", // the cfc component which processes the query and returns a json string. 
 					dataType: "json", // Use json if the template is on the current server. If not, use jsonp for cross domain reads.
 					method: "post" // Note: when the method is set to "get", the query will be cached by default. This is not ideal. 
 				},
 				update: {
-                   	url: "<cfoutput>#application.blog.getRootUrl()#</cfoutput>/common/cfc/proxyController.cfc?method=updateCommentViaKendoGrid", // the cfc component which processes upates the database. 
+                   	url: "<cfoutput>#application.blog.getRootUrl()#</cfoutput>/common/cfc/ProxyController.cfc?method=updateCommentViaKendoGrid", // the cfc component which processes upates the database. 
 					dataType: "json",
 					method: "post"
 				},
 				destroy: {
-                   	url: "<cfoutput>#application.blog.getRootUrl()#</cfoutput>/common/cfc/proxyController.cfc?method=deleteCommentViaKendoGrid", // the cfc component which processes deletions in the database. 
+                   	url: "<cfoutput>#application.blog.getRootUrl()#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteCommentViaKendoGrid", // the cfc component which processes deletions in the database. 
 					dataType: "json",
 					method: "post"
 				},

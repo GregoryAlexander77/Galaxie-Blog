@@ -141,7 +141,7 @@
 					console.log(filter);
 					return $.ajax({
 						type: "GET",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=getUserHistoryForGrid&gridType=jsGrid&username=<cfoutput>#URL.optArgs#</cfoutput>&&csrfToken=<cfoutput>#csrfToken#</cfoutput>", 
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getUserHistoryForGrid&gridType=jsGrid&username=<cfoutput>#URL.optArgs#</cfoutput>&&csrfToken=<cfoutput>#csrfToken#</cfoutput>", 
 						data: filter,
 						dataType: "json"
 					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
