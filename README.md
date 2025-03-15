@@ -1,6 +1,6 @@
 
 # Galaxie Blog
-Galaxie Blog is a wickedly fast, full-featured, open-source blog that supports Lucee and Adobe ColdFusion. According to various sources, Lucee is the second fastest web server platform, and Adobe is the third fastest after Lucee and Go. If you want a wickedly fast blog with full functionality and theme support, Galaxie Blog is ready, set, go! 
+Galaxie Blog is a wickedly fast, full-featured, open-source blog that supports Lucee and Adobe ColdFusion. According to various sources, Lucee is the second fastest web server platform, and Adobe is the third fastest after Lucee and Go. If you want a wickedly fast blog with comprehensive functionality and theme support, Galaxie Blog is ready, set, go! 
 
 ## Documentation
 
