@@ -1,6 +1,39 @@
+Galaxie Blog 4 - Ready- Set- Go!
+--------------------------------
 
-# Galaxie Blog
-Galaxie Blog is a wickedly fast, full-featured, open-source blog that supports Lucee and Adobe ColdFusion. According to various sources, Lucee is the second fastest web server platform, and Adobe is the third fastest after Lucee and Go. If you want a wickedly fast blog with comprehensive functionality and theme support, Galaxie Blog is ready, set, go! 
+*   **Galaxie Blog is Wickedly Fast**  
+    Out of the box, Galaxie Blog consistently averages above 90% in Google lighthouse scores, even when the page is decked out with large images.  
+    Galaxie Blog for Lucee can often attain a perfect 100% score if you're judicious with your images. 
+
+*   **Galaxie Blog Has Perfect Google Lighthouse SEO Scores!**  
+    Galaxie Blog is optimized for search engines.  
+    It has built-in features such as meta tags, LD-JSON, SEO-friendly URLs, and sitemaps to help search engines crawl your site effectively.  
+    Galaxie Blog easily integrates with Google Analytics to analyze traffic and trends.
+
+*   **No Code Content Management System (CMS)**  
+    Galaxie Blog provides intuitive visual interfaces with pre-built theme templates, allowing non-technical users to create and manage content effortlessly.  
+    Users who like to code can switch views to see the backend code using a full-featured code editor. 
+
+*   **User-Friendly Drag and Drop Editors**  
+    Galaxie Blog uses a highly customized version of TinyMCE that is intuitive and easy to use.  
+    These editors allow you to craft the perfect post and add various types of rich media using drag-and-drop interfaces.  
+    You can upload files, images, videos, carousels, galleries, embed Bing Maps to a post, and more.
+
+*   **Galaxie Blog is Eminently Themeable**  
+    It has over 30 themed templates; you can edit or develop a new theme within minutes.  
+    Every post can have its unique theme!
+
+*   **Attractive Design**  
+    Posts are laid out in a beautiful card layout on the landing page.  
+    The most popular posts are available at the top of the page, and you can filter the posts by category.  
+    Breadcrumbs are automatically created at the top of each page.
+
+*   **Stunning Mobile Interface**  
+    Galaxie Blog is a responsive website offering nearly identical functionality for desktop and mobile devices.  
+    Galaxie Blog was created using a mobile-first design strategy. It allows you to manage the blog and create stunning posts with a tablet or phone.
+
+*   **Supports all Modern Databases**  
+    Galaxie Blog uses Hibernate ORM underneath the hood and can support all modern databases!
 
 ## Documentation
 
