@@ -1,6 +1,10 @@
 Galaxie Blog 4 - Ready- Set- Go!
 --------------------------------
 
+*   **Free and Open Source**  
+    Galaxie Blog includes everything needed to create a beautiful blog.  
+    Unlike other blogging platforms, there is no additional upcharge for additional functionality that should have been initially built in.
+
 *   **Galaxie Blog is Wickedly Fast**  
     Out of the box, Galaxie Blog consistently averages above 90% in Google lighthouse scores, even when the page is decked out with large images.  
     Galaxie Blog for Lucee can often attain a perfect 100% score if you're judicious with your images. 
