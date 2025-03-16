@@ -56,7 +56,7 @@ Galaxie Blog is a standalone software package that must be installed with ColdFu
     *   We have successfully tested using Apache, TomCat, and IIS. We also have successfully tested both Lucee and Adobe ColdFusion with CommandBox.  
           
         
-3.  Hosting: Many ISPs offer ColdFusion and Lucee Hosting. I use [Media3.net](https://www.media3.net) for Adobe ColdFusion and [VivioTech](https://galaxieblog.org/admin/and%20the%20extensions%20for%20the%20database%20of%20your%20choice.) with Lucee, which are terrific. Search the web for ColdFusion or Lucee hosting to find out more.  
+3.  Hosting: Many ISPs offer ColdFusion and Lucee Hosting. I use [Media3.net](https://www.media3.net) for Adobe ColdFusion and [VivioTech](https://galaxieblog.org/admin/and%20the%20extensions%20for%20the%20database%20of%20your%20choice.) with Lucee, which are terrific! Search the web for ColdFusion or Lucee hosting to find out more.  
       
     
 4.  Once downloaded, upload the content to your desired location on a web server. If you are uploading the blog folder, change the folder name as desired.  
