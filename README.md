@@ -1,41 +1,43 @@
 Galaxie Blog 4 - Ready- Set- Go!
 --------------------------------
 
+Galaxie Blog is a wickedly fast, full-featured, free, open-source blog that supports [Lucee](https://www.lucee.org/) and [Adobe ColdFusion](https://helpx.adobe.com/coldfusion/using/about-coldfusion.html).
+
 *   **Free and Open Source**  
     Galaxie Blog includes everything needed to create a beautiful blog.  
     Unlike other blogging platforms, there is no additional upcharge for additional functionality that should have been initially built in.
-
+    
 *   **Galaxie Blog is Wickedly Fast**  
-    Out of the box, Galaxie Blog consistently averages above 90% in Google lighthouse scores, even when the page is decked out with large images.  
-    Galaxie Blog for Lucee can often attain a perfect 100% score if you're judicious with your images. 
-
+    Out of the box, Galaxie Blog consistently [averages above 90%](https://www.gregoryalexander.com/blog/2024/4/29/lighthouse-scores-of-blog-sites-driven-by-coldfusion) in Google lighthouse scores, even when the page is decked out with large images.  
+    [Galaxie Blog for Lucee](https://galaxieblog.org/) can often attain a perfect 100% score if you're judicious with your images.
+    
 *   **Galaxie Blog Has Perfect Google Lighthouse SEO Scores!**  
     Galaxie Blog is optimized for search engines.  
-    It has built-in features such as meta tags, LD-JSON, SEO-friendly URLs, and sitemaps to help search engines crawl your site effectively.  
-    Galaxie Blog easily integrates with Google Analytics to analyze traffic and trends.
-
+    It has built-in features such as meta tags, [JSON-LD,](https://galaxieblog.org/2025/3/9/changing-the-jsonld-that-galaxie-blog-automatically-generates-for-your-posts) SEO-friendly URLs, and sitemaps to help search engines crawl your site effectively.  
+    Galaxie Blog easily integrates with [Google Analytics](https://developers.google.com/analytics/devguides/collection/ga4) to analyze traffic and trends.
+    
 *   **No Code Content Management System (CMS)**  
     Galaxie Blog provides intuitive visual interfaces with pre-built theme templates, allowing non-technical users to create and manage content effortlessly.  
-    Users who like to code can switch views to see the backend code using a full-featured code editor. 
-
+    Users who like to code can switch views to see the backend code using a full-featured code editor.
+    
 *   **User-Friendly Drag and Drop Editors**  
-    Galaxie Blog uses a highly customized version of TinyMCE that is intuitive and easy to use.  
+    Galaxie Blog uses a highly customized version of [TinyMCE](https://www.tiny.cloud/) that is intuitive and easy to use.  
     These editors allow you to craft the perfect post and add various types of rich media using drag-and-drop interfaces.  
-    You can upload files, images, videos, carousels, galleries, embed Bing Maps to a post, and more.
-
+    You can [upload](https://www.gregoryalexander.com/blog/2024/2/22/implementing-client-side-file-uploading-with-uppy) files, images, videos, [carousels](https://www.gregoryalexander.com/blog/2024/4/14/building-image-sliders-with-stunning-transitions-using-swiper), [galleries](https://galaxieblog.org/2025/3/10/creating-beautiful-galleries-within-a-blog-post-using-galaxie-blog), embed [Bing Maps](https://galaxieblog.org/2025/3/10/adding-dynamic-bing-maps-to-a-blog-post) to a post, and more.
+    
 *   **Galaxie Blog is Eminently Themeable**  
     It has over 30 themed templates; you can edit or develop a new theme within minutes.  
-    Every post can have its unique theme!
-
+    Every post can have its unique [theme](https://galaxieblog.org/2025/3/9/assign-post-to-theme)!
+    
 *   **Attractive Design**  
     Posts are laid out in a beautiful card layout on the landing page.  
     The most popular posts are available at the top of the page, and you can filter the posts by category.  
     Breadcrumbs are automatically created at the top of each page.
-
+    
 *   **Stunning Mobile Interface**  
     Galaxie Blog is a responsive website offering nearly identical functionality for desktop and mobile devices.  
     Galaxie Blog was created using a mobile-first design strategy. It allows you to manage the blog and create stunning posts with a tablet or phone.
-
+    
 *   **Supports all Modern Databases**  
     Galaxie Blog uses Hibernate ORM underneath the hood and can support all modern databases!
 
