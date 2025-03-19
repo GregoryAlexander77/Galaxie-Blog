@@ -103,10 +103,10 @@
 		<cfset cardImage = thumbnail>	
 		<cfset renderMediumCard = false>
 	</cfif>
-	<!--- There may not be a thumbnail. If so, use the enclosure. 
+	<!--- There may not be a thumbnail. If so, use the enclosure. --->
 	<cfif not len(thumbnail) and len(enclosure)>
 		<cfset cardImage = enclosure>
-	</cfif>--->
+	</cfif>
 	<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and use the noImage.jpg if the share image or thumbnail does not exist (likely due to a cfinclude, errors or a blog upgrade) --->
 	<cfif not len(cardImage)>
 		<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[i]["PostHeader"], 'facebookImageUrlMetaData')>
@@ -235,11 +235,7 @@
 						<cfelseif len(thumbnailCarousel)>
 							<cfoutput>#thumbnailCarousel#</cfoutput>
 						<cfelse>
-							<cfif len(enclosure)>
-							<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#enclosure#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#enclosure#</cfoutput>"></div>
-							<cfelse>
 							<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div>
-							</cfif>
 						</cfif>
 					</a>
 					<hr class="k-card-separator" />
