@@ -16,8 +16,8 @@
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
 	<cfset version = "4.0" />
-	<cfset versionName = "4.0 Gold (Bella's Edition)" />
-	<cfset versionDate =  "March 6th 2025"> 
+	<cfset versionName = "4.02 (Bella's Edition)" />
+	<cfset versionDate =  "March 19th 2025"> 
 
 	<!--- Require version 9 or higher as we are using ORM --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>

@@ -35,8 +35,42 @@ Note: the following logic should not be cached as each theme may return a differ
 	<div id="footerDiv" name="footerDiv" class="k-content">
 		<footer>
 			<span id="footerInnerContainer">
-				<img src="<cfoutput>#application.baseUrl##footerImage#</cfoutput>" alt="Footer Logo"/>
-
+				<a href="https://www.gregoryalexander.com/"><img src="<cfoutput>#application.baseUrl##footerImage#</cfoutput>" alt="Footer Logo"/></a>
+			<cfif application.serverProduct eq 'Lucee'>
+				<h2 id="galaxie-blog-4-ready-set-go-">Why Galaxie Blog?</h2>
+				<p><strong>Galaxie Blog - Ready- Set- Go!</strong></p>
+				<ul>
+					<li>
+						<p><strong>Free and Open Source</strong><br>Galaxie Blog includes everything needed to create a beautiful blog. Unlike other blogging platforms, there is no additional upcharge for additional functionality that should have been initially built in.</p>
+					</li>
+					<li>
+						<p><strong>Galaxie Blog is Wickedly Fast</strong><br>Out of the box, Galaxie Blog consistently <a href="https://www.gregoryalexander.com/blog/2024/4/29/lighthouse-scores-of-blog-sites-driven-by-coldfusion">averages above 90%</a> in Google lighthouse scores, even when the page is decked out with large images.&nbsp;<span style="box-sizing: border-box; margin: 0px; padding: 0px;"><a href="https://galaxieblog.org/">If you're judicious with your images, Galaxie Blog for Lucee</a> can often attain a perfect 100% score</span>.</p>
+					</li>
+					<li>
+						<p><strong>Galaxie Blog Has Perfect Google Lighthouse SEO Scores!</strong><br>Galaxie Blog is optimized for search engines. It has built-in features such as meta tags, <a href="https://galaxieblog.org/2025/3/9/changing-the-jsonld-that-galaxie-blog-automatically-generates-for-your-posts">JSON-LD,</a> SEO-friendly URLs, and sitemaps to help search engines crawl your site effectively. Galaxie Blog easily integrates with <a href="https://developers.google.com/analytics/devguides/collection/ga4">Google Analytics</a> to analyze traffic and trends.</p>
+					</li>
+					<li><strong><strong>Exceptional Media Support<br></strong></strong>Galaxie Blog supports a variety of rich media. Galaxie Blog allows users to upload various media for hero images and optimizes them for social media sites. You can <a href="https://www.gregoryalexander.com/blog/2024/2/22/implementing-client-side-file-uploading-with-uppy">upload </a>files, photos, videos, <a href="https://www.gregoryalexander.com/blog/2024/4/14/building-image-sliders-with-stunning-transitions-using-swiper">carousels</a>, <a href="https://galaxieblog.org/2025/3/10/creating-beautiful-galleries-within-a-blog-post-using-galaxie-blog">galleries</a>, embed <a href="https://galaxieblog.org/2025/3/10/adding-dynamic-bing-maps-to-a-blog-post">Bing Maps</a> to a post, and more.</li>
+					<li>
+						<p><strong>No Code Content Management System (CMS)</strong><br>Galaxie Blog provides intuitive visual interfaces with pre-built theme templates, allowing non-technical users to create and manage content effortlessly. Users who like to code can switch views to see the backend code using a full-featured code editor.</p>
+					</li>
+					<li>
+						<p><strong>User-Friendly Drag and Drop Editors</strong><br>Galaxie Blog uses a highly customized version of <a href="https://www.tiny.cloud/">TinyMCE </a>that is intuitive and easy to use. These editors allow you to craft the perfect post and add various types of rich media using drag-and-drop interfaces.</p>
+					</li>
+					<li>
+						<p><strong>Galaxie Blog is Eminently Themeable</strong><br>It has over 30 themed templates; you can edit or develop a new theme within minutes. Every post can have its unique <a href="https://galaxieblog.org/2025/3/9/assign-post-to-theme">theme</a>!</p>
+					</li>
+					<li>
+						<p><strong>Attractive Design</strong><br>Posts are laid out in a beautiful card layout on the landing page. The most popular posts are available at the top of the page, and you can filter the posts by category. Breadcrumbs are automatically created at the top of each page.</p>
+					</li>
+					<li>
+						<p><strong>Stunning Mobile Interface</strong><br>Galaxie Blog is a responsive website offering nearly identical functionality for desktop and mobile devices. Galaxie Blog was created using a mobile-first design strategy. It allows you to manage the blog and create stunning posts with a tablet or phone.</p>
+					</li>
+					<li>
+						<p><strong>Supports all Modern Databases</strong><br>Galaxie Blog uses <a href="https://hibernate.org/orm/">Hibernate ORM</a> underneath the hood and can support all modern databases!</p>
+					</li>
+					<li><strong>Mature and Proven Platform<br></strong>Galaxie Blog has had four major releases since <a href="https://www.gregoryalexander.com/blog/2018/10/30/introductory-purpose">2018</a>. Galaxie Blog was initially based on <a href="https://github.com/teamcfadvance/BlogCFC5">BlogCFC</a>, which was first released in 2005.</li>
+				</ul>
+			<cfelse><!---<cfif application.serverProduct eq 'Lucee'>--->
 				<h2 style="font-size:14pt; display: block; margin-left: auto; margin-right: auto;">Your input and contributions are welcomed!</h2>
 				<p>If you have an idea, BlogCfc based code, or a theme that you have built using this site that you want to share, please contribute by making a post here or share it by contacting us! This community can only thrive if we continue to work together.</p>
 
@@ -47,6 +81,7 @@ Note: the following logic should not be cached as each theme may return a differ
 				<p>
 					Portions of Galaxie Blog are powered on the server side by BlogCfc, an open source blog developed by <a href="https://www.raymondcamden.com/" <cfif darkTheme>style="color:whitesmoke"</cfif>>Raymond Camden</a>. Revitalizing BlogCfc was a part of my orginal inspiration that prompted me to design this site. 
 				</p>
+			</cfif><!---<cfif application.serverProduct eq 'Lucee'>--->
 				<h2 style="font-size:14pt">Version:</h2>
 				<p>
 					Galaxie Blog Version <cfoutput>#application.blog.getVersionName()# #application.blog.getVersionDate()# #getTheme[1]["Theme"]# theme</cfoutput>
