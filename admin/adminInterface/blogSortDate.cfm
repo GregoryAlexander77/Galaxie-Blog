@@ -9,6 +9,12 @@
 	<cfset datePosted = application.Udf.jsDateFormat(getPost[1]["DatePosted"])>
 	<!--- Get the sort order date --->
 	<cfset blogSortDate = getPost[1]["BlogSortDate"]>
+	<!--- Determine if we should check the sync dates checkbox --->
+	<cfif dateCompare(getPost[1]["DatePosted"], getPost[1]["BlogSortDate"]) eq 0>
+		<cfset syncDates = true>
+	<cfelse>
+		<cfset syncDates = false>	
+	</cfif>
 		
 	<script>
 		
@@ -54,10 +60,8 @@
 		
 		function syncDates(el) {
 			if (el.checked) {
-				// Set the sortDateChanged to true as we are syncing the dates and want the current blog sort to change
-				$("#blogSortDateChanged").val(1);
-				// Sync the hidden form value to the posted date
-				$("#newBlogSortDate").val(<cfoutput>#datePosted#</cfoutput>);
+				// Set the sortDateChanged to false as we are syncing the dates and want the current blog sort to change
+				$("#blogSortDateChanged").val(0);
 				// Close this window when the button is checked
 				$('#blogSortDateWindow').kendoWindow('destroy');
 			}
@@ -153,7 +157,7 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="syncWithPostDate" name="syncWithPostDate" type="checkbox" onChange="syncDates(this)"/> 
+			<input id="syncWithPostDate" name="syncWithPostDate" type="checkbox" <cfif syncDates>checked</cfif> onChange="syncDates(this)"/> 
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
@@ -162,7 +166,7 @@
 			<label for="syncWithPostDate">Sync with Post Date</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="syncWithPostDate" name="syncWithPostDate" type="checkbox" onChange="syncDates(this)"/>  
+			<input id="syncWithPostDate" name="syncWithPostDate" type="checkbox" <cfif syncDates>checked</cfif> onChange="syncDates(this)"/>  
 		</td>
 	  </tr>
 	</cfif>

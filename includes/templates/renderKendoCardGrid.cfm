@@ -239,7 +239,7 @@
 						</cfif>
 					</a>
 					<hr class="k-card-separator" />
-					<h2 class="k-card-title" style="font-size: 14pt"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" style="font-size: 14pt" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h2>
+					<h2 class="k-card-title" style="font-size: 14pt; margin: 10px 0px;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" style="font-size: 14pt" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h2>
 					<hr class="k-card-separator" />
 					<span class="blog-content"><cfoutput>#postContent#</cfoutput></span>
 				</div><!---<div class="k-card-body">--->

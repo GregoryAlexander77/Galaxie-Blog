@@ -200,7 +200,7 @@
 							<cfinvokeargument name="html" value="#postContent#">
 						</cfinvoke>
 
-						<!--- Make the srint a bit longer white white space if it is too short --->
+						<!--- Make the string a bit longer white white space if it is too short --->
 						<cfif len(postContent) lt 100>
 							<cfset postContent = postContent & "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;">
 						</cfif>
@@ -210,8 +210,8 @@
 							<div class="k-card k-card-type-rich<cfif promotedPost>highlightedWidget</cfif>" style="width:235px;">
 								<a href="<cfoutput>#postUrl#</cfoutput>"><cfif len(enclosureMapId)><cfoutput>#thumbnailMap#</cfoutput><cfelseif len(enclosureCarouselId)><cfoutput>#thumbnailCarousel#</cfoutput><cfelseif len(thumbnailMedia)><cfoutput>#thumbnailMedia#</cfoutput><cfelse><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-scroll-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif></a>
 								<div class="k-card-body">
-									<!-- The font should be 14pt for this compact widget -->
-									<h2 class="k-card-title" style="font-size: 14pt"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h4>
+									<!-- The font should be 14pt for this compact widget. No extra margins are necessary for the popular posts -->
+									<h2 class="k-card-title" style="font-size: 14pt;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h4>
 								</div>
 								<div class="k-card-actions k-card-actions-stretched k-card-actions-vertical">
 									<span class="k-card-action">
