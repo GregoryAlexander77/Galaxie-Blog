@@ -2448,8 +2448,18 @@
 		</cftransaction>
 								
     	<cfset jsonString = []><!--- '{"data":null}', --->
-    	
-		<cfreturn jsonString>
+			
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn jsonString>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( jsonString ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
+			
 	</cffunction>
 				
 	<cffunction name="deleteThemeViaJsGrid" access="remote" returnformat="json" output="false" 
@@ -2490,14 +2500,24 @@
 
 			</cftransaction>
     	
-		<cfreturn serializeJSON(arguments.themeId)>
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn arguments.themeId>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( arguments.themeId ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
+				
 	</cffunction>
 					
 	<!---******************************************************************************************************
 		Content Output
 	*******************************************************************************************************--->
 				
-	<cffunction name="saveContentTemplate" access="remote" returntype="string" output="true" 
+	<cffunction name="saveContentTemplate" access="remote" returnformat="json" output="false" 
 		hint="Returns a json array to populate the categories dropdown.">
 		<cfargument name="action" default="" required="true" hint="Either updateCode or revertCode">
 		<cfargument name="selectedContentThemes" default="" required="true">
@@ -2570,8 +2590,16 @@
 				
 			</cfloop><!---<cfloop list="#thisContentTemplateThemes#" index="themeId">--->
 			
-			<!--- Return the last content template Id --->
-			<cfreturn 1>
+			<!--- Return true --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn 1>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( 1 ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
 			
 		<cfelse>
 			<cfreturn "Must send code or revert arguments">

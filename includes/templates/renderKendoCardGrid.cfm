@@ -181,7 +181,7 @@
 		</cfif>
 		
 		<!--- Render the video from the directives --->
-		<cfif len(mediaUrl) or vimeoVideoId>	
+		<cfif len(mediaUrl) or providerVideoId>	
 			<!--- Render the video, this will return an iframe. --->
 			<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
 				<cfinvokeargument name="postId" value="#getPost[i]['PostId']#">

@@ -70,13 +70,16 @@ Check to see we are calling this to preview or display a video within a post. If
 			<cfif len(getMediaByUrl)>
 				<cfset auth = true>
 			</cfif>
-			<!--- Finally, see if the post header contains the media URL. It will when there is a Galaxie Blog Directive --->
+			<!--- Finally, see if the post header contains the media URL or providerVideoId. It will when there is a Galaxie Blog Directive --->
 			<cfif getPost[1]["PostHeader"] contains URL.videoUrl>
 				<cfset auth = true>
 			</cfif>
 		</cfif>
 	<cfelse>
-		<!--- Play the videio if there is a mediaUrl and there is no videoUrl --->
+    	<cfif getPost[1]["PostHeader"] contains URL.providerVideoId>
+        	<cfset auth = true>
+        </cfif>
+		<!--- Play the video if there is a mediaUrl and there is no videoUrl --->
 		<cfif len(getPost[1]["MediaUrl"])>
 			<cfset auth = true>
 		</cfif>

@@ -42,6 +42,7 @@ Note: the following logic should not be cached as each theme may return a differ
 											<!--- Note: the first menu option should not have spaces if you want the menu to be aligned with the blog text. --->
 											<cfif menuDivName eq 'fixedNavMenu'><li onclick="javascript:scrollToTop();"><span class="fa fa-arrow-circle-up"></span> Top</li></cfif>
 											<li><a href="<cfoutput>#application.siteUrl#</cfoutput>"><cfoutput>#application.BlogDbObj.getBlogTitle()#</cfoutput></a></li>
+											<cfif cgi.http_host contains 'galaxieblog.org'><li><a href="https://gregoryalexander.com/blog/">Gregory's Blog</a></li><cfelseif cgi.http_host contains 'gregoryalexander.com'><li><a href="https://galaxieblog.org/">Galaxie Blog Documentation</a></li></cfif>
 										<cfif len(application.parentSiteName)>
 											<li><a href="<cfoutput>#application.parentSiteLink#</cfoutput>"><cfoutput>#application.parentSiteName#</cfoutput></a></li>
 										</cfif>

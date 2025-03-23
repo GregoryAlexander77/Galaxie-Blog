@@ -5,12 +5,12 @@
 <!--- Raymond's module to inspect the URL to determine what to pass to the getPost method. Get mode also deterines the start and end row determined by what type of page this is (blog or post for example). I am going to rewrite this in version 4ish --->
 <cfmodule template="#application.baseUrl#/tags/getmode.cfm" r_params="params"/>
 <!---<cfdump var="#params#">--->
-
+  
 <!--- 
-Get the post count (getPostCount(params,showRemovedPosts))
+Get the post count (getPostCount(params,showRemovedPosts, released))
 (note: this function must be placed above the getPost invocation below)
 --->
-<cfset postCount = application.blog.getPostCount(params, false, false)>
+<cfset postCount = application.blog.getPostCount(params, false, true)>
 <!--- Allow the admin to preview if the showPendingPosts URL var is present and if we are looking at a single entry. This is needed as we don't want to accidently cache the main blog page (with multiple posts) when previewing the page --->
 <cfif ( isDefined("URL.showPendingPosts") and (url.mode eq "alias" or URL.mode eq 'entry'))>
 	<cfset showPendingPosts = true>
@@ -20,7 +20,7 @@ Get the post count (getPostCount(params,showRemovedPosts))
 
 <!--- Note: a post may be removed and have a redirect to another URL. We need to allow for removed posts to get the redirect if it exists. --->
 <!--- Get the posts ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ) --->
-<cfset getPost = application.blog.getPost(params, showPendingPosts, true, true, true)>
+<cfset getPost = application.blog.getPost(params, showPendingPosts, false, true, true)>
 	
 <!--- Determine if the post was found --->
 <cfif arrayLen(getPost) eq 0>
@@ -29,16 +29,34 @@ Get the post count (getPostCount(params,showRemovedPosts))
 	<cfset postFound = true>
 </cfif>
 	
-<cfif postFound>
-	<!--- See if there is a redirect --->
-	<cfset redirectUrl = getPost[1]["RedirectUrl"]>
-	<!--- Get the themes. This is a HQL array --->
-	<cfset redirectType = getPost[1]["RedirectType"]>
-	<cfif len(redirectUrl)>
-		<!--- Redirect the URL with the status code --->
-		<cflocation url="#redirectUrl#" statusCode="#redirectType#">
-	</cfif>
-</cfif>
+<!--- Handle potential post redirects --->
+<cfif (url.mode eq "alias" or URL.mode eq 'entry')>
+	
+	<!--- If the post was not found (as it is set to inactive), handle potential post redirects --->
+	<cfif postFound>
+		<!--- See if there is a redirect --->
+		<cfset redirectUrl = getPost[1]["RedirectUrl"]>
+		<!--- Get the type --->
+		<cfset redirectType = getPost[1]["RedirectType"]>
+		<cfif len(redirectUrl)>
+			<!--- Redirect the URL with the status code --->
+			<cflocation url="#redirectUrl#" statusCode="#redirectType#">
+		</cfif><!---<cfif len(redirectUrl)>--->
+	<cfelse><!---<cfif postFound>--->
+		<!--- Get the potential URL redirect when the post is inactive. We are using the alias here as it is in the params struct and we don't have other identifying information. --->
+		<cfset getPostRedirect = application.blog.getPostRedirect(params.byAlias)>
+		<cfif arrayLen(getPostRedirect)>
+			<!--- See if there is a redirect --->
+			<cfset redirectUrl = getPostRedirect[1]["RedirectUrl"]>
+			<!--- Get the type --->
+			<cfset redirectType = getPostRedirect[1]["RedirectType"]>
+			<cfif len(redirectUrl)>
+				<!--- Redirect the URL with the status code --->
+				<cflocation url="#redirectUrl#" statusCode="#redirectType#">
+			</cfif><!---<cfif len(redirectUrl)>--->
+		</cfif><!---<cfif arrayLen(getPostRedirect)>--->
+	</cfif><!---<cfif postFound>--->
+</cfif><!---<cfif URL.mode eq 'entry'>--->
 
 <!--- 
 Debugging: 

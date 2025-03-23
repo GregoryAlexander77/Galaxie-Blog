@@ -1170,22 +1170,27 @@
 		<cfargument name="ipAddress" type="string" required="true" default="">
 		<!--- Get the IP. ---> 
 		<cfset ipAddressId = this.getIpAddressId(arguments.ipAddress)>
-		<cfif ipAddressId eq 0>
-			<!--- Load the blog entity. This is not functional at the moment to have several blogs on a site, but the logic is in the database. --->
-			<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
+		<cftry>
+			<cfif ipAddressId eq 0>
+				<!--- Load the blog entity. This is not functional at the moment to have several blogs on a site, but the logic is in the database. --->
+				<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
 
-			<!--- Create a new entity --->
-			<cfset IpAddressDbObj = entityNew("IpAddress")>
-			<!--- Save it --->
-			<cfset IpAddressDbObj.setBlogRef(BlogDbObj)>
-			<cfset IpAddressDbObj.setIpAddress(arguments.ipAddress)>
-			<cfset IpAddressDbObj.setDate(blogNow())>
-			<cfset EntitySave(IpAddressDbObj)>
-			<!--- Get the new Ip Address ID --->
-			<cfset ipAddressId = IpAddressDbObj.getIpAddressId()>
-		</cfif>
-		<!--- Return the ipAddressId --->
-		<cfreturn ipAddressId>
+				<!--- Create a new entity --->
+				<cfset IpAddressDbObj = entityNew("IpAddress")>
+				<!--- Save it --->
+				<cfset IpAddressDbObj.setBlogRef(BlogDbObj)>
+				<cfset IpAddressDbObj.setIpAddress(arguments.ipAddress)>
+				<cfset IpAddressDbObj.setDate(blogNow())>
+				<cfset EntitySave(IpAddressDbObj)>
+				<!--- Get the new Ip Address ID --->
+				<cfset ipAddressId = IpAddressDbObj.getIpAddressId()>
+			</cfif>
+			<!--- Return the ipAddressId --->
+			<cfreturn ipAddressId>
+		<cfcatch type="any">
+			<cfreturn "IP Error">
+		</cfcatch>
+		</cftry>
 	</cffunction>
 			
 	<!--- ************************** Http User Agent strings for logging (visits, comments, and admin logins) ************************** --->
@@ -6529,6 +6534,26 @@
 			
 	</cffunction>
 			
+	<cffunction name="getPostRedirect" access="public" returnType="array" output="false"
+			hint="Gets a post redirect, if it exists">
+		<cfargument name="postAlias" type="string" required="true">
+		
+		<!--- Get the alias. --->
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				Post.RedirectUrl as RedirectUrl,
+				Post.RedirectType as RedirectType
+			)
+			FROM Post as Post
+			WHERE 
+				PostAlias = <cfqueryparam value="#arguments.postAlias#" cfsqltype="cf_sql_varchar">
+		</cfquery>
+		
+		<!--- Return it --->
+		<cfreturn Data>
+			
+	</cffunction>
+			
 	<cffunction name="getPostList" access="public" returnType="string" output="false" 
 			hint="Returns a list of post id's or names depending upon the listType argument.">
 		<cfargument name="listType" type="string" required="true" hint="Either postIdList, postTitleList, or postAliasList">
@@ -7395,6 +7420,7 @@
 		
 		<cfargument name="params" type="struct" required="false" default="#structNew()#">
 		<cfargument name="showRemovedPosts" type="boolean" required="false" default="false">
+		<cfargument name="released" type="boolean" required="false" default="true">
 			
 		<cfset var Data = []>
 
@@ -7499,16 +7525,9 @@
 			FROM Post as Post 
 			<!--- UserRef is the actual database foreign key pointing to the Users table. --->
 			LEFT JOIN Post.UserRef as User
-			<!--- EnclosureMedia is the psuedo object based key in Post.cfc that points to the Media table. --->
-			LEFT JOIN Post.EnclosureMedia as Enclosure
-			<!--- We need to traverse the Post.EnclosureMedia object to get to the MimeTypeRef and MediaType objects --->
-			LEFT JOIN Enclosure.MediaTypeRef as MediaType  
-			LEFT JOIN Enclosure.MimeTypeRef as MimeType
-			<!--- Get the Enclosure Map (there can only be one) --->
-			LEFT JOIN Post.EnclosureMap as EnclosureMap
 			WHERE 0=0
 			<cfif not showRemovedPosts>
-				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+				AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 			</cfif>
 			<cfif structKeyExists(arguments.params,"lastXDays")>
 				AND date(Post.DatePosted) > <cfqueryparam value="#createDate(params.byYear, params.byMonth, params.byDay)#" cfsqltype="cf_sql_date">
@@ -7575,7 +7594,11 @@
 			<cfif structKeyExists(arguments.params, "released")>
 				AND	Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="#arguments.params.released#">
 			</cfif>
-			AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
+			<!--- When the admin is logged in, the params released will be set to false so the admin can see unreleased posts. However, this will screw up the pagination a bit as there are more posts. --->
+			<cfif arguments.released>
+				AND	Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
+			</cfif>
+				AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 		</cfquery>	
 				
 		<cfreturn Data[1]["PostCount"]>
@@ -7761,7 +7784,8 @@
 			<cfset PostDbObj.setUserRef(UserDbObj)>
 			<cfset PostDbObj.setThemeRef(arguments.themeId)>
 			<cfset PostDbObj.setPostAlias(postAlias)>
-			<cfset PostDbObj.setTitle(arguments.title)>
+			<!--- Apostrophe's can't be in the title --->
+			<cfset PostDbObj.setTitle(replaceNoCase(arguments.title,"'","","all"))>
 			<cfset PostDbObj.setDescription(arguments.description)>
 			<cfif len(arguments.postHeader)>
 				<cfset PostDbObj.setPostHeader(arguments.postHeader)>
@@ -7772,11 +7796,12 @@
 			<cfset PostDbObj.setAllowComment(arguments.allowcomments)>
 			<cfset PostDbObj.setPromote(arguments.promote)>	
 			<cfset PostDbObj.setRemove(arguments.remove)>
-			<cfif len(arguments.redirectUrl)>
-				<cfset PostDbObj.setRedirectUrl(arguments.redirectUrl)>
-			</cfif>
-			<cfif len(arguments.redirectType)>
+			<cfset PostDbObj.setRedirectUrl(arguments.redirectUrl)>
+			<cfif len(arguments.redirectUrl) and len(arguments.redirectType)>
 				<cfset PostDbObj.setRedirectType(arguments.redirectType)>
+			<cfelse>
+				<!--- If the user eliminates the redirection string once it is set, also eliminate the redirect type. --->
+				<cfset PostDbObj.setRedirectType('')>
 			</cfif>
 			<cfif isNumeric(arguments.numViews)>
 				<cfset PostDbObj.setNumViews(arguments.numViews)>
@@ -8085,9 +8110,16 @@
 					OR RelatedPostRef = #PostDbObj.getPostId()#
 			</cfquery>
 
-			<!--- And delete the comments. --->
+			<!--- Delete the comments. --->
 			<cfquery name="Data" dbtype="hql">
 				DELETE FROM Comment
+				WHERE 
+					PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+				
+			<!--- Delete the visitor logs. --->
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM VisitorLog
 				WHERE 
 					PostRef = #PostDbObj.getPostId()#
 			</cfquery>
