@@ -14,7 +14,7 @@
 <cfparam name="URL.category" default="">
 <cfparam name="URL.start" default="1">
 
-<cfset searchTerm = left(htmlEditFormat(trim(URL.searchTerm)),255)>
+<cfset searchTerm = left(encodeForHTML(trim(URL.searchTerm)),255)>
 
 <cfset cats = application.blog.getCategories()>
 

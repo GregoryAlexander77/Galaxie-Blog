@@ -1938,7 +1938,7 @@
 		<!--- Get the logo for the selected theme --->
 		<cfset logoPath = application.blog.getLogoPathByTheme()>
 		<!--- Blog title --->
-		<cfset blogTitle = htmlEditFormat(application.BlogDbObj.getBlogTitle())>
+		<cfset blogTitle = encodeForHTML(application.BlogDbObj.getBlogTitle())>
 		<!--- Display oriented vars --->
 		<cfset headerBgImage = getTheme[1]["HeaderBackgroundImage"]>
 		<!--- Get the blog name font size --->
@@ -2442,7 +2442,7 @@
 				</tr>
 				<tr>
 					<td colspan="2">
-						#(htmlEditFormat(comments))#
+						#(encodeForHTML(comments))#
 					</td>
 				</tr>
 			</table>

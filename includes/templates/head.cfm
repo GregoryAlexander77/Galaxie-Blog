@@ -38,7 +38,7 @@
 
 <!--- Handle the title when the post is not found --->
 <cfif postFound>
-	<cfset titleMetaTagValue = htmlEditFormat(titleMetaTagValue)>
+	<cfset titleMetaTagValue = encodeForHTML(titleMetaTagValue)>
 <cfelse>
 	<cfset titleMetaTagValue = "Post Not Found">
 </cfif>
@@ -95,7 +95,7 @@
 </cfif><!---<cfif videoType neq "" and getPageMode() eq 'post'>--->
 	<!-- Open graph meta tags for Facebook. See notes. -->
 	<meta property="og:image" content="#facebookImageMetaTagValue#"> 
-	<meta property="og:site_name" content="#htmlEditFormat(application.BlogDbObj.getBlogTitle())#" />
+	<meta property="og:site_name" content="#encodeForHTML(application.BlogDbObj.getBlogTitle())#" />
 	<meta property="og:url" content="#canonicalUrl#" />
 	<meta property="og:title" content="#titleMetaTagValue#" />
 	<meta property="og:description" content="#descriptionMetaTagValue#" />
@@ -130,7 +130,7 @@
 	{
 		"@context": "http://schema.org",
 		"@type": "Blog",
-		"name": "#htmlEditFormat(application.BlogDbObj.getBlogTitle())#",
+		"name": "#encodeForHTML(application.BlogDbObj.getBlogTitle())#",
 		"url": "#struturedDataMainEntityOfPageUrl#",
 		"mainEntityOfPage": {
 			  "@type": "#struturedDataMainEntityOfPage#",
@@ -139,7 +139,7 @@
 		"description": "#descriptionMetaTagValue#",
 		"publisher": {
 			"@type": "Organization",
-			"name": "#htmlEditFormat(application.BlogDbObj.getBlogTitle())#"
+			"name": "#encodeForHTML(application.BlogDbObj.getBlogTitle())#"
 		}
 	}
 	</script>

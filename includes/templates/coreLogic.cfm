@@ -168,7 +168,7 @@
 		//****************************************************************************************************************--->
 
 		<!--- The title will be overwritten by the description if the blog is in entry mode. --->
-		<cfset titleMetaTagValue = htmlEditFormat(application.BlogDbObj.getBlogTitle())>
+		<cfset titleMetaTagValue = encodeForHTML(application.BlogDbObj.getBlogTitle())>
 		<cfset descriptionMetaTagValue = application.BlogDbObj.getBlogDescription()>
 
 		<!--- Add short strings to the title when the user selected category. --->

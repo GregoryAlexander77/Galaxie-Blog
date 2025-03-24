@@ -149,7 +149,7 @@
 			
 			// Set the window title
 			if (Id == 1){
-				var windowTitle = "About <cfoutput>#htmlEditFormat(application.blog.getProperty('blogTitle'))#</cfoutput>";
+				var windowTitle = "About <cfoutput>#encodeForHTML(application.blog.getProperty('blogTitle'))#</cfoutput>";
 			} else if (Id == 2){
 				var windowTitle = "About Gregory Alexander";//TODO put in an owner name in the admin section.
 			} else if (Id == 3){
@@ -1209,7 +1209,7 @@
 			// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
 			 $.when(kendo.ui.ExtYesNoDialog.show({ // Alert the user and ask them if they want to double opt in
 				title: "Please confirm your subscription",
-				message: "Do you want to subscribe to <cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput>?",
+				message: "Do you want to subscribe to <cfoutput>#encodeForHTML(application.BlogDbObj.getBlogTitle())#</cfoutput>?",
 				icon: "k-ext-information",
 				width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
 				height: "215px"
@@ -1268,7 +1268,7 @@
 			// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
 			 $.when(kendo.ui.ExtYesNoDialog.show({ // Alert the user and ask them if they want to unsubscribe
 				title: "Are you sure that you want to unsubscribe?",
-				message: "You will no longer receive email from <cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput>",
+				message: "You will no longer receive email from <cfoutput>#encodeForHTML(application.BlogDbObj.getBlogTitle())#</cfoutput>",
 				icon: "k-ext-warning",
 				width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
 				height: "215px"

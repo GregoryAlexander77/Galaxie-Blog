@@ -34,7 +34,7 @@
 				</td>
 				<td id="blogNameContainer">
 					<!-- The blog name may not always be displayed. The blog name maybe in the logo for example. -->
-					<cfif getTheme[1]["DisplayBlogName"]><cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput></cfif>
+					<cfif getTheme[1]["DisplayBlogName"]><cfoutput>#encodeForHTML(application.BlogDbObj.getBlogTitle())#</cfoutput></cfif>
 				</td>
 			</tr>
 			<tr>
@@ -70,7 +70,7 @@
 				</td>
 				<td id="blogNameContainer">
 					<!-- The blog name may not always be displayed. The blog name maybe in the logo for example. -->
-					<cfif getTheme[1]["DisplayBlogName"]><cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput></cfif>
+					<cfif getTheme[1]["DisplayBlogName"]><cfoutput>#encodeForHTML(application.BlogDbObj.getBlogTitle())#</cfoutput></cfif>
 				</td>
 			</tr>
 			<tr>

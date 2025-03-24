@@ -184,7 +184,7 @@
 		  </tr>
 		  <tr>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
-				You have been set up with a user account to contribute to <cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput>. Please make any necessary changes to your profile and enter a new password to continue.
+				You have been set up with a user account to contribute to <cfoutput>#encodeForHTML(application.BlogDbObj.getBlogTitle())#</cfoutput>. Please make any necessary changes to your profile and enter a new password to continue.
 			</td>
 		  </tr>
 		  <!-- Border -->

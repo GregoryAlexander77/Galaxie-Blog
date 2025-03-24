@@ -111,7 +111,7 @@
 		</tr>
 		<tr valign="top">
 			<td align="right">body:</td>
-			<td></cfoutput><cfmodule template="../tags/textarea.cfm" fieldname="body" value="#htmlEditFormat(form.body)#" class="txtArea" style="width:500px" /><cfoutput></td>
+			<td></cfoutput><cfmodule template="../tags/textarea.cfm" fieldname="body" value="#encodeForHTML(form.body)#" class="txtArea" style="width:500px" /><cfoutput></td>
 		</tr>
 		<cfif len(form.alias)>
 		<tr valign="top">

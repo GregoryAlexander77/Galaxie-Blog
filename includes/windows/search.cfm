@@ -27,7 +27,7 @@
 <cfparam name="form.search" default="#searchAlias#">
 <cfparam name="form.category" default="">
 <!--- Trim our search field. --->
-<cfset form.search = left(htmlEditFormat(trim(form.search)),255)>
+<cfset form.search = left(encodeForHTML(trim(form.search)),255)>
 <!--- Get the categories --->
 <cfset getCategories = application.blog.getCategories()>
 

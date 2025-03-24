@@ -130,7 +130,7 @@
 							</td>
 							<td id="blogNameContainer">
 								<!-- The blog name may not always be displayed. The blog name maybe in the logo for example. -->
-								<cfif getTheme[1]["DisplayBlogName"]><cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput></cfif>
+								<cfif getTheme[1]["DisplayBlogName"]><cfoutput>#encodeForHTML(application.BlogDbObj.getBlogTitle())#</cfoutput></cfif>
 							</td>
 						</tr>
 						<tr>
@@ -177,7 +177,7 @@
 						<ul>
 							<!--- Note: the first menu option should not have spaces if you want the menu to be aligned with the blog text. --->
 							<cfif menuDivName eq 'fixedNavMenu'><li onclick="javascript:scrollToTop();"><span class="fa fa-arrow-circle-up"></span> Top</li></cfif>
-							<li><a href="<cfoutput>#application.siteUrl#</cfoutput>"><cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput></a></li>
+							<li><a href="<cfoutput>#application.siteUrl#</cfoutput>"><cfoutput>#encodeForHTML(application.BlogDbObj.getBlogTitle())#</cfoutput></a></li>
 						<cfif len(application.parentSiteName)>
 							<li><a href="<cfoutput>#application.parentSiteLink#</cfoutput>"><cfoutput>#application.parentSiteName#</cfoutput></a></li>
 						</cfif>

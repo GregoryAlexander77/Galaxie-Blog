@@ -74,7 +74,7 @@ This tag sets the params that are sent to the getPost query.
 	<cfif isDefined("url.search")>
 		<cfset form.search = url.search>
 	</cfif>
-	<cfset params.searchTerms = htmlEditFormat(form.search)>
+	<cfset params.searchTerms = encodeForHTML(form.search)>
 	<!--- Dont log pages --->
 	<cfif url.startrow neq 1>
 		<cfset params.dontlogsearch = true>

@@ -1794,7 +1794,7 @@
 		<cfif arguments.byPassErrors or not error>
 
 			<!--- Blog title --->
-			<cfset blogTitle = htmlEditFormat(application.BlogDbObj.getBlogTitle())>
+			<cfset blogTitle = encodeForHTML(application.BlogDbObj.getBlogTitle())>
 
 			<!--- Get our subscribers. This will return the subscriber email addresses. --->
 			<cfinvoke component="#application.blog#" method="getSubscribers" returnVariable="getSubscribers">
@@ -5442,13 +5442,13 @@
 		<cfset var kill = createUUID()>
 
 		<!--- 
-		With the new kendo editor, we are not using htmlEditFormat to store the comments. 
+		With the new kendo editor, we are not using encodeForHTML to store the comments. 
 		<cfset arguments.comments = htmleditformat(arguments.comments)>
 		--->
-		<cfset arguments.comments = htmleditformat(arguments.comments)>
-		<cfset arguments.name = left(htmlEditFormat(arguments.name),125)>
-		<cfset arguments.email = left(htmlEditFormat(arguments.email),125)>
-		<cfset arguments.website = left(htmlEditFormat(arguments.website),255)>
+		<cfset arguments.comments = encodeForHTML(arguments.comments)>
+		<cfset arguments.name = left(encodeForHTML(arguments.name),125)>
+		<cfset arguments.email = left(encodeForHTML(arguments.email),125)>
+		<cfset arguments.website = left(encodeForHTML(arguments.website),255)>
 
 		<cfif not postExists(arguments.postId)>
 			<cfset variables.utils.throw("#arguments.postId# is not a valid entry.")>
@@ -10105,7 +10105,7 @@
 			<!--- Render the email --->
 			<cfinvoke component="#RendererObj#" method="renderEmail" returnvariable="emailBody">
 				<cfinvokeargument name="email" value="#email#">
-				<cfinvokeargument name="emailTitle" value="A new #variables.utils.htmlToPlainText(htmlEditFormat(instance.blogtitle))# user account has been set up for you.">
+				<cfinvokeargument name="emailTitle" value="A new #variables.utils.htmlToPlainText(encodeForHTML(instance.blogtitle))# user account has been set up for you.">
 				<cfinvokeargument name="emailTitleLink" value="#emailTitleLink#">
 				<cfinvokeargument name="emailDesc" value="#emailDesc#">
 				<cfinvokeargument name="emailBody" value="#mainBody#">
@@ -10116,7 +10116,7 @@
 			<!--- Email the new user asking them to confirm ---> 
 			<cfset application.utils.mail(
 				to=#email#,
-				subject="A new #variables.utils.htmlToPlainText(htmlEditFormat(instance.blogtitle))# user account has been set up for you",
+				subject="A new #variables.utils.htmlToPlainText(encodeForHTML(instance.blogtitle))# user account has been set up for you",
 				body=emailBody)>
 
 		</cfif><!---<cfif arguments.action eq 'insert' and arguments.notify>--->

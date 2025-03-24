@@ -677,7 +677,7 @@
 							</tr>
 							<tr>
 								<td colspan="2">
-									#(htmlEditFormat(arguments.comments))#
+									#(encodeForHTML(arguments.comments))#
 								</td>
 							</tr>
 						</table>
