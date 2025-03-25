@@ -16,7 +16,7 @@
 			
 		<!--- Abort if the blog is already installed. --->
 		<cfset blogInstalled = getProfileString(blogIniPath, "default", "installed")>
-		<cfif len(blogInstalled)>
+		<cfif len(blogInstalled) and blogInstalled>
 			<p>This blog is already installed. 
 			If you manually set the application.reinstallIni variable, set it back to false in the Application.cfc in the root directory to false to continue.
 			
