@@ -1557,7 +1557,9 @@
 		   <tr class="includeBackgroundImages">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#blogBackgroundImage#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#');">
+				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#blogBackgroundImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#') --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1568,7 +1570,9 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#blogBackgroundImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#');">
+				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#blogBackgroundImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#') --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1589,14 +1593,16 @@
 		<cfif session.isMobile>
 		  <tr valign="middle" class="includeBackgroundImages">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<label for="blogBackgroundImageMobile">Mobile Blog Background:</label>compo
+				<label for="blogBackgroundImageMobile">Mobile Blog Background:</label>
 			</td>
 		   </tr>
 		   <tr class="includeBackgroundImages">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#blogBackgroundImageMobile#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#');">
+				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#blogBackgroundImageMobile#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1608,7 +1614,9 @@
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#blogBackgroundImageMobile#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#');">
+				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#blogBackgroundImageMobile#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1816,7 +1824,9 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="headerBackgroundImage" name="headerBackgroundImage" value="#headerBackgroundImage#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'headerBackgroundImage','#headerBackgroundImage#');">
+				<input type="text" id="headerBackgroundImage" name="headerBackgroundImage" value="#headerBackgroundImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'headerBackgroundImage','#headerBackgroundImage#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'headerBackgroundImage','#headerBackgroundImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1827,7 +1837,9 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="headerBackgroundImage" name="headerBackgroundImage" value="#headerBackgroundImage#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'headerBackgroundImage','#headerBackgroundImage#');">
+				<input type="text" id="headerBackgroundImage" name="headerBackgroundImage" value="#headerBackgroundImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'headerBackgroundImage','#headerBackgroundImage#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'headerBackgroundImage','#headerBackgroundImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1835,8 +1847,7 @@
 		  <!-- Border -->
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-			  
+		  </tr> 
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
 		  <!---After the first row, the content class should be the current class. --->
@@ -1854,7 +1865,9 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="headerBodyDividerImage" name="headerBodyDividerImage" value="#headerBodyDividerImage#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'headerBodyDividerImage','#headerBodyDividerImage#');">
+				<input type="text" id="headerBodyDividerImage" name="headerBodyDividerImage" value="#headerBodyDividerImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'headerBodyDividerImage','#headerBodyDividerImage#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'headerBodyDividerImage','#headerBodyDividerImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1865,7 +1878,9 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="headerBodyDividerImage" name="headerBodyDividerImage" value="#headerBodyDividerImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'headerBodyDividerImage','#headerBodyDividerImage#');">
+				<input type="text" id="headerBodyDividerImage" name="headerBodyDividerImage" value="#headerBodyDividerImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'headerBodyDividerImage','#headerBodyDividerImage#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'headerBodyDividerImage','#headerBodyDividerImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1937,7 +1952,9 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="logoImage" name="logoImage" value="#logoImage#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImage','#logoImage#');">
+				<input type="text" id="logoImage" name="logoImage" value="#logoImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImage','#logoImage#');">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'logoImage','#logoImage#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'logoImage','#logoImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1948,7 +1965,9 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="logoImage" name="logoImage" value="#logoImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImage','#logoImage#');">
+				<input type="text" id="logoImage" name="logoImage" value="#logoImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'logoImage','#logoImage#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'logoImage','#logoImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1976,7 +1995,9 @@
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#logoImageMobile#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#logoImageMobile#');">
+				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#logoImageMobile#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#logoImageMobile#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#logoImageMobile#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -1988,7 +2009,9 @@
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#logoImageMobile#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#logoImageMobile#');">
+				<input type="text" id="logoImageMobile" name="logoImageMobile" value="#logoImageMobile#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#logoImageMobile#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'logoImageMobile','#logoImageMobile#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -2026,7 +2049,9 @@
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#defaultLogoImageForSocialMediaShare#');">
+				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#defaultLogoImageForSocialMediaShare#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#defaultLogoImageForSocialMediaShare#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -2038,7 +2063,9 @@
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#defaultLogoImageForSocialMediaShare#');">
+				<input type="text" id="defaultLogoImageForSocialMediaShare" name="defaultLogoImageForSocialMediaShare" value="#defaultLogoImageForSocialMediaShare#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#defaultLogoImageForSocialMediaShare#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'defaultLogoImageForSocialMediaShare','#defaultLogoImageForSocialMediaShare#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -2291,7 +2318,9 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="headerBackgroundImage" name="menuBackgroundImage" value="#menuBackgroundImage#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #themeId#,'menuBackgroundImage','#menuBackgroundImage#');">
+				<input type="text" id="headerBackgroundImage" name="menuBackgroundImage" value="#menuBackgroundImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'menuBackgroundImage','#menuBackgroundImage#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'menuBackgroundImage','#menuBackgroundImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -2302,7 +2331,9 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="headerBackgroundImage" name="menuBackgroundImage" value="#menuBackgroundImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'menuBackgroundImage','#menuBackgroundImage#');">
+				<input type="text" id="headerBackgroundImage" name="menuBackgroundImage" value="#menuBackgroundImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'menuBackgroundImage','#menuBackgroundImage#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'menuBackgroundImage','#menuBackgroundImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -4155,7 +4186,9 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="footerImage" name="footerImage" value="#footerImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'footerImage','#footerImage#');">
+				<input type="text" id="footerImage" name="footerImage" value="#footerImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'footerImage','#footerImage#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'footerImage','#footerImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
@@ -4166,7 +4199,9 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="footerImage" name="footerImage" value="#footerImage#" class="k-textbox" style="width:75%" onclick="createAdminInterfaceWindow(35, #themeId#,'footerImage','#footerImage#');">
+				<input type="text" id="footerImage" name="footerImage" value="#footerImage#" class="k-textbox" style="width:75%">
+				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'footerImage','#footerImage#'); --->
+				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'footerImage','#footerImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>

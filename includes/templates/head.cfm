@@ -201,9 +201,9 @@
 	  crossorigin="anonymous"></script>
 </cfif>
 	<!-- Load jQuery UI via CDN (for notification script) -->
-	<script type="#scriptTypeString#" rel="dns-prefetch" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1/jquery-ui.min.js" ></script>
+	<script type="#scriptTypeString#" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1/jquery-ui.min.js" ></script>
 	<!-- Load the notify script -->
-	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/jQuery/jQueryNotify/src/jquery.notify.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/jQuery/jQueryNotify/src/jquery.notify.min.js"></script>
 <cfsilent>
 <!--- The Kendo css locations are set in the includes/templates/pageSettings.cfm template and use the Kendo folder path when using Kendo commercial. Otherwise they point to the embedded Kendo Core package. --->
 </cfsilent>	
@@ -282,7 +282,7 @@
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#/common/libs/fancyBox/v2/source/jquery.fancybox.css') );
 	</script>
 	<!-- Plyr (our HTML5 media player) -->
-	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/plyr/plyr.js"></script>
+	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/plyr/plyr.min.js"></script>
 	<!-- Defer the plyr css. -->
 	<script type="#scriptTypeString#">
 		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#/common/libs/plyr/themeCss/#kendoTheme#.css') );
