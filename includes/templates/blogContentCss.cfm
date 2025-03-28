@@ -342,10 +342,10 @@
 		  border: 0;
 		}
 		
-		/* Override the menu and remove some of the extra padding to make it fit the page (default padding is 0.5em 1em 0.4em */
+		/* Override the menu and remove some of the extra padding to make it fit the page (default padding is 0.5em 1em 0.4em). When there is not a selected theme, make this even smaller so the header does not wrap */
 		.k-menu .k-item>.k-link, .k-menu-scroll-wrapper .k-item>.k-link, .k-popups-wrapper .k-item>.k-link {
 			display: block;
-    		padding: 0.4em .7em 0.4em;
+    		padding: <cfif !selectedTheme>0.3em .6em<cfelse>0.4 em .7em</cfif> 0.4em;
 		}
 			
 		/* Fixed nav menu. Note: the script at the tail end of the page will set this to visible after the page loads. */

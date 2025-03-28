@@ -1,3 +1,5 @@
+<cfset debug = 0>
+	
 <cfif isDefined("debug") and debug>Running the installer/insertData.cfm template.<br/></cfif>
 <!---<cfsilent>--->
 <!--- This is consumed from the Application.cfm template after ORM creates the initial database. --->
@@ -10,6 +12,10 @@ Determine if the blog has been installed
 --->
 <cfset blogInstalled = getProfileString(application.blogIniPath, "default", "installed")>
 	
+<!--- With version 4.013.2 we need to update the theme setttings table. The URL to update is /?updateVersion=4.013.2 --->
+<cfif isDefined("URL.updateVersion") and URL.updateVersion eq '4.013.2'>
+	<cfset tablesToPopulate = 'theme'>
+</cfif>
 <!---
 You can also use this after a major version and changing the data in the database like so:		
 <cfset tablesToPopulate = 'version3_85'>
@@ -111,8 +117,10 @@ Populate the blog table.
 	</cftransaction>
 
 	<cfset blogId = BlogDbObj.getBlogId()>
+		
+	<cfif isDefined("debug") and debug>Blog Table succesfully populated.<br/></cfif>
 </cfif>	
-<cfif isDefined("debug") and debug>Blog Table succesfully populated.<br/></cfif>
+
 				
 <!--- ******************************************************************************************
 Populate the blog option table.
@@ -178,8 +186,10 @@ Populate the blog option table.
 	</cftransaction>
 
 	<cfset blogOptionId = OptionDbObj.getBlogOptionId()>
+		
+	<cfif isDefined("debug") and debug>Blog Option Table succesfully populated.<br/></cfif>
 </cfif>
-<cfif isDefined("debug") and debug>Blog Option Table succesfully populated.<br/></cfif>
+
 				
 <!--- ******************************************************************************************
 Populate the capability table.
@@ -231,8 +241,9 @@ Populate the capability table.
 	</cfoutput>
 
 	<cfset CapabilityId = CapabilityDbObj.getCapabilityId()>
+		
+	<cfif isDefined("debug") and debug>Capability Table succesfully populated.<br/></cfif>	
 </cfif>
-<cfif isDefined("debug") and debug>Capability Table succesfully populated.<br/></cfif>	
 				
 <!--- ******************************************************************************************
 Populate the Font table.
@@ -288,8 +299,10 @@ Populate the Font table.
 	</cftransaction>
 
 	<cfset FontId = FontDbObj.getFontId()>
+		
+	<cfif isDefined("debug") and debug>Font Table succesfully populated.<br/></cfif>
 </cfif>	
-<cfif isDefined("debug") and debug>Font Table succesfully populated.<br/></cfif>
+
 				
 <!--- ******************************************************************************************
 Populate the Kendo Theme table.
@@ -340,9 +353,10 @@ Populate the Kendo Theme table.
 	</cfoutput>
 
 	<cfset KendoThemeId = KendoThemeDbObj.getKendoThemeId()>
+		
+	<cfif isDefined("debug") and debug>Kendo Theme Table succesfully populated.<br/></cfif>
 </cfif>	
-<cfif isDefined("debug") and debug>Kendo Theme Table succesfully populated.<br/></cfif>
-				
+			
 <!--- ******************************************************************************************
 Populate the Map Provider table.
 ********************************************************************************************--->
@@ -388,9 +402,10 @@ Populate the Map Provider table.
 	</cfoutput>
 
 	<cfset mapProviderId = MapProviderDbObj.getMapProviderId()>
+		
+	<cfif isDefined("debug") and debug>Map Provider Table succesfully populated.<br/></cfif>
 </cfif>
-<cfif isDefined("debug") and debug>Map Provider Table succesfully populated.<br/></cfif>
-				
+			
 <!--- ******************************************************************************************
 Populate the Map Type table.
 ********************************************************************************************--->
@@ -440,9 +455,10 @@ Populate the Map Type table.
 	</cfoutput>
 
 	<cfset mapTypeId = MapTypeDbObj.getMapTypeId()>
+		
+	<cfif isDefined("debug") and debug>Map Type Table succesfully populated.<br/></cfif>
 </cfif>
-<cfif isDefined("debug") and debug>Map Type Table succesfully populated.<br/></cfif>
-				
+			
 <!--- ******************************************************************************************
 Populate the Media Type table.
 ********************************************************************************************--->
@@ -490,9 +506,10 @@ Populate the Media Type table.
 	</cfoutput>
 
 	<cfset mediaTypeId = MediaTypeDbObj.getMediaTypeId()>
+		
+	<cfif isDefined("debug") and debug>Media Type Table succesfully populated.<br/></cfif>
 </cfif>
-<cfif isDefined("debug") and debug>Media Type Table succesfully populated.<br/></cfif>
-				
+		
 <!--- ******************************************************************************************
 Populate the Mime Type table.
 ********************************************************************************************--->
@@ -540,8 +557,10 @@ Populate the Mime Type table.
 	</cfoutput>
 
 	<cfset mimeTypeId = MimeTypeDbObj.getMimeTypeId()>
+		
+	<cfif isDefined("debug") and debug>Mime Type Table succesfully populated.<br/></cfif>
 </cfif>	
-<cfif isDefined("debug") and debug>Mime Type Table succesfully populated.<br/></cfif>
+
 				
 <!--- ******************************************************************************************
 Populate the Role table.
@@ -592,8 +611,10 @@ Populate the Role table.
 	</cfoutput>
 
 	<cfset roleId = RoleDbObj.getRoleId()>
+		
+	<cfif isDefined("debug") and debug>Role Table succesfully populated.<br/></cfif>
 </cfif>	
-<cfif isDefined("debug") and debug>Role Table succesfully populated.<br/></cfif>
+
 				
 <!--- ******************************************************************************************
 Populate the Role Capability table.
@@ -666,8 +687,10 @@ Populate the Role Capability table.
 	</cfoutput>
 
 	<cfset roleCapabilityId = RoleCapabilityDbObj.getRoleCapabilityId()>
+		
+	<cfif isDefined("debug") and debug>Role Capability Table succesfully populated.<br/></cfif>
 </cfif>	
-<cfif isDefined("debug") and debug>Role Capability Table succesfully populated.<br/></cfif>
+
 				
 <!--- ******************************************************************************************
 Populate the Theme and Theme Setting tables at the same time. This one is tricky...
@@ -766,6 +789,52 @@ Populate the Theme and Theme Setting tables at the same time. This one is tricky
 			<cfset ThemeDbObj.setDate(now())>
 
 			<!--- Now set the values for the Theme Setting table. --->
+			<!--- Determine if we are going to use webp. --->
+			<cfif application.serverSupportsWebP>
+				<cfset blogBackgroundImage = getThemeSettingByTheme.BlogBackgroundImage>
+				<cfset blogBackgroundImageMobile = getThemeSettingByTheme.BlogBackgroundImageMobile>	
+				<cfset headerBackgroundImage = getThemeSettingByTheme.HeaderBackgroundImage>
+				<cfset defaultLogoImageForSocialMediaShare = getThemeSettingByTheme.DefaultLogoImageForSocialMediaShare>
+				<cfset menuBackgroundImage = getThemeSettingByTheme.MenuBackgroundImage>
+				<cfset footerImage = getThemeSettingByTheme.FooterImage>
+				<cfif blogBackgroundImage contains '.png'>
+					<cfset blogBackgroundImage = replaceNoCase(blogBackgroundImage, '.png', '.webp')>
+				<cfelseif blogBackgroundImage contains '.jpg'>
+					<cfset blogBackgroundImage = replaceNoCase(blogBackgroundImage, '.jpg', '.webp')>
+				</cfif>
+				<cfif blogBackgroundImageMobile contains '.png'>
+					<cfset blogBackgroundImageMobile = replaceNoCase(blogBackgroundImageMobile, '.png', '.webp')>
+				<cfelseif blogBackgroundImageMobile contains '.jpg'>
+					<cfset blogBackgroundImageMobile = replaceNoCase(blogBackgroundImageMobile, '.jpg', '.webp')>
+				</cfif>
+				<cfif HeaderBackgroundImage contains '.png'>
+					<cfset HeaderBackgroundImage = replaceNoCase(HeaderBackgroundImage, '.png', '.webp')>
+				<cfelseif HeaderBackgroundImage contains '.jpg'>
+					<cfset HeaderBackgroundImage = replaceNoCase(HeaderBackgroundImage, '.jpg', '.webp')>
+				</cfif>
+				<cfif defaultLogoImageForSocialMediaShare contains '.png'>
+					<cfset defaultLogoImageForSocialMediaShare = replaceNoCase(defaultLogoImageForSocialMediaShare, '.png', '.webp')>
+				<cfelseif defaultLogoImageForSocialMediaShare contains '.jpg'>
+					<cfset defaultLogoImageForSocialMediaShare = replaceNoCase(defaultLogoImageForSocialMediaShare, '.jpg', '.webp')>
+				</cfif>
+				<cfif menuBackgroundImage contains '.png'>
+					<cfset menuBackgroundImage = replaceNoCase(menuBackgroundImage, '.png', '.webp')>
+				<cfelseif menuBackgroundImage contains '.jpg'>
+					<cfset menuBackgroundImage = replaceNoCase(menuBackgroundImage, '.jpg', '.webp')>
+				</cfif>
+				<cfif footerImage contains '.png'>
+					<cfset footerImage = replaceNoCase(footerImage, '.png', '.webp')>
+				<cfelseif footerImage contains '.jpg'>
+					<cfset footerImage = replaceNoCase(footerImage, '.jpg', '.webp')>
+				</cfif>	
+			<cfelse>
+				<cfset blogBackgroundImage = getThemeSettingByTheme.BlogBackgroundImage>
+				<cfset blogBackgroundImageMobile = getThemeSettingByTheme.BlogBackgroundImageMobile>	
+				<cfset headerBackgroundImage = getThemeSettingByTheme.HeaderBackgroundImage>
+				<cfset defaultLogoImageForSocialMediaShare = getThemeSettingByTheme.DefaultLogoImageForSocialMediaShare>
+				<cfset menuBackgroundImage = getThemeSettingByTheme.MenuBackgroundImage>
+				<cfset footerImage = getThemeSettingByTheme.FooterImage>
+			</cfif>
 			<!--- Load the Font object --->
 			<cfset FontDbObj = entityLoad("Font", { Font = getThemeSettingByTheme.BodyFont }, "true" )>
 
@@ -777,14 +846,14 @@ Populate the Theme and Theme Setting tables at the same time. This one is tricky
 			<cfset ThemeSettingDbObj.setContentWidth(getThemeSettingByTheme.ContentWidth)>
 			<cfset ThemeSettingDbObj.setMainContainerWidth(getThemeSettingByTheme.MainContainerWidth)>
 			<cfset ThemeSettingDbObj.setSideBarContainerWidth(getThemeSettingByTheme.SideBarContainerWidth)>
-			<cfset ThemeSettingDbObj.setBlogBackgroundImage(getThemeSettingByTheme.BlogBackgroundImage)>
-			<cfset ThemeSettingDbObj.setBlogBackgroundImageMobile(getThemeSettingByTheme.BlogBackgroundImageMobile)>
+			<cfset ThemeSettingDbObj.setBlogBackgroundImage(blogBackgroundImage)>
+			<cfset ThemeSettingDbObj.setBlogBackgroundImageMobile(blogBackgroundImageMobile)>
 			<cfset ThemeSettingDbObj.setIncludeBackgroundImages(getThemeSettingByTheme.IncludeBackgroundImages)>
 			<cfset ThemeSettingDbObj.setBlogBackgroundImageRepeat(getThemeSettingByTheme.BlogBackgroundImageRepeat)>
 			<cfset ThemeSettingDbObj.setBlogBackgroundImagePosition(getThemeSettingByTheme.BlogBackgroundImagePosition)>
 			<cfset ThemeSettingDbObj.setBlogBackgroundColor(getThemeSettingByTheme.BlogBackgroundColor)>
 			<cfset ThemeSettingDbObj.setStretchHeaderAcrossPage(getThemeSettingByTheme.StretchHeaderAcrossPage)>
-			<cfset ThemeSettingDbObj.setHeaderBackgroundImage(getThemeSettingByTheme.HeaderBackgroundImage)>
+			<cfset ThemeSettingDbObj.setHeaderBackgroundImage(headerBackgroundImage)>
 			<cfif arraylen(getMenuFontId)>
 				<cfset ThemeSettingDbObj.setMenuFontRef(getMenuFontId[1])>
 			</cfif>
@@ -796,7 +865,7 @@ Populate the Theme and Theme Setting tables at the same time. This one is tricky
 			<cfset ThemeSettingDbObj.setLogoPaddingRight(getThemeSettingByTheme.LogoPaddingRight)>
 			<cfset ThemeSettingDbObj.setLogoPaddingLeft(getThemeSettingByTheme.LogoPaddingLeft)>
 			<cfset ThemeSettingDbObj.setLogoPaddingBottom(getThemeSettingByTheme.LogoPaddingBottom)>
-			<cfset ThemeSettingDbObj.setDefaultLogoImageForSocialMediaShare(getThemeSettingByTheme.DefaultLogoImageForSocialMediaShare)>
+			<cfset ThemeSettingDbObj.setDefaultLogoImageForSocialMediaShare(defaultLogoImageForSocialMediaShare)>
 			<cfset ThemeSettingDbObj.setBlogNameTextColor(getThemeSettingByTheme.BlogNameTextColor)>
 			<cfif arrayLen(getBlogNameFontId)>
 				<cfset ThemeSettingDbObj.setBlogNameFontRef(getBlogNameFontId[1])><!--- This field does not require an object --->
@@ -807,7 +876,7 @@ Populate the Theme and Theme Setting tables at the same time. This one is tricky
 			<cfset ThemeSettingDbObj.setMenuBackgroundImage(getThemeSettingByTheme.MenuBackgroundImage)>
 			<cfset ThemeSettingDbObj.setAlignBlogMenuWithBlogContent(getThemeSettingByTheme.AlignBlogMenuWithBlogContent)>
 			<cfset ThemeSettingDbObj.setTopMenuAlign(getThemeSettingByTheme.TopMenuAlign)>
-			<cfset ThemeSettingDbObj.setFooterImage(getThemeSettingByTheme.FooterImage)>
+			<cfset ThemeSettingDbObj.setFooterImage(footerImage)>
 			<!--- For distribution, set the WebPImagesIncluded to false otherwise they will have to upload webp versions of any new background images. I'll add a better interface to handle this in the next version. --->
 			<cfset ThemeSettingDbObj.setWebPImagesIncluded(false)>
 			<cfset ThemeSettingDbObj.setDate(now())>
@@ -821,8 +890,10 @@ Populate the Theme and Theme Setting tables at the same time. This one is tricky
 	</cfoutput>
 	<cfset themeId = ThemeDbObj.getThemeId()>
 	<cfset themeSettingId = ThemeSettingDbObj.getThemeSettingId()> 
+		
+	<cfif isDefined("debug") and debug>Theme Setting Table succesfully populated.<br/></cfif>
 </cfif>
-<cfif isDefined("debug") and debug>Theme Setting Table succesfully populated.<br/></cfif>
+
 		
 <!--- ******************************************************************************************
 Populate the User table using the form values sent in

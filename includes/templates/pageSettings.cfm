@@ -194,24 +194,13 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <!--- If the blog background images are not included, the user can specify a blog background color instead. --->
 <cfset blogBackgroundColor = getTheme[1]["BlogBackgroundColor"]>
 	
-<!--- Logic to modify the default background image string to specify the webp image extension and determine the mobile version (which is smaller). --->
-<!--- Are the webp images included in this theme and is webp in the accept header? --->
-<cfif webPImagesIncluded and webpImageSupported>
-	<!--- Use the webp image. First, we need to check to see whether the client is mobile or desktop. I scaled the mobile background image down quite a bit. We don't  need to have a large image on mobile clients. --->
-	<cfif session.isMobile>
-		<cfset blogBackgroundImage = replaceNoCase(blogBackgroundImageMobile, '.png', '.webp')>
-	<cfelse>
-		<cfset blogBackgroundImage = replaceNoCase(blogBackgroundImage, '.png', '.webp')>
-	</cfif>
-<cfelse><!---<cfif webpImageSupported>--->
-	<!--- Use a jpg. --->
-	<cfif session.isMobile>
-		<!--- Use the default blog background image (which is a jpg). --->
-		<cfset blogBackgroundImage = blogBackgroundImageMobile>
-	<cfelse>
-		<cfset blogBackgroundImage = blogBackgroundImage>
-	</cfif>
-</cfif><!---<cfif webpImageSupported>---> 
+<!--- Logic to modify the default background image --->
+<cfif session.isMobile>
+	<!--- Use the default blog background image (which is a jpg). --->
+	<cfset blogBackgroundImage = blogBackgroundImageMobile>
+<cfelse>
+	<cfset blogBackgroundImage = blogBackgroundImage>
+</cfif>
 
 <!--- Do you want the blogBackgroundImage to repeat at the end of the image? The dafualt value is false. --->
 <cfset blogBackgroundImageRepeat = getTheme[1]["BlogBackgroundImageRepeat"]>
@@ -233,20 +222,11 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <cfset topMenuAlign = getTheme[1]["TopMenuAlign"]><!---Either left, center, or right--->
 <!--- The header background image. You can also leave this blank if you want the blogBackgroundImage to be shown instead of a colored banner on the header. If you choose to leave this blank and not display a colored banner, also leave the menuBackgroundImage blank, otherwise, a colored bar will be displayed. Note: I put a gradient on the banner image, however, the top of the image, which is darker than the bottom, can't be used for the menu as it will look off. So I am separating the background images for the banner and the menu. --->
 <cfset headerBackgroundImage = application.baseUrl & getTheme[1]["HeaderBackgroundImage"]>
-<cfif webPImagesIncluded and webpImageSupported>
-	<!--- Overwrite the headerBodyDividerImage var and change the extension to .webp--->
-	<cfset headerBackgroundImage = replaceNoCase(headerBackgroundImage, '.png', '.webp')>
-</cfif>
 <!--- The background image for the top menu. This should be a consistent color and not gradiated. --->
 <cfif getTheme[1]["MenuBackgroundImage"] neq "">
 	<cfset menuBackgroundImage = application.baseUrl & getTheme[1]["MenuBackgroundImage"]>
 <cfelse>
 	<cfset menuBackgroundImage = "">
-</cfif>
-<!--- We will try to substitute a webp image here. --->
-<cfif webPImagesIncluded and webpImageSupported>
-	<!--- Overwrite the headerBodyDividerImage var and change the extension to .webp--->
-	<cfset menuBackgroundImage = replaceNoCase(menuBackgroundImage, '.png', '.webp')>
 </cfif>
 <!--- Menu font properties --->
 <cfset menuFont = getTheme[1]["MenuFont"]>
@@ -302,11 +282,6 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 	
 <!--- The divider between the header and body --->
 <cfset headerBodyDividerImage = application.baseUrl & getTheme[1]["HeaderBodyDividerImage"]>
-<!--- See if we can use a webp image instead of the default png. --->
-<cfif webPImagesIncluded and webpImageSupported>
-	<!---Overwrite the headerBodyDividerImage var and change the extension to .webp--->
-	<cfset headerBodyDividerImage = replaceNoCase(headerBodyDividerImage, '.png', '.webp')>
-</cfif>
 <!--- Footer image --->
 <cfset footerImage = trim(getTheme[1]["FooterImage"])>
 	

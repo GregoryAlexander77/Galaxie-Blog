@@ -2156,7 +2156,14 @@
 				<cfset ThemeSettingDbObj = entityNew("ThemeSetting")>
 			</cfif>
 			<!--- Load the kendo theme entity --->
-			<cfset KendoThemeDbObj = entityLoadByPK("KendoTheme", arguments.kendoThemeId)>
+			<cfif len(arguments.kendoThemeId)>
+				<!--- Get the kendo theme using the supplied arguments. --->
+				<cfset KendoThemeDbObj = entityLoadByPK("KendoTheme", arguments.kendoThemeId)>
+			<cfelse>
+				<cfset arguments.kendoThemeId = ThemeDbObj.getKendoThemeRef().getKendoThemeId()>
+				<!--- Get the Kendo theme by the theme ref --->
+				<cfset KendoThemeDbObj = entityLoadByPK("KendoTheme", arguments.kendoThemeId)>
+			</cfif>
 			<!--- And finally the font entity (the fontId is derived by logic, see above) --->
 			<cfset FontDbObj = entityLoadByPK("Font", fontId)>
 			<!--- Set theme columns --->

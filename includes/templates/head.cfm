@@ -201,7 +201,7 @@
 	  crossorigin="anonymous"></script>
 </cfif>
 	<!-- Load jQuery UI via CDN (for notification script) -->
-	<script type="#scriptTypeString#" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1/jquery-ui.js" ></script>
+	<script type="#scriptTypeString#" rel="dns-prefetch" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1/jquery-ui.min.js" ></script>
 	<!-- Load the notify script -->
 	<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/jQuery/jQueryNotify/src/jquery.notify.js"></script>
 <cfsilent>
