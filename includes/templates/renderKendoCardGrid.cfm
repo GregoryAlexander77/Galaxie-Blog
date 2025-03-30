@@ -207,8 +207,10 @@
 		<cfelse>
 			<cfset carouselInterface = "card">
 		</cfif>
-		<!--- Render the carousel and don't specify an editor type as this is used on the main blog page. This returns a iframe renderCarouselPreview(carouselId, interface) --->
-		<cfset thumbnailCarousel = RendererObj.renderCarouselPreview(enclosureCarouselId, carouselInterface)>
+		<!--- Render the carousel and don't specify an editor type as this is used on the main blog page. 
+		renderCarousel(carouselId,renderCard) 
+		--->
+		<cfset thumbnailCarousel = RendererObj.renderCarousel(enclosureCarouselId,true)>
 	</cfif>
 
 	<!--- Remove HTML from the string --->

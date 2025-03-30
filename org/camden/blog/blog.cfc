@@ -7143,14 +7143,14 @@
 				AND Post.PostId IN (
 					SELECT PostRef
 					FROM PostCategoryLookup
-					WHERE CategoryRef IN (#arguments.params.byCat#)
+					WHERE CategoryRef IN (#replaceNoCase(arguments.params.byCat,'all,','')#)
 				)
 			</cfif>
 			<cfif structKeyExists(arguments.params,"byTag") and arguments.params.byTag neq 'all'>
 				AND Post.PostId IN (
 					SELECT PostRef
 					FROM PostTagLookup
-					WHERE TagRef IN (#arguments.params.byTag#)
+					WHERE TagRef IN (#replaceNoCase(arguments.params.byTag,'all,','')#)
 				)
 			</cfif>
 			<cfif structKeyExists(arguments.params,"byPosted")>
