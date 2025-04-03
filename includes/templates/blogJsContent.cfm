@@ -303,20 +303,6 @@
 			return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 		}
 		
-		// Method to create a notification. -------------------------------------------------------   
-        function createNotification( template, vars, opts, processId ){
-            return $container.notify("create", template, vars, opts);
-        }
-        
-        // Function to initialize a notifcation. 
-        $(function(){
-            // initialize widget on a container, passing in all the defaults.
-            // the defaults will apply to any notification created within this
-            // container, but can be overwritten on notification-by-notification
-            // basis.
-            $container = $("#notification").notify(); 
-        });
-		
 <cfif arrayLen(getCustomWindows)>		
 		// Custom windows --------------------------------------------------------------------------
 		

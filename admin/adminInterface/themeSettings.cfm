@@ -1844,47 +1844,7 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr> 
-		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
-		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		<cfif session.isMobile>
-		  <tr valign="middle">
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<label for="headerBodyDividerImage">Header Background Divider Image:</label>
-			</td>
-		   </tr>
-		   <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<cfoutput>
-				<input type="text" id="headerBodyDividerImage" name="headerBodyDividerImage" value="#headerBodyDividerImage#" class="k-textbox" style="width:75%">
-				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'headerBodyDividerImage','#headerBodyDividerImage#'); --->
-				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'headerBodyDividerImage','#headerBodyDividerImage#');">Upload</button>
-				</cfoutput>
-			</td>
-		  </tr>
-		<cfelse><!---<cfif session.isMobile>--->
-		  <tr>
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
-				<label for="headerBodyDividerImage">Header Background Divider Image:</label>
-			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<cfoutput>
-				<input type="text" id="headerBodyDividerImage" name="headerBodyDividerImage" value="#headerBodyDividerImage#" class="k-textbox" style="width:75%">
-				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'headerBodyDividerImage','#headerBodyDividerImage#'); --->
-				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'headerBodyDividerImage','#headerBodyDividerImage#');">Upload</button>
-				</cfoutput>
-			</td>
-		  </tr>
-		</cfif>
+		  <!--- I removed the headerBackgroundDividerImage in v4 --->
 		  <!-- Border -->
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>

@@ -7125,7 +7125,7 @@
 			LEFT JOIN Post.EnclosureCarousel as EnclosureCarousel
 			WHERE 0=0
 			<cfif not showRemovedPosts>
-				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+				AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 			</cfif>
 			<cfif structKeyExists(arguments.params,"lastXDays")>
 				AND date(Post.DatePosted) > <cfqueryparam value="#createDate(params.byYear, params.byMonth, params.byDay)#" cfsqltype="cf_sql_date">

@@ -51,11 +51,13 @@
 		</table>
 		</td>
 	  </tr>
+	  <!--- Note: the headerBodyDividerImage has a bug and is the same as the headerBackgroundImage 
 	  <tr>
 		<td height="2px" background="<cfoutput>#headerBodyDividerImage#</cfoutput>"></td>
 	  </tr>
+ 	  ---->
 	</table>
-<cfelse>
+<cfelse><!---<cfif session.isMobile>--->
 	<table id="headerContainer" cellpadding="0" cellspacing="0" align="center" class="flexHeader headerBackground">
 	  <tr>
 		<td>
@@ -89,10 +91,12 @@
 		<td>
 		</td>
 	  </tr>
+	  <!--- Note: the headerBodyDividerImage has a bug and is the same as the headerBackgroundImage 
 	  <tr>
 		<td height="2px" background="<cfoutput>#headerBodyDividerImage#</cfoutput>"></td>
 	  </tr>
+	  --->
 	</table>
-</cfif>	
+</cfif><!---<cfif session.isMobile>--->
 	</header>
 	<!-- End header -->
