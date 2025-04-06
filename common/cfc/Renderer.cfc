@@ -1062,7 +1062,7 @@
 						font-size: <cfoutput>#carouselItemBodyFontSize#</cfoutput>px;
 						line-height: 1.4;
 						transform-origin: left bottom;
-						color: <cfoutput>#carouselItemBodyFontColor#</cfoutput>;
+						color: <cfoutput>#carouselItemTitleFontColor#</cfoutput>;<!---<cfoutput>#carouselItemBodyFontColor#</cfoutput>--->
 					}
 
 					.swiper-slide-title + .swiper-slide-text {
@@ -1938,7 +1938,7 @@
 		<!--- Get the logo for the selected theme --->
 		<cfset logoPath = application.blog.getLogoPathByTheme()>
 		<!--- Blog title --->
-		<cfset blogTitle = encodeForHTML(application.BlogDbObj.getBlogTitle())>
+		<cfset blogTitle = application.BlogDbObj.getBlogTitle()>
 		<!--- Display oriented vars --->
 		<cfset headerBgImage = getTheme[1]["HeaderBackgroundImage"]>
 		<!--- Get the blog name font size --->

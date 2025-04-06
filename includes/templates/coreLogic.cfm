@@ -31,17 +31,15 @@
 		
 		<!--- Get the IP address. I am having issues on the Linux server getting the actual IP using the http_referrer and am using the x-forwarded-for header instead. Without this logic I am getting 127.0.0.1 for all traffic when using Lucee, which I don't want. I am breaking this out by the middleware as I don't want to make multiple calls to the cgi and header vars for performance reasons. In my envinroments Lucee uses the header whereas CF uses the CGI var --->
 		<cfif application.serverProduct eq 'Lucee'>
-			<cfif len(getHTTPRequestData()['headers']['x-forwarded-for'])>
-				<cfset ipAddress = getHTTPRequestData()['headers']['x-forwarded-for']>
+			<cfset httpHeaders = getHTTPRequestData()['headers']>
+			<!--- Determine if the x-forwarded-for key exists. --->
+			<cfif structKeyExists(httpHeaders,"x-forwarded-for")>
+				<cfset ipAddress = httpHeaders["x-forwarded-for"]>
 			<cfelse>
-				<cfset ipAddress = CGI.Http_Referer>
+				<cfset ipAddress = CGI.Remote_Addr>
 			</cfif>
 		<cfelse><!---<cfif application.serverProduct eq 'Lucee'>--->
-			<cfif CGI.Http_Referer eq '127.0.0.1'>
-				<cfset ipAddress = getHTTPRequestData()['headers']['x-forwarded-for']>
-			<cfelse>
-				<cfset ipAddress = CGI.Http_Referer>
-			</cfif>
+			<cfset ipAddress = CGI.Remote_Addr>
 		</cfif><!---<cfif application.serverProduct eq 'Lucee'>--->
 				
 		<cfif not structKeyExists(cookie, "gauid")>

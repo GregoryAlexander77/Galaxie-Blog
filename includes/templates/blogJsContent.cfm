@@ -149,7 +149,7 @@
 			
 			// Set the window title
 			if (Id == 1){
-				var windowTitle = "About <cfoutput>#encodeForHTML(application.blog.getProperty('blogTitle'))#</cfoutput>";
+				var windowTitle = "About <cfoutput>#application.BlogDbObj.getBlogTitle()#</cfoutput>";
 			} else if (Id == 2){
 				var windowTitle = "About Gregory Alexander";//TODO put in an owner name in the admin section.
 			} else if (Id == 3){

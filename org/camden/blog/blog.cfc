@@ -1500,7 +1500,6 @@
 				DatePosted as DatePosted)
 			FROM Post as Post 
 			WHERE 0=0
-				<!-----AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">--->
 				AND PostId = <cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.postId#" maxlength="35">
 				AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 		</cfquery>
@@ -3579,7 +3578,7 @@
 					WHERE 
 						PostCategoryLookup.CategoryRef = #getCategories[i]["CategoryId"]#
 						AND Released = 1
-						AND Post.Remove = 0
+						AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 						AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 						AND Category.BlogRef = #application.BlogDbObj.getBlogId()#
 					GROUP BY  
@@ -4482,7 +4481,7 @@
 					WHERE     
 						PostTagLookup.TagRef = #getTags[i]["TagId"]#
 						AND Released = 1
-						AND Post.Remove = 0
+						AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 						AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 						AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#
 					GROUP BY  
@@ -4564,7 +4563,7 @@
 					WHERE 
 						PostTagLookup.TagRef = #tagId#
 						AND Released = 1
-						AND Post.Remove = 0
+						AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 						AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#
 					GROUP BY  
 						Tag.TagId			
@@ -5324,7 +5323,7 @@
 			FROM Post as Post 
 			LEFT JOIN Post.Comments as Comment
 			WHERE 0=0
-				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+				AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 				AND Post.PostId = #arguments.postId#
 		</cfquery>
 			
@@ -6177,7 +6176,7 @@
 			<!--- CommenterRef is an actual DB key in the Comment table. --->
 			JOIN Comment.CommenterRef as Commenter
 			WHERE 0=0
-				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+				AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 			<!---<cfif instance.moderate>
 				AND Comment.Moderated = <cfqueryparam value="1" cfsqltype="cf_sql_integer">
 			</cfif>--->
@@ -6449,7 +6448,7 @@
 				Post.Title as Title)
 			FROM Post as Post 
 			WHERE 0=0
-			AND Post.Remove = <cfqueryparam value="0" cfsqltype="bit">
+			AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 		<cfif arguments.released eq true>
 			AND Post.Released = <cfqueryparam value="1" cfsqltype="bit">
 		</cfif>
@@ -6887,7 +6886,7 @@
 				AND date(Post.DatePosted) = <cfqueryparam value="#arguments.datePosted#" cfsqltype="cf_sql_date">
 			</cfif>
 			<cfif !showRemovedPosts>
-				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+				AND Post.Remove IS NULL OR Post.Remove <> <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 			</cfif>
 			ORDER BY 
 				Post.BlogSortDate DESC,
@@ -11684,7 +11683,7 @@
 			FROM Post as Post
 			WHERE 0=0
 				AND Released = <cfqueryparam value="1">
-				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+				AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 				AND BlogRef = #application.BlogDbObj.getBlogId()#
 		</cfquery>
 
