@@ -5,6 +5,8 @@
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
 	<cfset this.rootDirectoryPath = getDirectoryFromPath( getCurrentTemplatePath() )>
+	<!--- Disable strict argument matching for remote CFC methods. As of June 2025, new errors were introduced with remote AJAX functions when the HTML5 widgets (Kendo UI and jsGrid) automatically append arguments to the URL. I believe that I fixed all of the issues in my dev environment, however, I am turning this off as I have not been able to test the entire site. Additionally, I have tested the code using various tools for any security vulnerabilities. Having an extra argument appended to the URL is not a great security risk. The blog has been in production since 2005 (formerly BlogCfc) and there have been no issues. --->
+    <cfset this.runtime.remotemethod.matchArguments = false>
 
 	<!--- Print out some of the vars for debugging purposes. Change the first line to read output="true" --->
 	<cfset debug = false>
