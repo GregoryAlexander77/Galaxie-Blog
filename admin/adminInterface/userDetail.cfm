@@ -189,13 +189,13 @@
 			transport: {
 				read: {
 					cache: false,
+					type: "GET", //Note: for large payloads coming from the server, use the get method. The post method may fail as it is less efficient.
 					// Note: since this template is in a different directory, we can't specify the cfc template without the full path name.
 					url: function() { // The cfc component which processes the query and returns a json string. 
 						return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getRolesForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>"; 
 					}, 
 					dataType: "json",
-					contentType: "application/json; charset=utf-8", // Note: when posting json via the request body to a coldfusion page, we must use this content type or we will get a 'IllegalArgumentException' on the ColdFusion processing page.
-					type: "GET" //Note: for large payloads coming from the server, use the get method. The post method may fail as it is less efficient.
+					contentType: "application/json; charset=utf-8" // Note: when posting json via the request body to a coldfusion page, we must use this content type or we will get a 'IllegalArgumentException' on the ColdFusion processing page.
 				}
 			} //...transport:
 		});//...var rolesDs...
@@ -283,7 +283,7 @@
 					// Note: since this template is in a different directory, we can't specify the cfc template without the full path name.
 					url: function() { // The cfc component which processes the query and returns a json string. 
 						return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getCapabilitiesForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>"
-						+ "&role=" + roleDropdown.text();
+						+ "&role=" + roleDropdown.text(); 
 					}, 
 					dataType: "json",
 					contentType: "application/json; charset=utf-8", // Note: when posting json via the request body to a coldfusion page, we must use this content type or we will get a 'IllegalArgumentException' on the ColdFusion processing page.

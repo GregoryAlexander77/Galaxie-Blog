@@ -415,6 +415,7 @@
 	<cffunction name="getContentOutputThemesAsJson" access="public" returnType="string" output="false" 
 			hint="This is indentical to the getContentOutputThemes method, but returns the themes as a Json string. This is used to populate multiselect theme values.">
 		<cfargument name="pageId" type="string" required="true">
+
 		<cfargument name="contentTemplate" type="string" required="true">
 		<cfargument name="themeId" type="string" required="false" default="">
 		<cfargument name="includeAllThemes" type="string" required="false" default="false">
@@ -2194,6 +2195,7 @@
 			
 	<cffunction name="getTheme" access="public" returntype="array" output="false" hint="Returns theme data by the theme id, theme name, or the kendo theme">
 		<cfargument name="themeId" type="string" required="false" default="">
+
 		<cfargument name="themeAlias" type="string" required="false" default="">
 		<cfset var Data = []> 
 			
@@ -3578,7 +3580,7 @@
 					WHERE 
 						PostCategoryLookup.CategoryRef = #getCategories[i]["CategoryId"]#
 						AND Released = 1
-						AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+						AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 						AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 						AND Category.BlogRef = #application.BlogDbObj.getBlogId()#
 					GROUP BY  
@@ -4481,7 +4483,7 @@
 					WHERE     
 						PostTagLookup.TagRef = #getTags[i]["TagId"]#
 						AND Released = 1
-						AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+						AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 						AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 						AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#
 					GROUP BY  
@@ -4563,7 +4565,7 @@
 					WHERE 
 						PostTagLookup.TagRef = #tagId#
 						AND Released = 1
-						AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+						AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 						AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#
 					GROUP BY  
 						Tag.TagId			
@@ -5057,6 +5059,7 @@
 		<cfquery name="Data" dbtype="hql">
 			DELETE FROM PostTagLookup
 			WHERE PostRef = #PostDbObj#
+
 		</cfquery>
 			
 		<!--- flush the cache --->
@@ -5323,7 +5326,7 @@
 			FROM Post as Post 
 			LEFT JOIN Post.Comments as Comment
 			WHERE 0=0
-				AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 				AND Post.PostId = #arguments.postId#
 		</cfquery>
 			
@@ -6176,7 +6179,7 @@
 			<!--- CommenterRef is an actual DB key in the Comment table. --->
 			JOIN Comment.CommenterRef as Commenter
 			WHERE 0=0
-				AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 			<!---<cfif instance.moderate>
 				AND Comment.Moderated = <cfqueryparam value="1" cfsqltype="cf_sql_integer">
 			</cfif>--->
@@ -6448,7 +6451,7 @@
 				Post.Title as Title)
 			FROM Post as Post 
 			WHERE 0=0
-			AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+			AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 		<cfif arguments.released eq true>
 			AND Post.Released = <cfqueryparam value="1" cfsqltype="bit">
 		</cfif>
@@ -6876,17 +6879,14 @@
 			<cfif arguments.description neq "">
 				AND Post.Description = <cfqueryparam value="#left(arguments.description,160)#" cfsqltype="cf_sql_varchar" maxlength="160">
 			</cfif>
-			<cfif body neq "">
+			<cfif arguments.body neq "">
 				AND Post.Body LIKE <cfqueryparam value="%#arguments.body#%" cfsqltype="cf_sql_varchar">
 			</cfif>
-			<cfif numViews neq "">
-				AND Post.NumViews = <cfqueryparam value="#arguments.numViews#" cfsqltype="cf_sql_integer">
-			</cfif>
-			<cfif posted neq "">
+			<cfif arguments.posted neq "">
 				AND date(Post.DatePosted) = <cfqueryparam value="#arguments.datePosted#" cfsqltype="cf_sql_date">
 			</cfif>
-			<cfif !showRemovedPosts>
-				AND Post.Remove IS NULL OR Post.Remove <> <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+			<cfif !arguments.showRemovedPosts>
+				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 			</cfif>
 			ORDER BY 
 				Post.BlogSortDate DESC,
@@ -7123,8 +7123,8 @@
 			<!--- Get the carousel, there is only one --->
 			LEFT JOIN Post.EnclosureCarousel as EnclosureCarousel
 			WHERE 0=0
-			<cfif not showRemovedPosts>
-				AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+			<cfif not arguments.showRemovedPosts>
+				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 			</cfif>
 			<cfif structKeyExists(arguments.params,"lastXDays")>
 				AND date(Post.DatePosted) > <cfqueryparam value="#createDate(params.byYear, params.byMonth, params.byDay)#" cfsqltype="cf_sql_date">
@@ -7181,18 +7181,14 @@
 			<cfif structKeyExists(arguments.params,"byYear")>
 				AND year(Post.DatePosted) = <cfqueryparam value="#arguments.params.byYear#" cfsqltype="integer">
 			</cfif>
-			<!--- Allow admin's to see non-released posts and future posts. --->
-			<cfif not arguments.showPendingPosts or (structKeyExists(arguments.params, "releasedOnly") and arguments.params.releasedonly)>
-				AND Post.DatePosted < <cfqueryparam cfsqltype="cf_sql_timestamp" value="#blogNow()#">
-			</cfif>
 			<cfif not arguments.showPendingPosts>
 				AND Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
 			</cfif>
 				AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
-		<cfif showPopularPosts>
+		<cfif arguments.showPopularPosts>
 				ORDER BY NumViews/(month(current_date())-month(DatePosted)+12*(year(current_date())-year(DatePosted))+1) #arguments.params.orderByDir#
 		<cfelse>
-			<cfif showPromoteAtTopOfQuery>
+			<cfif arguments.showPromoteAtTopOfQuery>
 				ORDER BY Post.Promote DESC, Post.BlogSortDate DESC, Post.DatePosted #arguments.params.orderByDir#
 			<cfelse>
 				ORDER BY Post.BlogSortDate DESC, #arguments.params.orderBy# #arguments.params.orderByDir#
@@ -7525,8 +7521,8 @@
 			<!--- UserRef is the actual database foreign key pointing to the Users table. --->
 			LEFT JOIN Post.UserRef as User
 			WHERE 0=0
-			<cfif not showRemovedPosts>
-				AND Post.Remove <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+			<cfif not arguments.showRemovedPosts>
+				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 			</cfif>
 			<cfif structKeyExists(arguments.params,"lastXDays")>
 				AND date(Post.DatePosted) > <cfqueryparam value="#createDate(params.byYear, params.byMonth, params.byDay)#" cfsqltype="cf_sql_date">
@@ -7585,7 +7581,6 @@
 			</cfif>
 			<!--- Allow admin's to see non-released posts and future posts. --->
 			<cfif not application.Udf.isLoggedIn() or (structKeyExists(arguments.params, "releasedOnly") and arguments.params.releasedonly)>
-				AND Post.DatePosted < <cfqueryparam cfsqltype="cf_sql_timestamp" value="#blogNow()#">
 				<cfif not application.Udf.isLoggedIn()>
 					AND Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
 				</cfif>
@@ -7751,6 +7746,7 @@
 			<cfset dateTimePosted = arguments.datePosted & ' ' & arguments.timePosted>
 		<cfelse>
 			<!--- Blog now already has the time zone info --->
+
 			<cfset dateTimePosted = blogNow()>	
 		</cfif>
 			
@@ -9548,6 +9544,7 @@
 				User.LinkedInUrl as LinkedInUrl,
 				User.FacebookUrl as FacebookUrl,
 				User.TwitterUrl as TwitterUrl,
+
 				User.InstagramUrl as InstagramUrl
 			<cfif arguments.includeSecurityCredentials>
 				,User.Password as Password,

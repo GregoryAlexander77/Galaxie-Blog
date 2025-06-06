@@ -1,6 +1,9 @@
 <!doctype html>
 <cfsilent>
 <cfset gridName = "postGrid">
+<!--- 
+New Errors in June 2025: CF update 14 tightened down strict argument matching and extra arguments sent to the cfc will cause errors.
+--->	
 </cfsilent>
 <html>
 <head><cfoutput>
@@ -210,6 +213,7 @@
 							// Note: the PostId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available.
 							csrfToken: $("#csrfToken").val(),
 							postId: value.PostId,
+							blogSortDate: value.blogSortDate,
 							// Get the value of the checkbox.
 							released: value.Released
 						},
@@ -330,6 +334,18 @@
 					},
 				},
 				{ 	
+					name: "DatePosted", 
+					type: "date",
+					title: "Posted",
+					editing: true,
+					width: (pageWidth*(8/100)),
+					sorttype: 'date', 
+					itemTemplate: function (value, item) {
+						// Format the date using the momentJs lib.
+						return dayjs(item.DatePosted).format('MM/DD/YYYY h:mm A');
+					},
+				},
+				{ 	
 					name: "ViewsPerDay", 
 					type: "number",
 					title: "Monthly Views",
@@ -337,18 +353,6 @@
 					editing: false,
 					width: (pageWidth*(8/100)),
 					sorttype: 'number'
-				},
-				{ 	
-					name: "DatePosted", 
-					type: "date",
-					title: "Posted",
-					editing: false,
-					width: (pageWidth*(8/100)),
-					sorttype: 'date', 
-					itemTemplate: function (value, item) {
-						// Format the date using the momentJs lib.
-						return dayjs(item.DatePosted).format('MM/DD/YYYY h:mm A');
-					},
 				},
 				{ 
 					name: "Released", 

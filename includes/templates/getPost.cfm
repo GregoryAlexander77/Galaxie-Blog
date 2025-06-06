@@ -34,27 +34,37 @@ Get the post count (getPostCount(params,showRemovedPosts, released))
 	
 	<!--- If the post was not found (as it is set to inactive), handle potential post redirects --->
 	<cfif postFound>
-		<!--- See if there is a redirect --->
-		<cfset redirectUrl = getPost[1]["RedirectUrl"]>
-		<!--- Get the type --->
-		<cfset redirectType = getPost[1]["RedirectType"]>
-		<cfif len(redirectUrl)>
-			<!--- Redirect the URL with the status code --->
-			<cflocation url="#redirectUrl#" statusCode="#redirectType#">
-		</cfif><!---<cfif len(redirectUrl)>--->
-	<cfelse><!---<cfif postFound>--->
-		<!--- Get the potential URL redirect when the post is inactive. We are using the alias here as it is in the params struct and we don't have other identifying information. --->
-		<cfset getPostRedirect = application.blog.getPostRedirect(params.byAlias)>
-		<cfif arrayLen(getPostRedirect)>
+		<cftry>
 			<!--- See if there is a redirect --->
-			<cfset redirectUrl = getPostRedirect[1]["RedirectUrl"]>
+			<cfset redirectUrl = getPost[1]["RedirectUrl"]>
 			<!--- Get the type --->
-			<cfset redirectType = getPostRedirect[1]["RedirectType"]>
+			<cfset redirectType = getPost[1]["RedirectType"]>
 			<cfif len(redirectUrl)>
 				<!--- Redirect the URL with the status code --->
 				<cflocation url="#redirectUrl#" statusCode="#redirectType#">
 			</cfif><!---<cfif len(redirectUrl)>--->
-		</cfif><!---<cfif arrayLen(getPostRedirect)>--->
+		<cfcatch type="any">
+			<!--- Do nothing --->
+		</cfcatch>
+		</cftry>
+	<cfelse><!---<cfif postFound>--->
+		<cftry>
+			<!--- Get the potential URL redirect when the post is inactive. We are using the alias here as it is in the params struct and we don't have other identifying information. --->
+			<cfset getPostRedirect = application.blog.getPostRedirect(params.byAlias)>
+			<cfif arrayLen(getPostRedirect)>
+				<!--- See if there is a redirect --->
+				<cfset redirectUrl = getPostRedirect[1]["RedirectUrl"]>
+				<!--- Get the type --->
+				<cfset redirectType = getPostRedirect[1]["RedirectType"]>
+				<cfif len(redirectUrl)>
+					<!--- Redirect the URL with the status code --->
+					<cflocation url="#redirectUrl#" statusCode="#redirectType#">
+				</cfif><!---<cfif len(redirectUrl)>--->
+			</cfif><!---<cfif arrayLen(getPostRedirect)>--->
+		<cfcatch type="any">
+			<!--- Do nothing --->
+		</cfcatch>
+		</cftry>
 	</cfif><!---<cfif postFound>--->
 </cfif><!---<cfif URL.mode eq 'entry'>--->
 

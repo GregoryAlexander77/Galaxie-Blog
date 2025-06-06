@@ -461,31 +461,8 @@
 			postDetailSubmit.on('click', function(e){  
                 e.preventDefault();         
 				if (postDetailFormValidator.validate()) {
-					<cfif !postRemoved><!--- We don't want to ask if the post should be removed when it already is removed --->
-					 if ( ($('#remove').is(':checked')) ) {
-						// Raise a warning if the user chose to remove or make something as spam
-						// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
-						$.when(kendo.ui.ExtYesNoDialog.show({ 
-							title: "Remove post?",
-							message: "Are you sure? This will remove the post from the blog.",
-							icon: "k-ext-warning",
-							width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
-							height: "215px"
-						})
-						).done(function (response) { // If the user clicked 'yes', post it.
-							if (response['button'] == 'Yes'){// remember that js is case sensitive.
-								// Raise a dialog asking the admin if they want to send email to subscribers
-								promptForUrlRedirect('update');
-							}//..if (response['button'] == 'Yes'){
-						});
-					} else {
-						// Raise a dialog asking the admin if they want to send email to subscribers
-						verifyPostEmail('update');
-					}
-					<cfelse><!---<cfif !postRemoved>--->
 					// Raise a dialog asking the admin if they want to send email to subscribers
 					verifyPostEmail('update');
-					</cfif><!---<cfif !postRemoved>--->
 				} else { //if (postDetailFormValidator.validate()) {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Required fields have not been filled out. Please correct the highlighted fields and try again", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
@@ -494,6 +471,28 @@
 				}//if (postDetailFormValidator.validate()) {
 			});
 		});//...document.ready
+		
+		function confirmPostRemoval(){
+			
+			// Confirm post removal
+			// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
+			$.when(kendo.ui.ExtYesNoDialog.show({ 
+				title: "Remove post?",
+				message: "Are you sure? This will remove the post from the blog.",
+				icon: "k-ext-warning",
+				width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
+				height: "215px"
+			})
+			).done(function (response) { // If the user clicked 'yes', post it.
+				if (response['button'] == 'Yes'){// remember that js is case sensitive.
+					// Raise a dialog asking the admin if they want to create a redirect
+					promptForUrlRedirect('update');
+				} else {
+					// Uncheck the remove checkbox
+					$('#remove').prop('checked', false);
+				}//..if (response['button'] == 'Yes'){
+			});
+		}
 		
 		function promptForUrlRedirect(action){
 			// If the post is released and it removed, prompt to see if we should create a URL redirect
@@ -559,7 +558,6 @@
 				data: { // arguments
 					// We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#formName").serialize()' or use the stringify method to pass it as an array of values. 
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
-					action: action, // either update or insert.
 					postId: $("#postId").val(),
 					postAlias: $("#postAlias").val(),
 					datePosted: kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'MM/dd/yyyy'),
@@ -1213,7 +1211,8 @@
 								<cfset remove = 0>
 							</cfif>
 						</cfsilent>
-						<input id="remove" name="remove" type="checkbox" <cfif remove>checked</cfif> class="normalFontWeight">
+						<!--- Use the onclick event to confirm the removal if the post has not already been removed --->
+						<input id="remove" name="remove" type="checkbox" <cfif remove>checked</cfif> class="normalFontWeight" <cfif !postRemoved>onClick="confirmPostRemoval()"</cfif>>
 						<label for="remove">Remove</label>
 					</td>
 					<td width="20%" align="left">&nbsp;

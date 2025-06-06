@@ -1,3 +1,4 @@
+
 <cfcomponent displayName="ProxyController" output="false" hint="The proxy between the client and the backend blog cfc."> 
 	
 <!--- 
@@ -910,12 +911,14 @@
 	<cffunction name="getSubscribersForGrid" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the subscribers grid.">
 		<cfargument name="csrfToken" default="" required="true">
-		<argument name="gridType" required="false" default="jsGrid" />
+		<cfargument name="gridType" required="false" default="jsGrid" />
 		<cfargument name="subscriberName" required="false" default="" />
 		<cfargument name="subscriberEmail" required="false" default="" />
 		<cfargument name="subscriberToken"  required="false" default="" />
 		<cfargument name="subscribeAll" required="false" default="true" />
 		<cfargument name="verifiedOnly" required="false" default="" />
+		<!--- Unused argument needed after CF update in June of 2025 --->
+		<cfargument name="date" required="false" default="" />
 		
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -2811,6 +2814,8 @@
 				
 	<cffunction name="getKendoThemesForDropdown" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the kendo themes dropdown. Note: this function is not locked down as it is used for demonstration purposes.">
+		<!--- Unused argument needed to prevent a bug after CF2023 Update 14 --->
+		<cfargument name="_" required="no" default="" hint="This is required when there is an error on the server when Kendo UI automatically appends a '_' with a string to the URL when calling a remote method. This behavior is typical with the Kendo dropdowns, but it causes a bug that this solves with CF 2023 update 14.">
 			
 		<!--- Get all of the kendo themes. --->
 		<cfset Data = application.blog.getKendoThemes()> 
@@ -2836,6 +2841,8 @@
 		<cfargument name="webSafeFont" default="false" required="no">
 		<cfargument name="themeFont" default="false" required="no">
 		<cfargument name="themeId" default="false" required="no" hint="Required when using themeFont">
+		<!--- Unused argument needed to prevent a bug after CF2023 Update 14 --->
+		<cfargument name="_" required="no" default="" hint="This is required when there is an error on the server when Kendo UI automatically appends a '_' with a string to the URL when calling a remote method. This behavior is typical with the Kendo dropdowns, but it causes a bug that this solves with CF 2023 update 14.">
 		<!--- Note: the csrfToken is not required for this query is also used on the external blog (non-admin). This query is not secured. --->
 			
 		<!--- Get the fonts, don't  use the cached values. --->
@@ -3070,13 +3077,15 @@
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
 		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
-		<cfargument name="user" required="no" default="">
+		<cfargument name="fullName" required="no" default="" hint="Changed from user to fix a Post Grid error">
 		<cfargument name="alias" required="no" default="">
 		<cfargument name="title" required="no" default="">
 		<cfargument name="description" required="no" default="">
 		<cfargument name="body" required="no" default="">
 		<cfargument name="moreBody" required="no" default="">
-		<cfargument name="posted" required="no" default="">
+		<cfargument name="datePosted" required="no" default="" hint="Changed from posted to fix a Post Grid error">
+		<!--- This is not used as a logical argument, however, with strict argument matching after CF 2023 update 14, the grid will send this variable to the cfc and cause an error.  --->
+		<cfargument name="blogSortDate" required="no" default="" hint="Added argument to fix a Post Grid error. This argument does nothing but it is needed after June 2025">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -3103,8 +3112,8 @@
 			<!--- Note: the following options are used on the open source jsGrid. The Kendo commercial grid has client side filtering and these are not used. --->			
 			<!--- We always want to show removed posts on this grid --->
 			<cfinvokeargument name="showRemovedPosts" value="true"/>
-			<cfif arguments.user neq ''>
-				<cfinvokeargument name="user" value="#arguments.user#"/>
+			<cfif arguments.fullName neq ''>
+				<cfinvokeargument name="user" value="#arguments.fullName#"/>
 			</cfif>
 			<cfif arguments.alias neq ''>
 				<cfinvokeargument name="alias" value="#arguments.alias#"/>
@@ -3121,8 +3130,8 @@
 			<cfif arguments.moreBody neq ''>
 				<cfinvokeargument name="moreBody" value="#arguments.moreBody#"/>
 			</cfif>
-			<cfif arguments.posted neq ''>
-				<cfinvokeargument name="posted" value="#arguments.posted#"/>
+			<cfif arguments.datePosted neq ''>
+				<cfinvokeargument name="posted" value="#arguments.datePosted#"/>
 			</cfif>
 		</cfinvoke>
 		
@@ -3524,9 +3533,10 @@
 		<cfargument name="anonymousUserId" required="no" default="">
 		<cfargument name="fullName" required="no" default="">
 		<cfargument name="hitCount" required="no" default="">
-		<cfargument name="ipAddress" required="no" default="">
-		<cfargument name="userAgent" required="no" default="">
-		<cfargument name="date" required="no" default="">
+		<cfargument name="ipAddress" required="no" default=""> 
+		<!--- These two args are not used as logical arguments, however, with strict argument matching after CF 2023 update 14, the grid will send extra variables to the cfc and cause an error.  --->
+		<cfargument name="httpUserAgent" required="no" default="" hint="Changed from userAgent to httpUserAgent to fix a new CF related bug in June 2025">
+		<cfargument name="dateVisited" required="no" default="" hint="Changed from date to dateVisited to fix a new CF related bug in June 2025">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -3557,17 +3567,17 @@
 			<cfif arguments.fullName neq ''>
 				<cfinvokeargument name="fullName" value="#arguments.fullName#"/>
 			</cfif>
-			<cfif arguments.hitCount neq ''>
+			<cfif arguments.hitCount neq ''> 
 				<cfinvokeargument name="hitCount" value="#arguments.hitCount#"/>
 			</cfif>
 			<cfif arguments.ipAddress neq ''>
 				<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#"/>
 			</cfif>
-			<cfif arguments.userAgent neq ''>
-				<cfinvokeargument name="userAgent" value="#arguments.userAgent#"/>
+			<cfif arguments.httpUserAgent neq ''>
+				<cfinvokeargument name="userAgent" value="#arguments.httpUserAgent#"/>
 			</cfif>
-			<cfif arguments.date neq ''>
-				<cfinvokeargument name="date" value="#arguments.date#"/>
+			<cfif arguments.dateVisited neq ''>
+				<cfinvokeargument name="date" value="#arguments.dateVisited#"/>
 			</cfif>
 		</cfinvoke>
 		
@@ -4315,6 +4325,8 @@
 			hint="Returns a json array to populate the roles dropdown in the user interfaces.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="userName" required="no" default="" hint="Pass in the userId">
+		<!--- Unused argument needed to prevent a bug after CF2023 Update 14 --->
+		<cfargument name="_" required="no" default="" hint="This is required when there is an error on the server when Kendo UI automatically appends a '_' with a string to the URL when calling a remote method. This behavior is typical with the Kendo dropdowns, but it causes a bug that this solves with CF 2023 update 14.">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -4412,13 +4424,15 @@
 	******************************************************************************************************--->
 				
 	<cffunction name="getCategoriesForGrid" access="remote" returnformat="json" output="false" 
-			hint="Returns a json array to populate the categories grid.">
+			hint="Returns a json array to populate the categories grid."> 
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
 		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
-		<cfargument name="alias" required="no" default="">
+		<cfargument name="categoryAlias" required="no" default="">
 		<cfargument name="category" required="no" default="">
 		<cfargument name="date" required="no" default="">
+		<!--- This is not used as a logical argument, however, with strict argument matching after CF 2023 update 14, the grid will send the extra variables to the cfc and cause an error.  --->
+		<cfargument name="postCount" required="no" default="">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -4446,8 +4460,8 @@
 			<cfif arguments.category neq ''>
 				<cfinvokeargument name="category" value="#arguments.category#"/>
 			</cfif>
-			<cfif arguments.alias neq ''>
-				<cfinvokeargument name="alias" value="#arguments.alias#"/>
+			<cfif arguments.categoryAlias neq ''>
+				<cfinvokeargument name="alias" value="#arguments.categoryAlias#"/>
 			</cfif>
 			<cfif arguments.date neq ''>
 				<cfinvokeargument name="date" value="#arguments.date#"/>
@@ -4792,9 +4806,11 @@
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
 		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
-		<cfargument name="alias" required="no" default="">
+		<cfargument name="tagAlias" required="no" default="" hint="Changed this from alias to solve errors after a CF update in June 2025">
 		<cfargument name="tag" required="no" default="">
 		<cfargument name="date" required="no" default="">
+		<!--- This is not used as a logical argument, however, with strict argument matching after CF 2023 update 14, the grid will send the postcount variable to the cfc and cause an error.  --->
+		<cfargument name="postCount" required="no" default="" hint="New unused argument needed after June 2025">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -4822,8 +4838,8 @@
 			<cfif arguments.tag neq ''>
 				<cfinvokeargument name="tag" value="#arguments.tag#"/>
 			</cfif>
-			<cfif arguments.alias neq ''>
-				<cfinvokeargument name="alias" value="#arguments.alias#"/>
+			<cfif arguments.TagAlias neq ''>
+				<cfinvokeargument name="alias" value="#arguments.TagAlias#"/>
 			</cfif>
 		</cfinvoke>
 		
@@ -5446,6 +5462,8 @@
 		<cfargument name="newRole" type="string" required="false">
 		<cfargument name="newRoleDesc" type="string" required="false">
 		<cfargument name="capabilities" type="any" default="" required="false">
+		<!--- Unused argument needed after CF update in June of 2025 --->
+		<cfargument name="roleId" type="string" required="false">
 			
 		<cfparam name="error" type="boolean" default="false">
 		<cfparam name="errorMessage" type="string" default="">
@@ -6241,6 +6259,7 @@
 										<cfinvokeargument name="commentId" value="#arguments.commentId#" />
 									</cfif>
 									<cfinvokeargument name="mediaPath" value="#destination & "\" & image.serverFile#" />
+
 									<cfinvokeargument name="mediaUrl" value="#imageUrl#" />
 									<cfinvokeargument name="MediaThumbnailUrl" value="#imageThumbnailUrl#" />
 									<cfinvokeargument name="mediaTitle" value="#arguments.mediaTitle#" />
@@ -7787,6 +7806,9 @@
 		<cfargument name="ccEmailAddress" default="" required="false">
 		<!--- IP Block list --->
 		<cfargument name="ipBlockList" default="" required="false">
+		<!--- Unused arguments needed to prevent a new CF related bug introduced with CF2023 update 14. --->
+		<cfargument name="blogTimeZoneValue" default="" required="false">
+		<cfargument name="serverTimeZoneValue" default="" required="false">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -8148,6 +8170,7 @@
 			hint="This function saves the address and waypoints when creating a map route"><!---returnformat="json" --->
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="locationGeoCoordinates" default="" required="true">
+
 		<cfargument name="isEnclosure" default="true" required="true">
 		<cfargument name="mapId" default="" required="false">
 		<cfargument name="mapRouteId" default="" required="false">
