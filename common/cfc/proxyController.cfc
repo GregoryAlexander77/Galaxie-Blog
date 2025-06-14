@@ -2626,6 +2626,8 @@
 		<cfargument name="parentCategory" default="false" required="false">
 		<cfargument name="childCategory" default="false" required="false">
 		<cfargument name="csrfToken" default="" required="false">
+		<!--- Unused argument needed to prevent a bug after CF2023 Update 14 --->
+		<cfargument name="_" required="no" default="" hint="This is required when there is an error on the server when Kendo UI automatically appends a '_' with a string to the URL when calling a remote method. This behavior is typical with the Kendo dropdowns, but it causes a bug that this solves with CF 2023 update 14.">
 			
 		<!--- Get the categories, don't use the cached values. --->
 		<cfset Data = application.blog.getCategories(false)>
@@ -2649,6 +2651,8 @@
 	<cffunction name="getTagsForDropdown" access="remote" returnformat="json" output="false" 
 		hint="Returns a json array to populate the tags dropdown.">
 		<cfargument name="csrfToken" default="" required="true">
+		<!--- Unused argument needed to prevent a bug after CF2023 Update 14 --->
+		<cfargument name="_" required="no" default="" hint="This is required when there is an error on the server when Kendo UI automatically appends a '_' with a string to the URL when calling a remote method. This behavior is typical with the Kendo dropdowns, but it causes a bug that this solves with CF 2023 update 14.">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -2695,6 +2699,8 @@
 			hint="Returns a json array to populate the related posts dropdown.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="postId" required="no" default="">
+		<!--- Unused argument needed to prevent a bug after CF2023 Update 14 --->
+		<cfargument name="_" required="no" default="" hint="This is required when there is an error on the server when Kendo UI automatically appends a '_' with a string to the URL when calling a remote method. This behavior is typical with the Kendo dropdowns, but it causes a bug that this solves with CF 2023 update 14.">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -2787,6 +2793,8 @@
 		<cfargument name="themeIdList" type="string" required="false" default="">
 		<cfargument name="themeIdNotInList" type="string" required="false" default="">
 		<cfargument name="includeAllLabel" type="boolean" required="false" default="false">
+		<!--- Unused argument needed to prevent a bug after CF2023 Update 14 --->
+		<cfargument name="_" required="no" default="" hint="This is required when there is an error on the server when Kendo UI automatically appends a '_' with a string to the URL when calling a remote method. This behavior is typical with the Kendo dropdowns, but it causes a bug that this solves with CF 2023 update 14.">
 			
 		<!--- Get the theme name and id. --->
 		<cfinvoke component="#application.blog#" method="getThemeNameAndId" returnvariable="Data">
@@ -4263,6 +4271,8 @@
 			hint="Returns a json array to populate the authors dropdown in the post interfaces.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="userId" required="no" default="" hint="Pass in the userId">
+		<!--- Unused argument needed to prevent a bug after CF2023 Update 14 --->
+		<cfargument name="_" required="no" default="" hint="This is required when there is an error on the server when Kendo UI automatically appends a '_' with a string to the URL when calling a remote method. This behavior is typical with the Kendo dropdowns, but it causes a bug that this solves with CF 2023 update 14.">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -4375,6 +4385,8 @@
 			hint="Returns a json array to populate the capability dropdown in the user interfaces.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="role" required="no" default="" hint="Pass in the userId">
+		<!--- Unused argument needed to prevent a bug after CF2023 Update 14 --->
+		<cfargument name="_" required="no" default="" hint="This is required when there is an error on the server when Kendo UI automatically appends a '_' with a string to the URL when calling a remote method. This behavior is typical with the Kendo dropdowns, but it causes a bug that this solves with CF 2023 update 14.">
 			
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('EditUser')>
