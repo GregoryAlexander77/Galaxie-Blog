@@ -12,10 +12,15 @@
 	<cfproperty name="MapName" ormtype="string" default="" length="75">
 	<cfproperty name="MapTitle" ormtype="string" default="" length="255">
 	<cfproperty name="Location" ormtype="string" default="" length="125">
-	<cfproperty name="GeoCoordinates" ormtype="string" default="" length="255">
-	<cfproperty name="MinZoom" ormtype="int" default="1">
+	<cfproperty name="GeoCoordinates" ormtype="string" default="" length="255"  hint="Bing maps latitude longitude string">
 	<cfproperty name="MaxZoom" ormtype="int" default="20">
 	<cfproperty name="Zoom" ormtype="int" default="15">
+	<cfproperty name="Latitude" ormtype="string" default="" length="75">
+	<cfproperty name="Longitude" ormtype="string" default="" length="75">
+	<cfproperty name="TopLeftLatitude" ormtype="string" default="" length="75" hint="Azure Maps uses a camera position based upon screen geocoordinates instead of a zoom when using static maps.">
+	<cfproperty name="TopLeftLongitude" ormtype="string" default="" length="75" hint="Azure Maps uses a camera position based upon screen geocoordinates instead of a zoom when using static maps.">
+	<cfproperty name="BottomRightLatitude" ormtype="string" default="" length="75" hint="Azure Maps uses a camera position based upon screen geocoordinates instead of a zoom when using static maps.">
+	<cfproperty name="BottomRightLongitude" ormtype="string" default="" length="75" hint="Azure Maps uses a camera position based upon screen geocoordinates instead of a zoom when using static maps.">
 	<cfproperty name="OutlineMap" ormtype="boolean" default="false">
 	<cfproperty name="CustomMarkerUrl" ormtype="string" default="" length="255">
 	<cfproperty name="TileSourceUrl" ormtype="string" default="" length="255">

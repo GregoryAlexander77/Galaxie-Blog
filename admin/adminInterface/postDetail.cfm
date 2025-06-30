@@ -634,7 +634,7 @@
 					// Do nothing
 				});
 			}//..if (JSON.parse(response.success) == true){
-		}
+		}//function postDetailsResult(response){
 		
 	<cfif postRemoved>	
 		function deletePost(){
@@ -665,7 +665,7 @@
 					});
 				}//...if (jqXHR.status === 403) { 
 			});//...jQuery.ajax({
-		};
+		};//function deletePost(){
 		
 		function deletePostResult(response){
 			// Are the credentials correct?
@@ -977,9 +977,11 @@
 			<label>Enclosure</label>
 		</td>
 		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<!---<cfset mapThumbnail = RendererObj.renderMapPreview(11, true)>--->
-			<!---<cfoutput>#mapThumbnail#</cfoutput>--->
-			<!---<img src="<cfoutput>#thumbnailUrl#</cfoutput>">--->
+			<!--- Debugging
+			<cfset mapThumbnail = RendererObj.renderMapPreview(11, true)>
+			<cfoutput>#mapThumbnail#</cfoutput>
+			<img src="<cfoutput>#thumbnailUrl#</cfoutput>">
+			--->
 			<div id="mediaPreview" name="mediaPreview"><cfoutput>#thumbnailHtml#</cfoutput></div>
 		</td>
 	  </tr>

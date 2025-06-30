@@ -14,9 +14,12 @@
 <cfelse>
 	<cfset databaseUpdatedNeeded = false>
 </cfif>
-<!---<cfoutput>
+<!---
+Debugging
+<cfoutput>
 	blogDbVersion: #blogDbVersion# application.blog.getVersion(): #application.blog.getVersion()# databaseUpdatedNeeded: #databaseUpdatedNeeded#
-</cfoutput>--->
+</cfoutput>
+--->
 <!---<cftry>--->
 	
 	<!--- Works with flat XML (https://www.gregoryalexander.com/common/services/gregorysBlog/version.xml) --->
@@ -43,7 +46,7 @@
 	<cfif latestVersion neq application.blog.getVersion()>
 		<cfoutput>
 		<p class="k-block k-warning-colored">Note: when updating the file system, be sure not to overwrite your '/org/camden/blog/blog.ini.cfm' or '/admin/ApplicationProxyReference.cfc' files! Doing so will prevent you from obtaining access to the administrative site.<br/>
-		Although not necessary, as with any software before an upgrade, it is probably best to backup the entire codebase and database to your in case of an error or other custom logic needs to be restored.</p>
+		Although not necessary, as with any software before an upgrade, it is probably best to backup the codebase and database to your in case of an error or other custom logic needs to be restored.</p>
 		</cfoutput>
 	</cfif>
 	<!--- Summary --->
@@ -59,41 +62,39 @@
 		</cfoutput>
 	<cfelse>
 		<cfoutput>
-			<p class="k-block k-error-colored">Your current version is #application.blog.getVersion()# and the latest released version of Galaxie Blog is <b>#latestVersion#</b>. This version was released on <b>#dateFormat(latestUpdate, 'long')#.</p>
-			<p>#latestShortDescription#</p><p></p>
+			<p class="k-block k-error-colored">Your Galaxie Blog version #application.blog.getVersion()# installation is out of date. Your current version is #application.blog.getVersion()# and the latest released version of Galaxie Blog is <b>#latestVersion#</b>. This version was released on #dateFormat(latestUpdate, 'long')#.</p>
+			<p>#latestShortDescription#</p>
 			
 			<!--- Detail --->
 			<cfif latestVersion neq application.blog.getVersion()>
-				<p><b>Your Galaxie Blog version #application.blog.getVersion()# installation is out of date.</b><br/>
-				The latest released version of Galaxie Blog is <b>#latestVersion#</b> updated on <b>#dateFormat(latestUpdate, 'long')#</b>.</p>
-				<p><b>Updates for this version include:</b></p>
+				<p>Updates for this version include:</p>
 				<p>#latestDescription#</p>
 				<cfif bugFix neq "" and bugFixSeverity neq "">
 					<p><b>Bug Fixes</b>:</p>
 					<p>#bugFix#</p>
 					<cfif bugFixSeverity neq "">
-						<p><b>Bug Severity</b>:</p>
+						<p>Bug Severity:</p>
 						<p>#bugFixSeverity#</p>
 					</cfif><!---<cfif bugFixSeverity neq "">--->
 				</cfif><!---<cfif bugFix neq "">--->
 				<cfif filesChanged neq "">
-					<p><b>Files Changed</b>:</p>
+					<p>Files Changed:</p>
 					<p>#filesChanged#</p>
 				</cfif>
 				<cfif recommendedAction neq "">
-					<p><b>Recommended Action</b>:</p>
+					<p>Recommended Action:</p>
 					<p>#recommendedAction#</p>
 				</cfif>
 				<cfif recommendedMinimumAction neq "">
-					<p><b>Recommended Minimum Action</b>:</p>
+					<p>Recommended Minimum Action:</p>
 					<p>#recommendedMinimumAction#</p>
 				</cfif>
 				<cfif iniFileInstructions neq "">
-					<p><b>Ini File Instructions</b>:</p>
+					<p>Ini File Instructions:</p>
 					<p>#iniFileInstructions#</p>
 				</cfif>
 				<cfif actionAfterUpdate neq "">
-					<p><b>After Updating:</b>:</p>
+					<p>After Updating:</p>
 					<p>#actionAfterUpdate#</p>
 				</cfif>
 			</cfif><!---<cfif latestVersion neq application.blog.getVersion()>--->
@@ -121,7 +122,7 @@
 						// This posts to the proxy controller as it needs to have session vars and performs client side operations.
 						url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=updateDb",
 						data: {
-							blogVersion: "3.12",
+							blogVersion: "4.07",//3.12
 							csrfToken: '<cfoutput>#csrfToken#</cfoutput>'
 						},//..data: {
 						dataType: "json",

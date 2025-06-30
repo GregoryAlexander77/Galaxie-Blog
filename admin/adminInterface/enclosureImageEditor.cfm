@@ -1,6 +1,6 @@
 	<!--- Preset the mediaHtml var --->
 	<cfparam name="mediaHtml" default="">
-	<!---<cfdump var="#URL#">--->
+	<!---<cfdump var="#URL#">---> 
 	
 	<style>
 		.mce-ico.mce-i-fa {
@@ -11,7 +11,7 @@
 			-webkit-font-smoothing: antialiased;
 			-moz-osx-font-smoothing: grayscale;
 		}
-	</style>
+	</style> 
 	
 	<!--- Instantiate the Render.cfc. This will be used to build the HTML for the image if the MediaUrl is present in the database. --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">

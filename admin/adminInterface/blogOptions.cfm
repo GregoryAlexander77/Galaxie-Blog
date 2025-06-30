@@ -30,6 +30,7 @@
 	<cfset disqusAuthTokenKey = application.BlogOptionDbObj.getDisqusAuthTokenKey()>
 	<cfset disqusAuthUrl = application.BlogOptionDbObj.getDisqusAuthUrl()>
 	<cfset disqusAuthTokenUrl = application.BlogOptionDbObj.getDisqusAuthTokenUrl()>
+	<cfset azureMapsApiKey = application.BlogOptionDbObj.getAzureMapsApiKey()>
 	<cfset bingMapsApiKey = application.BlogOptionDbObj.getBingMapsApiKey()>
 	<cfset facebookAppId = application.BlogOptionDbObj.getFacebookAppId()>
 	<cfset twitterAppId = application.BlogOptionDbObj.getTwitterAppId()>
@@ -195,7 +196,7 @@
 				<li>Install a SSL certificate on your server and check the use SSL checkbox</li>
 				<li>If you have a server re-write rule in place on the server to remove the index.cfm, check the server rewrite rule checkbox to make your links more concise</li>
 				<!--- <li>Obtaining an AddThis Key and using the AddThis sharing library</li> --->
-				<li>Obtaining a BingMaps Key in order to embed maps into your posts</li>
+				<li>Obtaining a Azure Maps API Key in order to embed maps into your posts</li>
 				<li>Leaving the other default settings as they are unless you really want to use the Disqus commenting system or the Greensock animation library. </li>
 			</ol>
 		</td>
@@ -632,6 +633,61 @@
 			</table>
 		</div>
 	</cfif>
+					
+	<!---//***********************************************************************************************
+						Azure Maps
+	//************************************************************************************************--->
+	<button type="button" class="collapsible k-header">Azure Maps Library</button>
+	<div class="content k-content">
+		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+			
+		  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+		  </cfsilent>
+			 
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+			  	Galaxie Blog has the ability to generate static maps and map routes using the Azure Maps API. To generate a static or route, create or edit a post and click on the <b>Enclosure Editor</b> button. This will bring up an editor and it will allow you to easilly generate both static and map routes using a wysiwyg interface.  You may also embed maps within any post. You will need to sign up for an Azure maps API key to add this functionality. With moderate usage, this key is free, however, you should check the Azure Maps site for pricing information.
+			  </td>
+		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="azureMapsApiKey">Azure Maps API Key:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input type="text" name="azureMapsApiKey" id="azureMapsApiKey" value="<cfoutput>#azureMapsApiKey#</cfoutput>" class="k-textbox" style="width: 95%" />
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+				<label for="bingMapsApiKey">Azure Maps API Key:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="text" name="azureMapsApiKey" id="azureMapsApiKey" value="<cfoutput>#azureMapsApiKey#</cfoutput>" class="k-textbox" style="width: 50%" />
+			</td>
+		  </tr>
+		</cfif>	  
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		
+		</table>
+	</div>
 			  
 	<!---//***********************************************************************************************
 						Bing Maps
@@ -652,7 +708,7 @@
 		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
-			  	Galaxie Blog has the ability to generate static maps and map routes using the Bing API. To generate a static or route, create or edit a post and click on the <b>Enclosure Editor</b> button. This will bring up an editor and it will allow you to easilly generate both static and map routes using a wysiwyg interface.  You may also embed maps within any post. You will need to sign up for a free Bing maps API key to add this functionality.
+			  	Bing Maps will retire for free user accounts on June 30th 2025. If you have an enterprise account, Bing Maps for entrerprise clients can still be used until June 30th 2028. If you're looking for map capabililties and you're not an enterprise customer, create an Azure Maps account and enter your key in the Azure Maps field above.
 			  </td>
 		  </tr>
 		  <!-- Border -->

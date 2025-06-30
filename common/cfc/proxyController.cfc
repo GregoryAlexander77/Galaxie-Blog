@@ -1,4 +1,3 @@
-
 <cfcomponent displayName="ProxyController" output="false" hint="The proxy between the client and the backend blog cfc."> 
 	
 <!--- 
@@ -5963,6 +5962,10 @@
 		<cfargument name="themeId" default="" required="false">
 		<!--- User profile images have a userId --->
 		<cfargument name="userId" default="" required="false">
+		<!--- Arguments that are not sent but need to be there after the May 13th 2025 CF update --->
+		<cfargument name="selectorId" default="" required="false">	
+		<!--- The image is sent as a file argument. --->
+		<cfargument name="file" default="" required="false">	
 			
 		<!--- Make sure that output is turned on when debugging --->
 		<cfset debug = false>
@@ -6430,6 +6433,8 @@
 		<cfargument name="postId" default="" required="false">
 		<!--- Some images may not have a comment (ie a post)--->
 		<cfargument name="commentId" default="" required="false">
+		<!--- Arguments that are not sent but need to be there after the May 13th 2025 CF update --->
+		<cfargument name="selectorId" default="" required="false">	  
 		<!--- Error params --->
 		<cfparam name="error" default="false" type="boolean">
 		<cfparam name="errorMessage" default="" type="string">
@@ -6633,6 +6638,8 @@
 		<cfargument name="videoProvider" default="" required="false" hint="The video provider (i.e. Google (Google YouTube Redirect), Microsoft Stream, VideoPress, Vimeo or YouTube). In this version, we are only supporting Vimeo and YouTube, but I will add support for other video providers in the future.">
 		<cfargument name="providerVideoId" default="" required="false" hint="The providers video Id (i.e. the Vimeo or YouTube Id)">
 		<cfargument name="selectorId" default="" required="false" hint="We need to know where this request is being posted from to determine the logic as necessary.">
+		<!--- Arguments that are not used but required after the May 13th 2025 update --->
+		<cfargument name="invokedArguments" default="" required="false" hint="This is not used but required after the May 13 2025 CF update">
 			
 		<!--- Default params --->
 		<cfparam name="imageHeight" default="" type="string">
@@ -7663,6 +7670,7 @@
 		<cfargument name="addThisApiKey" default="" required="false">
 		<cfargument name="addThisToolboxString" default="" required="false">
 		<cfargument name="bingMapsApiKey" default="" required="false">
+		<cfargument name="azureMapsApiKey" default="" required="false">
 		<cfargument name="disqusBlogIdentifier" default="" required="false">
 		<cfargument name="disqusApiKey" default="" required="false">
 		<cfargument name="disqusApiSecret" default="" required="false">
@@ -7764,6 +7772,7 @@
 				<cfset OptionDbObj.setAddThisApiKey(arguments.addThisApiKey)>
 				<cfset OptionDbObj.setAddThisToolboxString(arguments.addThisToolboxString)>
 				<cfset OptionDbObj.setAddThisApiKey(arguments.addThisApiKey)>
+				<cfset OptionDbObj.setAzureMapsApiKey(arguments.azureMapsApiKey)>
 				<cfset OptionDbObj.setBingMapsApiKey(arguments.bingMapsApiKey)>
 				<cfset OptionDbObj.setDisqusBlogIdentifier(arguments.disqusBlogIdentifier)>
 				<cfset OptionDbObj.setDisqusApiKey(arguments.disqusApiKey)>
@@ -8098,7 +8107,7 @@
 				
 	<!---******************************************************************************************************
 		Map functions
-	*******************************************************************************************************--->
+	*******************************************************************************************************---> ''
 				
 	<cffunction name="saveMap" access="remote" output="false" returnformat="json"
 			hint="This function saves the address and waypoints when creating a map route"><!---returnformat="json" --->
@@ -8110,8 +8119,12 @@
 		<cfargument name="mapZoom" default="" required="true">
 		<cfargument name="mapAddress" required="true" default="">
 		<cfargument name="mapCoordinates" required="true" default="">
+		<!--- Optional args --->
+		<cfargument name="latitude" required="false" default="">
+		<cfargument name="longitude" required="false" default="">
+		<cfargument name="provider" default="Azure Maps" required="false">
 		<cfargument name="customMarker" required="false" default="">
-		<cfargument name="oulineMap" required="false" default="false">
+		<cfargument name="outlineMap" required="false" default="false">
 			
 		<!--- Set the default response object.--->
 		<cfset response = {} />
@@ -8139,16 +8152,19 @@
 			
 		<cfif application.Udf.isLoggedIn()>
 			
-			<cftry>
+			<!---<cftry>--->
 			
-				<cfinvoke component="#application.blog#" method="saveMap" returnvariable="mapId">
-					<cfinvokeargument name="isEnclosure" value="#arguments.isEnclosure#">
+				<cfinvoke component="#application.blog#" method="saveMap" returnvariable="mapId"> 
 					<cfinvokeargument name="postId" value="#arguments.postId#">
 					<cfinvokeargument name="mapId" value="#arguments.mapId#">
 					<cfinvokeargument name="mapType" value="#arguments.mapType#">
 					<cfinvokeargument name="mapZoom" value="#arguments.mapZoom#">
 					<cfinvokeargument name="mapAddress" value="#arguments.mapAddress#">
 					<cfinvokeargument name="mapCoordinates" value="#arguments.mapCoordinates#">
+					<cfinvokeargument name="latitude" value="#arguments.latitude#">
+					<cfinvokeargument name="longitude" value="#arguments.longitude#">
+					<cfinvokeargument name="isEnclosure" value="#arguments.isEnclosure#">
+					<cfinvokeargument name="provider" value="#arguments.provider#">
 					<cfinvokeargument name="customMarker" value="#arguments.customMarker#">
 					<cfinvokeargument name="outlineMap" value="#arguments.outlineMap#">
 				</cfinvoke>
@@ -8158,11 +8174,11 @@
 				<cfset response[ "mapId" ] = #arguments.mapId# />
 				<cfset response[ "success" ] = true />
 			
-				<cfcatch type="any">
+				<!---<cfcatch type="any">
 					<!--- Serialize our error --->
 					<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 				</cfcatch>	
-			</cftry>
+			</cftry>--->
 		<cfelse>
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
@@ -8181,13 +8197,12 @@
 	<cffunction name="saveMapRoute" access="remote" output="false" returnformat="json"
 			hint="This function saves the address and waypoints when creating a map route"><!---returnformat="json" --->
 		<cfargument name="csrfToken" default="" required="true">
-		<cfargument name="locationGeoCoordinates" default="" required="true">
-
+		<cfargument name="provider" default="Azure Maps" required="true">
 		<cfargument name="isEnclosure" default="true" required="true">
+		<cfargument name="locationGeoCoordinates" default="" required="true" hint="This is a sting that has the location, latitude and longitude separated by underscores and the rows are separated using a colon (ie Seattle_xxx_xxx:Bellevue_xxx_xxx:Denver_xxx_xxx)">
+		<cfargument name="postId" default="" required="false">
 		<cfargument name="mapId" default="" required="false">
 		<cfargument name="mapRouteId" default="" required="false">
-		<cfargument name="postId" default="" required="false">
-		<cfargument name="mapTitle" type="string" required="false" default="" hint="Pass in the map title">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -8211,29 +8226,28 @@
 		<cfset secureFunction('AssetEditor,EditComment,EditPost,ReleasePost')>
 			
 		<cfif application.Udf.isLoggedIn()>
-			
-			<cftry>
-			
+				
+			<!--- There is only one provider as of June 2025. Bing Maps retired... --->
+			<cfif arguments.provider eq 'Azure Maps'> 
+
 				<cfinvoke component="#application.blog#" method="saveMapRoute" returnvariable="mapId">
 					<cfinvokeargument name="mapId" value="#arguments.mapId#">
 					<cfinvokeargument name="mapRouteId" value="#arguments.mapRouteId#">
 					<cfinvokeargument name="postId" value="#arguments.postId#">
-					<cfinvokeargument name="mapTitle" value="#arguments.mapTitle#">
 					<cfinvokeargument name="locationGeoCoordinates" value="#arguments.locationGeoCoordinates#">
 					<cfinvokeargument name="isEnclosure" value="#arguments.isEnclosure#">
-					<cfinvokeargument name="provider" value="Bing Maps">
+					<cfinvokeargument name="provider" value="Azure Maps">
+					<!--- The map type for map routes is 'road_shaded_relief' --->
+					<cfinvokeargument name="mapType" value="road_shaded_relief">
 				</cfinvoke>
 
-				<!--- Pass back the map and post id--->
-				<cfset response[ "postId" ] = #arguments.postId# />
-				<cfset response[ "mapId" ] = #arguments.mapId# />
-				<cfset response[ "success" ] = true />
+			</cfif><!---<cfif mapProvider eq 'Azure Maps'>--->
+
+			<!--- Pass back the map and post id--->
+			<cfset response[ "postId" ] = #arguments.postId# />
+			<cfset response[ "mapId" ] = #arguments.mapId# />
+			<cfset response[ "success" ] = true />
 			
-				<cfcatch type="any">
-					<!--- Serialize our error list --->
-					<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
-				</cfcatch>	
-			</cftry>
 		<cfelse>
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
@@ -8303,10 +8317,30 @@
 					<cfinvokeargument name="blogVersion" value="3.12">
 					<cfinvokeargument name="blogVersionName" value="Galaxie Blog 3.12">
 				</cfinvoke>
-
+						
+			<cfelseif arguments.blogVersion eq '4.07'>
+				
+				<!--- Update all of the records in the Font table --->
+				<cfinvoke component="#application.blog#" method="updateDb" returnvariable="success">
+					<cfinvokeargument name="tablesToPopulate" value="MapProvider">
+					<cfinvokeargument name="updateRecords" value="true">
+				</cfinvoke>
+						
+				<!--- Only insert the new Joshua Tree records into the Theme related tables. --->
+				<cfinvoke component="#application.blog#" method="updateDb" returnvariable="success">
+					<cfinvokeargument name="tablesToPopulate" value="MapType">
+					<cfinvokeargument name="updateRecords" value="false">
+				</cfinvoke>
+					
+				<!--- Update the version --->
+				<cfinvoke component="#application.blog#" method="updateBlogVersion" returnvariable="success">
+					<cfinvokeargument name="blogVersion" value="4.07">
+					<cfinvokeargument name="blogVersionName" value="Galaxie Blog 4.07">
+				</cfinvoke>
+						
 			</cfif><!---<cfif arguments.blogVersion eq '3.12'>--->
 					
-		</cfif>
+		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 	
 		<cfreturn true>
 			

@@ -1,4 +1,4 @@
-<!--- Run this template when releasing a new blog version when the database has changed (or when new stuff, like settings, or fonts, etc, have been added).This is used to dump the core db values into text files when someone is first installing GalaxieBlog --->
+<!--- Run this template when releasing a new blog version when the database has changed (or when new stuff, like settings, or fonts, etc, have been added). This is used to dump the core db values into text files when someone is first installing GalaxieBlog --->
 
 <!--- Common destination --->
 <cfset destination = expandPath("#application.baseUrl#/common/data/files")>
@@ -91,7 +91,7 @@ Blog Option table
 		  ,1 as DeferScriptsAndCss
 		  ,1 as MinimizeCode
 		  ,0 as DisableCache
-		  ,9 as EntriesPerBlogPage
+		  ,12 as EntriesPerBlogPage
 		  ,1 as BlogModerated
 		  ,1 as UseCaptcha
 		  ,1 as AllowGravatar
@@ -503,7 +503,10 @@ Theme Setting Table
 		dbo.ThemeSetting.MainContainerWidth, 
 		dbo.ThemeSetting.SideBarContainerWidth, 
 		dbo.ThemeSetting.SiteOpacity, 
+		dbo.ThemeSetting.CustomHeaderHtml,
+		dbo.ThemeSetting.CustomHeaderHtmlApplyAcrossThemes,
 		dbo.ThemeSetting.FavIconHtml, 
+		dbo.ThemeSetting.FavIconHtmlApplyAcrossThemes, 
 		dbo.ThemeSetting.IncludeBackgroundImages, 
 		dbo.ThemeSetting.BlogBackgroundImage, 
 		dbo.ThemeSetting.BlogBackgroundImageMobile, 
@@ -535,6 +538,8 @@ Theme Setting Table
 		dbo.ThemeSetting.AlignBlogMenuWithBlogContent, 
 		dbo.ThemeSetting.TopMenuAlign, 
 		dbo.ThemeSetting.FooterImage, 
+		dbo.ThemeSetting.TailEndScripts, 
+		dbo.ThemeSetting.TailEndScriptsApplyAcrossThemes,
 		dbo.ThemeSetting.WebPImagesIncluded
 		FROM            dbo.ThemeSetting INNER JOIN
 		dbo.Theme ON dbo.ThemeSetting.ThemeSettingId = dbo.Theme.ThemeSettingRef INNER JOIN
@@ -641,6 +646,227 @@ Users Table
 	<cffile action="write" file="#destination#/#dataFileName#.txt" output="#blogDataXml#">
 	
 </cfif>
+
+<!---****************************************************************************************
+Content Template Type
+*****************************************************************************************--->
+<cfif tables eq 'all' or listFindNoCase(tables, 'ContentTemplateType')>
+	
+	<cfset dataFileName = "getContentTemplateType">
+
+	<cfquery name="Data" datasource="#dsn#">
+		SELECT TOP (1000) ContentTemplateTypeId
+			,ContentTemplateType
+			,ContentTemplateTypeDesc
+			,Date
+		FROM ContentTemplateType
+		ORDER BY ContentTemplateTypeId
+	</cfquery>
+
+	<cfdump var="#Data#">
+
+	<cfwddx
+		action="cfml2wddx"
+		input="#Data#"
+		output="blogDataXml"
+		/>
+
+	<cffile action="write" file="#destination#/#dataFileName#.txt" output="#blogDataXml#">
+	
+</cfif>
+		
+<!---****************************************************************************************
+Content Template
+*****************************************************************************************--->
+<cfif tables eq 'all' or listFindNoCase(tables, 'ContentTemplate')>
+	
+	<cfset dataFileName = "getContentTemplate">
+
+	<cfquery name="Data" datasource="#dsn#">
+		SELECT ContentTemplateId
+			,ContentTemplateTypeRef
+			,ParentTemplatePath
+			,ContentTemplateName
+			,ContentTemplateDesc
+			,ContentTemplatePath
+			,ContentTemplateUrl
+			,CustomOutput
+			,LastCached
+			,Active
+			,Date
+		FROM ContentTemplate
+		ORDER BY ContentTemplateId
+	</cfquery>
+
+	<cfdump var="#Data#">
+
+	<cfwddx
+		action="cfml2wddx"
+		input="#Data#"
+		output="blogDataXml"
+		/>
+
+	<cffile action="write" file="#destination#/#dataFileName#.txt" output="#blogDataXml#">
+	
+</cfif>
+
+<!---****************************************************************************************
+Content Zone
+*****************************************************************************************--->
+<cfif tables eq 'all' or listFindNoCase(tables, 'ContentZone')>
+	
+	<cfset dataFileName = "getContentZone">
+
+	<cfquery name="Data" datasource="#dsn#">
+		SELECT ContentZoneId
+			,BlogRef
+			,PageRef
+			,ContentZoneName
+			,ContentZoneDesc
+			,DefaultZone
+			,Date
+		FROM ContentZone
+		ORDER BY ContentZoneId
+	</cfquery>
+
+	<cfdump var="#Data#">
+
+	<cfwddx
+		action="cfml2wddx"
+		input="#Data#"
+		output="blogDataXml"
+		/>
+
+	<cffile action="write" file="#destination#/#dataFileName#.txt" output="#blogDataXml#">
+	
+</cfif>
+
+<!---****************************************************************************************
+Content Template Zone
+*****************************************************************************************--->
+<cfif tables eq 'all' or listFindNoCase(tables, 'ContentTemplateContentZone')>
+	
+	<cfset dataFileName = "getContentTemplateContentZone">
+
+	<cfquery name="Data" datasource="#dsn#">
+		SELECT ContentTemplateContentZoneId
+			,Date
+			,ContentTemplateRef
+			,ContentZoneRef
+		FROM ContentTemplateContentZone
+		ORDER BY ContentTemplateContentZoneId
+	</cfquery>
+
+	<cfdump var="#Data#">
+
+	<cfwddx
+		action="cfml2wddx"
+		input="#Data#"
+		output="blogDataXml"
+		/>
+
+	<cffile action="write" file="#destination#/#dataFileName#.txt" output="#blogDataXml#">
+	
+</cfif>
+
+<!---****************************************************************************************
+Page Type
+*****************************************************************************************--->
+<cfif tables eq 'all' or listFindNoCase(tables, 'PageType')>
+	
+	<cfset dataFileName = "getPageType">
+
+	<cfquery name="Data" datasource="#dsn#">
+		SELECT PageTypeId
+			,BlogRef
+			,PageTypeName
+			,PageTypeDescription
+			,Date
+		FROM PageType
+		ORDER BY PageTypeId
+	</cfquery>
+
+	<cfdump var="#Data#">
+
+	<cfwddx
+		action="cfml2wddx"
+		input="#Data#"
+		output="blogDataXml"
+		/>
+
+	<cffile action="write" file="#destination#/#dataFileName#.txt" output="#blogDataXml#">
+	
+</cfif>
+
+<!---****************************************************************************************
+Page
+*****************************************************************************************--->
+<cfif tables eq 'all' or listFindNoCase(tables, 'Page')>
+	
+	<cfset dataFileName = "getPage">
+
+	<cfquery name="Data" datasource="#dsn#">
+		SELECT PageId
+			,BlogRef
+			,PageTypeRef
+			,PageName
+			,PageDescription
+			,PagePath
+			,PageUrl
+			,Active
+			,Date
+		FROM Page
+		ORDER BY PageId
+	</cfquery>
+
+	<cfdump var="#Data#">
+
+	<cfwddx
+		action="cfml2wddx"
+		input="#Data#"
+		output="blogDataXml"
+		/>
+
+	<cffile action="write" file="#destination#/#dataFileName#.txt" output="#blogDataXml#">
+	
+</cfif>
+
+<!---****************************************************************************************
+PageContentTemplate
+*****************************************************************************************--->
+<cfif tables eq 'all' or listFindNoCase(tables, 'PageContentTemplate')>
+	
+	<cfset dataFileName = "getPageContentTemplate">
+
+	<cfquery name="Data" datasource="#dsn#">
+		SELECT PageContentTemplateId
+			,PageRef
+			,ContentTemplateRef
+			,Date
+		FROM PageContentTemplate
+		ORDER BY PageContentTemplateId
+	</cfquery>
+
+	<cfdump var="#Data#">
+
+	<cfwddx
+		action="cfml2wddx"
+		input="#Data#"
+		output="blogDataXml"
+		/>
+
+	<cffile action="write" file="#destination#/#dataFileName#.txt" output="#blogDataXml#">
+		
+	This is written
+	
+</cfif>
+
+
+
+
+
+
+
 
 	
 	

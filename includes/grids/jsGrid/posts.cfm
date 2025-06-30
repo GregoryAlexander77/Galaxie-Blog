@@ -204,7 +204,6 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					});
 				},
 				updateItem: function(value, item) {
-					//alert(mydump(value));//"Approved" => "true"
 					return $.ajax({
 						type: "post",
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=updatePostViaJsGrid",

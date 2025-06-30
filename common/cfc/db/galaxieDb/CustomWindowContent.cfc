@@ -15,7 +15,9 @@
 	<cfproperty name="WindowWidth" ormtype="string"  length="15" default="">
 	<!--- The content is either an include or content. --->
 	<cfproperty name="CfincludePath" ormtype="string"  length="225" default="">
-	<cfproperty name="Content" ormtype="text" sqltype="longtext" default="">
+	<cfproperty name="Content" ormtype="string" sqltype="varchar(max)" default="">
+	<cfproperty name="OtherArgs" ormtype="string"  length="225" default="" hint="Used to specify optional custom arguments for the otherArgs property">
+	<cfproperty name="OtherArgs1" ormtype="string"  length="225" default="" hint="Used to specify optional custom arguments for the otherArgs1 property">
 	<cfproperty name="Active" ormtype="boolean" default="true">
 	<cfproperty name="Date" ormtype="timestamp" default="" >
 

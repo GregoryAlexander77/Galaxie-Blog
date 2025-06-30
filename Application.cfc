@@ -5,8 +5,7 @@
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
 	<cfset this.rootDirectoryPath = getDirectoryFromPath( getCurrentTemplatePath() )>
-	<!--- Disable strict argument matching for remote CFC methods. As of June 2025, new errors were introduced with remote AJAX functions when the HTML5 widgets (Kendo UI and jsGrid) automatically append arguments to the URL. I believe that I fixed all of the issues in my dev environment, however, I am turning this off as I have not been able to test the entire site. Additionally, I have tested the code using various tools for any security vulnerabilities. Having an extra argument appended to the URL is not a great security risk. The blog has been in production since 2005 (formerly BlogCfc) and there have been no issues. --->
-    <cfset this.runtime.remotemethod.matchArguments = false>
+		<cfset test = 'yep'>
 
 	<!--- Print out some of the vars for debugging purposes. Change the first line to read output="true" --->
 	<cfset debug = false>
@@ -121,8 +120,8 @@
 			<cfset application.baseProxyUrl = getBaseProxyUrl()>
 			<cfset application.baseComponentPath = getBaseComponentPath()>
 			<!--- Determine if the server supports webp images and woff fonts --->
-			<cfset application.serverSupportsWebP = serverSupportsWebP(false)>
-			<cfset application.serverSupportsWoff2 = serverSupportsWoff2(false)>
+			<cfset application.serverSupportsWebP = serverSupportsWebP(true)>
+			<cfset application.serverSupportsWoff2 = serverSupportsWoff2(true)>
 
 			<!--- Flush our cache. It will not exist when first installing the blog --->
 			<cftry>
@@ -430,6 +429,19 @@
 		<!--- Note: the original blogCfc came with an older jQuery UI than the one that I am using and it is creating conflicts. We need to have two different jQuery incluedes, one for the administration part of the site, and the newer jquery UI for the new blogCfc.--->
 		<cfset application.adminjQueryUiPath = getBaseUrl() & "/includes/jqueryui/jqueryui.js">
 			
+		<!--- Mapping Service URL's --->
+		<!--- Map Controller URL's. We are using version 3 --->
+		<cfset application.azureMapsControllerUrl = 'https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js'>
+		<cfset application.azureMapsControllerCssUrl = 'https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css'>
+		<!--- Azure Maps Fuzzy Search URL. We are using version 1 for now --->
+		<cfset application.azureMapsFuzzySearchUrl = "https://atlas.microsoft.com/search/fuzzy/json?typeahead=true&api-version=1.0&language=en-US&lon=0&lat=0&view=Auto">
+		<cfset application.azureMapsSearchUrl = "https://atlas.microsoft.com/search/address/json">
+		<!--- Azure Maps Static Marker Cursor. I need to eventually put this in the db --->
+		<cfset application.defaultAzureMapsCursor = getBaseUrl() & "/images/mapMarkers/mapMarkerButton.gif">
+		
+		<!--- Note: the bing maps URL changes. For example, the orginal URL was https://www.bing.com, however, Bing is now recommending to use https://sdk.virtualearth.net/ instead due to the way that the browser handles cookies. --->
+		<cfset application.bingMapsUrl = 'https://sdk.virtualearth.net'>	
+			
 		<!--- //****************************************************************************************
 				Database version 
 				This may be less than the version indicated in the Blog.cfc template after uploading new files that overwrite the blog version. This is needed to determine if we need to update the database with new information when upgrading versions.
@@ -486,7 +498,7 @@
 		<!--- Video player settings. We have several options. Our default player is plyr. It is a full featured HTML5 media player, however, it does not play flash video. This should not be a problem as flash is soon to be depracated. Optionally, we can use the Kendo UI video player if you have a full Kendo license. The original flash player will take over for .flv videos, but will be depracated in 2020. --->
 		<cfset application.defaultMediaPlayer = application.BlogOptionDbObj.getDefaultMediaPlayer()><!---You can optionally choose 'KendoUiPlayer' if you have the full lisence. However, the Kendo Media player is lacks quite a few plyr features. The Kendo player is useful if you want the video player to take on the theme that you are using. --->
 			
-		<!--- This is Googles gtag string and is used for analytics. --->
+		<!--- This is Google gtag string and is used for analytics. --->
 		<cfset application.googleAnalyticsString = application.BlogOptionDbObj.getGoogleAnalyticsString()>
 
 		<!--- The addThis toolbox string changes depending upon the site and the configuration. --->
@@ -495,7 +507,9 @@
 		<!--- The addThis api key is found on the addThis.com site. There is a tutorial how to use this on Gregory's blog. --->
 		<cfset application.addThisApiKey = application.BlogOptionDbObj.getAddThisApiKey()>
 			
-		<!--- Optional Bing Map API (used for Bing Maps) --->
+		<!--- Optional Azure Map API (used for Azure Maps) --->
+		<cfset application.azureMapsApiKey = application.BlogOptionDbObj.getAzureMapsApiKey()>
+		<!--- Optional Bing Map API. This will retire on June 2025 --->
 		<cfset application.bingMapsApiKey = application.BlogOptionDbObj.getBingMapsApiKey()>
 
 		<!--- //****************************************************************************************
@@ -893,10 +907,15 @@
 			<cfset webp = application.serverSupportsWebP>
 		<cfelse>
 			<cftry>
-				<!--- Note: we need to eliminate https from the root URL if it exists. I ran into errors trying this with https (a cryptic certificate error). --->
-				<cfset thisUrl = replaceNoCase(application.blogHostUrl, "https", "http")>
+				<cfif CGI.Server_Port eq '443'>
+					<cfset thisUrl = application.blogHostUrl>
+				<cfelse>
+					<!--- Note: we need to eliminate https from the root URL if it exists. I ran into errors trying this with https (a cryptic certificate error). --->
+					<cfset thisUrl = replaceNoCase(application.blogHostUrl, "https", "http")>
+				</cfif>
+				
 				<!--- The headerBodyDivider image is a tiny .webp image (around 1k). We are going to read this, and if it was found and the mime type is correct, we will assumed that the mime type is correct. Otherwise, we will determine that the server does not support the webp mime type. --->
-				<cfhttp method="get" URL="#thisUrl#/images/divider/headerBodyDivider.webp">
+				<cfhttp method="get" URL="#trim(thisUrl)#/images/divider/headerBodyDivider.webp">
 
 				<!--- Was the webp image found? --->
 				<cfif cfhttp.mimeType contains 'webp'>

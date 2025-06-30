@@ -5,9 +5,6 @@
 		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
 		<cfcatch type="any"></cfcatch>
 	</cftry>
-	
-	<!--- Note: the bing maps URL changes. For example, the orginal URL was https://www.bing.com, however, Bing is now recommending to use https://sdk.virtualearth.net/ instead due to the way that the browser handles cookies. --->
-	<cfset bingMapsUrl = 'https://sdk.virtualearth.net'>	
 		
 	<!--- //************************************************************************************************
 		Helper functions
@@ -598,9 +595,13 @@
 		<cfif len(arguments.imageUrl) and listFindNoCase("gif,jpg,png,webp", listLast(arguments.imageUrl, "."))>
 			<!--- Wrap the image with the entryImage class. I am also lazy loading this now and constraining the image with .css. Note: I am decoding the image URL as it won't work with the lazy loading approach if it is encoded. --->
 			<cfif useFadeClass>
-				<cfset mediaHtmlStr = "<div class=""entryImage""><img class=""fade"" data-type=""image"" data-id=""#arguments.mediaId#"" data-src=""#arguments.imageUrl#"" alt=""""></div>">
+				<cfif len(arguments.mediaId)>
+					<cfset imageHtmlStr = "<div class=""entryImage""><img class=""fade"" data-type=""image"" data-id=""#arguments.mediaId#"" data-src=""#arguments.imageUrl#"" alt=""""></div>">
+				<cfelse>
+					<cfset imageHtmlStr = "<div class=""entryImage""><img class=""fade"" data-type=""image"" data-src=""#arguments.imageUrl#"" alt=""""></div>">
+				</cfif>
 			<cfelse>
-				<cfset mediaHtmlStr = "<div class=""entryImage""><img src=""#arguments.imageUrl#"" alt=""""></div>">
+				<cfset imageHtmlStr = "<div class=""entryImage""><img src=""#arguments.imageUrl#"" alt=""""></div>">
 			</cfif>
 		</cfif>
 			
@@ -1184,7 +1185,6 @@
 		<cfargument name="enclosureMapIdList" type="string" required="yes">
 		<cfargument name="currentRow" type="numeric" required="false" default="1">
 			
-				
 		<!--- Create the loadMaps script. This will load every map found in the getPost query. --->
 		<cfif arguments.currentRow eq 1>
 			
@@ -1204,7 +1204,10 @@
 				<cfset getThisMap = application.blog.getMapByMapId(thisMapId)>
 
 				<cfif arrayLen(getThisMap)>
+					<cfset thisMapProvider = getThisMap[1]["MapProvider"]>
 					<cfset thisGeoCoordinates = getThisMap[1]["GeoCoordinates"]>
+					<cfset thisLatitude = getThisMap[1]["Latitude"]>
+					<cfset thisLongitude = getThisMap[1]["Longitude"]>
 					<cfset thisLocation = getThisMap[1]["Location"]>
 					<cfset thisZoom = getThisMap[1]["Zoom"]>
 					<cfset thisCustomMarkerUrl = getThisMap[1]["CustomMarkerUrl"]>
@@ -1223,11 +1226,15 @@
 
 					<!--- Render the common part of our map route--->
 					<cfinvoke component="#this#" method="renderCommonMapScript" returnvariable="thisMapBodyScript">
-						<cfinvokeargument name="kendoTheme" value="#arguments.kendoTheme#">
+						<cfinvokeargument name="kendoTheme" value="#arguments.kendoTheme#">							
 						<cfinvokeargument name="mapType" value="route">
 						<cfinvokeargument name="mapId" value="#thisMapId#">
-						<cfinvokeargument name="geoCoordinates" value="#thisGeoCoordinates#">
+						<cfinvokeargument name="mapProvider" value="#thisMapProvider#">
 						<cfinvokeargument name="location" value="#thisLocation#">
+						<cfinvokeargument name="geoCoordinates" value="#thisGeoCoordinates#">
+						<cfinvokeargument name="latitude" value="#thisLatitude#">
+						<cfinvokeargument name="longitude" value="#thisLongitude#">
+						<cfinvokeargument name="zoom" value="#thisZoom#">
 					</cfinvoke>
 
 					<cfsavecontent variable="thisMapBodyScript">
@@ -1238,19 +1245,23 @@
 				<cfelse><!---<cfif mapType eq 'route'>--->
 
 					<!--- Determine which marker to use. --->
-					<cfif isDefined("customMarkerUrl") and len(customMarkerUrl)>
-						<cfset mapLocationMarker = customMarkerUrl>
+					<cfif isDefined("thisCustomMarkerUrl") and len(thisCustomMarkerUrl)>
+						<cfset mapLocationMarker = application.baseUrl & '/' & thisCustomMarkerUrl>
 					<cfelse>
-						<cfset mapLocationMarker = '/images/mapMarkers/mapMarkerButton.gif'>
+						<cfset mapLocationMarker = application.defaultAzureMapsCursor> 
 					</cfif>
 
 					<!--- Render the common part of our static map--->
 					<cfinvoke component="#this#" method="renderCommonMapScript" returnvariable="thisMapBodyScript">
-						<cfinvokeargument name="kendoTheme" value="#arguments.kendoTheme#">
+						<cfinvokeargument name="kendoTheme" value="#arguments.kendoTheme#">							
 						<cfinvokeargument name="mapType" value="static">
 						<cfinvokeargument name="mapId" value="#thisMapId#">
-						<cfinvokeargument name="geoCoordinates" value="#thisGeoCoordinates#">
+						<cfinvokeargument name="mapProvider" value="#thisMapProvider#">
 						<cfinvokeargument name="location" value="#thisLocation#">
+						<cfinvokeargument name="geoCoordinates" value="#thisGeoCoordinates#">
+						<cfinvokeargument name="latitude" value="#thisLatitude#">
+						<cfinvokeargument name="longitude" value="#thisLongitude#">
+						<cfinvokeargument name="zoom" value="#thisZoom#">
 					</cfinvoke>
 
 					<cfsavecontent variable="thisMapBodyScript">
@@ -1268,11 +1279,11 @@
 				<cfif enclosureMapIdLoopCounter eq listLen(enclosureMapIdList)>
 					<!--- 
 						Original Bing Maps SDK link
-						<script type='text/javascript' src='<cfoutput>#bingMapsUrl#</cfoutput>/api/maps/mapcontrol?key=<cfoutput>#application.bingMapsApiKey#</cfoutput>&callback=loadMaps()' async defer></script>
+						<script type='text/javascript' src='<cfoutput>#application.bingMapsUrl#</cfoutput>/api/maps/mapcontrol?key=<cfoutput>#application.bingMapsApiKey#</cfoutput>&callback=loadMaps()' async defer></script>
 					--->
 					<cfsavecontent variable="bingMapsCallbackScript">
-						<link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css" type="text/css">
-						<script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js"></script>
+						<link rel="stylesheet" href="<cfoutput>#application.azureMapsControllerCssUrl#</cfoutput>" type="text/css">
+						<script src="<cfoutput>#application.azureMapsControllerUrl#</cfoutput>"></script>
 					</cfsavecontent>
 				</cfif>
 
@@ -1295,7 +1306,7 @@
 					}
 				</script>
 				<!-- The callback script should be underneath the loadMaps function and the map div's. Note: as of September 2021 you must use Bings experimental branch to render multiple maps at one time. -->
-				<script type='text/javascript' src='<cfoutput>#bingMapsUrl#</cfoutput>/api/maps/mapcontrol?branch=experimental&callback=loadMaps&key=<cfoutput>#application.bingMapsApiKey#</cfoutput>' async defer></script>
+				<script type='text/javascript' src='<cfoutput>#application.bingMapsUrl#</cfoutput>/api/maps/mapcontrol?branch=experimental&callback=loadMaps&key=<cfoutput>#application.bingMapsApiKey#</cfoutput>' async defer></script>
 			</cfsavecontent>
 
 		</cfif><!---<cfif arguments.currentRow eq 1>--->
@@ -1309,23 +1320,43 @@
 		<cfargument name="kendoTheme" type="string" required="yes" hint="Required to determine the polygon colors">
 		<cfargument name="getMap" type="array" required="yes" hint="Pass in the getMap query">
 		<cfargument name="enclosureMapIdList" type="string" required="yes">
+		<cfargument name="mapProvider" type="string" required="no" default="Azure Maps" hint="Currently either Azure Maps or Bing Maps. Bing Maps will retire in June 2025.">
 		<cfargument name="currentRow" type="numeric" required="false" default="1">
 			
 		<!--- Set the vars. --->
 		<cfset mapId = getMap[1]["MapId"]>
+		<cfset mapProvider = getMap[1]["MapProvider"]>
 		<cfset geoCoordinates = getMap[1]["GeoCoordinates"]>
 		<cfset location = getMap[1]["Location"]>
-		<cfset zoom = getMap[1]["Zoom"]>
+		<!--- Azure Map Properties. I am extracting the individual geo coordinates for Bing as they switch the coordinate order back and forth --->
+		<cfset latitude = getMap[1]["Latitude"]>
+		<cfset longitude = getMap[1]["Longitude"]>
+		<!--- Azure Map Camera Positions. These are only present with static maps --->
+		<cfset topLeftLatitude = getMap[1]["TopLeftLatitude"]>
+		<cfset topLeftLongitude = getMap[1]["TopLeftLongitude"]>
+		<cfset bottomRightLatitude = getMap[1]["BottomRightLatitude"]>
+		<cfset bottomRightLongitude = getMap[1]["BottomRightLongitude"]>
+		<!--- Common properties --->
 		<cfset customMarkerUrl = getMap[1]["CustomMarkerUrl"]>
+		<!--- Determine which marker to use. --->
+		<cfif isDefined("customMarkerUrl") and len(customMarkerUrl)>
+			<cfset mapLocationMarker = application.baseUrl & '/' & customMarkerUrl>
+		<cfelse>
+			<cfset mapLocationMarker = application.defaultAzureMapsCursor> 
+		</cfif>
+		<cfset zoom = getMap[1]["Zoom"]>
 		<cfset outlineMap = getMap[1]["OutlineMap"]>
 		<cfset hasMapRoutes = getMap[1]["HasMapRoutes"]>
-			
 		<!--- See if the map has routes and set the map type property --->
 		<cfset hasMapRoutes = getMap[1]["HasMapRoutes"]>
 		<cfif hasMapRoutes>
 			<cfset mapType = "route">
 		<cfelse>
 			<cfset mapType = "static">
+		</cfif>
+			
+		<cfif CGI.Remote_Addr eq '50.35.125.165'>
+			<cfset mapProvider = 'Azure Maps'>
 		</cfif>
 			
 		<!--- Maps require some special handling as all of the maps needed for a given page need to be loaded using a single function. There is no way to load the maps using their own individual scripts, so we need to idenfity if there is more than one map to create the map loading script. We need to use a single callback script that loads the maps at the same time. --->
@@ -1336,7 +1367,13 @@
 		<cfif listLen(enclosureMapIdList) gt 1>
 				
 			<cfsavecontent variable="enclosureHtml">
+			<cfif mapProvider eq 'Azure Maps'>
+				<!-- Add references to the Azure Maps Map control JavaScript and CSS files. -->
+				<link rel="stylesheet" href="<cfoutput>#application.azureMapsControllerCssUrl#</cfoutput>" type="text/css">
+				<script src="<cfoutput>#application.azureMapsControllerUrl#</cfoutput>"></script>
+			</cfif>
 				<div id="printoutPanel"></div>
+				<!-- Map container -->
 				<div id="map<cfoutput>#mapId#</cfoutput>" class="entryMap"></div>
 			</cfsavecontent>
 		
@@ -1347,61 +1384,100 @@
 			
 			<cfif mapType eq 'route'>	
 			
-				<!--- Render the common part of our map route--->
+				<!--- Render the common part of our map route. This is the content between the getMap function calls --->
 				<cfinvoke component="#this#" method="renderCommonMapScript" returnvariable="mapRouteScript">
 					<cfinvokeargument name="kendoTheme" value="#arguments.kendoTheme#">
 					<cfinvokeargument name="mapType" value="route">
 					<cfinvokeargument name="mapId" value="#mapId#">
-					<cfinvokeargument name="geoCoordinates" value="#geoCoordinates#">
+					<cfinvokeargument name="mapProvider" value="#mapProvider#">
 					<cfinvokeargument name="location" value="#location#">
+					<cfinvokeargument name="geoCoordinates" value="#geoCoordinates#">
+					<cfinvokeargument name="latitude" value="#latitude#">
+					<cfinvokeargument name="longitude" value="#longitude#">
+					<cfinvokeargument name="mapLocationMarkerUrl" value="#mapLocationMarker#">
+					<cfinvokeargument name="zoom" value="#zoom#">
 				</cfinvoke>
 
 				<cfsavecontent variable="enclosureHtml">
+				<cfif mapProvider eq 'Azure Maps'>
+					<!-- Add references to the Azure Maps Map control JavaScript and CSS files. -->
+					<link rel="stylesheet" href="<cfoutput>#application.azureMapsControllerCssUrl#</cfoutput>" type="text/css">
+					<script src="<cfoutput>#application.azureMapsControllerUrl#</cfoutput>"></script>
+					<!-- Add a reference to the Azure Maps Rest Helper JavaScript file. -->
+    				<script src="https://samples.azuremaps.com/lib/azure-maps/azure-maps-helper.min.js"></script>
+					<!-- Map container -->
+					<div id="map<cfoutput>#mapId#</cfoutput>" class="entryMap"></div>
+				</cfif>
 					<!--- Build the javascript --->
 					<script type='text/javascript'>
 						function getMap<cfoutput>#mapId#</cfoutput>() {
 							<!--- Output the map routes --->
 							<cfoutput>#mapRouteScript#</cfoutput>
 						}
+					<cfif arguments.mapProvider eq 'Azure Maps'>
+						// Invoke the getMap function
+						getMap<cfoutput>#mapId#</cfoutput>();
+					</cfif>
 					</script>
 
+				<cfif arguments.mapProvider eq 'Bing Maps'>
+					<!-- Invoke the Bing Maps mapcontrol script. The type argument is a Galaxie Blog argument -->
+					<script type='text/javascript' src='<cfoutput>#application.bingMapsUrl#</cfoutput>/api/maps/mapcontrol?key=<cfoutput>#application.bingMapsApiKey#</cfoutput>&callback=getMap<cfoutput>#mapId#</cfoutput>&type=route' async defer></script>
 					<!--- Content containers --->
 					<div id="printoutPanel"></div>
 					<div id="map<cfoutput>#mapId#</cfoutput>" class="entryMap"></div>
-					<!-- The type argument is a Galaxie Blog argument -->
-					<script type='text/javascript' src='<cfoutput>#bingMapsUrl#</cfoutput>/api/maps/mapcontrol?key=<cfoutput>#application.bingMapsApiKey#</cfoutput>&callback=getMap<cfoutput>#mapId#</cfoutput>&type=route' async defer></script>
+				</cfif>
 				</cfsavecontent>
 
 			<cfelse><!---<cfif mapType eq 'route'>--->
 
 				<!--- Determine which marker to use. --->
 				<cfif isDefined("customMarkerUrl") and len(customMarkerUrl)>
-					<cfset mapLocationMarker = customMarkerUrl>
+					<cfset mapLocationMarker = application.baseUrl & '/' & customMarkerUrl>
 				<cfelse>
-					<cfset mapLocationMarker = '/images/mapMarkers/mapMarkerButton.gif'>
+					<cfset mapLocationMarker = application.defaultAzureMapsCursor> 
 				</cfif>
 
 				<!--- Render the common part of our static map--->
 				<cfinvoke component="#this#" method="renderCommonMapScript" returnvariable="staticMapScript">
-					<cfinvokeargument name="kendoTheme" value="#arguments.kendoTheme#">
+					<cfinvokeargument name="kendoTheme" value="#arguments.kendoTheme#">						
 					<cfinvokeargument name="mapType" value="static">
 					<cfinvokeargument name="mapId" value="#mapId#">
-					<cfinvokeargument name="geoCoordinates" value="#geoCoordinates#">
+					<cfinvokeargument name="mapProvider" value="#mapProvider#">
 					<cfinvokeargument name="location" value="#location#">
+					<cfinvokeargument name="geoCoordinates" value="#geoCoordinates#">
+					<cfinvokeargument name="latitude" value="#latitude#">
+					<cfinvokeargument name="longitude" value="#longitude#">
+					<cfinvokeargument name="mapLocationMarkerUrl" value="#mapLocationMarker#">
+					<cfinvokeargument name="zoom" value="#zoom#">
 				</cfinvoke>
 
 				<cfsavecontent variable="enclosureHtml">
+				<cfif mapProvider eq 'Azure Maps'>
+					<!-- Add references to the Azure Maps Map control JavaScript and CSS files. -->
+					<link rel="stylesheet" href="<cfoutput>#application.azureMapsControllerCssUrl#</cfoutput>" type="text/css">
+					<script src="<cfoutput>#application.azureMapsControllerUrl#</cfoutput>"></script>
+    				<!-- Add a reference to the Azure Maps Rest Helper JavaScript file. -->
+    				<script src="https://samples.azuremaps.com/lib/azure-maps/azure-maps-helper.min.js"></script>
+					<!-- Map container -->
+					<div id="map<cfoutput>#mapId#</cfoutput>" class="entryMap"></div>
+				</cfif>
 					<!--- Build the javascript --->
 					<script type='text/javascript'>
 						function getMap<cfoutput>#mapId#</cfoutput>() {
 							<!--- Output the common static map part --->
 							<cfoutput>#staticMapScript#</cfoutput>
 						}
+					<cfif arguments.mapProvider eq 'Azure Maps'>
+						// Invoke the getMap function
+						getMap<cfoutput>#mapId#</cfoutput>();
+					</cfif>
 					</script>
-					<!-- The type argument is a Galaxie Blog argument -->
-					<script type='text/javascript' src='<cfoutput>#bingMapsUrl#</cfoutput>/api/maps/mapcontrol?key=<cfoutput>#application.bingMapsApiKey#</cfoutput>&callback=getMap<cfoutput>#mapId#</cfoutput>&type=static' async defer></script>
-
+				<cfif arguments.mapProvider eq 'Bing Maps'>
+					<!-- Invoke the Bing Maps mapcontrol script. The type argument is a Galaxie Blog argument -->
+					<script type='text/javascript' src='<cfoutput>#application.bingMapsUrl#</cfoutput>/api/maps/mapcontrol?key=<cfoutput>#application.bingMapsApiKey#</cfoutput>&callback=getMap<cfoutput>#mapId#</cfoutput>&type=static' async defer></script>
 					<div id="map<cfoutput>#mapId#</cfoutput>" class="entryMap"></div>
+				</cfif>
 				</cfsavecontent>
 
 			</cfif><!---<cfif mapType eq 'route'>--->
@@ -1413,47 +1489,257 @@
 					
 	<cffunction name="renderCommonMapScript" returntype="string" output="false"
 			hint="Renders certain parts of a map. This is meant to be able to reuse code as there are multiple map related functions that share the common map elements.">
-		<cfargument name="kendoTheme" type="string" required="yes" hint="Required to determine the polygon colors">
-		<cfargument name="mapType" type="string" required="no" default="road" hint="Either: route or static at this time">
+		<cfargument name="kendoTheme" type="string" required="yes" hint="Required to determine the polygon colors">	
+		<cfargument name="mapType" type="string" required="yes" hint="Either static or route">
 		<cfargument name="mapId" type="string" required="yes">
-		<cfargument name="geoCoordinates" type="string" required="yes">
+		<cfargument name="mapProvider" type="string" required="yes">
 		<cfargument name="location" type="string" required="yes">
+		<cfargument name="geoCoordinates" type="string" required="yes">
+		<cfargument name="latitude" type="string" required="yes">	
+		<cfargument name="longitude" type="string" required="yes">
 		<!--- Optional args --->
 		<cfargument name="thumbnail" type="boolean" default="false" required="no">
 		<cfargument name="entityType" type="string" default="PopulatedPlace" required="no">
 		<cfargument name="mapLocationMarkerUrl" type="string" default="" required="no">
 		<cfargument name="outlineMap" type="boolean" default="false" required="no">
 		<cfargument name="zoom" type="numeric" default="12" required="no">
+			
+		<cfset azureMapsKey = application.azureMapsApiKey>
+			
+		<cfif CGI.Remote_Addr eq '50.35.125.165'>
+			<cfset mapProvider = 'Azure Maps'>
+		</cfif>
 		
-		<!--- Note: this function does not render the beginning or ending script tags. This is by design as the script tags will vary depending upon how many maps are in the query. The script tags will be rendered by the renderEnclosure function. --->
+		<!--- Notes: 
+		1) This function does not render the beginning or ending script tags. This is by design as the script tags will vary depending upon how many maps are in the query. The script tags will be rendered by the renderEnclosure function.
+		2) The code that is generated is underneath the getMap function call.
+		--->
 		
 		<!--- Get the accent color of the selected theme. We will use this to color the map to match the theme. --->
 		<cfset accentColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'accentColor')>
 			
-		<cfsavecontent variable="commonMapHtml">
+		<!---
+		Note: we have two main pathways:
+		1) Azure Maps 
+			Azure will generate either a static map or a route
+		2) Bing Maps
+			Bing Maps will generate two portions of the page. A portion that is common for both a static map and route, and another portion that is unique to a static map or route.
+		--->
+		<cfswitch expression="#mapProvider#">
+			<cfcase value="Azure Maps">
+				<cfif arguments.mapType eq 'static'>
+					<cfsavecontent variable="staticMapHtml">
+						// ***********************************************************************
+						// Script for static map <cfoutput>#arguments.mapId#</cfoutput>
+						// ***********************************************************************
+
+						// Set the necessary values 
+						var location<cfoutput>#mapId#</cfoutput> = '<cfoutput>#location#</cfoutput>';
+						var lat = <cfoutput>#latitude#</cfoutput>;
+						var lon = <cfoutput>#longitude#</cfoutput>;
+
+						// Initialize a map instance.
+						map<cfoutput>#mapId#</cfoutput> = new atlas.Map('map<cfoutput>#mapId#</cfoutput>', {
+							center: [Number(lon),Number(lat)],// Use the number function to ensure that the coordinates are numeric!
+							zoom: <cfoutput>#arguments.zoom#</cfoutput>,
+							view: 'Auto',
+							authOptions: {
+								 authType: 'subscriptionKey',
+								 subscriptionKey: '<cfoutput>#azureMapsKey#</cfoutput>'
+							 }
+						});
+
+						// Wait until the map resources are ready.
+						map<cfoutput>#mapId#</cfoutput>.events.add('ready', function () {
+							// Load the custom image icon into the map resources. This must be done immediately after the ready event
+							map<cfoutput>#mapId#</cfoutput>.imageSprite.add('map-marker', '<cfoutput>#arguments.mapLocationMarkerUrl#</cfoutput>').then(function () {
+								// Create a data source to store the data in.
+								datasource = new atlas.source.DataSource();
+								// Add the datasource
+								map<cfoutput>#mapId#</cfoutput>.sources.add(datasource);
+								// Add a layer for rendering point data.
+								map<cfoutput>#mapId#</cfoutput>.layers.add(new atlas.layer.SymbolLayer(datasource));
+								// Remove any previous added data from the map.
+								datasource.clear();
+								// Create a point feature to mark the selected location.
+								datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat])));
+							<cfif !session.isMobile or !thumbnail>
+								// Add the controls --------------------------------------------
+								// Create a zoom control.
+								map<cfoutput>#mapId#</cfoutput>.controls.add(new atlas.control.ZoomControl({
+									zoomDelta: parseFloat(1),
+									style: "light"
+							   }), {
+								  position: 'top-right'
+								}); 
+
+								// Create the style control
+								map<cfoutput>#mapId#</cfoutput>.controls.add(new atlas.control.StyleControl({
+								  mapStyles: ['road', 'road_shaded_relief', 'satellite', 'satellite_road_labels'],
+								  layout: 'icons'
+								}), {
+								  position: 'top-right'
+								});  
+							</cfif><!---<cfif !session.isMobile or !thumbnail>--->
+								// Add the custom marker and label.
+								map<cfoutput>#mapId#</cfoutput>.layers.add(new atlas.layer.SymbolLayer(datasource, null, {
+									iconOptions: {
+										// Pass in the id of the custom icon that was loaded into the map resources.
+										image: 'map-marker',
+										// Scale the size of the icon.
+										size: 0.5
+									},
+									textOptions: {
+									// Get the label 
+									textField: location<cfoutput>#mapId#</cfoutput>,
+									// Offset the text so that it appears below the icon.
+									offset: [0, 2] 
+									}
+								}));//map<cfoutput>#mapId#</cfoutput>.layers...
+
+							});//map<cfoutput>#mapId#</cfoutput>.imageSprite.add...
+
+						})//map<cfoutput>#mapId#</cfoutput>.events
+					</cfsavecontent>
+					
+					<cfset returnValue = staticMapHtml>
+						
+				<cfelseif arguments.mapType eq 'route'>
+					<!--- Get route data --->
+					<cfset Data = application.blog.getMapRoutesByMapId(arguments.mapId)>
+					<!---<cfdump var="#Data#">---> 
+
+					<!--- Create a list of waypoints. We need this list to populate the datasource  --->
+					<cfparam name="wayPointList" default="">
+					<cfparam name="geoCoordinatesList" default="">
+					<cfloop from="1" to="#arrayLen(Data)#" index="i">
+						<cfset wayPointList = listAppend(wayPointList, 'waypoint' & i)>
+						<cfset geoCoordinatesList = listAppend(geoCoordinatesList, 'geoCoordinates' & i)>
+					</cfloop>	
+		
+					<cfsavecontent variable="MapRouteHtml">
+						// ***********************************************************************
+						// Script for routing map <cfoutput>#arguments.mapId#</cfoutput>
+						// ***********************************************************************
+						
+						// URL for the Azure Maps Route API.
+        				var routeUrl = 'https://{azMapsDomain}/route/directions/json?api-version=1.0&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
+						
+						// Initialize a map instance.
+						map = new atlas.Map('map<cfoutput>#arguments.mapId#</cfoutput>', {
+							// Azure Maps reverses the order of the geocoordinates used with Bing Maps and uses lon,lat instead of lat,long
+							center: [<cfoutput>#listLast(Data[1]["GeoCoordinates"])#,#listFirst(Data[1]["GeoCoordinates"])#</cfoutput>],
+							zoom: 12,
+							view: 'Auto',
+							style: 'road_shaded_relief',// Note: satellite_with_roads does not work on it's own when using directions
+
+							authOptions: {
+								 authType: 'subscriptionKey',
+								 subscriptionKey: '<cfoutput>#azureMapsKey#</cfoutput>'
+							 }
+						});
+
+						// Wait until the map resources are ready.
+						map.events.add('ready', function () {
+							// Create a data source and add it to the map.
+							datasource = new atlas.source.DataSource();
+							map.sources.add(datasource);
+
+							// Add a layer for rendering the route line and have it render under the map labels.
+							map.layers.add(new atlas.layer.LineLayer(datasource, null, {
+								strokeColor: '#<cfoutput>#accentColor#</cfoutput>',
+								strokeWidth: 5,
+								lineJoin: 'round',
+								lineCap: 'round'
+							}), 'labels');
+
+							// Add a layer for rendering point data.
+							map.layers.add(new atlas.layer.SymbolLayer(datasource, null, {
+								iconOptions: {
+									image: ['get', 'iconImage'],
+									allowOverlap: true,
+									ignorePlacement: true
+								},
+								textOptions: {
+									textField: ['get', 'title'],
+									offset: [0, 1]
+								},
+								filter: ['any', ['==', ['geometry-type'], 'Point'], ['==', ['geometry-type'], 'MultiPoint']] //Only render Point or MultiPoints in this layer.
+							}));
+
+							// Create our waypoints
+							// Note the GeoJSON objects have been switched from Bing Maps to Azure Maps. Now we are using longitude first then latitude instead of the other way around.
+						<cfloop from="1" to="#arrayLen(Data)#" index="i"><cfoutput>
+							// Set the vars using longitude, latitude
+							var geoCoordinates#i# = [#Data[i]["Longitude"]#,#Data[i]["Latitude"]#];
+							var location#i# = '#Data[i]["Location"]#';
+							// Create our waypoints
+							var waypoint#i# = new atlas.data.Feature(new atlas.data.Point(geoCoordinates#i#), {
+								title: location#i#,
+								iconImage: <cfif i eq arrayLen(Data)>'pin-red'<cfelse>'pin-blue'</cfif>
+							});
+						</cfoutput></cfloop>
+
+							// Add the waypoints to the data source.
+							datasource.add([<cfoutput>#wayPointList#</cfoutput>]);
+
+							// Fit the map window to the bounding box defined by the start and end positions.
+							map.setCamera({
+								bounds: atlas.data.BoundingBox.fromPositions([<cfoutput>#geoCoordinatesList#</cfoutput>]),
+								// Padding will essentially zoom out a bit. The default is 50, I am using 100 as I want the destinations on the map to be clearly shown
+								padding: 100
+							});
+
+							// Create the route request with the query using the following format 'startLongitude,startLatitude:endLongitude,endLatitude'.
+							var routeRequestURL = routeUrl
+								.replace('{query}', `<cfloop from="1" to="#arrayLen(Data)#" index="i"><cfoutput>${geoCoordinates#i#[1]},${geoCoordinates#i#[0]}<cfif i lt arrayLen(Data)>:</cfif></cfoutput></cfloop>`);  
+
+							// Process the request and render the route result on the map. This method is in the Azure Maps resources that was loaded to the page.
+							processRequest(routeRequestURL).then(directions => {
+								// Extract the first route from the directions.
+								const route = directions.routes[0];
+								// Combine all leg coordinates into a single array.
+								const routeCoordinates = route.legs.flatMap(leg => leg.points.map(point => [point.longitude, point.latitude]));
+								// Create a LineString from the route path points.
+								const routeLine = new atlas.data.LineString(routeCoordinates);
+								// Add it to the data source.
+								datasource.add(routeLine);
+							});//processRequest
+
+							// Add the controls
+							// Create a zoom control.
+							map.controls.add(new atlas.control.ZoomControl({
+								zoomDelta: parseFloat(1),
+								style: "light"
+						   }), {
+							  position: 'top-right'
+							}); 
+
+							// Create the style control
+							map.controls.add(new atlas.control.StyleControl({
+							  mapStyles: ['road', 'road_shaded_relief', 'satellite', 'satellite_road_labels'],
+							  layout: 'icons'
+							}), {
+							  position: 'top-right'
+							});  
+
+						});//map.events
+					</cfsavecontent>
+						
+					<cfset returnValue = mapRouteHtml>
+				</cfif>
+			</cfcase>
+			
+			<cfcase value="Bing Maps">
+				<cfsavecontent variable="commonMapHtml">
 						// ***********************************************************************
 						// Script for Map <cfoutput>#arguments.mapId#</cfoutput>
 						// ***********************************************************************
-			<cfsilent><!--- The GeoCoordinates will be blank with map routes --->
-				<!---
-				New logic for Azure maps
-				function InitMap(){
-					var map = new atlas.Map('myMap', {
-						center: [-122.33, 47.6],
-						zoom: 12,
-						language: 'en-US',
-						authOptions: {
-							authType: 'subscriptionKey',
-							subscriptionKey: '<Your Azure Maps Key>'
-						}
-					});
-				}
-				--->
-			</cfsilent>
-			<cfif len(arguments.GeoCoordinates)>
+					<!--- The GeoCoordinates will be blank with map routes --->
+					<cfif len(arguments.GeoCoordinates)>
 						// Create a location. This should be outside of the map declaration when drawing multiple maps on a page. However, this works when there is just one map, or there are many, so we are using this approach with both map options.
 						var location<cfoutput>#arguments.mapId#</cfoutput> = new Microsoft.Maps.Location(<cfoutput>#arguments.GeoCoordinates#</cfoutput>);
-			</cfif>
+					</cfif>
 						// Create a compact horizontal navigation bar
 						var navigationBarMode<cfoutput>#arguments.mapId#</cfoutput> = Microsoft.Maps.NavigationBarMode;
 
@@ -1478,12 +1764,12 @@
 							showScalebar: false
 						});
 					</cfif>
-		</cfsavecontent>
+				</cfsavecontent>
+				
+				<cfif arguments.mapType eq 'static'>
 			
-		<cfif arguments.mapType eq 'static'>
-			
-			<!--- Note: we are not including the script tags. These tags will be different depending upon if there are multiple maps or not. This will be handed by a different function. We are just rendering common elements here. --->
-			<cfsavecontent variable="staticMapHtml">
+					<!--- Note: we are not including the script tags. These tags will be different depending upon if there are multiple maps or not. This will be handed by a different function. We are just rendering common elements here. --->
+					<cfsavecontent variable="staticMapHtml">
 						<cfoutput>#commonMapHtml#</cfoutput>
 
 						// Create a center variable for the pushpin
@@ -1521,16 +1807,16 @@
 
 						});
 					</cfif><!---<cfif outlineMap>--->
-			</cfsavecontent>
+					</cfsavecontent>
 			
-			<cfset returnValue = staticMapHtml>
+					<cfset returnValue = staticMapHtml>
 			
-		<cfelseif mapType eq 'route'>
+				<cfelseif arguments.mapType eq 'route'><!---<cfif arguments.mapType eq 'static'>--->
 			
-			<!--- Get route data --->
-			<cfset Data = application.blog.getMapRoutesByMapId(mapId)>
-			
-			<cfsavecontent variable="MapRouteHtml">
+					<!--- Get route data --->
+					<cfset Data = application.blog.getMapRoutesByMapId(mapId)>
+
+					<cfsavecontent variable="MapRouteHtml">
 						<cfoutput>#commonMapHtml#</cfoutput>
 
 						// Routes for map#arguments.mapId# ***************************************
@@ -1553,11 +1839,14 @@
 							//directionsManager.setRenderOptions({ itineraryContainer: document.getElementById('printoutPanel') });
 							directionsManager.calculateDirections();
 						});
-			</cfsavecontent>
-			
-			<cfset returnValue = mapRouteHtml>
-		
-		</cfif>
+					</cfsavecontent>
+
+					<cfset returnValue = mapRouteHtml>
+
+				</cfif><!---<cfif arguments.mapType eq 'static'>--->
+				
+			</cfcase><!--- Bing Maps --->
+		</cfswitch>
 				
 		<cfreturn returnValue>
 				
@@ -1623,6 +1912,63 @@
 		<cfreturn mapHtmlStr>
 	
 	</cffunction>
+			
+	<!--- Determine which letter to show in the optional rows when rendering map routes. I am using a loop from 3 to 12 and need to put its corresponding letter (c,d,e, etc.) --->
+	<cffunction name="getLetterByLoopCount" access="public" returntype="any" output="no">
+		<cfargument name="loopCount" required="true" type="numeric">
+
+		<cfswitch expression="#arguments.loopCount#">
+			<cfcase value="3">
+				<cfset destinationLetter = "c">
+			</cfcase>
+			<cfcase value="4">
+				<cfset destinationLetter = "d">
+			</cfcase>
+			<cfcase value="5">
+				<cfset destinationLetter = "e">
+			</cfcase>
+			<cfcase value="6">
+				<cfset destinationLetter = "f">
+			</cfcase>
+			<cfcase value="7">
+				<cfset destinationLetter = "g">
+			</cfcase>
+			<cfcase value="8">
+				<cfset destinationLetter = "h">
+			</cfcase>
+			<cfcase value="9">
+				<cfset destinationLetter = "i">
+			</cfcase>
+			<cfcase value="10">
+				<cfset destinationLetter = "j">
+			</cfcase>
+			<cfcase value="11">
+				<cfset destinationLetter = "k">
+			</cfcase>
+			<cfcase value="12">
+				<cfset destinationLetter = "l">
+			</cfcase>
+			<cfcase value="13">
+				<cfset destinationLetter = "m">
+			</cfcase>
+			<cfcase value="14">
+				<cfset destinationLetter = "n">
+			</cfcase>
+			<cfcase value="15">
+				<cfset destinationLetter = "o">
+			</cfcase>
+			<cfcase value="16">
+				<cfset destinationLetter ="p">
+			</cfcase>
+		</cfswitch>
+
+		<cfreturn trim(destinationLetter)>
+
+	</cffunction>
+			
+	<!--- //************************************************************************************************
+		Carousel
+	//**************************************************************************************************--->
 			
 	<cffunction name="renderCarouselPreview" returntype="string" output="false"
 			hint="Renders the carousel thumbnail at the top of a post on for the condensed cars and admin page. This is not used in the tinymce editor, only for the post and enclosure image editors">

@@ -15,9 +15,9 @@
 	//******************************************************************************************--->
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "4.0" />
-	<cfset versionName = "4.02 (Bella's Edition)" />
-	<cfset versionDate =  "March 19th 2025"> 
+	<cfset version = "4.07" />
+	<cfset versionName = "4.07 (Bella's Edition)" />
+	<cfset versionDate =  "June 30th 2025"> 
 
 	<!--- Require version 9 or higher as we are using ORM --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>
@@ -2732,6 +2732,24 @@
 				<cfset success = "3ea44e">
 				<cfset info = "2498bc">
 			</cfcase>
+			<cfdefaultcase>
+				<cfset buttonAccentColor = "0066cc">
+				<cfset accentColor = "f35800"><!-- Contrast issue according to Google Lighthouse  --->
+				<cfset baseColor = "fff">
+				<cfset headerBgColor = "eae8e8">
+				<cfset headerTextColor = "000">
+				<cfset hoverBgColor = "bcb4b0">
+				<cfset hoverBorderColor = "3d3d3d">
+				<cfset textColor = "000">
+				<cfset selectedTextColor = "fff">
+				<cfset contentBgColor = "fff">
+				<cfset contentBorderColor = "d5d5d5">
+				<cfset alternateBgColor = "f1f1f1">
+				<cfset error = "db4240">
+				<cfset warning = "ffc000">
+				<cfset success = "37b400">
+				<cfset info = "0066cc">
+			</cfdefaultcase>
 		</cfswitch>
 		<!--- Return the setting that was requested --->
 		<cfreturn evaluate("#arguments.setting#")>
@@ -7259,7 +7277,9 @@
 				<cfset PostStruct["Promoted"] = Data[i]["Promoted"]>
 				<cfset PostStruct["PostUuid"] = Data[i]["PostUuid"]>
 				<cfset PostStruct["PostAlias"] = Data[i]["PostAlias"]>
-				<cfset PostStruct["Title"] = Data[i]["Title"]>
+				<!--- The title can't have an apostrophe --->
+				<cfset title = replace(Data[i]["Title"], "'", "", "all")>
+				<cfset PostStruct["Title"] = title>
 				<cfset PostStruct["Description"] = Data[i]["Description"]>
 				<cfif showJsonLd>
 					<!--- Json Ld may not exist --->
@@ -7295,7 +7315,6 @@
 				</cfif>
 				<cfif structKeyExists(postRow, "JavaScript")>
 					<cfset PostStruct["JavaScript"] = Data[i]["JavaScript"]>
-
 				<cfelse>
 					<cfset PostStruct["JavaScript"] = "">
 				</cfif>
@@ -9025,8 +9044,6 @@
 
 	</cffunction>
 			
-			
-			
 	<!---******************************************************************************************************** 
 		Map functions
 	*********************************************************************************************************--->
@@ -9056,10 +9073,25 @@
 		<cfset MapDbObj = entityLoadByPK("Map", arguments.mapId)>
 
 		<!--- Get the routes --->
-		<cfquery name="Data" dbtype="hql">
+		<cfquery name="Data" dbtype="hql"> 
 			SELECT new Map (
+				MapRoute.MapRef.MapId as MapId,
+				MapRoute.MapRef.MapProviderRef.MapProviderId as MapProviderId,
+				MapRoute.MapRef.MapProviderRef.MapProvider as MapProvider,
+				MapRoute.MapRouteId as MapRouteId,
 				MapRoute.Location as Location,
-				MapRoute.GeoCoordinates as GeoCoordinates
+				MapRoute.MapRef.Zoom as Zoom, 
+				MapRoute.MapRef.OutlineMap as OutlineMap, 
+				MapRoute.MapRef.HasMapRoutes as HasMapRoutes, 
+				MapRoute.MapRef.CustomMarkerUrl as CustomMarkerUrl, 
+				MapRoute.GeoCoordinates as GeoCoordinates,
+				MapRoute.Latitude as Latitude,
+				MapRoute.Longitude as Longitude,
+				<!--- The camera positions are not available with routes --->
+				'' as TopLeftLatitude,
+				'' as TopLeftLongitude,
+				'' as BottomRightLatitude,
+				'' as BottomRightLongitude 
 			)
 			FROM MapRoute as MapRoute
 			WHERE 
@@ -9070,7 +9102,7 @@
 			
 	</cffunction>
 			
-	<cffunction name="getMapByMapId" access="public" returnType="array" output="false"
+	<cffunction name="getMapByMapId" access="public" returnType="any" output="false"
 			hint="Get's the map for a given map id">
 		<cfargument name="mapId" type="string" required="true" hint="Pass in the map id.">
 			
@@ -9080,6 +9112,7 @@
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
 				Map.MapId as MapId,
+				MapTypeRef.MapType.MapProviderRef.MapProvider as MapProvider,
 				MapTypeRef.MapType as MapType,
 				PostRef.PostId as PostId,
 				Map.HasMapRoutes as HasMapRoutes,
@@ -9087,6 +9120,14 @@
 				Map.MapTitle as MapTitle,
 				Map.Location as Location,
 				Map.GeoCoordinates as GeoCoordinates,
+				Map.Latitude as Latitude,
+				Map.Longitude as Longitude,
+				<!--- These properties may not be defined in the db. --->
+				Map.TopLeftLatitude as TopLeftLatitude,
+				Map.TopLeftLongitude as TopLeftLongitude,
+				Map.BottomRightLatitude as BottomRightLatitude,
+				Map.BottomRightLongitude as BottomRightLongitude,
+				<!--- User defined properties --->
 				Map.Zoom as Zoom,
 				Map.OutlineMap as OutlineMap,
 				Map.CustomMarkerUrl as CustomMarkerUrl
@@ -9096,25 +9137,108 @@
 				AND Map.MapId = #MapDbObj.getMapId()#
 		</cfquery>
 			
-		<cfreturn Data>
+		<!--- **********************************************************************************************
+			Create the MapStruct structure. This logic is similiar to the getPost function that returns an array of structures
+		*************************************************************************************************--->
+
+		<!--- Create the array that we will place the structure into. --->
+		<cfset MapArray = arrayNew(1)>
+			
+		<!--- Create our final structure --->
+		<cfif arrayLen(Data)>
+			
+			<!--- Loop through the data to set the vars. --->
+			<cfloop from="1" to="#arrayLen(Data)#" index="i">
+				
+				<!--- Create a new struct --->
+				<cfset MapStruct = structNew()>
+
+				<!--- Set the values in the structure. --->
+				<cfset mapRow = Data[i]>
+				<cfset MapStruct["MapId"] = Data[i]["MapId"]>
+				<cfset MapStruct["MapProvider"] = Data[i]["MapProvider"]>
+				<cfset MapStruct["MapType"] = Data[i]["MapType"]>
+				<cfset MapStruct["PostId"] = Data[i]["PostId"]>
+				<cfset MapStruct["HasMapRoutes"] = Data[i]["HasMapRoutes"]>
+				<cfset MapStruct["MapName"] = Data[i]["MapName"]>
+				<cfset MapStruct["MapTitle"] = Data[i]["MapTitle"]>
+				<cfset MapStruct["Location"] = Data[i]["Location"]>
+				<cfset MapStruct["GeoCoordinates"] = Data[i]["GeoCoordinates"]>
+				<!--- I did not store the latitude and longitude separately with Bing Maps as all it needed was a comma separated value that I stored in the GeoCoordinates column. However, Azure Maps does not always use the same geo coordinate strucuture, sometimes it wants 'longitude,latidude' and other cases uses 'latitude,longitude' so I am storing both in the database to make it easier to understand what is going on. If the latitude and longitude is not defined, get the values from the geo coordinates which is always stored as latitude, longitude. --->
+				<cfif structKeyExists(mapRow, "Latitude")>
+					<cfset MapStruct["Latitude"] = Data[i]["Latitude"]>
+				<cfelse>
+					<!--- The GeoCoordinates will be blank with map routes --->
+					<cfif len(Data[i]["GeoCoordinates"])>
+						<cfset MapStruct["Latitude"] = listGetAt(Data[i]["GeoCoordinates"],1)>
+					<cfelse>
+						<cfset MapStruct["Latitude"] = "">
+					</cfif>
+				</cfif>
+				<cfif structKeyExists(mapRow, "Longitude")>
+					<cfset MapStruct["Longitude"] = Data[i]["Longitude"]>
+				<cfelse>
+					<!--- The GeoCoordinates will be blank with map routes --->
+					<cfif len(Data[i]["GeoCoordinates"])>
+						<cfset MapStruct["Longitude"] = listGetAt(Data[i]["GeoCoordinates"],2)>
+					<cfelse>
+						<cfset MapStruct["Longitude"] = "">
+					</cfif>
+				</cfif>
+				<!--- The following columns may be null and I need to replace the null with empty strings. I introduced them with version 4 --->
+				<cfif structKeyExists(mapRow, "TopLeftLatitude")>
+					<cfset MapStruct["TopLeftLatitude"] = Data[i]["TopLeftLatitude"]>
+				<cfelse>
+					<cfset MapStruct["TopLeftLatitude"] = "">
+				</cfif>
+				<cfif structKeyExists(mapRow, "TopLeftLongitude")>
+					<cfset MapStruct["TopLeftLongitude"] = Data[i]["TopLeftLongitude"]>
+				<cfelse>
+					<cfset MapStruct["TopLeftLongitude"] = "">
+				</cfif>
+				<cfif structKeyExists(mapRow, "BottomRightLatitude")>
+					<cfset MapStruct["BottomRightLatitude"] = Data[i]["BottomRightLatitude"]>
+				<cfelse>
+					<cfset MapStruct["BottomRightLatitude"] = "">
+				</cfif>
+				<cfif structKeyExists(mapRow, "BottomRightLongitude")>
+					<cfset MapStruct["BottomRightLongitude"] = Data[i]["BottomRightLongitude"]>
+				<cfelse>
+					<cfset MapStruct["BottomRightLongitude"] = "">
+				</cfif>
+				<!--- User defined properties --->
+				<cfset MapStruct["Zoom"] = Data[i]["Zoom"]>
+				<cfset MapStruct["OutlineMap"] = Data[i]["OutlineMap"]>
+				<cfset MapStruct["CustomMarkerUrl"] = Data[i]["CustomMarkerUrl"]>
+					
+				<!--- Append the final structure inside of an array. --->
+				<cfset arrayAppend(MapArray, MapStruct)>
+					
+			</cfloop><!---<cfloop from="1" to="#arrayLen(Data)#" index="i">--->
+					
+		</cfif><!---<cfif arrayLen(Data)>--->
+			
+		<cfreturn MapArray>
 			
 	</cffunction>
 			
 	<cffunction name="saveMap" access="public" returnType="string" output="false"
 			hint="Saves a map into the database">
 		
-		<cfargument name="isEnclosure" type="string" required="false" default="" hint="We need to know if this map will be used for an enclosure or in the post body.">
-		<cfargument name="provider" type="string" required="false" default="Bing Maps" hint="Pass in the provider (Bing Maps is currently the only choice).">
 		<cfargument name="postId" type="string" required="true" default="" hint="Pass in the postId">
 		<cfargument name="mapId" type="string" required="false" default="" hint="Pass in the mapId if present">
 		<cfargument name="mapName" type="string" required="false" default="" hint="Not used in this version">
-
 		<cfargument name="mapType" type="string" required="true" default="" hint="Pass in the mapType">
 		<cfargument name="mapZoom" type="string" required="false" default="" hint="Pass in zoom level. It is a number between 1 and 19">
 		<cfargument name="mapAddress" type="string" required="true" default="" hint="Pass in the location or address">
 		<cfargument name="mapCoordinates" type="string" required="true" default="" hint="Pass in latitude and longitude separated by a comma">
+		<cfargument name="latitude" type="string" required="true" default="" hint="Pass in latitude. Use with Azure maps">
+		<cfargument name="longitude" type="string" required="true" default="" hint="Pass in the longitude. Used with Azure maps">
+		<!--- Optional args --->
+		<cfargument name="isEnclosure" type="string" required="false" default="" hint="We need to know if this map will be used for an enclosure or in the post body.">
+		<cfargument name="provider" type="string" required="false" default="Bing Maps" hint="Pass in the provider (Bing Maps is retired on June 2025).">
 		<cfargument name="outlineMap" type="boolean" required="false" default="false" hint="This is a boolean value">
-		<cfargument name="customMarker" type="string" required="false" default="" hint="Pass in the URL of your custom marker, if any">
+		<cfargument name="customMarker" type="string" required="false" default="" hint="Pass in the URL of your custom marker, if any"> 
 		
 		<cftransaction>
 			<!--- Get the provider. Right now there is only one (bing) --->
@@ -9136,6 +9260,8 @@
 			<cfset MapDbObj.setZoom(arguments.mapZoom)>
 			<cfset MapDbObj.setLocation(arguments.mapAddress)>
 			<cfset MapDbObj.setGeoCoordinates(arguments.mapCoordinates)>
+			<cfset MapDbObj.setLatitude(arguments.latitude)> 
+			<cfset MapDbObj.setLongitude(arguments.longitude)>
 			<cfset MapDbObj.setCustomMarkerUrl(arguments.customMarker)>
 			<cfset MapDbObj.setOutlineMap(arguments.outlineMap)>
 			<!--- Note: for routes, we don't  need the geocoordinates on the map --->
@@ -9171,21 +9297,18 @@
 			
 	<cffunction name="saveMapRoute" access="public" returnType="string" output="false"
 			hint="Saves a map into the database">
+		<cfargument name="provider" type="string" required="true" default="Azure Maps" hint="Pass in the provider">
+		<cfargument name="isEnclosure" type="boolean" required="true" default="true" hint="We need to determine if this is an enclosure in order to create the proper relationships in the database.">
+		<cfargument name="locationGeoCoordinates" type="string" required="false" default="" hint="Pass in the address, and latitude and longitude separated by a comma. The locationGeoCoordinates should be a CF list object. The data should be formatted like so: address_geoCoordinates_address1_geoCoordinates1_address2_geoCoordinates2_ etc">
 		<cfargument name="mapId" type="string" required="false" default="" hint="Pass in the mapId if present">
 		<cfargument name="mapRouteId" type="string" required="false" default="" hint="Pass in the mapRouteId if present">
 		<cfargument name="postId" type="string" required="true" default="" hint="Pass in the postId">
-		<cfargument name="isEnclosure" type="boolean" required="true" default="true" hint="We need to determine if this is an enclosure in order to create the proper relationships in the database.">
-		<cfargument name="mapName" type="string" required="false" default="" hint="Pass in the map name">
-		<cfargument name="mapTitle" type="string" required="false" default="" hint="Pass in the map title">
-		<cfargument name="provider" type="string" required="false" default="Bing Maps" hint="Pass in the provider (Bing Maps is currently the only choice).">
-		<cfargument name="location" type="string" required="false" default="" hint="Pass in the location">
-		<cfargument name="locationGeoCoordinates" type="string" required="false" default="" hint="Pass in the address, and latitude and longitude separated by a comma. The locationGeoCoordinates should be a CF list object. The data should be formatted like so: address_geoCoordinates_address1_geoCoordinates1_address2_geoCoordinates2_ etc">
 		
 		<cftransaction>
 			<!--- Get the provider. Right now there is only one (bing) --->
 			<cfset ProviderDbObj = entityLoad("MapProvider", { MapProvider = arguments.provider }, "true" )>
 			<!--- And the map type. Our default is aerial --->
-			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = "aerial" }, "true" )>
+			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = "road_shaded_relief" }, "true" )>
 		
 			<cfif arguments.mapId neq ''>
 				<!--- Load the Map entity --->
@@ -9200,22 +9323,21 @@
 			<cfelse>
 				<!--- Create a new Map entity --->
 				<cfset MapDbObj = entityNew("Map")>
-
-			</cfif>
+			</cfif> 
 			<!--- Set the values --->
 			<cfset MapDbObj.setMapProviderRef(ProviderDbObj)>
-			<cfset MapDbObj.setMapTypeRef(MapTypeDbObj)>
+			<!---<cfset MapDbObj.setMapTypeRef(MapTypeDbObj)>--->
 			<cfset MapDbObj.setHasMapRoutes(true)>
-			<cfset MapDbObj.setMapName(arguments.mapName)>
-			<cfset MapDbObj.setLocation(arguments.location)>
+			<!--- MapName is not used at this time 
+			<cfset MapDbObj.setLocation(arguments.location)>--->
 			<!--- Note: for routes, we don't  need the geocoordinates on the map --->
 			<cfset MapDbObj.setDate(application.blog.blogNow())>
 
 			<!--- Save the the routes into the database --->
 			<!--- Loop through our custom location geo coordinate object that was sent --->
-			<cfloop from="1" to="#listLen(arguments.locationGeoCoordinates, '*')#" index="i">
+			<cfloop from="1" to="#listLen(arguments.locationGeoCoordinates, ':')#" index="i">
 				<!--- Extract the data from the list. --->
-				<cfset geoLocObject = listGetAt(arguments.locationGeoCoordinates, i, '*')>
+				<cfset geoLocObject = listGetAt(arguments.locationGeoCoordinates, i, ':')> 
 				<cfset routeLocation = listGetAt(geoLocObject, 1, '_')>
 				<cfset routeLatitude = listGetAt(geoLocObject, 2, '_')>
 				<cfset routeLongitude = listGetAt(geoLocObject, 3, '_')>
@@ -9232,7 +9354,9 @@
 					<!--- Loop through the location geocoordinate list that was sent in. --->
 					<cfset MapRouteDbObj.setLocation(routeLocation)>
 					<cfset MapRouteDbObj.setGeoCoordinates(routeLatitude & ',' & routeLongitude)>
-					<!--- Note: for routes, we don't  need the geocoordinates on the map --->
+					<!--- Set the latitude and longitude for Azure Maps.  --->
+					<cfset MapRouteDbObj.setLatitude(routeLatitude)>
+					<cfset MapRouteDbObj.setLongitude(routeLongitude)>
 					<cfset MapRouteDbObj.setDate(application.blog.blogNow())>
 					<!--- Save it --->
 					<cfset EntitySave(MapRouteDbObj)>
@@ -10709,7 +10833,7 @@
 			
 		<cfif isDefined("debug") and debug>invoking the updateDatabaseAfterVersionUpgrade function.<br/></cfif>
 
-		<cfset dir = application.rootPath & "/installer/dataFiles/">
+		<cfset dir = application.rootDirectoryPath & "/installer/dataFiles/">
 
 		<!--- Let's insert the data. First we need to populate the database. --->
 
@@ -10755,7 +10879,7 @@
 					<!--- Set blog meta data --->
 					<cfoutput query="Data" maxrows="1">
 						<!--- Make the name unique. --->
-						<cfset BlogDbObj.setBlogName('GalaxieBlog3_' & BlogDbObj.getBlogId())>
+						<cfset BlogDbObj.setBlogName('GalaxieBlog4_' & BlogDbObj.getBlogId())>
 						<cfset BlogDbObj.setBlogTitle(thisBlogTitle)>
 						<cfset BlogDbObj.setBlogDescription(blogDescription)>
 						<cfset BlogDbObj.setBlogUrl(thisBlogUrl)>

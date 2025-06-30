@@ -10,13 +10,15 @@
 		<!--- Get the map --->
 		<cfset getMap = application.blog.getMapByMapId(mapId)>
 		<!--- Get the current video cover URL --->
-		<cfset imageUrl = getMap[1]["CustomMarkerUrl"]>
-		<!--- Render the image HTML string --->
-		<cfset imageHtml = RendererObj.renderImage(imageUrl)>
+		<cfif len(getMap[1]["CustomMarkerUrl"])>
+			<cfset imageUrl = getMap[1]["CustomMarkerUrl"]>
+		<cfelse>
+			<cfset imageUrl = application.defaultAzureMapsCursor>
+		</cfif>
 	<cfelse>
-		<cfset imageUrl = ''>
-		<cfset imageHtml = ''>
+		<cfset imageUrl = application.defaultAzureMapsCursor>
 	</cfif>
+	<cfset imageHtml = RendererObj.renderImage(imageUrl)>
 		
 	<cfset label = "Map Cursor Image">
 		
@@ -69,8 +71,6 @@
 	<form id="enclosureForm" action="#" method="post" data-role="validator">
 	<!--- Pass the csrfToken --->
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
-	<!--- Input for any new videos that have been uploaded --->
-	<input type="hidden" name="videoCoverMediaId" id="videoCoverMediaId" value="" />
 	<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0" border="0">
 	  <cfsilent>
 			<!---The first content class in the table should be empty. --->

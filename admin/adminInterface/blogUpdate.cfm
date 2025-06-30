@@ -5,7 +5,14 @@
 		<cfset dbBlogVersion = application.dbBlogVersion>
 	</cfif>
 	<cfset fileSystemBlogVersion = application.blog.getVersion()>
-	
+	<!---
+	Debugging
+	<cfoutput>
+		dbBlogVersion: #dbBlogVersion#<br/>
+		fileSystemBlogVersion: #fileSystemBlogVersion#<br/>
+	</cfoutput>
+	--->	
+
 	<style>
 		#recentVersionCheck {
 			width:100%;

@@ -3,7 +3,7 @@
 	<cfparam name="otherArgs1" default="">
 	
 	<!--- Set the image html in order for the editor to render the current image. --->
-	<cfset imageHtml = '<img src="' & otherArgs1 & '">'>
+	<cfset imageHtml = '<img src="' & URL.otherArgs1 & '">'>
 		
 	<!--- This function is used to upload images for the themes and settings.
 	The arguments sent to this function in the URL are:

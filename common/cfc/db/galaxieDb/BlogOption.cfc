@@ -23,7 +23,8 @@
 	<cfproperty name="GoogleAnalyticsString" ormtype="string"  length="900" default="">
 	<cfproperty name="AddThisApiKey" ormtype="string" length="75" default="">
 	<cfproperty name="AddThisToolboxString" ormtype="string" length="75" default="">
-	<cfproperty name="BingMapsApiKey" ormtype="string" length="75" default="">
+	<cfproperty name="BingMapsApiKey" ormtype="string" length="100" default="">
+	<cfproperty name="AzureMapsApiKey" ormtype="string" length="100" default="">
 	<cfproperty name="DisqusBlogIdentifier" ormtype="string" length="75" default="">
 	<cfproperty name="DisqusApiKey" ormtype="string" length="75" default="">
 	<cfproperty name="DisqusApiSecret" ormtype="string" length="75" default="">

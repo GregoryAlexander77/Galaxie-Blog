@@ -325,7 +325,10 @@ TinyMce styles
 //**************************************************************************************************--->
 				
 <cfcase value=19>
-	<cfinclude template="../../admin/adminInterface/bingMap.cfm">	
+	<cfinclude template="../../admin/adminInterface/azureMap.cfm">
+	<!--- Azure Maps replaced Bing Maps in June of 2025
+	<cfinclude template="../../admin/adminInterface/bingMap.cfm">
+	--->	
 </cfcase>
 		
 <!--- //************************************************************************************************
@@ -333,7 +336,10 @@ TinyMce styles
 //**************************************************************************************************--->
 		
 <cfcase value=20>
+	<cfinclude template="../../admin/adminInterface/azureMapRoute.cfm">
+	<!--- Azure Maps replaced Bing Maps in June of 2025
 	<cfinclude template="../../admin/adminInterface/bingMapRoute.cfm">
+	--->
 </cfcase>
 		
 <!--- //************************************************************************************************
@@ -341,7 +347,7 @@ TinyMce styles
 //**************************************************************************************************--->
 		
 <cfcase value=21>
-	<cfinclude template="../templates/content/admin/adminInterface/mapCurserEditor.cfm">
+	<cfinclude template="../../admin/adminInterface/mapCursorEditor.cfm"> 
 </cfcase>
 		
 <!--- //************************************************************************************************

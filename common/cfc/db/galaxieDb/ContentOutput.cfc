@@ -8,9 +8,9 @@
 	<!--- This is a psuedo column used by the object that will not be placed into the actual database. We are using the ContentOutputTheme table as an intermediatory table to store the many to many relationships between a zone and a template. This is different than all of the other relationship types.---> 
 	<cfproperty name="ThemeRef" ormtype="int" hint="Foreign Key to the Theme.ThemeId. Like the PageRef column above, I am not joining to the Theme table it is easier to work without the join as I am also working with null values like so: WHERE ContentOutput.ThemeRef IS NULL OR ContentOutput.ThemeRef = 1">
 	
-	<!--- The following two columns are configured for Lucee. Manually change the varchar(max) property if you use another db --->
-	<cfproperty name="ContentOutput" ormtype="string" sqltype="longtext" default="">
-	<cfproperty name="ContentOutputMobile" ormtype="string" sqltype="longtext" default="">
+	<!---  These two columns are configured for SQL Server. Manually change the varchar(max) property if you use another db --->
+	<cfproperty name="ContentOutput" ormtype="string" sqltype="varchar(max)" default="">
+	<cfproperty name="ContentOutputMobile" ormtype="string" sqltype="varchar(max)" default="">
 	
 	<cfproperty name="Active" ormtype="boolean" default="true">
 	<cfproperty name="LastCached" ormtype="date" default="">
