@@ -35,6 +35,11 @@
 	<cfset facebookAppId = application.BlogOptionDbObj.getFacebookAppId()>
 	<cfset twitterAppId = application.BlogOptionDbObj.getTwitterAppId()>
 		
+	<!--- The azureMapsApiKey is a new variable and it may be null. --->
+	<cfif !isDefined("azureMapsApiKey")>
+		<cfset azureMapsApiKey = "">
+	</cfif>
+		
 	<style>
 		.collapsible {
 			cursor: pointer;
@@ -668,7 +673,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="text" name="azureMapsApiKey" id="azureMapsApiKey" value="" class="k-textbox" style="width: 95%" />
+				<input type="text" name="azureMapsApiKey" id="azureMapsApiKey" value="<cfoutput>#azureMapsApiKey#</cfoutput>" class="k-textbox" style="width: 95%" />
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -677,7 +682,7 @@
 				<label for="bingMapsApiKey">Azure Maps API Key:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" name="azureMapsApiKey" id="azureMapsApiKey" value="" class="k-textbox" style="width: 50%" />
+				<input type="text" name="azureMapsApiKey" id="azureMapsApiKey" value="<cfoutput>#azureMapsApiKey#</cfoutput>" class="k-textbox" style="width: 50%" />
 			</td>
 		  </tr>
 		</cfif>	  
