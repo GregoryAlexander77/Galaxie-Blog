@@ -461,6 +461,9 @@
 		<cfargument name="captchaText" required="false" default="" hint="Pass in the captcha that the user entered." />
 		<cfargument name="captchaHash" required="false" default="" hint="Pass in the captcha hash that is inside a hidden form." />
 		<cfargument name="subscribe" required="true" default="" hint="Does the user want to subscribe?" />
+		<!--- Args required after CF Update in May 25 --->
+		<cfargument name="rememberMe" required="false" default="false" hint="Drops a cookie on client machine for identification purposes" />
+		<cfargument name="httpUserAgent" required="false" default="" hint="Not used but required after CF Update in May 25 as I am using the CGI agent string" />
 		
 		<cfset valid = true>
 		<!--- Set the default response object. --->
