@@ -536,7 +536,7 @@ This section has been completely redesigned by Gregory --->
 	<cfif URL.uiElement neq 'contact'>
 		<tr class="k-content">
 			<td>
-				<input type="checkbox" id="subscribe" name="subscribe" aria-label="Subscribe" value="1" <cfif uiElement eq 'subscribe' or (isBoolean(subscribe) and subscribe)>checked="checked"</cfif> /> <label for="subscribe">Subscribe</label>
+				<input type="checkbox" id="subscribe" name="subscribe" aria-label="Subscribe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(subscribe) and subscribe)>checked="checked"</cfif> /> <label for="subscribe">Subscribe</label>
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'contact'>--->
