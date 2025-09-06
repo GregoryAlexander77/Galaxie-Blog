@@ -6,6 +6,9 @@
 <!--- Either true or false. --->
 <cfparam name="URL.thumbnail" default="false">
 	
+<!--- Setting the mapProvider to a blank string will catch most errors when the mapId is not numeric --->
+<cfparam name="mapProvider" default="">
+	
 <cfset azureMapsKey = application.azureMapsApiKey>
 <!--- Get the accent color of the selected theme. We will use this to color the map to match the theme. --->
 <cfset accentColor = application.blog.getPrimaryColorsByTheme(kendoTheme:trim(application.blog.getSelectedKendoTheme()),setting:'accentColor')>
@@ -13,7 +16,7 @@
 <!--- Preset our data array --->
 <cfset Data = []>
 	
-<cfif len(URL.mapId)>
+<cfif len(URL.mapId) and isNumeric(URL.mapId)>
 	<cfif URL.mapType eq 'route'>
 		<!--- Get route data --->
 		<cfset Data = application.blog.getMapRoutesByMapId(URL.mapId)>
@@ -21,17 +24,15 @@
 		<!--- Get static map data --->
 		<cfset Data = application.blog.getMapByMapId(URL.mapId)>
 	</cfif>
+	<!---<cfdump var="#Data#">--->
+	<cfset mapProvider = Data[1]['MapProvider']>
 </cfif>
-<!---<cfdump var="#Data#">--->
-<cfset mapProvider = Data[1]['MapProvider']>
+		
 <!--- Instantiate the Render.cfc. This will be used to create video and map thumbnails --->
 <cfobject component="#application.rendererComponentPath#" name="RendererObj">
 <!--- Get the selected theme --->
 <cfset kendoTheme = application.blog.getSelectedKendoTheme()>
 			
-<cfif CGI.Remote_Addr eq '50.35.125.165'>
-	<cfset mapProvider = 'Azure Maps'>
-</cfif>
 </cfsilent>
 <cfif mapProvider eq 'Azure Maps'>
 	<cfif URL.mapType eq 'route'>

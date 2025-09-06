@@ -1,4 +1,4 @@
-<cfcomponent displayName="Blog" output="false" hint="Galaxie Blog's main cfc. Handles database and other system functions. Originally written by Raymond Camden">
+<cfcomponent displayName="Blog" output="true" hint="Galaxie Blog's main cfc. Handles database and other system functions. Originally written by Raymond Camden">
 
 	<!--- Load utils imediately. --->
 	<cfset variables.utils = createObject("component", "utils")>
@@ -7,6 +7,8 @@
 	<!--- Instantiate the Render.cfc to render stuff. This may fail when initally installing the blog with Lucee --->
 	<cftry>
 		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
+		<!--- Object to send mail --->
+		<cfobject component="#application.utilsComponentPath#" name="UtilsObj">
 	<cfcatch type="any"></cfcatch>
 	</cftry>
 		
@@ -668,6 +670,9 @@
 
 		</cftransaction>
 						
+		<!--- Refresh the Galaxie Cache post objects --->
+		<cfset flushGalaxieCache(type='contentTemplatte', themeId='#arguments.themeId#', contentTemplate="#arguments.contentTemplate#")>
+						
 		<cfreturn status>
 
 	</cffunction>
@@ -965,7 +970,7 @@
 		</cfif>
 		<!--- Save the http referrer. This will pass back the id. --->
 		<cfinvoke component="#application.blog#" method="saveHttpReferrer" returnVariable="httpReferrerId">
-			<cfinvokeargument name="HttpReferrer" value="#CGI.Http_Referer#">
+			<cfinvokeargument name="HttpReferrer" value="#CGI.Http_Referer#"><!--- This is mispelled and adopted as a standard --->
 		</cfinvoke>
 		<!--- Load the referrer entity if it was passed in. --->
 		<cfif httpReferrerId>
@@ -999,7 +1004,7 @@
 				<cfset visitorLogId = VisitorLogDbObj.getVisitorLogId()>
 			</cftransaction>
 			<cfcatch type="any">
-				<!--- TODO Occasionally, I am having a 'A different object with the same identiier value was already associated with the sesion [blog#1]' error here that I am escaping. --->
+				<!--- TODO Occasionally, I am having a 'A different object with the same identier value was already associated with the sesion [blog#1]' error here that I am escaping. --->
 				<cfset visitorLogId = 0>
 			</cfcatch>
 		</cftry>
@@ -1110,35 +1115,46 @@
 			<!--- Load the blog entity. --->
 			<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
 			
-			<cftransaction>
-				<!--- Create a new entity --->
-				<cfset AnonymousUserDbObj = entityNew("AnonymousUser")>
-				<!--- Save it --->
-				<cfset AnonymousUserDbObj.setBlogRef(BlogDbObj)>
-				<cfset AnonymousUserDbObj.setIpAddressRef(IpAddressDbObj)>
-				<cfset AnonymousUserDbObj.setHttpUserAgentRef(HttpUserAgentDbObj)>
-				<cfset AnonymousUserDbObj.setScreenWidth(arguments.screenWidth)>
-				<cfset AnonymousUserDbObj.setScreenHeight(arguments.screenHeight)>
-				<cfset AnonymousUserDbObj.setHitCount(1)>
-				<cfset AnonymousUserDbObj.setDate(blogNow())>
-				<cfset EntitySave(AnonymousUserDbObj)>
+			<!--- Note: this occassionally fails with a 'Error: A different object with the same identifier value was already associated with the session : [AnonymousUser#xxx]' message so it is important to keep this in a try block --->
+			<cftry>
+				<cftransaction>
+					<!--- Create a new entity --->
+					<cfset AnonymousUserDbObj = entityNew("AnonymousUser")>
+					<!--- Save it --->
+					<cfset AnonymousUserDbObj.setBlogRef(BlogDbObj)>
+					<cfset AnonymousUserDbObj.setIpAddressRef(IpAddressDbObj)>
+					<cfset AnonymousUserDbObj.setHttpUserAgentRef(HttpUserAgentDbObj)>
+					<cfset AnonymousUserDbObj.setScreenWidth(arguments.screenWidth)>
+					<cfset AnonymousUserDbObj.setScreenHeight(arguments.screenHeight)>
+					<cfset AnonymousUserDbObj.setHitCount(1)>
+					<cfset AnonymousUserDbObj.setDate(blogNow())>
+					<cfset EntitySave(AnonymousUserDbObj)>
 
-				<!--- Get the new Ip Address ID --->
-				<cfset anonymousUserId = AnonymousUserDbObj.getAnonymousUserId()>
-			</cftransaction>
+					<!--- Get the new Ip Address ID --->
+					<cfset anonymousUserId = AnonymousUserDbObj.getAnonymousUserId()>
+				</cftransaction>
+			<cfcatch type="any">
+				<!--- Do nothing --->	
+			</cfcatch>
+			</cftry>
 		<cfelse>
 			<cfset anonymousUserId = anonymousUser[1]["AnonymousUserId"]>
-			
-			<cftransaction>
-				<!--- Load the entity --->
-				<cfset AnonymousUserDbObj = entityLoadByPk("AnonymousUser", anonymousUserId)>
-				<!--- Save data --->
-				<cfset AnonymousUserDbObj.setScreenWidth(arguments.screenWidth)>
-				<cfset AnonymousUserDbObj.setScreenHeight(arguments.screenHeight)>
-				<cfset AnonymousUserDbObj.setHitCount(hitCount)>
-				<cfset AnonymousUserDbObj.setDate(blogNow())>
-				<cfset EntitySave(AnonymousUserDbObj)>
-			</cftransaction>
+			<!--- Note: this occassionally fails with a 'Error: A different object with the same identifier value was already associated with the session : [AnonymousUser#xxx]' message so it is important to keep this in a try block --->
+			<cftry>
+				<cftransaction>
+					<!--- Load the entity --->
+					<cfset AnonymousUserDbObj = entityLoadByPk("AnonymousUser", anonymousUserId)>
+					<!--- Save data --->
+					<cfset AnonymousUserDbObj.setScreenWidth(arguments.screenWidth)>
+					<cfset AnonymousUserDbObj.setScreenHeight(arguments.screenHeight)>
+					<cfset AnonymousUserDbObj.setHitCount(hitCount)>
+					<cfset AnonymousUserDbObj.setDate(blogNow())>
+					<cfset EntitySave(AnonymousUserDbObj)>
+				</cftransaction>
+			<cfcatch type="any">
+				<!--- Do nothing --->	
+			</cfcatch>
+			</cftry>
 		</cfif>
 			
 		<!--- Return the entire ORM object --->
@@ -1288,27 +1304,211 @@
 	</cffunction>
 							
 	<!---//*****************************************************************************************
-		Cache functions
+		Galaxie Cache functions
 	//******************************************************************************************--->
-							
-	<cffunction name="clearScopeCache" access="public" returntype="boolean" output="false"
+					
+	<cffunction name="flushGalaxieCache" access="public" returntype="boolean" output="true"
 			hint="Clears the scope cache. Returns a boolean value to indicate if the cache was cleared">
-		
-		<!--- Flush our cache. It will not exist when first installing the blog --->
-		<cftry>
-			<!--- Note: each Kendo Theme has a cache. There are too many caches to try to flush so we are going to flush them all. --->
-			<!--- Clear everything from the scopecache library --->
-			<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" clearall="true">
-			<!--- Clear CF Caching --->
-			<cfcache action="flush"></cfcache>
-			<cfcatch type="any">
-				<cfset error = 'cache does not exist'>
-			</cfcatch>
-		</cftry>
-				
-		<cfreturn 1>
+		<cfargument name="type" type="string" required="true" hint="Either post, comment, bio, font, topMenu, sideBar, pod, or comment" />
+		<cfargument name="postId" type="string" required="false" default="" hint="Required for a post or a comment" />
+		<cfargument name="themeId" type="string" required="false" default="" hint="Required for a font, or theme" />
+		<cfargument name="contentTemplate" type="string" required="false" default="" hint="Required when saving a content template" />
+
+		<!--- Flush our cache when a post is made --->
+		<cfif arguments.type eq 'post'>
 			
+			<!--- Clear the posts that use this postId --->
+			<cfset thisDirectory = application.baseUrl & '/cache/posts'>
+			<!--- This filter will match all posts that use the postId --->
+			<cfset thisFileNameOrFilter = 'postId=' & arguments.postId>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the comment files associated with this post --->
+			<cfset thisDirectory = application.baseUrl & '/cache/comments'>
+			<cfset thisFileNameOrFilter = 'commentPostId=#arguments.postId#'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the post related html files in the cache folder --->
+			<cfset thisDirectory = application.baseUrl & '/cache/rss'>
+			<cfset thisFileNameOrFilter = 'postId=#arguments.postId#'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the archives pod when a new post is made. This will delete the archives, archivesDark, monthlyArchives and monthlyArchivesDark files if they exist --->
+			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+			<cfset thisFileNameOrFilter = 'archives'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the cfblogs rss feed pods when a new post is made. This will delete both the podRssFeed and podRssFeedMobile files if they exist --->
+			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+			<cfset thisFileNameOrFilter = 'podRssFeed'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the recent posts pod when a new post is made. This will delete both the recentPosts and recentPostsDark files if they exist --->
+			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+			<cfset thisFileNameOrFilter = 'recentPosts'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the categories (tagCloud) pod when a new post is made. This will delete the tagCloud files if they exist --->
+			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+			<cfset thisFileNameOrFilter = 'tagCloud'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete all of the RSS html files --->
+			<cfset thisDirectory = application.baseUrl & '/cache/rss'>
+			<cfset thisFileNameOrFilter = ''>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+		<cfelseif arguments.type eq 'bio'>
+			<!--- Delete all of the bio related html files in the cache folder. --->
+			<cfset thisDirectory = application.baseUrl & '/cache/bio'>
+			<!--- The filter is an empty string to delete everything within the bio folder --->
+			<cfset thisFileNameOrFilter = ''>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+		<cfelseif arguments.type eq 'category'>
+			<!--- Delete the archives pod. This will delete all of the archives related files. --->
+			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+			<cfset thisFileNameOrFilter = 'archives'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+		<cfelseif arguments.type eq 'comment'>
+			<!--- Delete the recent comments pod related html files in the cache folder. Note: the recent comments pod is not dependent on a postId --->
+			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+			<cfset thisFileNameOrFilter = 'recentComments'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the recent post comments related html files in the cache folder. This should delete both the mobile and desktop comment --->
+			<cfset thisDirectory = application.baseUrl & '/cache/comments'>
+			<cfset thisFileNameOrFilter = 'commentPostId=' & arguments.postId>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+		<cfelseif arguments.type eq 'content'>
+			
+			<cfswitch expression="#arguments.contentTemplate#">
+				<cfcase value="compositeFooter">
+					<!--- Delete the footer html files in the cache folder. The filter should catch both mobile and desktop cache files if they exist --->
+					<cfset thisDirectory = application.baseUrl & '/cache/footer'>
+					<cfset thisFileNameOrFilter = 'footerHtml=' & arguments.themeId>
+					<!--- Delete the files --->
+					<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+				</cfcase>
+				<cfcase value="navigationMenu">
+					<!--- Refresh the topMenu --->
+					<cfset flushGalaxieCache('topMenu', arguments.themeId)>
+				</cfcase>
+				<cfcase value="categoriesPod">
+					<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+					<cfset thisFileNameOrFilter = 'archives'>
+					<!--- Delete the files --->
+					<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+				</cfcase>
+				<cfcase value="monthlyArchivesPod">
+					<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+					<cfset thisFileNameOrFilter = 'archives'>
+					<!--- Delete the files --->
+					<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+				</cfcase>
+				<cfcase value="recentCommentsPod">
+					<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+					<cfset thisFileNameOrFilter = 'recentComments'>
+					<!--- Delete the files --->
+					<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+				</cfcase>
+				<cfcase value="recentPostsPod">
+					<cfset thisDirectory = application.baseUrl & '/cache/pods'>			
+					<cfset thisFileNameOrFilter = 'recentPosts'>
+					<!--- Delete the files --->
+					<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+				</cfcase>
+			</cfswitch>
+				
+		<cfelseif arguments.type eq 'font'>
+			<!--- Delete the font related html files in the cache folder. Every font template should have an associated themeId. The filter should catch both mobile and desktop cache files if they exist --->
+			<cfset thisDirectory = application.baseUrl & '/cache/fonts'>
+			<cfset thisFileNameOrFilter = 'fontThemeId=' & arguments.themeId>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+		<cfelseif arguments.type eq 'footer'>
+			<!--- Delete the footer html files in the cache folder. The filter should catch both mobile and desktop cache files if they exist --->
+			<cfset thisDirectory = application.baseUrl & '/cache/footer'>
+			<cfset thisFileNameOrFilter = 'footerHtml=' & arguments.themeId>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+		<cfelseif arguments.type eq 'theme'>
+			<!--- Delete theme related bio related html files in the cache folder. --->
+			<cfset thisDirectory = application.baseUrl & '/cache/bio'>
+			<!--- The filter will match all themeId's within the bio folder --->
+			<cfset thisFileNameOrFilter = 'themeId=' & arguments.themeId>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Clear the posts that use this themeId --->
+			<cfset thisDirectory = application.baseUrl & '/cache/posts'>
+			<!--- This filter will match all posts that use this theme --->
+			<cfset thisFileNameOrFilter = 'themeId=' & arguments.themeId>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Recursively call this method to clear everything else that requires a themeId --->
+			<!--- Refresh the font --->
+			<cfset flushGalaxieCache('font', arguments.themeId)>
+			<!--- Refresh the footer --->
+			<cfset flushGalaxieCache('footer', arguments.themeId)>
+			<!--- Refresh the topMenu --->
+			<cfset flushGalaxieCache('topMenu', arguments.themeId)>
+
+		<cfelseif arguments.type eq 'topMenu'>
+			<!--- Delete the topMenu related html files in the cache folder. Every topMendu template should have an associated themeId. The filter should catch both mobile and desktop cache files if they exist --->
+			<cfset thisDirectory = application.baseUrl & '/cache/header'>
+			<cfset thisFileNameOrFilter = 'topMenuThemeId=' & arguments.themeId>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+		</cfif>
+
+		<cfreturn 1>
+
 	</cffunction>
+				
+	<cffunction name="flushGalaxieCacheFiles" access="public" returntype="boolean" output="false"
+			hint="Loops through files and deletes the cache files in a directory using the file name or a filter. When using GalaxieCache, the file name will be the name of the cache. Returns a boolean value to indicate if the function was run. Important note- for safety, you should only store the cache files in their own dedicated directory.">
+		<cfargument name="directory" type="string" required="true" />
+		<!--- Files that match a fileName or filter will be deleted. To delete all of the cache files in a directory, don't supply a string. --->
+		<cfargument name="fileFilter" type="string" default="" required="false" />
+		<!--- Set to true if you want to recursively delete files --->
+		<cfargument name="recursive" type="boolean" default="false" required="false" />
+
+		<!--- Note: be careful if you don't specify a fileFilter as you may delete all of the files in a directory. If they are cache files, it is not a huge deal as they will be recreated again when someone visits a page when using Galaxie Cache. --->
+		<cfif len(arguments.fileFilter)>
+			<!--- Get the files that match the supplied file name or filter. --->
+			<cfdirectory action="list" directory="#expandPath('#arguments.directory#')#" recurse="#arguments.recursive#" filter="*#arguments.fileFilter#*" name="cacheFiles"/>
+		<cfelse>
+			<!--- Get all of the files within the directory --->
+			<cfdirectory action="list" directory="#expandPath('#arguments.directory#')#" recurse="#arguments.recursive#" name="cacheFiles"/>
+		</cfif>
+		<!--- Loop through the files found in the directory. --->
+		<cfloop query="cacheFiles">
+			<cflock name="#arguments.directory#" type="exclusive" timeout="30">
+				<cffile action="delete" file="#expandPath(arguments.directory)#/#name#" />
+			</cflock>
+		</cfloop>
+
+		<cfreturn 1>
+	</cffunction>	
 			
 	<cffunction name="getDisableCache" access="remote" output="yes" returntype="boolean" 
 			hint="Determines whether the cache should be disabled. This is used to refresh the contents of the site when needed. I expect this function to become more complex to allow for granular caching in the future">
@@ -1491,26 +1691,29 @@
 		
 		<cfset var q = "">
 		<cfset var realdate = "">
+			
+		<cfif isNumeric(arguments.postId)>
 
-		<!--- I turned off the caching as the links went awry --->
-		<cfquery name="Data" dbtype="hql">
-			SELECT new Map (
-				Post.PostId as PostId,
-				PostUuid as PostUuid,
-				PostAlias as PostAlias,
-				DatePosted as DatePosted)
-			FROM Post as Post 
-			WHERE 0=0
-				AND PostId = <cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.postId#" maxlength="35">
-				AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
-		</cfquery>
-		<!---<cfdump var="#Data#">--->
+			<!--- I turned off the caching as the links went awry --->
+			<cfquery name="Data" dbtype="hql">
+				SELECT new Map (
+					Post.PostId as PostId,
+					PostUuid as PostUuid,
+					PostAlias as PostAlias,
+					DatePosted as DatePosted)
+				FROM Post as Post 
+				WHERE 0=0
+					AND PostId = <cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.postId#" maxlength="35">
+					AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
+			</cfquery>
+			<!---<cfdump var="#Data#">--->
 
-		<!--- Set the return string --->
-		<cfset returnStr = instance.blogUrl & "/" & year(Data[1]["DatePosted"]) & "/" & month(Data[1]["DatePosted"]) & "/" & day(Data[1]["DatePosted"]) & "/" & Data[1]["PostAlias"]>
+			<!--- Set the return string --->
+			<cfset returnStr = instance.blogUrl & "/" & year(Data[1]["DatePosted"]) & "/" & month(Data[1]["DatePosted"]) & "/" & day(Data[1]["DatePosted"]) & "/" & Data[1]["PostAlias"]>
 
-		<!--- Return it --->
-		<cfreturn StringUtilsObj.trimStr(makeRewriteRuleSafeLink(returnStr))>
+			<!--- Return it --->
+			<cfreturn StringUtilsObj.trimStr(makeRewriteRuleSafeLink(returnStr))>
+		</cfif>
 	
 	</cffunction>
 				
@@ -1545,24 +1748,6 @@
 		
 		<cfreturn newLink>
 
-	</cffunction>
-	
-	<cffunction name="cacheLink" access="public" returnType="struct" output="false"
-			hint="Caches a link.">
-		<cfargument name="postId" type="numeric" required="true" />
-		<cfargument name="alias" type="string" required="true" />
-		<cfargument name="posted" type="date" required="true" />
-
-		<!---// make sure the cache exists //--->
-		<cfif not structKeyExists(variables, "lCache")>
-			<cfset variables.lCache = structNew() />
-		</cfif>
-
-		<cfset variables.lCache[arguments.postId] = structNew() />
-		<cfset variables.lCache[arguments.postId].alias = arguments.alias />
-		<cfset variables.lCache[arguments.postId].posted = arguments.posted />
-
-		<cfreturn arguments />
 	</cffunction>
 
 	<cffunction name="makeAlias" access="public" returnType="string" output="false"
@@ -1794,7 +1979,7 @@
 		<cfif arguments.byPassErrors or not error>
 
 			<!--- Blog title --->
-			<cfset blogTitle = encodeForHTML(application.BlogDbObj.getBlogTitle())>
+			<cfset blogTitle = variables.utils.htmlToPlainText(application.BlogDbObj.getBlogTitle())>
 
 			<!--- Get our subscribers. This will return the subscriber email addresses. --->
 			<cfinvoke component="#application.blog#" method="getSubscribers" returnVariable="getSubscribers">
@@ -1809,12 +1994,12 @@
 				<!--- Get the subscriber details. The getSubscribers function only returns the email address. --->
 				<cfset getSubscriberDetail = application.blog.getSubscriber(email=getSubscribers[i]["SubscriberEmail"])>
 					
-				<!--- The user may not come back if they were deleted (ie set active=false) --->
+				<!--- Email the subscriber --->
 				<cfif arrayLen(getSubscriberDetail)>
 					<!--- Render the email --->
 					<cfinvoke component="#RendererObj#" method="renderPostEmailToSubscribers" returnvariable="emailBody">
 						<cfinvokeargument name="postId" value="#arguments.postId#">
-						<cfinvokeargument name="email" value="#email#">
+						<cfinvokeargument name="email" value="#email#"><!---#email#--->
 						<cfinvokeargument name="token" value="#getSubscriberDetail[1]['SubscriberToken']#">
 					</cfinvoke>
 
@@ -2235,8 +2420,7 @@
 				ThemeSettingRef.BlogBackgroundImageRepeat as BlogBackgroundImageRepeat,
 				ThemeSettingRef.BlogBackgroundImagePosition as BlogBackgroundImagePosition,
 				ThemeSettingRef.BlogBackgroundColor as BlogBackgroundColor,
-				<!---Fix ThemeSettingRef.HeaderBackgroundColor as HeaderBackgroundColor,--->
-				'' as HeaderBackgroundColor,
+				ThemeSettingRef.HeaderBackgroundColor as HeaderBackgroundColor,
 				ThemeSettingRef.HeaderBackgroundImage as HeaderBackgroundImage,
 				ThemeSettingRef.HeaderBodyDividerImage as HeaderBodyDividerImage,
 				ThemeSettingRef.StretchHeaderAcrossPage as StretchHeaderAcrossPage,
@@ -2998,8 +3182,8 @@
 			<cfset EntitySave(ThemeDbObj)>
 		</cftransaction>
 				
-		<!--- Clear the scope cache --->
-		<cfset application.blog.clearScopeCache()>
+		<!--- Refresh the Galaxie Cache post objects --->
+		<cfset flushGalaxieCache(type='theme', themeId='#arguments.themeId#')>
 		
 		<!--- Return the id --->
 		<cfreturn ThemeDbObj.getThemeId()>
@@ -3438,6 +3622,27 @@
 	<!--- //************************************************************************************************************
 			Categories
 	//**************************************************************************************************************--->
+				
+	<cffunction name="getCategoryIdByCategoryAlias" access="public" returnType="string" output="false" 
+			hint="Returns the categoryId, if it exists, using the category alias. This is used on the RSS feed when an alias is used in the catId URL">
+		<cfargument name="categoryAlias" type="string" required="true">
+			
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				Category.CategoryId as CategoryId
+			)
+			FROM Category as Category
+			WHERE 0=0
+				AND CategoryAlias = <cfqueryparam value="#arguments.categoryAlias#" cfsqltype="cf_sql_varchar" maxlength="75">
+				AND BlogRef = #application.BlogDbObj.getBlogId()#
+		</cfquery>
+		<cfif arrayLen(Data)>
+			<cfreturn Data[1]["CategoryId"]>
+		<cfelse>
+			<cfreturn 0>
+		</cfif>
+
+	</cffunction>
 		
 	<cffunction name="getCategoryList" access="public" returnType="string" output="false" 
 			hint="Returns a list of category id's or names depending upon the listType argument.">
@@ -3762,6 +3967,7 @@
 	<cffunction name="getParentCategoryQuery" 
 			hint="Finds and returns a query object of the parent categories to generate breadcrumb navigation.">
 		<cfargument name="categoryId" required="true" hint="Pass in the initial cateoryId to start things off">
+		<!--- Note: this argument is *not* used externally but called within this function recursively --->
 		<cfargument name="parentCategoriesQuery" required="false" default="" hint="this is the final list that will be returned when there are no more parentCategoryId's left">
 
 		<!---
@@ -3769,45 +3975,55 @@
 		<cfset categoryList = getParentCategoryQuery(56,'')> 
 		<cfdump var="#categoryList#">
 		--->
+			
+		<!--- Set the parentCategoriesQuery variable --->
+		<cfset parentCategoriesQuery = arguments.parentCategoriesQuery>
 
 		<!--- Get the current category (this is a HQL array) --->
 		<cfset getCategory = application.blog.getCategory(categoryId=arguments.categoryId)>
+		
 		<!--- Extract the data --->
-		<cfset parentCategoryId = getCategory[1]["ParentCategoryRef"]>
-		<cfset categoryId = getCategory[1]["CategoryId"]>
-		<cfset category = getCategory[1]["Category"]>
-		<cfset categoryLevel = getCategory[1]["CategorySubLevel"]>
+		<cfif arrayLen(getCategory)>
+		
+			<cfset parentCategoryId = getCategory[1]["ParentCategoryRef"]>
+			<cfset categoryId = getCategory[1]["CategoryId"]>
+			<cfset category = getCategory[1]["Category"]>
+			<cfset categoryLevel = getCategory[1]["CategorySubLevel"]>
 
-		<!--- Create a new three-column query, specifying the column data types ---> 
-		<cfif not isQuery(parentCategoriesQuery)>
-			<cfset parentCategoriesQuery = queryNew("CategoryId, ParentCategoryId, Category, CategoryLink, CategoryLevel", "integer, integer, varchar, varchar, integer")> 
-			<!--- Create new rows in the query. We need as many rows as we have category levels ---> 
-			<cfset queryAddRow(parentCategoriesQuery, categoryLevel)>
+			<!--- Create a new three-column query, specifying the column data types. Note: don't use len() here to test for existence as its a copmlex object ---> 
+			<cfif not isQuery(parentCategoriesQuery)>
+				<cfset parentCategoriesQuery = queryNew("CategoryId, ParentCategoryId, Category, CategoryLink, CategoryLevel", "integer, integer, varchar, varchar, integer")> 
+				<!--- Create new rows in the query. We need as many rows as we have category levels ---> 
+				<cfset queryAddRow(parentCategoriesQuery, categoryLevel)>
+			</cfif><!---<cfif not isQuery(parentCategoriesQuery)>--->
 
-		</cfif><!---<cfif not isQuery(parentCategoriesQuery)>--->
+			<!--- Fallback condition --->
+			<cfif parentCategoriesQuery.recordcount gte 7>
 
-		<!--- Fallback condition --->
-		<cfif parentCategoriesQuery.recordcount gte 7>
-
-			<!---There should never be more than 7 rows in this query. Send the data back as is.--->
-			<cfreturn parentCategoriesQuery>
-
-		<cfelse><!---<cfif parentCategoriesQuery.recordcount gte 7>--->
-			<!--- Set the values of the cells in the query ---> 
-			<cfset querySetCell(parentCategoriesQuery, "CategoryId", categoryId, categoryLevel)> 
-			<cfset querySetCell(parentCategoriesQuery, "ParentCategoryId", parentCategoryId, categoryLevel)> 
-			<cfset querySetCell(parentCategoriesQuery, "Category", category, categoryLevel)> 
-			<cfset querySetCell(parentCategoriesQuery, "CategoryLink", application.blog.makeCategoryLink(categoryId), categoryLevel)> 
-			<cfset querySetCell(parentCategoriesQuery, "CategoryLevel", categoryLevel, categoryLevel)> 
-
-			<!--- If there is a parentCategoryId, call this function recursively and pass in the new parentCategoryId. Otherwise, return the categoryIdList. Note: we must use a cfreturn to call the function recursively, otherwise the categoryIdList will not be returned properly. --->
-			<cfif parentCategoryId>
-				<cfreturn getParentCategoryQuery(parentCategoryId,parentCategoriesQuery)>			
-			<cfelse>
+				<!---There should never be more than 7 rows in this query. Send the data back as is.--->
 				<cfreturn parentCategoriesQuery>
-			</cfif>
 
-		</cfif><!---<cfif parentCategoriesQuery.recordcount gte 7>--->
+			<cfelse><!---<cfif parentCategoriesQuery.recordcount gte 7>--->
+				<!--- Set the values of the cells in the query ---> 
+				<cfset querySetCell(parentCategoriesQuery, "CategoryId", categoryId, categoryLevel)> 
+				<cfset querySetCell(parentCategoriesQuery, "ParentCategoryId", parentCategoryId, categoryLevel)> 
+				<cfset querySetCell(parentCategoriesQuery, "Category", category, categoryLevel)> 
+				<cfset querySetCell(parentCategoriesQuery, "CategoryLink", application.blog.makeCategoryLink(categoryId), categoryLevel)> 
+				<cfset querySetCell(parentCategoriesQuery, "CategoryLevel", categoryLevel, categoryLevel)> 
+
+				<!--- If there is a parentCategoryId, call this function recursively and pass in the new parentCategoryId. Otherwise, return the categoryIdList. Note: we must use a cfreturn to call the function recursively, otherwise the categoryIdList will not be returned properly. --->
+				<cfif parentCategoryId>
+					<cfreturn getParentCategoryQuery(parentCategoryId,parentCategoriesQuery)>			
+				<cfelse>
+					<cfreturn parentCategoriesQuery>
+				</cfif>
+
+			</cfif><!---<cfif parentCategoriesQuery.recordcount gte 7>--->
+						
+		<cfelse><!---<cfif arrayLen(getCategory)>--->
+			<!--- Return the empty parentCategoriesQuery --->
+			<cfreturn parentCategoriesQuery>		
+		</cfif><!---<cfif arrayLen(getCategory)>--->
 
 	</cffunction>
 			
@@ -4003,8 +4219,8 @@
 			<cfset EntitySave(CategoryDbObj)>
 		</cftransaction>
 				
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Delete the cached archives pods --->
+		<cfset flushGalaxieCache(type='category')>
 
 		<cfreturn id>
 	</cffunction>
@@ -4088,8 +4304,8 @@
 		
 		</cfif><!---<cfif len(arguments.categoryId)>--->
 					
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Flush the category cache --->
+		<cfset flushGalaxieCache(type='category')>
 
 	</cffunction>
 			
@@ -4291,8 +4507,8 @@
 			<cfset categoryListCounter = categoryListCounter + 1>
 		</cfloop>
 						
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- flush the cache by deleting the cached post files --->
+		<cfset flushGalaxieCache(type='post', postId='#arguments.postId#')>
 		
 		<cfreturn arguments.categoryIdList>
 
@@ -4315,8 +4531,8 @@
 			AND CategoryRef = #CategoryDbObj#
 		</cfquery>
 			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- flush the cache by deleting the cached archives pods --->
+		<cfset flushGalaxieCache(type='category')>
 
 	</cffunction>
 
@@ -4333,8 +4549,8 @@
 			WHERE PostRef = #PostDbObj#
 		</cfquery>
 			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- flush the cache by deleting the cached archives pods --->
+		<cfset flushGalaxieCache(type='category')>
 
 	</cffunction>
 
@@ -4349,11 +4565,10 @@
 		<!--- And delete the variable to ensure that the record is deleted from ORM memory. --->
 		<cfset void = structDelete( variables, "CategoryDbObj" )>
 			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- flush the cache by deleting the cached archives pods --->
+		<cfset flushGalaxieCache(type='category')>
 
 	</cffunction>
-			
 			
 	<!--- //************************************************************************************************************
 			Tags
@@ -4797,8 +5012,7 @@
 			<cfreturn 0>
 		</cfif><!---<cfif isDefined("TagRefObj") and isDefined("PostRefObj")>--->
 			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- There is nothing to flush, tags don't have a pod as yet. --->
 				
 	</cffunction>
 
@@ -4814,8 +5028,7 @@
 			<cfset assignTag(postId=arguments.postId,tagUuid=listGetAt(tagids,i))>
 		</cfloop>
 			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Tags don't have a pod, there is nothing to flush in the cache --->
 
 	</cffunction>
 			
@@ -4853,8 +5066,7 @@
 			<cfset EntitySave(TagDbObj)>
 		</cftransaction>
 				
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Tags don't have a pod, there is nothing to flush in the cache --->
 
 		<cfreturn id>
 	</cffunction>
@@ -4935,8 +5147,7 @@
 		
 		</cfif><!---<cfif len(arguments.tag)>--->
 					
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Tags don't have a pod, there is nothing to flush in the cache --->
 
 	</cffunction>
 			
@@ -5037,8 +5248,7 @@
 
 		</cfloop>
 					
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Tags don't have a pod, there is nothing to flush in the cache --->
 		
 		<cfreturn arguments.tagIdList>
 
@@ -5061,8 +5271,7 @@
 			AND TagRef = #TagDbObj#
 		</cfquery>
 			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Tags don't have a pod, there is nothing to flush in the cache --->
 
 	</cffunction>
 
@@ -5080,8 +5289,7 @@
 
 		</cfquery>
 			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Tags don't have a pod, there is nothing to flush in the cache --->
 
 	</cffunction>
 
@@ -5096,8 +5304,7 @@
 		<!--- And delete the variable to ensure that the record is deleted from ORM memory. --->
 		<cfset void = structDelete( variables, "TagDbObj" )>
 			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Tags don't have a pod, there is nothing to flush in the cache --->
 
 	</cffunction>
 			
@@ -5217,17 +5424,13 @@
 		<!--- Calculated logic --->
 		<cfargument name="new" required="no" default="">
 		<cfargument name="commentLike" type="string" required="false" default="">
-		<cfargument name="sortDir" type="string" required="false" default="asc">
+		<cfargument name="sortDir" type="string" required="false" default="DESC">
 
 		<cfset var getC = "">
 		<cfset var getO = "">
 
 		<cfif structKeyExists(arguments, "postId") and not postExists(arguments.postId)>
 			<cfset variables.utils.throw("'#arguments.postId#' does not exist.")>
-		</cfif>
-
-		<cfif arguments.sortDir is not "asc" and arguments.sortDir is not "desc">
-			<cfset arguments.sortDir = "asc">
 		</cfif>
 			
 		<cfset var Data = "[]">
@@ -5302,10 +5505,9 @@
 			</cfif>
 				AND Comment.BlogRef = #application.BlogDbObj.getBlogId()#
 				ORDER BY 
-					Comment.DatePosted, 
-					Post.Title,
-					Commenter.FullName
-					#arguments.sortdir#
+					Comment.DatePosted #arguments.sortDir#, 
+					Post.Title ASC,
+					Commenter.FullName ASC
 		</cfquery>
 
 		<cfreturn Data>
@@ -5345,6 +5547,7 @@
 			LEFT JOIN Post.Comments as Comment
 			WHERE 0=0
 				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+				AND Comment.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 				AND Post.PostId = #arguments.postId#
 		</cfquery>
 			
@@ -5706,7 +5909,7 @@
 					</cfinvoke>
 
 					<!--- Email the rendered content to the post subscribers --->
-					<cfset application.utils.mail(
+					<cfset UtilsObj.mail(
 						to=#emailTo#,
 						subject="Message sent via #application.BlogDbObj.getBlogTitle()#",
 						body=postSubscriberEmail)>
@@ -5716,15 +5919,17 @@
 			</cfif><!---<cfif arguments.approved>--->
 
 			<!--- Return the commentId --->
-			<cfreturn CommentDbObj.getCommentId()>
+			<cfset returnValue = CommentDbObj.getCommentId()>
 			
 		<cfelse>
 			<!---Return the existing commentId --->
-			<cfreturn getComment[1]["CommentId"]>
+			<cfset returnValue = getComment[1]["CommentId"]>
 		</cfif>
 			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Refresh the Galaxie Cache comment objects --->
+		<cfset flushGalaxieCache(type='comment', postId='#arguments.postId#')>
+			
+		<cfreturn returnValue>
 		
 	</cffunction>
 				
@@ -5762,15 +5967,15 @@
 			</cfinvoke>
 
 			<!--- Email the rendered content to the post subscribers --->
-			<cfset application.utils.mail(
+			<cfset UtilsObj.mail(
 				to=#emailTo#,
 				subject="Message sent via #application.BlogDbObj.getBlogTitle()#",
 				body=postSubscriberEmail)>
 
 		</cfloop>
 					
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Refresh the Galaxie Cache comment objects --->
+		<cfset flushGalaxieCache(type='comment', postId='#arguments.postId#')>
 
 	</cffunction>
 			
@@ -5785,8 +5990,8 @@
 		<!--- And delete the variable to ensure that the record is deleted from ORM memory. --->
 		<cfset void = structDelete( variables, "CommentDbObj" )>
 			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
+		<!--- Flush the comment cache --->
+		<cfset flushGalaxieCache(type='comment', postId='#arguments.postId#')>
 
 	</cffunction>
 
@@ -6198,11 +6403,12 @@
 			JOIN Comment.CommenterRef as Commenter
 			WHERE 0=0
 				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+				AND Comment.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 			<!---<cfif instance.moderate>
 				AND Comment.Moderated = <cfqueryparam value="1" cfsqltype="cf_sql_integer">
 			</cfif>--->
 				AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
-			ORDER BY Post.DatePosted DESC
+			ORDER BY Comment.DatePosted DESC
 		</cfquery>
 
         <cfreturn Data>
@@ -6351,7 +6557,7 @@
 					</cfinvoke>
 
 					<!--- Email the rendered content to the post subscribers --->
-					<cfset application.utils.mail(
+					<cfset UtilsObj.mail(
 						to=#emailTo#,
 						subject="Message sent via #application.BlogDbObj.getBlogTitle()#",
 						body=postSubscriberEmail)>
@@ -6381,9 +6587,11 @@
 			</cfif><!---<cfif arguments.spam>--->
 					
 		</cftransaction>
-					
-		<!--- Clear the scope cache --->
-		<cfset application.blog.clearScopeCache()>
+		
+		<!--- Refresh the galaxie cache --->
+		<cfif arguments.approved>
+			<cfset flushGalaxieCache(type='comment', postId='#getComment[1]["PostId"]#')>
+		</cfif>
 
 		<cfreturn serializeJson(arguments.commentId)>
 	</cffunction>
@@ -7035,6 +7243,17 @@
 				<cfset arguments.params.byTitle = trim(arguments.params.byTitle)>
 			</cfif>
 		</cfif>
+					
+		<!--- The catId URL might be a category alias. When this is the case, convert it to the actual categoryId --->
+		<cfif structKeyExists(arguments.params,"byCat") and not isNumeric(arguments.params.byCat) and arguments.params.byCat neq 'all'>
+			<!--- Convert the category alias into an actual ID. --->
+			<cfset categoryIdFromAlias = getCategoryIdByCategoryAlias(arguments.params.byCat)>
+			<cfif len(categoryIdFromAlias)>
+				<cfset arguments.params.byCat = categoryIdFromAlias>
+			<cfelse>
+				<cfset arguments.params.byCat = 0>
+			</cfif>
+		</cfif>
 
 		<!--- By default, get body, commentCount and categories as well, requires additional lookup --->
 		<cfif not structKeyExists(arguments.params,"mode") or not listFindNoCase(validMode,arguments.params.mode)>
@@ -7611,6 +7830,7 @@
 			<cfif arguments.released>
 				AND	Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
 			</cfif>
+				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 				AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 		</cfquery>	
 				
@@ -7882,19 +8102,9 @@
 		<cfset saveRelatedPosts(arguments.postId, arguments.relatedPosts) />
 
 		<!--- **********************************************************************************************
-		Update cache, and schedule potential future posts.
+		Clear html cache, and schedule potential future posts.
 		*************************************************************************************************--->
-
-		<!--- Update the link cache --->
-		<cfif arrayLen(getPost)>
-			<!--- For existing posts... --->
-			<!---<cfoutput>getPost[1]["PostAlias"]: #getPost[1]["PostAlias"]# getPost[1]["DatePosted"]: #getPost[1]["DatePosted"]#</cfoutput><br/>--->
-			<cfset cacheLink(postId=arguments.postId, alias=getPost[1]["PostAlias"], posted=getPost[1]["DatePosted"]) />
-		<cfelse>
-			<!--- For new posts... --->
-			<cfset cacheLink(postId=PostDbObj.getPostId(), alias=postAlias, posted=dateTimePosted) />
-		</cfif>
-
+					
 		<!--- Email to the subscribers --->
 		<cfif arguments.emailSubscriber>
 			
@@ -7932,11 +8142,9 @@
 		
 		<!--- Clear the scope cache when the post is released --->
 		<cfif released>
-			<cfset application.blog.clearScopeCache()>
+			<!--- Remove the HTML file if it exists --->
+			<cfset flushGalaxieCache(type='post',postId="#arguments.postId#")>
 		</cfif>
-			
-		<!--- flush the cache --->
-		<cfcache action="flush"></cfcache>
 						
 		<cfreturn PostDbObj.getPostId()>
 
@@ -7972,9 +8180,9 @@
 			<!--- Bypass any errors since the admin already confirmed that they want to send the email. --->
 			<cfinvokeargument name="byPassErrors" value="true">
 		</cfinvoke>
-		
-		<!--- Clear the cache --->
-		<cfset application.blog.clearScopeCache()>
+				
+		<!--- Refresh the Galaxie Cache objects --->
+		<cfset flushGalaxieCache(type='post', postId='#arguments.postId#')>
 						
 		<cfreturn PostDbObj.getPostId()>
 
@@ -8080,8 +8288,8 @@
 			<cfset EntitySave(PostDbObj)>
 		</cftransaction>
 				
-		<!--- Clear the scope cache --->
-		<cfset application.blog.clearScopeCache()>
+		<!--- Refresh the Galaxie Cache post objects --->
+		<cfset flushGalaxieCache(type='theme', postId='#arguments.postId#')>
 						
 		<cfreturn PostDbObj.getPostId()>
 
@@ -8153,8 +8361,8 @@
 			
 		</cftransaction>
 				
-		<!--- Clear the scope cache --->
-		<cfset application.blog.clearScopeCache()>
+		<!--- Refresh the Galaxie Cache post objects --->
+		<cfset flushGalaxieCache(type='post', postId='#arguments.postId#')>
 				
 	</cffunction>
 				
@@ -8226,6 +8434,24 @@
 				<cfset xmlKeyWords = "cfincludeTemplate">
 			<cfelse>
 				<cfset xmlKeyWords = xmlKeyWords & "," & "cfincludeTemplate">
+			</cfif>
+		</cfif>
+					
+		<!--- Kendo Commercial. Note: the next two keyword items are new and does not need support using the original directive format with the colon --->
+		<cfif arguments.postContent contains "<kendoCommercial>">
+			<!--- Get the social media image description if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "kendoCommercial">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "kendoCommercial">
+			</cfif>
+		</cfif>
+		<cfif arguments.postContent contains "<kendoSourceLocation>">
+			<!--- Get the social media image description if available. --->
+			<cfif xmlKeyWords eq "">
+				<cfset xmlKeyWords = "kendoSourceLocation">
+			<cfelse>
+				<cfset xmlKeyWords = xmlKeyWords & "," & "kendoSourceLocation">
 			</cfif>
 		</cfif>
 
@@ -10225,7 +10451,7 @@
 			<!--- Render the email --->
 			<cfinvoke component="#RendererObj#" method="renderEmail" returnvariable="emailBody">
 				<cfinvokeargument name="email" value="#email#">
-				<cfinvokeargument name="emailTitle" value="A new #variables.utils.htmlToPlainText(encodeForHTML(instance.blogtitle))# user account has been set up for you.">
+				<cfinvokeargument name="emailTitle" value="A new #variables.utils.htmlToPlainText(instance.blogtitle)# user account has been set up for you.">
 				<cfinvokeargument name="emailTitleLink" value="#emailTitleLink#">
 				<cfinvokeargument name="emailDesc" value="#emailDesc#">
 				<cfinvokeargument name="emailBody" value="#mainBody#">
@@ -10234,9 +10460,9 @@
 			</cfinvoke>
 
 			<!--- Email the new user asking them to confirm ---> 
-			<cfset application.utils.mail(
+			<cfset UtilsObj.mail(
 				to=#email#,
-				subject="A new #variables.utils.htmlToPlainText(encodeForHTML(instance.blogtitle))# user account has been set up for you",
+				subject="A new #variables.utils.htmlToPlainText(instance.blogtitle)# user account has been set up for you",
 				body=emailBody)>
 
 		</cfif><!---<cfif arguments.action eq 'insert' and arguments.notify>--->
@@ -10660,7 +10886,7 @@
 		RSS
 	//******************************************************************************************--->
 
-	<cffunction name="generateRSS" access="public" returnType="string" output="false"
+	<cffunction name="generateRSS" access="public" returnType="string" output="true"
 			hint="Generates RSSa 2 feeds. This was updated and validated in Galaxie Blog 3.0">
 		<cfargument name="mode" type="string" required="false" default="short" hint="If mode=short, show EXCERPT chars of entries. Otherwise, show all.">
 		<cfargument name="excerpt" type="numeric" required="false" default="750" hint="If mode=short, this how many chars to show. The excerpt only applies to the body.">
@@ -10687,7 +10913,6 @@
 		<cfset var categoryId = "">
 		<cfset var catlist = "">
 			
-
 		<!--- Include the string utilities cfc. --->
 		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
 		<!--- Get the blog time zone --->
@@ -10705,10 +10930,20 @@
 		<cfif structKeyExists(url, 'tag') and trim(url.tag) neq "">
 			<cfset arguments.params.byTag = URL.tag>
 		</cfif>
+		<!--- 
+		Debugging carriage
+		<cfdump var="#params#" label="params">
+		<cfabort>
+		--->
 			
 		<!--- Get the array from the database. Do not show the promoted posts at the top of the query (getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery)).  --->
 		<cfset getPost = application.blog.getPost(arguments.params,false,false,false,false)>
-		<!---<cfdump var="#getPost#">--->
+		<!---
+		Debugging carriage
+		<cfdump var="#params#">
+		<cfdump var="#getPost#" label="getPost">
+		<cfabort>
+		--->
 
 		<cfif find("-", blogTimeZone)>
 			<!--- Note: we are not using the UTC Prefix in v3. Keeping around just in case --->
@@ -10733,8 +10968,8 @@
 			<lastBuildDate>{LAST_BUILD_DATE}</lastBuildDate>
 			<generator>Galaxie Blog</generator>
 			<docs>http://blogs.law.harvard.edu/tech/rss</docs>
-			<managingEditor>#xmlFormat(instance.owneremail)# (#xmlFormat(getPost[1]["FullName"])#)</managingEditor>
-			<webMaster>#xmlFormat(instance.owneremail)# (#xmlFormat(getPost[1]["FullName"])#)</webMaster>
+			<managingEditor>#xmlFormat(instance.owneremail)# <cfif arrayLen(getPost)>(#xmlFormat(getPost[1]["FullName"])#)</cfif></managingEditor>
+			<webMaster>#xmlFormat(instance.owneremail)# <cfif arrayLen(getPost)>(#xmlFormat(getPost[1]["FullName"])#)</cfif></webMaster>
 			</cfoutput>
 		</cfsavecontent>
 
@@ -10799,7 +11034,9 @@
 		 	</cfloop>
 		</cfsavecontent>
 
-		<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & " " & numberFormat(blogTimeZone,"00") & "00"#','one')>
+		<cfif arrayLen(getPost)>
+			<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & " " & numberFormat(blogTimeZone,"00") & "00"#','one')>
+		</cfif>
 		<cfset rssStr = trim(header & items & "</channel></rss>")>
 
 		<cfreturn rssStr>
@@ -11790,7 +12027,62 @@
 	<!--- ****************************************************************************************************** 
 	Helper functions
 	********************************************************************************************************--->
-	
+		
+	<cffunction name="getIpAddress" returntype="string" output="false">
+		<!--- Gets the client IP address. See https://www.gregoryalexander.com/blog/2025/4/5/getting-the-clients-ip-address-using-lucee-and-coldfusion for more information --->
+		
+		<!--- Get the HTTP Headers --->
+		<cfset httpHeaders = getHTTPRequestData()["headers"]>
+		<!---
+		If you already know what key you want, and that your server supports the the key, you can skip this step and use:
+		<cfset ipAddress = getHTTPRequestData()["headers"]["x-forwarded-for"]> replace x-forwarded-for with your own desired key.
+		--->
+
+		<!--- Determine if the x-forwarded-for key exists. --->
+		<cfif structKeyExists(httpHeaders,"x-forwarded-for")>
+			<!--- The x-forwarded-for is by far the most common header to get the IP. However, it still may not exist, espcially on Windows based servers! --->
+			<cfset ipAddress = httpHeaders["x-forwarded-for"]>
+		<cfelseif structKeyExists(httpHeaders,"x-real-ip")>
+			<!--- The x-real-ip is used when load balancing or on nginx servers --->
+			<cfset ipAddress = httpHeaders["x-real-ip"]>
+		<!--- This is a proprietary cloudfare header. From what I read, CloudFlare will still configure the x-forwarded-for along with this key and some have complained that the cf-connecting key is only available with a upgraded premium plan --->
+		<cfelseif structKeyExists(httpHeaders,"cf-connecting-ip")>
+			<cfset ipAddress = httpHeaders["cf-connecting-ip"]>
+		<!--- This is a proprietary fastly header --->
+		<cfelseif structKeyExists(httpHeaders,"fastly-client-ip")>
+			<cfset ipAddress = httpHeaders["fastly-client-ip"]>
+		<cfelse>
+			<cfset ipAddress = CGI.Remote_Addr>
+		</cfif> 
+			
+		<cfreturn ipAddress>
+			
+	</cffunction>
+			
+	<cffunction name="getPageUrl" returntype="string" output="true">
+		<cfargument name="includePort" required="false" default="false" type="boolean" />
+
+		<!--- Get request object from the jsp pageContext object --->
+		<cfset PageRequestObj = getPageContext().getRequest()>
+		<!--- Get the URL. This does not include the port or the query string --->
+		<cfset pageUrl = PageRequestObj.getRequestURL().toString()>
+		<cfset pageQueryString = PageRequestObj.getQueryString()>
+
+		<!--- Build the URL string --->
+		<cfif arguments.includePort>
+			<cfset pagePort = PageRequestObj.getServerPort()>
+			<cfset pageUrl = pageUrl & ':' & pagePort>
+		</cfif>
+		<!--- Note: the pageQueryString may be undefined when there is an index.cfm. This may throw an error if I don't use an isDefined --->
+		<cfif isDefined("pageQueryString") and len(pageQueryString)>
+			<cfset pageUrl = pageUrl & '?' & pageQueryString>
+		</cfif>
+
+		<!--- Return it --->
+		<cfreturn pageUrl>
+
+	</cffunction>
+
 	<!--- Gregory's adaption of Raymond's getActiveDays function. This returns a query object of all of the days with a blog post and it is used for the Kendo calendar.--->
 	<cffunction name="getAllActiveDates" returnType="array" output="false" 
 		hint="Returns query object of all of the posted dates. This will be used for the new Kendo calendar control.">

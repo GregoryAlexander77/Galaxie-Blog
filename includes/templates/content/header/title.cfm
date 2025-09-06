@@ -1,1 +1,1 @@
-<cfif getTheme[1]["DisplayBlogName"]><cfoutput>#htmlEditFormat(application.BlogDbObj.getBlogTitle())#</cfoutput></cfif>
+<cfif getTheme[1]["DisplayBlogName"]><cfoutput>#encodeForHTML(application.BlogDbObj.getBlogTitle())#</cfoutput></cfif>

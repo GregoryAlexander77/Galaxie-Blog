@@ -1,22 +1,8 @@
 <cfsilent>
 <cfprocessingdirective pageencoding="utf-8">
-<!---
-   Name			: feed.cfm
-   Author 		: Raymond Camden
-   Created 		: September 20, 2006
-   Last Updated : December 14 2018 (Gregory added the Kendo UI)
-   History 		: Forgot the enableoutputonly false
-
-	Note - this pod is meant to allow you to easily show
-	another site's RSS feed on your blog. You should 
-	edit the title to match the site you are hitting. 
-	You may also need to edit the xmlSearch tag based
-	on the type of RSS feed you are using.
---->
-	
 <!--- 
 ********* Content template common logic *********
-Note: the following logic should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
+Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
 <cfset thisTemplate = "cfblogFeedsPod">
 <!--- The following logic does not need to be modified and will work with most of the content output templates --->
 <!--- Reset our display content output var --->
@@ -34,16 +20,7 @@ Note: the following logic should not be cached as each theme may return a differ
 	<cfset displayContentOutputData = true>		
 </cfif>
 <!--- ********* End content template logic *********--->
-
-<!--- Set up cache. We are going to timeout in 30 minutes --->
-<cfif session.isMobile>
-	<cfset cacheName = "podRssFeedMobile">
-<cfelse>
-	<cfset cacheName = "podRssFeed">
-</cfif>
 </cfsilent>
-		
-<cfmodule template="../../../../tags/scopecache.cfm" scope="application" cachename="#cacheName#" timeout="#60*30#" disabled="#application.disableCache#">
 	<cfif displayContentOutputData>
 		<!--- Include the custom user defined content from the database --->
 		<cfoutput>#contentOutputData#</cfoutput>
@@ -91,7 +68,7 @@ Note: the following logic should not be cached as each theme may return a differ
 				<tr>
 					<td>
 					<cfoutput>
-					CFBloggers down
+					CFBlogs down
 					</cfoutput>
 					</td>
 				</tr>
@@ -100,5 +77,3 @@ Note: the following logic should not be cached as each theme may return a differ
 		</table>
 		<br/>
 	</cfif>
-<!--- End cache. --->
-</cfmodule>

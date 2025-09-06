@@ -13,7 +13,7 @@
 	
 <!--- 
 ********* Content template common logic *********
-Note: the following logic should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
+Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
 <cfset thisTemplate = "monthlyArchivesPod">
 <!--- The following logic does not need to be modified and will work with most of the content output templates --->
 <!--- Reset our display content output var --->
@@ -34,16 +34,8 @@ Note: the following logic should not be cached as each theme may return a differ
 
 <!--- get the last 5 years by default. If you want all months/years, remove the param --->
 <cfset getMonthlyArchives = application.blog.getArchives(archiveYears=5)>
-	
-<!--- Cache notes: We're saving this to the application scope. We need to differentiate between the dark theme and light themes in the key. The timeout is set to 24 hours --->
-<cfset cacheName = "monthyArchives">
-<!--- Dark theme --->
-<cfif darkTheme>
-	<cfset cacheName = cacheName & "Dark">
-</cfif>
+
 </cfsilent>
-	
-<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" timeout="#(60*60)*24#" disabled="#application.disableCache#">
 <cfif displayContentOutputData>
 	<!--- Include the custom user defined content from the database --->
 	<cfoutput>#contentOutputData#</cfoutput>
@@ -77,4 +69,3 @@ Note: the following logic should not be cached as each theme may return a differ
 	</table>
 </cfif>
 <br/>
-</cfmodule>

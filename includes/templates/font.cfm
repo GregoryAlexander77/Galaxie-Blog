@@ -1,5 +1,7 @@
-<cfsilent>
+	<cfsilent>
 	<!---
+	Every theme can have its own set of fonts. There may be many versions of this file in the cache (one for each used theme), howevder, the files should be small and not consume much space.
+
 	Notes on css files: I typically use internal stylesheets as I have access to variables in a .cfm page that uses them. If I externalize the css files, I lose the ability to easilly use ColdFusion dynamic variables. --->
 		
 	<!--- Get the fonts that need to be loaded from the db --->

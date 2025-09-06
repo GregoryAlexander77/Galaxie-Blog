@@ -9,7 +9,7 @@
 	
 <!--- 
 ********* Content template common logic *********
-Note: the following logic should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
+Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
 <cfset thisTemplate = "subscribePod">
 <!--- The following logic does not need to be modified and will work with most of the content output templates --->
 <!--- Reset our display content output var --->
@@ -39,17 +39,8 @@ Note: the following logic should not be cached as each theme may return a differ
 <cfelse>
 	<cfset subscribeFormId = "subscribeViaPanel">
 </cfif>
-	
-<!--- Set up cache. We are going to timeout in 24 hours --->
-<cfif session.isMobile>
-	<cfset cacheName = "subscribeMobile">
-<cfelse>
-	<cfset cacheName = "subscribe">
-</cfif>
 
-</cfsilent>	
-				<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" timeout="#(60*60)*24#" disabled="#application.disableCache#">
-		
+</cfsilent>
 				<cfif displayContentOutputData>
 					<!--- Include the custom user defined content from the database --->
 					<cfoutput>#contentOutputData#</cfoutput>
@@ -88,4 +79,3 @@ Note: the following logic should not be cached as each theme may return a differ
 					</form>
 					</cfoutput>
 				</cfif>
-			</cfmodule>

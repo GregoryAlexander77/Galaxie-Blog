@@ -5,7 +5,6 @@
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
 	<cfset this.rootDirectoryPath = getDirectoryFromPath( getCurrentTemplatePath() )>
-		<cfset test = 'yep'>
 
 	<!--- Print out some of the vars for debugging purposes. Change the first line to read output="true" --->
 	<cfset debug = false>
@@ -100,6 +99,9 @@
 	</cffunction> 
 		
 	<cffunction name="OnRequestStart">
+		
+		<!--- We will send copies of any error, minus form values, to the developer for debugging purposes. Note: although this helps me to catch errors, if you don't want to send the errors to the developer (i.e. me), make this an empty string (='') --->
+		<cfset application.developerEmailAddress = "gregoryalexander77@gmail.com">
 		
 		<!--- Reload the ORM schema. Note: forcing this to load on every page load will create ORM related errors when including the mapPreview.cfm template. The error is 'Orm not configured...' most likely due to the ORMReload statement interfering with the ORM initialization. ' --->
 		<cfif isDefined("URL.init") or isDefined("URL.reinit")>
@@ -299,6 +301,13 @@
 		<cfelse>
 			<cfset application.defaultContentObjPath = "common.cfc.DefaultContent">
 		</cfif>
+			
+		<!--- The Utils component is used to send out mail and other utility functions. --->
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset application.utilsComponentPath = application.baseComponentPath & ".org.camden.blog.utils">
+		<cfelse>
+			<cfset application.utilsComponentPath = "org.camden.blog.utils">
+		</cfif>	
 
 		<!--- The StringUtils component is used to peform string formatting, such as an enhanced trim funtion. --->
 		<cfif len(application.baseProxyUrl) gt 0>
@@ -374,17 +383,12 @@
 		<cfset blogname = "Default">
 		<!--- load and init blog --->
 		<cfset application.blog = createObject("component","#application.blogComponentPath#").init(blogname)>
-		<!--- Load the proxy controller --->
-		<cfset application.proxyController = createObject("component","#application.proxyControllerComponentPath#")>
 		<!--- load the UDF component --->
 		<cfset application.Udf = createObject("component","#application.udfComponentPath#")>
 		
 		<!---//****************************************************************************************
 				Initialize the application and set core application vars.
-		//*****************************************************************************************--->
-			
-		<!--- Load the Utils CFC --->
-		<cfset application.utils = createObject("component", "org.camden.blog.utils")>
+		//*****************************************************************************************---> 
 
 		<!--- Used to remember the pages we have viewed. Helps keep view count down. --->
 		<cfif not structKeyExists(session,"viewedpages")>
@@ -403,8 +407,6 @@
 		//*****************************************************************************************--->
 			
 		<cfset application.kendoCommercial = application.BlogOptionDbObj.getKendoCommercial()>
-		<!--- Hardcoded value for testing. <cfset application.kendoCommercial = true>--->
-			
 		<!--- Get the path to the Kendo UI folder. --->
 		<cfset application.kendoFolderPath = application.BlogOptionDbObj.getKendoFolderPath()>
 
@@ -475,7 +477,7 @@
 		<cfelse>
 			<cfset application.stripWhiteSpace = false>
 		</cfif>
-		
+			
 		<!--- How many posts should show up on the main blog page? --->
 		<cfset application.maxEntries = 9><!--- Used to be application.BlogOptionDbObj.getEntriesPerBlogPage() --->
 
@@ -961,10 +963,42 @@
 		<!---TODO Hardcoding to false due to memory leak somewhere--->
 		<cfreturn false>
 	</cffunction>
+			
+	<cffunction name="onError" access="public" returntype="void">
+		<cfargument name="exception" required=true/>
+		<cfargument name="eventName" type="String" required=true/>
+		
+		<cfoutput>
+			<h2>An unexpected error occurred.</h2>
+			<p>We have sent a copy of this error to technical support</p>
+		</cfoutput>
+		<cfsavecontent variable="errorString">
+			<cfoutput>
+			An error occurred: #application.blog.getPageUrl()#
+			Time: #dateFormat(now(), "short")# #timeFormat(now(), "short")#
+			Error Event: #arguments.eventName#
+			Type: #arguments.exception.type#
+			Message: #arguments.exception.message#
+			Detail: #arguments.exception.detail#
+			Stacktrace: #arguments.exception.stacktrace#			
+			</cfoutput>
+		</cfsavecontent>
+		<!--- Send email to the blog owner and developer. Do not send any form values via email as they may contain sensitive login information --->
+		<cfif len(application.developerEmailAddress) and (application.BlogDbObj.getBlogEmail() neq application.developerEmailAddress)>
+			<!--- Send errors via email to both blog owner and developer. When sending email to developer, I am always sending a copy to the blog owner. --->
+			<cfset errorMessageRecipients = application.BlogDbObj.getBlogEmail() & ',' & application.developerEmailAddress>
+		<cfelse>
+			<!--- This is the blog developers blog --->
+			<cfset errorMessageRecipients = application.developerEmailAddress>
+		</cfif>
+		<cfmail to="gregoryalexander77@gmail.com" from="#errorMessageRecipients#" subject="Error: #arguments.exception.message#">
+			#errorString#
+		</cfmail>
+	</cffunction>
 						
 	<cffunction name="onApplicationEnd">
 		<cfargument name="ApplicationScope" required=true/>
 		<!--- Do nothing --->
 	</cffunction>
 	
-</cfcomponent>get
+</cfcomponent>

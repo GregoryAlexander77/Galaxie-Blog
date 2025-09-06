@@ -28,6 +28,8 @@
 		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
 		<!--- Instantiate the Render.cfc. --->
 		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
+		<!--- Object to send mail --->
+		<cfobject component="#application.utilsComponentPath#" name="UtilsObj">
 	<cfcatch type="any"></cfcatch>
 	</cftry>
 
@@ -419,7 +421,7 @@
 			</cfinvoke>
 
 			<!--- Email the subscriber asking them to confirm ---> 
-			<cfset application.utils.mail(
+			<cfset UtilsObj.mail(
 				to=#email#,
 				subject="Subscription Confirmation",
 				body=emailBody)>
@@ -552,7 +554,6 @@
 			<cfif arguments.uiInterface eq 'contact'>
 				
 				<!--- *************Render email to blog owner informing them of a new contanct message --->
-
 				<cfset commentTime = application.blog.blogNow()>
 				<cfsavecontent variable="contactEmailBody">
 					<cfoutput>
@@ -593,7 +594,7 @@
 				</cfinvoke>
 
 				<!--- Email the owner of the blog. --->
-				<cfset application.utils.mail(
+				<cfset UtilsObj.mail(
 					to=#application.BlogDbObj.getBlogEmail()#,
 					subject="Message sent via #application.BlogDbObj.getBlogTitle()#",
 					body=emailBody)>
@@ -633,7 +634,7 @@
 					</cfinvoke>
 
 					<!--- Email the subscriber asking them to confirm ---> 
-					<cfset application.utils.mail(
+					<cfset UtilsObj.mail(
 						to=#email#,
 						subject="Subscription Confirmation",
 						body=emailBody)>
@@ -701,7 +702,7 @@
 					</cfinvoke>
 							
 					<!--- Email the owner of the blog. --->
-					<cfset application.utils.mail(
+					<cfset UtilsObj.mail(
 						to=#application.BlogDbObj.getBlogEmail()#,
 						subject="New comment made by #arguments.commenterName#",
 						body=emailBody)>
@@ -734,7 +735,7 @@
 								</cfinvoke>
 							
 								<!--- Email the post subscriber. --->
-								<cfset application.utils.mail(
+								<cfset UtilsObj.mail(
 									to=#thisSubscriberEmail#,
 									subject="New comment made by #arguments.commenterName#",
 									body=emailBody)>
@@ -1329,7 +1330,7 @@
 				</cfinvoke>
 
 				<!--- Email the rendered content to the post subscribers --->
-				<cfset application.utils.mail(
+				<cfset UtilsObj.mail(
 					to=#emailTo#,
 					subject="Message sent via #application.BlogDbObj.getBlogTitle()#",
 					body=postSubscriberEmail)>
@@ -1812,7 +1813,7 @@
 						</cfinvoke>
 
 						<!--- Email the rendered content to the post subscribers --->
-						<cfset application.utils.mail(
+						<cfset UtilsObj.mail(
 							to=#emailTo#,
 							subject="Message sent via #application.BlogDbObj.getBlogTitle()#",
 							body=postSubscriberEmail)>
@@ -2530,7 +2531,7 @@
 	*******************************************************************************************************--->
 				
 	<cffunction name="saveContentTemplate" access="remote" returnformat="json" output="false" 
-		hint="Returns a json array to populate the categories dropdown.">
+		hint="Returns a json array.">
 		<cfargument name="action" default="" required="true" hint="Either updateCode or revertCode">
 		<cfargument name="selectedContentThemes" default="" required="true">
 		<cfargument name="contentTemplate" default="" required="true">
@@ -2567,7 +2568,7 @@
 			<cfloop list="#arguments.selectedContentThemes#" index="thisThemeId">
 				
 				<!--- Save it --->
-				<cfinvoke component="#application.blog#" method="saveContentOutput" returnvariable="contentTemplateId">
+				<cfinvoke component="#application.blog#" method="saveContentOutputsaveContentOutput" returnvariable="contentTemplateId">
 					<cfinvokeargument name="contentTemplate" value="#arguments.contentTemplate#">
 					<!--- Pass in the themeId, if it is 0 we wil not use it. --->
 					<cfif thisThemeId is not 0>
@@ -6643,6 +6644,7 @@
 		<cfargument name="selectorId" default="" required="false" hint="We need to know where this request is being posted from to determine the logic as necessary.">
 		<!--- Arguments that are not used but required after the May 13th 2025 update --->
 		<cfargument name="invokedArguments" default="" required="false" hint="This is not used but required after the May 13 2025 CF update">
+		<cfargument name="template" default="" required="false" hint="This is not used but required after the May 13 2025 CF update">
 			
 		<!--- Default params --->
 		<cfparam name="imageHeight" default="" type="string">

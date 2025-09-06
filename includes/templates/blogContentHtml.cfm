@@ -1,4 +1,4 @@
-<cfsilent>
+	<cfsilent>
 	<!--- Forms that hold state. --->
 	<!--- This is the sidebar responsive navigation panel that is triggered when the screen gets to a certain size. It is a duplicate of the sidebar div above, however, I can't properly style the sidebar the way that I want to within the blog content, so it is duplicated withoout the styles here. --->
 
@@ -21,7 +21,7 @@
 		<div id="blogContent">		
 			<!--- Optional call to hero interface. --->
 			<div id="hero">
-		<cfif showPopularPosts>
+		<cfif showPopularPosts><!--- showPopularPosts is only shown on the front blog page. This var is set in the coreLogic.cfm template --->
 			<cfsilent>
 			<!---Cache this for one day--->
 			<cfif session.isMobile>
@@ -278,9 +278,7 @@
 			<cfset lastDate = "">
 			<!--- Note: getPost is an array and contains one or more posts. It is used when in blog mode (multiple posts), or when in post mode (one post).--->
 			</cfsilent>
-		<!---<cfdump var="#getPost#" label="getPost">--->
 		<cfif arrayLen(getPost)>
-			<!--- <cfoutput>params: <cfdump var="#params#"> URL.mode: #URL.mode# getPageMode(): #getPageMode()# condensedGridView: #condensedGridView#</cfoutput> --->
 			<!--- The condensedGridView is a condensed view using Kendo cards with the post description --->
 			<cfif condensedGridView>
 				<cfsilent>
@@ -380,12 +378,13 @@
 					</div><!---<div id="cardContainer" style="width: 100%">--->	
 				</cfloop>
 				<br/><!-- Give an extra space between the cards and pagination --->
+				<!--- End Card Cache --->
 			<cfelse><!---<cfif condensedGridView>--->	
 				<cfsilent>
 				<!--- ********************************************************************************************
 					Handle complete posts
 				**********************************************************************************************--->
-				</cfsilent>
+				</cfsilent>	
 				<!--- Loop through the array --->
 				<cfloop from="1" to="#arrayLen(getPost)#" index="i">
 					<cfsilent>
@@ -457,10 +456,22 @@
 					<!--- We need to perform the same logic for the post author (remove the 'index.cfm' string when a rewrite rule is in place). --->
 					<cfset userLink = application.blog.makeUserLink(getPost[i]["FullName"])>
 					<!--- Render the post. This will render cfinclude and video directives if present, the encosure and the body. --->
-					<cfset post = RendererObj.renderPost(kendoTheme,getPost,i)> 			
-					<!--- Set the post content --->
+					<cfset post = RendererObj.renderPost(kendoTheme,getPost,i)> 
+					<!--- Get the post content --->
 					<cfset postContent = RendererObj.renderBody(body, mediaPath, getPageMode())>
-
+						
+					<!--- Cache the post html to disk using my new GalaxieCache custom tag. The post will be cached permently unless the post has been editted. --->
+						
+					<!--- Set the cache name --->
+					<cfif session.isMobile>
+						<cfset cacheName = 'postId=' & getPost[1]["PostId"] & '+themeId=' & themeId & '+mobile'>
+					<cfelse>
+						<cfset cacheName = 'postId=' & getPost[1]["PostId"] & '+themeId=' & themeId>
+					</cfif> 
+					<!--- galaxieCache will read content between the cfmodule tags (or a normal tag) and save the content to the file system. This can't be in a cfsilent block --->
+					</cfsilent>
+					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/posts/#cacheName#.cfm" debug="false" disabled="#disableCache#">
+					<cfsilent>		
 					<!--- For desktop clients, handle multiple maps on a page. If there are multiple maps, we need to create a script that will load all of the maps at the top of the page. If we are using a mobile device and there are multiple maps- we will use an iframe to display the map. --->
 					<cfif not session.isMobile and i eq 1 and listLen(enclosureMapIdList) gt 1>
 						<!--- Invoke the renderLoadMapScript function --->
@@ -608,9 +619,9 @@
 										<!--- Show the more body in addition to the post --->
 										#moreBody#
 									</cfif>
-								</cfif>
-
-								</span><!--<span class="postContent">--> 
+								</cfif><!---<cfif len(morebody)>--->
+								</span><!--<span class="postContent">-->
+									
 								<p class="bottomContent">
 								<cfsilent>
 								<!--- ********************************************************************************************
@@ -663,13 +674,25 @@
 								</span>	
 								<h3 class="topContent"></h3>
 							</cfif><!---<cfif arrayLen(getTags)>--->
+							</cfoutput>
+							</cfmodule><!--- End Post Cache --->
 							<cfsilent>
 							<!--- ********************************************************************************************
 								Author Bio
 							**********************************************************************************************--->
 							<!--- Get the author from the user table --->
 							<cfset authorData = application.blog.getUser(userId=userId, includeSecurityCredentials=false)>
+								
+							<!--- Set the cache name --->
+							<cfif session.isMobile>
+								<cfset cacheName = 'bioUserId=' & userId & '+themeId=' & themeId & '+mobile'>
+							<cfelse>
+								<cfset cacheName = 'bioUserId=' & userId & '+themeId=' & themeId>
+							</cfif> 
+							<!--- galaxieCache will read content between the cfmodule tags (or a normal tag) and save the content to the file system. This can't be in a cfsilent block --->
 							</cfsilent>
+							<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/bio/#cacheName#.cfm" debug="false" disabled="#disableCache#">
+							<cfoutput>
 							<!---<cfdump var="#authorData#">--->
 							<cfif len( authorData[1]["Biography"] ) >
 								<table align="center" class="k-content" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -714,11 +737,14 @@
 								</table>
 								<h3 class="topContent"></h3>
 							</cfif><!---<cfif len( authorData[1]["Biography"] ) >--->
+							</cfoutput>	
+							</cfmodule><!--- End Bio Cache --->
 							<cfsilent>
 							<!--- ********************************************************************************************
 								Comment interfaces (Disqus and Galaxie Blog)
 							**********************************************************************************************--->
 							</cfsilent>
+							<cfoutput>
 							<!-- Button navigation. -->
 							<!-- Set a smaller font in the kendo buttons. Note: adjusting the .k-button class alone also adjusts the k-input in the multi-select so we will set it here.-->
 							<cfif allowComment>
@@ -786,11 +812,20 @@
 									Original comments interface (non Disqus).
 								**********************************************************************************************--->
 								</cfsilent>
-
 								<cfif len(commentCount) gt 0 and not application.includeDisqus>
+									<cfsilent>
+									<!--- Set the cache name --->
+									<cfif session.isMobile>
+										<cfset cacheName = 'commentPostId=' & postId & '+mobile'>
+									<cfelse>
+										<cfset cacheName = 'commentPostId=' & postId>
+									</cfif> 
+									<!--- galaxieCache will read content between the cfmodule tags (or a normal tag) and save the content to the file system. This can't be in a cfsilent block --->
+									</cfsilent>
+									<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/comments/#cacheName#.cfm" debug="false" disabled="#disableCache#">
 									<!-- Comments that are shown when the user clicks on the arrow button to open the container. -->
 									<div id="comment#postId#" class="widget k-content" style="display:none;"> 
-										<table cellpadding="3" cellspacing="0" border="0" class="fixedCommentTable">
+										<table cellpadding="5" cellspacing="0" border="0" class="fixedCommentTable">
 										 <tr width="100%">
 										 <cftry>
 										 <!--- Get the comments and loop through them. --->
@@ -803,8 +838,18 @@
 										 <cfset commentUuid = comments[i]["CommentUuid"]>
 										 <cfset comment = comments[i]["Comment"]>
 										 <cfset commenterFullName = comments[i]["CommenterFullName"]>
-										 <cfset commenterEmail = comments[i]["CommenterEmail"]>
-										 <cfset commenterWebsite = comments[i]["CommenterWebsite"]>
+										 <!--- This column may be null in the db --->
+										 <cfif structKeyExists(comments[i],"CommenterEmail")>
+										 	<cfset commenterEmail = comments[i]["CommenterEmail"]>
+										 <cfelse>
+											<cfset commenterEmail = "">
+										 </cfif>
+										 <!--- This column may be null in the db --->
+										 <cfif structKeyExists(comments[i],"CommenterWebsite")>
+											 <cfset commenterWebsite = comments[i]["CommenterWebsite"]>
+										 <cfelse>
+											 <cfset commenterWebsite = "">
+										 </cfif>
 										 <cfset commentDatePosted = comments[i]["DatePosted"]>
 										 </cfsilent>
 										 <!--- Note: the URL is appended with an extra 'c' in front of the commentId. --->
@@ -846,6 +891,7 @@
 									 </cftry>
 									</table>
 								</div><!---<div id="comment#CommentId#" class="widget k-content" style="display:none;">--->
+								</cfmodule><!--- End Cache Comment --->
 							</cfif><!---<cfif application.includeDisqus>--->
 							</span><!---<span class="innerContentContainer">--->
 						</div><!---<div class="blogPost">--->
@@ -960,13 +1006,20 @@
 				Sidebar div
 	In classic mode, the side bar div is always displayed on the right side of the blog page. It is also used as a responsive panel on desktop devices when the screen size is small. We will not include it if the break point is not 0 or is equal or above 50000. If the chosen theme type is classic, this get's loaded first and then the panel below gets loaded. If the device is mobile or the theme is a modern theme, this sidebar does not exist.
 	//****************************************************************************************************************--->
+		
+	<!--- We need to differentiate material and non-material themes to appy the right settings to the buttons --->
+	<cfif kendoTheme contains 'material'>
+		<cfset materialTheme = true>
+	<cfelse>
+		<cfset materialTheme = false>
+	</cfif>
 	</cfsilent>	
 	<cfif breakpoint gt 0>
 		<div id="sidebar">
-			<!--- Make sure to supply the sidebar type. This is a duplicate sidebar when using desktop and the theme type is classic --->
-			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#" themeId="#themeId#" kendoTheme="#kendoTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
+			<!--- The cfmodule below identical to a cfinclude and has no end tag and is not part of galaxieCache. Make sure to supply the sidebar type. This is a duplicate sidebar when using desktop and the theme type is classic --->
+			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#"  materialtheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 		</div><!---<nav id="sidebar">--->
-		</cfif>
+	</cfif>
 	</div><!---<div class="mainPanel hiddenOnNarrow">--->
 
 	<cfsilent>
@@ -974,11 +1027,18 @@
 				Sidebar panel
 	This sidebar panel is always a fly-out panel on the left of the page. This panel is a duplicate of the sidebar div when the theme type is classic. If the theme type is modern or when the device is mobile, this is the only panel on the page. This panel is invoked when the user clicks on the hamburger icon in the menu at the top of the page.
 	//****************************************************************************************************************--->
-	</cfsilent>		
+		
+	<!--- We need to differentiate material and non-material themes to appy the right settings to the buttons --->
+	<cfif kendoTheme contains 'material'>
+		<cfset materialTheme = true>
+	<cfelse>
+		<cfset materialTheme = false>
+	</cfif>
+	</cfsilent>	
 	<nav id="sidebarPanel" class="k-content">
-		<div id="sidebarPanelWrapper" name="sidebarPanelWrapper" class="flexScroll">
-			<!--- Make sure to suppply the sideBarType argument. DIV --->
-			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#" themeId="#themeId#" kendoTheme="#kendoTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
+		<div id="sidebarPanelWrapper" name="sidebarPanelWrapper" class="flexScroll"> 
+			<!--- This cfmodule acts like a cfinclude and is not part of galaxieCache. Make sure to suppply the sideBarType argument. DIV --->
+			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#"  materialTheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 		</div>
 	</nav><!---<nav id="sidebar">--->
 	<!--- This script must be placed underneath the layer that is being used in order to effectively work as a flyout menu.--->

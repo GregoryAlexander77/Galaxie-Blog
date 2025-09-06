@@ -11,7 +11,7 @@
 
 <!--- 
 ********* Content template common logic *********
-Note: the following logic should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
+Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
 <cfset thisTemplate = "downloadPod">
 <!--- The following logic does not need to be modified and will work with most of the content output templates --->
 <!--- Reset our display content output var --->

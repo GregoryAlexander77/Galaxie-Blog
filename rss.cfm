@@ -62,14 +62,14 @@
 	<cfset disabled = false>
 </cfif>
 
-<!--- Note: this is being cached. I typically removed all of the caching features that were in the initial blog, but I like this one... it gives me time to think about things and perfect the post once it is released. Comment out this code and uncomment the line below it to see a realtime feed. --->
+<!--- Note: this is being cached to the filesystem and I retrieve it using a cfinclude. Comment out this code and uncomment the line below it to see a realtime feed. --->
 <cfsavecontent variable="variables.feedXML">
-	<cfmodule template="tags/scopecache.cfm" cachename="#cachename#" scope="application" timeout="#application.timeout#" disabled="#disabled#">
+	<!---<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/rss/#cacheName#.cfm" timeout="#application.timeout#" disabled="#disabled#">--->
 		<cfoutput>
 			#application.blog.generateRSS(mode=mode,params=params,version=version,additionalTitle=additionalTitle)#
 		</cfoutput>
-	</cfmodule>
-</cfsavecontent>
+	<!---</cfmodule>--->
+</cfsavecontent> 
 
 <cfset variables.lastModified = XMLSearch ( XMLParse ( variables.feedXML ), '//item[1]/pubDate' ) />
 <cfif arrayLen(variables.lastModified) is 0>

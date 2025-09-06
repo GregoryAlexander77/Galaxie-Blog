@@ -1,4 +1,4 @@
-<cfcomponent displayname="Udf" hint="Common functions" name="Udf">
+269<cfcomponent displayname="Udf" hint="Common functions" name="Udf">
 			
 	<!---******************************************************************************************************
 		Security (note: this looks like it can be removed)
@@ -259,6 +259,19 @@
 			}
 		</cfscript>
 		<cfreturn inputReturn>
+	</cffunction>
+			
+	<cffunction name="createFullyQualifiedMediaUrl" returntype="string" output="false" 
+			hint="Unfortunately, the mediaUrl contains the baseUrl (i.e. '/blog') and this creates problems when we try to create a fully qualified URL. This function will remove the baseUrl from the mediaUrl string in the database. This function is used to create a fully qualified URL to the media file">
+		<cfargument name="mediaUrlFromDb" type="string" required="yes" default=""/>
+
+		<!--- Remove the baseUrl from the mediaUrl string --->
+		<cfset formattedMediaUrl = replaceNoCase(mediaUrlFromDb, application.baseUrl, '', 'one')>
+		<!--- Create a fully qualified URL by appending the formattedMediaUrl to the application.blogHostUrl --->
+		<cfset fullyQualifiedMediaUrl = application.blogHostUrl & formattedMediaUrl>
+
+		<!--- Return it --->
+		<cfreturn fullyQualifiedMediaUrl>
 	</cffunction>
 			
 </cfcomponent>			

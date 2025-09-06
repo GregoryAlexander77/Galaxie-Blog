@@ -1,5 +1,4 @@
 	<!--- Note: this is already put inside of a cfsilent tag on the index.cfm page --->
-
 	<!--- Preset the condensedGridView var to false. We will reset this when in category mode --->
 	<cfset condensedGridView = false>
 	<!--- The popular posts are shown in a scrollable card widget when on the blog landing page --->
@@ -27,21 +26,9 @@
 			Visitor Logging (in blog mode)
 	//****************************************************************************************************************--->
 	<!--- Are we looking at the blog? --->
+	<!--- TODO There is an error here. I am now disabling visitor logging --->
 	<cfif pageTypeId eq 1>
-		
-		<!--- Get the IP address. I am having issues on the Linux server getting the actual IP using the http_referrer and am using the x-forwarded-for header instead. Without this logic I am getting 127.0.0.1 for all traffic when using Lucee, which I don't want. I am breaking this out by the middleware as I don't want to make multiple calls to the cgi and header vars for performance reasons. In my envinroments Lucee uses the header whereas CF uses the CGI var --->
-		<cfif application.serverProduct eq 'Lucee'>
-			<cfset httpHeaders = getHTTPRequestData()['headers']>
-			<!--- Determine if the x-forwarded-for key exists. --->
-			<cfif structKeyExists(httpHeaders,"x-forwarded-for")>
-				<cfset ipAddress = httpHeaders["x-forwarded-for"]>
-			<cfelse>
-				<cfset ipAddress = CGI.Remote_Addr>
-			</cfif>
-		<cfelse><!---<cfif application.serverProduct eq 'Lucee'>--->
-			<cfset ipAddress = CGI.Remote_Addr>
-		</cfif><!---<cfif application.serverProduct eq 'Lucee'>--->
-				
+			
 		<cfif not structKeyExists(cookie, "gauid")>
 			<!--- Get client properties. These cookies only exist when an admin user has logged on and are used to set the interfaces depending upon the screen size --->
 			<cftry>
@@ -55,7 +42,7 @@
 
 			<!--- Save the annonymous user --->
 			<cfinvoke component="#application.blog#" method="saveAnonymousUser" returnVariable="AnonymousUserDbObj">
-				<cfinvokeargument name="ipAddress" value="#ipAddress#">
+				<cfinvokeargument name="ipAddress" value="#application.blog.getIpAddress()#">
 				<cfinvokeargument name="httpUserAgent" value="#CGI.Http_User_Agent#">
 				<cfinvokeargument name="screenWidth" value="#screenWidth#">
 				<cfinvokeargument name="screenHeight" value="#screenHeight#">
@@ -70,9 +57,9 @@
 		</cfif><!---<cfif not structKeyExists(cookie, "gauid")>--->
 
 		<!--- Save the HTTP Referrer if passed. --->
-		<cfif len(ipAddress)>
+		<cfif len(application.blog.getIpAddress()) and len(CGI.Http_Referer)>
 			<cfinvoke component="#application.blog#" method="saveHttpReferrer" returnVariable="httpReferrerId">
-				<cfinvokeargument name="HttpReferrer" value="#ipAddress#">
+				<cfinvokeargument name="HttpReferrer" value="#CGI.Http_Referer#">
 			</cfinvoke>
 		</cfif><!---<cfif len(CGI.Http_Referer)>--->
 
@@ -90,13 +77,14 @@
 				</cfif>
 				<!--- Pass in the HTTP Referrer Object if it exists --->
 				<cfif len(ipAddress) and httpReferrerId gt 0>
-					<cfinvokeargument name="httpReferrer" value="#ipAddress#">
+					<cfinvokeargument name="httpReferrer" value="#CGI.Http_Referer#">
 				</cfif>
 				<cfif postFound and getPageMode() eq 'post'>
 					<cfinvokeargument name="postId" value="#postId#">
 				</cfif>
 			</cfinvoke>
 			<cfcatch type="any">
+				Error saving visitor log
 			</cfcatch>
 		</cftry>
 	</cfif><!---<cfif pageTypeId eq 1>--->
@@ -236,14 +224,27 @@
 				<!--- If they exist, overwrite the meta tag vars. --->
 				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & getFileFromPath(getPost[1]["MediaUrl"])))>
 					<cfset facebookImageMetaTagValue = facebookImageUrl>
+				<cfelse>
+					<!--- I am manually converting files to webp in the enlosure directory and often the image won't be found in the facebook or twitter directories. If this is the case, just use the enclosure URL --->
+					<cfset facebookImageMetaTagValue = getPost[1]["MediaUrl"]>
 				</cfif>
 				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & getFileFromPath(getPost[1]["MediaUrl"])))>
 					<cfset twitterImageMetaTagValue = twitterImageUrl>
+				<cfelse>
+					<cfset twitterImageMetaTagValue = getPost[1]["MediaUrl"]>
 				</cfif>
 
 			</cfif><!---<cfif (getPost[1]["MediaUrl"] contains '.jpg' or getPost[1]["MediaUrl"] contains '.gif' or getPost[1]["MediaUrl"] contains '.png' or getPost[1]["MediaUrl"] contains '.mp3')>--->
+					
+			<!--- Galaxie Blog Directive to change the Kendo library for a post. This is handy in order to use the much smaller Kendo Core library for the main site but still be able to include the professional Kendo version (if you have a license) to occassionally handle more advanced stuff, like Kendo grids --->
+			<cfif findNoCase("kendoCommercial", xmlKeywords) gt 0> 
+				<cfset thisKendoCommercial = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'kendoCommercial')>
+			</cfif>	
+			<cfif findNoCase("kendoSourceLocation", xmlKeywords) gt 0> 
+				<cfset thisKendoSourceLocation = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'kendoSourceLocation')>
+			</cfif>
 
-			<!--- SEO Meta tags. --->
+			<!--- Galaxie Blog Directives to handle SEO Meta tags. --->
 			<cfif findNoCase("titleMetaTag", xmlKeywords) gt 0> 
 				<!--- Overwrite the titleMetaTagValue variable. --->
 				<cfset titleMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'titleMetaTag')>

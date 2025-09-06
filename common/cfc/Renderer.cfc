@@ -1355,10 +1355,6 @@
 			<cfset mapType = "static">
 		</cfif>
 			
-		<cfif CGI.Remote_Addr eq '50.35.125.165'>
-			<cfset mapProvider = 'Azure Maps'>
-		</cfif>
-			
 		<!--- Maps require some special handling as all of the maps needed for a given page need to be loaded using a single function. There is no way to load the maps using their own individual scripts, so we need to idenfity if there is more than one map to create the map loading script. We need to use a single callback script that loads the maps at the same time. --->
 		
 		<!--- //************************************************************************************************
@@ -1505,10 +1501,6 @@
 		<cfargument name="zoom" type="numeric" default="12" required="no">
 			
 		<cfset azureMapsKey = application.azureMapsApiKey>
-			
-		<cfif CGI.Remote_Addr eq '50.35.125.165'>
-			<cfset mapProvider = 'Azure Maps'>
-		</cfif>
 		
 		<!--- Notes: 
 		1) This function does not render the beginning or ending script tags. This is by design as the script tags will vary depending upon how many maps are in the query. The script tags will be rendered by the renderEnclosure function.
@@ -2242,11 +2234,9 @@
 		<cfargument name="callToActionLink" type="string" required="no" default="">
 		<cfargument name="unSubscribeLink" type="string" required="no" default="">
 			
-		<!---<cfoutput>application.blogHostUrl: #application.blogHostUrl# application.siteUrl: #application.siteUrl# application.blogDomain: #application.blogDomain#</cfoutput>--->
-			
 		<!--- Set display properties --->
 		<cfset maxWidth = "720">
-			
+
 		<!--- Get the theme in order to get the font properties --->
 		<cfset themeAlias = application.blog.getSelectedThemeAlias()>
 
@@ -2255,13 +2245,15 @@
 				KendoThemeRef.KendoTheme as KendoTheme,
 				ThemeSettingRef.FontRef.Font as Font,
 				ThemeSettingRef.FontSize as FontSize,
+				ThemeSettingRef.TopMenuAlign as TopMenuAlign,
 				ThemeSettingRef.BlogNameFontRef as BlogNameFontId, 
 				ThemeSettingRef.BlogNameTextColor as BlogNameTextColor,
 				ThemeSettingRef.BlogNameFontSize as BlogNameFontSize,
 				ThemeSettingRef.HeaderBackgroundColor as HeaderBackgroundColor,
 				ThemeSettingRef.HeaderBackgroundImage as HeaderBackgroundImage,
 				ThemeSettingRef.BlogBackgroundImage as BlogBackgroundImage,
-				ThemeSettingRef.MenuBackgroundImage as MenuBackgroundImage
+				ThemeSettingRef.MenuBackgroundImage as MenuBackgroundImage,
+				ThemeSettingRef.LogoPaddingLeft as LogoPaddingLeft
 			)
 			FROM 
 				Theme as Theme
@@ -2283,6 +2275,10 @@
 
 		<!--- Get the logo for the selected theme --->
 		<cfset logoPath = application.blog.getLogoPathByTheme()>
+		<!--- Left padding --->
+		<cfset logoPaddingLeft = getTheme[1]["LogoPaddingLeft"]>
+		<!--- Left, center or right --->
+		<cfset topMenuAlign = getTheme[1]["TopMenuAlign"]>
 		<!--- Blog title --->
 		<cfset blogTitle = application.BlogDbObj.getBlogTitle()>
 		<!--- Display oriented vars --->
@@ -2290,371 +2286,419 @@
 		<!--- Get the blog name font size --->
 		<cfset blogNameFontSize = getTheme[1]["BlogNameFontSize"]>
 		<!--- ... text color --->
-		<cfset BlogNameTextColor = getTheme[1]["BlogNameTextColor"]>
+		<cfset blogNameTextColor = getTheme[1]["BlogNameTextColor"]>
 		<!--- ... the headerBackgroundColor --->
 		<cfset headerBackgroundColor = getTheme[1]["HeaderBackgroundColor"]>
 		<!--- ... the headerBackgroundImage (not used yet) --->
 		<cfset headerBackgroundImage = getTheme[1]["HeaderBackgroundImage"]>
 		<!--- ... and finally the primary button color --->
 		<cfset primaryButtonColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'accentColor')>
-
+		<!--- The headerBackgroundColor may not be set for several themes. When this is the case, use the primaryButtonColor instead --->
+		<cfif !len(headerBackgroundColor)>
+			<cfset headerBackgroundColor = primaryButtonColor>
+		</cfif>
+			
 		<!--- Content --->
 		<cfsavecontent variable="emailBody">
-		<!DOCTYPE html>
-		<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+			<!DOCTYPE html>
+			<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+			<head>
+			<!-- Help character display properly -->
+			<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+			<!-- Set the initial scale of the email -->
+			<meta name="viewport" content="width=device-width, initial-scale=1">
+			<!-- Force Outlook clients to render with a better MS engine. -->
+			<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+			<!-- Help prevent blue links and autolinking -->
+			<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+			<!-- Prevent Apple from reformatting and zooming messages. -->
+			<meta name="x-apple-disable-message-reformatting">
 
-			 <head>
-				  <!-- Help character display properly -->
-				  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-				  <!-- Set the initial scale of the email -->
-				  <meta name="viewport" content="width=device-width, initial-scale=1">
-				  <!-- Force Outlook clients to render with a better MS engine. -->
-				  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
-				  <!-- Help prevent blue links and autolinking -->
-				  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-				  <!-- Prevent Apple from reformatting and zooming messages. -->
-				  <meta name="x-apple-disable-message-reformatting">
+			<!-- Target dark mode -->
+			<meta name="color-scheme" content="light dark">
+			<meta name="supported-color-schemes" content="light dark only">
 
-				  <!-- Target dark mode -->
-				  <meta name="color-scheme" content="light dark">
-				  <meta name="supported-color-schemes" content="light dark only">
+			<!-- Allow for better image rendering on Windows hi-DPI displays. --> 
+			<!--[if mso]>
+			<noscript>
+			<xml>
+			<o:OfficeDocumentSettings>
+			<o:AllowPNG/>
+			<o:PixelsPerInch>96</o:PixelsPerInch>
+			</o:OfficeDocumentSettings>
+			</xml>
+			</noscript>
+			<![endif]--> 
 
-				  <!-- Allow for better image rendering on Windows hi-DPI displays. -->
-				  <!--[if mso]>
-				  <noscript>
-				  <xml>
-				  <o:OfficeDocumentSettings>
-				  <o:AllowPNG/>
-				  <o:PixelsPerInch>96</o:PixelsPerInch>
-				  </o:OfficeDocumentSettings>
-				  </xml>
-				  </noscript>
-				  <![endif]-->
+			<!-- Support dark mode meta tags -->
+			<style type="text/css">
+			:root {
+				color-scheme: light dark;
+				supported-color-schemes: light dark;
+			}
+			</style>
 
-				  <!-- Support dark mode meta tags -->
-				  <style type="text/css">
-					   :root {
-							color-scheme: light dark;
-							supported-color-schemes: light dark;
-					   }
-				  </style>
+			<!--webfont code goes here--> 
+			<!--[if (gte mso 9)|(IE)]><!--> 
+			<!--webfont <link /> goes here-->
+			<style></style>
+			<!--<![endif]-->
 
-				  <!--webfont code goes here-->
-				  <!--[if (gte mso 9)|(IE)]><!-->
-				  <!--webfont <link /> goes here-->
-				  <style>
-					   /*Web font over ride goes here
-					   h1, h2, h3, h4, h5, p, a, img, span, ul, ol, li { font-family: 'webfont name', Arial, Helvetica, sans-serif !important; } */
-				  </style>
-				  <!--<![endif]-->
+			<style type="text/css">
+			.body-fix {
+				height: 100% !important;
+				margin: 0 auto !important;
+				padding: 0 !important;
+				width: 100% !important;
+				-webkit-text-size-adjust: 100%;
+				-ms-text-size-adjust: 100%;
+				-webkit-font-smoothing: antialiased;
+				word-spacing: normal;
+			}
+			div[style*="margin:16px 0"] {
+				margin: 0 !important;
+			}
+			table, td {
+				border-collapse: collapse !important;
+				mso-table-lspace: 0pt;
+				mso-table-rspace: 0pt;
+				-webkit-text-size-adjust: 100%;
+				-ms-text-size-adjust: 100%;
+			}
+			img {
+				border: 0;
+				line-height: 100%;
+				outline: none;
+				text-decoration: none;
+				display: block;
+			}
+			p, h1, h2, h3 {
+				padding: 0;
+				margin: 0;
+			}
+			a[x-apple-data-detectors] {
+				color: inherit !important;
+				text-decoration: none !important;
+				font-size: inherit !important;
+				font-family: inherit !important;
+				font-weight: inherit !important;
+				line-height: inherit !important;
+			}
+			u+#body a {
+				color: inherit;
+				text-decoration: none;
+				font-size: inherit;
+				font-family: inherit;
+				font-weight: inherit;
+				line-height: inherit;
+			}
+			.blogTitle {
+				/* The blog title at the top of the email */
+				padding-left: 15px; 
+				font-size: 28px; 
+				font-family: Arial, sans-serif; 
+				font-weight:bold; 
+				padding: 15px 20px; 
+				color: #<cfoutput>#BlogNameTextColor#</cfoutput>;
+			}
 
-				  <style type="text/css">
-					   .body-fix {
-							height: 100% !important;
-							margin: 0 auto !important;
-							padding: 0 !important;
-							width: 100% !important;
-							-webkit-text-size-adjust: 100%;
-							-ms-text-size-adjust: 100%;
-							-webkit-font-smoothing: antialiased;
-							word-spacing: normal;
-					   }
+			.messageTitle {
+				font-family: Arial, sans-serif;
+				line-height: 1.5;
+				padding-bottom: 5px;
+				padding-top: 5px;
+			}
+			#MessageViewBody a {
+				color: inherit;
+				text-decoration: none;
+				font-size: inherit;
+				font-family: inherit;
+				font-weight: inherit;
+				line-height: inherit;
+			}
+			.link:hover {
+				text-decoration: none !important;
+			}
+			.fadeimg {
+				transition: 0.3s !important;
+				opacity: 1 !important;
+			}
+			.fadeimg:hover {
+				transition: 0.3s !important;
+				opacity: 0.5 !important;
+			}
 
-					   div[style*="margin:16px 0"] {
-							margin: 0 !important;
-					   }
+			/* start call to action (cta) hover effects (from litmus) */
+			.cta { transition: 0.3s !important; }
+			.cta span { transition: 0.3s !important; }
+			.cta:hover {
+				transition: 0.5s !important;
+				background-color: #<cfoutput>#primaryButtonColor#</cfoutput> !important;
+				transform: scale(1.05);
+			}
+			.cta:hover span { transition: 0.3s !important; }
+			.cta-border:hover { border-bottom: 3px solid transparent !important; }
 
-					   table, td {
-							border-collapse: collapse !important;
-							mso-table-lspace: 0pt;
-							mso-table-rspace: 0pt;
-							-webkit-text-size-adjust: 100%;
-							-ms-text-size-adjust: 100%;
-					   }
+			.mobile {
+				display: none;
+			}
+			</style>
 
-					   img {
-							border: 0;
-							line-height: 100%;
-							outline: none;
-							text-decoration: none;
-							display: block;
-					   }
+			<style>
+			@media only screen and (max-width: 414px) {
+				.deviceWidth {
+					width:280px!important;
+					padding:0;
+				}
+				.center {
+					text-align: center!important;
+				}
+			}
+			</style>
 
-					   p, h1, h2, h3 {
-							padding: 0;
-							margin: 0;
-					   }
+			<!-- Mobile styles -->
+			<style>
+			@media screen and (max-width: <cfoutput>#maxwidth#</cfoutput>px) {
 
-					   a[x-apple-data-detectors] {
-							color: inherit !important;
-							text-decoration: none !important;
-							font-size: inherit !important;
-							font-family: inherit !important;
-							font-weight: inherit !important;
-							line-height: inherit !important;
-					   }
+				.fullScreen {
+					width: 100% !important;
+				}
+				.imgFull {
+					width: 100% !important;
+					height: auto !important;
+				}
+				.desktop {
+					width: 0 !important;
+					display: none !important;
+				}
+				.mobile {
+					display: block !important;
+				}
+				h1 {
+					font-size: 50px !important;
+					line-height: 60px !important;
+				}
+				.bodyText {
+					font-size: 18px !important;
+					line-height: 28px !important;
+				}
+				.topPadding-0 {
+					padding-top: 0 !important;
+				}
+			}
+			</style>
 
-					   u+<cfoutput>#chr(35)#</cfoutput>body a {
-							color: inherit;
-							text-decoration: none;
-							font-size: inherit;
-							font-family: inherit;
-							font-weight: inherit;
-							line-height: inherit;
-					   }
+			<!-- Dark mode styles -->
+			<style>
+			@media (prefers-color-scheme: dark) {
+				/* Shows Dark Mode-Only Content, Like Images */
+				.dark-img {
+					display: block !important;
+					width: auto !important;
+					overflow: visible !important;
+					float: none !important;
+					max-height: inherit !important;
+					max-width: inherit !important;
+					line-height: auto !important;
+					margin-top: 0px !important;
+					visibility: inherit !important;
+				}
+				/* Hides Light Mode-Only Content, Like Images */
+				.light-img {
+					display: none;
+					display: none !important;
+				}
+				/* Custom Dark Mode Background Color */
+				.darkmode {
+					background-color: #100E11 !important;
+				}
+				.darkmode2 {
+					background-color: #020203 !important;
+				}
+				.darkmode3 {
+					background-color: #222023 !important;
+				}
+				/* Custom Dark Mode Font Colors */
+				h1, h3, p, span, a {
+					color: #fdfdfd !important;
+				}
+				h2, h2 a {
+					color: #028383 !important;
+				}
+				.white {
+					color: #fdfdfd !important;
+				}
+				/* Custom Dark Mode Text Link Color */
+				.link {
+					color: #028383 !important;
+				}
+				.footer a.link {
+					color: #fdfdfd !important;
+				}
+			}
+			/* Copy dark mode styles for android support */
+			/* Shows Dark Mode-Only Content, Like Images */
+			/* data-ogsc is an outlook proprietary attribute */
+			[data-ogsc] .dark-img {
+				display: block !important;
+				width: auto !important;
+				overflow: visible !important;
+				float: none !important;
+				max-height: inherit !important;
+				max-width: inherit !important;
+				line-height: auto !important;
+				margin-top: 0px !important;
+				visibility: inherit !important;
+			}
+			/* Hides Light Mode-Only Content, Like Images */
+			[data-ogsc] .light-img {
+				display: none;
+				display: none !important;
+			}
+			/* Custom Dark Mode Background Color */
+			[data-ogsc] .darkmode {
+				background-color: #100E11 !important;
+			}
+			[data-ogsc] .darkmode2 {
+				background-color: #020203 !important;
+			}
+			[data-ogsc] .darkmode3 {
+				background-color: #222023 !important;
+			}
+			/* Custom Dark Mode Font Colors */
+			[data-ogsc] h1, [data-ogsc] h3, [data-ogsc] p, [data-ogsc] span, [data-ogsc] a {
+				color: #fdfdfd !important;
+			}
+			[data-ogsc] h2, [data-ogsc] h2 a {
+				color: #028383 !important;
+			}
+			[data-ogsc] .white {
+				color: #fdfdfd !important;
+			}
+			/* Custom Dark Mode Text Link Color */
+			[data-ogsc] .link {
+				color: #028383 !important;
+			}
+			[data-ogsc] .footer a.link {
+				color: #fdfdfd !important;
+			}
 
-					   <cfoutput>#chr(35)#</cfoutput>MessageViewBody a {
-							color: inherit;
-							text-decoration: none;
-							font-size: inherit;
-							font-family: inherit;
-							font-weight: inherit;
-							line-height: inherit;
-					   }
+			/* The headerContainer is a *child* flex container of the mainPanel below. This may be counter-intuitive, but the main content is stuffed into the blogContent and I want the header to play nicely and following along. This container will be resized if it does not match the parent mainPanel container using the setScreenProperties function at the top of the page. */
+			#headerContainer {
+				width: 100%; 
+			}
 
-					   .link:hover { text-decoration: none !important; }
+			#blogNameContainer {
+				/* The blog title at the top of the page */
+				font-size: 28px; 
+				color: #<cfoutput>#BlogNameTextColor#</cfoutput>;
+				vertical-align: center;
+			}
+			</style>
 
-					   .fadeimg {
-							transition: 0.3s !important;
-							opacity: 1 !important;
-					   }
+			<!--[if (gte mso 9)|(IE)]>
+			<style>
+				sup{font-size:100% !important;}
+			</style>
+			<![endif]-->
+			<title><cfoutput>#arguments.emailTitle#</cfoutput></title>
+			</head>
 
-					   .fadeimg:hover {
-							transition: 0.3s !important;
-							opacity: 0.5 !important;
-					   }
+			<body id="body" class="darkmode body body-fix">
+			<div role="article" aria-roledescription="email" aria-label="<cfoutput>#application.BlogDbObj.getBlogTitle()#</cfoutput>" xml:lang="en" lang="en">
+			  <table class="darkmode" cellpadding="0" cellspacing="0" border="0" align="center" role="presentation" style="width:100%; background: #EEEEEE;">
+				<tr>
+				  <td class="topPadding-0" align="center" valign="top" style="padding-top: 10px;">
+					  <table class="fullScreen darkmode2" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width: <cfoutput>#maxwidth#</cfoutput>px; background-color: #FFFFFF;">
+						  <tr>
+							<td align="center" valign="top" bgcolor="<cfoutput>#headerBackgroundColor#</cfoutput>">
+								<table id="headerContainer" cellpadding="0" cellspacing="0" align="center" border="0" style="width: 100%;">
+								  <tr>
+									<td>
+									<table cellpadding="0" cellspacing="0" border="0" align="<cfoutput>#topMenuAlign#</cfoutput>" bgcolor="<cfoutput>#headerBackgroundColor#</cfoutput>">
+										<!-- If you want the blog title lower, increase the tr height below and decrease the tr height in the *next* row to keep everything aligned. -->
+										<tr valign="bottom" height="80px">
+											<!-- Give sufficient room for a logo. -->
+											<td id="logo" name="logo" valign="middle" >									
+												<!-- Light mode logo --> 
+												<a href="https://www.gregoryalexander.com/blog" target="_blank">
+													<img class="light-img" src="<cfoutput>#application.blogHostUrl##logoPath#</cfoutput>" alt="<cfoutput>#application.BlogDbObj.getBlogTitle()#</cfoutput>"
+												style="color:#4A4A4A; font-family: Arial, sans-serif; text-align:left; font-weight:bold; font-size:24px; text-decoration: none; padding: 0; padding-left: 15px"> 
 
-					   /* start CTA HOVER EFFECTS */
-					   .cta { transition: 0.3s !important; }
-					   .cta span { transition: 0.3s !important; }
-					   .cta:hover {
-							transition: 0.5s !important;
-							background-color: <cfoutput>#chr(35)##primaryButtonColor#</cfoutput> !important;
-							transform: scale(1.05);
-					   }
-					   .cta:hover span { transition: 0.3s !important; }
-					   .cta-border:hover { border-bottom: 3px solid transparent !important; }
-					   /* end CTA HOVER EFFECTS */
+												<!-- Dark mode logo --> 
+												<!--[if !mso]><! -->
+												<div class="dark-img" style="display:none; overflow:hidden; width:0px; max-height:0px; max-width:0px; line-height:0px; visibility:hidden;" align="center">
+													<img src="<cfoutput>#application.blogHostUrl##logoPath#</cfoutput>" alt="<cfoutput>#application.BlogDbObj.getBlogTitle()#</cfoutput>" style="color: #4A4A4A; font-family: Arial, sans-serif; text-align:center; font-weight:bold; font-size:24px; text-decoration: none; padding: 0;" border="0" />
+												</div>
+												<!--<![endif]--> 
+											</td>
+											<td id="blogNameContainer" valign="middle">
+												<p class="blogTitle" style="padding-left: 15px; font-size: 28px; font-family: Arial, sans-serif; font-weight:bold; padding: 15px 20px; color: <cfoutput>#BlogNameTextColor#</cfoutput>;"><cfoutput>#application.BlogDbObj.getBlogTitle()#</cfoutput></p>
+											</td>
+										</tr>
+									</table>
+									</td>
+								  </tr>
+								</table>
+							  </td>
+						  </tr>
+						<cfif len(arguments.emailTitle)>
+						  <tr>
+							<td align="center" valign="top" style="padding:15px;">
+								<h2 style="font-family: Arial, sans-serif; margin: 0;font-size: 24px; text-align: left;"> 
 
-					   .mobile { display: none; }
+								<cfif len(arguments.emailTitleLink)><a href="<cfoutput>#arguments.emailTitleLink#</cfoutput>" target="_blank" style="font-family: Arial, sans-serif; line-height: 1.5; padding-bottom: 5px; padding-top: 5px; color: #0a080b; text-decoration: none;" class="messageTitle"></cfif><cfoutput>#arguments.emailTitle#</cfoutput><cfif len(arguments.emailTitleLink)></a></cfif>
+								</h2>
 
-					   /* start rating stars effect */
-					   .star > a:hover, .star > a:hover ~ a { color: <cfoutput>#chr(35)#</cfoutput>26de81 !important; }
-					   /* end rating stars effect */
-				  </style>
+							  </td>
+						  </tr>
+						</cfif>
+						<cfif len(arguments.mediaUrl)>
+						  <tr>
+							<td align="center" valign="top" style="padding: 0 0 10px;"><a href="<cfoutput>#application.udf.createFullyQualifiedMediaUrl(arguments.mediaUrl)#</cfoutput>" target="_blank"><img src="<cfoutput>#application.udf.createFullyQualifiedMediaUrl(arguments.mediaUrl)#</cfoutput>" class="fadeimg" alt="<cfoutput>#arguments.emailTitle#</cfoutput>" style="width: 100%; max-width: <cfoutput>#maxwidth#</cfoutput>px; height: auto;" /></a></td>
+						  </tr>
+						</cfif>
+						<cfif len(arguments.emailDesc)>
+						  <tr>
+							<td align="center" valign="top" style="padding:0 0 10px;"><p class="bodyText" style="font-family: Arial, sans-serif; margin: 0 20px; font-size: 22px; font-weight: normal; color: #0A080B; text-align: left;"><cfoutput>#arguments.emailDesc#</cfoutput></p></td>
+						  </tr>
+						</cfif>
+						  <tr>
+							<td align="center" valign="top"><hr style="border: 0; height: 1px; margin: 0; background: #999;" /></td>
+						  </tr>
+						<cfif len(arguments.callToActionText)>
+						  <tr>
+							<td align="center" valign="center" style="padding:15px;">
+								<!--- Call to action button --->
+								<a href="<cfoutput>#arguments.callToActionLink#</cfoutput>" class="cta" style="background-color: #<cfoutput>#primaryButtonColor#</cfoutput>; font-size: 18px; font-family: Arial, sans-serif; font-weight:bold; text-decoration: none; padding: 15px 20px; color: <cfoutput>#BlogNameTextColor#</cfoutput>; display:inline-block; mso-padding-alt:0;  border-radius: 10px;"><!--[if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:30pt">&nbsp;</i><![endif]--><span style="mso-text-raise:15pt;"><cfoutput>#arguments.callToActionText#</cfoutput></span><!--[if mso]><i style="letter-spacing: 25px;mso-font-width:-100%">&nbsp;</i><![endif]--></a>
+							</td>
+						  </tr>
+						</cfif>
+						<cfif len(arguments.emailBody)>
+						  <tr>
+							<td align="center" valign="top" style="padding:0 10px 20px;"><hr style="border: 0; height: 1px; margin: 0; background: #999;" /></td>
+						  </tr>
+						  <tr>
+							<td align="left" valign="top" style="padding: 0 10px 20px; font-family: Arial, sans-serif; margin: 0 20px; font-size: 16px; font-weight: normal;">
+								 <cfoutput>#arguments.emailBody#</cfoutput>
+							</td>
+						  </tr>
+						  </cfif>
+						  <tr>
+							<td class="darkmode footer" align="center" valign="top" style="padding:50px 30px; background: #EEEEEE;"><!--Footer-->
 
-				  <!-- Mobile styles -->
-				  <style>
-				  @media screen and (max-width: <cfoutput>#maxWidth#px</cfoutput>) {
-					   .w90p { width: 90% !important; }
-					   .w95p { width: 95% !important; }
-					   .w100p { width: 100% !important; }
+							  <p style="font-family: Arial, sans-serif;font-size:14px;line-height:24px;mso-line-height-rule:exactly;color:#0a080b;margin-bottom:20px;"><cfoutput>#application.BlogDbObj.getBlogTitle()#</cfoutput><br>
+								<br>
+								<a href="<cfoutput>#application.blogHostUrl#</cfoutput>/?about" class="link" target="_blank" style="color: #0A080B; text-decoration: underline;">About</a> &nbsp;&nbsp;|&nbsp;&nbsp;<a href="<cfoutput>#application.blogHostUrl#</cfoutput>/?contact" class="link" target="_blank" style="color: #0a080b; text-decoration: underline;">Contact</a> &nbsp;&nbsp;|&nbsp;&nbsp;<a href="<cfoutput>#arguments.unSubscribeLink#</cfoutput>" class="link" target="_blank" style="color: #0a080b; text-decoration: underline;">Unsubscribe</a> </p></td>
+						  </tr>
+						</table>
+					</td>
+				</tr>
+			  </table>
+			</div>
 
-					   .imgFull { width: 100% !important; height: auto !important; }
-
-					   .desktop { width: 0 !important; display: none !important; }
-					   .mobile { display: block !important; }
-
-					   h1 { font-size: 50px !important; line-height: 60px !important; }
-					   .std { font-size: 18px !important; line-height: 28px !important; }
-
-					   .cTxt { text-align: center !important; }
-
-					   .tPad-0 { padding-top: 0 !important; }
-					   .rPad-0 { padding-right: 0 !important; }
-					   .lPad-0 { padding-left: 0 !important; }
-					   .bPad-30 { padding-bottom: 30px !important; }
-					  
-					   .star a { font-size: 40px !important; }
-				  }
-				  </style>
-
-				  <!-- Dark mode styles -->
-				  <style>
-				  @media (prefers-color-scheme: dark) {
-					   /* Shows Dark Mode-Only Content, Like Images */
-					   .dark-img {
-							display: block !important;
-							width: auto !important;
-							overflow: visible !important;
-							float: none !important;
-							max-height: inherit !important;
-							max-width: inherit !important;
-							line-height: auto !important;
-							margin-top: 0px !important;
-							visibility: inherit !important;
-					   }
-
-					   /* Hides Light Mode-Only Content, Like Images */
-					   .light-img { display: none; display: none !important; }
-
-					   /* Custom Dark Mode Background Color */
-					   .darkmode { background-color: <cfoutput>#chr(35)#</cfoutput>100E11 !important; }
-					   .darkmode2 { background-color: <cfoutput>#chr(35)#</cfoutput>020203 !important; }
-					   .darkmode3 { background-color: <cfoutput>#chr(35)#</cfoutput>222023 !important; }
-
-					   /* Custom Dark Mode Font Colors */
-					   h1, h3, p, span, a { color: <cfoutput>#chr(35)#</cfoutput>fdfdfd !important; }
-					   h2, h2 a { color: <cfoutput>#chr(35)#</cfoutput>028383 !important; }
-					   .white { color: <cfoutput>#chr(35)#</cfoutput>fdfdfd !important; }
-
-
-					   /* Custom Dark Mode Text Link Color */
-					   .link { color: <cfoutput>#chr(35)#</cfoutput>028383 !important; }
-					   .footer a.link { color: <cfoutput>#chr(35)#</cfoutput>fdfdfd !important; }
-				  }
-
-				  /* Copy dark mode styles for android support */
-				  /* Shows Dark Mode-Only Content, Like Images */
-				  [data-ogsc] .dark-img {
-					   display: block !important;
-					   width: auto !important;
-					   overflow: visible !important;
-					   float: none !important;
-					   max-height: inherit !important;
-					   max-width: inherit !important;
-					   line-height: auto !important;
-					   margin-top: 0px !important;
-					   visibility: inherit !important;
-				  }
-
-				  /* Hides Light Mode-Only Content, Like Images */
-				  [data-ogsc] .light-img {
-					   display: none;
-					   display: none !important;
-				  }
-
-				  /* Custom Dark Mode Background Color */
-				  [data-ogsc] .darkmode { background-color: <cfoutput>#chr(35)#</cfoutput>100E11 !important; }
-				  [data-ogsc] .darkmode2 { background-color: <cfoutput>#chr(35)#</cfoutput>020203 !important; }
-				  [data-ogsc] .darkmode3 { background-color: <cfoutput>#chr(35)#</cfoutput>222023 !important; }
-
-				  /* Custom Dark Mode Font Colors */
-				  [data-ogsc] h1, [data-ogsc] h3, [data-ogsc] p, [data-ogsc] span, [data-ogsc] a { color: <cfoutput>#chr(35)#</cfoutput>fdfdfd !important; }
-				  [data-ogsc] h2, [data-ogsc] h2 a { color: <cfoutput>#chr(35)#</cfoutput>028383 !important; }
-				  [data-ogsc] .white { color: <cfoutput>#chr(35)#</cfoutput>fdfdfd !important; }
-
-				  /* Custom Dark Mode Text Link Color */
-				  [data-ogsc] .link { color: <cfoutput>#chr(35)#</cfoutput>028383 !important; }
-				  [data-ogsc] .footer a.link { color: <cfoutput>#chr(35)#</cfoutput>fdfdfd !important; }
-				  </style>
-
-				  <!--- Correct superscripts in Outlook --->
-				  <!--[if (gte mso 9)|(IE)]>
-				  <style>
-				  sup{font-size:100% !important;}
-				  </style>
-				  <![endif]-->
-				  <title><cfoutput>#arguments.emailTitle#</cfoutput></title>
-			 </head>
-
-			  <body id="body" class="darkmode body body-fix">
-				  <div role="article" aria-roledescription="email" aria-label="<cfoutput>#blogTitle#</cfoutput>" xml:lang="en" lang="en">
-
-					   <!--- Start of email --->
-					   <table class="darkmode" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%; background: ##eeeeee;">
-							<!--- Main content --->
-							<tr>
-								 <td class="tPad-0" align="center" valign="top" style="padding-top: 10px;">
-									  <table class="w100p darkmode2" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width: <cfoutput>#maxWidth#</cfoutput>px; background-color: ##ffffff;">
-										   <tr>
-												<td align="center" valign="top" style="padding:10px 0; background-color: <cfoutput>#headerBackgroundColor#</cfoutput>">
-												<!--- Header with logo --->
-													 <!--- Light mode logo --->
-													 <a href="<cfoutput>#application.blogHostUrl#</cfoutput>" target="_blank"><img class="light-img" src="<cfoutput>#application.blogHostUrl##logoPath#</cfoutput>" alt="<cfoutput>#blogTitle#</cfoutput>"
-													 style="color: ##4a4a4a; font-family: 'Trebuchet MS', Arial, sans-serif; text-align:center; font-weight:bold; font-size:24px; line-height:28x; text-decoration: none; padding: 0;">
-														  <!--- Dark mode logo--->
-														  <!--[if !mso]><! -->
-														  <div class="dark-img" style="display:none; overflow:hidden; width:0px; max-height:0px; max-width:0px; line-height:0px; visibility:hidden;" align="center">
-															   <img src="<cfoutput>#application.blogHostUrl##logoPath#</cfoutput>" alt="<cfoutput>#blogTitle#</cfoutput>" style="color: ##4a4a4a; font-family: 'Trebuchet MS', Arial, sans-serif; text-align:center; font-weight:bold; font-size:24px; line-height:28px; text-decoration: none; padding: 0;" border="0" />
-														  </div>
-														  <!--<![endif]-->
-													 </a>
-												</td>
-										   </tr>
-										   <tr>
-												<td align="center" valign="top" style="padding:0 0 10px;">
-													<!--- Headline --->
-													<h2 style="font-family: 'Trebuchet MS', Arial, sans-serif; margin: 0;font-size: 36px; line-height: 46px; text-align: center; color: ##028383; font-weight: normal;">
-													<cfif len(arguments.emailTitleLink)>
-														<a href="<cfoutput>#arguments.emailTitleLink#</cfoutput>" target="_blank" style="color: ##0a080b; text-decoration: none;">
-													</cfif>
-													<cfoutput>#arguments.emailTitle#</cfoutput>
-													<cfif len(arguments.emailTitleLink)></a></cfif>
-													</h2>
-												</td>
-										   </tr>
-										<cfif len(arguments.emailDesc)>
-										   <tr>
-												<td align="center" valign="top" style="padding:0 0 10px;">
-													 <!--- Post Description --->
-													 <p class="std" style="font-family: 'Trebuchet MS', Arial, sans-serif; margin: 0 20px; font-size: 22px; line-height: 40px; font-weight: normal; color: ##0A080B;"><cfoutput>#arguments.emailDesc#</cfoutput></p>
-												</td>
-										   </tr>
-										</cfif>
-										<cfif len(arguments.mediaUrl)>
-										   	<tr>
-												<td align="center" valign="top" style="padding: 0 0 10px;">
-													 <!--- Full width image (no LR padding) --->
-													 <a href="http://<cfoutput>#application.blogHostUrl##mediaUrl#</cfoutput>" target="_blank"><img src="http://<cfoutput>#application.blogHostUrl##mediaUrl#</cfoutput>" class="fadeimg" width="<cfoutput>#maxWidth#</cfoutput>" height="400" alt="<cfoutput>#arguments.emailTitle#</cfoutput>" style="width: 100%; max-width: <cfoutput>#maxWidth#px</cfoutput>px; height: auto;" /></a>
-												</td>
-										   	</tr>
-										</cfif><!---<cfif len(arguments.mediaUrl)>--->
-										   <tr>
-												<td align="center" valign="top" style="padding:0 10px 20px;">
-													 <!---Divider--->
-													 <hr style="border: 0; height: 1px; margin: 0; background: ##999;" />
-												</td>
-										   </tr>
-										   <tr>
-												<td align="left" valign="top" style="padding: 0 10px 20px; font-family: 'Trebuchet MS', Arial, sans-serif; margin: 0 20px; font-size: 16px; font-weight: normal;">
-													 <cfoutput>#arguments.emailBody#</cfoutput>
-												</td>
-										   </tr>
-										<cfif len(arguments.callToActionText) and len(arguments.callToActionLink)>
-										   <tr>
-												<td align="center" valign="top" style="padding:0 10px 20px;">
-													 <!---Divider--->
-													 <hr style="border: 0; height: 1px; margin: 0; background: ##999;" />
-												</td>
-										   </tr>
-										   <tr>
-												<td align="center" valign="top" style="padding:0 0 50px;">
-													 <!--- CTA button --->
-													<a href="<cfoutput>#arguments.callToActionLink#</cfoutput>" class="cta" style="background-color: ##<cfoutput>#primaryButtonColor#</cfoutput>; font-size: 18px; font-family: 'Trebuchet MS', Arial, sans-serif; font-weight:bold; text-decoration: none; padding: 14px 20px; color: ##ffffff; display:inline-block; mso-padding-alt:0;"> <!--[if mso]><i style="letter-spacing: 25px;mso-font-width:-100%;mso-text-raise:30pt">&nbsp;</i><![endif]--><span style="mso-text-raise:15pt;"><cfoutput>#arguments.callToActionText#</cfoutput></span><!--[if mso]><i style="letter-spacing: 25px;mso-font-width:-100%">&nbsp;</i><![endif]--></a>
-												</td>
-										   </tr>
-										</cfif> 
-										   <tr>
-												<td align="center" valign="top" style="padding:0 10px 20px;">
-													 <!---Divider--->
-													 <hr style="border: 0; height: 1px; margin: 0; background: ##999;" />
-												</td>
-										   </tr>
-										   <tr>
-												<td class="darkmode footer" align="center" valign="top" style="padding:50px 30px; background: ##eeeeee;">
-													 <!--Footer-->
-													 <p style="font-family: 'Trebuchet MS', Arial, sans-serif;font-size:14px;line-height:24px;mso-line-height-rule:exactly;color:##0a080b;margin-bottom:20px;"><cfoutput>#blogTitle#</cfoutput><br><br>
-													 <a href="<cfoutput>#application.blogHostUrl#</cfoutput>/?about" class="link" target="_blank" style="color: ##0a080b; text-decoration: underline;">About</a>
-													&nbsp;&nbsp;|&nbsp;&nbsp;<a href="<cfoutput>#application.blogHostUrl#</cfoutput>/?contact" class="link" target="_blank" style="color: ##0a080b; text-decoration: underline;">Contact</a>
-												<cfif len(arguments.unSubscribeLink)>
-													&nbsp;&nbsp;|&nbsp;&nbsp;<a href="<cfoutput>#arguments.unSubscribeLink#</cfoutput>/" class="link" target="_blank" style="color: ##0a080b; text-decoration: underline;">Unsubscribe</a>
-												</cfif><!---<cfif len(arguments.unSubscribeLink)>--->
-													 </p>
-												</td>
-										   </tr>
-
-									  </table>
-								 </td>
-							</tr>
-					   </table>
-				  </div>
-
-			 <!-- analytics (in an upcoming version...) -->
-
-			 </body>
-
-		</html>
+			</body>
+			</html>
 		</cfsavecontent>
 			
 		<!--- Return it --->
@@ -2788,7 +2832,7 @@
 				</tr>
 				<tr>
 					<td colspan="2">
-						#(encodeForHTML(comments))#
+						#comments#
 					</td>
 				</tr>
 			</table>

@@ -44,8 +44,8 @@ Blog table
 		  ,SaltAlgorithmSize
 		  ,HashAlgorithm
 		  ,ServiceKeyEncryptionPhrase
-		  ,'3.57' as BlogVersion
-		  ,'Toby''s Edition' as BlogVersionName
+		  ,'4.07' as BlogVersion
+		  ,'Bella''s Edition' as BlogVersionName
 		  ,'' as BlogVersionDate
 		  ,1 as IsProd
 		  ,0 as BlogInstalled
@@ -108,6 +108,7 @@ Blog Option table
 		  ,'' as DisqusAuthUrl
 		  ,'' as DisqusAuthTokenUrl
 		  ,'' as BingMapsApiKey
+		  ,'' as AzureMapsApiKey
 		  ,'' as FacebookAppId
 		  ,'' as TwitterAppId
 		  ,'' as GoogleAnalyticsString

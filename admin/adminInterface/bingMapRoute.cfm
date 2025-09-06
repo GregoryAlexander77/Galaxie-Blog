@@ -11,7 +11,6 @@
 	<cfset enclosureMapId = getPost[1]["EnclosureMapId"]>
 	<cfif len(enclosureMapId)>
 		<cfset Data = application.blog.getMapRoutesByMapId(enclosureMapId)>
-		<!---<cfdump var="#Data#">--->
 	</cfif>
 	
 	<script type='text/javascript'>
@@ -61,7 +60,7 @@
 			saveMapRoute(valuesList);
         }
 		
-		function saveMapRoute(locationGeoCoordinates){
+		function saveMapRoute(locationGeoCoordinates){ 
 			
 			// Let the user know that we are processing the data
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we create your map.", icon: "k-ext-information" }));

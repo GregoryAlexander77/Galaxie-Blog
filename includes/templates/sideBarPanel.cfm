@@ -1,9 +1,17 @@
+	<cfsilent>
+	<!--- We need to differentiate material and non-material themes to appy the right settings to the buttons --->
+	<cfif kendoTheme contains 'material'>
+		<cfset materialTheme = true>
+	<cfelse>
+		<cfset materialTheme = false>
+	</cfif>	
+	</cfsilent>
 	<input type="hidden" id="sidebarPanelState" name="sidebarPanelState" value="initial"/>
 	<!--- Side bar is to the right of the main panel container. It is also used as a responsive panel below when the screen size is small. We will not include it if the break point is not 0 or is equal or above 50000 --->
 	<cfif breakpoint gt 0>
 		<div id="sidebar">
 			<!--- Suppply the sideBarType argument before loading the side bar--->
-			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#" themeId="#themeId#" kendoTheme="#kendoTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
+			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#"  materialTheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 		</div><!---<nav id="sidebar">--->
 		</cfif>
 	</div><!---<div class="mainPanel hiddenOnNarrow">--->
@@ -11,7 +19,7 @@
 	<nav id="sidebarPanel" class="k-content">
 		<div id="sidebarPanelWrapper" name="sidebarPanelWrapper" class="flexScroll">
 			<!---Suppply the sideBarType argument before loading the side bar--->
-			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#" themeId="#themeId#" kendoTheme="#kendoTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
+			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#"  materialTheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 		</div>
 	</nav><!---<nav id="sidebar">--->
 	<!--- This script must be placed underneath the layer that is being used in order to effectively work as a flyout menu.--->

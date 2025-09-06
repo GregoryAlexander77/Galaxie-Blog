@@ -14,7 +14,7 @@
 	
 <!--- 
 ********* Content template common logic *********
-Note: the following logic should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
+Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
 <cfset thisTemplate = "recentPostsPod">
 <!--- The following logic does not need to be modified and will work with most of the content output templates --->
 <!--- Reset our display content output var --->
@@ -35,20 +35,8 @@ Note: the following logic should not be cached as each theme may return a differ
 	
 <!--- Get the new recent posts --->
 <cfset recentPosts = application.blog.getRecentPosts()>
-	
-<!--- Cache notes: We're saving this to the application scope. We need to differentiate between the dark theme and light themes in the key. The timeout is set to 30 minutes --->
-<cfif session.isMobile>
-	<cfset cacheName = "recentPostsMobile">
-<cfelse>
-	<cfset cacheName = "recentPosts">
-</cfif>
-<!--- Dark theme --->
-<cfif darkTheme>
-	<cfset cacheName = "recentPostsDark">
-</cfif>
 
 </cfsilent>
-		<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" timeout="#60*30#" disabled="#application.disableCache#">
 			<cfif displayContentOutputData>
 				<!--- Include the custom user defined content from the database --->
 				<cfoutput>#contentOutputData#</cfoutput>
@@ -94,4 +82,3 @@ Note: the following logic should not be cached as each theme may return a differ
 				</table>
 			</cfif>
 			<br/>
-		</cfmodule>

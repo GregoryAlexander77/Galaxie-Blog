@@ -161,8 +161,8 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <cfset kendoThemeMobileCssFileLocation = trim(application.kendoFolderPath & getTheme[1]["KendoThemeMobileCssFileLocation"])>
 <cfset kendoThemeMobileCssFileLocation = trim(application.kendoFolderPath & getTheme[1]["KendoThemeMobileCssFileLocation"])>
 	
-<!--- When using the Kendo Core package, add the root folder to the location --->
-<cfif not application.kendoCommercial>
+<!--- When using the Kendo Core package, add the root folder to the location if the location path does not already contain the baseUrl. This last bit of logic is used to fix a bug and this entire code may not be necessary. --->
+<cfif !application.kendoCommercial and !findNoCase(application.baseUrl, kendoCommonCssFileLocation)>
 	<cfset kendoCommonCssFileLocation = application.baseUrl & kendoCommonCssFileLocation>
 	<cfset kendoThemeCssFileLocation = application.baseUrl & kendoThemeCssFileLocation>
 	<cfset kendoThemeMobileCssFileLocation = application.baseUrl & kendoThemeMobileCssFileLocation>

@@ -1,5 +1,4 @@
-<cfset debug = 0>
-	
+<cfset debug = 0>	
 <cfif isDefined("debug") and debug>Running the installer/insertData.cfm template.<br/></cfif>
 <!---<cfsilent>--->
 <!--- This is consumed from the Application.cfm template after ORM creates the initial database. --->

@@ -13,7 +13,7 @@ There are 3 different commenting systems: 1) the revised BlogCfc based commentin
 		
 <!--- 
 ********* Content template common logic *********
-Note: the following logic should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
+Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
 <cfset thisTemplate = "recentCommentsPod">
 <!--- The following logic does not need to be modified and will work with most of the content output templates --->
 <!--- Reset our display content output var --->
@@ -30,27 +30,8 @@ Note: the following logic should not be cached as each theme may return a differ
 <cfif len(contentOutputData)>
 	<cfset displayContentOutputData = true>		
 </cfif>
-<!--- ********* End content template logic *********--->
-	
-<!--- Cache notes: We're saving this to the application scope. We need to differentiate between the side bar tpe in the key. The timeout is set to 30 minutes --->
-	<cfif sideBarType eq "div">
-		<cfset cacheName = "recentCommentsDiv">
-	<cfelse>
-		<cfset cacheName = "recentCommentsPanel">
-	</cfif>
-	<!--- Dark theme --->
-	<cfif darkTheme>
-		<cfset cacheName = cacheName & "Dark">
-	</cfif>
-	<!--- Moblile cache key.--->	
-	<cfif session.isMobile>
-		<cfset cacheName = cacheName & "Moblile">
-	</cfif>
-		
-</cfsilent>
-	
-<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" cachename="#cacheName#" timeout="#60*30#" disabled="#application.disableCache#">
-	
+<!--- ********* End content template logic *********--->		
+</cfsilent>	
 	<cfif displayContentOutputData>
 		<!--- Include the custom user defined content from the database --->
 		<cfoutput>#contentOutputData#</cfoutput>
@@ -127,7 +108,6 @@ Note: the following logic should not be cached as each theme may return a differ
 
 			<!--- If the blog owner has an API key, we are going to get the data from the Disqus API and build our own interface. --->
 			<script type="<cfoutput>#scriptTypeString#</cfoutput>">
-			
 				// In classic mode, the sidebarType of 'div' gets loaded first, then the 'panel' gets loaded. In modern themes the sidebar on the right does not exist.
 			<cfif sideBarType eq 'div' or modernTheme>
 
@@ -382,4 +362,3 @@ Note: the following logic should not be cached as each theme may return a differ
 		</table>
 		<br/>
 </cfif><!---<cfif displayContentOutputData>--->
-</cfmodule>

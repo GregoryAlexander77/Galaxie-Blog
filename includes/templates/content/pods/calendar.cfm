@@ -40,7 +40,7 @@ So, after researching, I forgot that the javascript Date object has a monthIndex
 	
 <!--- 
 ********* Content template common logic *********
-Note: the following logic should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
+Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
 <cfset thisTemplate = "blogPostCalendarPod">
 <!--- The following logic does not need to be modified and will work with most of the content output templates --->
 <!--- Reset our display content output var --->
@@ -74,17 +74,7 @@ Note: the following logic should not be cached as each theme may return a differ
 <cfset activeDates = application.blog.getAllActiveDates()>
 <!--- Preset params--->
 <cfparam name="jsDateString" default="">
-	
-<!--- Cache notes: We're saving this to the application scope. We need to save the sideBarPanelType. The timeout is set to 1 hour --->
-<cfif sideBarType eq 'div'>
-	<cfset cacheName = "calendarDiv">
-<cfelseif sideBarType eq 'panel'>
-	<cfset cacheName = "calendarPanel">
-</cfif>
-	
 </cfsilent>
-		
-<cfmodule template="../../../../tags/scopecache.cfm" scope="application" cachename="#cacheName#" timeout="#(60*60)#" disabled="#application.disableCache#">
 <cfif displayContentOutputData>
 	<!--- Include the custom user defined content from the database --->
 	<cfoutput>#contentOutputData#</cfoutput>
@@ -151,4 +141,3 @@ Note: the following logic should not be cached as each theme may return a differ
 		});
 	</script>
 </cfif>
-</cfmodule>

@@ -1751,7 +1751,7 @@
 						 Header
 	//************************************************************************************************--->
 				
-	<button type="button" class="collapsible k-header">Page Header</button>
+	<button type="button" class="collapsible k-header">Header</button>
 	<div class="content k-content">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
