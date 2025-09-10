@@ -221,8 +221,8 @@ Either use https://code.jquery.com/jquery-3.4.1.min.js or https://ajax.googleapi
 <cfsilent>
 <!--- The Kendo css locations are set in the includes/templates/pageSettings.cfm template and use the Kendo folder path when using Kendo commercial. Otherwise they point to the embedded Kendo Core package. --->
 </cfsilent>	
-<!-- Kendo scripts -->
-<script type="#scriptTypeString#" src="#kendoSourceLocation#js/<cfif kendoCommercial>kendo.all.min<cfelse>kendo.ui.core.min</cfif>.js"></script>
+<!-- Kendo scripts. Do not defer these! -->
+<script type="text/javascript" src="#kendoSourceLocation#js/<cfif kendoCommercial>kendo.all.min<cfelse>kendo.ui.core.min</cfif>.js"></script>
 <!-- Note: the Kendo stylesheets are critical to the look of the site and I am not deferring them. -->
 <script type="text/javascript">
 	// Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings.

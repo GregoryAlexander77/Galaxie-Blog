@@ -102,6 +102,8 @@
 		
 		<!--- We will send copies of any error, minus form values, to the developer for debugging purposes. Note: although this helps me to catch errors, if you don't want to send the errors to the developer (i.e. me), make this an empty string (='') --->
 		<cfset application.developerEmailAddress = "gregoryalexander77@gmail.com">
+		<!--- Note: I disabled logging annonymous users in version 411 as there were occasional optimistic locks occurring with the queries. This makes sense as saving every anonymous user, along with the IP address and user agent string is expensive. I may revise this and put in a setting to enable admins to turn logging on and off, but until then, I am disabling it. --->
+		<cfset application.logAnonymousUsers = false>
 		
 		<!--- Reload the ORM schema. Note: forcing this to load on every page load will create ORM related errors when including the mapPreview.cfm template. The error is 'Orm not configured...' most likely due to the ORMReload statement interfering with the ORM initialization. ' --->
 		<cfif isDefined("URL.init") or isDefined("URL.reinit")>
@@ -980,6 +982,8 @@
 			Type: #arguments.exception.type#
 			Message: #arguments.exception.message#
 			Detail: #arguments.exception.detail#
+			Template: #arguments.exception.tagContext[1].template#
+			Line: #arguments.exception.tagContext[1].line#
 			Stacktrace: #arguments.exception.stacktrace#			
 			</cfoutput>
 		</cfsavecontent>

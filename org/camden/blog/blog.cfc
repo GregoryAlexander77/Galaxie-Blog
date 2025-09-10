@@ -478,9 +478,13 @@
 		<!--- Set a content output var --->
 		<cfif arrayLen(getOutputContent)>
 			<cfif arguments.isMobile>
-				<cfset contentOutputData = getOutputContent[1]["ContentOutputMobile"]>
+				<cfif structKeyExists(getOutputContent[1], "ContentOutputMobile")>
+					<cfset contentOutputData = getOutputContent[1]["ContentOutputMobile"]>
+				</cfif>
 			<cfelse>
-				<cfset contentOutputData = getOutputContent[1]["ContentOutput"]>
+				<cfif structKeyExists(getOutputContent[1], "ContentOutput")>
+					<cfset contentOutputData = getOutputContent[1]["ContentOutput"]>
+				</cfif>
 			</cfif>
 		</cfif>		
 		<!--- Return the string. It may be empty --->
@@ -1703,16 +1707,18 @@
 					DatePosted as DatePosted)
 				FROM Post as Post 
 				WHERE 0=0
+					AND DatePosted IS NOT NULL
 					AND PostId = <cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.postId#" maxlength="35">
 					AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 			</cfquery>
 			<!---<cfdump var="#Data#">--->
 
 			<!--- Set the return string --->
-			<cfset returnStr = instance.blogUrl & "/" & year(Data[1]["DatePosted"]) & "/" & month(Data[1]["DatePosted"]) & "/" & day(Data[1]["DatePosted"]) & "/" & Data[1]["PostAlias"]>
-
-			<!--- Return it --->
-			<cfreturn StringUtilsObj.trimStr(makeRewriteRuleSafeLink(returnStr))>
+			<cfif arrayLen(Data)>
+				<cfset returnStr = instance.blogUrl & "/" & year(Data[1]["DatePosted"]) & "/" & month(Data[1]["DatePosted"]) & "/" & day(Data[1]["DatePosted"]) & "/" & Data[1]["PostAlias"]>
+				<!--- Return it --->
+				<cfreturn StringUtilsObj.trimStr(makeRewriteRuleSafeLink(returnStr))>
+			</cfif>
 		</cfif>
 	
 	</cffunction>
@@ -3443,11 +3449,16 @@
 				
 		<!--- Loop through this again and set the font face. This is determined if the font is self hosted and if it is a websafe font. --->
 		<cfloop from="1" to="#arrayLen(Data)#" index="i">
-			<cfif Data[i]["WebSafeFont"]>
-				<cfset Data[i]["FontFace"] = Data[i]["Font"]>
-			<cfelseif Data[i]["SelfHosted"]>
-				<cfset Data[i]["FontFace"] = Data[i]["FileName"]>
-			</cfif>
+			<cftry>
+				<cfif Data[i]["WebSafeFont"]>
+					<cfset Data[i]["FontFace"] = Data[i]["Font"]>
+				<cfelseif Data[i]["SelfHosted"]>
+					<cfset Data[i]["FontFace"] = Data[i]["FileName"]>
+				</cfif>
+				<cfcatch type="any">
+					<!--- Do nothing --->
+				</cfcatch>
+			</cftry>
 		</cfloop>
 		
 		<cfreturn Data>
@@ -7421,6 +7432,9 @@
 			<cfif not arguments.showPendingPosts>
 				AND Post.Released = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
 			</cfif>
+				<!--- Make sure we get posts with complete data --->
+				AND Post.Title IS NOT NULL
+				AND Post.DatePosted IS NOT NULL
 				AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 		<cfif arguments.showPopularPosts>
 				ORDER BY NumViews/(month(current_date())-month(DatePosted)+12*(year(current_date())-year(DatePosted))+1) #arguments.params.orderByDir#
@@ -7481,164 +7495,168 @@
 				<!--- Create a new struct --->
 				<cfset PostStruct = structNew()>
 				
-				<!--- Set the values in the structure. --->
-				<cfset postRow = Data[i]>
-				<cfset PostStruct["UserId"] = Data[i]["UserId"]>
-				<cfset PostStruct["FullName"] = Data[i]["FullName"]>
-				<cfset PostStruct["Email"] = Data[i]["Email"]>
-				<cfset PostStruct["PostId"] = Data[i]["PostId"]>
-				<!--- The theme id may not be present. its optional. --->
-				<cfif structKeyExists(postRow, "ThemeRef")>
-					<cfset PostStruct["ThemeRef"] = Data[i]["ThemeRef"]>
-				<cfelse>
-					<cfset PostStruct["ThemeRef"] = "">
-				</cfif>
-				<cfset PostStruct["Promoted"] = Data[i]["Promoted"]>
-				<cfset PostStruct["PostUuid"] = Data[i]["PostUuid"]>
-				<cfset PostStruct["PostAlias"] = Data[i]["PostAlias"]>
-				<!--- The title can't have an apostrophe --->
-				<cfset title = replace(Data[i]["Title"], "'", "", "all")>
-				<cfset PostStruct["Title"] = title>
-				<cfset PostStruct["Description"] = Data[i]["Description"]>
-				<cfif showJsonLd>
-					<!--- Json Ld may not exist --->
-					<cfif structKeyExists(postRow, "JsonLd")>
-						<cfset PostStruct["JsonLd"] = Data[i]["JsonLd"]>
+				<cftry>
+					<!--- Set the values in the structure. --->
+					<cfset postRow = Data[i]>
+					<cfset PostStruct["UserId"] = Data[i]["UserId"]>
+					<cfset PostStruct["FullName"] = Data[i]["FullName"]>
+					<cfset PostStruct["Email"] = Data[i]["Email"]>
+					<cfset PostStruct["PostId"] = Data[i]["PostId"]>
+					<!--- The theme id may not be present. its optional. --->
+					<cfif structKeyExists(postRow, "ThemeRef")>
+						<cfset PostStruct["ThemeRef"] = Data[i]["ThemeRef"]>
 					<cfelse>
-						<cfset PostStruct["JsonLd"] = "">
+						<cfset PostStruct["ThemeRef"] = "">
 					</cfif>
-				</cfif>
-				<cfset PostStruct["Remove"] = Data[i]["Remove"]>
-				<!--- The PostRedirect and redirectType may be null --->
-				<cfif structKeyExists(postRow, "RedirectUrl")>
-					<cfset PostStruct["RedirectUrl"] = Data[i]["RedirectUrl"]>
-				<cfelse>
-					<cfset PostStruct["RedirectUrl"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "RedirectType")>
-					<cfset PostStruct["RedirectType"] = Data[i]["RedirectType"]>
-				<cfelse>
-					<cfset PostStruct["RedirectType"] = "">
-				</cfif>
-				<!--- The post header may be null as well --->
-				<cfif structKeyExists(postRow, "PostHeader")>
-					<cfset PostStruct["PostHeader"] = Data[i]["PostHeader"]>
-				<cfelse>
-					<cfset PostStruct["PostHeader"] = "">
-				</cfif>
-				<!--- Perform the same steps for CSS and Javascript --->
-				<cfif structKeyExists(postRow, "CSS")>
-					<cfset PostStruct["CSS"] = Data[i]["CSS"]>
-				<cfelse>
-					<cfset PostStruct["CSS"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "JavaScript")>
-					<cfset PostStruct["JavaScript"] = Data[i]["JavaScript"]>
-				<cfelse>
-					<cfset PostStruct["JavaScript"] = "">
-				</cfif>
-				<cfset PostStruct["Body"] = Data[i]["Body"]>
-				<cfif structKeyExists(postRow, "MoreBody")>
-					<cfset PostStruct["MoreBody"] = Data[i]["MoreBody"]>
-				<cfelse>
-					<cfset PostStruct["MoreBody"] = "">
-				</cfif>
-				<!--- There may not be any media. We need to see if the values are defined before setting them. --->
-				<cfif structKeyExists(postRow, "MediaId")>
-					<cfset PostStruct["MediaId"] = Data[i]["MediaId"]>
-				<cfelse>
-					<cfset PostStruct["MediaId"] = "">
-				</cfif>
-				<!--- Get the media type. The mime type may not always be available when there are external links. --->
-				<cfif structKeyExists(postRow, "MediaType")>
-					<cfset PostStruct["MediaType"] = Data[i]["MediaType"]>
-				<cfelse>
-					<cfset PostStruct["MediaType"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "MimeType")>
-					<cfset PostStruct["MimeType"] = Data[i]["MimeType"]>
-				<cfelse>
-					<cfset PostStruct["MimeType"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "MediaTitle")>
-					<cfset PostStruct["MediaTitle"] = Data[i]["MediaTitle"]>
-				<cfelse>
-					<cfset PostStruct["MediaTitle"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "MediaWidth")>
-					<cfset PostStruct["MediaWidth"] = Data[i]["MediaWidth"]>
-				<cfelse>
-					<cfset PostStruct["MediaWidth"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "MediaHeight")>
-					<cfset PostStruct["MediaHeight"] = Data[i]["MediaHeight"]>
-				<cfelse>
-					<cfset PostStruct["MediaHeight"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "MediaSize")>
-					<cfset PostStruct["MediaSize"] = Data[i]["MediaSize"]>
-				<cfelse>
-					<cfset PostStruct["MediaSize"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "MediaPath")>
-					<cfset PostStruct["MediaPath"] = Data[i]["MediaPath"]>
-				<cfelse>
-					<cfset PostStruct["MediaPath"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "MediaUrl")>
-					<cfset PostStruct["MediaUrl"] = Data[i]["MediaUrl"]>
-				<cfelse>
-					<cfset PostStruct["MediaUrl"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "MediaThumbnailUrl")>
-					<cfset PostStruct["MediaThumbnailUrl"] = Data[i]["MediaThumbnailUrl"]>
-				<cfelse>
-					<cfset PostStruct["MediaThumbnailUrl"] = "">
-				</cfif>	
-				<cfif structKeyExists(postRow, "MediaVideoCoverUrl")>
-					<cfset PostStruct["MediaVideoCoverUrl"] = Data[i]["MediaVideoCoverUrl"]>
-				<cfelse>
-					<cfset PostStruct["MediaVideoCoverUrl"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "MediaVideoVttFileUrl")>
-					<cfset PostStruct["MediaVideoVttFileUrl"] = Data[i]["MediaVideoVttFileUrl"]>
-				<cfelse>
-					<cfset PostStruct["MediaVideoVttFileUrl"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "ProviderVideoId")>
-					<cfset PostStruct["ProviderVideoId"] = Data[i]["ProviderVideoId"]>
-				<cfelse>
-					<cfset PostStruct["ProviderVideoId"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "EnclosureMapId")>
-					<cfset PostStruct["EnclosureMapId"] = Data[i]["EnclosureMapId"]>
-				<cfelse>
-					<cfset PostStruct["EnclosureMapId"] = "">
-				</cfif>
-				<cfif structKeyExists(postRow, "EnclosureCarouselId")>
-					<cfset PostStruct["EnclosureCarouselId"] = Data[i]["EnclosureCarouselId"]>
-				<cfelse>
-					<cfset PostStruct["EnclosureCarouselId"] = "">
-				</cfif>
-				<!--- These values should always be present. --->
-				<cfset PostStruct["AllowComment"] = Data[i]["AllowComment"]>
-				<cfset PostStruct["NumViews"] = Data[i]["NumViews"]>
-				<cfset PostStruct["ViewsPerDay"] = Data[i]["ViewsPerDay"]>
-				<cfset PostStruct["Mailed"] = Data[i]["Mailed"]>
-				<cfset PostStruct["Released"] = Data[i]["Released"]>
-				<!--- Note: we are now getting the proper time when we are inserting the records instead of manipulating the data after it is in the database. --->
-				<cfset PostStruct["BlogSortDate"] = Data[i]["BlogSortDate"]>
-				<cfset PostStruct["DatePosted"] = Data[i]["DatePosted"]>
-				<cfset PostStruct["Date"] = Data[i]["Date"]>
-					
-				<!--- Reset these values at the very end. --->
-				<cfset PostStruct["LoadScrollMagic"] = loadScrollMagic>
-				<cfset PostStruct["EnclosureMapCount"] = mapCount>
-				<cfset PostStruct["EnclosureMapIdList"] = mapIds>
-					
-				<!--- Append the final structure inside of an array. --->
-				<cfset arrayAppend(PostArray, PostStruct)>
-			
+					<cfset PostStruct["Promoted"] = Data[i]["Promoted"]>
+					<cfset PostStruct["PostUuid"] = Data[i]["PostUuid"]>
+					<cfset PostStruct["PostAlias"] = Data[i]["PostAlias"]>
+					<!--- The title can't have an apostrophe --->
+					<cfset title = replace(Data[i]["Title"], "'", "", "all")>
+					<cfset PostStruct["Title"] = title>
+					<cfset PostStruct["Description"] = Data[i]["Description"]>
+					<cfif showJsonLd>
+						<!--- Json Ld may not exist --->
+						<cfif structKeyExists(postRow, "JsonLd")>
+							<cfset PostStruct["JsonLd"] = Data[i]["JsonLd"]>
+						<cfelse>
+							<cfset PostStruct["JsonLd"] = "">
+						</cfif>
+					</cfif>
+					<cfset PostStruct["Remove"] = Data[i]["Remove"]>
+					<!--- The PostRedirect and redirectType may be null --->
+					<cfif structKeyExists(postRow, "RedirectUrl")>
+						<cfset PostStruct["RedirectUrl"] = Data[i]["RedirectUrl"]>
+					<cfelse>
+						<cfset PostStruct["RedirectUrl"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "RedirectType")>
+						<cfset PostStruct["RedirectType"] = Data[i]["RedirectType"]>
+					<cfelse>
+						<cfset PostStruct["RedirectType"] = "">
+					</cfif>
+					<!--- The post header may be null as well --->
+					<cfif structKeyExists(postRow, "PostHeader")>
+						<cfset PostStruct["PostHeader"] = Data[i]["PostHeader"]>
+					<cfelse>
+						<cfset PostStruct["PostHeader"] = "">
+					</cfif>
+					<!--- Perform the same steps for CSS and Javascript --->
+					<cfif structKeyExists(postRow, "CSS")>
+						<cfset PostStruct["CSS"] = Data[i]["CSS"]>
+					<cfelse>
+						<cfset PostStruct["CSS"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "JavaScript")>
+						<cfset PostStruct["JavaScript"] = Data[i]["JavaScript"]>
+					<cfelse>
+						<cfset PostStruct["JavaScript"] = "">
+					</cfif>
+					<cfset PostStruct["Body"] = Data[i]["Body"]>
+					<cfif structKeyExists(postRow, "MoreBody")>
+						<cfset PostStruct["MoreBody"] = Data[i]["MoreBody"]>
+					<cfelse>
+						<cfset PostStruct["MoreBody"] = "">
+					</cfif>
+					<!--- There may not be any media. We need to see if the values are defined before setting them. --->
+					<cfif structKeyExists(postRow, "MediaId")>
+						<cfset PostStruct["MediaId"] = Data[i]["MediaId"]>
+					<cfelse>
+						<cfset PostStruct["MediaId"] = "">
+					</cfif>
+					<!--- Get the media type. The mime type may not always be available when there are external links. --->
+					<cfif structKeyExists(postRow, "MediaType")>
+						<cfset PostStruct["MediaType"] = Data[i]["MediaType"]>
+					<cfelse>
+						<cfset PostStruct["MediaType"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "MimeType")>
+						<cfset PostStruct["MimeType"] = Data[i]["MimeType"]>
+					<cfelse>
+						<cfset PostStruct["MimeType"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "MediaTitle")>
+						<cfset PostStruct["MediaTitle"] = Data[i]["MediaTitle"]>
+					<cfelse>
+						<cfset PostStruct["MediaTitle"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "MediaWidth")>
+						<cfset PostStruct["MediaWidth"] = Data[i]["MediaWidth"]>
+					<cfelse>
+						<cfset PostStruct["MediaWidth"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "MediaHeight")>
+						<cfset PostStruct["MediaHeight"] = Data[i]["MediaHeight"]>
+					<cfelse>
+						<cfset PostStruct["MediaHeight"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "MediaSize")>
+						<cfset PostStruct["MediaSize"] = Data[i]["MediaSize"]>
+					<cfelse>
+						<cfset PostStruct["MediaSize"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "MediaPath")>
+						<cfset PostStruct["MediaPath"] = Data[i]["MediaPath"]>
+					<cfelse>
+						<cfset PostStruct["MediaPath"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "MediaUrl")>
+						<cfset PostStruct["MediaUrl"] = Data[i]["MediaUrl"]>
+					<cfelse>
+						<cfset PostStruct["MediaUrl"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "MediaThumbnailUrl")>
+						<cfset PostStruct["MediaThumbnailUrl"] = Data[i]["MediaThumbnailUrl"]>
+					<cfelse>
+						<cfset PostStruct["MediaThumbnailUrl"] = "">
+					</cfif>	
+					<cfif structKeyExists(postRow, "MediaVideoCoverUrl")>
+						<cfset PostStruct["MediaVideoCoverUrl"] = Data[i]["MediaVideoCoverUrl"]>
+					<cfelse>
+						<cfset PostStruct["MediaVideoCoverUrl"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "MediaVideoVttFileUrl")>
+						<cfset PostStruct["MediaVideoVttFileUrl"] = Data[i]["MediaVideoVttFileUrl"]>
+					<cfelse>
+						<cfset PostStruct["MediaVideoVttFileUrl"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "ProviderVideoId")>
+						<cfset PostStruct["ProviderVideoId"] = Data[i]["ProviderVideoId"]>
+					<cfelse>
+						<cfset PostStruct["ProviderVideoId"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "EnclosureMapId")>
+						<cfset PostStruct["EnclosureMapId"] = Data[i]["EnclosureMapId"]>
+					<cfelse>
+						<cfset PostStruct["EnclosureMapId"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "EnclosureCarouselId")>
+						<cfset PostStruct["EnclosureCarouselId"] = Data[i]["EnclosureCarouselId"]>
+					<cfelse>
+						<cfset PostStruct["EnclosureCarouselId"] = "">
+					</cfif>
+					<!--- These values should always be present. --->
+					<cfset PostStruct["AllowComment"] = Data[i]["AllowComment"]>
+					<cfset PostStruct["NumViews"] = Data[i]["NumViews"]>
+					<cfset PostStruct["ViewsPerDay"] = Data[i]["ViewsPerDay"]>
+					<cfset PostStruct["Mailed"] = Data[i]["Mailed"]>
+					<cfset PostStruct["Released"] = Data[i]["Released"]>
+					<!--- Note: we are now getting the proper time when we are inserting the records instead of manipulating the data after it is in the database. --->
+					<cfset PostStruct["BlogSortDate"] = Data[i]["BlogSortDate"]>
+					<cfset PostStruct["DatePosted"] = Data[i]["DatePosted"]>
+					<cfset PostStruct["Date"] = Data[i]["Date"]>
+
+					<!--- Reset these values at the very end. --->
+					<cfset PostStruct["LoadScrollMagic"] = loadScrollMagic>
+					<cfset PostStruct["EnclosureMapCount"] = mapCount>
+					<cfset PostStruct["EnclosureMapIdList"] = mapIds>
+
+					<!--- Append the final structure inside of an array. --->
+					<cfset arrayAppend(PostArray, PostStruct)>
+				<cfcatch type="any">
+					<!--- Do nothing --->
+				</cfcatch>
+				</cftry>
 			</cfloop>
 			
 		</cfif>

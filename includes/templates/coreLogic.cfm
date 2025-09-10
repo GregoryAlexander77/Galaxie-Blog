@@ -26,8 +26,8 @@
 			Visitor Logging (in blog mode)
 	//****************************************************************************************************************--->
 	<!--- Are we looking at the blog? --->
-	<!--- TODO There is an error here. I am now disabling visitor logging --->
-	<cfif pageTypeId eq 1>
+	<!--- This is disabled and hardcoded in the application.cfc template in the root directory. It is causing occasional optimistic lock errors. I will make this a setting in the blog options UI in the future to turn this on and off --->
+	<cfif pageTypeId eq 1 and application.logAnonymousUsers>
 			
 		<cfif not structKeyExists(cookie, "gauid")>
 			<!--- Get client properties. These cookies only exist when an admin user has logged on and are used to set the interfaces depending upon the screen size --->
@@ -47,9 +47,12 @@
 				<cfinvokeargument name="screenWidth" value="#screenWidth#">
 				<cfinvokeargument name="screenHeight" value="#screenHeight#">
 			</cfinvoke>
-			<cfset anonymousUserId = AnonymousUserDbObj.getAnonymousUserId()>
-			<!--- Drop a cookie with the Galaxie Anonymous User Id --->
-			<cfcookie expires="NEVER" name="gauid" value="#anonymousUserId#">
+			<!--- Note: this may not be defined if there is a lock error with the transaction --->
+			<cfif isDefined("AnonymousUserDbObj")>
+				<cfset anonymousUserId = AnonymousUserDbObj.getAnonymousUserId()>
+				<!--- Drop a cookie with the Galaxie Anonymous User Id --->
+				<cfcookie expires="NEVER" name="gauid" value="#anonymousUserId#">
+			</cfif><!---<cfif isDefined("AnonymousUserDbObj")>--->
 		<cfelse><!---<cfif not structKeyExists(cookie, "gauid")>--->
 			<cfset anonymousUserId = cookie.gauid>
 			<!--- Load the anonymousUser entity --->
@@ -104,34 +107,36 @@
 				Get the post
 			//************************************************************************************************************--->
 			<cfcase value = "post">
+				
+				<cfif arrayLen(getPost)>
+					<!--- When in post mode, there will only be one element in the getPost array. --->
+					<!--- If the blog is in entry or alias mode, set the URL mode to entry --->
+					<cfset url.mode = "entry">
+					<cfset url.postId = getPost[1]["PostId"]>
+					<!--- Set the postId. I don't want to use the array syntax every time I use this variable in the code. --->
+					<cfset postId = getPost[1]["PostId"]>
+					<cfset title = getPost[1]["Title"]>
 
-				<!--- When in post mode, there will only be one element in the getPost array. --->
-				<!--- If the blog is in entry or alias mode, set the URL mode to entry --->
-				<cfset url.mode = "entry">
-				<cfset url.postId = getPost[1]["PostId"]>
-				<!--- Set the postId. I don't want to use the array syntax every time I use this variable in the code. --->
-				<cfset postId = getPost[1]["PostId"]>
-				<cfset title = getPost[1]["Title"]>
+					<!--- ********************************************************************************************************
+					Obtain user information and increment the view count if the user has not seen this post. 
+					********************************************************************************************************  --->
 
-				<!--- ********************************************************************************************************
-				Obtain user information and increment the view count if the user has not seen this post. 
-				********************************************************************************************************  --->
+					<!--- Preset the dontLog --->
+					<cfset dontLog = false>
+					<cfif getPageMode() neq "alias" or structKeyExists(session.viewedpages, postId)>
+						<cfset dontLog = true>
+					<cfelse>
+						<!--- Mark the post that this user viewed --->
+						<cfset session.viewedpages[postId] = 1>
+					</cfif>
 
-				<!--- Preset the dontLog --->
-				<cfset dontLog = false>
-				<cfif getPageMode() neq "alias" or structKeyExists(session.viewedpages, postId)>
-					<cfset dontLog = true>
-				<cfelse>
-					<!--- Mark the post that this user viewed --->
-					<cfset session.viewedpages[postId] = 1>
-				</cfif>
-
-				<!--- Increment the view count. --->
-				<cfif not structKeyExists(session.viewedpages, postId)>
-					<cfset session.viewedpages[postId] = 1>
-					<cfset application.blog.logView(postId)>
-				</cfif>
-
+					<!--- Increment the view count. --->
+					<cfif not structKeyExists(session.viewedpages, postId)>
+						<cfset session.viewedpages[postId] = 1>
+						<cfset application.blog.logView(postId)>
+					</cfif>
+				</cfif><!---<cfif arrayLen(getPost)>--->
+						
 			</cfcase>
 
 		</cfswitch>
@@ -287,7 +292,7 @@
 		<!--- Overwrite the vars if the proper xml is embedded in the post header or the db. --->
 		<cfif findNoCase("videoType", xmlKeywords) gt 0> 
 			<cfset videoType = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'videoType')>
-		<cfelseif getPost[1]["MediaType"] contains 'Video'>
+		<cfelseif structKeyExists(getPost[1], "MediaType") and getPost[1]["MediaType"] contains 'Video'>
 			<!--- YouTube and Vimeo are nearly always .mp4 at this time. We may have to revisit this in the future. --->
 			<cfset videoType = '.mp4'>
 		</cfif>
@@ -295,7 +300,7 @@
 		<!--- Media Cover --->
 		<cfif findNoCase("videoPosterImageUrl", xmlKeywords) gt 0> 
 			<cfset videoPosterImageUrl = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'videoPosterImageUrl')>
-		<cfelseif len(getPost[1]["MediaVideoCoverUrl"])>
+		<cfelseif structKeyExists(getPost[1], "MediaVideoCoverUrl") and len(getPost[1]["MediaVideoCoverUrl"])>
 			<cfset videoPosterImageUrl = getPost[1]["MediaVideoCoverUrl"]>
 		</cfif>	
 			
