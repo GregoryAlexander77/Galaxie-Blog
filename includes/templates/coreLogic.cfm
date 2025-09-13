@@ -312,7 +312,7 @@
 		<!--- Medium sized URL --->
 		<cfif findNoCase("mediumVideoSourceUrl", xmlKeywords) gt 0> 
 			<cfset mediumVideoSourceUrl = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'mediumVideoSourceUrl')>
-		<cfelseif len(getPost[1]["MediaUrl"])>
+		<cfelseif structKeyExists(getPost[1], "MediaUrl") and len(getPost[1]["MediaUrl"])>
 			<cfset mediumVideoSourceUrl = getPost[1]["MediaUrl"]>
 		</cfif>
 			
@@ -323,7 +323,7 @@
 		<!--- Local videos may have captions, however, YouTube and Vimeo will have them embedded in the video --->
 		<cfif findNoCase("videoCaptionsUrl", xmlKeywords) gt 0> 
 			<cfset videoCaptionsUrl = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'videoCaptionsUrl')>
-		<cfelseif len(getPost[1]["MediaVideoVttFileUrl"])>
+		<cfelseif structKeyExists(getPost[1], "MediaVideoVttFileUrl") and len(getPost[1]["MediaVideoVttFileUrl"])>
 			<cfset videoPosterImageUrl = getPost[1]["MediaVideoVttFileUrl"]>
 		</cfif>
 			

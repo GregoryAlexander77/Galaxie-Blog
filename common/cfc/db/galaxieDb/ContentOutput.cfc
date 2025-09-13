@@ -13,6 +13,7 @@
 	<cfproperty name="ContentOutputMobile" ormtype="string" sqltype="varchar(max)" default="">
 	
 	<cfproperty name="Active" ormtype="boolean" default="true">
+	<cfproperty name="LastCached" ormtype="date" default="">
 	<cfproperty name="Date" ormtype="timestamp">
 
 	<!--- I am had problems generating this using ORM. Instead, I manually created the table using create table ContentOutput (ContentOutputId integer not null auto_increment, ContentOutput longtext,  ContentOutputMobile longtext, Active bit, LastCached date, `Date` date, ContentTemplateRef integer, primary key (ContentOutputId)) engine=InnoDB --->

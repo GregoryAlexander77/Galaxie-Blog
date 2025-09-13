@@ -789,7 +789,7 @@ Populate the Theme and Theme Setting tables at the same time. This one is tricky
 
 			<!--- Now set the values for the Theme Setting table. --->
 			<!--- Determine if we are going to use webp. --->
-			<cfif application.serverSupportsWebP>
+			<cfif isDefined("application.serverSupportsWebP") and application.serverSupportsWebP>
 				<cfset blogBackgroundImage = getThemeSettingByTheme.BlogBackgroundImage>
 				<cfset blogBackgroundImageMobile = getThemeSettingByTheme.BlogBackgroundImageMobile>	
 				<cfset headerBackgroundImage = getThemeSettingByTheme.HeaderBackgroundImage>

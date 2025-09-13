@@ -1,6 +1,7 @@
-<cfcomponent displayname="GalaxieBlog4_1" sessionmanagement="yes" clientmanagement="yes" output="false">
+<cfcomponent displayname="GalaxieBlog4_11" sessionmanagement="yes" clientmanagement="yes" output="false">
 	<cfsetting requesttimeout="60">
-	<cfset this.name = "GalaxieBlog4_1" /> 
+	<!--- The name needs to be unique in order to have multiple blogs on the same server --->
+	<cfset this.name = "GalaxieBlog4_1" /> <!--- & month(now()) & day(now()) & second(now())--->
 	<!--- Preserve the case for database columns --->
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
@@ -45,10 +46,13 @@
 				jSoup
 	//*****************************************************************************************--->
 		
-	<!--- Create the path. This is bracketed as the init function expects an array --->
-	<cfset application.jSoupPath = [expandPath(getBaseUrl() & "/common/java/jSoup/jsoup-1.15.1.jar")]>
-	<!--- Load Jsoup using this.javaSettings. Don't create the object until it is needed. This will be done in Jsoup.cfc --->
-	<cfset this.javaSettings = { loadPaths = application.jSoupPath, loadColdFusionClassPath=true, reloadOnChange=false }>
+	<!--- Note: this may cause an error when you're first installing the blog as the proper paths are not yet set. --->
+	<cfif getInstalled()>
+		<!--- Create the path. This is bracketed as the init function expects an array --->
+		<cfset application.jSoupPath = [expandPath(getBaseUrl() & "/common/java/jSoup/jsoup-1.15.1.jar")]>
+		<!--- Load Jsoup using this.javaSettings. Don't create the object until it is needed. This will be done in Jsoup.cfc --->
+		<cfset this.javaSettings = { loadPaths = application.jSoupPath, loadColdFusionClassPath=true, reloadOnChange=false }>
+	</cfif><!---<cfif getInstalled()>--->
 		
 	<!--- Enable ORM --->
 	<cfset initOrm()>
@@ -121,8 +125,8 @@
 			<!--- Ini file. Lucee change from application.blogIniPath to getIniPath() --->
 			<cfset application.iniFile = expandPath(getBlogIniPath())>
 			<!--- Set the common component paths --->
-			<cfset application.baseProxyUrl = getBaseProxyUrl()>
-			<cfset application.baseComponentPath = getBaseComponentPath()>
+			<cfset application.baseProxyUrl = getBaseProxyUrl(true)>
+			<cfset application.baseComponentPath = getBaseComponentPath(true)>
 			<!--- Determine if the server supports webp images and woff fonts --->
 			<cfset application.serverSupportsWebP = serverSupportsWebP(true)>
 			<cfset application.serverSupportsWoff2 = serverSupportsWoff2(true)>
@@ -417,7 +421,7 @@
 			<!--- The location of the commercial Kendo is the application.kendoFolderPath.  --->
 			<cfset kendoSourceLocation = application.kendoFolderPath>
 		<cfelse>
-			<cfif len(application.kendoFolderPath)>
+			<cfif len(application.kendoFolderPath) and !isDefined("URL.init") and !isDefined("URL.reinit")>
 				<cfset kendoSourceLocation = application.kendoFolderPath>
 			<cfelse>
 				<!--- Point to the embedded Kendo Core folder. --->
@@ -592,9 +596,6 @@
 
 		<!--- Use Captcha? --->
 		<cfset application.useCaptcha = application.BlogOptionDbObj.getUseCaptcha()>
-
-		<!--- clear scopecache --->
-		<cfmodule template="tags/scopecache.cfm" scope="application" clearall="true">
 
 		<cfset application.serverProduct = getServerProduct()>
 		<cfset majorVersion = listFirst(Server.coldFusion.productVersion)>

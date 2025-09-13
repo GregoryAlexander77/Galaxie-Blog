@@ -57,7 +57,11 @@
 
 	<!--- Get the data --->		
 	<cfset thisBlogId = 1>
-	<cfset promotedPost = getPost[i]["Promoted"]>
+	<cfif structKeyExists(getPost[1], "Promoted")>
+		<cfset promotedPost = getPost[i]["Promoted"]>
+	<cfelse>
+		<cfset promotedPost = false>
+	</cfif>
 	<cfset title = getPost[i]["Title"]>
 	<cfset author = getPost[i]["FullName"]>
 	<cfset postUrl = application.blog.makeLink(getPost[i]["PostId"])>
@@ -65,7 +69,11 @@
 	<cfset enclosure = getPost[i]["MediaUrl"]>
 	<cfset thumbnail = getPost[i]["MediaThumbnailUrl"]>
 	<cfset mediaId = getPost[i]["MediaId"]>
-	<cfset mediaType = getPost[i]["MediaType"]>
+	<cfif structKeyExists(getPost[1], "MediaType")>
+		<cfset mediaType = getPost[i]["MediaType"]>
+	<cfelse>
+		<cfset mediaType = ''>
+	</cfif>
 	<cfset mediaUrl = getPost[i]["MediaUrl"]>
 	<cfset providerVideoId = getPost[i]["ProviderVideoId"]>
 	<cfset MediaVideoCoverUrl = getPost[i]["MediaVideoCoverUrl"]>
@@ -145,7 +153,7 @@
 	</cfif>
 
 	<!--- ************************* Handle self hosted videos ************************* --->
-	<cfif len(mediaId) and mediaType contains 'Video'>
+	<cfif isDefined("mediaId") and len(mediaId) and mediaType contains 'Video'>
 		<!--- Note: this will return an iframe. --->
 		<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
 			<cfinvokeargument name="postId" value="#getPost[i]['PostId']#">
@@ -205,7 +213,7 @@
 	</cfif>
 					
 	<!--- Handle carousels --->
-	<cfif len(enclosureCarouselId)>
+	<cfif isDefined(enclosureCarouselId) and len(enclosureCarouselId)>
 		<cfif renderMediumCard>
 			<cfset carouselInterface = "mediumCard">
 		<cfelse>
@@ -229,8 +237,8 @@
 	
 	</cfsilent>	
 		
-		<cfif isDebug><cfoutput>xmlKeywordStruct: <cfdump var="#xmlKeywordStruct#"> Rendering card- i:#i# arrayLen(getPost):#arrayLen(getPost)# len(postUrl):#len(postUrl)# renderMediumCard: #renderMediumCard# <br/></cfoutput></cfif>
-		<cfif i lte arrayLen(getPost) and displayCard and len(postUrl)>
+		<cfif isDebug><cfoutput>xmlKeywordStruct: <cfdump var="#xmlKeywordStruct#"> Rendering card- i:#i# arrayLen(getPost):#arrayLen(getPost)# isDefined("postUrl"): isDefined("postUrl") len(postUrl):#len(postUrl)# renderMediumCard: #renderMediumCard# <br/></cfoutput></cfif>
+		<cfif i lte arrayLen(getPost) and displayCard and isDefined("postUrl") and len(postUrl)>
 			<div class="k-card <cfif promotedPost>highlightedWidget</cfif>" style="width: <cfoutput>#cardWidth#</cfoutput>%;"> 
 				<div class="k-card-body">
 					<a href="<cfoutput>#postUrl#</cfoutput>" aria-label="thumbnail map">

@@ -542,9 +542,20 @@
 				Saving generated html content to file<br/> 
 			</cfif>
 			<!--- Write the file --->
-			<cflock name="#attributes.file#" type="exclusive" timeout="30">
-				<cffile action="write" file="#expandPath(attributes.file)#" output="#thistag.generatedcontent#" charset="UTF-8">
-			</cflock>
+			<cftry>
+				<cflock name="#attributes.file#" type="exclusive" timeout="30">
+					<cffile action="write" file="#expandPath(attributes.file)#" output="#thistag.generatedcontent#" charset="UTF-8">
+				</cflock>
+				<!--- There may be an error if the directory does not exist --->
+				<cfcatch type="any">
+					<!--- See of the directory exists --->
+					<cfset directoryPath = getDirectoryFromPath(attributes.file)>
+					<!--- Create the directory if it does not exist --->
+					<cfif not directoryExists(directoryPath)>
+						<p>The <cfoutput>#directoryPath#</cfoutput> does not exist. Please create it.</p>
+					</cfif>
+				</cfcatch>
+			</cftry>
 
 			<!--- Also metadata to server scope. Note: by default, html files will only have a galaxieCache key when there is a supplied timeout. --->
 			<cfif !supressHTMLServerScope>

@@ -16,10 +16,10 @@
 		Version
 	//******************************************************************************************--->
 		
-	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "4.07" />
-	<cfset versionName = "4.07 (Bella's Edition)" />
-	<cfset versionDate =  "June 30th 2025"> 
+	<!--- Current blog version (This is hardcoded, for now...). Make sure to delete the footer cache file if you want this to show up. --->
+	<cfset version = "4.11" />
+	<cfset versionName = "4.11 (Bella's Edition)" />
+	<cfset versionDate =  "September 4th 2025"> 
 
 	<!--- Require version 9 or higher as we are using ORM --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>
@@ -266,7 +266,11 @@
 			</cfif>
 			</cfquery>
 				
-			<cfreturn Data[1]["Active"]>
+			<cfif arrayLen(Data)>
+				<cfreturn Data[1]["Active"]>
+			<cfelse>
+				<cfreturn false>
+			</cfif>
 			
 		</cfif><!---<cfif len(arguments.contentTemplateId) or len(arguments.contentTemplate)>--->
 	
@@ -467,7 +471,7 @@
 		<!--- Note: the following function should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. --->
 		<!--- Reset the contentOutputData var --->
 		<cfset contentOutputData = "">
-		<!--- This template drives the navigation menu and is a unordered HTML list. This template uses the getPageContent function to determine the content. It will display custom content that is in the database or use the default code below if no custom code exists  --->
+		<!--- This template drives the navigation menu and is a unordered HTML list. This template uses the getContentOutputData function to determine the content. It will display custom content that is in the database or use the default code below if no custom code exists  --->
 		<cfinvoke component="#application.blog#" method="getContentOutputByContentTemplate" returnvariable="getOutputContent">
 			<cfinvokeargument name="pageId" value="2"><!--- Note: pageId 1 is the landing blog page, 2 is a blog post --->
 			<cfinvokeargument name="contentTemplate" value="#arguments.contentTemplate#">
@@ -1715,9 +1719,12 @@
 
 			<!--- Set the return string --->
 			<cfif arrayLen(Data)>
-				<cfset returnStr = instance.blogUrl & "/" & year(Data[1]["DatePosted"]) & "/" & month(Data[1]["DatePosted"]) & "/" & day(Data[1]["DatePosted"]) & "/" & Data[1]["PostAlias"]>
-				<!--- Return it --->
-				<cfreturn StringUtilsObj.trimStr(makeRewriteRuleSafeLink(returnStr))>
+				<cftry>
+					<cfset returnStr = instance.blogUrl & "/" & year(Data[1]["DatePosted"]) & "/" & month(Data[1]["DatePosted"]) & "/" & day(Data[1]["DatePosted"]) & "/" & Data[1]["PostAlias"]>
+					<!--- Return it --->
+					<cfreturn StringUtilsObj.trimStr(makeRewriteRuleSafeLink(returnStr))>
+				<cfcatch type="any"></cfcatch>
+				</cftry>
 			</cfif>
 		</cfif>
 	
@@ -2658,7 +2665,12 @@
 		</cfquery>
 			
 		<cfif arrayLen(Data)>
-			<cfset logoImage = Data[1]["LogoImage"]>
+			<cftry>
+				<cfset logoImage = Data[1]["LogoImage"]>
+			<cfcatch type="any">
+				<cfset logoImage = "">
+			</cfcatch>
+			</cftry>
 		<cfelse>
 			<cfset logoImage = "">
 		</cfif>
@@ -4015,12 +4027,15 @@
 				<cfreturn parentCategoriesQuery>
 
 			<cfelse><!---<cfif parentCategoriesQuery.recordcount gte 7>--->
-				<!--- Set the values of the cells in the query ---> 
-				<cfset querySetCell(parentCategoriesQuery, "CategoryId", categoryId, categoryLevel)> 
-				<cfset querySetCell(parentCategoriesQuery, "ParentCategoryId", parentCategoryId, categoryLevel)> 
-				<cfset querySetCell(parentCategoriesQuery, "Category", category, categoryLevel)> 
-				<cfset querySetCell(parentCategoriesQuery, "CategoryLink", application.blog.makeCategoryLink(categoryId), categoryLevel)> 
-				<cfset querySetCell(parentCategoriesQuery, "CategoryLevel", categoryLevel, categoryLevel)> 
+				<cftry>
+					<!--- Set the values of the cells in the query ---> 
+					<cfset querySetCell(parentCategoriesQuery, "CategoryId", categoryId, categoryLevel)> 
+					<cfset querySetCell(parentCategoriesQuery, "ParentCategoryId", parentCategoryId, categoryLevel)> 
+					<cfset querySetCell(parentCategoriesQuery, "Category", category, categoryLevel)> 
+					<cfset querySetCell(parentCategoriesQuery, "CategoryLink", application.blog.makeCategoryLink(categoryId), categoryLevel)> 
+					<cfset querySetCell(parentCategoriesQuery, "CategoryLevel", categoryLevel, categoryLevel)> 
+				<cfcatch type="any"></cfcatch>
+				</cftry>
 
 				<!--- If there is a parentCategoryId, call this function recursively and pass in the new parentCategoryId. Otherwise, return the categoryIdList. Note: we must use a cfreturn to call the function recursively, otherwise the categoryIdList will not be returned properly. --->
 				<cfif parentCategoryId>
@@ -5562,7 +5577,11 @@
 				AND Post.PostId = #arguments.postId#
 		</cfquery>
 			
-		<cfreturn Data[1]["CommentCount"]>
+		<cfif arrayLen(Data) and structKeyExists(Data[1],"CommentCount")>
+			<cfreturn Data[1]["CommentCount"]>
+		<cfelse>
+			<cfreturn 0>
+		</cfif>
 			
 	</cffunction>
 	
@@ -7484,7 +7503,7 @@
 				</cfif>
 						
 				<!--- Determine if there is a scroll magic scene. We are doing this in order to load scroll magic only when it is needed. We only know if there may be a scene if the post header contains a cfinclude, or when there is a script with the string 'new ScrollMagic'. --->
-				<cfif Data[i]["PostHeader"] contains '<cfincludeTemplate>' or Data[i]["PostHeader"] contains 'new ScrollMagic'>
+				<cfif structKeyExists(Data[i],"PostHeader") and Data[i]["PostHeader"] contains '<cfincludeTemplate>' or Data[i]["PostHeader"] contains 'new ScrollMagic'>
 					<cfset loadScrollMagic = true>
 				</cfif>
 			</cfloop>
@@ -9396,67 +9415,71 @@
 				
 				<!--- Create a new struct --->
 				<cfset MapStruct = structNew()>
-
+		
 				<!--- Set the values in the structure. --->
 				<cfset mapRow = Data[i]>
-				<cfset MapStruct["MapId"] = Data[i]["MapId"]>
-				<cfset MapStruct["MapProvider"] = Data[i]["MapProvider"]>
-				<cfset MapStruct["MapType"] = Data[i]["MapType"]>
-				<cfset MapStruct["PostId"] = Data[i]["PostId"]>
-				<cfset MapStruct["HasMapRoutes"] = Data[i]["HasMapRoutes"]>
-				<cfset MapStruct["MapName"] = Data[i]["MapName"]>
-				<cfset MapStruct["MapTitle"] = Data[i]["MapTitle"]>
-				<cfset MapStruct["Location"] = Data[i]["Location"]>
-				<cfset MapStruct["GeoCoordinates"] = Data[i]["GeoCoordinates"]>
-				<!--- I did not store the latitude and longitude separately with Bing Maps as all it needed was a comma separated value that I stored in the GeoCoordinates column. However, Azure Maps does not always use the same geo coordinate strucuture, sometimes it wants 'longitude,latidude' and other cases uses 'latitude,longitude' so I am storing both in the database to make it easier to understand what is going on. If the latitude and longitude is not defined, get the values from the geo coordinates which is always stored as latitude, longitude. --->
-				<cfif structKeyExists(mapRow, "Latitude")>
-					<cfset MapStruct["Latitude"] = Data[i]["Latitude"]>
-				<cfelse>
-					<!--- The GeoCoordinates will be blank with map routes --->
-					<cfif len(Data[i]["GeoCoordinates"])>
-						<cfset MapStruct["Latitude"] = listGetAt(Data[i]["GeoCoordinates"],1)>
-					<cfelse>
-						<cfset MapStruct["Latitude"] = "">
-					</cfif>
-				</cfif>
-				<cfif structKeyExists(mapRow, "Longitude")>
-					<cfset MapStruct["Longitude"] = Data[i]["Longitude"]>
-				<cfelse>
-					<!--- The GeoCoordinates will be blank with map routes --->
-					<cfif len(Data[i]["GeoCoordinates"])>
-						<cfset MapStruct["Longitude"] = listGetAt(Data[i]["GeoCoordinates"],2)>
-					<cfelse>
-						<cfset MapStruct["Longitude"] = "">
-					</cfif>
-				</cfif>
-				<!--- The following columns may be null and I need to replace the null with empty strings. I introduced them with version 4 --->
-				<cfif structKeyExists(mapRow, "TopLeftLatitude")>
-					<cfset MapStruct["TopLeftLatitude"] = Data[i]["TopLeftLatitude"]>
-				<cfelse>
-					<cfset MapStruct["TopLeftLatitude"] = "">
-				</cfif>
-				<cfif structKeyExists(mapRow, "TopLeftLongitude")>
-					<cfset MapStruct["TopLeftLongitude"] = Data[i]["TopLeftLongitude"]>
-				<cfelse>
-					<cfset MapStruct["TopLeftLongitude"] = "">
-				</cfif>
-				<cfif structKeyExists(mapRow, "BottomRightLatitude")>
-					<cfset MapStruct["BottomRightLatitude"] = Data[i]["BottomRightLatitude"]>
-				<cfelse>
-					<cfset MapStruct["BottomRightLatitude"] = "">
-				</cfif>
-				<cfif structKeyExists(mapRow, "BottomRightLongitude")>
-					<cfset MapStruct["BottomRightLongitude"] = Data[i]["BottomRightLongitude"]>
-				<cfelse>
-					<cfset MapStruct["BottomRightLongitude"] = "">
-				</cfif>
-				<!--- User defined properties --->
-				<cfset MapStruct["Zoom"] = Data[i]["Zoom"]>
-				<cfset MapStruct["OutlineMap"] = Data[i]["OutlineMap"]>
-				<cfset MapStruct["CustomMarkerUrl"] = Data[i]["CustomMarkerUrl"]>
 					
-				<!--- Append the final structure inside of an array. --->
-				<cfset arrayAppend(MapArray, MapStruct)>
+				<cfif structKeyExists(Data[i], "MapId")>
+					<cfset MapStruct["MapId"] = Data[i]["MapId"]>
+					<cfset MapStruct["MapProvider"] = Data[i]["MapProvider"]>
+					<cfset MapStruct["MapType"] = Data[i]["MapType"]>
+					<cfset MapStruct["PostId"] = Data[i]["PostId"]>
+					<cfset MapStruct["HasMapRoutes"] = Data[i]["HasMapRoutes"]>
+					<cfset MapStruct["MapName"] = Data[i]["MapName"]>
+					<cfset MapStruct["MapTitle"] = Data[i]["MapTitle"]>
+					<cfset MapStruct["Location"] = Data[i]["Location"]>
+					<cfset MapStruct["GeoCoordinates"] = Data[i]["GeoCoordinates"]>
+					<!--- I did not store the latitude and longitude separately with Bing Maps as all it needed was a comma separated value that I stored in the GeoCoordinates column. However, Azure Maps does not always use the same geo coordinate strucuture, sometimes it wants 'longitude,latidude' and other cases uses 'latitude,longitude' so I am storing both in the database to make it easier to understand what is going on. If the latitude and longitude is not defined, get the values from the geo coordinates which is always stored as latitude, longitude. --->
+					<cfif structKeyExists(mapRow, "Latitude")>
+						<cfset MapStruct["Latitude"] = Data[i]["Latitude"]>
+					<cfelse>
+						<!--- The GeoCoordinates will be blank with map routes --->
+						<cfif len(Data[i]["GeoCoordinates"])>
+							<cfset MapStruct["Latitude"] = listGetAt(Data[i]["GeoCoordinates"],1)>
+						<cfelse>
+							<cfset MapStruct["Latitude"] = "">
+						</cfif>
+					</cfif>
+					<cfif structKeyExists(mapRow, "Longitude")>
+						<cfset MapStruct["Longitude"] = Data[i]["Longitude"]>
+					<cfelse>
+						<!--- The GeoCoordinates will be blank with map routes --->
+						<cfif len(Data[i]["GeoCoordinates"])>
+							<cfset MapStruct["Longitude"] = listGetAt(Data[i]["GeoCoordinates"],2)>
+						<cfelse>
+							<cfset MapStruct["Longitude"] = "">
+						</cfif>
+					</cfif>
+					<!--- The following columns may be null and I need to replace the null with empty strings. I introduced them with version 4 --->
+					<cfif structKeyExists(mapRow, "TopLeftLatitude")>
+						<cfset MapStruct["TopLeftLatitude"] = Data[i]["TopLeftLatitude"]>
+					<cfelse>
+						<cfset MapStruct["TopLeftLatitude"] = "">
+					</cfif>
+					<cfif structKeyExists(mapRow, "TopLeftLongitude")>
+						<cfset MapStruct["TopLeftLongitude"] = Data[i]["TopLeftLongitude"]>
+					<cfelse>
+						<cfset MapStruct["TopLeftLongitude"] = "">
+					</cfif>
+					<cfif structKeyExists(mapRow, "BottomRightLatitude")>
+						<cfset MapStruct["BottomRightLatitude"] = Data[i]["BottomRightLatitude"]>
+					<cfelse>
+						<cfset MapStruct["BottomRightLatitude"] = "">
+					</cfif>
+					<cfif structKeyExists(mapRow, "BottomRightLongitude")>
+						<cfset MapStruct["BottomRightLongitude"] = Data[i]["BottomRightLongitude"]>
+					<cfelse>
+						<cfset MapStruct["BottomRightLongitude"] = "">
+					</cfif>
+					<!--- User defined properties --->
+					<cfset MapStruct["Zoom"] = Data[i]["Zoom"]>
+					<cfset MapStruct["OutlineMap"] = Data[i]["OutlineMap"]>
+					<cfset MapStruct["CustomMarkerUrl"] = Data[i]["CustomMarkerUrl"]>
+
+					<!--- Append the final structure inside of an array. --->
+					<cfset arrayAppend(MapArray, MapStruct)>
+						
+				</cfif><!---<cfif structKeyExists(Data[i], "MapId")>--->
 					
 			</cfloop><!---<cfloop from="1" to="#arrayLen(Data)#" index="i">--->
 					

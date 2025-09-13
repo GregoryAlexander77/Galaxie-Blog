@@ -16,8 +16,8 @@
 	<cfproperty name="Website" ormtype="string" default="" length="255">
 	<!--- The ProfileBody can be HTML that creates a page. --->
 	<cfproperty name="ProfilePicture" ormtype="string" default="" length="255">
-	<!--- This is configured for MySql. Manually change this property if you use another db --->
-	<cfproperty name="Biography" ormtype="text" sqltype="longtext" default="">
+	<!--- This is configured for SQL Server. Manually change the varchar(max) property if you use another db --->
+	<cfproperty name="Biography" ormtype="string" sqltype="varchar(max)" default="">
 	<!--- Social Media --->
 	<cfproperty name="FacebookUrl" ormtype="string" default="" length="255">
 	<cfproperty name="LinkedInUrl" ormtype="string" default="" length="255">

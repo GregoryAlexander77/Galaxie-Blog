@@ -36,7 +36,7 @@
 	<cfproperty name="CSS" ormtype="string" sqltype="varchar(max)" default="">
 	<cfproperty name="JavaScript" ormtype="string" sqltype="varchar(max)" default="">
 	<cfproperty name="Body" ormtype="string" sqltype="varchar(max)" default="">
-	<cfproperty name="MoreBody" ormtype="clob" default="">
+	<cfproperty name="MoreBody" ormtype="string" sqltype="varchar(max)" default="">
 	<cfproperty name="Released" ormtype="boolean" default="false">
 	<cfproperty name="Promote" ormtype="boolean" default="false">
 	<cfproperty name="AllowComment" ormtype="boolean" default="true">
