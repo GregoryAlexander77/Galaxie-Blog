@@ -1488,7 +1488,7 @@
 		<cfargument name="kendoTheme" type="string" required="yes" hint="Required to determine the polygon colors">	
 		<cfargument name="mapType" type="string" required="yes" hint="Either static or route">
 		<cfargument name="mapId" type="string" required="yes">
-		<cfargument name="mapProvider" type="string" required="yes">
+		<cfargument name="mapProvider" type="string" default="Azure Maps" required="no">
 		<cfargument name="location" type="string" required="yes">
 		<cfargument name="geoCoordinates" type="string" required="yes">
 		<cfargument name="latitude" type="string" required="yes">	
@@ -1517,7 +1517,7 @@
 		2) Bing Maps
 			Bing Maps will generate two portions of the page. A portion that is common for both a static map and route, and another portion that is unique to a static map or route.
 		--->
-		<cfswitch expression="#mapProvider#">
+		<cfswitch expression="#arguments.mapProvider#">
 			<cfcase value="Azure Maps">
 				<cfif arguments.mapType eq 'static'>
 					<cfsavecontent variable="staticMapHtml">
@@ -1725,7 +1725,7 @@
 			<cfcase value="Bing Maps">
 				<cfsavecontent variable="commonMapHtml">
 						// ***********************************************************************
-						// Script for Map <cfoutput>#arguments.mapId#</cfoutput>
+						// Bing Maps script for Map <cfoutput>#arguments.mapId#</cfoutput>
 						// ***********************************************************************
 					<!--- The GeoCoordinates will be blank with map routes --->
 					<cfif len(arguments.GeoCoordinates)>
@@ -1811,7 +1811,7 @@
 					<cfsavecontent variable="MapRouteHtml">
 						<cfoutput>#commonMapHtml#</cfoutput>
 
-						// Routes for map#arguments.mapId# ***************************************
+						// Bing Map routes for map<cfoutput>#arguments.mapId#</cfoutput> ***************************************
 						Microsoft.Maps.loadModule('Microsoft.Maps.Directions', function () {
 							var directionsManager = new Microsoft.Maps.Directions.DirectionsManager(map<cfoutput>#mapId#</cfoutput>);
 							// Set Route Mode to driving

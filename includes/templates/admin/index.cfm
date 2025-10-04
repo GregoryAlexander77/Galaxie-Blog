@@ -100,12 +100,15 @@
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(40);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/blogUpdates.gif")>
 </cfif>
+<!--- I am temporararily removing the visitor log until I implement a new interface to allow the blog admins to turn it on or off. I am having ORM lock issues on occassion since the logging requires capturing data for each visitor ---> 
+<cfif 1 eq 2>
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
-	<!---Visitor Log--->
+	<!--- Visitor Log --->
 	<cfset iconList = listAppend(iconList, 'VisitorLog')>
 	<cfset titleList = listAppend(titleList, 'Visitor Log')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(48);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/visitorLog.gif")>
+</cfif>
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
 	<cfset iconList = listAppend(iconList, 'ImportData')>

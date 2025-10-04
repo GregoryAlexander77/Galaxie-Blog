@@ -12,7 +12,7 @@
 	<cfset windowInterfaceName = "postHeaderWindow">
 	<!--- Set the name --->
 	<cfset windowTitle = "Post Header">
-	<cfset description = 'The Post Header is used to attach <b>optional</b> code, such as Javascript, CSS, ColdFusion cfincludes, and Galaxie Blog Directives to a post. It is designed to keep the logic separate from the WYSIWYG Post Editor as the editor manipulates the DOM and HTML. You may also use <a href="https://gregoryalexander.com/blog/2019/12/14/Galaxie-Blog-XML-Post-Directives">Galaxie Blog Directives</a> to override ColdFusion#chr(39)#s the Global Script Protection if it is turned on.<br/>Including scripts requires an opening and closing <attachSript></attachSript> tags to avoid the global script protection, however, you can use CSS style tags without any modifications'>
+	<cfset description = 'The Post Header is used to attach <b>optional</b> code, such as Javascript, CSS, ColdFusion cfincludes, and Galaxie Blog Directives to a post. It is designed to keep the logic separate from the WYSIWYG Post Editor as the editor manipulates the DOM and HTML. You may also use <a href="https://galaxieblog.org/2025/3/7/galaxie-blog-4-xml-post-directives">Galaxie Blog Directives</a> to override ColdFusion#chr(39)#s the Global Script Protection if it is turned on.<br/>Including scripts requires an opening and closing <attachSript></attachSript> tags to avoid the global script protection, however, you can use CSS style tags without any modifications'>
 	<!--- Set the processing URL, typically a cfc --->
 	<cfset postUrl = application.baseUrl & "/common/cfc/ProxyController.cfc?method=savePostHeader&csrfToken=" & csrfToken>
 	<!--- What is the post function name? --->

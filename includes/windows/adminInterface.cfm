@@ -24,11 +24,6 @@
 <!--- Instantiate the HTMLUtils cfc. This is used to create alternating table rows --->
 <cfobject component="#application.htmlUtilsComponentPath#" name="HtmlUtilsObj">
 	
-<!--- Clear the cache --->
-<!--- Note: each Kendo Theme has a cache. There are too many caches to try to flush so we are going to flush them all. --->
-<!--- Clear everything from the scopecache library --->
-<cfmodule template="#application.baseUrl#/tags/scopecache.cfm" scope="application" clearall="true">
-	
 <!--- Get client properties. This will be used to set the interfaces depending upon the screen size --->
 <cftry>
 	<cfset screenHeight = cookie['screenHeight']>
@@ -40,7 +35,7 @@
 </cftry>
 		
 <!--- Determine if we should show the interface for small screens --->
-<cfif session.isMobile or session.isTablet or screenWidth lt 1280>
+<cfif session.isMobile or session.isTablet>
 	<cfset smallScreen = true>
 <cfelse>
 	<cfset smallScreen = false>

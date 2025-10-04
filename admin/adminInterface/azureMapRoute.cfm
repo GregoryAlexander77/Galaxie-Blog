@@ -459,7 +459,7 @@
 	function saveMapRoute(locationGeoCoordinates){
 		
 		// Create a list of coordinates
-		alert(getWaypoints());  
+		//alert(getWaypoints());  
 		
 			
 		// Let the user know that we are processing the data
@@ -972,7 +972,6 @@
 					<button id="createRoute" class="k-button k-primary" type="button" onclick="saveMapRoute()">Submit</button>
 				</td>
 			</tr>
-			
 		</table>
 		</form>
 		

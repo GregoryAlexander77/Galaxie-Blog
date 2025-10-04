@@ -256,7 +256,7 @@ Import the Blog.
 	<cfset BlogDbObj.setBlogEmail(blogEmail)>
 	<cfset BlogDbObj.setBlogEmailFailToAddress(failTo)>
 	<cfset BlogDbObj.setIpBlockList(ipblocklist)>
-	<cfset BlogDbObj.setEntriesPerBlogPage(9)>
+	<cfset BlogDbObj.setEntriesPerBlogPage(10)>
 	<cfset BlogDbObj.setBlogModerated(moderate)>
 	<cfset BlogDbObj.setUseCaptcha(usecaptcha)>
 	<cfset BlogDbObj.setAllowGravatar(allowgravatars)>
@@ -323,59 +323,6 @@ Blog Option table.
 
 	<!--- Save it. Note: updates will automatically occur on persisted objects if the object notices any change. We don't  have to use entity save after the Entity has been loaded and saved. --->
 	<cfset EntitySave(BlogOptionDbObj)>
-	
-</cftransaction>
-		
-<!--- **********************************************************************************************
-Custom Template table. 
-*************************************************************************************************--->
-	
-<!---<cfquery name="reset">
-DELETE FROM CustomTemplate;
-DBCC CHECKIDENT ('[CustomTemplate]', RESEED, 0);
-</cfquery>--->
-		
-<cfset customHeadTemplate = application.themeSettingsArray[1][30]>
-	
-<!--- Important note: these values should be blank in the distrubution version! --->
-<!--- Populate the Blog table --->
-<!--- Use a transaction --->
-<cftransaction>
-	<!--- Load the blog table and get the first record (there only should be one record). This will pass back an object with the value of the blogId. --->
-	<cfset BlogRef = entityLoadByPK("Blog", 1)>
-	
-	<!--- Note: we are removing the custom templates from using a theme. The custom templates are now universal and not dependent upon a single theme. --->
-	<cfset customCoreLogicTemplate = application.themeSettingsArray[1][29]>
-	<cfset customHeadTemplate = application.themeSettingsArray[1][30]>
-	<cfset customBodyString = application.themeSettingsArray[1][31]>
-	<cfset customFontCssTemplate = application.themeSettingsArray[1][32]>
-	<cfset customGlobalAndBodyCssTemplate = application.themeSettingsArray[1][33]>
-	<cfset customTopMenuCssTemplate = application.themeSettingsArray[1][34]>
-	<cfset customTopMenuHtmlTemplate = application.themeSettingsArray[1][35]>
-	<cfset customTopMenuJsTemplate = application.themeSettingsArray[1][36]>
-	<cfset customBlogContentCssTemplate = application.themeSettingsArray[1][37]>
-	<cfset customBlogJsContentTemplate = application.themeSettingsArray[1][38]>
-	<cfset customBlogContentHtmlTemplate = application.themeSettingsArray[1][39]>
-	<cfset customFooterHtmlTemplate = application.themeSettingsArray[1][40]>
-		
-	<!--- Load the entity. --->
-	<cfset CustomTemplateDbObj = entityNew("CustomTemplate")>
-	<!--- Use the entity objects to set the data. --->
-	<cfset CustomTemplateDbObj.setBlogRef(blogRef)>
-	<cfset CustomTemplateDbObj.setCoreLogicTemplate(customCoreLogicTemplate)>
-	<cfset CustomTemplateDbObj.setHeaderTemplate(customHeadTemplate)>
-	<cfset CustomTemplateDbObj.setBodyString(customBodyString)>
-	<cfset CustomTemplateDbObj.setFontTemplate(customFontCssTemplate)>
-	<cfset CustomTemplateDbObj.setCssTemplate(customGlobalAndBodyCssTemplate)>
-	<cfset CustomTemplateDbObj.setTopMenuHtmlTemplate(customTopMenuHtmlTemplate)>
-	<cfset CustomTemplateDbObj.setTopMenuJsTemplate(customTopMenuJsTemplate)>
-	<cfset CustomTemplateDbObj.setBlogCssTemplate(customBlogContentCssTemplate)>
-	<cfset CustomTemplateDbObj.setBlogJsTemplate(customBlogJsContentTemplate)>
-	<cfset CustomTemplateDbObj.setBlogHtmlTemplate(customBlogContentHtmlTemplate)>
-	<cfset CustomTemplateDbObj.setFooterHtmlTemplate(customFooterHtmlTemplate)>	
-	<cfset CustomTemplateDbObj.setDate(now())>
-
-	<!---<cfset EntitySave(CustomTemplateDbObj)>--->
 	
 </cftransaction>
 		

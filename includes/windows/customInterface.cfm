@@ -32,7 +32,7 @@
 </cftry>
 		
 <!--- Determine if we should show the interface for small screens --->
-<cfif session.isMobile or session.isTablet or screenWidth lt 1280>
+<cfif session.isMobile or session.isTablet>
 	<cfset smallScreen = true>
 <cfelse>
 	<cfset smallScreen = false>

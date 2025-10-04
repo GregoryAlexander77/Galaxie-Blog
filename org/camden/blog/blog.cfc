@@ -16,10 +16,10 @@
 		Version
 	//******************************************************************************************--->
 		
-	<!--- Current blog version (This is hardcoded, for now...). Make sure to delete the footer cache file if you want this to show up. --->
-	<cfset version = "4.11" />
-	<cfset versionName = "4.11 (Bella's Edition)" />
-	<cfset versionDate =  "September 4th 2025"> 
+	<!--- Current blog version (This is hardcoded, for now...) --->
+	<cfset version = "4.07" />
+	<cfset versionName = "4.07 (Bella's Edition)" />
+	<cfset versionDate =  "June 30th 2025"> 
 
 	<!--- Require version 9 or higher as we are using ORM --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>
@@ -249,6 +249,30 @@
 		<cfargument name="contentTemplateId" type="string" required="false" default="">
 		<cfargument name="contentTemplate" type="string" required="false" default="">
 			
+		<!---
+			Content template names are stored in the db. Some of these are:
+			navigationMenu
+			compositeHeader
+			aboutWindow
+			bioWindow
+			contactWindow
+			searchWindow
+			downloadWindow
+			subscribe
+			popularPosts
+			authorBio
+			downloadPod
+			subscribePod
+			cfBlogsFeedPod
+			recentPostsPod
+			recentCommentsPod
+			categoriesPod
+			archivesPod
+			monthlyArchivesPod
+			blogPostCalendarPod
+			compositeFooter
+		---> 
+			
 		<!--- We need the contentTemplateId or the contentTemplate --->
 		<cfif len(arguments.contentTemplateId) or len(arguments.contentTemplate)>
 		
@@ -266,11 +290,7 @@
 			</cfif>
 			</cfquery>
 				
-			<cfif arrayLen(Data)>
-				<cfreturn Data[1]["Active"]>
-			<cfelse>
-				<cfreturn false>
-			</cfif>
+			<cfreturn Data[1]["Active"]>
 			
 		</cfif><!---<cfif len(arguments.contentTemplateId) or len(arguments.contentTemplate)>--->
 	
@@ -322,6 +342,7 @@
 			</cfif>
 			<cfif len(arguments.contentTemplate)>
 				AND (ContentTemplate.ContentTemplateName = <cfqueryparam value="#arguments.contentTemplate#" cfsqltype="varchar">)
+
 			</cfif>
 			<cfif len(arguments.themeId)>
 				AND (ContentOutput.ThemeRef  = <cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.themeId#"> OR ContentOutput.ThemeRef IS NULL) 
@@ -471,7 +492,7 @@
 		<!--- Note: the following function should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. --->
 		<!--- Reset the contentOutputData var --->
 		<cfset contentOutputData = "">
-		<!--- This template drives the navigation menu and is a unordered HTML list. This template uses the getContentOutputData function to determine the content. It will display custom content that is in the database or use the default code below if no custom code exists  --->
+		<!--- This template drives the navigation menu and is a unordered HTML list. This template uses the getPageContent function to determine the content. It will display custom content that is in the database or use the default code below if no custom code exists  --->
 		<cfinvoke component="#application.blog#" method="getContentOutputByContentTemplate" returnvariable="getOutputContent">
 			<cfinvokeargument name="pageId" value="2"><!--- Note: pageId 1 is the landing blog page, 2 is a blog post --->
 			<cfinvokeargument name="contentTemplate" value="#arguments.contentTemplate#">
@@ -835,6 +856,7 @@
 			<cfinvokeargument name="httpUserAgent" value="#arguments.httpUserAgent#">
 		</cfinvoke>
 		<!--- Load the http referrer entity --->
+
 		<cfset HttpUserAgentDbObj = entityLoadByPK("HttpUserAgent", httpUserAgentId)>
 			
 		<cftransaction>
@@ -1337,6 +1359,12 @@
 			<cfset thisFileNameOrFilter = 'commentPostId=#arguments.postId#'>
 			<!--- Delete the files --->
 			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+				
+			<!--- Delete the popular post html files in the cache folder. This will clear all of the popularPost files. --->
+			<cfset thisDirectory = application.baseUrl & '/cache/cards'>
+			<cfset thisFileNameOrFilter = 'topMenu'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
 
 			<!--- Delete the post related html files in the cache folder --->
 			<cfset thisDirectory = application.baseUrl & '/cache/rss'>
@@ -1470,7 +1498,7 @@
 			<cfset thisFileNameOrFilter = 'themeId=' & arguments.themeId>
 			<!--- Delete the files --->
 			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
-
+				
 			<!--- Recursively call this method to clear everything else that requires a themeId --->
 			<!--- Refresh the font --->
 			<cfset flushGalaxieCache('font', arguments.themeId)>
@@ -1503,10 +1531,10 @@
 		<!--- Note: be careful if you don't specify a fileFilter as you may delete all of the files in a directory. If they are cache files, it is not a huge deal as they will be recreated again when someone visits a page when using Galaxie Cache. --->
 		<cfif len(arguments.fileFilter)>
 			<!--- Get the files that match the supplied file name or filter. --->
-			<cfdirectory action="list" directory="#expandPath('#arguments.directory#')#" recurse="#arguments.recursive#" filter="*#arguments.fileFilter#*" name="cacheFiles"/>
+			<cfdirectory action="list" directory="#expandPath(arguments.directory)#" recurse="#arguments.recursive#" filter="*#arguments.fileFilter#*" name="cacheFiles"/>
 		<cfelse>
 			<!--- Get all of the files within the directory --->
-			<cfdirectory action="list" directory="#expandPath('#arguments.directory#')#" recurse="#arguments.recursive#" name="cacheFiles"/>
+			<cfdirectory action="list" directory="#expandPath(arguments.directory)#" recurse="#arguments.recursive#" name="cacheFiles"/>
 		</cfif>
 		<!--- Loop through the files found in the directory. --->
 		<cfloop query="cacheFiles">
@@ -1719,12 +1747,9 @@
 
 			<!--- Set the return string --->
 			<cfif arrayLen(Data)>
-				<cftry>
-					<cfset returnStr = instance.blogUrl & "/" & year(Data[1]["DatePosted"]) & "/" & month(Data[1]["DatePosted"]) & "/" & day(Data[1]["DatePosted"]) & "/" & Data[1]["PostAlias"]>
-					<!--- Return it --->
-					<cfreturn StringUtilsObj.trimStr(makeRewriteRuleSafeLink(returnStr))>
-				<cfcatch type="any"></cfcatch>
-				</cftry>
+				<cfset returnStr = instance.blogUrl & "/" & year(Data[1]["DatePosted"]) & "/" & month(Data[1]["DatePosted"]) & "/" & day(Data[1]["DatePosted"]) & "/" & Data[1]["PostAlias"]>
+				<!--- Return it --->
+				<cfreturn StringUtilsObj.trimStr(makeRewriteRuleSafeLink(returnStr))>
 			</cfif>
 		</cfif>
 	
@@ -2665,12 +2690,7 @@
 		</cfquery>
 			
 		<cfif arrayLen(Data)>
-			<cftry>
-				<cfset logoImage = Data[1]["LogoImage"]>
-			<cfcatch type="any">
-				<cfset logoImage = "">
-			</cfcatch>
-			</cftry>
+			<cfset logoImage = Data[1]["LogoImage"]>
 		<cfelse>
 			<cfset logoImage = "">
 		</cfif>
@@ -4027,15 +4047,12 @@
 				<cfreturn parentCategoriesQuery>
 
 			<cfelse><!---<cfif parentCategoriesQuery.recordcount gte 7>--->
-				<cftry>
-					<!--- Set the values of the cells in the query ---> 
-					<cfset querySetCell(parentCategoriesQuery, "CategoryId", categoryId, categoryLevel)> 
-					<cfset querySetCell(parentCategoriesQuery, "ParentCategoryId", parentCategoryId, categoryLevel)> 
-					<cfset querySetCell(parentCategoriesQuery, "Category", category, categoryLevel)> 
-					<cfset querySetCell(parentCategoriesQuery, "CategoryLink", application.blog.makeCategoryLink(categoryId), categoryLevel)> 
-					<cfset querySetCell(parentCategoriesQuery, "CategoryLevel", categoryLevel, categoryLevel)> 
-				<cfcatch type="any"></cfcatch>
-				</cftry>
+				<!--- Set the values of the cells in the query ---> 
+				<cfset querySetCell(parentCategoriesQuery, "CategoryId", categoryId, categoryLevel)> 
+				<cfset querySetCell(parentCategoriesQuery, "ParentCategoryId", parentCategoryId, categoryLevel)> 
+				<cfset querySetCell(parentCategoriesQuery, "Category", category, categoryLevel)> 
+				<cfset querySetCell(parentCategoriesQuery, "CategoryLink", application.blog.makeCategoryLink(categoryId), categoryLevel)> 
+				<cfset querySetCell(parentCategoriesQuery, "CategoryLevel", categoryLevel, categoryLevel)> 
 
 				<!--- If there is a parentCategoryId, call this function recursively and pass in the new parentCategoryId. Otherwise, return the categoryIdList. Note: we must use a cfreturn to call the function recursively, otherwise the categoryIdList will not be returned properly. --->
 				<cfif parentCategoryId>
@@ -4608,6 +4625,7 @@
 			SELECT new Map (
 				Tag.TagId as TagId,
 				Tag.Tag as Tag, 
+
 				Tag.TagDesc as TagDesc, 
 				Tag.TagAlias as TagAlias
 				
@@ -5577,11 +5595,7 @@
 				AND Post.PostId = #arguments.postId#
 		</cfquery>
 			
-		<cfif arrayLen(Data) and structKeyExists(Data[1],"CommentCount")>
-			<cfreturn Data[1]["CommentCount"]>
-		<cfelse>
-			<cfreturn 0>
-		</cfif>
+		<cfreturn Data[1]["CommentCount"]>
 			
 	</cffunction>
 	
@@ -5669,7 +5683,7 @@
 	</cffunction>
 				
 	<cffunction name="addComment" access="public" returnType="numeric" output="false"
-		hint="Adds a comment.">
+			hint="Adds a comment.">
 		
 		<cfargument name="postId" type="numeric" required="true">
 		<cfargument name="name" type="string" required="true">
@@ -5684,6 +5698,7 @@
 		<cfargument name="overrideModeration" type="boolean" required="false" default="false">
 		<cfargument name="sendEmail" type="boolean" required="false" default="true" hint="Sometimes you will want to override sending email out, for example, when importing data when upgrading to a newer version of the blog">
 		<cfargument name="datePosted" cfsqltype="cf_sql_varchar" maxlength="210" required="false" default="">
+		<cfargument name="showPendingPosts"  type="boolean" required="false" default="false">
 			
 		<!---//*****************************************************************************************
 			Prepare the arguments
@@ -5693,6 +5708,7 @@
 		<cfset var entry = "">
 		<cfset var spam = "">
 		<cfset var kill = createUUID()>
+		<cfset var returnValue = 0/>
 
 		<!--- 
 		With the new kendo editor, we are not using encodeForHTML to store the comments. 
@@ -5708,256 +5724,262 @@
 		</cfif>
 
 		<!--- Get the entry so we can check for allowcomments ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
-		<cfset getPost = getPostByPostId(arguments.postId,false,false)>
-		<cfif not getPost[1]["AllowComment"]>
-			<cfset variables.utils.throw("#arguments.postId# does not allow for comments.")>
-		</cfif>
-
-		<!--- Check the spam list if the user made an actual comment and is just not subsribing to a post --->
-		<cfif not arguments.subscribeOnly>
-			<!--- check spam and IPs --->
-			<cfloop index="spam" list="#instance.trackbackspamlist#">
-				<cfif findNoCase(spam, arguments.comments) or
-					  findNoCase(spam, arguments.name) or
-					  findNoCase(spam, arguments.website) or
-					  findNoCase(spam, arguments.email)>
-					<cfset variables.utils.throw("Comment blocked for spam.")>
-				</cfif>
-			</cfloop>
-			<cfloop list="#instance.ipblocklist#" index="spam">
-				<cfif spam contains "*" and reFindNoCase(replaceNoCase(spam, '.', '\.','all'), cgi.REMOTE_ADDR)>
-					<cfset variables.utils.throw("Comment blocked for spam.")>
-				<cfelseif spam is cgi.REMOTE_ADDR>
-					<cfset variables.utils.throw("Comment blocked for spam.")>
-				</cfif>
-	      	</cfloop>
-		</cfif>
-					
-		<!--- Convert the subscribe to a boolean value --->
-		<cfif arguments.subscribe>
-			<cfset arguments.subscribe = 1>
-		<cfelse>
-			<cfset arguments.subscribe = 0>
-		</cfif>
+		<cfset getPost = getPostByPostId(arguments.postId,arguments.showPendingPosts,false)>
 			
-		<!--- The comment will be automatically approved if: the admin created the subscription: blog moderation is not turned on and: the override argument is set to false. --->
-		<cfif not application.Udf.isLoggedIn() and instance.moderate and not arguments.overrideModeration>
-			<cfset approved = 0>
-		<cfelse>
-			<cfset approved = 1>
-		</cfif>	
-			
-		<!--- See if the comment exists. This gets the comment to the millisecond. --->
-		<cfset getComment = this.getCommentByDate(datePosted=arguments.datePosted)>
-		<cfif not arrayLen(getComment)>
-		
-			<!--- Wrap the db code with a transaction tag. --->
+		<cfif arrayLen(getPost)>
+			<!--- Validation --->
+			<cfif structKeyExists(getPost[1], "AllowComment") and not getPost[1]["AllowComment"]>
+				<cfset variables.utils.throw("#arguments.postId# does not allow for comments.")>
+			</cfif>
 
-			<!---//************************************************************************************************************
-				Save the user or commenter
-			//*********************************************************************************************************--->
-
-			<!--- Notes:
-			I need to set the unique argument in order to load an entity that allows me to use its set methods to save the data, however, there may  be more than one row. I could use the additional maxresults argument to limit the records to one record, however, it does not work when supplying the unique argument. 
-			I will get around these barriers by using a hql query to get the top record in the commenter table and using the primary key to load the entity. --->
-
-			<!--- Is the user logged in and defined? --->
-			<cfif arguments.user neq "">
-
-				<!--- Get the top record that matches the email in the commenter table. --->
-				<cfquery name="getUser" dbtype="hql" ormoptions="#{maxresults=1}#">		
-					SELECT new Map (
-						UserId as UserId)
-					FROM Users as Users 
-					WHERE Email = <cfqueryparam value="#arguments.email#">
-					AND Active = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
-				</cfquery>
-
-				<!--- If there are existing records, load the Comment object by the primary key. --->
-				<cfif arrayLen(getUser)>
-					<cfset UserRefDbObj = EntityLoadByPK("Users", getUser[1]["UserId"])>
-				<!--- If the commenter was not found, create a new commenter object. --->
-				<cfelse>
-					<cfset UserRefDbObj = entityNew("Users")>
-				</cfif>
-
-			<!--- Handle commenter and post subscribers --->
-			<cfelse><!---<cfif arguments.user neq "">--->
-
-				<!--- Get the top record that matches the email in the commenter table. --->
-				<cfquery name="getCommenter" dbtype="hql" ormoptions="#{maxresults=1}#">		
-					SELECT new Map (
-						CommenterId as CommenterId)
-					FROM Commenter as Commenter 
-					WHERE Email = <cfqueryparam value="#arguments.email#">
-				</cfquery>
-
-				<!--- If there are existing records, load the Comment object by the primary key. --->
-				<cfif arrayLen(getCommenter)>
-					<cfset CommenterRefDbObj = EntityLoadByPK("Commenter", getCommenter[1]["CommenterId"])>
-				<!--- If the commenter was not found, create a new commenter object. --->
-				<cfelse>
-					<cfset CommenterRefDbObj = entityNew("Commenter")>
-				</cfif>
-
-			</cfif><!---<cfif arguments.user neq "">--->
-
-			<!--- Capture the IP address and save it into the IpAddress table. We will capture all IP addresses for comments in order to build a more secure moderation system. Note: this can be an annonymous commenter or a known user --->	
-			<cfif len(CommenterRefDbObj.getCommenterId()) or len(arguments.user) and len(UserRefDbObj.getUserId())>
-				<!--- If the commenter exists, get the top record that matches the Ip address, commenter, and user agent in the IP adress table. 
-				Note: we can't put a cfqueryparam on columns that have a field type as these columns expect objects.--->
-				<cfquery name="getIpAddress" dbtype="hql" ormoptions="#{maxresults=1}#">		
-					SELECT new Map (
-						IpAddressId as IpAddressId)
-					<!--- Prefix the IP address table name as it will conflict with the identical column name. --->
-					FROM IpAddress as tblIpAddress 
-					WHERE 0=0
-					AND IpAddress = <cfqueryparam value="#arguments.ipAddress#">
-					ORDER BY Date ASC
-				</cfquery>
-
-				<cfif arrayLen(getIpAddress)>
-				<!--- Load the Ip adress object --->
-					<cfset IpAddressDbObj = entityLoadByPk("IpAddress", getIpAddress[1]["IpAddressId"] )>
-				<cfelse>
-					<!--- If the commenter or user was not found, load the Ip address object --->
-					<cfset IpAddressDbObj = entityNew("IpAddress")>
-				</cfif>
-			<cfelse><!---<cfif len(CommenterRefDbObj.getCommenterId()) or len(UserRefDbObj.getUserId())>--->
-				<!--- create a new Ip address object. --->
-				<cfset IpAddressDbObj = entityNew("IpAddress")>
-			</cfif><!---<cfif len(CommenterRefDbObj.getCommenterId()) or len(UserRefDbObj.getUserId())>--->
-
-			<cftransaction>
-
-				<!--- Save the user id, ip address and user agent --->
-				<cfif isDefined("UserRefDbObj")>
-					<cfset IpAddressDbObj.setCommenterRef(UserRefDbObj)>
-				</cfif>
-				<!--- TODO
-				<cfif isDefined("CommenterRefDbObj")>
-					<cfset IpAddressDbObj.setCommenterRef(CommenterRefDbObj)>
-				</cfif>
-				--->
-				<cfset IpAddressDbObj.setIpAddress(arguments.ipAddress)>
-				<cfset IpAddressDbObj.setDate(blogNow())>
-				<!--- And finally, save the fullname, email, website, ip address and user agent of the person whom made the comment or the person subscri bing to the post. --->
-				<cfset CommenterRefDbObj.setFullName(arguments.name)>
-				<cfset CommenterRefDbObj.setEmail(arguments.email)>
-				<cfset CommenterRefDbObj.setWebsite(arguments.website)>
-				<!--- TODO Attach a reference to the IP and Http User Agent entities
-				<cfset CommenterRefDbObj.setIpAddress(arguments.ipAddress)>
-				<cfset CommenterRefDbObj.setHttpUserAgent(arguments.httpUserAgent)>
-				--->
-				<cfset CommenterRefDbObj.setDate(blogNow())>
-
-				<!--- Save it. Note: updates will automatically occur on persisted objects if the object notices any change. We don't  have to use entity save after the Entity has been loaded and saved. --->
-				<!--- Save the Ip adress entity --->
-				<cfset EntitySave(IpAddressDbObj)>
-				<!--- Save the commenter entity --->
-				<cfset EntitySave(CommenterRefDbObj)>
-
-				<!---//**************************************************************************************************************************
-					Save the comment
-				//************************************************************************************************--->
-
-				<!--- Load the blog table and get the first record (there only should be one record at this time). This will pass back an object with the value of the blogId. This is needed as the setBlogRef is a foreign key and for some odd reason ColdFusion or Hybernate must have an object passed as a reference instead of a hardcoded value. --->
-				<cfset BlogDbObj = entityLoadByPK("Blog", application.BlogDbObj.getBlogId())>
-				<!--- Get the post ref --->
-				<cfset PostRefDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
-				<!--- Create a new comment entity. --->
-				<cfset CommentDbObj = entityNew("Comment")>
-
-				<!--- Use the entity objects to set the data. --->
-				<cfset CommentDbObj.setBlogRef(BlogDbObj)>
-				<cfset CommentDbObj.setPostRef(PostRefDbObj)>
-				<cfif isDefined("UserRefDbObj")>
-					<!--- Set the user ref. The UserRef is only defined when the administrator is logged in. --->
-					<cfset CommentDbObj.setUserRef(UserRefDbObj)>
-				<cfelse>
-					<!--- Set the commenter ref --->
-					<cfset CommentDbObj.setCommenterRef(CommenterRefDbObj)>
-				</cfif>
-				<cfset CommentDbObj.setComment(arguments.comments)>
-				<!--- ParentCommentRef is null right now. I will not use it in this version. --->
-				<cfset CommentDbObj.setCommentUuid(newUuid)>
-				<cfset CommentDbObj.setComment(arguments.comments)>
-				<cfif len(arguments.datePosted)>
-					<cfset CommentDbObj.setDatePosted(arguments.datePosted)>
-				<cfelse>
-					<cfset CommentDbObj.setDatePosted(application.blog.blogNow())>
-				</cfif>
-				<cfset CommentDbObj.setSubscribe(arguments.subscribe)>
-				<cfset CommentDbObj.setApproved(approved)>
-				<cfset CommentDbObj.setPromote(0)>	
-				<cfset CommentDbObj.setHide(0)>		
-				<!--- KillComment in BlogCfc is a UUID for some odd reason. I'm going to set this to false. --->
-				<cfset CommentDbObj.setRemove(false)>	
-				<cfset CommentDbObj.setDate(application.blog.blogNow())>
-
-				<!---//*****************************************************************************************
-					If the commenter unsubscribes from one comment, unsubscribe the commenter from all comments in this particular post.
-				//******************************************************************************************--->
-				<cfif not arguments.subscribe and len(CommenterRefDbObj.getCommenterId())>
-
-					<cfquery name="Data" dbtype="hql">
-						UPDATE Comment
-						SET 
-							Subscribe = false
-						WHERE 
-							PostRef = #PostRefDbObj.getPostId()#
-							AND CommenterRef = #CommenterRefDbObj.getCommenterId()#
-					</cfquery>
-				</cfif><!---<cfif not arguments.subscribe>--->
-
-				<!--- And save the comment entity --->
-				<!---<cfset Post.addComment(CommentDbObj)>--->
-				<cfset EntitySave(CommentDbObj)>
-
-			</cftransaction>	
-
-			<!--- Send out email to the subscribers if the comment was approved and the sendEmail argument is true (which it is by default). --->
-			<cfif approved and arguments.sendEmail>
-
-				<!--- Get the commentId from the entity --->
-				<cfset commentId = CommentDbObj.getCommentId()>
-				<!--- Get the comment. The comment table will have the postId --->
-				<cfset getComment = application.blog.getComment(commentId=commentId)>
-				<!--- Get all post subscribers --->
-				<cfset getPostSubscribers = application.blog.getSubscribers(postId=postId, verifiedOnly=true)>
-
-				<!--- Loop through the post subscribers --->
-				<cfloop from="1" to="#arrayLen(getPostSubscribers)#" index="i">
-
-					<!--- Set the recipient --->
-					<cfset emailTo = getPostSubscribers[1]["SubscriberEmail"]>
-
-					<!--- Render the email --->
-					<cfinvoke component="#RendererObj#" method="renderCommentEmailToPostSubscribers" returnvariable="postSubscriberEmail">
-						<cfinvokeargument name="commentId" value="#commentId#">
-						<cfinvokeargument name="emailTo" value="#emailTo#">
-					</cfinvoke>
-
-					<!--- Email the rendered content to the post subscribers --->
-					<cfset UtilsObj.mail(
-						to=#emailTo#,
-						subject="Message sent via #application.BlogDbObj.getBlogTitle()#",
-						body=postSubscriberEmail)>
-
+			<!--- Check the spam list if the user made an actual comment and is just not subsribing to a post --->
+			<cfif not arguments.subscribeOnly>
+				<!--- check spam and IPs --->
+				<cfloop index="spam" list="#instance.trackbackspamlist#">
+					<cfif findNoCase(spam, arguments.comments) or
+						  findNoCase(spam, arguments.name) or
+						  findNoCase(spam, arguments.website) or
+						  findNoCase(spam, arguments.email)>
+						<cfset variables.utils.throw("Comment blocked for spam.")>
+					</cfif>
 				</cfloop>
+				<cfloop list="#instance.ipblocklist#" index="spam">
+					<cfif spam contains "*" and reFindNoCase(replaceNoCase(spam, '.', '\.','all'), cgi.REMOTE_ADDR)>
+						<cfset variables.utils.throw("Comment blocked for spam.")>
+					<cfelseif spam is cgi.REMOTE_ADDR>
+						<cfset variables.utils.throw("Comment blocked for spam.")>
+					</cfif>
+				</cfloop>
+			</cfif>
 
-			</cfif><!---<cfif arguments.approved>--->
+			<!--- Convert the subscribe to a boolean value --->
+			<cfif arguments.subscribe>
+				<cfset arguments.subscribe = 1>
+			<cfelse>
+				<cfset arguments.subscribe = 0>
+			</cfif>
 
-			<!--- Return the commentId --->
-			<cfset returnValue = CommentDbObj.getCommentId()>
-			
-		<cfelse>
-			<!---Return the existing commentId --->
-			<cfset returnValue = getComment[1]["CommentId"]>
-		</cfif>
-			
-		<!--- Refresh the Galaxie Cache comment objects --->
-		<cfset flushGalaxieCache(type='comment', postId='#arguments.postId#')>
+			<!--- The comment will be automatically approved if: the admin created the subscription: blog moderation is not turned on and: the override argument is set to false. --->
+			<cfif not application.Udf.isLoggedIn() and instance.moderate and not arguments.overrideModeration>
+				<cfset approved = 0>
+			<cfelse>
+				<cfset approved = 1>
+			</cfif>	
+
+			<!--- See if the comment exists. This gets the comment to the millisecond. --->
+			<cfset getComment = this.getCommentByDate(datePosted=arguments.datePosted)>
+			<cfif not arrayLen(getComment)>
+
+				<!--- Wrap the db code with a transaction tag. --->
+
+				<!---//************************************************************************************************************
+					Save the user or commenter
+				//*********************************************************************************************************--->
+
+				<!--- Notes:
+				I need to set the unique argument in order to load an entity that allows me to use its set methods to save the data, however, there may  be more than one row. I could use the additional maxresults argument to limit the records to one record, however, it does not work when supplying the unique argument. 
+				I will get around these barriers by using a hql query to get the top record in the commenter table and using the primary key to load the entity. --->
+
+				<!--- Is the user logged in and defined? --->
+				<cfif arguments.user neq "">
+
+					<!--- Get the top record that matches the email in the commenter table. --->
+					<cfquery name="getUser" dbtype="hql" ormoptions="#{maxresults=1}#">		
+						SELECT new Map (
+							UserId as UserId)
+						FROM Users as Users 
+						WHERE Email = <cfqueryparam value="#arguments.email#">
+						AND Active = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
+					</cfquery>
+
+					<!--- If there are existing records, load the Comment object by the primary key. --->
+					<cfif arrayLen(getUser)>
+						<cfset UserRefDbObj = EntityLoadByPK("Users", getUser[1]["UserId"])>
+					<!--- If the commenter was not found, create a new commenter object. --->
+					<cfelse>
+						<cfset UserRefDbObj = entityNew("Users")>
+					</cfif>
+
+				<!--- Handle commenter and post subscribers --->
+				<cfelse><!---<cfif arguments.user neq "">--->
+
+					<!--- Get the top record that matches the email in the commenter table. --->
+					<cfquery name="getCommenter" dbtype="hql" ormoptions="#{maxresults=1}#">		
+						SELECT new Map (
+							CommenterId as CommenterId)
+						FROM Commenter as Commenter 
+						WHERE Email = <cfqueryparam value="#arguments.email#">
+					</cfquery>
+
+					<!--- If there are existing records, load the Comment object by the primary key. --->
+					<cfif arrayLen(getCommenter)>
+						<cfset CommenterRefDbObj = EntityLoadByPK("Commenter", getCommenter[1]["CommenterId"])>
+					<!--- If the commenter was not found, create a new commenter object. --->
+					<cfelse>
+						<cfset CommenterRefDbObj = entityNew("Commenter")>
+					</cfif>
+
+				</cfif><!---<cfif arguments.user neq "">--->
+
+				<!--- Capture the IP address and save it into the IpAddress table. We will capture all IP addresses for comments in order to build a more secure moderation system. Note: this can be an annonymous commenter or a known user --->	
+				<cfif len(CommenterRefDbObj.getCommenterId()) or len(arguments.user) and len(UserRefDbObj.getUserId())>
+					<!--- If the commenter exists, get the top record that matches the Ip address, commenter, and user agent in the IP adress table. 
+					Note: we can't put a cfqueryparam on columns that have a field type as these columns expect objects.--->
+					<cfquery name="getIpAddress" dbtype="hql" ormoptions="#{maxresults=1}#">		
+						SELECT new Map (
+							IpAddressId as IpAddressId)
+						<!--- Prefix the IP address table name as it will conflict with the identical column name. --->
+						FROM IpAddress as tblIpAddress 
+						WHERE 0=0
+						AND IpAddress = <cfqueryparam value="#arguments.ipAddress#">
+						ORDER BY Date ASC
+					</cfquery>
+
+					<cfif arrayLen(getIpAddress)>
+					<!--- Load the Ip adress object --->
+						<cfset IpAddressDbObj = entityLoadByPk("IpAddress", getIpAddress[1]["IpAddressId"] )>
+					<cfelse>
+						<!--- If the commenter or user was not found, load the Ip address object --->
+						<cfset IpAddressDbObj = entityNew("IpAddress")>
+					</cfif>
+				<cfelse><!---<cfif len(CommenterRefDbObj.getCommenterId()) or len(UserRefDbObj.getUserId())>--->
+					<!--- create a new Ip address object. --->
+					<cfset IpAddressDbObj = entityNew("IpAddress")>
+				</cfif><!---<cfif len(CommenterRefDbObj.getCommenterId()) or len(UserRefDbObj.getUserId())>--->
+
+				<cftransaction>
+
+					<!--- Save the user id, ip address and user agent --->
+					<cfif isDefined("UserRefDbObj")>
+						<cfset IpAddressDbObj.setCommenterRef(UserRefDbObj)>
+
+					</cfif>
+					<!--- TODO
+					<cfif isDefined("CommenterRefDbObj")>
+						<cfset IpAddressDbObj.setCommenterRef(CommenterRefDbObj)>
+					</cfif>
+					--->
+					<cfset IpAddressDbObj.setIpAddress(arguments.ipAddress)>
+					<cfset IpAddressDbObj.setDate(blogNow())>
+					<!--- And finally, save the fullname, email, website, ip address and user agent of the person whom made the comment or the person subscri bing to the post. --->
+					<cfset CommenterRefDbObj.setFullName(arguments.name)>
+					<cfset CommenterRefDbObj.setEmail(arguments.email)>
+					<cfset CommenterRefDbObj.setWebsite(arguments.website)>
+					<!--- TODO Attach a reference to the IP and Http User Agent entities
+					<cfset CommenterRefDbObj.setIpAddress(arguments.ipAddress)>
+					<cfset CommenterRefDbObj.setHttpUserAgent(arguments.httpUserAgent)>
+					--->
+					<cfset CommenterRefDbObj.setDate(blogNow())>
+
+					<!--- Save it. Note: updates will automatically occur on persisted objects if the object notices any change. We don't  have to use entity save after the Entity has been loaded and saved. --->
+					<!--- Save the Ip adress entity --->
+					<cfset EntitySave(IpAddressDbObj)>
+					<!--- Save the commenter entity --->
+					<cfset EntitySave(CommenterRefDbObj)>
+
+					<!---//**************************************************************************************************************************
+						Save the comment
+					//************************************************************************************************--->
+
+					<!--- Load the blog table and get the first record (there only should be one record at this time). This will pass back an object with the value of the blogId. This is needed as the setBlogRef is a foreign key and for some odd reason ColdFusion or Hybernate must have an object passed as a reference instead of a hardcoded value. --->
+					<cfset BlogDbObj = entityLoadByPK("Blog", application.BlogDbObj.getBlogId())>
+					<!--- Get the post ref --->
+					<cfset PostRefDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
+					<!--- Create a new comment entity. --->
+					<cfset CommentDbObj = entityNew("Comment")>
+
+					<!--- Use the entity objects to set the data. --->
+					<cfset CommentDbObj.setBlogRef(BlogDbObj)>
+					<cfset CommentDbObj.setPostRef(PostRefDbObj)>
+					<cfif isDefined("UserRefDbObj")>
+						<!--- Set the user ref. The UserRef is only defined when the administrator is logged in. --->
+						<cfset CommentDbObj.setUserRef(UserRefDbObj)>
+					<cfelse>
+						<!--- Set the commenter ref --->
+						<cfset CommentDbObj.setCommenterRef(CommenterRefDbObj)>
+					</cfif>
+					<cfset CommentDbObj.setComment(arguments.comments)>
+					<!--- ParentCommentRef is null right now. I will not use it in this version. --->
+					<cfset CommentDbObj.setCommentUuid(newUuid)>
+					<cfset CommentDbObj.setComment(arguments.comments)>
+					<cfif len(arguments.datePosted)>
+						<cfset CommentDbObj.setDatePosted(arguments.datePosted)>
+					<cfelse>
+						<cfset CommentDbObj.setDatePosted(application.blog.blogNow())>
+					</cfif>
+					<cfset CommentDbObj.setSubscribe(arguments.subscribe)>
+					<cfset CommentDbObj.setApproved(approved)>
+					<cfset CommentDbObj.setPromote(0)>	
+					<cfset CommentDbObj.setHide(0)>		
+					<!--- KillComment in BlogCfc is a UUID for some odd reason. I'm going to set this to false. --->
+					<cfset CommentDbObj.setRemove(false)>	
+					<cfset CommentDbObj.setDate(application.blog.blogNow())>
+
+					<!---//*****************************************************************************************
+						If the commenter unsubscribes from one comment, unsubscribe the commenter from all comments in this particular post.
+					//******************************************************************************************--->
+					<cfif not arguments.subscribe and len(CommenterRefDbObj.getCommenterId())>
+
+						<cfquery name="Data" dbtype="hql">
+							UPDATE Comment
+							SET 
+								Subscribe = false
+							WHERE 
+								PostRef = #PostRefDbObj.getPostId()#
+								AND CommenterRef = #CommenterRefDbObj.getCommenterId()#
+						</cfquery>
+					</cfif><!---<cfif not arguments.subscribe>--->
+
+					<!--- And save the comment entity --->
+					<!---<cfset Post.addComment(CommentDbObj)>--->
+					<cfset EntitySave(CommentDbObj)>
+
+				</cftransaction>	
+
+				<!--- Send out email to the subscribers if the comment was approved and the sendEmail argument is true (which it is by default). --->
+				<cfif approved and arguments.sendEmail>
+
+					<!--- Get the commentId from the entity --->
+					<cfset commentId = CommentDbObj.getCommentId()>
+					<!--- Get the comment. The comment table will have the postId --->
+					<cfset getComment = application.blog.getComment(commentId=commentId)>
+					<!--- Get all post subscribers --->
+					<cfset getPostSubscribers = application.blog.getSubscribers(postId=postId, verifiedOnly=true)>
+
+					<!--- Loop through the post subscribers --->
+					<cfloop from="1" to="#arrayLen(getPostSubscribers)#" index="i">
+
+						<!--- Set the recipient --->
+						<cfset emailTo = getPostSubscribers[1]["SubscriberEmail"]>
+
+						<!--- Render the email --->
+						<cfinvoke component="#RendererObj#" method="renderCommentEmailToPostSubscribers" returnvariable="postSubscriberEmail">
+							<cfinvokeargument name="commentId" value="#commentId#">
+							<cfinvokeargument name="emailTo" value="#emailTo#">
+						</cfinvoke>
+
+						<!--- Email the rendered content to the post subscribers --->
+						<cfset UtilsObj.mail(
+							to=#emailTo#,
+							subject="Message sent via #application.BlogDbObj.getBlogTitle()#",
+							body=postSubscriberEmail)>
+
+					</cfloop>
+
+				</cfif><!---<cfif arguments.approved>--->
+
+				<!--- Return the commentId --->
+				<cfset returnValue = CommentDbObj.getCommentId()>
+
+			<cfelse>
+				<!---Return the existing commentId --->
+				<cfset returnValue = getComment[1]["CommentId"]>
+			</cfif>
+
+			<!--- Refresh the Galaxie Cache comment objects --->
+			<cfset flushGalaxieCache(type='comment', postId='#arguments.postId#')>
+				
+		</cfif><!---<cfif arrayLen(getPost)>--->
 			
 		<cfreturn returnValue>
 		
@@ -7335,6 +7357,7 @@
 				Post.Promote as Promoted,
 				User.UserId as UserId,
 				User.FullName as FullName,
+				User.DisplayName as DisplayName,
 				User.Email as Email,
 				Post.ThemeRef as ThemeRef,
 				Post.PostUuid as PostUuid,
@@ -7503,7 +7526,7 @@
 				</cfif>
 						
 				<!--- Determine if there is a scroll magic scene. We are doing this in order to load scroll magic only when it is needed. We only know if there may be a scene if the post header contains a cfinclude, or when there is a script with the string 'new ScrollMagic'. --->
-				<cfif structKeyExists(Data[i],"PostHeader") and Data[i]["PostHeader"] contains '<cfincludeTemplate>' or Data[i]["PostHeader"] contains 'new ScrollMagic'>
+				<cfif Data[i]["PostHeader"] contains '<cfincludeTemplate>' or Data[i]["PostHeader"] contains 'new ScrollMagic'>
 					<cfset loadScrollMagic = true>
 				</cfif>
 			</cfloop>
@@ -7519,6 +7542,12 @@
 					<cfset postRow = Data[i]>
 					<cfset PostStruct["UserId"] = Data[i]["UserId"]>
 					<cfset PostStruct["FullName"] = Data[i]["FullName"]>
+					<!--- Display name may not be present. its optional. --->
+					<cfif structKeyExists(postRow, "ThemeRef")>
+						<cfset PostStruct["DisplayName"] = Data[i]["DisplayName"]>
+					<cfelse>
+						<cfset PostStruct["DisplayName"] = "">
+					</cfif>
 					<cfset PostStruct["Email"] = Data[i]["Email"]>
 					<cfset PostStruct["PostId"] = Data[i]["PostId"]>
 					<!--- The theme id may not be present. its optional. --->
@@ -8020,9 +8049,11 @@
 		<cfif len(arguments.datePosted) and len(arguments.timePosted)>
 			<!--- don't modify the date that the user sent in --->
 			<cfset dateTimePosted = arguments.datePosted & ' ' & arguments.timePosted>
+		<cfelseif len(arguments.datePosted)>
+			<!--- We can also just send in a properly formatted datePosted with the time and omit the time arg --->
+			<cfset dateTimePosted = arguments.datePosted>
 		<cfelse>
 			<!--- Blog now already has the time zone info --->
-
 			<cfset dateTimePosted = blogNow()>	
 		</cfif>
 			
@@ -8767,6 +8798,7 @@
 		</cfif>
 
 		<!--- Preset vars and create a structure --->
+
 		<cfscript>			
 		xmlKeywordsStruct=StructNew();
 			
@@ -9375,7 +9407,7 @@
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
 				Map.MapId as MapId,
-				MapTypeRef.MapType.MapProviderRef.MapProvider as MapProvider,
+				MapProviderRef.MapProvider as MapProvider,
 				MapTypeRef.MapType as MapType,
 				PostRef.PostId as PostId,
 				Map.HasMapRoutes as HasMapRoutes,
@@ -9415,71 +9447,67 @@
 				
 				<!--- Create a new struct --->
 				<cfset MapStruct = structNew()>
-		
+
 				<!--- Set the values in the structure. --->
 				<cfset mapRow = Data[i]>
+				<cfset MapStruct["MapId"] = Data[i]["MapId"]>
+				<cfset MapStruct["MapProvider"] = Data[i]["MapProvider"]>
+				<cfset MapStruct["MapType"] = Data[i]["MapType"]>
+				<cfset MapStruct["PostId"] = Data[i]["PostId"]>
+				<cfset MapStruct["HasMapRoutes"] = Data[i]["HasMapRoutes"]>
+				<cfset MapStruct["MapName"] = Data[i]["MapName"]>
+				<cfset MapStruct["MapTitle"] = Data[i]["MapTitle"]>
+				<cfset MapStruct["Location"] = Data[i]["Location"]>
+				<cfset MapStruct["GeoCoordinates"] = Data[i]["GeoCoordinates"]>
+				<!--- I did not store the latitude and longitude separately with Bing Maps as all it needed was a comma separated value that I stored in the GeoCoordinates column. However, Azure Maps does not always use the same geo coordinate strucuture, sometimes it wants 'longitude,latidude' and other cases uses 'latitude,longitude' so I am storing both in the database to make it easier to understand what is going on. If the latitude and longitude is not defined, get the values from the geo coordinates which is always stored as latitude, longitude. --->
+				<cfif structKeyExists(mapRow, "Latitude")>
+					<cfset MapStruct["Latitude"] = Data[i]["Latitude"]>
+				<cfelse>
+					<!--- The GeoCoordinates will be blank with map routes --->
+					<cfif len(Data[i]["GeoCoordinates"])>
+						<cfset MapStruct["Latitude"] = listGetAt(Data[i]["GeoCoordinates"],1)>
+					<cfelse>
+						<cfset MapStruct["Latitude"] = "">
+					</cfif>
+				</cfif>
+				<cfif structKeyExists(mapRow, "Longitude")>
+					<cfset MapStruct["Longitude"] = Data[i]["Longitude"]>
+				<cfelse>
+					<!--- The GeoCoordinates will be blank with map routes --->
+					<cfif len(Data[i]["GeoCoordinates"])>
+						<cfset MapStruct["Longitude"] = listGetAt(Data[i]["GeoCoordinates"],2)>
+					<cfelse>
+						<cfset MapStruct["Longitude"] = "">
+					</cfif>
+				</cfif>
+				<!--- The following columns may be null and I need to replace the null with empty strings. I introduced them with version 4 --->
+				<cfif structKeyExists(mapRow, "TopLeftLatitude")>
+					<cfset MapStruct["TopLeftLatitude"] = Data[i]["TopLeftLatitude"]>
+				<cfelse>
+					<cfset MapStruct["TopLeftLatitude"] = "">
+				</cfif>
+				<cfif structKeyExists(mapRow, "TopLeftLongitude")>
+					<cfset MapStruct["TopLeftLongitude"] = Data[i]["TopLeftLongitude"]>
+				<cfelse>
+					<cfset MapStruct["TopLeftLongitude"] = "">
+				</cfif>
+				<cfif structKeyExists(mapRow, "BottomRightLatitude")>
+					<cfset MapStruct["BottomRightLatitude"] = Data[i]["BottomRightLatitude"]>
+				<cfelse>
+					<cfset MapStruct["BottomRightLatitude"] = "">
+				</cfif>
+				<cfif structKeyExists(mapRow, "BottomRightLongitude")>
+					<cfset MapStruct["BottomRightLongitude"] = Data[i]["BottomRightLongitude"]>
+				<cfelse>
+					<cfset MapStruct["BottomRightLongitude"] = "">
+				</cfif>
+				<!--- User defined properties --->
+				<cfset MapStruct["Zoom"] = Data[i]["Zoom"]>
+				<cfset MapStruct["OutlineMap"] = Data[i]["OutlineMap"]>
+				<cfset MapStruct["CustomMarkerUrl"] = Data[i]["CustomMarkerUrl"]>
 					
-				<cfif structKeyExists(Data[i], "MapId")>
-					<cfset MapStruct["MapId"] = Data[i]["MapId"]>
-					<cfset MapStruct["MapProvider"] = Data[i]["MapProvider"]>
-					<cfset MapStruct["MapType"] = Data[i]["MapType"]>
-					<cfset MapStruct["PostId"] = Data[i]["PostId"]>
-					<cfset MapStruct["HasMapRoutes"] = Data[i]["HasMapRoutes"]>
-					<cfset MapStruct["MapName"] = Data[i]["MapName"]>
-					<cfset MapStruct["MapTitle"] = Data[i]["MapTitle"]>
-					<cfset MapStruct["Location"] = Data[i]["Location"]>
-					<cfset MapStruct["GeoCoordinates"] = Data[i]["GeoCoordinates"]>
-					<!--- I did not store the latitude and longitude separately with Bing Maps as all it needed was a comma separated value that I stored in the GeoCoordinates column. However, Azure Maps does not always use the same geo coordinate strucuture, sometimes it wants 'longitude,latidude' and other cases uses 'latitude,longitude' so I am storing both in the database to make it easier to understand what is going on. If the latitude and longitude is not defined, get the values from the geo coordinates which is always stored as latitude, longitude. --->
-					<cfif structKeyExists(mapRow, "Latitude")>
-						<cfset MapStruct["Latitude"] = Data[i]["Latitude"]>
-					<cfelse>
-						<!--- The GeoCoordinates will be blank with map routes --->
-						<cfif len(Data[i]["GeoCoordinates"])>
-							<cfset MapStruct["Latitude"] = listGetAt(Data[i]["GeoCoordinates"],1)>
-						<cfelse>
-							<cfset MapStruct["Latitude"] = "">
-						</cfif>
-					</cfif>
-					<cfif structKeyExists(mapRow, "Longitude")>
-						<cfset MapStruct["Longitude"] = Data[i]["Longitude"]>
-					<cfelse>
-						<!--- The GeoCoordinates will be blank with map routes --->
-						<cfif len(Data[i]["GeoCoordinates"])>
-							<cfset MapStruct["Longitude"] = listGetAt(Data[i]["GeoCoordinates"],2)>
-						<cfelse>
-							<cfset MapStruct["Longitude"] = "">
-						</cfif>
-					</cfif>
-					<!--- The following columns may be null and I need to replace the null with empty strings. I introduced them with version 4 --->
-					<cfif structKeyExists(mapRow, "TopLeftLatitude")>
-						<cfset MapStruct["TopLeftLatitude"] = Data[i]["TopLeftLatitude"]>
-					<cfelse>
-						<cfset MapStruct["TopLeftLatitude"] = "">
-					</cfif>
-					<cfif structKeyExists(mapRow, "TopLeftLongitude")>
-						<cfset MapStruct["TopLeftLongitude"] = Data[i]["TopLeftLongitude"]>
-					<cfelse>
-						<cfset MapStruct["TopLeftLongitude"] = "">
-					</cfif>
-					<cfif structKeyExists(mapRow, "BottomRightLatitude")>
-						<cfset MapStruct["BottomRightLatitude"] = Data[i]["BottomRightLatitude"]>
-					<cfelse>
-						<cfset MapStruct["BottomRightLatitude"] = "">
-					</cfif>
-					<cfif structKeyExists(mapRow, "BottomRightLongitude")>
-						<cfset MapStruct["BottomRightLongitude"] = Data[i]["BottomRightLongitude"]>
-					<cfelse>
-						<cfset MapStruct["BottomRightLongitude"] = "">
-					</cfif>
-					<!--- User defined properties --->
-					<cfset MapStruct["Zoom"] = Data[i]["Zoom"]>
-					<cfset MapStruct["OutlineMap"] = Data[i]["OutlineMap"]>
-					<cfset MapStruct["CustomMarkerUrl"] = Data[i]["CustomMarkerUrl"]>
-
-					<!--- Append the final structure inside of an array. --->
-					<cfset arrayAppend(MapArray, MapStruct)>
-						
-				</cfif><!---<cfif structKeyExists(Data[i], "MapId")>--->
+				<!--- Append the final structure inside of an array. --->
+				<cfset arrayAppend(MapArray, MapStruct)>
 					
 			</cfloop><!---<cfloop from="1" to="#arrayLen(Data)#" index="i">--->
 					
@@ -9503,15 +9531,15 @@
 		<cfargument name="longitude" type="string" required="true" default="" hint="Pass in the longitude. Used with Azure maps">
 		<!--- Optional args --->
 		<cfargument name="isEnclosure" type="string" required="false" default="" hint="We need to know if this map will be used for an enclosure or in the post body.">
-		<cfargument name="provider" type="string" required="false" default="Bing Maps" hint="Pass in the provider (Bing Maps is retired on June 2025).">
+		<cfargument name="provider" type="string" required="false" default="Azure Maps" hint="Pass in the provider (Bing Maps is retired on June 2025).">
 		<cfargument name="outlineMap" type="boolean" required="false" default="false" hint="This is a boolean value">
 		<cfargument name="customMarker" type="string" required="false" default="" hint="Pass in the URL of your custom marker, if any"> 
 		
 		<cftransaction>
-			<!--- Get the provider. Right now there is only one (bing) --->
-			<cfset ProviderDbObj = entityLoad("MapProvider", { MapProvider = arguments.provider }, "true" )>
+			<!--- Get the provider. We are using Azure Maps right now --->
+			<cfset ProviderDbObj = entityLoad("MapProvider", { MapProvider = 'Azure Maps' }, "true" )>
 			<!--- And the map type. Our default is aerial --->
-			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = arguments.mapType }, "true" )>
+			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = 'road', MapProviderRef = ProviderDbObj }, "true" )>
 		
 			<cfif arguments.mapId neq ''>
 				<!--- Load the Map entity --->
@@ -9572,10 +9600,10 @@
 		<cfargument name="postId" type="string" required="true" default="" hint="Pass in the postId">
 		
 		<cftransaction>
-			<!--- Get the provider. Right now there is only one (bing) --->
-			<cfset ProviderDbObj = entityLoad("MapProvider", { MapProvider = arguments.provider }, "true" )>
+			<!--- Get the provider. We are using Azure Maps right now --->
+			<cfset ProviderDbObj = entityLoad("MapProvider", { MapProvider = 'Azure Maps' }, "true" )>
 			<!--- And the map type. Our default is aerial --->
-			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = "road_shaded_relief" }, "true" )>
+			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = 'road', MapProviderRef = ProviderDbObj }, "true" )>
 		
 			<cfif arguments.mapId neq ''>
 				<!--- Load the Map entity --->
@@ -10137,6 +10165,7 @@
 			SELECT new Map (
 				UserName as UserName
 			)
+
 			FROM Users
 			WHERE 
 				FullName = <cfqueryparam cfsqltype="cf_sql_varchar" value="#replace(arguments.name,"_"," ","all")#" maxlength="50">
@@ -10580,6 +10609,7 @@
 			<cftransaction>
 				<!--- Load the user entity. --->
 				<cfset UsersDbObj = entityLoadByPK("Users", Data[1]["UserId"])>
+
 				<!--- Set the values. --->
 				<cfset UsersDbObj.setPassword(#hash(salt & arguments.password, instance.hashalgorithm)#)>
 				<cfset UsersDbObj.setSalt(salt)>
@@ -10790,6 +10820,7 @@
 					User.UserId as UserId,
 					Role.RoleId as RoleId,
 					Role.RoleName as Role
+
 				)
 				FROM 
 					Users as User
@@ -11859,6 +11890,7 @@
 					<!--- Populate the Theme table --->
 					<!--- Load the Kendo Theme object --->
 					<cfset KendoThemeDbObj = entityLoad("KendoTheme", { KendoTheme = kendoTheme }, "true" )>
+
 
 					<!--- Only update records when the updateRecords flag is set or there are no existing records. Note: the query name here is getThemeId. --->
 					<cfif not arrayLen(getThemeId) or updateRecords>

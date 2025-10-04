@@ -96,6 +96,8 @@
 			<cfset strippedContent = replaceNoCase(strippedContent, "<" & arguments.tag & ">", "", "all")>
 			<!--- And the closing tag. Note- we are also removing the end tag of the closing tag of the directive body '>' --->
 			<cfset strippedContent = replaceNoCase(strippedContent, "></" & arguments.tag & ">", "", "all")>
+			<!--- Finally, remove the end tag if it still exists --->
+			<cfset strippedContent = replaceNoCase(strippedContent, "</" & arguments.tag & ">", "", "all")>
 			<cfcatch type="any">
 				<cfset strippedContent = arguments.str>
 			</cfcatch>

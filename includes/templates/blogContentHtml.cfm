@@ -31,7 +31,7 @@
 			</cfif>
 			</cfsilent>
 			<!--- Cache this for a day --->
-			<cfcache action="cache" key="#cacheKey#" timespan="#createTimespan(1,0,0,0)#" expireURL="#application.baseUrl#/includes/flushCache.cfm">
+			<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/cards/#cacheName#.cfm" timeout="#(24*3600)#" debug="false" disabled="#application.disableCache#">
 				<cfinvoke component="#application.blog#" method="getPost" returnvariable="getPopularPosts">
 					<cfinvokeargument name="showPopularPosts" value="true">
 				</cfinvoke>
@@ -269,7 +269,7 @@
 				</style>
 
 			</cfif><!---<cfif arrayLen(getPost)>--->
-		</cfcache>
+		</cfmodule>
 		</cfif><!---<cfif showPopularPosts>--->
 			</div>
 			
@@ -401,6 +401,7 @@
 					<cfset userId = getPost[i]["UserId"]>
 					<cfset email = getPost[i]["Email"]>
 					<cfset fullName = getPost[i]["FullName"]>
+					<cfset displayName = getPost[i]["DisplayName"]>
 					<!--- Media (videos and images) --->
 					<cfset mediaType = getPost[1]["MediaType"]>
 					<!--- The mime type may not be available when using external sources due to forbidden errors when trying to read the file. --->
@@ -524,6 +525,7 @@
 							<span class="innerContentContainer">
 
 								<h1 class="topContent">
+
 								<!--- Don't show the link in the title when looking at an individual post. --->
 								<cfif getPageMode() eq 'post'>
 									#title# 
@@ -541,7 +543,7 @@
 								</p>
 								<p class="postAuthor">
 									<span class="info">
-										<cfif len(fullName)>by <a href="#userLink#" aria-label="#userLink#" class="k-content">#fullName#</a></cfif>
+										<cfif len(fullName)>by <a href="#userLink#" aria-label="#userLink#" class="k-content"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
 										<!--- Loop through the categories array. --->
 										<cfloop from="1" to="#arrayLen(getCategories)#" index="i">
 											<cfsilent>
@@ -595,7 +597,7 @@
 								</table>
 								<p class="postAuthor">
 									<span class="info">
-										<cfif len(fullName)>by <a href="#userLink#" aria-label="#userLink#" class="k-content">#fullName#</a></cfif>
+										<cfif len(fullName)>by <a href="#userLink#" aria-label="#userLink#" class="k-content"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
 									</span>
 								</p>							
 							</cfif><!---<cfif session.isMobile>--->

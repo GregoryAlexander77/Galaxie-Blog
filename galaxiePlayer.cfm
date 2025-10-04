@@ -104,7 +104,7 @@ Check to see we are calling this to preview or display a video within a post. If
 </cfif>
 	
 <!--- Set the size of the video. This should be set smaller than the size of the iframe --->
-<cfif URL.thumbnail>
+<cfif structKeyExists(URL,"thumbnail")>
 	<!--- The size of the iframe container is 235x130 --->
 	<cfset width = "213">
 	<cfset height = "110">

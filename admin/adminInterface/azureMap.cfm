@@ -58,7 +58,7 @@
 		$(document).ready(function(){
 		
 			// This is used to populate the autosuggest as well as render the map when the first input is used. Fuzzy searches include POI and addresses.
-			var fuzzyGeoServiceUrl = "<cfoutput>#azureMapsFuzzySearchUrl#</cfoutput>"; 
+			var fuzzyGeoServiceUrl = "<cfoutput>#application.azureMapsFuzzySearchUrl#</cfoutput>"; 
 
 			// create DropDownList from select HTML element
 			$("#countrySelector").kendoDropDownList();

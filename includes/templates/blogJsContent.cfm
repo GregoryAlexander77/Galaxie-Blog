@@ -311,9 +311,12 @@
 		customWindow = getUrlParameter('customWindow');
 	<cfloop from="1" to="#arrayLen(getCustomWindows)#" index="i">
 		<cfsilent>
+		<cftry>
 		<cfset customWindowId = getCustomWindows[i]['CustomWindowContentId']>
 		<cfset customWindowName = getCustomWindows[i]['WindowName']>
 		<cfset postId = getCustomWindows[i]['PostRef']>
+		<cfcatch type="any"></cfcatch>
+		</cftry>
 		</cfsilent>
 		<cfif i eq 1>// Is the customWindow URL parameter present and does it match a known window name?</cfif>
 		if (customWindow.length && customWindow == '<cfoutput>#customWindowName#</cfoutput>'){

@@ -225,12 +225,21 @@ Either use https://code.jquery.com/jquery-3.4.1.min.js or https://ajax.googleapi
 <script type="text/javascript" src="#kendoSourceLocation#js/<cfif kendoCommercial>kendo.all.min<cfelse>kendo.ui.core.min</cfif>.js"></script>
 <!-- Note: the Kendo stylesheets are critical to the look of the site and I am not deferring them. -->
 <script type="text/javascript">
+<cfif isDefined("thisKendoSourceLocation") and len(thisKendoSourceLocation)><!--- Allow the blog user to switch over to Kendo commercial using XML directives in the post header --->
+	// Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings.
+	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#thisKendoSourceLocation#styles/kendo.common.min.css') );
+	// Less based theme css files.
+	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#thisKendoSourceLocation#styles/kendo.default.min.css') );
+	// Mobile less based theme file.
+	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#thisKendoSourceLocation#styles/kendo.default.mobile.min.css') );
+<cfelse>
 	// Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings.
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#trim(kendoCommonCssFileLocation)#') );
 	// Less based theme css files.
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#trim(kendoThemeCssFileLocation)#') );
 	// Mobile less based theme file.
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#trim(kendoThemeMobileCssFileLocation)#') );
+</cfif>
 </script>
 <!-- Other  libraries  -->
 <!-- Kendo extended API (used for confirm and other dialogs) -->
@@ -329,3 +338,11 @@ Either use https://code.jquery.com/jquery-3.4.1.min.js or https://ajax.googleapi
 }());
 </script>
 <!--- Some optional libraries are included at the tail end of the page. --->
+<!---
+<cfset thisDirectory = application.baseUrl & '/cache/header'>
+<cfdirectory action="list" directory="#expandPath(thisDirectory)#" name="cacheFiles"/>
+<cfdump var="#cacheFiles#">
+<cfoutput> #application.baseUrl#/cache/header #expandPath(thisDirectory)#</cfoutput>
+<cfset application.blog.flushGalaxieCacheFiles(directory="#application.baseUrl#/cache/header", fileFilter="topMenuThemeId=28")>
+<cfset application.blog.flushGalaxieCache(type='theme', themeId='28')>
+--->

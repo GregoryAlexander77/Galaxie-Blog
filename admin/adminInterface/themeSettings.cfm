@@ -1890,7 +1890,11 @@
 			<!--- Set the colspan property for borders --->
 			<cfset thisColSpan = "2">
 		  </cfsilent>
-				
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+				Note: if you're using a custom location, upload the logo's within the blog directory. For example, if your blog is in the 'blog' folder, place the logo anywhere inside of the blog folder (i.e /blog/images/myLogo.png).
+			</td>
+		  </tr>				
 		  <!-- Border -->
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -2302,7 +2306,6 @@
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			  
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
 		  <!---After the first row, the content class should be the current class. --->
@@ -2390,13 +2393,18 @@
 		<!---//***********************************************************************************************
 							Navigation Menu
 		//************************************************************************************************--->
-				
+			
 		<!--- This logic is easily reproducable with a small number of variables. Set them here. --->
 		<cfset contentTemplateStr = "navigationMenu">
 		<cfset contentTemplateLabel = "Navigation Menu">
 		<cfset entityId = "ThemeId">
 		<cfset entityName = "ThemeName">
 		<cfset useEnableButton = true>
+			
+		<!--- Is the template active? This determines if the enabled checkbox is checked --->
+		<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+			<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+		</cfinvoke>
 		
 		<!--- 
 		You need to enter the description and editor links manually.
@@ -2440,7 +2448,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2449,7 +2457,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -2475,7 +2483,6 @@
 				<!-- Editor -->
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Desktop',false);">Edit</button>
-				
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2503,7 +2510,6 @@
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -2517,7 +2523,6 @@
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>MobileButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Mobile',true);">Edit</button>
 			</td>
-
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
@@ -2540,13 +2545,20 @@
 			
 	<button type="button" class="collapsible k-header">About & Bio Window Content</button>
 	<cfsilent>
+		
 		<!--- This logic is easily reproducable with a small number of variables. Set them here. --->
 		<cfset contentTemplateStr = "aboutWindow">
 		<cfset contentTemplateLabel = "About Window">
 		<cfset entityId = "ThemeId">
 		<cfset entityName = "ThemeName">
 		<cfset useEnableButton = true>
-		<!--- You need to enter the description manually --->			
+		<!--- You need to enter the description manually --->	
+			
+		<!--- Is the template active? This determines if the enabled checkbox is checked --->
+		<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+			<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+		</cfinvoke>
+			
 	</cfsilent>		
 	<div class="content k-content">
 		
@@ -2587,7 +2599,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2596,7 +2608,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -2626,7 +2638,6 @@
 				<!-- Editor -->
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Desktop',false);">Edit</button>
-				
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2667,7 +2678,6 @@
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>MobileButton" name="<cfoutput>#contentTemplateStr#</cfoutput>MobileButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Mobile',true);">Edit</button>
 			</td>
-
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
@@ -2693,6 +2703,11 @@
 		<cfset entityName = "ThemeName">
 		<cfset useEnableButton = true>
 		<!--- You need to enter the description manually --->
+			
+		<!--- Is the template active? This determines if the enabled checkbox is checked --->
+		<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+			<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+		</cfinvoke>
 	
 		  <!--- Set the class for alternating rows. --->
 		  <!---After the first row, the content class should be the current class. --->
@@ -2707,7 +2722,6 @@
 		 <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-		
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The biography window is invoked using the menu at the top of the site. Each user may have their own biography that is entered in the users interface, however, this window is available on all pages of the site. This is an optional element and can be disabled.
@@ -2733,7 +2747,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2742,7 +2756,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -2777,7 +2791,6 @@
 				<!-- Editor -->
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Desktop',false);">Edit</button>
-				
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2844,6 +2857,11 @@
 		<cfset entityName = "ThemeName">
 		<cfset useEnableButton = true>
 		<!--- You need to enter the description manually --->
+			
+		<!--- Is the template active? This determines if the enabled checkbox is checked --->
+		<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+			<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+		</cfinvoke>
 
 		</cfsilent>
 			
@@ -2886,7 +2904,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2895,13 +2913,14 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
 		  
 		  <!-- Border -->
+
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
@@ -2926,7 +2945,6 @@
 				<!-- Editor -->
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Desktop',false);">Edit</button>
-				
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2996,7 +3014,13 @@
 		<cfset entityId = "ThemeId">
 		<cfset entityName = "ThemeName">
 		<cfset useEnableButton = true>
-		<!--- You need to enter the description manually --->			
+		<!--- You need to enter the description manually --->
+			
+		<!--- Is the template active? This determines if the enabled checkbox is checked --->
+		<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+			<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+		</cfinvoke>
+		
 	</cfsilent>		
 	<div class="content k-content">
 		
@@ -3037,7 +3061,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3046,7 +3070,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -3076,7 +3100,6 @@
 				<!-- Editor -->
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Desktop',false);">Edit</button>
-				
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3117,7 +3140,6 @@
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>MobileButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Mobile',true);">Edit</button>
 			</td>
-
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
@@ -3139,7 +3161,6 @@
 								Subscribe Pod
 			//************************************************************************************************--->
 
-
 			<!--- This logic is easily reproducable with a small number of variables. Set them here. --->
 			<cfset contentTemplateStr = "subscribePod">
 			<cfset contentTemplateLabel = "Subscribe Pod">
@@ -3147,6 +3168,11 @@
 			<cfset entityName = "ThemeName">
 			<cfset useEnableButton = true>
 			<!--- You need to enter the description manually --->
+				
+			<!--- Is the template active? This determines if the enabled checkbox is checked --->
+			<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+				<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+			</cfinvoke>
 
 		  	<!--- Set the class for alternating rows. --->
 		  	<!---After the first row, the content class should be the current class. --->
@@ -3186,7 +3212,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3195,7 +3221,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -3285,7 +3311,6 @@
 								CFBlogs Pod
 			//************************************************************************************************--->
 
-
 			<!--- This logic is easily reproducable with a small number of variables. Set them here. --->
 			<cfset contentTemplateStr = "cfblogsFeedPod">
 			<cfset contentTemplateLabel = "CfBlogs Pod">
@@ -3293,6 +3318,11 @@
 			<cfset entityName = "ThemeName">
 			<cfset useEnableButton = true>
 			<!--- You need to enter the description manually --->
+				
+			<!--- Is the template active? This determines if the enabled checkbox is checked --->
+			<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+				<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+			</cfinvoke>
 
 		  	<!--- Set the class for alternating rows. --->
 		  	<!---After the first row, the content class should be the current class. --->
@@ -3332,7 +3362,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3341,8 +3371,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -3372,7 +3401,6 @@
 				<!-- Editor -->
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Desktop',false);">Edit</button>
-				
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3413,7 +3441,6 @@
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>MobileButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Mobile',true);">Edit</button>
 			</td>
-
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
@@ -3440,6 +3467,11 @@
 			<cfset entityName = "ThemeName">
 			<cfset useEnableButton = true>
 			<!--- You need to enter the description manually --->
+				
+			<!--- Is the template active? This determines if the enabled checkbox is checked --->
+			<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+				<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+			</cfinvoke>
 
 		  	<!--- Set the class for alternating rows. --->
 		  	<!---After the first row, the content class should be the current class. --->
@@ -3479,8 +3511,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3489,8 +3520,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -3520,7 +3550,6 @@
 				<!-- Editor -->
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Desktop',false);">Edit</button>
-				
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3561,7 +3590,6 @@
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>MobileButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Mobile',true);">Edit</button>
 			</td>
-
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
@@ -3588,6 +3616,11 @@
 			<cfset entityName = "ThemeName">
 			<cfset useEnableButton = true>
 			<!--- You need to enter the description manually --->
+				
+			<!--- Is the template active? This determines if the enabled checkbox is checked --->
+			<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+				<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+			</cfinvoke>
 
 		  	<!--- Set the class for alternating rows. --->
 		  	<!---After the first row, the content class should be the current class. --->
@@ -3627,8 +3660,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3638,7 +3670,7 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -3668,7 +3700,6 @@
 				<!-- Editor -->
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Desktop',false);">Edit</button>
-				
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3728,7 +3759,6 @@
 								Categories Pod
 			//************************************************************************************************--->
 
-
 			<!--- This logic is easily reproducable with a small number of variables. Set them here. --->
 			<cfset contentTemplateStr = "categoriesPod">
 			<cfset contentTemplateLabel = "Category Archive Pod">
@@ -3736,6 +3766,11 @@
 			<cfset entityName = "ThemeName">
 			<cfset useEnableButton = true>
 			<!--- You need to enter the description manually --->
+				
+			<!--- Is the template active? This determines if the enabled checkbox is checked --->
+			<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+				<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+			</cfinvoke>
 
 		  	<!--- Set the class for alternating rows. --->
 		  	<!---After the first row, the content class should be the current class. --->
@@ -3775,8 +3810,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3785,8 +3819,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -3816,7 +3849,6 @@
 				<!-- Editor -->
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Desktop',false);">Edit</button>
-				
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3884,6 +3916,11 @@
 			<cfset entityName = "ThemeName">
 			<cfset useEnableButton = true>
 			<!--- You need to enter the description manually --->
+				
+			<!--- Is the template active? This determines if the enabled checkbox is checked --->
+			<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+				<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+			</cfinvoke>
 
 		  	<!--- Set the class for alternating rows. --->
 		  	<!---After the first row, the content class should be the current class. --->
@@ -3923,8 +3960,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3934,7 +3970,7 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -3964,7 +4000,6 @@
 				<!-- Editor -->
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Desktop',false);">Edit</button>
-				
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -4005,7 +4040,6 @@
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>MobileButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Mobile',true);">Edit</button>
 			</td>
-
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
@@ -4026,12 +4060,17 @@
 
 
 			<!--- This logic is easily reproducable with a small number of variables. Set them here. --->
-			<cfset contentTemplateStr = "calendarPod">
+			<cfset contentTemplateStr = "blogPostCalendarPod">
 			<cfset contentTemplateLabel = "Calendar Pod">
 			<cfset entityId = "ThemeId">
 			<cfset entityName = "ThemeName">
 			<cfset useEnableButton = true>
 			<!--- You need to enter the description manually --->
+				
+			<!--- Is the template active? This determines if the enabled checkbox is checked --->
+			<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+				<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+			</cfinvoke>
 
 		  	<!--- Set the class for alternating rows. --->
 		  	<!---After the first row, the content class should be the current class. --->
@@ -4072,7 +4111,7 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -4081,8 +4120,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -4130,7 +4168,7 @@
 		  </tr>
 		  <tr>
 			<td colspan="2"> 
-				The footer logo is typcially placed above the footer content, which may be editted below.
+				The footer logo is typcially placed above the footer content, which may be edited below. Note: the composite footer will over-ride any changes if you modify the composite footer below.
 			</td>
 		  </tr>
 		  <tr height="1px">
@@ -4180,6 +4218,11 @@
 		<cfset useEnableButton = true>
 		<!--- You need to enter the description manually --->
 			
+		<!--- Is the template active? This determines if the enabled checkbox is checked --->
+		<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+			<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+		</cfinvoke>
+			
 	    <!--- Set the class for alternating rows. --->
 	    <!--- After the first row, the content class should be the current class. --->
 	    <cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
@@ -4215,7 +4258,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -4224,7 +4267,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" checked>
+				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -4295,7 +4338,6 @@
 				<!--- Link to tinyMce editor: createAdminInterfaceWindow(53,themeId,'template',isMobile) --->
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>DesktopButton" name="<cfoutput>#contentTemplateStr#</cfoutput>MobileButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Mobile',true);">Edit</button>
 			</td>
-
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>

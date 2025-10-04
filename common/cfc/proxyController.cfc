@@ -1978,7 +1978,7 @@
 		<cfargument name="recentCommentsPodEnable" default="true">
 		<cfargument name="categoriesPodEnable" default="true">
 		<cfargument name="monthlyArchivesPodEnable" default="true"> 
-		<cfargument name="calendarPodEnable" default="true">
+		<cfargument name="blogPostCalendarPodEnable" default="true">
 		<cfargument name="compositeFooterEnable" default="true">
 		<!--- Tail end scripts --->
 		<cfargument name="customFooterHtmlCode" default="">
@@ -2287,6 +2287,7 @@
 		<!--- Return true --->
 		<cfset response = true><!--- or process to debug the result --->
 		<!--- Return it --->
+
 		<cfif application.serverProduct eq 'Lucee'>
 			<!--- Do not serialize the response --->
 			<cfreturn response>
@@ -2532,6 +2533,7 @@
 				
 	<cffunction name="saveContentTemplate" access="remote" returnformat="json" output="false" 
 		hint="Returns a json array.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="action" default="" required="true" hint="Either updateCode or revertCode">
 		<cfargument name="selectedContentThemes" default="" required="true">
 		<cfargument name="contentTemplate" default="" required="true">
@@ -2539,7 +2541,6 @@
 		<cfargument name="code" default="" required="false">
 		<cfargument name="applyAcrossDevices" default="" required="false">	
 		
-			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
 			<!--- Set the response --->
@@ -2568,7 +2569,7 @@
 			<cfloop list="#arguments.selectedContentThemes#" index="thisThemeId">
 				
 				<!--- Save it --->
-				<cfinvoke component="#application.blog#" method="saveContentOutputsaveContentOutput" returnvariable="contentTemplateId">
+				<cfinvoke component="#application.blog#" method="saveContentOutput" returnvariable="contentTemplateId">
 					<cfinvokeargument name="contentTemplate" value="#arguments.contentTemplate#">
 					<!--- Pass in the themeId, if it is 0 we wil not use it. --->
 					<cfif thisThemeId is not 0>
@@ -5537,6 +5538,7 @@
 
 			<!--- Validate the data --->
 			<cfif not len(firstName)>
+
 				<cfset error = true>
 				<cfset errorMessage = errorMessage & "<li>First name is required</li>">
 			</cfif>
@@ -7790,7 +7792,15 @@
 				<cfset EntitySave(OptionDbObj)>
 				
 			</cftransaction>
+					
+			<!--- Clear the header files as the parent site name may have been updated --->
+			<cfset thisDirectory = application.baseUrl & '/cache/header'>
+			<!--- This filter will match all posts that use the postId --->
+			<cfset thisFileNameOrFilter = 'topMenu'>
+			<!--- Delete the files --->
+			<cfset application.blog.flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
 			
+			<!--- Return the Id --->
 			<cfreturn OptionDbObj.getBlogOptionId()>
 			
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
@@ -8157,7 +8167,7 @@
 			
 		<cfif application.Udf.isLoggedIn()>
 			
-			<!---<cftry>--->
+			<cftry>
 			
 				<cfinvoke component="#application.blog#" method="saveMap" returnvariable="mapId"> 
 					<cfinvokeargument name="postId" value="#arguments.postId#">
@@ -8179,11 +8189,11 @@
 				<cfset response[ "mapId" ] = #arguments.mapId# />
 				<cfset response[ "success" ] = true />
 			
-				<!---<cfcatch type="any">
+				<cfcatch type="any">
 					<!--- Serialize our error --->
 					<cfset response[ "errorMessage" ] = "<ul>" & errorMessage & "</ul>" />
 				</cfcatch>	
-			</cftry>--->
+			</cftry>
 		<cfelse>
 			<cfset response[ "errorMessage" ] = "<ul>Not logged in</ul>" />
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
@@ -8202,7 +8212,7 @@
 	<cffunction name="saveMapRoute" access="remote" output="false" returnformat="json"
 			hint="This function saves the address and waypoints when creating a map route"><!---returnformat="json" --->
 		<cfargument name="csrfToken" default="" required="true">
-		<cfargument name="provider" default="Azure Maps" required="true">
+		<cfargument name="provider" default="Azure Maps" required="false">
 		<cfargument name="isEnclosure" default="true" required="true">
 		<cfargument name="locationGeoCoordinates" default="" required="true" hint="This is a sting that has the location, latitude and longitude separated by underscores and the rows are separated using a colon (ie Seattle_xxx_xxx:Bellevue_xxx_xxx:Denver_xxx_xxx)">
 		<cfargument name="postId" default="" required="false">
