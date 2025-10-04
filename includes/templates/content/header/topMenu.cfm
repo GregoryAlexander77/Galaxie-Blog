@@ -26,7 +26,7 @@
 							<!--- Note: do not cache this template. There would be no gain due to the number of conditional blocks requred.--->
 							</cfsilent>
 							<nav>
-								<!--- Include the navigation menu content template. Note: the Kendo menu should not be lazy loaded and needs to be loaded immediately.  --->
+								<!--- Include the navigation menu content template. Note: the Kendo menu should not be lazy loaded and needs to be loaded immediately. --->
 								<cfinclude template="navigationMenu.cfm">
 								<script type="text/javascript">
 									$(document).ready(function() {	

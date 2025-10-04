@@ -19,7 +19,7 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 <!--- The following logic does not need to be modified and will work with most of the content output templates --->
 <!--- Reset our display content output var --->
 <cfset displayContentOutputData = false>
-<!--- This template drives the navigation menu and is a unordered HTML list. This template uses the getPageContent function to determine the content. It will display custom content that is in the database or use the default code below if no custom code exists  --->
+<!--- This template drives the navigation menu and is a unordered HTML list. This template uses the getContentOutputData function to determine the content. It will display custom content that is in the database or use the default code below if no custom code exists  --->
 <cfinvoke component="#application.blog#" method="getContentOutputData" returnvariable="contentOutputData">
 	<cfinvokeargument name="contentTemplate" value="#thisTemplate#">
 	<cfinvokeargument name="isMobile" value="#session.isMobile#">

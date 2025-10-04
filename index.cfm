@@ -20,7 +20,7 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 <cfset pageName = "Blog"><!--- Blog --->
 <cfset pageTypeId = 1><!--- Blog --->
 
-<!--- Common and theme settings and includes the getMode tag in order to set the params for the getPost query. The pageSettings also determines when we should cache the page depending upon if the user is logged in. --->
+<!--- Common and theme settings and includes the getMode tag in order to set the params for the getPost query. The pageSettings also sets theme information and sets common locations. --->
 <cfinclude template="#application.baseUrl#/includes/templates/pageSettings.cfm">
 
 <!--- //******************************************************************************************************************
