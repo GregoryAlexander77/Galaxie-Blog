@@ -1,7 +1,8 @@
 <cfcomponent displayname="GalaxieBlog4_11" sessionmanagement="yes" clientmanagement="yes" output="false">
 	<cfsetting requesttimeout="60">
-	<!--- The name needs to be unique in order to have multiple blogs on the same server --->
-	<cfset this.name = "GalaxieBlog4_1" /> <!--- & month(now()) & day(now()) & second(now())--->
+
+	<!--- The name needs to be unique in order to have multiple blogs on the same server. Also, this will not work with a dynamic name using CF as it will break the extends in the admin subfolder --->
+	<cfset this.name = "GalaxieBlog4_1" /> 
 	<!--- Preserve the case for database columns --->
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
@@ -421,6 +422,7 @@
 			<!--- The location of the commercial Kendo is the application.kendoFolderPath.  --->
 			<cfset kendoSourceLocation = application.kendoFolderPath>
 		<cfelse>
+			<!--- Note: this logic is true when the blog owner specifies a Kendo Location in the admin UI  --->
 			<cfif len(application.kendoFolderPath) and !isDefined("URL.init") and !isDefined("URL.reinit")>
 				<cfset kendoSourceLocation = application.kendoFolderPath>
 			<cfelse>
@@ -620,6 +622,7 @@
 			<cfcatch type="any">
 				The DSN is not set up correctly.
 				<cfabort>
+
 			</cfcatch>
 		</cftry>
 			
@@ -819,7 +822,7 @@
 			
 	<cffunction name="getBaseProxyUrl" access="remote" returnType="string"
 			hint="Get the path to the ini file which stores our constant variables">
-		<cfargument name="reset" type="boolean" default="true" required="false" hint="Set to true to read reset this var.">
+		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset this var.">
 		
 		<cfif isDefined("application.baseProxyUrl") and len(application.baseProxyUrl) and not arguments.reset>
 			<cfset baseProxyUrl = application.baseProxyUrl>
@@ -967,39 +970,55 @@
 		<cfreturn false>
 	</cffunction>
 			
-	<cffunction name="onError" access="public" returntype="void">
+	<cffunction name="onError22" access="public" returntype="void">
 		<cfargument name="exception" required=true/>
-		<cfargument name="eventName" type="String" required=true/>
+		<cfargument name="eventName" type="string" required=true/>
+		<cfargument name="disable" type="string" default="true"/>
 		
-		<cfoutput>
-			<h2>An unexpected error occurred.</h2>
-			<p>We have sent a copy of this error to technical support</p>
-		</cfoutput>
-		<cfsavecontent variable="errorString">
+		<cfif arguments.disable>
 			<cfoutput>
-			An error occurred: #application.blog.getPageUrl()#
-			Time: #dateFormat(now(), "short")# #timeFormat(now(), "short")#
-			Error Event: #arguments.eventName#
-			Type: #arguments.exception.type#
-			Message: #arguments.exception.message#
-			Detail: #arguments.exception.detail#
-			Template: #arguments.exception.tagContext[1].template#
-			Line: #arguments.exception.tagContext[1].line#
-			Stacktrace: #arguments.exception.stacktrace#			
+			<h2>An unexpected error occurred.</h2>
+			An error occurred: #application.blog.getPageUrl()#<br/>
+			Time: #dateFormat(now(), "short")# #timeFormat(now(), "short")#<br/>
+			Error Event: #arguments.eventName#<br/>
+			Type: #arguments.exception.type#<br/>
+			Message: #arguments.exception.message#<br/>
+			Detail: #arguments.exception.detail#<br/>
+			Template: #arguments.exception.tagContext[1].template#<br/>
+			Line: #arguments.exception.tagContext[1].line#<br/>
+			Stacktrace: #arguments.exception.stacktrace#<br/>
 			</cfoutput>
-		</cfsavecontent>
-		<!--- Send email to the blog owner and developer. Do not send any form values via email as they may contain sensitive login information --->
-		<cfif len(application.developerEmailAddress) and (application.BlogDbObj.getBlogEmail() neq application.developerEmailAddress)>
-			<!--- Send errors via email to both blog owner and developer. When sending email to developer, I am always sending a copy to the blog owner. --->
-			<cfset errorMessageRecipients = application.BlogDbObj.getBlogEmail() & ',' & application.developerEmailAddress>
 		<cfelse>
-			<!--- This is the blog developers blog --->
-			<cfset errorMessageRecipients = application.developerEmailAddress>
+			<cfoutput>
+				<h2>An unexpected error occurred.</h2>
+				<p>We have sent a copy of this error to technical support.</p>
+			</cfoutput>
+			<cfsavecontent variable="errorString">
+				<cfoutput>
+				An error occurred: #application.blog.getPageUrl()#
+				Time: #dateFormat(now(), "short")# #timeFormat(now(), "short")#
+				Error Event: #arguments.eventName#
+				Type: #arguments.exception.type#
+				Message: #arguments.exception.message#
+				Detail: #arguments.exception.detail#
+				Template: #arguments.exception.tagContext[1].template#
+				Line: #arguments.exception.tagContext[1].line#
+				Stacktrace: #arguments.exception.stacktrace#			
+				</cfoutput>
+			</cfsavecontent>
+			<!--- Send email to the blog owner and developer. Do not send any form values via email as they may contain sensitive login information --->
+			<cfif len(application.developerEmailAddress) and (application.BlogDbObj.getBlogEmail() neq application.developerEmailAddress)>
+				<!--- Send errors via email to both blog owner and developer. When sending email to developer, I am always sending a copy to the blog owner. --->
+				<cfset errorMessageRecipients = application.BlogDbObj.getBlogEmail() & ',' & application.developerEmailAddress>
+			<cfelse>
+				<!--- This is the blog developers blog --->
+				<cfset errorMessageRecipients = application.developerEmailAddress>
+			</cfif>
+			<cfmail to="gregoryalexander77@gmail.com" from="#errorMessageRecipients#" subject="Error: #arguments.exception.message#">
+				#errorString#
+			</cfmail>
 		</cfif>
-		<cfmail to="gregoryalexander77@gmail.com" from="#errorMessageRecipients#" subject="Error: #arguments.exception.message#">
-			#errorString#
-		</cfmail>
-	</cffunction>
+	</cffunction>	
 						
 	<cffunction name="onApplicationEnd">
 		<cfargument name="ApplicationScope" required=true/>

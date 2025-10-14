@@ -78,7 +78,7 @@
 	
 <cfif listFindNoCase(currentUserCapabilityList, 'EditTheme') gt 0>
 	<cfset iconList = listAppend(iconList, 'Themes')>
-	<cfset titleList = listAppend(titleList, 'Themes')>
+	<cfset titleList = listAppend(titleList, 'Themes & Display')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(29);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/themes.png")>
 </cfif>
@@ -518,6 +518,6 @@
 				</p><!---<p class="bottomContent">--->
 
 			</div><!---<span id="innerContentContainer" class="transition-fade">--->
-		</div><!---<div class="blogPost widget k-content">--->
-	</div><!---<div class="blogContent">--->
+		</div><!---<div class="blogPost widget k-content" style="padding: 10px">--->
+	</div><!---<div id="adminContent">--->
 </div><!---<div id="pagePanel" class="panel">--->

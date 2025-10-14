@@ -1,5 +1,6 @@
+<cfset temporarillyBypassSecurity = true>
 <!--- Don't allow anyone who is not authorized to consume this page as it may overwrite current data. --->
-<cfif application.Udf.isLoggedIn() and find('EditServerSetting', session.capabilityList)>
+<cfif temporarillyBypassSecurity or (application.Udf.isLoggedIn() and find('EditServerSetting', session.capabilityList))>
 
 	<!---<cfsilent>--->
 	<!--- This is consumed from the Application.cfm template after ORM creates the initial database. --->
@@ -20,7 +21,7 @@
 
 	<!--- See if the files exist. --->
 	<cfif not fileExists(dir & "getBlogCfcCategories.txt")>
-		<p>Please run the generateBlogCfcDateFiles.cfm template to generate the necessary WDDX files and upload them to the <cfoutput>#application.baseUrl#</cfoutput>/common/data/files/blogCfcImport directory.</p>
+		<p>Please run the generateBlogCfcDataFiles.cfm template to generate the necessary WDDX files and upload them to the <cfoutput>#application.baseUrl#</cfoutput>/common/data/files/blogCfcImport directory.</p>
 	<cfelse>
 
 		<!---<cffile action="read" file="#dir##fileName#" variable="QueryObj">--->

@@ -5652,6 +5652,58 @@
 		<cfargument name="action" hint="Either insert or update" default="insert">
 		<cfargument name="mediaIdList" type="string" required="true">
 		<cfargument name="darkTheme" type="string" required="true">
+		<!--- Note: the following arguments may be send in when saving a gallery. They are not used by this function but will cause errors after CF2023 if these are not declared --->
+		<cfargument name="numGalleries" type="string" default="" required="false">
+		<cfargument name="selectorId" type="string" default="" required="false">
+		<!--- There can be one or more gallery items. We have to declare these arguments now after 2023 (sigh) --->
+		<cfargument name="mediaUrl1" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle1" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl1" type="string" default="" required="false">
+		<cfargument name="mediaUrl2" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle2" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl2" type="string" default="" required="false">
+		<cfargument name="mediaUrl3" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle3" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl3" type="string" default="" required="false">
+		<cfargument name="mediaUrl4" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle4" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl4" type="string" default="" required="false">
+		<cfargument name="mediaUrl5" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle5" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl5" type="string" default="" required="false">
+		<cfargument name="mediaUrl6" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle6" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl6" type="string" default="" required="false">
+		<cfargument name="mediaUrl7" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle7" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl7" type="string" default="" required="false">
+		<cfargument name="mediaUrl8" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle8" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl8" type="string" default="" required="false">
+		<cfargument name="mediaUrl9" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle9" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl9" type="string" default="" required="false">
+		<cfargument name="mediaUrl10" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle10" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl10" type="string" default="" required="false">
+		<cfargument name="mediaUrl11" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle11" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl11" type="string" default="" required="false">
+		<cfargument name="mediaUrl12" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle12" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl12" type="string" default="" required="false">
+		<cfargument name="mediaUrl13" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle13" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl13" type="string" default="" required="false">
+		<cfargument name="mediaUrl14" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle14" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl14" type="string" default="" required="false">
+		<cfargument name="mediaUrl15" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle15" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl15" type="string" default="" required="false">
+		<cfargument name="mediaUrl16" type="string" default="" required="false">
+		<cfargument name="mediaItemTitle16" type="string" default="" required="false">	
+		<cfargument name="mediaItemUrl16" type="string" default="" required="false">
 
 		<cfparam name="error" type="boolean" default="false">
 		<cfparam name="errorMessage" type="string" default="">
@@ -5972,6 +6024,8 @@
 		<cfargument name="selectorId" default="" required="false">	
 		<!--- The image is sent as a file argument. --->
 		<cfargument name="file" default="" required="false">	
+		<!--- files may be send in when uploading an image gallery --->
+		<cfargument name="files" default="" required="false">	
 			
 		<!--- Make sure that output is turned on when debugging --->
 		<cfset debug = false>

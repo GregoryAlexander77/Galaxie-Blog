@@ -1,24 +1,26 @@
-			<cfinvoke component="#application.blog#" method="getPost" returnvariable="getPopularPosts">
-					<cfinvokeargument name="showPopularPosts" value="true">
-			</cfinvoke>
-			<cfif arrayLen(getPost)>
-				<h1 class="topContent" <cfif darkTheme>style="color:ivory"</cfif>>Popular Blogs</h1>
+				<cfif postScrollWidgetType eq 'popularPosts'>
+					<h1 class="topContent" <cfif darkTheme>style="color:ivory"</cfif>>Popular Blogs</h1>
+				<cfelse>
+					<h2 class="topContent">Related Blogs</h3>
+				</cfif>
+				
 				<!-- Kendo Scrollwrap container -->
 				<div class="k-card-deck-scrollwrap">
-		
 					<!-- Render the cards -->
+				<cfif arrayLen(getPosts) gt 3>
 					<button class="k-button k-button-solid-base k-button-solid k-button-md k-rounded-md k-icon-button k-button-scroll" aria-label="back" style="width: 35px; height:35px; border-radius: 50%; left:22px; top:130px; z-index:2;">
 						<span class="k-button-icon k-icon k-i-arrow-chevron-left"></span>
 					</button>
+				</cfif>
 					<div class="k-card-deck">
 					<!--- Loop through the array --->
-					<cfloop from="1" to="#arrayLen(getPopularPosts)#" index="i">
+					<cfloop from="1" to="#arrayLen(getPosts)#" index="i">
 						<!--- Note: this is nearly identical to the normal rendering of posts in card format, other than we are always using the thumbnail image. --->
-						<cfif i lte arrayLen(getPopularPosts)>
+						<cfif i lte arrayLen(getPosts)>
 						<cfsilent>	
 						<!--- Preset vars --->
+						<!--- Don't set the new postId. Use the getPosts[i]["PostId"] var for this so it does not reset the reset the real postId --->
 						<cfset promotedPost = ''>  
-						<cfset postId = ''>  
 						<cfset title = ''>
 						<cfset author = ''>
 						<cfset postUrl = ''>
@@ -41,29 +43,29 @@
 
 						<!--- Get the data --->		
 						<cfset thisBlogId = 1>
-						<cfset promotedPost = getPopularPosts[i]["Promoted"]>
-						<cfset postId = getPopularPosts[i]["PostId"]>
-						<cfset title = getPopularPosts[i]["Title"]>
-						<cfset author = getPopularPosts[i]["FullName"]>
-						<cfset postUrl = application.blog.makeLink(getPopularPosts[i]["PostId"])>
-						<cfset postContent = getPopularPosts[i]["Description"]>
-						<cfset enclosure = getPopularPosts[i]["MediaUrl"]>
-						<cfset thumbnail = getPopularPosts[i]["MediaThumbnailUrl"]>
-						<cfset mediaId = getPopularPosts[i]["MediaId"]>
-						<cfset mediaType = getPopularPosts[i]["MediaType"]>
-						<cfset mediaUrl = getPopularPosts[i]["MediaUrl"]>
-						<cfset providerVideoId = getPopularPosts[i]["ProviderVideoId"]>
-						<cfset MediaVideoCoverUrl = getPopularPosts[i]["MediaVideoCoverUrl"]>
-						<cfset mediaVideoVttFileUrl = getPopularPosts[i]["mediaVideoVttFileUrl"]>
+						<!--- Don't set the new postId. Use the getPosts[i]["PostId"] var for this so it does not reset the reset the real postId --->
+						<cfset promotedPost = getPosts[i]["Promoted"]>
+						<cfset title = getPosts[i]["Title"]>
+						<cfset author = getPosts[i]["FullName"]>
+						<cfset postUrl = application.blog.makeLink(getPosts[i]["PostId"])>
+						<cfset postContent = getPosts[i]["Description"]>
+						<cfset enclosure = getPosts[i]["MediaUrl"]>
+						<cfset thumbnail = getPosts[i]["MediaThumbnailUrl"]>
+						<cfset mediaId = getPosts[i]["MediaId"]>
+						<cfset mediaType = getPosts[i]["MediaType"]>
+						<cfset mediaUrl = getPosts[i]["MediaUrl"]>
+						<cfset providerVideoId = getPosts[i]["ProviderVideoId"]>
+						<cfset MediaVideoCoverUrl = getPosts[i]["MediaVideoCoverUrl"]>
+						<cfset mediaVideoVttFileUrl = getPosts[i]["mediaVideoVttFileUrl"]>
 						<!--- Set the enclosureMapIdList. We only need to get the value of the first item in the list as all of the values are the same --->
-						<cfset enclosureMapIdList = getPopularPosts[1]["EnclosureMapIdList"]>
+						<cfset enclosureMapIdList = getPosts[1]["EnclosureMapIdList"]>
 						<!--- Get the map Id of the current row in the list. --->
-						<cfset enclosureMapId = getPopularPosts[i]["EnclosureMapId"]>
-						<cfset enclosureCarouselId = getPopularPosts[i]["EnclosureCarouselId"]>
-						<cfset datePosted = getPopularPosts[i]["DatePosted"]> 
+						<cfset enclosureMapId = getPosts[i]["EnclosureMapId"]>
+						<cfset enclosureCarouselId = getPosts[i]["EnclosureCarouselId"]>
+						<cfset datePosted = getPosts[i]["DatePosted"]> 
 						
 						<!--- Get the categories for this post. --->
-						<cfset getCategories = application.blog.getCategoriesByPostId(postId)>
+						<cfset getCategories = application.blog.getCategoriesByPostId(getPosts[i]["PostId"])>
 						<!--- Get the top level category in the hiearchy. This will cause an error if the post has no category --->
 						<cftry>
 							<cfset parentCategory = getCategories[1]["Category"]>
@@ -77,7 +79,7 @@
 						<cfset cardImage = thumbnail>	
 						<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and use the noImage.jpg if the share image or thumbnail does not exist (likely due to a cfinclude, errors or a blog upgrade) --->
 						<cfif not len(cardImage)>
-							<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'facebookImageUrlMetaData')>
+							<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPosts[i]["PostHeader"], 'facebookImageUrlMetaData')>
 							<cfif len(facebookImageMetaTagValue)>
 								<cfset cardImage = facebookImageMetaTagValue>
 							<cfelse>
@@ -109,9 +111,10 @@
 						</cfif>
 
 						<!--- ************************* Handle self hosted videos ************************* --->
-						<cfif len(mediaId) and mediaType contains 'Video'>
+						<cfif len(mediaId) and mediaType contains 'Video'>								
 							<!--- Note: this will return an iframe. --->
 							<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
+								<cfinvokeargument name="postId" value="#getPosts[i]['PostId']#">
 								<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
 								<cfinvokeargument name="mediaId" value="#mediaId#">
 								<cfinvokeargument name="providerVideoId" value="#providerVideoId#">
@@ -119,13 +122,13 @@
 								<cfinvokeargument name="videoCaptionsUrl" value="#mediaVideoVttFileUrl#">
 								<cfinvokeargument name="renderThumbnail" value="true">
 								<cfinvokeargument name="renderKCardMediaClass" value="true">
-								<cfinvokeargument name="renderMediumCard" value="#renderMediumCard#">
+								<cfinvokeargument name="renderMediumCard" value="false">
 								<cfinvokeargument name="showSidebar" value="#showSidebar#">
 							</cfinvoke> 
 						</cfif><!---<cfif len(mediaId) and mediaType contains 'Video'>--->
 
 						<!--- Also see if a video should be rendered using xmlkeywords. This returns a structure. --->
-						<cfset xmlKeywordStruct = application.blog.getXmlKeywordStruct(getPopularPosts[i]["PostHeader"])>
+						<cfset xmlKeywordStruct = application.blog.getXmlKeywordStruct(getPosts[i]["PostHeader"])>
 						<!--- Is there a video directive the xmlKeywords? --->
 						<cfif len(xmlKeywordStruct.VideoDirective)>
 							<!--- Get the smallest video if possible --->
@@ -143,6 +146,7 @@
 							<cfif len(mediaUrl)>	
 								<!--- Render the video, this will return an iframe. --->
 								<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
+									<cfinvokeargument name="postId" value="#getPosts[i]['PostId']#">
 									<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
 									<!--- Galaxie Directives don't have a mediaId or a providerVideoId --->
 									<cfinvokeargument name="mediaId" value="">
@@ -155,7 +159,7 @@
 									<cfinvokeargument name="renderMediumCard" value="false">
 									<cfinvokeargument name="showSidebar" value="#showSidebar#">
 								</cfinvoke> 
-								<cfdump var="#xmlKeywordStruct#">
+								<!---<cfdump var="#xmlKeywordStruct#">--->
 							</cfif>
 						</cfif>
 
@@ -164,7 +168,7 @@
 							<cfinvokeargument name="html" value="#postContent#">
 						</cfinvoke>
 
-						<!--- Make the srint a bit longer white white space if it is too short --->
+						<!--- Make the string a bit longer white white space if it is too short --->
 						<cfif len(postContent) lt 100>
 							<cfset postContent = postContent & "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;">
 						</cfif>
@@ -174,26 +178,32 @@
 							<div class="k-card k-card-type-rich<cfif promotedPost>highlightedWidget</cfif>" style="width:235px;">
 								<a href="<cfoutput>#postUrl#</cfoutput>"><cfif len(enclosureMapId)><cfoutput>#thumbnailMap#</cfoutput><cfelseif len(enclosureCarouselId)><cfoutput>#thumbnailCarousel#</cfoutput><cfelseif len(thumbnailMedia)><cfoutput>#thumbnailMedia#</cfoutput><cfelse><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-scroll-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif></a>
 								<div class="k-card-body">
-									<!-- The font should be 14pt for this compact widget -->
+									<!-- The font should be 14pt for this compact widget. No extra margins are necessary for the popular posts -->
 									<h2 class="k-card-title" style="font-size: 14pt;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h4>
 								</div>
+							<cfif postScrollWidgetType eq 'popularPosts'><!--- Only show the read more button for popular posts. --->
 								<div class="k-card-actions k-card-actions-stretched k-card-actions-vertical">
 									<span class="k-card-action">
 										<span class="k-button k-primary" onClick="window.open('<cfoutput>#postUrl#</cfoutput>', '_self')">Read More...</span>
 									</span>
 								</div>
+							</cfif>
 							</div><!---<div class="k-card k-card-type-rich">--->
 						</cfif><!---<cfif i lte arrayLen(getPost)>--->
 						</cfloop>
 					</div><!---<div class="k-card-deck">--->
+				<cfif arrayLen(getPosts) gt 3>
 					<button class="k-button k-button-solid-base k-button-solid k-button-md k-rounded-md k-icon-button k-button-scroll" aria-label="forward" style="width: 35px; height:35px; border-radius: 50%; right:5px; top:130px; z-index:2;">
 						<span class="k-icon k-i-arrow-chevron-right"></span>
 					</button>
+				</cfif>
 				</div><!-- Scrollwrap container -->
 				
 				<script type="<cfoutput>#application.blog.getScriptTypeString()#</cfoutput>">
 					function scrollButtonClick(e) {
+						console.log(e);
 						var button = $(e.currentTarget);
+						console.log( button.find(".k-i-arrow-chevron-left").length );
 						var scrollToLeft = button.find(".k-i-arrow-chevron-left").length !== 0;
 						var scrollContainer = $(".k-card-deck").eq(0);
 						var lastCard = scrollContainer.find(".k-card").last();
@@ -231,5 +241,3 @@
 						width: 95% !important; /* Without this, the scroll widget is to the very right of the container without any padding whatsoever */
 					}
 				</style>
-
-			</cfif><!---<cfif arrayLen(getPost)>--->

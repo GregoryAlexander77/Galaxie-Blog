@@ -210,10 +210,10 @@
 				<cfinvokeargument name="showSidebar" value="#showSidebar#">
 			</cfinvoke> 
 		</cfif>
-	</cfif>
+	</cfif><!---<cfif len(xmlKeywordStruct.VideoDirective)>--->
 					
 	<!--- Handle carousels --->
-	<cfif isDefined(enclosureCarouselId) and len(enclosureCarouselId)>
+	<cfif isDefined("enclosureCarouselId") and len(enclosureCarouselId)>
 		<cfif renderMediumCard>
 			<cfset carouselInterface = "mediumCard">
 		<cfelse>
@@ -236,7 +236,6 @@
 	</cfif>
 	
 	</cfsilent>	
-		
 		<cfif isDebug><cfoutput>xmlKeywordStruct: <cfdump var="#xmlKeywordStruct#"> Rendering card- i:#i# arrayLen(getPost):#arrayLen(getPost)# isDefined("postUrl"): isDefined("postUrl") len(postUrl):#len(postUrl)# renderMediumCard: #renderMediumCard# <br/></cfoutput></cfif>
 		<cfif i lte arrayLen(getPost) and displayCard and isDefined("postUrl") and len(postUrl)>
 			<div class="k-card <cfif promotedPost>highlightedWidget</cfif>" style="width: <cfoutput>#cardWidth#</cfoutput>%;"> 

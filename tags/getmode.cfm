@@ -3,7 +3,7 @@
 	Author       : Raymond Camden/Gregory Alexander
 	Created      : 02/09/06
 	History      : Check GitHub
-This tag sets the params that are sent to the getPost query. 
+This tag sets the params that are sent to the getPost query. Most (but not all) params are set by URL.
 --->
 <cfparam name="url.mode" default="">
 <cfparam name="attributes.r_params" type="variableName">

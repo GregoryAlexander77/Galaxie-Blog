@@ -6835,7 +6835,7 @@
 	</cffunction>
 			
 	<cffunction name="getPostList" access="public" returnType="string" output="false" 
-			hint="Returns a list of post id's or names depending upon the listType argument.">
+			hint="Returns a list of post id's or names depending upon the listType argument. This list is unfiltered other than the filtering out posts that were deleted or removed.">
 		<cfargument name="listType" type="string" required="true" hint="Either postIdList, postTitleList, or postAliasList">
 			
 		<cfquery name="Data" dbtype="hql">
@@ -6853,7 +6853,7 @@
 		<cfif arguments.listType eq 'postIdList'>
 			<cfparam name="postIdList" default="">
 			<cfif arrayLen(Data)>
-				<!--- Loop through the array and get the roles --->
+				<!--- Loop through the array --->
 				<cfloop from="1" to="#arrayLen(Data)#" index="i">
 					<cfif i lt arrayLen(Data)>
 						<cfset postIdList = postIdList & Data[i]["PostId"] & ",">
@@ -6868,7 +6868,7 @@
 		<cfelseif listType eq 'postTitleList'>
 			<cfparam name="postTitleList" default="">
 			<cfif arrayLen(Data)>
-				<!--- Loop through the array and get the roles --->
+				<!--- Loop through the array --->
 				<cfloop from="1" to="#arrayLen(Data)#" index="i">
 					<cfif i lt arrayLen(Data)>
 						<cfset postTitleList = postTitleList & Data[i]["Title"] & ",">
@@ -6883,7 +6883,7 @@
 		<cfelseif arguments.listType eq 'postAliasList'>
 			<cfparam name="postAliasList" default="">
 			<cfif arrayLen(Data)>
-				<!--- Loop through the array and get the roles --->
+				<!--- Loop through the array --->
 				<cfloop from="1" to="#arrayLen(Data)#" index="i">
 					<cfif i lt arrayLen(Data)>
 						<cfset postAliasList = postAliasList & Data[i]["PostAlias"] & ",">
@@ -7212,7 +7212,7 @@
 	</cffunction>
 	
 	<cffunction name="getPost" access="public" returnType="any" output="false"
-			hint="This is Raymonds original function with major changes. Returns one more more posts. Allows for a params structure to configure what entries are returned. I am going to revise this in the next version as the params are hard to identify and want to pass in the arguments in the params struct instead. Note: this is often invoked using getPost(params,showPendingPosts,showRemovedPosts,showJsonLd,showPromoteAtTopOfQuery)">
+			hint="This is Raymonds original function with major changes. Returns one more more posts. Allows for a params structure to configure what entries are returned. The params are generally set in the getMode.cfm template. I plan on revising this in a future version as the params are hard to identify and want to pass in the arguments in the params struct instead. Note: this is often invoked using getPost(params,showPendingPosts,showRemovedPosts,showJsonLd,showPromoteAtTopOfQuery)">
 		
 		<cfargument name="params" type="struct" required="false" default="#structNew()#">
 		<cfargument name="showPendingPosts" type="boolean" required="false" default="false">
@@ -7220,6 +7220,7 @@
 		<cfargument name="showJsonLd" type="boolean" required="false" default="false" hint="The Json Ld sting can be quite large and it should not be included unless it is needed.">
 		<cfargument name="showPromoteAtTopOfQuery" type="boolean" required="false" default="true" hint="The RSS template needs to order the query by the date and can't have the promoted posts at the top of the query">
 		<cfargument name="showPopularPosts" type="boolean" required="false" default="false" hint="Orders the posts by the average number of monthly views.">	
+		<cfargument name="postIdList" type="string" required="false" default="" hint="Allows sending in a comma separated list of postId's. This is used in the related posts widget at the bottom of a post.">
 			
 		<cfset debug = false>
 		<!--- Get 12 posts for the popular posts query --->
@@ -7233,10 +7234,6 @@
 		<cfset var validOrderBy = "Post.DatePosted, Post.Title, Post.NumViews">
 		<cfset var validOrderByDir = "ASC, DESC">
 		<cfset var validMode = "short,full">
-		<cfset var getIds = "">
-		<cfset var idList = "">
-		<cfset var pageIdList = "">
-		<cfset var x = "">
 		<cfset var loadScrollMagic = false>
 		<cfset var Data = []>
 		<!--- And set the initial EnclosureMapCount --->
@@ -7455,8 +7452,13 @@
 						OR Post.MoreBody LIKE <cfqueryparam value="%#arguments.params.searchTerms#%" cfsqltype="cf_sql_varchar">
 					)
 			</cfif>
+			<!--- By entry passes a single postId in the URL --->
 			<cfif structKeyExists(arguments.params,"byEntry")>
 				AND Post.PostId = <cfqueryparam value="#arguments.params.byEntry#" cfsqltype="cf_sql_varchar" maxlength="35">
+			</cfif>
+			<!--- The postIdList is sent in manually and is used to get the related posts at the bottom of a post --->
+			<cfif len(arguments.postIdList)>
+				AND Post.PostId IN (<cfqueryparam value="#arguments.postIdList#" cfsqltype="cf_sql_varchar" list="Yes">)
 			</cfif>
 			<cfif structKeyExists(arguments.params,"byAlias")>
 				AND Post.PostAlias = <cfqueryparam value="#left(arguments.params.byAlias,100)#" cfsqltype="cf_sql_varchar" maxlength="100">
