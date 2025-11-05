@@ -7,7 +7,7 @@
 				<!-- Kendo Scrollwrap container -->
 				<div class="k-card-deck-scrollwrap">
 					<!-- Render the cards -->
-				<cfif arrayLen(getPosts) gt 3>
+				<cfif session.isMobile or arrayLen(getPosts) gt 3>
 					<button class="k-button k-button-solid-base k-button-solid k-button-md k-rounded-md k-icon-button k-button-scroll" aria-label="back" style="width: 35px; height:35px; border-radius: 50%; left:22px; top:130px; z-index:2;">
 						<span class="k-button-icon k-icon k-i-arrow-chevron-left"></span>
 					</button>
@@ -192,7 +192,7 @@
 						</cfif><!---<cfif i lte arrayLen(getPost)>--->
 						</cfloop>
 					</div><!---<div class="k-card-deck">--->
-				<cfif arrayLen(getPosts) gt 3>
+				<cfif session.isMobile or arrayLen(getPosts) gt 3>
 					<button class="k-button k-button-solid-base k-button-solid k-button-md k-rounded-md k-icon-button k-button-scroll" aria-label="forward" style="width: 35px; height:35px; border-radius: 50%; right:5px; top:130px; z-index:2;">
 						<span class="k-icon k-i-arrow-chevron-right"></span>
 					</button>

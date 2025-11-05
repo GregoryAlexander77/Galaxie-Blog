@@ -207,10 +207,10 @@
 	crossorigin="anonymous"></script>
 <cfelse>
 <!--- 
-Use the jQuery 3.4.1 CDN for Kendo Core. 
-Either use https://code.jquery.com/jquery-3.4.1.min.js or https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js. The full link from jQuery is:
+Use the jQuery 3.7.1 CDN for Kendo Core. 
+Either use https://code.jquery.com/jquery-3.7.1.min.js or https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js. The full link from jQuery is:
 <script
-  src="https://code.jquery.com/jquery-3.4.1.min.js"
+  src="https://code.jquery.com/jquery-3.7.1.min.js"
   integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
   crossorigin="anonymous"></script>
 --->

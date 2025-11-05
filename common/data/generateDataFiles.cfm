@@ -83,7 +83,7 @@ Blog Option table
 		SELECT 
 		  1 as BlogRef
 		  ,1 as BlogTypeRef
-		  ,'https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js' as JQueryCDNPath
+		  ,'https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js' as JQueryCDNPath
 		  ,'/common/libs/kendoCore/' as KendoFolderPath
 		  ,0 as KendoCommercial
 		  ,0 as UseSsl

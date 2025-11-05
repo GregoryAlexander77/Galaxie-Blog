@@ -7004,6 +7004,9 @@
 		<cfargument name="cfincludePath" type="string" default="">
 		<cfargument name="windowContent" type="string" default="">
 		<cfargument name="active" type="boolean" default="true">
+		<!--- These arguments are needed after CF2023 update. This is not used other than to prevent an error --->
+		<cfargument name="selectorid" type="string" default="">
+		<cfargument name="unitmeasurement" type="string" default="">	 
 
 		<cfparam name="error" type="boolean" default="false">
 		<cfparam name="errorMessage" type="string" default="">
@@ -8184,7 +8187,7 @@
 		<cfargument name="isEnclosure" default="true" required="true">
 		<cfargument name="postId" default="" required="true">
 		<cfargument name="mapId" default="" required="false">
-		<cfargument name="mapType" default="" required="true">
+		<cfargument name="mapType" default="" required="true" hint="This is also known as the Map Style when using Azure Maps">
 		<cfargument name="mapZoom" default="" required="true">
 		<cfargument name="mapAddress" required="true" default="">
 		<cfargument name="mapCoordinates" required="true" default="">
@@ -8266,12 +8269,14 @@
 	<cffunction name="saveMapRoute" access="remote" output="false" returnformat="json"
 			hint="This function saves the address and waypoints when creating a map route"><!---returnformat="json" --->
 		<cfargument name="csrfToken" default="" required="true">
-		<cfargument name="provider" default="Azure Maps" required="false">
-		<cfargument name="isEnclosure" default="true" required="true">
-		<cfargument name="locationGeoCoordinates" default="" required="true" hint="This is a sting that has the location, latitude and longitude separated by underscores and the rows are separated using a colon (ie Seattle_xxx_xxx:Bellevue_xxx_xxx:Denver_xxx_xxx)">
 		<cfargument name="postId" default="" required="false">
 		<cfargument name="mapId" default="" required="false">
 		<cfargument name="mapRouteId" default="" required="false">
+		<cfargument name="isEnclosure" default="true" required="false">
+		<cfargument name="provider" default="Azure Maps" required="false">
+		<cfargument name="locationGeoCoordinates" default="" required="true" hint="This is a sting that has the location, latitude and longitude separated by underscores and the rows are separated using a colon (ie Seattle_xxx_xxx:Bellevue_xxx_xxx:Denver_xxx_xxx)">
+		<cfargument name="mapZoom" default="" required="false">
+		<cfargument name="mapType" default="" required="false" hint="This is also known as the Map Style when using Azure Maps">
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -8307,7 +8312,8 @@
 					<cfinvokeargument name="isEnclosure" value="#arguments.isEnclosure#">
 					<cfinvokeargument name="provider" value="Azure Maps">
 					<!--- The map type for map routes is 'road_shaded_relief' --->
-					<cfinvokeargument name="mapType" value="road_shaded_relief">
+					<cfinvokeargument name="mapType" value="#arguments.mapType#">
+					<cfinvokeargument name="mapZoom" value="#arguments.mapZoom#">
 				</cfinvoke>
 
 			</cfif><!---<cfif mapProvider eq 'Azure Maps'>--->

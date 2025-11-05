@@ -95,7 +95,8 @@ Note: the following logic should not be cached as each theme may return a differ
 			</cfif><!---<cfif application.serverProduct eq 'Lucee'>--->
 				<h2 style="font-size:14pt">Version:</h2>
 				<p>
-					Galaxie Blog Version <cfoutput>#application.blog.getVersionName()# #application.blog.getVersionDate()# #getTheme[1]["Theme"]# theme</cfoutput>
+					<a href="https://www.galaxieblog.org">Galaxie Blog</a> Version <cfoutput>#application.blog.getVersionName()# #application.blog.getVersionDate()# #getTheme[1]["Theme"]# theme</cfoutput><br/>
+					&copy; 2025 Gregory Alexander
 				</p>
 				<p>
 				<cfif application.serverProduct eq 'Lucee'>

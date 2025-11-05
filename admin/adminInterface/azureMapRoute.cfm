@@ -461,7 +461,10 @@
 		// Create a list of coordinates
 		//alert(getWaypoints());  
 		
-			
+		// Get the selected zoom and map style from the map
+		let mapZoom = map.getCamera().zoom;
+		let mapStyle = map.getStyle().style;
+		
 		// Let the user know that we are processing the data
 		$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we create your map.", icon: "k-ext-information" }));
 
@@ -476,6 +479,8 @@
 				mapId: $("#enclosureMapId").val(),
 				mapRouteId: $("#mapRouteId").val(),
 				postId: "<cfoutput>#URL.optArgs#</cfoutput>",
+				mapZoom: mapZoom,
+				mapType: mapStyle
 			},
 			dataType: "json",
 			success: saveMapRouteResponse, // calls the result function.
