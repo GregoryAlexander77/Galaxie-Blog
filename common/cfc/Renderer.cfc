@@ -2581,7 +2581,7 @@
 		<cfset emailTitle = getPost[1]["Title"]>
 		<cfset emailTitleLink = application.blog.makeLink(arguments.postId)>
 		<cfset emailDesc = getPost[1]["Description"]>
-		<cfset mediaUrl = getPost[1]["MediaUrl"]>
+		<cfset mediaUrl = 'https://' & application.blogDomain & '/' & getPost[1]["MediaUrl"]>
 		<cfset emailBody = this.renderBody(getPost[1]["body"], getPost[1]["mediaPath"])>
 		<cfset callToActionText = "View on Web">
 		<cfset callToActionLink = "#emailTitleLink#">

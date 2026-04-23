@@ -727,7 +727,7 @@
 			</cftry>
 		</cfif>
 				
-		<cfreturn owner><!---gregory--->
+		<cfreturn owner>
 		
 	</cffunction>
 		
@@ -967,7 +967,7 @@
 					
 		<!--- Return it. --->
 		<!---TODO Hardcoding to false due to memory leak somewhere--->
-		<cfreturn false>
+		<cfreturn woff2>
 	</cffunction>
 			
 	<cffunction name="onError22" access="public" returntype="void">

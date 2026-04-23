@@ -153,6 +153,7 @@ Script to adjust properties depending upon the device screen size.
 		// We are not setting the blog content width here. It needs to be set at 100% when it is in a modern theme.
 		$("#constrainerTable").width(width + "%");
 		$("#fixedNav").width(width + "%");
+		<cfif pageTypeId eq 8>$("#contentDiv").width(width + "%");</cfif>
 		$("#footerDiv").width(width + "%");
 	}
 	

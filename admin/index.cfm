@@ -135,14 +135,72 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 	</cfsilent>			
 	<!-- Blog body -->
 	<main>
-		<cfif pageTypeId eq 1>
+		<cfif pageTypeId eq 1><!--- Blog --->
 			<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
-		<cfelseif pageTypeId eq 2>
-			<!-- Dynamic content loaded via jQuery and Ajax. -->
-		<div id='adminContent'>
-			<cfinclude template="#application.baseUrl##getTemplatePathByPageName(pageName)#" />
-		</div><!---<div id='adminContent'>--->
-		</cfif><!---<cfelseif pageTypeId eq 2>--->
+		<cfelse>
+			<div id='contentInnerContainer' class="k-content"><!--- This must be a content container class --->
+				<cfif pageTypeId eq 2><!--- Admin --->
+					<!-- Dynamic content loaded via jQuery and Ajax. -->
+					<cfinclude template="#application.baseUrl##getTemplatePathByPageName(pageName)#" /><!--- The getTemplatePathByPageName is in /common/function/page.cfm --->
+				<cfelse>
+					<!--- External pages coming soon --->
+				</cfif>
+			</div><!--<div id='contentInnerContainer' class="k-content">-->
+		</cfif><!---<cfif pageTypeId eq 1>--->
+		<cfsilent>
+		<!---//***************************************************************************************************************
+					Sidebar div
+		In classic mode, the side bar div is always displayed on the right side of the blog page. It is also used as a responsive panel on desktop devices when the screen size is small. We will not include it if the break point is not 0 or is equal or above 50000. If the chosen theme type is classic, this get's loaded first and then the panel below gets loaded. If the device is mobile or the theme is a modern theme, this sidebar does not exist.
+		//****************************************************************************************************************--->
+
+		<!--- We need to differentiate material and non-material themes to appy the right settings to the buttons --->
+		<cfif kendoTheme contains 'material'>
+			<cfset materialTheme = true>
+		<cfelse>
+			<cfset materialTheme = false>
+		</cfif>
+		</cfsilent>	
+		<cfif breakpoint gt 0>
+			<div id="sidebar">
+				<!--- The cfmodule below identical to a cfinclude and has no end tag and is not part of galaxieCache. Make sure to supply the sidebar type. This is a duplicate sidebar when using desktop and the theme type is classic --->
+				<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#"  materialtheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
+			</div><!---<nav id="sidebar">--->
+		</cfif>
+		</div><!---<div id="mainPanel" class="flexParent">--->
+
+		<cfsilent>
+		<!---//***************************************************************************************************************
+					Sidebar panel
+		This sidebar panel is always a fly-out panel on the left of the page. This panel is a duplicate of the sidebar div when the theme type is classic. If the theme type is modern or when the device is mobile, this is the only panel on the page. This panel is invoked when the user clicks on the hamburger icon in the menu at the top of the page.
+		//****************************************************************************************************************--->
+
+		<!--- We need to differentiate material and non-material themes to appy the right settings to the buttons --->
+		<cfif kendoTheme contains 'material'>
+			<cfset materialTheme = true>
+		<cfelse>
+			<cfset materialTheme = false>
+		</cfif>
+		</cfsilent>	
+		<nav id="sidebarPanel" class="k-content">
+			<div id="sidebarPanelWrapper" name="sidebarPanelWrapper" class="flexScroll"> 
+				<!--- This cfmodule acts like a cfinclude and is not part of galaxieCache. Make sure to suppply the sideBarType argument. DIV --->
+				<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#"  materialTheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
+			</div>
+		</nav><!---<nav id="sidebar">--->
+		<!--- This script must be placed underneath the layer that is being used in order to effectively work as a flyout menu.--->
+		<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+			$(document).ready(function() {	
+				$("#sidebarPanel").kendoResponsivePanel({
+					// On mobile devices, always achieve the breakpoint by setting it to 0, otherwise, use the breakpoint setting that is defined in the administrative interface.
+					breakpoint: breakpoint,
+					orientation: "left",
+					autoClose: true,// Note: autoclose true will cause the panel to fly off to the left. It looks a bit funny, but it works.. 
+					open: onSidebarOpen,
+					close: onSidebarClose
+				})
+			});//..document.ready
+		</script>
+		<!--- End Sidebar --->
 	</main>
 	</td>
    </tr>

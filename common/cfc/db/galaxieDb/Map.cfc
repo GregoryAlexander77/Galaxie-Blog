@@ -7,7 +7,8 @@
 	<cfproperty name="MapTypeRef" ormtype="int" fieldtype="many-to-one" cfc="MapType" fkcolumn="MapTypeRef" cascade="all" missingrowignored="true" hint="Foreign Key to the MapType.MapTypeId">
 	<!--- There are many maps with one provider --->
 	<cfproperty name="MapProviderRef" ormtype="int" fieldtype="many-to-one" cfc="MapProvider" fkcolumn="MapProviderRef" cascade="all" missingrowignored="true" hint="Foreign Key to the MapProvider.MapProviderId">
-	<cfproperty name="PostRef" ormtype="int" fieldtype="many-to-one" cfc="Post" fkcolumn="PostRef" cascade="all" missingrowignored="true" hint="Foreign Key to the Post.PostId">
+	<!--- Don't cascade delete the post --->
+	<cfproperty name="PostRef" ormtype="int" fieldtype="many-to-one" cfc="Post" fkcolumn="PostRef" missingrowignored="true" hint="Foreign Key to the Post.PostId">
 	<cfproperty name="HasMapRoutes" ormtype="boolean" default="false">
 	<cfproperty name="MapName" ormtype="string" default="" length="75">
 	<cfproperty name="MapTitle" ormtype="string" default="" length="255">

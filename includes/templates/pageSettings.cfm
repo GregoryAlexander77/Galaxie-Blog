@@ -330,7 +330,7 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 			Logic to set vars for the client
 //********************************************************************************************************--->
 	
-<cfif pageTypeId eq 1>
+<cfif pageTypeId eq 1 or pageTypeId eq 8><!--- Blogs and custom pages --->
 	<cfset breakPoint = getTheme[1]["Breakpoint"]>
 	<!--- Safety check --->
 	<cfif not isNumeric(breakPoint) or breakPoint eq "">
@@ -366,7 +366,7 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <cfif session.isMobile>
 	<cfset kendoWindowIcons = '"Minimize", "Pin", "Refresh", "Close"'>
 <cfelse>
-	<cfset kendoWindowIcons = '"Minimize", "Pin", "Refresh", "Close"'>
+	<cfset kendoWindowIcons = '"Maximize", "Minimize", "Pin", "Refresh", "Close"'>
 </cfif>
 	
 <!--- Set default width and height for the kendo extended ui window elements (are you sure? There were errors, etc).--->

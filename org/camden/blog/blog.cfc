@@ -17,9 +17,9 @@
 	//******************************************************************************************--->
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "4.07" />
-	<cfset versionName = "4.07 (Bella's Edition)" />
-	<cfset versionDate =  "June 30th 2025"> 
+	<cfset version = "4.21" />
+	<cfset versionName = "4.21 (Bella's Edition)" />
+	<cfset versionDate =  "February 18th, 2026"> 
 
 	<!--- Require version 9 or higher as we are using ORM --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>
@@ -1985,6 +1985,7 @@
 			hint="Sends a new post to the blog subscribers">
 		<cfargument name="postId" type="string" required="true">
 		<cfargument name="byPassErrors" type="boolean" required="false" default="false">
+		<cfargument name="testEmailAddress" type="string" required="false" default="" hint="Used to test an individual email address.">
 			
 		<cfparam name="error" default="false">
 		<cfparam name="errorMessage" default="">
@@ -2024,31 +2025,49 @@
 				<cfinvokeargument name="verifiedOnly" value="false">
 			</cfinvoke>
 
-			<!--- Loop through the subscribers --->
-			<cfloop from="1" to="#arrayLen(getSubscribers)#" index="i">
-
-				<cfset email = getSubscribers[i]["SubscriberEmail"]>
-
+			<cfif len(arguments.testEmailAddress)>
 				<!--- Get the subscriber details. The getSubscribers function only returns the email address. --->
-				<cfset getSubscriberDetail = application.blog.getSubscriber(email=getSubscribers[i]["SubscriberEmail"])>
+				<cfset getSubscriberDetail = application.blog.getSubscriber(email=arguments.testEmailAddress)>
+				<!--- Render the email --->
+				<cfinvoke component="#RendererObj#" method="renderPostEmailToSubscribers" returnvariable="emailBody">
+					<cfinvokeargument name="postId" value="#arguments.postId#">
+					<cfinvokeargument name="email" value="#arguments.testEmailAddress#">
+					<cfinvokeargument name="token" value="#getSubscriberDetail[1]['SubscriberToken']#">
+				</cfinvoke>
+
+				<!--- Email it --->
+				<cfset utils.mail(
+					to=arguments.testEmailAddress,
+					subject="#blogTitle# / #getPost[1]['Title']#",
+					body=emailBody)>
 					
-				<!--- Email the subscriber --->
-				<cfif arrayLen(getSubscriberDetail)>
-					<!--- Render the email --->
-					<cfinvoke component="#RendererObj#" method="renderPostEmailToSubscribers" returnvariable="emailBody">
-						<cfinvokeargument name="postId" value="#arguments.postId#">
-						<cfinvokeargument name="email" value="#email#"><!---#email#--->
-						<cfinvokeargument name="token" value="#getSubscriberDetail[1]['SubscriberToken']#">
-					</cfinvoke>
+			<cfelse><!---<cfif len(testEmailAddress)>--->
+				<!--- Loop through the subscribers --->
+				<cfloop from="1" to="#arrayLen(getSubscribers)#" index="i">
 
-					<!--- Email it --->
-					<cfset utils.mail(
-						to=email,
-						subject="#blogTitle# / #getPost[1]['Title']#",
-						body=emailBody)>
-				</cfif><!---<cfif arrayLen(getSubscriberDetail)>--->
+					<cfset email = getSubscribers[i]["SubscriberEmail"]>
 
-			</cfloop><!---<cfloop from="1" to="#arrayLen(subscribers)#" index="i">--->
+					<!--- Get the subscriber details. The getSubscribers function only returns the email address. --->
+					<cfset getSubscriberDetail = application.blog.getSubscriber(email=getSubscribers[i]["SubscriberEmail"])>
+
+					<!--- Email the subscriber --->
+					<cfif arrayLen(getSubscriberDetail)>
+						<!--- Render the email --->
+						<cfinvoke component="#RendererObj#" method="renderPostEmailToSubscribers" returnvariable="emailBody">
+							<cfinvokeargument name="postId" value="#arguments.postId#">
+							<cfinvokeargument name="email" value="#email#"><!---#email#--->
+							<cfinvokeargument name="token" value="#getSubscriberDetail[1]['SubscriberToken']#">
+						</cfinvoke>
+
+						<!--- Email it --->
+						<cfset utils.mail(
+							to=email,
+							subject="#blogTitle# / #getPost[1]['Title']#",
+							body=emailBody)>
+					</cfif><!---<cfif arrayLen(getSubscriberDetail)>--->
+
+				</cfloop><!---<cfloop from="1" to="#arrayLen(subscribers)#" index="i">--->
+			</cfif><!---<cfif len(testEmailAddress)>--->
 
 			<!--- Indicate that the post was mailed. --->
 			<cfquery name="Data" dbtype="hql">
@@ -2331,8 +2350,8 @@
 		<cfelseif isDefined("cookie.theme")>
 			<cfset theme = cookie.theme>
 		<cfelseif application.serverProduct eq 'Lucee'>
-			<!--- With Lucee, I want the default theme to be abstract blue if the theme is not selected. --->
-			<cfset theme = "abstract-blue">
+			<!--- With Lucee, I want the default theme to be golden-gate if the theme is not selected. --->
+			<cfset theme = "golden-gate">
 		<cfelse>
 			<!--- Get a random theme by the day. --->
 			<cfset theme = getThemeAliasByDay()>
@@ -8375,14 +8394,30 @@
 			<cfset PostDbObj = entityLoadByPK("Post", arguments.postId)>
 			<!--- Remove the enclosures so that we don't get a constraint errors --->
 			<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
-			<!--- Set the enclosureMap column to null. --->
-			<cfset PostDbObj.setEnclosureMap(javaCast("null",""))>
 			<!---And set the enclosureCarousel to null--->
 			<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
+				
+			<!--- Load and delete any associated maps. We must do this from the child map object and can't perform this on the parent post object without causing constraint related errors --->
+			<cfset MapDbObj = entityLoad("Map", { PostRef = PostDbObj } )>
+			<!--- Do one or more maps exist? --->
+			<cfif !isNull(MapDbObj) and isObject(MapDbObj)>
+				<!--- Loop over the map array. There may be multiple map objects --->
+				<cfloop index="i" item="Map" array="#MapDbObj#">
+					<!--- Remove the postRef in the parent post table to bypass constraint errors --->
+					<cfset Map.setPostRef(javaCast("null",""))>
+				</cfloop>
+			</cfif>
 				
 			<!--- Delete the post media --->
 			<cfquery name="Data" dbtype="hql">
 				DELETE FROM PostMedia
+				WHERE 
+					PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+				
+			<!--- Delete the associated post categories --->
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM PostCategoryLookup
 				WHERE 
 					PostRef = #PostDbObj.getPostId()#
 			</cfquery>
@@ -8422,6 +8457,7 @@
 				WHERE 
 					PostId = #PostDbObj.getPostId()#
 			</cfquery>
+			<!---<cfset EntityDelete(PostDbObj)>--->
 				
 			<!--- Delete the PostDbObj variable to ensure that the record doesn't stick around and is deleted from ORM memory. --->
 			<cftry>
@@ -9410,7 +9446,8 @@
 			SELECT new Map (
 				Map.MapId as MapId,
 				MapProviderRef.MapProvider as MapProvider,
-				MapTypeRef.MapType as MapType,
+				<!--- MapTypeRef.MapType as MapType, (this is causing errors after v4.13+--->
+				'satellite_road_labels' as MapType,
 				PostRef.PostId as PostId,
 				Map.HasMapRoutes as HasMapRoutes,
 				Map.MapName as MapName,
@@ -9525,15 +9562,15 @@
 		<cfargument name="postId" type="string" required="true" default="" hint="Pass in the postId">
 		<cfargument name="mapId" type="string" required="false" default="" hint="Pass in the mapId if present">
 		<cfargument name="mapName" type="string" required="false" default="" hint="Not used in this version">
-		<cfargument name="mapType" type="string" required="true" default="" hint="Pass in the mapType">
-		<cfargument name="mapZoom" type="string" required="false" default="" hint="Pass in zoom level. It is a number between 1 and 19">
+		<cfargument name="provider" type="string" required="false" default="Azure Maps" hint="Pass in the provider (Bing Maps is retired on June 2025).">
 		<cfargument name="mapAddress" type="string" required="true" default="" hint="Pass in the location or address">
 		<cfargument name="mapCoordinates" type="string" required="true" default="" hint="Pass in latitude and longitude separated by a comma">
 		<cfargument name="latitude" type="string" required="true" default="" hint="Pass in latitude. Use with Azure maps">
 		<cfargument name="longitude" type="string" required="true" default="" hint="Pass in the longitude. Used with Azure maps">
+		<cfargument name="mapType" type="string" required="false" default="" hint="Pass in the mapType">
+		<cfargument name="mapZoom" type="string" required="false" default="" hint="Pass in zoom level. It is a number between 1 and 19">
 		<!--- Optional args --->
 		<cfargument name="isEnclosure" type="string" required="false" default="" hint="We need to know if this map will be used for an enclosure or in the post body.">
-		<cfargument name="provider" type="string" required="false" default="Azure Maps" hint="Pass in the provider (Bing Maps is retired on June 2025).">
 		<cfargument name="outlineMap" type="boolean" required="false" default="false" hint="This is a boolean value">
 		<cfargument name="customMarker" type="string" required="false" default="" hint="Pass in the URL of your custom marker, if any"> 
 		
@@ -9541,7 +9578,7 @@
 			<!--- Get the provider. We are using Azure Maps right now --->
 			<cfset ProviderDbObj = entityLoad("MapProvider", { MapProvider = 'Azure Maps' }, "true" )>
 			<!--- And the map type. Our default is aerial --->
-			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = 'road', MapProviderRef = ProviderDbObj }, "true" )>
+			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = arguments.mapType, MapProviderRef = ProviderDbObj }, "true" )>
 		
 			<cfif arguments.mapId neq ''>
 				<!--- Load the Map entity --->
@@ -9594,18 +9631,20 @@
 			
 	<cffunction name="saveMapRoute" access="public" returnType="string" output="false"
 			hint="Saves a map into the database">
-		<cfargument name="provider" type="string" required="true" default="Azure Maps" hint="Pass in the provider">
-		<cfargument name="isEnclosure" type="boolean" required="true" default="true" hint="We need to determine if this is an enclosure in order to create the proper relationships in the database.">
-		<cfargument name="locationGeoCoordinates" type="string" required="false" default="" hint="Pass in the address, and latitude and longitude separated by a comma. The locationGeoCoordinates should be a CF list object. The data should be formatted like so: address_geoCoordinates_address1_geoCoordinates1_address2_geoCoordinates2_ etc">
 		<cfargument name="mapId" type="string" required="false" default="" hint="Pass in the mapId if present">
 		<cfargument name="mapRouteId" type="string" required="false" default="" hint="Pass in the mapRouteId if present">
 		<cfargument name="postId" type="string" required="true" default="" hint="Pass in the postId">
+		<cfargument name="provider" type="string" required="true" default="Azure Maps" hint="Pass in the provider">
+		<cfargument name="isEnclosure" type="boolean" required="true" default="true" hint="We need to determine if this is an enclosure in order to create the proper relationships in the database.">
+		<cfargument name="locationGeoCoordinates" type="string" required="false" default="" hint="Pass in the address, and latitude and longitude separated by a comma. The locationGeoCoordinates should be a CF list object. The data should be formatted like so: address_geoCoordinates_address1_geoCoordinates1_address2_geoCoordinates2_ etc">
+		<cfargument name="mapType" type="string" required="false" default="" hint="Pass in the map type (i.e. 'road'">
+		<cfargument name="mapZoom" type="string" required="false" default="" hint="Pass in selected zoom">
 		
 		<cftransaction>
 			<!--- Get the provider. We are using Azure Maps right now --->
 			<cfset ProviderDbObj = entityLoad("MapProvider", { MapProvider = 'Azure Maps' }, "true" )>
-			<!--- And the map type. Our default is aerial --->
-			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = 'road', MapProviderRef = ProviderDbObj }, "true" )>
+			<!--- And the map type. Our default is satellite_road_labels (ID: 11) --->
+			<cfset MapTypeDbObj = entityLoadByPK("MapType", 11 )>
 		
 			<cfif arguments.mapId neq ''>
 				<!--- Load the Map entity --->
@@ -9623,11 +9662,10 @@
 			</cfif> 
 			<!--- Set the values --->
 			<cfset MapDbObj.setMapProviderRef(ProviderDbObj)>
-			<!---<cfset MapDbObj.setMapTypeRef(MapTypeDbObj)>--->
+			<cfset MapDbObj.setMapTypeRef(MapTypeDbObj)>
 			<cfset MapDbObj.setHasMapRoutes(true)>
-			<!--- MapName is not used at this time 
-			<cfset MapDbObj.setLocation(arguments.location)>--->
-			<!--- Note: for routes, we don't  need the geocoordinates on the map --->
+			<!--- location is derived from the map coordinate string --->
+			<!--- Note: for routes, we don't need the geocoordinates on the map --->
 			<cfset MapDbObj.setDate(application.blog.blogNow())>
 
 			<!--- Save the the routes into the database --->

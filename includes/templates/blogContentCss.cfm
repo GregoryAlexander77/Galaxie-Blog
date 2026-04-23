@@ -726,9 +726,9 @@
 		
 		/* Place the layer where we want it and put a drop shadow on the panel when it is expanded. Note! the setSidebarPadding javascript function also sets some style properties. */
 		#sidebarPanel.k-rpanel-expanded {
-		<cfif pageTypeId eq 1>/* The sidebar panel is inside the main container and we don't want any top margin*/<cfelse><cfif session.isMobile>/* On mobile, the table height is 100px. We want to give about 5 pixels more height to allow the divider to be seen. */<cfelse>/* On desktop, the table height is 105px. We want to give about 5 pixels more height to allow the divider to be seen. */</cfif></cfif>
-			margin-top: <cfif pageTypeId eq 1>0px<cfelse><cfif session.isMobile>105px<cfelse>110px</cfif></cfif>;
-			margin-left: <cfif pageTypeId eq 1>0px<cfelse>var(--contentPaddingPixelWidth)</cfif>;
+		<cfif pageTypeId eq 1 or pageTypeId eq 8><!--- Both blogs and custom pages have rhw left margin set at 9 --->/* The sidebar panel is inside the main container and we don't want any top margin*/<cfelse><cfif session.isMobile>/* On mobile, the table height is 100px. We want to give about 5 pixels more height to allow the divider to be seen. */<cfelse>/* On desktop, the table height is 105px. We want to give about 5 pixels more height to allow the divider to be seen. */</cfif></cfif>
+			margin-top: 0px;
+			margin-left: <cfif session.isMobile>10px<cfelse>0px</cfif>;
 			-webkit-box-shadow: 0px 0 10px 0 rgba(0,0,0,.3);
     		-moz-box-shadow: 0px 0 10px 0 rgba(0,0,0,.3);
             box-shadow: 0 0 10px rgba(0,0,0,.3);
@@ -1098,6 +1098,79 @@
 			word-break: break-word !important;
 		}
 	</cfif>
+				
+	<cfif pageTypeId gt 1><!--- Used on admin and custom page types --->	
+		/* -------------------------------- 
+			Content Classes  for Custom Pages
+		-------------------------------- */
+		#contentDiv {
+			/* Note: opacity and transform will set this block to behave like a z-index:0 on mobile devices, so we need to set a position and a z-index here to make the fixedNavHeader menu float above this layer */
+			position: relative;
+			z-index: 0;
+		<cfif session.isMobile>
+			/* Opacity for iOs */
+			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
+			visibility: visible;
+		<cfelse>
+			/* Apply a min width of 600 pixels. We are making an assumption that the minimum display resolution will be 800 pixels and apply the 200 pixels to the outer container. */
+			min-width: 600px;
+		</cfif>
+			/* Don't supply the width */
+			/* Subtle drop shadow on the header banner that stretches across the page. */
+			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+			/* Center it */
+			left: calc(-50vw + 50vw);
+			right: calc(-50vw + 50vw);
+			margin-left: auto;
+			margin-right: auto;
+			border: 1px solid #e2e2e2;
+			border-radius: 3px;
+		}
+		
+		#contentInnerContainer {
+			/* Apply padding to all of the elements. */
+			margin-top: <cfif session.isMobile>10<cfelse>20</cfif>px; 
+			margin-left: <cfif session.isMobile>10<cfelse>20</cfif>px; 
+			margin-right: <cfif session.isMobile>10<cfelse>20</cfif>px;
+			margin-bottom: <cfif session.isMobile>10<cfelse>20</cfif>px; 
+			padding: <cfif session.isMobile>10<cfelse>20</cfif>px; 
+			/*background-color: whitesmoke;*/
+			display: block;
+			border: 1px solid #e2e2e2;
+			border-radius: 3px;
+		}
+		
+		/* Title bar for the footer */
+		#contentInnerContainer h4 {
+			font-size: 1em;
+			padding-top: 0px;
+			padding-right: 0px;
+			padding-bottom: 10px;
+			padding-left: 0px;
+			border-bottom: 1px solid #e2e2e2;
+			text-align: left;
+		}
+
+		/* Footer main content */
+		##contentInnerContainer p {
+			padding-top: 10px;
+			padding-right: 0px;
+			padding-bottom: 0px;
+			padding-left: 0px;
+		}
+		
+		/* Center the logo */
+		##contentInnerContainer img {
+			display: block;
+  			margin-left: auto;
+  			margin-right: auto;
+		}
+		
+		/* Center the logo */
+		##contentInnerContainer a {
+			/* color: whitesmoke; */
+		}		
+	</cfif><!---<cfif pageTypeId eq 8>--->			
 				
 		/* -------------------------------- 
 			Footer Classes 
