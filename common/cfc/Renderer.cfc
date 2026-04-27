@@ -1597,7 +1597,7 @@
 				// ***********************************************************************
 
 				// URL for the Azure Maps Route API.
-				var routeUrl = '<cfoutput>#application.azureMapsDirectionsApiUrl#</cfoutput>/&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
+				var routeUrl = '<cfoutput>#application.azureMapsDirectionsApiUrl#</cfoutput>&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
 
 				// Initialize a map instance.
 				map = new atlas.Map('map<cfoutput>#arguments.mapId#</cfoutput>', {

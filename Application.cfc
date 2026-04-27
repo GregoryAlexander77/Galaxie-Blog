@@ -443,7 +443,7 @@
 		<!--- Map Controller URL's. We are using version 3 --->
 		<cfset application.azureMapsControllerUrl = 'https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.js'>
 		<cfset application.azureMapsControllerCssUrl = 'https://atlas.microsoft.com/sdk/javascript/mapcontrol/3/atlas.min.css'>
-		<cfset application.azureMapsDirectionsApiUrl = 'https://atlas.microsoft.com/route/directions/json?api-version=2025-01-01'>
+		<cfset application.azureMapsDirectionsApiUrl = 'https://atlas.microsoft.com/route/directions/json?api-version=1'><!--- https://atlas.microsoft.com/route/directions/json?api-version=2025-01-01 --->
 		<!--- Azure Maps Fuzzy Search URL. We are using version 1 for now --->
 		<cfset application.azureMapsFuzzySearchUrl = "https://atlas.microsoft.com/search/fuzzy/json?typeahead=true&api-version=1.0&language=en-US&lon=0&lat=0&view=Auto">
 		<cfset application.azureMapsSearchUrl = "https://atlas.microsoft.com/search/address/json">
@@ -971,7 +971,7 @@
 		<cfreturn woff2>
 	</cffunction>
 			
-	<cffunction name="onError22" access="public" returntype="void">
+	<cffunction name="onError" access="public" returntype="void">
 		<cfargument name="exception" required=true/>
 		<cfargument name="eventName" type="string" required=true/>
 		<cfargument name="disable" type="string" default="true"/>
