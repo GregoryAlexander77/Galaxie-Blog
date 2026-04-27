@@ -313,11 +313,11 @@ Either use https://code.jquery.com/jquery-3.7.1.min.js or https://ajax.googleapi
 <cfif addSocialMediaUnderEntry><!-- Add this is depracated as of May 2023 --></cfif>
 <cfif arrayLen(getPost) and getPost[1]['LoadScrollMagic'] and application.includeGsap>
 <!-- Scroll magic and other green sock plugins. -->
-<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/greenSock/src/uncompressed/TweenMax.js"></script>
+<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/greenSock/src/minified/TweenMax.min.js"></script>
 <!--- Note: using the minified version of scrollmagic causes issues- the text is not displayed --->
-<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/uncompressed/ScrollMagic.js"></script>
-<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/uncompressed/plugins/animation.gsap.js"></script>
-<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/greenSock/src/uncompressed/plugins/ScrollToPlugin.js"></script>
+<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/minified/ScrollMagic.min.js"></script>
+<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/minified/plugins/animation.gsap.min.js"></script>
+<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/greenSock/src/minified/plugins/ScrollToPlugin.min.js"></script>
 <!---<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/scrollMagic/scrollmagic/uncompressed/plugins/debug.addIndicators.js"></script>--->
 </cfif></cfoutput>
 				

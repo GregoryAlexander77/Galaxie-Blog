@@ -1,9 +1,0 @@
-node_modules
-.idea
-*.iml
-.nyc_output
-coverage
-dist/
-.vscode
-yarn.lock
-

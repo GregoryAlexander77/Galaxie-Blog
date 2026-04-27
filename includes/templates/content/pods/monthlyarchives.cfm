@@ -52,7 +52,7 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 		<cfset previousYears = getMonthlyArchives[i]["PreviousYears"]>
 		<cfset entryCount = getMonthlyArchives[i]["EntryCount"]>
 		</cfsilent>
-		<tr class="#iif(i MOD 2,DE('k-content'),DE('k-alt'))#">
+		<tr class="<cfoutput>#iif(i MOD 2,DE('k-content'),DE('k-alt'))#</cfoutput>">
 			<!---Create alternating rows in the table. The Kendo classes which we will use are k-alt and k-content.
 			We will create a border between the rows if the current row is not the first row. --->
 			<cfif i eq 1>

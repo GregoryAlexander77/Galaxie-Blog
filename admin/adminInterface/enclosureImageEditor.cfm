@@ -100,7 +100,7 @@
 	<cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">
 		
 	<!--- Include the get-video-id script. This will be used to determine the video provider and the video id --->
-	<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/get-video-id/getVideoId.min.js"></script>
+	<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/get-video-id/dist/get-video-id.umd.min.js"></script>
 	<!---<cfoutput><br/>selectorId: #selectorId#</cfoutput>--->
 		
 	<script>

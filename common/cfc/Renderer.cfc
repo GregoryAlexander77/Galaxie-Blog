@@ -1138,37 +1138,41 @@
 				<link rel="stylesheet" href="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/swiper/viper/swiper-gl.min.css" />
 
 				<script>
-				  var swiper<cfoutput>#carouselId#</cfoutput> = new Swiper(".swiper", {
-					modules: [SwiperGL],
-					threshold: 5,
-					observer: true,
-					observeParents: true,
-					// Disable preloading of images
-    				preloadImages: false,
-					watchSlidesProgress: true,
-					autoplay: { enabled: true },
-					grabCursor: true,
-					effect: "gl",
-					<cfif len(carouselShader)>gl: { shader: "<cfoutput>#carouselShader#</cfoutput>" },</cfif>
-					slidesPerGroupAuto: false,
-					creativeEffect: {
-					  next: { shadow: true },
-					  prev: { shadow: true },
-					  limitProgress: 5,
-					},
-					navigation: {
-					  nextEl: '.swiper-button-next',
-					  prevEl: '.swiper-button-prev',
-					},
-					pagination: {
-					  clickable: true,
-					  dynamicBullets: true,
-					  el: ".swiper-pagination",
-					},
-					parallax: { enabled: true },
-					speed: 600,
-					keyboard: { enabled: true },
-				  });
+					try {
+						var swiper<cfoutput>#carouselId#</cfoutput> = new Swiper(".swiper", {
+							modules: [SwiperGL],
+							threshold: 5,
+							observer: true,
+							observeParents: true,
+							// Disable preloading of images
+							preloadImages: false,
+							watchSlidesProgress: true,
+							autoplay: { enabled: true },
+							grabCursor: true,
+							effect: "gl",
+							<cfif len(carouselShader)>gl: { shader: "<cfoutput>#carouselShader#</cfoutput>" },</cfif>
+							slidesPerGroupAuto: false,
+							creativeEffect: {
+							  next: { shadow: true },
+							  prev: { shadow: true },
+							  limitProgress: 5,
+							},
+							navigation: {
+							  nextEl: '.swiper-button-next',
+							  prevEl: '.swiper-button-prev',
+							},
+							pagination: {
+							  clickable: true,
+							  dynamicBullets: true,
+							  el: ".swiper-pagination",
+							},
+							parallax: { enabled: true },
+							speed: 600,
+							keyboard: { enabled: true },
+					  });
+					} catch(e) {
+						console.log('Error initializing Swiper: ' + e);
+					}
 				</script>
 			</cfsavecontent>
 						
@@ -1403,8 +1407,12 @@
 					<!--- Build the javascript --->
 					<script type='text/javascript'>
 						function getMap<cfoutput>#mapId#</cfoutput>() {
-							// Output map routes
-							<cfoutput>#mapRouteScript#</cfoutput>
+							try {
+								// Output map routes
+								<cfoutput>#mapRouteScript#</cfoutput>
+							} catch(e) {
+								console.log('Error loading map: ' + e);
+							}
 						}//function getMap...
 						// Invoke the getMap function
 						getMap<cfoutput>#mapId#</cfoutput>();
@@ -1445,8 +1453,12 @@
 					<!--- Build the javascript --->
 					<script type='text/javascript'>
 						function getMap<cfoutput>#mapId#</cfoutput>() {
-							// Common map script
-							<cfoutput>#staticMapScript#</cfoutput>
+							try {
+								// Common map script
+								<cfoutput>#staticMapScript#</cfoutput>
+							} catch(e) {
+								console.log('Error loading map: ' + e);
+							}
 						}
 						// Invoke the getMap function
 						getMap<cfoutput>#mapId#</cfoutput>();
@@ -1585,7 +1597,7 @@
 				// ***********************************************************************
 
 				// URL for the Azure Maps Route API.
-				var routeUrl = 'https://{azMapsDomain}/route/directions/json?api-version=1.0&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
+				var routeUrl = '<cfoutput>#application.azureMapsDirectionsApiUrl#</cfoutput>/&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
 
 				// Initialize a map instance.
 				map = new atlas.Map('map<cfoutput>#arguments.mapId#</cfoutput>', {

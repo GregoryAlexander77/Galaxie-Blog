@@ -35,7 +35,7 @@
 		var fuzzyGeoServiceUrl = "<cfoutput>#application.azureMapsFuzzySearchUrl#</cfoutput>"; 
 		
 		// URL for the Azure Maps Route API. Used when two or more locations are selected to render the route.
-        var routeGeoServiceUrl = 'https://atlas.microsoft.com/route/directions/json?api-version=1.0language=en-US&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
+        var routeGeoServiceUrl = '<cfoutput>#application.azureMapsDirectionsApiUrl#<cfoutput>/&language=en-US&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
 		
 		// create DropDownList from select HTML element
         $("#countrySelector").kendoMultiSelect({
@@ -279,7 +279,7 @@
 	function renderMapRoute(locationIndex) {
 
 		// URL for the Azure Maps Route API.
-		var routeUrl = 'https://{azMapsDomain}/route/directions/json?api-version=1.0&query={query}&routeRepresentation=polyline&travelMode={travelMode}&view=Auto';
+		var routeUrl = '<cfoutput>#application.azureMapsDirectionsApiUrl#</cfoutput>/&query={query}&routeRepresentation=polyline&travelMode={travelMode}&view=Auto';
 		
 		// Get the travel mode (car, bus, etc.)
 		var travelMode = $("#travelMode").val();

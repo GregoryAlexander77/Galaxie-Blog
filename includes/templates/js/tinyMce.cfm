@@ -124,7 +124,7 @@
 	<!--- If the cookie name exists, the cookie name is equal to the Remove any unused editors from our editor array in memory --->
 	<cfif isDefined("cookie.#selectorId#") and evaluate("cookie.#selectorId#") neq selectorName>
 		<!--- Include the get-video-id script. This will be used to determine the video provider and the video id --->
-		<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/get-video-id/getVideoId.min.js"></script>
+		<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/get-video-id/dist/get-video-id.umd.min.js"></script>
 		<!--- Remove the unused editor --->
 		<script>
 			<cfoutput>

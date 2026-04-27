@@ -12,6 +12,8 @@
 <cfset azureMapsKey = application.azureMapsApiKey>
 <!--- Get the accent color of the selected theme. We will use this to color the map to match the theme. --->
 <cfset accentColor = application.blog.getPrimaryColorsByTheme(kendoTheme:trim(application.blog.getSelectedKendoTheme()),setting:'accentColor')>
+<!--- Manually set the zoom. These maps are quite small and need to zoom out a bit --->
+<cfset previewZoomLevel = 7>
 	
 <!--- Preset our data array --->
 <cfset Data = []>
@@ -62,108 +64,112 @@
 				var map, datasource;
 
 				// URL for the Azure Maps Route API.
-				var routeUrl = 'https://{azMapsDomain}/route/directions/json?api-version=1.0&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
+				var routeUrl = '<cfoutput>#application.azureMapsDirectionsApiUrl#</cfoutput>/&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
 
 				function getMap() {
-					// Initialize a map instance.
-					map = new atlas.Map('myMap', {
-						// Azure Maps reverses the order of the geocoordinates used with Bing Maps and uses lon,lat instead of lat,long
-						center: [<cfoutput>#listLast(Data[1]["GeoCoordinates"])#,#listFirst(Data[1]["GeoCoordinates"])#</cfoutput>],
-						zoom: 12,
-						view: 'Auto',
-						style: 'road_shaded_relief',// Note: satellite_with_roads does not work on it's own when using directions
+					try {
+						// Initialize a map instance.
+						map = new atlas.Map('myMap', {
+							// Azure Maps reverses the order of the geocoordinates used with Bing Maps and uses lon,lat instead of lat,long
+							center: [<cfoutput>#listLast(Data[1]["GeoCoordinates"])#,#listFirst(Data[1]["GeoCoordinates"])#</cfoutput>],
+							zoom: <cfoutput>#previewZoomLevel#</cfoutput>,
+							view: 'Auto',
+							style: 'road_shaded_relief',// Note: satellite_with_roads does not work on it's own when using directions
 
-						authOptions: {
-							 authType: 'subscriptionKey',
-							 subscriptionKey: '<cfoutput>#azureMapsKey#</cfoutput>'
-						 }
-					});
-
-					// Wait until the map resources are ready.
-					map.events.add('ready', function () {
-						// Create a data source and add it to the map.
-						datasource = new atlas.source.DataSource();
-						map.sources.add(datasource);
-
-						// Add a layer for rendering the route line and have it render under the map labels.
-						map.layers.add(new atlas.layer.LineLayer(datasource, null, {
-							strokeColor: '#<cfoutput>#accentColor#</cfoutput>',
-							strokeWidth: 5,
-							lineJoin: 'round',
-							lineCap: 'round'
-						}), 'labels');
-
-						// Add a layer for rendering point data.
-						map.layers.add(new atlas.layer.SymbolLayer(datasource, null, {
-							iconOptions: {
-								image: ['get', 'iconImage'],
-								allowOverlap: true,
-								ignorePlacement: true
-							},
-							textOptions: {
-								textField: ['get', 'title'],
-								offset: [0, 1]
-							},
-							filter: ['any', ['==', ['geometry-type'], 'Point'], ['==', ['geometry-type'], 'MultiPoint']] //Only render Point or MultiPoints in this layer.
-						}));
-
-						// Create our waypoints
-						// Note the GeoJSON objects have been switched from Bing Maps to Azure Maps. Now we are using longitude first then latitude instead of the other way around.
-					<cfloop from="1" to="#arrayLen(Data)#" index="i"><cfoutput>
-						// Set the vars
-						var geoCoordinates#i# = [#listLast(Data[i]["GeoCoordinates"])#,#listFirst(Data[i]["GeoCoordinates"])#];
-						var location#i# = '#Data[i]["Location"]#';
-						// Create our waypoints
-						var waypoint#i# = new atlas.data.Feature(new atlas.data.Point(geoCoordinates#i#), {
-							title: location#i#,
-							iconImage: <cfif i eq arrayLen(Data)>'pin-red'<cfelse>'pin-blue'</cfif>
-						});
-					</cfoutput></cfloop>
-
-						// Add the waypoints to the data source.
-						datasource.add([<cfoutput>#wayPointList#</cfoutput>]);
-
-						// Fit the map window to the bounding box defined by the start and end positions.
-						map.setCamera({
-							bounds: atlas.data.BoundingBox.fromPositions([<cfoutput>#geoCoordinatesList#</cfoutput>]),
-							// Padding will essentially zoom out a bit. The default is 50, I am using 100 as I want the destinations on the map to be clearly shown
-							padding: 100
+							authOptions: {
+								 authType: 'subscriptionKey',
+								 subscriptionKey: '<cfoutput>#azureMapsKey#</cfoutput>'
+							 }
 						});
 
-						// Create the route request with the query using the following format 'startLongitude,startLatitude:endLongitude,endLatitude'.
-						var routeRequestURL = routeUrl
-							.replace('{query}', `<cfloop from="1" to="#arrayLen(Data)#" index="i"><cfoutput>${geoCoordinates#i#[1]},${geoCoordinates#i#[0]}<cfif i lt arrayLen(Data)>:</cfif></cfoutput></cfloop>`);  
+						// Wait until the map resources are ready.
+						map.events.add('ready', function () {
+							// Create a data source and add it to the map.
+							datasource = new atlas.source.DataSource();
+							map.sources.add(datasource);
 
-						// Process the request and render the route result on the map. This method is in the Azure Maps resources that was loaded to the page.
-						processRequest(routeRequestURL).then(directions => {
-							// Extract the first route from the directions.
-							const route = directions.routes[0];
-							// Combine all leg coordinates into a single array.
-							const routeCoordinates = route.legs.flatMap(leg => leg.points.map(point => [point.longitude, point.latitude]));
-							// Create a LineString from the route path points.
-							const routeLine = new atlas.data.LineString(routeCoordinates);
-							// Add it to the data source.
-							datasource.add(routeLine);
-						});//processRequest
+							// Add a layer for rendering the route line and have it render under the map labels.
+							map.layers.add(new atlas.layer.LineLayer(datasource, null, {
+								strokeColor: '#<cfoutput>#accentColor#</cfoutput>',
+								strokeWidth: 5,
+								lineJoin: 'round',
+								lineCap: 'round'
+							}), 'labels');
 
-						// Add the controls
-						// Create a zoom control.
-						map.controls.add(new atlas.control.ZoomControl({
-							zoomDelta: parseFloat(1),
-							style: "light"
-					   }), {
-						  position: 'top-right'
-						}); 
+							// Add a layer for rendering point data.
+							map.layers.add(new atlas.layer.SymbolLayer(datasource, null, {
+								iconOptions: {
+									image: ['get', 'iconImage'],
+									allowOverlap: true,
+									ignorePlacement: true
+								},
+								textOptions: {
+									textField: ['get', 'title'],
+									offset: [0, 1]
+								},
+								filter: ['any', ['==', ['geometry-type'], 'Point'], ['==', ['geometry-type'], 'MultiPoint']] //Only render Point or MultiPoints in this layer.
+							}));
 
-						// Create the style control
-						map.controls.add(new atlas.control.StyleControl({
-						  mapStyles: ['road', 'road_shaded_relief', 'satellite', 'satellite_road_labels'],
-						  layout: 'icons'
-						}), {
-						  position: 'top-right'
-						});  
+							// Create our waypoints
+							// Note the GeoJSON objects have been switched from Bing Maps to Azure Maps. Now we are using longitude first then latitude instead of the other way around.
+						<cfloop from="1" to="#arrayLen(Data)#" index="i"><cfoutput>
+							// Set the vars
+							var geoCoordinates#i# = [#listLast(Data[i]["GeoCoordinates"])#,#listFirst(Data[i]["GeoCoordinates"])#];
+							var location#i# = '#Data[i]["Location"]#';
+							// Create our waypoints
+							var waypoint#i# = new atlas.data.Feature(new atlas.data.Point(geoCoordinates#i#), {
+								title: location#i#,
+								iconImage: <cfif i eq arrayLen(Data)>'pin-red'<cfelse>'pin-blue'</cfif>
+							});
+						</cfoutput></cfloop>
 
-					});//map.events
+							// Add the waypoints to the data source.
+							datasource.add([<cfoutput>#wayPointList#</cfoutput>]);
+
+							// Fit the map window to the bounding box defined by the start and end positions.
+							map.setCamera({
+								bounds: atlas.data.BoundingBox.fromPositions([<cfoutput>#geoCoordinatesList#</cfoutput>]),
+								// Padding will essentially zoom out a bit. The default is 50, I am using 100 as I want the destinations on the map to be clearly shown. However, this will cause errors if the map size exceeds the bounds so I am not using it with small map previews.
+								//padding: 100
+							});
+
+							// Create the route request with the query using the following format 'startLongitude,startLatitude:endLongitude,endLatitude'.
+							var routeRequestURL = routeUrl
+								.replace('{query}', `<cfloop from="1" to="#arrayLen(Data)#" index="i"><cfoutput>${geoCoordinates#i#[1]},${geoCoordinates#i#[0]}<cfif i lt arrayLen(Data)>:</cfif></cfoutput></cfloop>`);  
+
+							// Process the request and render the route result on the map. This method is in the Azure Maps resources that was loaded to the page.
+							processRequest(routeRequestURL).then(directions => {
+								// Extract the first route from the directions.
+								const route = directions.routes[0];
+								// Combine all leg coordinates into a single array.
+								const routeCoordinates = route.legs.flatMap(leg => leg.points.map(point => [point.longitude, point.latitude]));
+								// Create a LineString from the route path points.
+								const routeLine = new atlas.data.LineString(routeCoordinates);
+								// Add it to the data source.
+								datasource.add(routeLine);
+							});//processRequest
+
+							// Add the controls
+							// Create a zoom control.
+							map.controls.add(new atlas.control.ZoomControl({
+								zoomDelta: parseFloat(1),
+								style: "light"
+						   }), {
+							  position: 'top-right'
+							}); 
+
+							// Create the style control
+							map.controls.add(new atlas.control.StyleControl({
+							  mapStyles: ['road', 'road_shaded_relief', 'satellite', 'satellite_road_labels'],
+							  layout: 'icons'
+							}), {
+							  position: 'top-right'
+							});  
+
+						});//map.events
+					} catch(e) {
+						console.log('Error loading Azure Maps: ' + e);
+					}
 				}
 			</script>
 			<style>
@@ -219,88 +225,94 @@
 			<script>
 
 				function getMap<cfoutput>#mapId#</cfoutput>() {
+				
+					try {
 
-					// Set the necessary valus from the database
-					var location<cfoutput>#mapId#</cfoutput> = '<cfoutput>#location#</cfoutput>';
-					var lat = <cfoutput>#latitude#</cfoutput>;
-					var lon = <cfoutput>#longitude#</cfoutput>;
-				<cfif len(topLeftPointLat)>
-					// Camera positions
-					var topLeftPointLat = <cfoutput>#topLeftPointLat#</cfoutput>;
-					var topLeftPointLon = <cfoutput>#topLeftPointLon#</cfoutput>;
-					var btmRightPointLat = <cfoutput>#btmRightPointLat#</cfoutput>;
-					var btmRightPointLon = <cfoutput>#btmRightPointLon#</cfoutput>;
-				</cfif>
+						// Set the necessary valus from the database
+						var location<cfoutput>#mapId#</cfoutput> = '<cfoutput>#location#</cfoutput>';
+						var lat = <cfoutput>#latitude#</cfoutput>;
+						var lon = <cfoutput>#longitude#</cfoutput>;
 
-					// Initialize a map instance.
-					map<cfoutput>#mapId#</cfoutput> = new atlas.Map('staticMap<cfoutput>#mapId#</cfoutput>', {
-					<cfif !len(topLeftPointLat)>center: [Number(lon),Number(lat)],// Use the number function to ensure that the coordinates are numeric!
-						zoom: 12,</cfif>
-						view: 'Auto',
-						authOptions: {
-							 authType: 'subscriptionKey',
-							 subscriptionKey: '<cfoutput>#azureMapsKey#</cfoutput>'
-						 }
-					});
+						// Camera positions
+						<cfif len(topLeftPointLat)>var topLeftPointLat = <cfoutput>#topLeftPointLat#</cfoutput>;</cfif>
+						<cfif len(topLeftPointLon)>var topLeftPointLon = <cfoutput>#topLeftPointLon#</cfoutput>;</cfif>
+						<cfif len(btmRightPointLat)>var btmRightPointLat = <cfoutput>#btmRightPointLat#</cfoutput>;</cfif>
+						<cfif len(btmRightPointLon)>var btmRightPointLon = <cfoutput>#btmRightPointLon#</cfoutput>;</cfif>
 
-					// Wait until the map resources are ready.
-					map<cfoutput>#mapId#</cfoutput>.events.add('ready', function () {
-						// Load the custom image icon into the map resources. This must be done immediately after the ready event
-						map<cfoutput>#mapId#</cfoutput>.imageSprite.add('map-marker', '<cfoutput>#application.defaultAzureMapsCursor#</cfoutput>').then(function () {
-							// Create a data source to store the data in.
-							datasource = new atlas.source.DataSource();
-							// Add the datasource
-							map<cfoutput>#mapId#</cfoutput>.sources.add(datasource);
-							// Add a layer for rendering point data.
-							map<cfoutput>#mapId#</cfoutput>.layers.add(new atlas.layer.SymbolLayer(datasource));
-							// Remove any previous added data from the map.
-							datasource.clear();
-							// Create a point feature to mark the selected location.
-							datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat])));
-						<cfif len(topLeftPointLat)>
-							// Zoom the map into the selected location.
-							map<cfoutput>#mapId#</cfoutput>.setCamera({
-								bounds: [
-									topLeftPointLon, btmRightPointLat,
-									btmRightPointLon, topLeftPointLat
-								],
-								padding: 0
-							});//map<cfoutput>#mapId#</cfoutput>.setCamera
-						</cfif>
-							// Add the controls --------------------------------------------
-							// Create a zoom control.
-							map<cfoutput>#mapId#</cfoutput>.controls.add(new atlas.control.ZoomControl({
-								zoomDelta: parseFloat(1),
-								style: "light"
-						   }), {
-							  position: 'top-right'
-							}); 
+						// Initialize a map instance.
+						map<cfoutput>#mapId#</cfoutput> = new atlas.Map('staticMap<cfoutput>#mapId#</cfoutput>', {
+						<cfif !len(topLeftPointLat)>center: [Number(lon),Number(lat)],// Use the number function to ensure that the coordinates are numeric!
+							zoom: <cfoutput>#previewZoomLevel#</cfoutput>,</cfif>
+							view: 'Auto',
+							authOptions: {
+								 authType: 'subscriptionKey',
+								 subscriptionKey: '<cfoutput>#azureMapsKey#</cfoutput>'
+							 }
+						});
 
-							// Create the style control
-							map<cfoutput>#mapId#</cfoutput>.controls.add(new atlas.control.StyleControl({
-							  mapStyles: ['road', 'grayscale_dark', 'night', 'road_shaded_relief', 'satellite', 'satellite_road_labels'],
-							  layout: 'icons'
-							}), {
-							  position: 'top-right'
-							});  
+						// Wait until the map resources are ready.
+						map<cfoutput>#mapId#</cfoutput>.events.add('ready', function () {
+							// Load the custom image icon into the map resources. This must be done immediately after the ready event
+							map<cfoutput>#mapId#</cfoutput>.imageSprite.add('map-marker', '<cfoutput>#application.defaultAzureMapsCursor#</cfoutput>').then(function () {
+								// Create a data source to store the data in.
+								datasource = new atlas.source.DataSource();
+								// Add the datasource
+								map<cfoutput>#mapId#</cfoutput>.sources.add(datasource);
+								// Add a layer for rendering point data.
+								map<cfoutput>#mapId#</cfoutput>.layers.add(new atlas.layer.SymbolLayer(datasource));
+								// Remove any previous added data from the map.
+								datasource.clear();
+								// Create a point feature to mark the selected location.
+								datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat])));
+							<cfif len(topLeftPointLat)>
+								// Zoom the map into the selected location.
+								map<cfoutput>#mapId#</cfoutput>.setCamera({
+									bounds: [
+										<cfif len(topLeftPointLon)>topLeftPointLon,</cfif>
+										<cfif len(btmRightPointLat)>btmRightPointLat,</cfif>
+										<cfif len(btmRightPointLon)>btmRightPointLon,</cfif>
+										<cfif len(topLeftPointLat)>topLeftPointLat</cfif>
+									],
+									padding: 0
+								});//map<cfoutput>#mapId#</cfoutput>.setCamera
+							</cfif>
+								// Add the controls --------------------------------------------
+								// Create a zoom control.
+								map<cfoutput>#mapId#</cfoutput>.controls.add(new atlas.control.ZoomControl({
+									zoomDelta: parseFloat(1),
+									style: "light"
+							   }), {
+								  position: 'top-right'
+								}); 
 
-							// Add the custom marker and label.
-							map<cfoutput>#mapId#</cfoutput>.layers.add(new atlas.layer.SymbolLayer(datasource, null, {
-								iconOptions: {
-									// Pass in the id of the custom icon that was loaded into the map resources.
-									image: 'map-marker',
-									// Scale the size of the icon.
-									size: 0.5
-								},
-								textOptions: {
-								// Get the label 
-								textField: location<cfoutput>#mapId#</cfoutput>,
-								// Offset the text so that it appears below the icon.
-								offset: [0, 2] 
-								}
-							}));//map<cfoutput>#mapId#</cfoutput>.layers...
-						});//map<cfoutput>#mapId#</cfoutput>.imageSprite.add...
-					})//map<cfoutput>#mapId#</cfoutput>.events
+								// Create the style control
+								map<cfoutput>#mapId#</cfoutput>.controls.add(new atlas.control.StyleControl({
+								  mapStyles: ['road', 'grayscale_dark', 'night', 'road_shaded_relief', 'satellite', 'satellite_road_labels'],
+								  layout: 'icons'
+								}), {
+								  position: 'top-right'
+								});  
+
+								// Add the custom marker and label.
+								map<cfoutput>#mapId#</cfoutput>.layers.add(new atlas.layer.SymbolLayer(datasource, null, {
+									iconOptions: {
+										// Pass in the id of the custom icon that was loaded into the map resources.
+										image: 'map-marker',
+										// Scale the size of the icon.
+										size: 0.5
+									},
+									textOptions: {
+									// Get the label 
+									textField: location<cfoutput>#mapId#</cfoutput>,
+									// Offset the text so that it appears below the icon.
+									offset: [0, 2] 
+									}
+								}));//map<cfoutput>#mapId#</cfoutput>.layers...
+							});//map<cfoutput>#mapId#</cfoutput>.imageSprite.add...
+						})//map<cfoutput>#mapId#</cfoutput>.events
+					} catch(e) {
+						console.log('Error loading Azure Maps: ' + e);
+					}
 				}//getMap<cfoutput>#mapId#</cfoutput>
 
 			</script>
@@ -334,36 +346,39 @@
 	<cfif URL.mapType eq 'route'>
 		<script type='text/javascript'>
             function loadMapScenario() {
-                var map = new Microsoft.Maps.Map(document.getElementById('map<cfoutput>#URL.mapId#</cfoutput>'), {
-                <cfif arrayLen(Data)>
-                    center: new Microsoft.Maps.Location(<cfoutput>#Data[1]['GeoCoordinates']#</cfoutput>),
+				try {
+					var map = new Microsoft.Maps.Map(document.getElementById('map<cfoutput>#URL.mapId#</cfoutput>'), {
+					<cfif arrayLen(Data)>
+						center: new Microsoft.Maps.Location(<cfoutput>#Data[1]['GeoCoordinates']#</cfoutput>),
+					</cfif>
+						zoom: <cfoutput>#previewZoomLevel#</cfoutput>
+					});
+
+				<cfif isDefined("URL.thumbnail") and URL.thumbnail eq 'true'>
+					map.setOptions({
+						showLocateMeButton: false,
+						showMapTypeSelector: false,
+						showZoomButtons: false,
+						showScalebar: false
+					});
 				</cfif>
-                    zoom: 12
-                });
-				
-			<cfif isDefined("URL.thumbnail") and URL.thumbnail eq 'true'>
-				map.setOptions({
-					showLocateMeButton: false,
-					showMapTypeSelector: false,
-					showZoomButtons: false,
-					showScalebar: false
-                });
-			</cfif>
-				
-                Microsoft.Maps.loadModule('Microsoft.Maps.Directions', function () {
-                    var directionsManager = new Microsoft.Maps.Directions.DirectionsManager(map);
-                    // Set Route Mode to driving
-                    directionsManager.setRequestOptions({ routeMode: Microsoft.Maps.Directions.RouteMode.driving });
-                    // Create our waypoints
-				<cfloop from="1" to="#arrayLen(Data)#" index="i"><cfoutput>
-                    var waypoint#i# = new Microsoft.Maps.Directions.Waypoint({ address: '#Data[i]["Location"]#', location: new Microsoft.Maps.Location(#Data[i]['GeoCoordinates']#) });
-					directionsManager.addWaypoint(waypoint#i#);
-				</cfoutput></cfloop>
-                    // Set the element in which the itinerary will be rendered
-                    //directionsManager.setRenderOptions({ itineraryContainer: document.getElementById('printoutPanel') });
-                    directionsManager.calculateDirections();
-                });
-                
+
+					Microsoft.Maps.loadModule('Microsoft.Maps.Directions', function () {
+						var directionsManager = new Microsoft.Maps.Directions.DirectionsManager(map);
+						// Set Route Mode to driving
+						directionsManager.setRequestOptions({ routeMode: Microsoft.Maps.Directions.RouteMode.driving });
+						// Create our waypoints
+					<cfloop from="1" to="#arrayLen(Data)#" index="i"><cfoutput>
+						var waypoint#i# = new Microsoft.Maps.Directions.Waypoint({ address: '#Data[i]["Location"]#', location: new Microsoft.Maps.Location(#Data[i]['GeoCoordinates']#) });
+						directionsManager.addWaypoint(waypoint#i#);
+					</cfoutput></cfloop>
+						// Set the element in which the itinerary will be rendered
+						//directionsManager.setRenderOptions({ itineraryContainer: document.getElementById('printoutPanel') });
+						directionsManager.calculateDirections();
+					});
+                } catch(e){
+					console.log = 'Issue loading Bing Maps. Error: ' + e;
+				}
             }
         </script>
 		
@@ -376,64 +391,68 @@
 		<!---*********************************************************** Static Map ***********************************************************--->
 		<script type='text/javascript'>
 			function GetMap() {
-				var map = new Microsoft.Maps.Map(document.getElementById('map<cfoutput>#URL.mapId#</cfoutput>'), {
-				<cfif arrayLen(Data)>
-					center: new Microsoft.Maps.Location(<cfoutput>#Data[1]['GeoCoordinates']#</cfoutput>),
-					<cfif len(Data[1]['MapType'])>mapTypeId: Microsoft.Maps.MapTypeId.<cfoutput>#Data[1]['MapType']#</cfoutput>,</cfif>
-				</cfif>
-					zoom: 12
-				});
+				try {
+					var map = new Microsoft.Maps.Map(document.getElementById('map<cfoutput>#URL.mapId#</cfoutput>'), {
+					<cfif arrayLen(Data)>
+						center: new Microsoft.Maps.Location(<cfoutput>#Data[1]['GeoCoordinates']#</cfoutput>),
+						<cfif len(Data[1]['MapType'])>mapTypeId: Microsoft.Maps.MapTypeId.<cfoutput>#Data[1]['MapType']#</cfoutput>,</cfif>
+					</cfif>
+						zoom: <cfoutput>#previewZoomLevel#</cfoutput>
+					});
 
-				var center = map.getCenter();
+					var center = map.getCenter();
 
-			<cfif isDefined("URL.thumbnail") and URL.thumbnail eq 'true'>
-				map.setOptions({
-					showLocateMeButton: false,
-					showMapTypeSelector: false,
-					showZoomButtons: false,
-					showScalebar: false
-				});
-			</cfif>
-
-			<cfif arrayLen(Data) and len(Data[1]["CustomMarkerUrl"])>
-				// Create custom Pushpin
-				var pin = new Microsoft.Maps.Pushpin(center, {
-					icon: '<cfoutput>Data[1]["CustomMarkerUrl"]</cfoutput>',
-					anchor: new Microsoft.Maps.Point(12, 39)
-				});
-			<cfelse>
-				// Create custom Pushpin
-				var pin = new Microsoft.Maps.Pushpin(center, {
-					anchor: new Microsoft.Maps.Point(12, 39)
-				});
-			</cfif>
-
-				//Add the pushpin to the map
-				map.entities.push(pin);
-
-				var geoDataRequestOptions = {
-					entityType: 'PopulatedPlace',
-					getAllPolygons: true
-				};
-				Microsoft.Maps.loadModule('Microsoft.Maps.SpatialDataService', function () {
-					//Use the GeoData API manager to get the boundary
-					var polygonStyle = {
-						fillColor: 'rgba(161,224,255,0.4)',
-						strokeColor: '#a495b2',
-						strokeThickness: 2
-					};
-
-				<cfif arrayLen(Data)>
-					Microsoft.Maps.SpatialDataService.GeoDataAPIManager.getBoundary('<cfoutput>#Data[1]['Location']#</cfoutput>', geoDataRequestOptions, map, function (data) {
-						if (data.results && data.results.length > 0) {
-							map.entities.push(data.results[0].Polygons);
-						}
-					}, polygonStyle, function errCallback(networkStatus, statusMessage) {
-						console.log(networkStatus);
-						console.log(statusMessage);
+				<cfif isDefined("URL.thumbnail") and URL.thumbnail eq 'true'>
+					map.setOptions({
+						showLocateMeButton: false,
+						showMapTypeSelector: false,
+						showZoomButtons: false,
+						showScalebar: false
 					});
 				</cfif>
-				});
+
+				<cfif arrayLen(Data) and len(Data[1]["CustomMarkerUrl"])>
+					// Create custom Pushpin
+					var pin = new Microsoft.Maps.Pushpin(center, {
+						icon: '<cfoutput>Data[1]["CustomMarkerUrl"]</cfoutput>',
+						anchor: new Microsoft.Maps.Point(12, 39)
+					});
+				<cfelse>
+					// Create custom Pushpin
+					var pin = new Microsoft.Maps.Pushpin(center, {
+						anchor: new Microsoft.Maps.Point(12, 39)
+					});
+				</cfif>
+
+					//Add the pushpin to the map
+					map.entities.push(pin);
+
+					var geoDataRequestOptions = {
+						entityType: 'PopulatedPlace',
+						getAllPolygons: true
+					};
+					Microsoft.Maps.loadModule('Microsoft.Maps.SpatialDataService', function () {
+						//Use the GeoData API manager to get the boundary
+						var polygonStyle = {
+							fillColor: 'rgba(161,224,255,0.4)',
+							strokeColor: '#a495b2',
+							strokeThickness: 2
+						};
+
+					<cfif arrayLen(Data)>
+						Microsoft.Maps.SpatialDataService.GeoDataAPIManager.getBoundary('<cfoutput>#Data[1]['Location']#</cfoutput>', geoDataRequestOptions, map, function (data) {
+							if (data.results && data.results.length > 0) {
+								map.entities.push(data.results[0].Polygons);
+							}
+						}, polygonStyle, function errCallback(networkStatus, statusMessage) {
+							console.log(networkStatus);
+							console.log(statusMessage);
+						});
+					</cfif>
+					});
+				 } catch(e){
+					console.log = 'Issue loading Bing Maps. Error: ' + e;
+				}
 			}
 		</script>
 		<script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?callback=GetMap&key=<cfoutput>#application.bingMapsApiKey#</cfoutput>' async defer></script>
