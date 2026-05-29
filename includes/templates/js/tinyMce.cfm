@@ -107,7 +107,7 @@
 	
 	<!--- Note: don't use the autosave plugin- its buggy! We are also using 'codemirror' as a plugin that replaces 'code'--->
 	<cfparam name="pluginList" default="'advlist autolink lists hr link image charmap print preview anchor',
-		'searchreplace visualblocks codemirror codesample fullscreen',
+		'searchreplace visualblocks codemirror code codesample fullscreen',
 		'insertdatetime media table paste imagetools wordcount iconfonts textpattern toc emoticons nonbreaking'">
 
 	<cfif  application.serverSupportsWoff2>

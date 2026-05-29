@@ -135,20 +135,21 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 	</cfsilent>			
 	<!-- Blog body -->
 	<main>
-		<cfif pageTypeId eq 1>
+		<cfif pageTypeId eq 1><!--- Blog --->
 			<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
 		<cfelse>
 			<div id='contentInnerContainer' class="k-content"><!--- This must be a content container class --->
-				<!-- Dynamic content loaded via jQuery and Ajax. -->
-				<cfinclude template="#application.baseUrl##getTemplatePathByPageName(pageName)#" /><!--- The getTemplatePathByPageName is in /common/function/page.cfm --->
-			</div><!--<div id='adminContent'>-->
+				<cfif pageTypeId eq 2><!--- Admin --->
+					<!-- Dynamic content loaded via jQuery and Ajax. -->
+					<cfinclude template="#application.baseUrl##getTemplatePathByPageName(pageName)#" /><!--- The getTemplatePathByPageName is in /common/function/page.cfm --->
+				<cfelse>
+					<!--- External pages coming soon --->
+				</cfif>
+			</div><!--<div id='contentInnerContainer' class="k-content">-->
 		</cfif><!---<cfif pageTypeId eq 1>--->
-	</main>
-	<nav><!--Navigation menu invoked from hamburger -->
-		<input type="hidden" id="sidebarPanelState" name="sidebarPanelState" value="initial"/>
 		<cfsilent>
 		<!---//***************************************************************************************************************
-				Sidebar div
+					Sidebar div
 		In classic mode, the side bar div is always displayed on the right side of the blog page. It is also used as a responsive panel on desktop devices when the screen size is small. We will not include it if the break point is not 0 or is equal or above 50000. If the chosen theme type is classic, this get's loaded first and then the panel below gets loaded. If the device is mobile or the theme is a modern theme, this sidebar does not exist.
 		//****************************************************************************************************************--->
 
@@ -165,6 +166,7 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 				<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#"  materialtheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 			</div><!---<nav id="sidebar">--->
 		</cfif>
+		</div><!---<div id="mainPanel" class="flexParent">--->
 
 		<cfsilent>
 		<!---//***************************************************************************************************************
@@ -198,7 +200,8 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 				})
 			});//..document.ready
 		</script>
-	</nav>
+		<!--- End Sidebar --->
+	</main>
 	</td>
    </tr>
 </table>
