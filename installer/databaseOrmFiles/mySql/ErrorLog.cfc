@@ -8,7 +8,7 @@
 	<cfproperty name="ErrorDetail" ormtype="string" default="" length="1500">
 	<cfproperty name="ErrorTemplate" ormtype="string" default="" length="500" hint="This string can get quite large">
 	<cfproperty name="ErrorLine" ormtype="string" default="" length="7">
-	<cfproperty name="Stacktrace" ormtype="long" default="">
+	<cfproperty name="Stacktrace" ormtype="text" default="">
 	<cfproperty name="DiagnosticsSent" ormtype="boolean" default="false">
 	<cfproperty name="NumErrors" ormtype="integer" default="1">
 	<cfproperty name="Resolved" ormtype="boolean" default="false">

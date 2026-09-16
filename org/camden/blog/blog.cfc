@@ -1475,7 +1475,7 @@
 			min( AnonymousUserRef.AnonymousUserId ) as AnonymousUserId
 			)
 			FROM AdminLog as AdminLog
-			GROUP BY AnonymousUserId
+			GROUP BY AnonymousUserRef.AnonymousUserId
 		</cfquery>
 		<cfif debug>
 			<cfdump var="#adminLogAnonymousUserIds#" label="adminLogAnonymousUserIds">
@@ -1493,7 +1493,7 @@
 			min( AnonymousUserRef.IpAddressRef.IpAddressId ) as IpAddressId
 			)
 			FROM AdminLog as AdminLog
-			GROUP BY AnonymousUserId
+			GROUP BY AnonymousUserRef.AnonymousUserId
 		</cfquery>
 		<cfif debug>
 			<cfdump var="#adminLogIpAddressIds#" label="adminLogIpAddressIds">
@@ -1513,7 +1513,7 @@
 			min( AnonymousUserRef.HttpUserAgentRef.HttpUserAgentId ) as HttpUserAgentId
 			)
 			FROM AdminLog as AdminLog
-			GROUP BY AnonymousUserId
+			GROUP BY AnonymousUserRef.AnonymousUserId
 		</cfquery>
 		<cfif debug>
 			<cfdump var="#adminLogUserAgentIds#" label="adminLogUserAgentIds">
