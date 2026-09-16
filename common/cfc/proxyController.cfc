@@ -19,7 +19,7 @@
 	<!--- Notes: this template has access to the isLoggedIn() function and other session vars. However, ColdFusion's native isUserLoggedIn() is not available here. --->
 	
 	<!--- Common libraries. --->
-	<!--- We need the image object to save an manipulate images. These may fail when initally installing the blog with Lucee--->
+	<!--- We need the image object to save an manipulate images. These may fail when initally installing the blog with Lucee. If the stringUtilsObj is not initialized later on due to some error, comment out the try block to see if it fixes the problem. I had an issue when the ftp progam was deleting the cfc's --->
 	<cftry>
 		<cfobject component="#application.imageComponentPath#" name="ImageObj">
 		<!--- The jsonArray function turns a native ColdFusion query into an array of structs that can be easily used with jQuery. ---> 
@@ -75,16 +75,17 @@
 			
 	</cffunction>
 	
-	<cffunction name="secureFunction" access="package" output="yes" returntype="boolean" 
+	<cffunction name="secureFunction" access="package" output="yes" returntype="boolean"
 			hint="This is meant to be placed on top of a function to secure it against unauthorized use. It returns a 403 header if this is being called from an ajax request">
 		<cfargument name="capabilities" required="no" default="" hint="What capabilities are authorized for this function?">
 		<cfargument name="pkey" required="no" default="" hint="A temporary password as a string. We need a way to temporary bypass the isLogged in when a new user has been setup and they need to change the password that was assigned to them. This key will be authenticated against the database to determine if they whould be allowed in.">
-		
+		<cfargument name="pkeyUserName" required="no" default="" hint="The username the pkey is claimed to belong to. Required to use the pkey bypass -- the pkey must match the Password column for THIS specific user, never any active user in the table.">
+
 		<!--- Secure this function. We are going to use an approach suggested by Chris Tierney. --->
 		<cfset auth = true>
-			
-		<!--- One off branch. Allow the user to bypass having to be logged in by authenticating a string against the password in the users table. The user role and capabilities in this case are quite restritive and they should only be able to change their password. I may revisit this at a later time as it is a bit wobbly as far as security is concerned. --->
-		<cfif len(arguments.pkey)> 
+
+		<!--- One off branch. Allow the user to bypass having to be logged in by authenticating a string against the password in the users table. This is only meant to let a newly-invited user complete their own account setup, so it is deliberately restricted two ways versus the original implementation: (1) the pkey must be bound to a specific, named account via pkeyUserName -- it is no longer matched against "any" active user's Password column -- and (2) it can only ever satisfy a request for the self-service 'EditProfile' capability, never an administrative capability such as EditUser, no matter what the calling function asks for. Note: there is still no expiry on the pkey itself (that would require a schema change to add a expiry column), so an old invite link remains valid indefinitely -- flagged as a follow-up. --->
+		<cfif len(arguments.pkey) and len(arguments.pkeyUserName) and arguments.capabilities eq 'EditProfile'>
 
 			<!--- Verify that the userName and password are correct in the link --->
 			<cfquery name="Data" dbtype="hql">
@@ -92,19 +93,26 @@
 					UserName as UserName
 				)
 				FROM Users
-				WHERE 
-					Password = <cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.pkey#" maxlength="255">
+				WHERE
+					UserName = <cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.pkeyUserName#" maxlength="255">
+					AND Password = <cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.pkey#" maxlength="255">
 					AND Active = <cfqueryparam cfsqltype="cf_sql_bit" value="1">
 				<cfif isSimpleValue(application.BlogDbObj.getBlogId())>
 					AND BlogRef = #application.BlogDbObj.getBlogId()#
 				</cfif>
 			</cfquery>
 
-			<!--- The ukey and or pkey was not valid --->	
+			<!--- The pkey and/or the username it was claimed to belong to was not valid --->
 			<cfif not arrayLen(Data)>
 				<!--- Set our auth flag to false. --->
 				<cfset auth = false>
 			</cfif>
+		<cfelseif len(arguments.pkey)>
+			<!--- A pkey was supplied, but either it was not bound to a specific username, or it is
+				being used to try to authorize something beyond self-profile-editing. Reject outright
+				rather than falling through to the standard isLoggedIn() branch below -- a bare,
+				unbound, or over-scoped pkey must never be treated as equivalent to a real login. --->
+			<cfset auth = false>
 		<!--- Standard logical branch --->
 		<cfelse>
 			<!--- Check to see if the user is logged in and handle ajax requests. --->
@@ -115,7 +123,7 @@
 				<cfset auth = authorizedCapability(arguments.capabilities)>
 			</cfif><!---<cfif not application.Udf.isLoggedIn()>--->
 		</cfif>
-				
+
 		<!--- Terminate any ajax calls with a 403 status (forbidden or denied) --->
 		<cfif not auth>
 			<cfif isAjaxRequest()>
@@ -125,7 +133,7 @@
 			<!--- And abort further processing --->
 			<cfabort>
 		</cfif>
-		
+
 		<cfreturn auth>
 	</cffunction>
 				
@@ -134,14 +142,22 @@
 		<cfargument name="authorizedCapabilities" required="yes" default="" hint="What are capabilities required to execute this function?">
 			
 		<cfparam name="capabilityAuth" default="false" type="boolean">
-			
-		<!--- The authorizedCapabilities is either a string or a ColdFusion list --->
-		<cfloop list="#arguments.authorizedCapabilities#" index="i">
-			<!--- All users may edit their own profile. --->
-			<cfif findNoCase(i, session.capabilityList) or i eq 'EditProfile'>
-				<cfset capabilityAuth = true>
-			</cfif>
-		</cfloop>
+
+		<!--- All users may edit their own profile -- but ONLY when EditProfile is the sole
+			capability being requested. When EditProfile is bundled with other capabilities
+			(e.g. "EditProfile,EditUser"), the free pass for self-profile-editing must never be
+			allowed to unlock capabilities (like EditUser) that were never actually verified
+			against the session. --->
+		<cfif listLen(arguments.authorizedCapabilities) eq 1 and arguments.authorizedCapabilities eq 'EditProfile'>
+			<cfset capabilityAuth = true>
+		<cfelse>
+			<!--- The authorizedCapabilities is either a string or a ColdFusion list --->
+			<cfloop list="#arguments.authorizedCapabilities#" index="i">
+				<cfif findNoCase(i, session.capabilityList)>
+					<cfset capabilityAuth = true>
+				</cfif>
+			</cfloop>
+		</cfif>
 		<cfreturn capabilityAuth>
 	</cffunction>
 	
@@ -160,7 +176,18 @@
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="userName" required="yes" default="" hint="Pass in the userName">
 		<cfargument name="password" required="yes" default="" hint="Pass in the password">
-			
+
+		<!--- Verify the csrf token before attempting to authenticate. This was previously declared as a
+			required argument but never actually checked, which meant a forged cross-site request could
+			reach application.blog.authenticate() without ever having loaded the login form and obtained a
+			valid, session-bound token. The adminInterface.cfm window already generates this token via
+			csrfGenerateToken("admin", false) before the login form is rendered, so a legitimate login
+			always has one to send. --->
+		<cfif (not isDefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset session.loggedin = false>
+			<cfreturn serializeJSON(false)>
+		</cfif>
+
 		<cfif application.blog.authenticate(left(trim(form.username),50),left(trim(form.password),50))>
 			<cfloginuser name="#trim(arguments.username)#" password="#trim(arguments.password)#" roles="admin">
 			<cfset session.userName = trim(username)>
@@ -449,8 +476,8 @@
 					
 	<cffunction name="postCommentSubscribe" returnFormat="json" output="false" access="remote" 
 			hint="Handles the generic web contact, subscribe to a given post, and adding a comment to a post.">
-		
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken. This is not used yet to handle non authenticated users.">
+		<cfargument name="anonymousUserId" required="false" default="" hint="Pass in the anonymousUserId if it exists for logging purposes." />
 		<cfargument name="postId" required="true" default="" hint="Pass in the postId." />
 		<cfargument name="uiInterface" required="true" default="" hint="either 'addComment' or 'subscribe'. This function supports both the addComment and subscribe interfaces. We need to know what interface is being used to determine the proper logical pathway." />
 		<cfargument name="postTitle" required="true" default="" hint="Pass in the entry title. This will be used as the subject for the sent email." />
@@ -458,14 +485,11 @@
 		<cfargument name="commenterEmail" required="true" default="" hint="Pass in the email." />
 		<cfargument name="commenterWebSite" required="false" default="" hint="Pass in the website." />
 		<cfargument name="comments" required="true" default="" hint="Pass in the users comments." />
-		<cfargument name="ipAddress" required="true" default="" hint="Pass in the users cgi.remote_addr string." />
-		<cfargument name="userAgent" required="true" default="" hint="Pass in the users cgi.http_User_Agent string." />
 		<cfargument name="captchaText" required="false" default="" hint="Pass in the captcha that the user entered." />
 		<cfargument name="captchaHash" required="false" default="" hint="Pass in the captcha hash that is inside a hidden form." />
-		<cfargument name="subscribe" required="true" default="" hint="Does the user want to subscribe?" />
+		<cfargument name="subscribe" required="false" default="true" hint="Does the user want to subscribe?" />
 		<!--- Args required after CF Update in May 25 --->
-		<cfargument name="rememberMe" required="false" default="false" hint="Drops a cookie on client machine for identification purposes" />
-		<cfargument name="httpUserAgent" required="false" default="" hint="Not used but required after CF Update in May 25 as I am using the CGI agent string" />
+		<cfargument name="rememberMe" required="false" default="true" hint="Drops a cookie on client machine for identification purposes" />
 		
 		<cfset valid = true>
 		<!--- Set the default response object. --->
@@ -550,7 +574,7 @@
 		<!--- If there are no errors, proceed. --->
 		<cfif valid>
 
-			<!--- Handle the contact form --->
+			<!--- Handle the contact form. Note: this does not save the data to the db --->
 			<cfif arguments.uiInterface eq 'contact'>
 				
 				<!--- *************Render email to blog owner informing them of a new contanct message --->
@@ -657,8 +681,6 @@
 						<cfinvokeargument name="email" value="#left(arguments.commenterEmail,150)#">
 						<cfinvokeargument name="website" value="#left(arguments.commenterWebSite, 255)#">
 						<cfinvokeargument name="comments" value="#arguments.comments#">
-						<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#">
-						<cfinvokeargument name="httpUserAgent" value="#arguments.userAgent#">
 						<cfinvokeargument name="subscribe" value="#arguments.subscribe#">
 						<cfif application.Udf.isLoggedIn()>
 							<cfinvokeargument name="overrideModeration" value="true">
@@ -715,7 +737,7 @@
 					<cfif not application.BlogOptionDbObj.getBlogModerated() or application.Udf.isLoggedIn()>
 						
 						<!--- Get all post subscribers --->
-						<cfset postSubscribers = application.blog.getSubscribers(postId=arguments.postId, verifiedOnly=true)>
+						<cfset postSubscribers = application.blog.getSubscriber(postId=arguments.postId, verifiedOnly=true)>
 							
 						<cfif arrayLen(postSubscribers)>
 							
@@ -906,6 +928,196 @@
 		</cfif>
 
 	</cffunction>
+				
+	<!---****************************************************************************************************
+		Reactions
+	******************************************************************************************************--->
+				
+	<!--- Reaction grid functions --->
+				
+	<cffunction name="getReactionsForGrid" access="remote" returnformat="json" output="false" 
+		hint="Returns a json array to populate the recent comments grid.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="gridType" required="yes" default="kendo" hint="Either kendo or jsGrid">			
+			
+		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
+		<cfargument name="anonymousUserId" required="no" default="">
+		<cfargument name="title" required="no" default="">
+		<cfargument name="httpUserAgent" required="no" default="">
+		<cfargument name="ipAddressId" required="no" default="">
+		<cfargument name="ipAddress" required="no" default="">
+		<cfargument name="helpful" required="no" default="">
+		<cfargument name="unhelpful" required="no" default="">
+		<cfargument name="date" required="no" default="">
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = false>
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will set a 403 status code and abort the page if the user is not logged in --->
+		<cfset secureFunction('AssetEditor,EditComment,EditPost,ReleasePost')>
+			
+		<cfinvoke component="#application.blog#" method="getReactions" returnvariable="Data">
+			<!--- Note: the following options are used on the open source jsGrid. The Kendo commercial grid has client side filtering and these are not used. --->
+			<cfif arguments.anonymousUserId neq ''>
+				<cfinvokeargument name="anonymousUserId" value="#arguments.anonymousUserId#"/>
+			</cfif>
+			<cfif arguments.title neq ''>
+				<cfinvokeargument name="postTitle" value="#arguments.title#"/>
+			</cfif>
+			<cfif arguments.httpUserAgent neq ''>
+				<cfinvokeargument name="httpUserAgent" value="#arguments.httpUserAgent#"/>
+			</cfif>
+			<cfif arguments.ipAddressId neq ''>
+				<cfinvokeargument name="ipAddressId" value="#arguments.ipAddressId#"/>
+			</cfif>
+			<cfif arguments.ipAddress neq ''>
+				<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#"/>
+			</cfif>
+			<cfif arguments.helpful neq ''>
+				<cfinvokeargument name="helpful" value="#arguments.helpful#"/>
+			</cfif>
+			<cfif arguments.unhelpful neq ''>
+				<cfinvokeargument name="unhelpful" value="#arguments.unhelpful#"/>
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the data as a json object. --->
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#Data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<!--- When we use server side paging, we need to override the total and specify a new total which is the sum of the entire query. --->
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<!--- The Kendo grid is not using the data handle, the jsGrid does. --->
+			<cfif gridType eq 'jsGrid'>
+				<!--- The includeDataHandle is used when the format is json (or jsonp), however, the data handle is not included when you want to make a javascript object embedded in the page. ---> 
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<!--- If the data handle is not used, this can be left blank. If you are going to use a service on the cfc, typically, the value would be 'data'. --->
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the json string. --->
+		<cfreturn jsonString>
+    
+	</cffunction>
+					
+	<cffunction name="deleteReactionViaJsGrid" access="remote" returnformat="json" output="false" 
+			hint="Deletes a reaction via the jsGrid.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<cfargument name="postRatingId" hint="Pass in the Post Rating Id" required="yes">
+			
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort further processing --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditComment,EditPost,ReleasePost')>
+			
+		<cftransaction>
+
+			<!--- Update the database. --->
+			<!--- Load the post rating entity. --->
+			<cfset PostRatingDbObj = entityLoad("PostRating", { PostRatingId = arguments.postRatingId }, "true" )>
+			<!--- Remove the postRef so that we don't get a constraint errors --->
+			<cfset PostRatingDbObj.setPostRef(javaCast("null",""))>
+			<!--- And the anonymous user ref --->
+			<cfset PostRatingDbObj.setAnonymousUserRef(javaCast("null",""))>
+			<!--- Delete it --->
+			<cfset EntityDelete(PostRatingDbObj)>
+
+		</cftransaction>
+
+		<!--- Set the response --->
+		<cfset response = arguments.postRatingId>
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
+	</cffunction>
+					
+	<cffunction name="saveReaction" access="remote" returnformat="json" output="false" 
+			hint="Saves a user reaction (like/dislike)">
+		<cfargument name="postId" required="true">
+		<cfargument name="anonymousUserId" required="true">
+		<cfargument name="selectedId" default="" />
+			
+		<!--- Set the default response object. --->
+		<cfset response = {} />
+			
+		<!--- Get the categories, don't  use the cached values. --->
+		<cfinvoke component="#application.blog#" method="saveReaction" returnvariable="success">
+			<cfinvokeargument name="postId" value="#arguments.postId#">
+			<cfinvokeargument name="anonymousUserId" value="#arguments.anonymousUserId#">
+			<cfinvokeargument name="selectedId" value="#arguments.selectedId#">
+		</cfinvoke>
+			
+		<!--- Create a JSON response to send back to the client --->
+		<cfif success eq 1>
+			<!--- Note: using cfset response["data"] = x will create a handle. We don't want this here --->
+			<cfif arguments.selectedId eq 'like'>
+				<cfset response = [{ "like": 1, "dislike": 0 }]>
+			<cfelse>
+				<cfset response = [{ "like": 0, "dislike": 1 }]>
+			</cfif>
+		<cfelse>
+			<cfset response = [{ "like": 0, "dislike": 0 }]>
+		</cfif>
+				
+		<!--- Return it --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>	
+				
+	</cffunction>
 			
 	<!---****************************************************************************************************
 		Subscriber Grid
@@ -914,14 +1126,22 @@
 	<cffunction name="getSubscribersForGrid" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the subscribers grid.">
 		<cfargument name="csrfToken" default="" required="true">
-		<cfargument name="gridType" required="false" default="jsGrid" />
+		<cfargument name="gridType" required="false" default="kendo" />
+		<cfargument name="ipAddressId" required="false" default="" />
 		<cfargument name="subscriberName" required="false" default="" />
 		<cfargument name="subscriberEmail" required="false" default="" />
 		<cfargument name="subscriberToken"  required="false" default="" />
 		<cfargument name="subscribeAll" required="false" default="true" />
 		<cfargument name="verifiedOnly" required="false" default="" />
+		<!--- This is a duplicate of verified only and used by the grid which requires the actual db column name --->
+		<cfargument name="subscriberVerified" required="false" default="" />
 		<!--- Unused argument needed after CF update in June of 2025 --->
 		<cfargument name="date" required="false" default="" />
+			
+		<!--- If the SubscriberVerified column is filled out, change the value of the verifiedOnly local variable --->
+		<cfif len(arguments.subscriberVerified)>
+			<cfset arguments.verifiedOnly = arguments.subscriberVerified>
+		</cfif>
 		
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -942,7 +1162,8 @@
 		<cfset secureFunction('EditSubscriber')>
 			
 		<!--- Get the categories, don't  use the cached values. --->
-		<cfinvoke component="#application.blog#" method="getSubscribers" returnvariable="Data">
+		<cfinvoke component="#application.blog#" method="getSubscriber" returnvariable="Data">
+			<cfinvokeargument name="ipAddressId" value="#arguments.ipAddressId#">
 			<cfinvokeargument name="subscriberName" value="#arguments.subscriberName#">
 			<cfinvokeargument name="subscriberEmail" value="#arguments.SubscriberEmail#">
 			<cfinvokeargument name="subscriberToken" value="#arguments.subscriberToken#">
@@ -992,10 +1213,10 @@
 		<cfparam name="errorMessage" type="string" default="">
 			
 		<!--- See if the subscriber email and token exists before proceeding. --->
-		<cfinvoke component="#application.blog#" method="getSubscribers" returnvariable="getSubscriberEmail">
+		<cfinvoke component="#application.blog#" method="getSubscriber" returnvariable="getSubscriberEmail">
 			<cfinvokeargument name="subscriberEmail" value="#arguments.subscriberEmail#">
 		</cfinvoke>
-		<cfinvoke component="#application.blog#" method="getSubscribers" returnvariable="getSubscriberToken">
+		<cfinvoke component="#application.blog#" method="getSubscriber" returnvariable="getSubscriberToken">
 			<cfinvokeargument name="subscriberToken" value="#arguments.subscriberToken#">
 		</cfinvoke>
 			
@@ -1060,7 +1281,7 @@
 			
 		<!--- Verify the csrftoken. --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<cfset reponse = "Invalid token">
+			<cfset response = "Invalid token">
 			<cfif application.serverProduct eq 'Lucee'>
 				<!--- Do not serialize the response --->
 				<cfreturn response>
@@ -1233,7 +1454,7 @@
 			<cfif arguments.Comment neq ''>
 				<cfinvokeargument name="commentLike" value="#arguments.comment#"/>
 			</cfif>
-			<cfif arguments.Approved neq ''>
+			<cfif arguments.approved neq ''>
 				<cfinvokeargument name="approved" value="#arguments.approved#"/>
 			</cfif>
 		</cfinvoke>
@@ -1315,7 +1536,7 @@
 			<!--- Get the comment. The comment table will have the postId --->
 			<cfset getComment = application.blog.getComment(commentId=commentId)>
 			<!--- Get all post subscribers --->
-			<cfset getPostSubscribers = application.blog.getSubscribers(postId=getComment[1]["PostId"], verifiedOnly=true)>
+			<cfset getPostSubscribers = application.blog.getSubscriber(postId=getComment[1]["PostId"], verifiedOnly=true)>
 
 			<!--- Loop through the post subscribers --->
 			<cfloop from="1" to="#arrayLen(getPostSubscribers)#" index="i">
@@ -1688,6 +1909,7 @@
 		<cfargument name="darkTheme" required="no" default="">
 		<cfargument name="selectedTheme" required="no" default="">
 		<cfargument name="useTheme" required="no" default="">
+		<cfargument name="modernThemeStyle" required="no" default="">	
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -1718,6 +1940,15 @@
 			</cfif>
 			<cfif arguments.kendoTheme neq ''>
 				<cfinvokeargument name="kendoTheme" value="#arguments.kendoTheme#"/>
+			</cfif>
+			<cfif arguments.useTheme neq ''>
+				<cfinvokeargument name="useTheme" value="#arguments.useTheme#"/>
+			</cfif>
+			<cfif arguments.selectedTheme neq ''>
+				<cfinvokeargument name="selectedTheme" value="#arguments.selectedTheme#"/>
+			</cfif>
+			<cfif arguments.modernThemeStyle neq ''>
+				<cfinvokeargument name="modernThemeStyle" value="#arguments.modernThemeStyle#"/>
 			</cfif>
 		</cfinvoke>
 		
@@ -1798,7 +2029,7 @@
 					<!--- Get the comment. The comment table will have the postId --->
 					<cfset getComment = application.blog.getComment(commentId=commentId)>
 					<!--- Get all post subscribers --->
-					<cfset getPostSubscribers = application.blog.getSubscribers(postId=getComment[1]["PostId"], verifiedOnly=true)>
+					<cfset getPostSubscribers = application.blog.getSubscriber(postId=getComment[1]["PostId"], verifiedOnly=true)>
 
 					<!--- Loop through the post subscribers --->
 					<cfloop from="1" to="#arrayLen(getPostSubscribers)#" index="i">
@@ -3088,6 +3319,8 @@
 			hint="Returns a json array to populate the recent comments grid.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
+		<cfargument name="showPages" required="yes" default="false">
+		<cfargument name="showBlogPosts" required="yes" default="true">
 		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
 		<cfargument name="fullName" required="no" default="" hint="Changed from user to fix a Post Grid error">
 		<cfargument name="alias" required="no" default="">
@@ -3095,6 +3328,7 @@
 		<cfargument name="description" required="no" default="">
 		<cfargument name="body" required="no" default="">
 		<cfargument name="moreBody" required="no" default="">
+		<cfargument name="released" required="no" default="">
 		<cfargument name="datePosted" required="no" default="" hint="Changed from posted to fix a Post Grid error">
 		<!--- This is not used as a logical argument, however, with strict argument matching after CF 2023 update 14, the grid will send this variable to the cfc and cause an error.  --->
 		<cfargument name="blogSortDate" required="no" default="" hint="Added argument to fix a Post Grid error. This argument does nothing but it is needed after June 2025">
@@ -3145,6 +3379,9 @@
 			<cfif arguments.datePosted neq ''>
 				<cfinvokeargument name="posted" value="#arguments.datePosted#"/>
 			</cfif>
+			<cfinvokeargument name="showPages" value="#arguments.showPages#"/>
+			<cfinvokeargument name="showBlogPosts" value="#arguments.showBlogPosts#"/>
+			<cfinvokeargument name="released" value="#arguments.released#"/>
 		</cfinvoke>
 		
 		<!--- Return the data as a json object. --->
@@ -3488,7 +3725,7 @@
 		</cfif>
 			
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
-		<cfset secureFunction('EditProfile,EditUser')>			
+		<cfset secureFunction('EditUser')>			
 			
 		<cfinvoke component="#application.blog#" method="getUserLoginHistory" returnvariable="Data">
 			<cfinvokeargument name="userName" value="#arguments.userName#"/>
@@ -3501,6 +3738,89 @@
 			</cfif>
 			<cfif arguments.loginDate neq ''>
 				<cfinvokeargument name="loginDate" value="#arguments.loginDate#"/>
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the data as a json object. --->
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#Data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<!--- When we use server side paging, we need to override the total and specify a new total which is the sum of the entire query. --->
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<!--- The Kendo grid is not using the data handle, the jsGrid does. --->
+			<cfif gridType eq 'jsGrid'>
+				<!--- The includeDataHandle is used when the format is json (or jsonp), however, the data handle is not included when you want to make a javascript object embedded in the page. ---> 
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<!--- If the data handle is not used, this can be left blank. If you are going to use a service on the cfc, typically, the value would be 'data'. --->
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the json string. --->
+		<cfreturn jsonString>
+    
+	</cffunction>
+					
+	<!--- ****************************************************************************************************
+		Admin Log grid (read only)
+	******************************************************************************************************--->
+		
+	<cffunction name="getAdminLogForGrid" access="remote" returnformat="json" output="false" 
+			hint="Returns a json array to populate the visitor log grid.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
+		
+		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
+		<cfargument name="anonymousUserId" required="no" default="">
+		<cfargument name="fullName" required="no" default="">
+		<cfargument name="hitCount" required="no" default="">
+		<cfargument name="ipAddress" required="no" default=""> 
+		<!--- These two args are not used as logical arguments, however, with strict argument matching after CF 2023 update 14, the grid will send extra variables to the cfc and cause an error.  --->
+		<cfargument name="httpUserAgent" required="no" default="" hint="Changed from userAgent to httpUserAgent to fix a new CF related bug in June 2025">
+		<cfargument name="dateVisited" required="no" default="" hint="Changed from date to dateVisited to fix a new CF related bug in June 2025">
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditUser')>			
+			
+		<cfinvoke component="#application.blog#" method="getAdminLog" returnvariable="Data">			
+			<!--- Note: the following options are used on the open source jsGrid. The Kendo commercial grid has client side filtering and these are not used. --->	
+			<cfif arguments.fullName neq ''>
+				<cfinvokeargument name="fullName" value="#arguments.fullName#"/>
+			</cfif>
+			<cfif arguments.ipAddress neq ''>
+				<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#"/>
+			</cfif>
+			<cfif arguments.httpUserAgent neq ''>
+				<cfinvokeargument name="httpUserAgent" value="#arguments.httpUserAgent#"/>
+			</cfif>
+			<cfif arguments.dateVisited neq ''>
+				<cfinvokeargument name="date" value="#arguments.dateVisited#"/>
 			</cfif>
 		</cfinvoke>
 		
@@ -3544,10 +3864,14 @@
 		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
 		<cfargument name="anonymousUserId" required="no" default="">
 		<cfargument name="fullName" required="no" default="">
+		<cfargument name="postId" required="no" default="">
+		<cfargument name="postTitle" required="no" default="">
 		<cfargument name="hitCount" required="no" default="">
+		<cfargument name="ipAddressId" required="no" default=""> 
 		<cfargument name="ipAddress" required="no" default=""> 
 		<!--- These two args are not used as logical arguments, however, with strict argument matching after CF 2023 update 14, the grid will send extra variables to the cfc and cause an error.  --->
-		<cfargument name="httpUserAgent" required="no" default="" hint="Changed from userAgent to httpUserAgent to fix a new CF related bug in June 2025">
+		<cfargument name="httpUserAgent" required="no" default="">
+		<cfargument name="isBot" required="no" default="">
 		<cfargument name="dateVisited" required="no" default="" hint="Changed from date to dateVisited to fix a new CF related bug in June 2025">
 			
 		<!--- Verify the token --->
@@ -3569,7 +3893,7 @@
 		</cfif>
 			
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
-		<cfset secureFunction('EditProfile,EditUser')>			
+		<cfset secureFunction('EditUser')>			
 			
 		<cfinvoke component="#application.blog#" method="getVisitorLog" returnvariable="Data">			
 			<!--- Note: the following options are used on the open source jsGrid. The Kendo commercial grid has client side filtering and these are not used. --->	
@@ -3579,17 +3903,667 @@
 			<cfif arguments.fullName neq ''>
 				<cfinvokeargument name="fullName" value="#arguments.fullName#"/>
 			</cfif>
+			<cfif arguments.postId neq ''> 
+				<cfinvokeargument name="postId" value="#arguments.postId#"/>
+			</cfif>
+			<cfif arguments.postTitle neq ''> 
+				<cfinvokeargument name="postTitle" value="#arguments.postTitle#"/>
+			</cfif>
 			<cfif arguments.hitCount neq ''> 
 				<cfinvokeargument name="hitCount" value="#arguments.hitCount#"/>
+			</cfif>
+			<cfif arguments.ipAddressId neq ''>
+				<cfinvokeargument name="ipAddressId" value="#arguments.ipAddressId#"/>
 			</cfif>
 			<cfif arguments.ipAddress neq ''>
 				<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#"/>
 			</cfif>
 			<cfif arguments.httpUserAgent neq ''>
-				<cfinvokeargument name="userAgent" value="#arguments.httpUserAgent#"/>
+				<cfinvokeargument name="httpUserAgent" value="#arguments.httpUserAgent#"/>
+			</cfif>
+			<cfif arguments.isBot neq ''>
+				<cfinvokeargument name="isBot" value="#arguments.isBot#"/>
 			</cfif>
 			<cfif arguments.dateVisited neq ''>
 				<cfinvokeargument name="date" value="#arguments.dateVisited#"/>
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the data as a json object. --->
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#Data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<!--- When we use server side paging, we need to override the total and specify a new total which is the sum of the entire query. --->
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<!--- The Kendo grid is not using the data handle, the jsGrid does. --->
+			<cfif gridType eq 'jsGrid'>
+				<!--- The includeDataHandle is used when the format is json (or jsonp), however, the data handle is not included when you want to make a javascript object embedded in the page. ---> 
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<!--- If the data handle is not used, this can be left blank. If you are going to use a service on the cfc, typically, the value would be 'data'. --->
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the json string. --->
+		<cfreturn jsonString>
+    
+	</cffunction>
+					
+	<!---*****************************************************************************************************
+		Error Log grid (read only)
+	******************************************************************************************************--->
+		
+	<cffunction name="getErrorLogForGrid" access="remote" returnformat="json" output="false" 
+			hint="Returns a json array to populate the visitor log grid.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
+		
+		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
+		<cfargument name="errorLogId" required="no" default="">
+		<cfargument name="errorURL" required="no" default="">
+		<cfargument name="errorEvent" required="no" default="">
+		<cfargument name="errorType" required="no" default="">
+		<cfargument name="errorMessage" required="no" default=""> 
+		<cfargument name="errorDetail" required="no" default=""> 
+		<cfargument name="errorTemplate" required="no" default=""> 
+		<cfargument name="numErrors" required="no" default=""> 
+		<cfargument name="resolved" required="no" default=""> 
+		<cfargument name="ipAddressId" required="no" default=""> 
+		<cfargument name="ipAddress" required="no" default=""> 
+		<cfargument name="httpUserAgent" required="no" default=""> 
+		<cfargument name="isBot" required="no" default=""> 
+		<cfargument name="date" required="no" default=""> 
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditUser')>		
+			
+		<cfinvoke component="#application.blog#" method="getErrorLog" returnvariable="Data">			
+			<!--- Note: the following options are used on the open source jsGrid. The Kendo commercial grid has client side filtering and these are not used. --->	
+			<cfif arguments.errorLogId neq ''>
+				<cfinvokeargument name="errorLogId" value="#arguments.errorLogId#"/>
+			</cfif>
+			<cfif arguments.errorURL neq ''>
+				<cfinvokeargument name="errorURL" value="#arguments.errorURL#"/>
+			</cfif>
+			<cfif arguments.errorEvent neq ''> 
+				<cfinvokeargument name="errorEvent" value="#arguments.errorEvent#"/>
+			</cfif>
+			<cfif arguments.errorType neq ''>
+				<cfinvokeargument name="errorType" value="#arguments.errorType#"/>
+			</cfif>
+			<cfif arguments.errorMessage neq ''>
+				<cfinvokeargument name="errorMessage" value="#arguments.errorMessage#"/>
+			</cfif>
+			<cfif arguments.errorDetail neq ''>
+				<cfinvokeargument name="errorDetail" value="#arguments.errorDetail#"/>
+			</cfif>
+			<cfif arguments.errorTemplate neq ''>
+				<cfinvokeargument name="errorTemplate" value="#arguments.errorTemplate#"/>
+			</cfif>
+			<cfif arguments.numErrors neq ''>
+				<cfinvokeargument name="numErrors" value="#arguments.numErrors#"/>
+			</cfif>
+			<cfif arguments.resolved neq ''>
+				<cfinvokeargument name="resolved" value="#arguments.resolved#"/>
+			</cfif>
+			<cfif arguments.ipAddressId neq ''>
+				<cfinvokeargument name="ipAddressId" value="#arguments.ipAddressId#"/>
+			</cfif>
+			<cfif arguments.ipAddress neq ''>
+				<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#"/>
+			</cfif>
+			<cfif arguments.httpUserAgent neq ''>
+				<cfinvokeargument name="httpUserAgent" value="#arguments.httpUserAgent#"/>
+			</cfif>
+			<cfif arguments.isBot neq ''>
+				<cfinvokeargument name="isBot" value="#arguments.isBot#"/>
+			</cfif>
+			<cfif arguments.date neq ''>
+				<cfinvokeargument name="date" value="#arguments.date#"/>
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the data as a json object. --->
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#Data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<!--- When we use server side paging, we need to override the total and specify a new total which is the sum of the entire query. --->
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<!--- The Kendo grid is not using the data handle, the jsGrid does. --->
+			<cfif gridType eq 'jsGrid'>
+				<!--- The includeDataHandle is used when the format is json (or jsonp), however, the data handle is not included when you want to make a javascript object embedded in the page. ---> 
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<!--- If the data handle is not used, this can be left blank. If you are going to use a service on the cfc, typically, the value would be 'data'. --->
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">	
+			</cfif>
+		</cfinvoke>
+		
+		<!--- Return the json string. --->
+		<cfreturn jsonString>
+    
+	</cffunction>
+					
+	<cffunction name="saveErrorLog" access="remote" returnformat="json" output="false" 
+			hint="Saves the resolved and notes fields to the database. Used by the errorDetail form.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<cfargument name="errorLogId" hint="Pass in the errorLogId" required="yes">
+		<cfargument name="resolved" hint="Was this resolved?" required="no" default="false">
+		<cfargument name="notes" hint="Resolution notes" required="no" default="">
+			
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('ReleasePost')>
+			
+		<cftransaction>
+
+			<!--- Update the database. --->
+			<!--- Load the entity. --->
+			<cfset ErrorLogDbObj = entityLoad("ErrorLog", { ErrorLogId = arguments.errorLogId }, "true" )>
+			<!--- Save the resolved and notes field --->
+			<cfset ErrorLogDbObj.setResolved(arguments.resolved)>
+			<cfset ErrorLogDbObj.setResolutionNotes(arguments.notes)>
+			<!--- Save it --->
+			<cfset EntitySave(ErrorLogDbObj)>
+
+		</cftransaction>
+					
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = arguments.errorLogId />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( arguments.errorLogId ) />
+		</cfif>
+
+		<cfreturn thisResponse>
+	</cffunction>
+
+	<cffunction name="deleteErrorLogViaJsGrid" access="remote" returnformat="json" output="false"
+			hint="Deletes an error log entry via the jsGrid or the Delete button on errorDetail.cfm.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<cfargument name="errorLogId" hint="Pass in the errorLogId" required="yes">
+
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('ReleasePost')>
+
+		<!--- Delete the row with a bulk HQL DELETE rather than loading the entity and calling EntityDelete() - ErrorLog.AnonymousUserRef is cascade="all", and EntityDelete() on this side risks Hibernate cascading the delete onto the shared AnonymousUser row, which may still be referenced by other ErrorLog/VisitorLog rows for that same visitor. cleanUpLogs() (blog.cfc) uses this same bulk-DELETE approach on ErrorLog for the same reason, and notes it may error on Lucee - hence the cftry here too. --->
+		<cftry>
+			<cfquery name="deleteErrorLogQuery" dbtype="hql">
+				DELETE FROM ErrorLog
+				WHERE ErrorLogId = <cfqueryparam value="#arguments.errorLogId#" cfsqltype="cf_sql_integer">
+			</cfquery>
+			<cfcatch type="any">
+				<!--- Do nothing --->
+			</cfcatch>
+		</cftry>
+
+		<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = arguments.errorLogId />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( arguments.errorLogId ) />
+		</cfif>
+
+		<cfreturn thisResponse>
+	</cffunction>
+
+	<cffunction name="deleteErrorLogViaKendoGrid" access="remote" returnformat="json" output="false"
+			hint="Deletes one or more error log entries via the Kendo grid's destroy command.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<!--- Note: when using the Kendo grid, the incoming string argument will be like so:
+		models: [{"ErrorLogId":42,"ErrorMessage":"...", ...}] --->
+		<cfargument name="models" type="string" required="yes" default="" hint="This argument is bound to the model of the kendo grid. The models is a json string that is sent to this function via ajax whenever a row is destroyed.">
+
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('ReleasePost')>
+
+		<!--- Remove the models in the string --->
+		<cfset thisStr = replaceNoCase(models, 'models=', '', 'one')>
+		<!--- Decode the string and make it into an array --->
+		<cfset thisStr = urlDecode(thisStr)>
+		<!--- Use the deserialize function to get at the underlying data. --->
+		<cfset thisStruct = deserializeJson(thisStr, false)>
+
+		<!--- Loop thru the struct. There is normally just one row (this grid does not use batch editing), but the Kendo grid always sends an array. --->
+		<cfloop array="#thisStruct#" index="i">
+			<cfparam name="thisErrorLogId" default="" type="any">
+			<cftry>
+				<!--- Get the selected value of the field --->
+				<cfset thisErrorLogId = i['ErrorLogId']>
+				<cfcatch type="any">
+					<cfset error = "one of the variables was not defined.">
+				</cfcatch>
+			</cftry>
+
+			<!--- See deleteErrorLogViaJsGrid above for why this uses a bulk HQL DELETE instead of EntityDelete(). --->
+			<cftry>
+				<cfquery name="deleteErrorLogQuery" dbtype="hql">
+					DELETE FROM ErrorLog
+					WHERE ErrorLogId = <cfqueryparam value="#thisErrorLogId#" cfsqltype="cf_sql_integer">
+				</cfquery>
+				<cfcatch type="any">
+					<!--- Do nothing --->
+				</cfcatch>
+			</cftry>
+		</cfloop>
+
+		<cfset jsonString = []>
+
+		<cfreturn jsonString>
+	</cffunction>
+
+	<!---*****************************************************************************************************
+		Ban Visitors (createAdminInterfaceWindow(66)). Bans/unbans anonymous visitors by IP address or by
+		HTTP User-Agent string using a Kendo MultiSelect. See blog.cfc's getDistinctIpAddresses,
+		getDistinctHttpUserAgents, setIpAddressBan, setHttpUserAgentBan, and isVisitorBanned.
+	******************************************************************************************************--->
+
+	<cffunction name="getIpAddressesForMultiSelect" access="remote" returnformat="json" output="false"
+			hint="Returns every unique IP address logged for this blog (and its ban status) to populate the Kendo MultiSelect on the Ban Visitors admin interface.">
+		<cfargument name="csrfToken" default="" required="true">
+
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditUser')>
+
+		<cfinvoke component="#application.blog#" method="getDistinctIpAddresses" returnvariable="Data">
+		</cfinvoke>
+
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfreturn Data>
+		<cfelse>
+			<cfreturn serializeJSON(Data)>
+		</cfif>
+	</cffunction>
+
+	<cffunction name="getHttpUserAgentsForMultiSelect" access="remote" returnformat="json" output="false"
+			hint="Returns every unique HTTP User-Agent string logged for this blog (and its ban status) to populate the Kendo MultiSelect on the Ban Visitors admin interface.">
+		<cfargument name="csrfToken" default="" required="true">
+
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditUser')>
+
+		<cfinvoke component="#application.blog#" method="getDistinctHttpUserAgents" returnvariable="Data">
+		</cfinvoke>
+
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfreturn Data>
+		<cfelse>
+			<cfreturn serializeJSON(Data)>
+		</cfif>
+	</cffunction>
+
+	<cffunction name="saveAnonymousUserBan" access="remote" returnformat="json" output="false"
+			hint="Bans and/or unbans IP addresses or User-Agent strings selected via the Kendo MultiSelect on the Ban Visitors admin interface. banValues/unbanValues are each a JSON-encoded array of strings.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<cfargument name="banType" required="yes" default="" hint="Either 'ip' or 'userAgent'.">
+		<cfargument name="banValues" required="no" default="[]" hint="JSON-encoded array of values to ban.">
+		<cfargument name="unbanValues" required="no" default="[]" hint="JSON-encoded array of values to unban.">
+		<cfargument name="note" required="no" default="" hint="Optional reason/notes for the ban.">
+
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditUser')>
+
+		<!--- Parse the JSON arrays sent from the Kendo MultiSelect. We can't rely on a delimited list here since User-Agent strings routinely contain commas (eg. "KHTML, like Gecko"). --->
+		<cftry>
+			<cfset banArray = deserializeJSON(arguments.banValues)>
+		<cfcatch type="any">
+			<cfset banArray = []>
+		</cfcatch>
+		</cftry>
+		<cftry>
+			<cfset unbanArray = deserializeJSON(arguments.unbanValues)>
+		<cfcatch type="any">
+			<cfset unbanArray = []>
+		</cfcatch>
+		</cftry>
+
+		<cfset success = true>
+
+		<cfif arguments.banType eq 'userAgent'>
+			<cfif arrayLen(banArray)>
+				<cfinvoke component="#application.blog#" method="setHttpUserAgentBan" returnvariable="banSuccess">
+					<cfinvokeargument name="httpUserAgents" value="#banArray#">
+					<cfinvokeargument name="banned" value="true">
+					<cfinvokeargument name="note" value="#arguments.note#">
+				</cfinvoke>
+				<cfset success = success and banSuccess>
+			</cfif>
+			<cfif arrayLen(unbanArray)>
+				<cfinvoke component="#application.blog#" method="setHttpUserAgentBan" returnvariable="unbanSuccess">
+					<cfinvokeargument name="httpUserAgents" value="#unbanArray#">
+					<cfinvokeargument name="banned" value="false">
+					<cfinvokeargument name="note" value="">
+				</cfinvoke>
+				<cfset success = success and unbanSuccess>
+			</cfif>
+		<cfelse>
+			<cfif arrayLen(banArray)>
+				<cfinvoke component="#application.blog#" method="setIpAddressBan" returnvariable="banSuccess">
+					<cfinvokeargument name="ipAddresses" value="#banArray#">
+					<cfinvokeargument name="banned" value="true">
+					<cfinvokeargument name="note" value="#arguments.note#">
+				</cfinvoke>
+				<cfset success = success and banSuccess>
+			</cfif>
+			<cfif arrayLen(unbanArray)>
+				<cfinvoke component="#application.blog#" method="setIpAddressBan" returnvariable="unbanSuccess">
+					<cfinvokeargument name="ipAddresses" value="#unbanArray#">
+					<cfinvokeargument name="banned" value="false">
+					<cfinvokeargument name="note" value="">
+				</cfinvoke>
+				<cfset success = success and unbanSuccess>
+			</cfif>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfreturn success>
+		<cfelse>
+			<cfreturn serializeJSON(success)>
+		</cfif>
+	</cffunction>
+
+	<!---*****************************************************************************************************
+		Banned Users grid (read only, jsGrid - createAdminInterfaceWindow(67)). Shows every anonymous visitor
+		whose IP address or HTTP User-Agent is currently banned via the Ban Visitors admin interface
+		(createAdminInterfaceWindow(66)). See blog.cfc's getBannedAnonymousUsers.
+	******************************************************************************************************--->
+
+	<cffunction name="getBannedUsersForGrid" access="remote" returnformat="json" output="false"
+			hint="Returns a json array to populate the Banned Users grid.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="gridType" required="yes" default="jsGrid" hint="Either Kendo or jsGrid">
+		<cfargument name="AnonymousUserId" required="no" default="">
+		<cfargument name="IpAddress" required="no" default="">
+		<cfargument name="HttpUserAgent" required="no" default="">
+		<cfargument name="FullName" required="no" default="">
+		<cfargument name="BannedBy" required="no" default="">
+		<cfargument name="BanReason" required="no" default="">
+		<cfargument name="BannedDate" required="no" default="">
+		<!--- jsGrid sends these two automatically (not typed by the admin) whenever a sortable column header is clicked - see bannedUsers.cfm (sorting: true). --->
+		<cfargument name="sortField" required="no" default="">
+		<cfargument name="sortOrder" required="no" default="">
+
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditUser')>
+
+		<cfinvoke component="#application.blog#" method="getBannedAnonymousUsers" returnvariable="Data">
+			<!--- Note: the following options are used on the open source jsGrid. The Kendo commercial grid has client side filtering and these are not used. --->
+			<cfif arguments.AnonymousUserId neq ''>
+				<cfinvokeargument name="anonymousUserId" value="#arguments.AnonymousUserId#"/>
+			</cfif>
+			<cfif arguments.IpAddress neq ''>
+				<cfinvokeargument name="ipAddress" value="#arguments.IpAddress#"/>
+			</cfif>
+			<cfif arguments.HttpUserAgent neq ''>
+				<cfinvokeargument name="httpUserAgent" value="#arguments.HttpUserAgent#"/>
+			</cfif>
+			<cfif arguments.FullName neq ''>
+				<cfinvokeargument name="fullName" value="#arguments.FullName#"/>
+			</cfif>
+			<cfif arguments.BannedBy neq ''>
+				<cfinvokeargument name="bannedBy" value="#arguments.BannedBy#"/>
+			</cfif>
+			<cfif arguments.BanReason neq ''>
+				<cfinvokeargument name="banReason" value="#arguments.BanReason#"/>
+			</cfif>
+			<cfif arguments.BannedDate neq ''>
+				<cfinvokeargument name="bannedDate" value="#arguments.BannedDate#"/>
+			</cfif>
+			<cfif arguments.sortField neq ''>
+				<cfinvokeargument name="sortField" value="#arguments.sortField#"/>
+			</cfif>
+			<cfif arguments.sortOrder neq ''>
+				<cfinvokeargument name="sortOrder" value="#arguments.sortOrder#"/>
+			</cfif>
+		</cfinvoke>
+
+		<!--- Return the data as a json object. --->
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#Data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<!--- When we use server side paging, we need to override the total and specify a new total which is the sum of the entire query. --->
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<!--- The Kendo grid is not using the data handle, the jsGrid does. --->
+			<cfif gridType eq 'jsGrid'>
+				<!--- The includeDataHandle is used when the format is json (or jsonp), however, the data handle is not included when you want to make a javascript object embedded in the page. --->
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<!--- If the data handle is not used, this can be left blank. If you are going to use a service on the cfc, typically, the value would be 'data'. --->
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<!--- Lucee serializes JSON twice when using it with AJAX. To prevent this, we need to send a serializeData false argument. Only use this when using AJAX with Lucee. --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">
+			</cfif>
+		</cfinvoke>
+
+		<!--- Return the json string. --->
+		<cfreturn jsonString>
+
+	</cffunction>
+
+	<!---*****************************************************************************************************
+		Search Query grid (read only)
+	******************************************************************************************************--->
+		
+	<cffunction name="getSearchQueryForGrid" access="remote" returnformat="json" output="false" 
+			hint="Returns a json array to populate the search log grid.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">
+		
+		<!--- Arguments that may be supplied by the client jsGrid when filters are in place. These arguments are passed through the URL. --->
+		<cfargument name="searchQueryId" required="no" default="">
+		<cfargument name="searchQuery" required="no" default="">
+		<cfargument name="anonymousUserId" required="no" default="">
+		<cfargument name="fullName" required="no" default="">
+		<cfargument name="ipAddress" required="no" default="">
+		<cfargument name="httpUserAgent" required="no" default="">
+		<cfargument name="date" required="no" default=""> 
+			
+		<!--- Verify the token --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<!--- Set the response --->
+			<cfset response = "Invalid token">
+			<!--- Return it --->
+			<cfif application.serverProduct eq 'Lucee'>
+				<!--- Do not serialize the response --->
+				<cfreturn response>
+			<cfelse>
+				<!--- Serialize the response --->
+				<cfset serializedResponse = serializeJSON( response ) />
+				<!--- Send the response back to the client. --->
+				<cfreturn serializedResponse>
+			</cfif>	
+			<!--- Abort the process if the token is not validated. --->
+			<cfabort>
+		</cfif>
+			
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
+		<cfset secureFunction('EditUser')>		
+			
+		<cfinvoke component="#application.blog#" method="getSearchQuery" returnvariable="Data">			
+			<!--- Note: the following options are used on the open source jsGrid. The Kendo commercial grid has client side filtering and these are not used. --->	
+			<cfif arguments.searchQueryId neq ''>
+				<cfinvokeargument name="searchQueryId" value="#arguments.searchQueryId#"/>
+			</cfif>
+			<cfif arguments.anonymousUserId neq ''>
+				<cfinvokeargument name="anonymousUserId" value="#arguments.anonymousUserId#"/>
+			</cfif>
+			<cfif arguments.searchQuery neq ''>
+				<cfinvokeargument name="searchQuery" value="#arguments.searchQuery#"/>
+			</cfif>
+			<cfif arguments.fullName neq ''>
+				<cfinvokeargument name="fullName" value="#arguments.fullName#"/>
+			</cfif>
+			<cfif arguments.ipAddress neq ''>
+				<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#"/>
+			</cfif>
+			<cfif arguments.httpUserAgent neq ''>
+				<cfinvokeargument name="httpUserAgent" value="#arguments.httpUserAgent#"/>
+			</cfif>
+			<cfif arguments.date neq ''>
+				<cfinvokeargument name="date" value="#arguments.date#"/>
 			</cfif>
 		</cfinvoke>
 		
@@ -3628,6 +4602,7 @@
 	<cffunction name="insertNewPost" access="remote" returnformat="json" output="false" 
 			hint="Saves data from the admin user interfaces.">
 		<cfargument name="csrfToken" type="string" default="" required="yes">
+		<cfargument name="postType" type="string" default="blogPost" required="true">
 		<cfargument name="postAlias" type="string" default="" required="false">
 		<cfargument name="datePosted" type="string" required="true">
 		<cfargument name="timePosted" type="string" required="true">
@@ -3667,6 +4642,10 @@
 		<cfif application.Udf.isLoggedIn()>
 
 			<!--- Validate the data --->
+			<cfif not len(postType)>
+				<cfset error = true>
+				<cfset errorMessage = errorMessage & "<li>Post type is required</li>">
+			</cfif>
 			<cfif not len(datePosted)>
 				<cfset error = true>
 				<cfset errorMessage = errorMessage & "<li>Date posted is required</li>">
@@ -3699,6 +4678,7 @@
 					
 				<!--- Save the data --->
 				<cfinvoke component="#application.blog#" method="insertNewPost" returnvariable="postId">
+					<cfinvokeargument name="postType" value="#arguments.postType#">
 					<cfinvokeargument name="datePosted" value="#arguments.datePosted#">
 					<cfinvokeargument name="timePosted" value="#arguments.timePosted#">
 					<cfinvokeargument name="author" value="#arguments.author#">
@@ -3735,6 +4715,7 @@
 		<cfargument name="csrfToken" default="" required="true">
 		<!--- If the postId is passed, the function will update the post table. Otherwise it is an insertion. --->
 		<cfargument name="postId" type="string" default="" required="false">
+		<cfargument name="postType" type="string" default="blogPost" required="false">
 		<cfargument name="postAlias" type="string" default="" required="false">
 		<cfargument name="datePosted" type="string" required="false">
 		<cfargument name="timePosted" type="string" required="false">
@@ -3847,6 +4828,7 @@
 					<cfif len(arguments.postId)>
 						<cfinvokeargument name="postId" value="#arguments.postId#">
 					</cfif>
+					<cfinvokeargument name="postType" value="#arguments.postType#">
 					<cfinvokeargument name="datePosted" value="#arguments.datePosted#">
 					<cfinvokeargument name="timePosted" value="#arguments.timePosted#">
 					<cfinvokeargument name="blogSortDate" value="#arguments.blogSortDate#">
@@ -4757,7 +5739,7 @@
 				<cfset error = true>
 				<cfset errorMessage = errorMessage & "<li>Category is required</li>">
 			</cfif>
-			<!--- See if the category exists. This will return a HQL array --->
+			<!--- See if the category exists. There is an sipmlified categoryExists function in blog.cfc, however, we want to use this one as we are querying by the parent category. This will return a HQL array --->
 			<cfinvoke component="#application.blog#" method="getCategory" returnvariable="categoryExists">
 				<cfinvokeargument name="parentCategoryId" value="#arguments.parentCategoryId#">
 				<cfinvokeargument name="category" value="#arguments.category#">
@@ -5530,8 +6512,16 @@
 			<cfabort>
 		</cfif>
 			
-		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in. Note: the user can edit their own profile when a new user is required to change their password --->
-		<cfset secureFunction('EditProfile,EditUser', arguments.pkey)>
+		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in.
+			Note: the user can edit their own profile when a new user is required to change their password -- but
+			creating a new account, updating someone else's account, or assigning a role/capabilities (anything
+			other than action='updateProfile') is a genuine administrative action and must require the real,
+			session-verified EditUser capability rather than the free "edit my own profile" pass. --->
+		<cfif arguments.action eq 'updateProfile'>
+			<cfset secureFunction('EditProfile', arguments.pkey, arguments.userName)>
+		<cfelse>
+			<cfset secureFunction('EditUser', arguments.pkey)>
+		</cfif>
 
 		<!--- Only admins or authenticated new users can update this. --->
 		<cfif application.Udf.isLoggedIn()>
@@ -5641,7 +6631,99 @@
 			
 		<cfreturn thisResponse>
 	</cffunction>
-				
+
+	<!---****************************************************************************************************
+		Site maintenance functions
+
+		Note: the actual side effects for both of these (flushing caches / reinitializing app vars, and
+		reloading the ORM metadata) are NOT performed here. They already run in Application.cfc's
+		onRequestStart, gated on the URL.reinit / URL.reloadOrm params, which every request into the
+		application passes through -- including this one, since the calling JS appends the same param to
+		this very AJAX request's URL (e.g. "...&method=refreshSite&reinit=1"). By the time either function
+		body below executes, onRequestStart has already run for this request and already done the work.
+		These two functions exist purely to give the client a CSRF-checked, capability-checked, definitive
+		success/failure response it can use to show a confirmation window -- a plain page navigation (the
+		original approach for Refresh Site) has no way to report back to a Kendo window on the admin page
+		it just navigated away from.
+	******************************************************************************************************--->
+
+	<cffunction name="refreshSite" access="remote" returnformat="json" output="false"
+			hint="Confirms that the site was reinitialized after the calling request also carried URL.reinit=1.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<!--- Not read in the function body -- Application.cfc's onRequestStart already consumed
+			URL.reinit before this function ran. It just needs to be declared here so that ColdFusion's
+			strict remote-method argument binding doesn't reject "reinit" as an unrecognized param when
+			the calling JS includes it on this same request's URL. --->
+		<cfargument name="reinit" type="string" required="no" default="" hint="Unused -- see above.">
+
+		<cfset response = {} />
+		<cfset response[ "success" ] = false />
+		<cfset response[ "errorMessage" ] = "" />
+
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response[ "errorMessage" ] = "Invalid token" />
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfreturn response>
+			<cfelse>
+				<cfreturn serializeJSON( response )>
+			</cfif>
+		</cfif>
+
+		<!--- Secure this function. Any logged in user may refresh the site -- this matches the Refresh
+			Site icon's existing visibility, which (unlike most other admin icons) has never been
+			restricted to a specific capability. --->
+		<cfset secureFunction('EditProfile')>
+
+		<cfset response[ "success" ] = true />
+
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+
+		<cfreturn thisResponse>
+	</cffunction>
+
+	<cffunction name="reloadOrmObjects" access="remote" returnformat="json" output="false"
+			hint="Confirms that the ORM metadata was reloaded after the calling request also carried URL.reloadOrm=1.">
+		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
+		<!--- Not read in the function body -- Application.cfc's onRequestStart already consumed
+			URL.reloadOrm before this function ran. It just needs to be declared here so that ColdFusion's
+			strict remote-method argument binding doesn't reject "reloadOrm" as an unrecognized param when
+			the calling JS includes it on this same request's URL. --->
+		<cfargument name="reloadOrm" type="string" required="no" default="" hint="Unused -- see above.">
+
+		<cfset response = {} />
+		<cfset response[ "success" ] = false />
+		<cfset response[ "errorMessage" ] = "" />
+
+		<!--- Verify the csrftoken. --->
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response[ "errorMessage" ] = "Invalid token" />
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfreturn response>
+			<cfelse>
+				<cfreturn serializeJSON( response )>
+			</cfif>
+		</cfif>
+
+		<!--- Secure this function. Any logged in user may reload the ORM objects, matching the same
+			(deliberately unrestricted) visibility as Refresh Site. --->
+		<cfset secureFunction('EditProfile')>
+
+		<cfset response[ "success" ] = true />
+
+		<cfif application.serverProduct eq 'Lucee'>
+			<cfset thisResponse = response />
+		<cfelse>
+			<cfset thisResponse = serializeJSON( response ) />
+		</cfif>
+
+		<cfreturn thisResponse>
+	</cffunction>
+
 	<!---****************************************************************************************************
 		Gallery functions
 	******************************************************************************************************--->
@@ -7725,9 +8807,15 @@
 		<cfargument name="disableCache" default="" required="false">
 		<cfargument name="entriesPerBlogPage" default="10" required="false">
 		<cfargument name="kendoCommercial" default="" required="false">
+		<cfargument name="deferKendoCommercialOnPublicSite" default="" required="false">
+		<cfargument name="sendDiagnostics" default="" required="false">
+		<cfargument name="enableVisitorLog" default="" required="false">
 		<cfargument name="includeDisqus" default="" required="false">
 		<cfargument name="includeGsap" default="" required="false">
-		<!--- These are text boxes --->
+		<!--- Dropdowns --->
+		<cfargument name="visitorLogMonths" default="" required="false">
+		<cfargument name="adminLogMonths" default="" required="false">
+		<!--- Text boxes --->
 		<cfargument name="jQueryCDNPath" default="" required="false">
 		<cfargument name="kendoFolderPath" default="" required="false">
 		<cfargument name="googleAnalyticsString" default="" required="false">
@@ -7801,6 +8889,24 @@
 			<cfelse>
 				<cfset kendoCommercial = false>
 			</cfif>
+
+			<cfif len(arguments.deferKendoCommercialOnPublicSite)>
+				<cfset deferKendoCommercialOnPublicSite = true>
+			<cfelse>
+				<cfset deferKendoCommercialOnPublicSite = false>
+			</cfif>
+
+			<cfif len(arguments.sendDiagnostics)>
+				<cfset sendDiagnostics = true>
+			<cfelse>
+				<cfset sendDiagnostics = false>
+			</cfif>
+				
+			<cfif len(arguments.enableVisitorLog)>
+				<cfset enableVisitorLog = true>
+			<cfelse>
+				<cfset enableVisitorLog = false>
+			</cfif>
 				
 			<cfif len(arguments.includeDisqus)>
 				<cfset includeDisqus = true>
@@ -7826,12 +8932,17 @@
 				<cfset OptionDbObj.setDisableCache(disableCache)>
 				<cfset OptionDbObj.setEntriesPerBlogPage(arguments.entriesPerBlogPage)>	
 				<cfset OptionDbObj.setKendoCommercial(kendoCommercial)>
+				<cfset OptionDbObj.setDeferKendoCommercialOnPublicSite(deferKendoCommercialOnPublicSite)>
+				<cfset OptionDbObj.setSendDiagnostics(sendDiagnostics)>
+				<cfset OptionDbObj.setLogVisitors(enableVisitorLog)>
 				<cfset OptionDbObj.setIncludeDisqus(includeDisqus)>
 				<cfset OptionDbObj.setIncludeGsap(includeGsap)>
 				<cfset OptionDbObj.setUseSsl(useSsl)>
 				<!--- These are strings coming from textboxes. --->
 				<cfset OptionDbObj.setJQueryCDNPath(arguments.jQueryCDNPath)>
 				<cfset OptionDbObj.setKendoFolderPath(arguments.kendoFolderPath)>
+				<cfset OptionDbObj.setMonthsToRetainVisitorLog(arguments.visitorLogMonths)>
+				<cfset OptionDbObj.setMonthsToRetainAdminLog(arguments.adminLogMonths)>
 				<cfset OptionDbObj.setGoogleAnalyticsString(arguments.googleAnalyticsString)>
 				<cfset OptionDbObj.setAddThisApiKey(arguments.addThisApiKey)>
 				<cfset OptionDbObj.setAddThisToolboxString(arguments.addThisToolboxString)>
@@ -7897,8 +9008,6 @@
 		<cfargument name="failTo" default="" required="true">
 		<cfargument name="blogEmail" default="" required="true">
 		<cfargument name="ccEmailAddress" default="" required="false">
-		<!--- IP Block list --->
-		<cfargument name="ipBlockList" default="" required="false">
 		<!--- Unused arguments needed to prevent a new CF related bug introduced with CF2023 update 14. --->
 		<cfargument name="blogTimeZoneValue" default="" required="false">
 		<cfargument name="serverTimeZoneValue" default="" required="false">
@@ -7971,8 +9080,6 @@
 				<cfset BlogDbObj.setBlogEmailFailToAddress(arguments.failTo)>	
 				<cfset BlogDbObj.setBlogEmail(arguments.blogEmail)>
 				<cfset BlogDbObj.setCCEmailAddress(arguments.ccEmailAddress)>
-				<!--- IP Block list --->
-				<cfset BlogDbObj.setIpBlockList(arguments.ipBlockList)>
 				<!--- Date --->
 				<cfset BlogDbObj.setDate(application.blog.blogNow())>
 				<!--- Save it --->
@@ -8374,7 +9481,7 @@
 		<cfif application.Udf.isLoggedIn()>
 			
 			<!--- Determine what tables to update based upon the verson --->
-			<cfif arguments.blogVersion eq '3.12'>
+			<cfif arguments.blogVersion lte '3.12'>
 				<!--- Update all of the records in the Font table --->
 				<cfinvoke component="#application.blog#" method="updateDb" returnvariable="success">
 					<cfinvokeargument name="tablesToPopulate" value="Font">
@@ -8393,7 +9500,9 @@
 					<cfinvokeargument name="blogVersionName" value="Galaxie Blog 3.12">
 				</cfinvoke>
 						
-			<cfelseif arguments.blogVersion eq '4.07'>
+			</cfif>
+						
+			<cfif arguments.blogVersion lte '4.07'>
 				
 				<!--- Update all of the records in the Font table --->
 				<cfinvoke component="#application.blog#" method="updateDb" returnvariable="success">
@@ -8413,7 +9522,32 @@
 					<cfinvokeargument name="blogVersionName" value="Galaxie Blog 4.07">
 				</cfinvoke>
 						
-			</cfif><!---<cfif arguments.blogVersion eq '3.12'>--->
+			</cfif>
+						
+			<cfif arguments.blogVersion lte '4.5'>
+				<!--- Update all records in the Post table and set the IsBlogPost column to 1 and isPage to 0. This works as these columns are new and all of the records are posts prior to the 4.5 version --->
+				<cfquery name="updatePost" dbtype="hql">
+					UPDATE Post
+					SET IsBlogPost = <cfqueryparam value="1" cfsqltype="bit">,
+					IsPage = <cfqueryparam value="0" cfsqltype="bit">
+					WHERE IsPage IS NULL
+				</cfquery>	
+					
+				<cfquery name="updateBlogOption" dbtype="hql">
+					UPDATE BlogOption
+					SET LogVisitors = <cfqueryparam value="1" cfsqltype="bit">,
+					MonthsToRetainVisitorLog = <cfqueryparam value="1" cfsqltype="integer">,
+					MonthsToRetainAdminLog = <cfqueryparam value="12" cfsqltype="integer">,
+					SendDiagnostics = <cfqueryparam value="1" cfsqltype="bit">
+				</cfquery>			
+					
+				<!--- Update the version --->
+				<cfinvoke component="#application.blog#" method="updateBlogVersion" returnvariable="success">
+					<cfinvokeargument name="blogVersion" value="4.5">
+					<cfinvokeargument name="blogVersionName" value="Galaxie Blog 4.5">
+				</cfinvoke>
+						
+			</cfif><!---<cfif arguments.blogVersion lte '4.5'>--->
 					
 		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
 	
