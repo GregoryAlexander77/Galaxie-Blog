@@ -56,7 +56,7 @@ Galaxie Blog is a standalone software package that must be installed with ColdFu
         *   Galaxie Blog has been tested using Lucee 6.031 through Lucee 7.1.0.204. Due to ORM issues, Galaxie Blog does not work with versions below 6.0.
         *   You must have the following packages installed: [Ortus ORM Extension](https://www.ortussolutions.com/products/orm-extension) 6.0+, Image Extension 2.0+, EHCache 2.0+, Mail, and the extensions for the database of your choice. 
     *   **ColdFusion** 
-        *   Galaxie Blog has been tested on ColdFusion 2016, 2018, 2021, and 2023 (2023.0.07.330663).
+        *   Galaxie Blog has been tested on ColdFusion 2016, 2018, 2021, 2023 and 2025.
         *   The blog may theoretically support any ColdFusion edition starting from ColdFusion 9; however, your mileage may vary.
         *   The following packages must be installed: Cacheing, Feed, Image, Mail, ODBC, ORM, and the extensions for the database of your choice.
     *   We have successfully tested using Apache, TomCat, and IIS. We also have successfully tested both Lucee and Adobe ColdFusion with CommandBox.  
