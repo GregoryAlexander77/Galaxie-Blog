@@ -16,10 +16,6 @@
 //********************************************************************************************************--->
 <!--- Cache this stuff --->
 <cfheader name="filesMatch" value="<filesMatch '.(css|jpg|jpeg|png|gif|js|ico)$'>">
-<cfif pageId eq 1>
-<cfheader name="Expires" value="#getHttpTimeString(dateAdd('yyyy', 1, Now()))#">
-<cfheader name="cache-control" value="Cache-Control: max-age=31536000, public">
-</cfif>
 
 <!--- Enforce ssl if necessary. --->
 <cfif useSsl and (CGI.https eq "off")>
