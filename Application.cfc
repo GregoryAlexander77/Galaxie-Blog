@@ -1055,43 +1055,47 @@
 		<cfparam name="errorTemplate" default="">
 		<cfparam name="errorStacktrace" default="">
 			
-		<cfset errorUrl = application.blog.getPageUrl()>
-		<cfset ipAddress = application.blog.getIpAddress()>
+		<!--- Note: application.blog is not defined during the installation process --->
+		<cfif isDefined("application.blog")>
+			<cfset errorUrl = application.blog.getPageUrl()>
+			<cfset ipAddress = application.blog.getIpAddress()>
 
-		<!--- Bot/lock-storm throttling, step 1: if this IP is already in a temporary timeout (see recordDatabaseLockError below), stop here - no saveErrorLog call, so no DB write and no email. This is deliberately the very first thing onError does, ahead of even the disable/showOnlyCFErrors branching below, since the whole point is to stop doing extra work (including extra DB round trips) for a visitor whose requests are already causing DB lock errors. Checked again, independently, in visitorTracking.cfm ahead of the normal isVisitorBanned() check, so a timed-out IP is actually blocked from loading pages at all rather than merely having its errors go unlogged. --->
-		<cfif len(ipAddress) and application.blog.isTemporarilyTimedOut(ipAddress)>
-			<cfheader statuscode="429">
-			<cfcontent type="text/html" reset="true">Too many requests. Please try again later.
-			<cfreturn>
-		</cfif>
-
-		<!--- Only log errors generated on CF/Lucee pages --->
-		<cfif errorUrl contains '.cfm' or errorUrl contains '.cfc'>
-			<cfset errorEvent = arguments.eventName>
-			<cfset errorType = arguments.exception.type>
-			<cfset errorMessage = arguments.exception.message>
-			<cfset errorDetail = arguments.exception.detail>
-			<!--- Set the date --->
-			<cfset errorDate = "#dateFormat(now(), 'short')# #timeFormat(now(), 'short')#">
-
-			<!--- Get the template and line if available --->
-			<cfif isDefined("arguments.exception.tagContext") and arrayLen(arguments.exception.tagContext)>
-				<cfset errorOrigin = arguments.exception.tagContext[1]>
-				<cfset errorTemplate = errorOrigin.template>
-				<cfset errorLine = errorOrigin.line>
+			<!--- Bot/lock-storm throttling, step 1: if this IP is already in a temporary timeout (see recordDatabaseLockError below), stop here - no saveErrorLog call, so no DB write and no email. This is deliberately the very first thing onError does, ahead of even the disable/showOnlyCFErrors branching below, since the whole point is to stop doing extra work (including extra DB round trips) for a visitor whose requests are already causing DB lock errors. Checked again, independently, in visitorTracking.cfm ahead of the normal isVisitorBanned() check, so a timed-out IP is actually blocked from loading pages at all rather than merely having its errors go unlogged. --->
+			<cfif len(ipAddress) and application.blog.isTemporarilyTimedOut(ipAddress)>
+				<cfheader statuscode="429">
+				<cfcontent type="text/html" reset="true">Too many requests. Please try again later.
+				<cfreturn>
 			</cfif>
 
-			<!--- Get the stacktrace --->
-			<cfif isDefined("arguments.exception.stacktrace")>
-				<cfset errorStacktrace = arguments.exception.stacktrace>
-			</cfif>
+			<!--- Only log errors generated on CF/Lucee pages --->
+			<cfif errorUrl contains '.cfm' or errorUrl contains '.cfc'>
+				<cfset errorEvent = arguments.eventName>
+				<cfset errorType = arguments.exception.type>
+				<cfset errorMessage = arguments.exception.message>
+				<cfset errorDetail = arguments.exception.detail>
+				<!--- Set the date --->
+				<cfset errorDate = "#dateFormat(now(), 'short')# #timeFormat(now(), 'short')#">
 
-			<!--- Bot/lock-storm throttling, step 2: does this look like a Hibernate lock-acquisition error (org.hibernate.exception.LockAcquisitionException - typically "could not extract ResultSet")? These are the errors a bot hammering the site tends to cause once it starts overwhelming the database, so track them per-IP and, once the same IP crosses the threshold within the tracking window, place it into a temporary timeout (application.dbLockTimeoutThreshold/dbLockTimeoutWindowSeconds/dbLockTimeoutDurationMinutes - set in OnRequestStart above). recordDatabaseLockError returns true only on the call that actually triggers a new timeout, so we can note it once in this error's own email rather than on every request. --->
-			<cfset isLockAcquisitionError = findNoCase("LockAcquisitionException", errorType & errorMessage & errorDetail) gt 0>
-			<cfset justAppliedTimeout = false>
-			<cfif isLockAcquisitionError and len(ipAddress)>
-				<cfset justAppliedTimeout = application.blog.recordDatabaseLockError(ipAddress)>
-			</cfif>
+				<!--- Get the template and line if available --->
+				<cfif isDefined("arguments.exception.tagContext") and arrayLen(arguments.exception.tagContext)>
+					<cfset errorOrigin = arguments.exception.tagContext[1]>
+					<cfset errorTemplate = errorOrigin.template>
+					<cfset errorLine = errorOrigin.line>
+				</cfif>
+
+				<!--- Get the stacktrace --->
+				<cfif isDefined("arguments.exception.stacktrace")>
+					<cfset errorStacktrace = arguments.exception.stacktrace>
+				</cfif>
+
+				<!--- Bot/lock-storm throttling, step 2: does this look like a Hibernate lock-acquisition error (org.hibernate.exception.LockAcquisitionException - typically "could not extract ResultSet")? These are the errors a bot hammering the site tends to cause once it starts overwhelming the database, so track them per-IP and, once the same IP crosses the threshold within the tracking window, place it into a temporary timeout (application.dbLockTimeoutThreshold/dbLockTimeoutWindowSeconds/dbLockTimeoutDurationMinutes - set in OnRequestStart above). recordDatabaseLockError returns true only on the call that actually triggers a new timeout, so we can note it once in this error's own email rather than on every request. --->
+				<cfset isLockAcquisitionError = findNoCase("LockAcquisitionException", errorType & errorMessage & errorDetail) gt 0>
+				<cfset justAppliedTimeout = false>
+				<cfif isLockAcquisitionError and len(ipAddress)>
+					<cfset justAppliedTimeout = application.blog.recordDatabaseLockError(ipAddress)>
+				</cfif>
+
+			</cfif><!---<cfif isDefined("application.blog")>--->
 
 			<cfif arguments.disable>
 				<cfoutput>
@@ -1111,13 +1115,13 @@
 					<h2>An unexpected error occurred.</h2>
 					<p>We have sent a copy of this error to technical support.</p>
 				</cfoutput>
-				
+
 				<!--- Preset params that may not exist --->
 				<cfparam name="errorLine" default="">
 				<cfparam name="errorTemplate" default="">
 				<!--- Set the date --->
 				<cfset errorDate = "#dateFormat(now(), 'short')# #timeFormat(now(), 'short')#">
-				
+
 				<!--- Only display errors if the URL contains a .cfm or .cfc extension if showOnlyCFErrors is set to true --->
 				<cfif arguments.showOnlyCFErrors>
 					<cfif errorUrl contains '.cfm' or errorUrl contains '.cfc'>
@@ -1150,9 +1154,9 @@
 						<cfinvokeargument name="autoTimeoutApplied" value="#justAppliedTimeout#">
 					</cfinvoke>
 				</cfif>
-					
+
 			</cfif><!---<cfif errorUrl contains '.cfm' or errorUrl contains '.cfc'>--->
-						
+
 		</cfif><!---<cfif arguments.disable>--->
 					
 		<!--- Don't return anything --->

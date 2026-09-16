@@ -101,8 +101,6 @@ Populate the blog table.
 			<cfset BlogDbObj.setSaltAlgorithmSize('256')>
 			<cfset BlogDbObj.setHashAlgorithm('SHA-512')>
 			<cfset BlogDbObj.setServiceKeyEncryptionPhrase(generateRandomPhrase())>	
-			<!--- IP Block list --->
-			<cfset BlogDbObj.setIpBlockList(ipBlockList)>
 			<cfset BlogDbObj.setBlogVersionName('3.9')>
 			<cfset BlogDbObj.setBlogVersionName('Galaxie Blog 3.9')>
 			<!--- Installed --->
@@ -443,8 +441,8 @@ Populate the Map Type table.
 			<cfset MapProviderObj = entityLoad("MapProvider", { MapProvider = mapProvider }, "true" )>
 			<!--- Set the values. --->
 			<cfset MapTypeDbObj.setMapType(mapType)>
-			<!--- Pass the Map Provider obj --->
-			<cfset MapTypeDbObj.setMapProviderRef(MapProviderObj)>
+			<!--- MapProviderRef is a plain int column, not a many-to-one relation - pass the id, not the object --->
+			<cfset MapTypeDbObj.setMapProviderRef(MapProviderObj.getMapProviderId())>
 			<cfset MapTypeDbObj.setDate(now())>
 			<!--- Save it --->
 			<cfset EntitySave(MapTypeDbObj)>

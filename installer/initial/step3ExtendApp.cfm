@@ -33,10 +33,10 @@
 	<cfif useSsl and Form.blogUrl contains 'https://'>
 		<cfset blogUrl = Form.blogUrl>
 	<cfelse>
-		<cfif blogUrl contains 'http://'>
-			<cfset blogUrl = replaceNoCase(blogUrl, 'http', 'https')>
+		<cfif Form.blogUrl contains 'http://'>
+			<cfset blogUrl = replaceNoCase(Form.blogUrl, 'http', 'https')>
 		<cfelse>
-			<cfset blogUrl = 'https://' & blogUrl>
+			<cfset blogUrl = 'https://' & Form.blogUrl>
 		</cfif>
 	</cfif>
 	
