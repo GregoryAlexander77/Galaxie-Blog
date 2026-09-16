@@ -1,8 +1,8 @@
-<cfcomponent displayname="GalaxieBlog4_11" sessionmanagement="yes" clientmanagement="yes" output="false">
+<cfcomponent displayname="GalaxieBlog4_51" sessionmanagement="yes" clientmanagement="yes" output="false">
 	<cfsetting requesttimeout="60">
 
 	<!--- The name needs to be unique in order to have multiple blogs on the same server. Also, this will not work with a dynamic name using CF as it will break the extends in the admin subfolder --->
-	<cfset this.name = "GalaxieBlog4_1" /> 
+	<cfset this.name = "GalaxieBlog4_51" /> 
 	<!--- Preserve the case for database columns --->
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
@@ -12,12 +12,14 @@
 	<cfset debug = false>
 		
 	<!--- Used for testing purposes only. Setting this var to true will allow you to re-run the 7 part initial in. Note: if you want to run the entire install process, change the installed variable to an empty string in the ini file.  --->
-	<cfset reinstallIni = false>
+	<cfset reinstallIni = false> 
 	<!--- Reinstalls the database from the installer files. Note: this allows you to recover from a partially installed database if there are data errors, timeouts, or database issues, such as too many connections when using MySql. Open the insertData.cfm template in the installer folder to see your available recovery options. When you're done, make sure that you change this back to false! --->
 	<cfset reinstallDb = false>
 		
 	<!--- Allows the owner to access the admin portal without the proper user credentials. --->
 	<cfset disableAuth = false>
+	<!--- Error logging is typically set in the admin UI, however, when developing you can turn it off manually --->
+	<cfset disableErrorLogging = true>
 
 	<!--- 7 day application timeout. Be careful when you change this to a shorter timeout otherwise the variables on the admin pages won't stick --->
 	<cfset this.applicationTimeout = createTimeSpan(7,0,0,0) />
@@ -77,12 +79,14 @@
 			</cfif>
 			<!--- At this time, the dialect is always 'auto'. --->
 			<cfset this.dialect = 'auto'>
-			<!--- Allow ColdFusion to update and create the tables when they do not already exist. Use none if you are migrating between ColdFusion and Lucee --->
+			<!--- Allow ColdFusion to update and create the tables when they do not already exist. Use none *only* if you are migrating between ColdFusion and Lucee --->
 			<cfset this.ormSettings.dbcreate = "update"><!---update--->
 			<!--- Set a pointer to the cfc directory --->
 			<cfset this.ormSettings.cfclocation = expandPath(getBaseUrl() & "/common/cfc/db/galaxieDb/")>
 			<!--- Note: without this argument, you will have a 'Session is closed!' error everytime you hit a function that processes a database transaction simultaneously. Use a transaction tag to commit the data instead. --->
 			<cfset this.ormsettings.flushAtRequestEnd = false>
+			<!--- Unfortunately, on occasion, there are database deadlocks. I want to set a quick timeout in order to convserve server resources. --->
+			<cfset this.ormSettings.queryTimeout = 5>
 			<!--- Escape reserved database keywords (such as 'Role') which cause generic errors. --->
 			<cfset this.ormsettings.hibernate.globally_quoted_identifiers = true>
 			<!--- Enable ORM offset in queries. --->
@@ -107,12 +111,43 @@
 		
 		<!--- We will send copies of any error, minus form values, to the developer for debugging purposes. Note: although this helps me to catch errors, if you don't want to send the errors to the developer (i.e. me), make this an empty string (='') --->
 		<cfset application.developerEmailAddress = "gregoryalexander77@gmail.com">
-		<!--- Note: I disabled logging annonymous users in version 411 as there were occasional optimistic locks occurring with the queries. This makes sense as saving every anonymous user, along with the IP address and user agent string is expensive. I may revise this and put in a setting to enable admins to turn logging on and off, but until then, I am disabling it. --->
-		<cfset application.logAnonymousUsers = false>
-		
+
+		<!--- //****************************************************************************************
+				Error/lock storm throttling - tunable settings and in-memory trackers.
+				Used by onError (below) and blog.cfc's isTemporarilyTimedOut/recordDatabaseLockError/
+				shouldSendErrorEmail/getAndClearSuppressedErrorEmailCount to stop a bot that is hammering
+				the site (and causing org.hibernate.exception.LockAcquisitionException DB lock errors)
+				from also flooding the ErrorLog table and the developer/blog owner's inbox.
+				Note: this whole block must be guarded by structKeyExists - OnRequestStart runs on
+				*every* request (there is no onApplicationStart in this component), so without the guard
+				these trackers - and every IP's timeout/lock counts - would be wiped out on every single
+				page view instead of persisting for the life of the application.
+		//*****************************************************************************************--->
+		<cfif not structKeyExists(application, "dbLockTracker")>
+			<cflock name="galaxieBlog.initThrottleTrackers" type="exclusive" timeout="10">
+				<cfif not structKeyExists(application, "dbLockTracker")>
+					<!--- How many org.hibernate.exception.LockAcquisitionException errors from the same IP, within dbLockTimeoutWindowSeconds, before that IP is placed into a temporary timeout. --->
+					<cfset application.dbLockTimeoutThreshold = 5>
+					<cfset application.dbLockTimeoutWindowSeconds = 60>
+					<!--- How long the temporary timeout lasts once triggered. --->
+					<cfset application.dbLockTimeoutDurationMinutes = 15>
+					<!--- Per-IP sliding-window counters feeding the threshold above: ipAddress -> { windowStart, count }. --->
+					<cfset application.dbLockTracker = structNew()>
+					<!--- ipAddress -> the date/time its temporary timeout expires. Checked by isTemporarilyTimedOut(); never written to the database. --->
+					<cfset application.temporaryTimeouts = structNew()>
+
+					<!--- Global (not per-IP) error email rate limit, so a burst of many *different* errors across many different URLs/IPs can't flood the inbox either - the per-URL+message dedup in saveErrorLog only catches repeats of the exact same error. --->
+					<cfset application.errorEmailMaxPerWindow = 5>
+					<cfset application.errorEmailWindowSeconds = 300>
+					<cfset application.errorEmailThrottle = { windowStart: now(), count: 0, suppressedCount: 0 }>
+				</cfif>
+			</cflock>
+		</cfif>
+
 		<!--- Reload the ORM schema. Note: forcing this to load on every page load will create ORM related errors when including the mapPreview.cfm template. The error is 'Orm not configured...' most likely due to the ORMReload statement interfering with the ORM initialization. ' --->
-		<cfif isDefined("URL.init") or isDefined("URL.reinit")>
-			
+		<!--- Security: URL.init/URL.reinit resets app-level vars and flushes all caches. Since this has real side effects, only allow it to be triggered via the URL when an administrator is already logged in (application.Udf.isLoggedIn() checks session.loggedin, the same session flag set by ProxyController.cfc's ajaxLogin() on successful admin login) - OR when we're in the middle of installing the blog (not getInstalled()), since the 7 part initial installer (installer/initial/step7Post.cfm) redirects here with ?init=1&install=true before any admin account exists to log into - OR when reinstallIni/reinstallDb are true (the developer-only flags declared at the top of this component, manually flipped by someone who already has file system access, used to force a re-run of the installer/data population). An anonymous request carrying ?init=1/?reinit=1 outside of these cases is silently ignored - no error, no indication the param was seen. --->
+		<cfif (isDefined("URL.init") or isDefined("URL.reinit")) and (application.Udf.isLoggedIn() or reinstallIni or reinstallDb or not getInstalled())>
+
 			<!--- Reset the main app vars --->
 			<cfset getRootDirectoryPath(true)>
 			<cfset application.siteUrl = getSiteUrl(true)>
@@ -167,12 +202,14 @@
 		</cfif>
 				
 		<!--- Reload ORM --->
-		<cfif isDefined("URL.reloadOrm")>
+		<!--- Security: ORMReload() is expensive and briefly disrupts every in-flight request against the ORM. Only allow ?reloadOrm=1 to trigger it when an administrator is already logged in (same application.Udf.isLoggedIn() check as above), OR when we're mid-install / a developer-forced reinstall is in progress (same reinstallIni/reinstallDb/not getInstalled() bypass used for URL.init/URL.reinit above) - the installer needs to be able to force an ORM reload before any admin account exists. An anonymous request carrying the param outside of these cases is silently ignored. --->
+		<cfif isDefined("URL.reloadOrm") and (application.Udf.isLoggedIn() or reinstallIni or reinstallDb or not getInstalled())>
 			<cfset ORMReload()>
 		</cfif>
-				
-		<cfif isDefined("URL.appStop")>  
-			<!--- Stop the application --->  
+
+		<!--- Security: applicationStop() tears down the entire application for every visitor, forcing a full re-init on the next request. Only allow ?appStop=1 to trigger it when an administrator is already logged in (same application.Udf.isLoggedIn() check as above). Unlike URL.init/URL.reinit/URL.reloadOrm, this is not given an installer bypass, since nothing in the install flow ever sends this param. An anonymous request carrying the param is silently ignored. --->
+		<cfif isDefined("URL.appStop") and application.Udf.isLoggedIn()>
+			<!--- Stop the application --->
 			<cfset applicationStop()/>
 			<!--- Redirect to the home page and the application should start again --->
 			<cflocation url="#getBaseUrl()#">
@@ -416,6 +453,8 @@
 		<cfset application.kendoCommercial = application.BlogOptionDbObj.getKendoCommercial()>
 		<!--- Get the path to the Kendo UI folder. --->
 		<cfset application.kendoFolderPath = application.BlogOptionDbObj.getKendoFolderPath()>
+		<!--- When true, public-facing pages (not admin) default to Kendo Core instead of the larger Kendo Professional download, only switching to Professional for a specific post when postNeedsKendoCommercial() (blog.cfc) detects it's actually needed - see includes/templates/core/seoMetaTags.cfm. Admin pages always use kendoCommercial above, regardless of this setting. --->
+		<cfset application.deferKendoCommercialOnPublicSite = application.BlogOptionDbObj.getDeferKendoCommercialOnPublicSite()>
 
 		<!--- Kendo version (is Kendo the open source or commercial version?) default on the open source blog, Kendo Core, is true. --->
 		<cfif application.kendoCommercial>
@@ -489,22 +528,50 @@
 			
 		<!--- How many posts should show up on the main blog page? --->
 		<cfset application.maxEntries = 9><!--- Used to be application.BlogOptionDbObj.getEntriesPerBlogPage() --->
-
+			
+		
+		<!--- Setting to determine whether to defer the scripts and css. This is a hardcoded setting. You should only change this to debug to see if the defer is working, but you should leave this at true as it provides a much better google speed score. --->
+		<cfset application.deferScriptsAndCss = true>
+		<!--- Gravatars allowed? --->
+		<cfset application.gravatarsAllowed = application.BlogOptionDbObj.getAllowGravatar()>	
+		<!--- Do we have comment moderation? --->
+		<cfset application.commentModeration = application.BlogOptionDbObj.getBlogModerated()>
+			
+		<!--- Logging settings. These are new to version 4.5 and I need to test for null vars --->
+		<!--- Determines whether I should log the visitors. This may slow down the performance a tiny bit --->
+		<cfif len(application.BlogOptionDbObj.getLogVisitors())>
+			<cfset application.logVisitors = application.BlogOptionDbObj.getLogVisitors()>
+		<cfelse>
+			<cfset application.logVisitors = true>
+		</cfif>
+		<!--- Determines how many months to save the visitor logs. The tables can get full pretty quickly so it's best to lower this if there are any storage problems --->
+		<cfif len(application.BlogOptionDbObj.getMonthsToRetainVisitorLog())>
+			<cfset application.monthsToRetainVisitorLog = application.BlogOptionDbObj.getMonthsToRetainVisitorLog()>
+		<cfelse>
+			<cfset application.monthsToRetainVisitorLog = 1>
+		</cfif>
+		
+		<!--- The admin log saves all logins. This table should not have a lot of records compared to the visitor logs and can be set higher --->
+		<cfif len(application.BlogOptionDbObj.getMonthsToRetainAdminLog())>
+			<cfset application.monthsToRetainAdminLog = application.BlogOptionDbObj.getMonthsToRetainAdminLog()>
+		<cfelse>
+			<cfset application.monthsToRetainAdminLog = 12>
+		</cfif>
+		
+			
+		<!--- Emails the blog author (Gregory for now) when errors occur --->
+		<cfif len(application.BlogOptionDbObj.getSendDiagnostics())>
+			<cfset application.sendDiagnostics = application.BlogOptionDbObj.getSendDiagnostics()>
+		<cfelse>
+			<cfset application.sendDiagnostics = true>
+		</cfif>
+			
 		<!--- Optional libraries --->
 		<!--- GSAP and scrollMagic allows for animations and parallax effects in the blog entries. don't include by default. --->
 		<cfset application.includeGsap = application.BlogOptionDbObj.getIncludeGsap()>
 
 		<!--- Determine whether to include the disqus commenting system. If you set this to true, you must also set the optional disqus settings that are right below. Note: this is an application var so that the recentcomments.cfm can access these settings. That template is invoked via a cfmodule tag. --->
 		<cfset application.includeDisqus = application.BlogOptionDbObj.getIncludeDisqus()>
-
-		<!--- Setting to determine whether to defer the scripts and css. This is a hardcoded setting. You should only change this to debug to see if the defer is working, but you should leave this at true as it provides a much better google speed score. --->
-		<cfset application.deferScriptsAndCss = true>
-
-		<!--- Gravatars allowed? --->
-		<cfset application.gravatarsAllowed = application.BlogOptionDbObj.getAllowGravatar()>
-			
-		<!--- Do we have comment moderation? --->
-		<cfset application.commentModeration = application.BlogOptionDbObj.getBlogModerated()>
 
 		<!--- Video player settings. We have several options. Our default player is plyr. It is a full featured HTML5 media player, however, it does not play flash video. This should not be a problem as flash is soon to be depracated. Optionally, we can use the Kendo UI video player if you have a full Kendo license. The original flash player will take over for .flv videos, but will be depracated in 2020. --->
 		<cfset application.defaultMediaPlayer = application.BlogOptionDbObj.getDefaultMediaPlayer()><!---You can optionally choose 'KendoUiPlayer' if you have the full lisence. However, the Kendo Media player is lacks quite a few plyr features. The Kendo player is useful if you want the video player to take on the theme that you are using. --->
@@ -970,55 +1037,126 @@
 		<!---TODO Hardcoding to false due to memory leak somewhere--->
 		<cfreturn woff2>
 	</cffunction>
-			
-	<cffunction name="onError" access="public" returntype="void">
-		<cfargument name="exception" required=true/>
-		<cfargument name="eventName" type="string" required=true/>
-		<cfargument name="disable" type="string" default="true"/>
+						
+	<!---//****************************************************************************************
+				Global Error Handling
+	//*****************************************************************************************--->
+						
+	<cffunction name="onError" returnType="void" output="true">
+		<!--- These arguments are required for this to work --->
+		<cfargument name="exception" type="any" required=true />
+		<cfargument name="eventName" type="string" required=true />
+		<cfargument name="disable" type="string" default="#disableErrorLogging#" />
+		<cfargument name="showOnlyCFErrors" type="string" default="true" />
 		
-		<cfif arguments.disable>
-			<cfoutput>
-			<h2>An unexpected error occurred.</h2>
-			An error occurred: #application.blog.getPageUrl()#<br/>
-			Time: #dateFormat(now(), "short")# #timeFormat(now(), "short")#<br/>
-			Error Event: #arguments.eventName#<br/>
-			Type: #arguments.exception.type#<br/>
-			Message: #arguments.exception.message#<br/>
-			Detail: #arguments.exception.detail#<br/>
-			Template: #arguments.exception.tagContext[1].template#<br/>
-			Line: #arguments.exception.tagContext[1].line#<br/>
-			Stacktrace: #arguments.exception.stacktrace#<br/>
-			</cfoutput>
-		<cfelse>
-			<cfoutput>
-				<h2>An unexpected error occurred.</h2>
-				<p>We have sent a copy of this error to technical support.</p>
-			</cfoutput>
-			<cfsavecontent variable="errorString">
-				<cfoutput>
-				An error occurred: #application.blog.getPageUrl()#
-				Time: #dateFormat(now(), "short")# #timeFormat(now(), "short")#
-				Error Event: #arguments.eventName#
-				Type: #arguments.exception.type#
-				Message: #arguments.exception.message#
-				Detail: #arguments.exception.detail#
-				Template: #arguments.exception.tagContext[1].template#
-				Line: #arguments.exception.tagContext[1].line#
-				Stacktrace: #arguments.exception.stacktrace#			
-				</cfoutput>
-			</cfsavecontent>
-			<!--- Send email to the blog owner and developer. Do not send any form values via email as they may contain sensitive login information --->
-			<cfif len(application.developerEmailAddress) and (application.BlogDbObj.getBlogEmail() neq application.developerEmailAddress)>
-				<!--- Send errors via email to both blog owner and developer. When sending email to developer, I am always sending a copy to the blog owner. --->
-				<cfset errorMessageRecipients = application.BlogDbObj.getBlogEmail() & ',' & application.developerEmailAddress>
-			<cfelse>
-				<!--- This is the blog developers blog --->
-				<cfset errorMessageRecipients = application.developerEmailAddress>
-			</cfif>
-			<cfmail to="gregoryalexander77@gmail.com" from="#errorMessageRecipients#" subject="Error: #arguments.exception.message#">
-				#errorString#
-			</cfmail>
+		<!--- Preset params that may not exist --->
+		<cfparam name="errorOrigin" default="">
+		<cfparam name="errorLine" default="">
+		<cfparam name="errorTemplate" default="">
+		<cfparam name="errorStacktrace" default="">
+			
+		<cfset errorUrl = application.blog.getPageUrl()>
+		<cfset ipAddress = application.blog.getIpAddress()>
+
+		<!--- Bot/lock-storm throttling, step 1: if this IP is already in a temporary timeout (see recordDatabaseLockError below), stop here - no saveErrorLog call, so no DB write and no email. This is deliberately the very first thing onError does, ahead of even the disable/showOnlyCFErrors branching below, since the whole point is to stop doing extra work (including extra DB round trips) for a visitor whose requests are already causing DB lock errors. Checked again, independently, in visitorTracking.cfm ahead of the normal isVisitorBanned() check, so a timed-out IP is actually blocked from loading pages at all rather than merely having its errors go unlogged. --->
+		<cfif len(ipAddress) and application.blog.isTemporarilyTimedOut(ipAddress)>
+			<cfheader statuscode="429">
+			<cfcontent type="text/html" reset="true">Too many requests. Please try again later.
+			<cfreturn>
 		</cfif>
+
+		<!--- Only log errors generated on CF/Lucee pages --->
+		<cfif errorUrl contains '.cfm' or errorUrl contains '.cfc'>
+			<cfset errorEvent = arguments.eventName>
+			<cfset errorType = arguments.exception.type>
+			<cfset errorMessage = arguments.exception.message>
+			<cfset errorDetail = arguments.exception.detail>
+			<!--- Set the date --->
+			<cfset errorDate = "#dateFormat(now(), 'short')# #timeFormat(now(), 'short')#">
+
+			<!--- Get the template and line if available --->
+			<cfif isDefined("arguments.exception.tagContext") and arrayLen(arguments.exception.tagContext)>
+				<cfset errorOrigin = arguments.exception.tagContext[1]>
+				<cfset errorTemplate = errorOrigin.template>
+				<cfset errorLine = errorOrigin.line>
+			</cfif>
+
+			<!--- Get the stacktrace --->
+			<cfif isDefined("arguments.exception.stacktrace")>
+				<cfset errorStacktrace = arguments.exception.stacktrace>
+			</cfif>
+
+			<!--- Bot/lock-storm throttling, step 2: does this look like a Hibernate lock-acquisition error (org.hibernate.exception.LockAcquisitionException - typically "could not extract ResultSet")? These are the errors a bot hammering the site tends to cause once it starts overwhelming the database, so track them per-IP and, once the same IP crosses the threshold within the tracking window, place it into a temporary timeout (application.dbLockTimeoutThreshold/dbLockTimeoutWindowSeconds/dbLockTimeoutDurationMinutes - set in OnRequestStart above). recordDatabaseLockError returns true only on the call that actually triggers a new timeout, so we can note it once in this error's own email rather than on every request. --->
+			<cfset isLockAcquisitionError = findNoCase("LockAcquisitionException", errorType & errorMessage & errorDetail) gt 0>
+			<cfset justAppliedTimeout = false>
+			<cfif isLockAcquisitionError and len(ipAddress)>
+				<cfset justAppliedTimeout = application.blog.recordDatabaseLockError(ipAddress)>
+			</cfif>
+
+			<cfif arguments.disable>
+				<cfoutput>
+				<h2>An unexpected error occurred.</h2>
+				An error occurred: #errorUrl#<br/>
+				Time: #errorDate#<br/>
+				Error Event: #errorEvent#<br/>
+				Type: #errorType#<br/>
+				Message: #errorMessage#<br/>
+				Detail: #errorDetail#<br/>
+				Template: #errorTemplate#<br/>
+				Line: #errorLine#<br/>
+				Stacktrace: #errorStacktrace#<br/>
+				</cfoutput>
+			<cfelse><!---<cfif arguments.disable>--->
+				<cfoutput>
+					<h2>An unexpected error occurred.</h2>
+					<p>We have sent a copy of this error to technical support.</p>
+				</cfoutput>
+				
+				<!--- Preset params that may not exist --->
+				<cfparam name="errorLine" default="">
+				<cfparam name="errorTemplate" default="">
+				<!--- Set the date --->
+				<cfset errorDate = "#dateFormat(now(), 'short')# #timeFormat(now(), 'short')#">
+				
+				<!--- Only display errors if the URL contains a .cfm or .cfc extension if showOnlyCFErrors is set to true --->
+				<cfif arguments.showOnlyCFErrors>
+					<cfif errorUrl contains '.cfm' or errorUrl contains '.cfc'>
+						<!--- Save the error to the database and send an email if this is a new error. --->
+						<cfinvoke component="#application.blog#" method="saveErrorLog" returnvariable="result">
+							<cfinvokeargument name="errorUrl" value="#errorUrl#">
+							<cfinvokeargument name="errorEvent" value="#errorEvent#">
+							<cfinvokeargument name="errorType" value="#errorType#">
+							<cfinvokeargument name="errorMessage" value="#errorMessage#">
+							<cfinvokeargument name="errorDetail" value="#errorDetail#">
+							<cfinvokeargument name="errorMessage" value="#errorMessage#">
+							<cfinvokeargument name="errorTemplate" value="#errorTemplate#">
+							<cfinvokeargument name="errorStacktrace" value="#errorStacktrace#">
+							<cfinvokeargument name="errorDate" value="#errorDate#">
+							<cfinvokeargument name="autoTimeoutApplied" value="#justAppliedTimeout#">
+						</cfinvoke>
+					</cfif><!---<cfif errorUrl contains '.cfm' or errorUrl contains '.cfc'>--->
+				<cfelse>
+					<!--- Save all errors to the database and send an email if this is a new error. --->
+					<cfinvoke component="#application.blog#" method="saveErrorLog" returnvariable="result">
+						<cfinvokeargument name="errorUrl" value="#errorUrl#">
+						<cfinvokeargument name="errorEvent" value="#errorEvent#">
+						<cfinvokeargument name="errorType" value="#errorType#">
+						<cfinvokeargument name="errorMessage" value="#errorMessage#">
+						<cfinvokeargument name="errorDetail" value="#errorDetail#">
+						<cfinvokeargument name="errorMessage" value="#errorMessage#">
+						<cfinvokeargument name="errorTemplate" value="#errorTemplate#">
+						<cfinvokeargument name="errorStacktrace" value="#errorStacktrace#">
+						<cfinvokeargument name="errorDate" value="#errorDate#">
+						<cfinvokeargument name="autoTimeoutApplied" value="#justAppliedTimeout#">
+					</cfinvoke>
+				</cfif>
+					
+			</cfif><!---<cfif errorUrl contains '.cfm' or errorUrl contains '.cfc'>--->
+						
+		</cfif><!---<cfif arguments.disable>--->
+					
+		<!--- Don't return anything --->
+
 	</cffunction>	
 						
 	<cffunction name="onApplicationEnd">

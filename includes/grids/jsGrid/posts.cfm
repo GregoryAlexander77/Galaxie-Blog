@@ -1,6 +1,11 @@
 <!doctype html>
 <cfsilent>
+<!--- The pages and post grids are nearly identical and need the following vars  --->
 <cfset gridName = "postGrid">
+<cfset showEditButton = true>
+<!--- There are two types of data in the post table- posts and pages. These args only apply to post or page data --->
+<cfset showPages = false>
+<cfset showBlogPosts = true>
 <!--- 
 New Errors in June 2025: CF update 14 tightened down strict argument matching and extra arguments sent to the cfc will cause errors.
 --->	
@@ -15,7 +20,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 	</cfoutput><!-- Fontawesome css -->
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 	
-	<p>All columns are sortable and most are searchable. To search, enter the search term on top of the column and click the search link at the right of the page. <cfif not session.isMobile>To release a post, click on the released checkbox and click on the update checkmark on the right of the page.</cfif> There are extensive post details available by clicking on the post links.</p>
+	<p>To search, enter the search term on top of the column and click the search link at the right of the page. <cfif not session.isMobile>All columns are sortable and most are searchable. Blog Posts have a date and are placed on the main blog page. To release a blog post, click on the released checkbox and click on the update checkmark on the right of the page.</cfif> There are extensive post details available by clicking on the post links.</p>
 	
 	<style>
 		body {
@@ -95,7 +100,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
 		<td align="left" width="75%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<button id="newSubscriber" name="newCategory" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(24,'newPost');">Create New Post</button>
+			<button id="newPost" name="newPost" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(24,'newPost');">Create New Post</button>
 		</td>
 	  </tr>
 	  <cfsilent>
@@ -177,7 +182,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					console.log(filter);
 					return $.ajax({
 						type: "GET",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getPostsForGrid&gridType=jsGrid&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getPostsForGrid&gridType=jsGrid&showPages=<cfoutput>#showPages#</cfoutput>&showBlogPosts=<cfoutput>#showBlogPosts#</cfoutput>&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
 						data: filter,
 						dataType: "json"
 					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
@@ -372,15 +377,6 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 				]
 			});
 		});
-
-		// Helper functions
-		function makePostLink(datePosted, postAlias){
-			var dt = new Date(datePosted);
-			var yyyy = dt.getFullYear();
-			var m = dt.getMonth()+1;
-			var d = dt.getDay()+1;
-			return yyyy + "/" + m + "/" + d + "/" + postAlias;
-		}
 		
 		// Send email to subscribers
 		function sendEmailToSubscribers(postId){ 
@@ -462,7 +458,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 			updateButtonTooltip: "Update",
 			cancelEditButtonTooltip: "Cancel edit",
 
-			editButton: true,
+			editButton: <cfoutput>#showEditButton#</cfoutput>,
 			deleteButton: true,
 			clearFilterButton: true,
 			modeSwitchButton: true,

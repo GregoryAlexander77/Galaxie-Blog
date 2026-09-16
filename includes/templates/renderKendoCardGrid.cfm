@@ -64,7 +64,14 @@
 	</cfif>
 	<cfset title = getPost[i]["Title"]>
 	<cfset author = getPost[i]["FullName"]>
+	<!--- 
+	Original code
 	<cfset postUrl = application.blog.makeLink(getPost[i]["PostId"])>
+	--->
+	<cfset postUrl = application.blog.makeLink(
+		isPage=getPost[i]["IsPage"], 
+		postAlias=getPost[i]["PostAlias"], 
+		datePosted=getPost[i]["DatePosted"])>
 	<cfset postContent = getPost[i]["Description"]>
 	<cfset enclosure = getPost[i]["MediaUrl"]>
 	<cfset thumbnail = getPost[i]["MediaThumbnailUrl"]>

@@ -9,22 +9,31 @@
 <!--- Get the dbBlogVersion from the database. --->
 <cfset blogDbVersion = application.blog.getDbBlogVersion()>
 
+
 <cfif blogDbVersion lt application.blog.getVersion()>
 	<cfset databaseUpdatedNeeded = true>
 <cfelse>
 	<cfset databaseUpdatedNeeded = false>
 </cfif>
+
+<!--- Determine what xml file to read --->
+<cfif blogDbVersion lt 4.07>
+	<cfset xmlFile = 'version4_07.xml'>
+<cfelseif blogDbVersion lt 4.5>	
+	<cfset xmlFile = 'version4_5.xml'>
+</cfif>
+	
 <!---
 Debugging
 <cfoutput>
-	blogDbVersion: #blogDbVersion# application.blog.getVersion(): #application.blog.getVersion()# databaseUpdatedNeeded: #databaseUpdatedNeeded#
+	blogDbVersion: #blogDbVersion# application.blog.getVersion(): #application.blog.getVersion()# databaseUpdatedNeeded: #databaseUpdatedNeeded# xmlFile: #xmlFile#
 </cfoutput>
 --->
-<!---<cftry>--->
+<cftry>
 	
 	<!--- Works with flat XML (https://www.gregoryalexander.com/common/services/gregorysBlog/version.xml) --->
 		
-	<cfset serviceURL = "https://www.gregoryalexander.com/common/services/gregorysBlog/version.xml">
+	<cfset serviceURL = "https://www.gregoryalexander.com/common/services/gregorysBlog/" & xmlFile>
 	<cfhttp url="#serviceUrl#" result="result">
 	<cfset data = xmlParse(result.fileContent)>
 	<cfset latestVersion = data.version.number.xmlText>
@@ -104,11 +113,11 @@ Debugging
 	<cfoutput>
 	<script>
 		// Install the update.  -------------------------------------------------------------------------------------	
-		function updateDb(){
+		function updateDb(version){
 			// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
 			 $.when(kendo.ui.ExtYesNoDialog.show({ // Alert the user and ask them if they want to double opt in
 				title: "Please confirm that you want to install the update",
-				message: "Do you want to continue to update the database?",
+				message: "Do you want to continue to update the database? This is safe to run and running this more than once will not create any issues.",
 				icon: "k-ext-information",
 				width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
 				height: "215px"
@@ -120,9 +129,9 @@ Debugging
 					$.ajax({
 						type: 'post', 
 						// This posts to the proxy controller as it needs to have session vars and performs client side operations.
-						url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=updateDb",
+						url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=updateDb&blogVersion=" + <cfoutput>#application.blog.getVersion()#</cfoutput>,
 						data: {
-							blogVersion: "4.07",//3.12
+							blogVersion: "4.5",
 							csrfToken: '<cfoutput>#csrfToken#</cfoutput>'
 						},//..data: {
 						dataType: "json",
@@ -159,7 +168,7 @@ Debugging
 		
 	</script>
 	</cfoutput>
-	<!---<cfcatch>
+	<cfcatch>
 		<cfoutput><p>Unable to correctly contact the update site.</p></cfoutput>
 	</cfcatch>
-</cftry>--->
+</cftry>

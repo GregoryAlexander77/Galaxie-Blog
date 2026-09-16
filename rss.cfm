@@ -84,7 +84,7 @@
 
 <cfif structKeyExists ( variables.headers, 'If-Modified-Since' ) and variables.headers['If-Modified-Since'] eq variables.lastModified>
 	<cfif structKeyExists ( variables.headers, 'If-None-Match' ) and variables.headers['If-None-Match'] eq variables.ETag>
-		<cfheader statuscode="304" statustext="Not Modified" />
+		<cfheader statuscode="304" />
 		<cfexit />
 	</cfif>
 </cfif>

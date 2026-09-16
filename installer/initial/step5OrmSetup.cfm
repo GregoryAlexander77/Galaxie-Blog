@@ -139,6 +139,7 @@
 								<li>Container.cfc</li>
 								<li>ContentOutput.cfc</li>
 								<li>CustomWindowContent.cfc</li>
+								<li>ErrorLog.cfc</li>
 								<li>Post.cfc</li>
 								<li>Users.cfc</li>
 							</ul>

@@ -17,10 +17,50 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 	
 <!--- Unique page settings that may vary on each different page. --->
 <cfset pageId = 4>
-<cfset pageName = "Login"><!--- Blog --->
+<cfset pageName = "Login"><!--- Login --->
 <cfset pageTypeId = 2><!--- Admin --->
 
-<!--- Common and theme settings and includes the getMode tag in order to set the params for the getPost query. The pageSettings also determines when we should cache the page depending upon if the user is logged in. --->
+<!---
+Custom page example:
+<cfset pageId = unique number>
+<cfset pageName = "unique string">
+<cfset pageTypeId = 9>
+
+Optional custom page variables 
+postId: Id allows to create content from a unique post in the database. This usually is not necessary as you can create dynamic pages from a post using the admin page that sets the isPage column to true in the database.
+customPageTemplate: path allows to use a custom template using a hardcoded cfinclude. 
+--->	
+	
+<!--- //******************************************************************************************************************
+			Inspect the URL 
+//********************************************************************************************************************--->
+
+<!--- This template gets the number of forward slashes in a year and determines what is being sent by the positions of the elements in the URL. --->
+<cfmodule template="#application.baseUrl#/tags/parseses.cfm" /> 
+	
+<!--- Raymond's module to inspect the URL to determine what to pass to the getPost method. Get mode also deterines the start and end row determined by what type of page this is (blog or post for example). This works in conjunction with parses.cfm above. I may rewrite this in a future version. --->
+<cfmodule template="#application.baseUrl#/tags/getmode.cfm" r_params="params"/>
+<!---<cfdump var="#params#" label="params">--->
+	
+<!--- //******************************************************************************************************************
+			Get the post(s)
+//********************************************************************************************************************--->
+	
+<cfinclude template="#application.baseUrl#/includes/templates/getPost.cfm"> 
+<!---<cfdump var="#getPost#" label="getPost">--->
+	
+<!--- //******************************************************************************************************************
+			Global page settings and cache
+//********************************************************************************************************************--->
+
+<!--- Include the functions that are used in the UI --->
+<cfinclude template="#application.baseUrl#/common/function/page.cfm">
+	
+<!--- //******************************************************************************************************************
+			Get the page properties
+//********************************************************************************************************************--->
+	
+<!--- The pageSettings also determines when we should cache the page depending upon if the user is logged in. --->
 <cfinclude template="#application.baseUrl#/includes/templates/pageSettings.cfm">
 
 <!--- //******************************************************************************************************************
@@ -37,8 +77,11 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 //********************************************************************************************************************--->
 </cfsilent>
 <html lang="en-US"><head><cfoutput>
-	
-<!---<cfdump var="#getPost#">--->
+<cfif cgi.remote_addr eq '50.54.137.103' and 1 eq 2>
+	<cfdump var="#params#" label="params">
+	<cfdump var="#URL#" label="URL">
+	<cfdump var="#getPost#" label="getPost">
+</cfif>
 <cfinclude template="#application.baseUrl#/includes/templates/head.cfm" />
 </head>
 </cfoutput>	
@@ -131,21 +174,35 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 				Blog content html
 	//****************************************************************************************************************--->
 		
-	<!--- Note: the blog content HTML template is too sophisticated to cache the entire template. Instead, we will cache parts of it  --->
-	</cfsilent>			
+	<!--- Note: the blog content HTML template is too sophisticated to cache the entire template. Instead, we will cache parts of it  
+		
+	Debugging
+	<cfoutput>getPageMode(): #getPageMode()# condensedGridView: #condensedGridView#</cfoutput>
+	<cfdump var="#params#" label="params">
+	<cfdump var="#URL#" label="URL">
+	--->
+	</cfsilent>		
+	
 	<!-- Blog body -->
 	<main>
-		<cfif pageTypeId eq 1><!--- Blog --->
+		<cfif pageTypeId eq 1>
+			<!--- Main blog --->
 			<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
+		<cfelseif pageTypeId eq 9>
+			<cfif isDefined("customPageTemplate") and len(customPageTemplate)>
+				<!--- Custom page with a hardcoded template --->
+				<cfinclude template="#customPageTemplate#">
+			<cfelse>
+				<!--- Standard page --->
+				<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
+			</cfif>
 		<cfelse>
 			<div id='contentInnerContainer' class="k-content"><!--- This must be a content container class --->
-				<cfif pageTypeId eq 2><!--- Admin --->
+				<cfif pageTypeId eq 2><!--- Admin pages --->
 					<!-- Dynamic content loaded via jQuery and Ajax. -->
 					<cfinclude template="#application.baseUrl##getTemplatePathByPageName(pageName)#" /><!--- The getTemplatePathByPageName is in /common/function/page.cfm --->
-				<cfelse>
-					<!--- External pages coming soon --->	
 				</cfif>
-			</div><!--<div id='adminContent'>-->
+			</div><!--<div id='contentInnerContainer' class="k-content">-->
 		</cfif><!---<cfif pageTypeId eq 1>--->
 		<cfsilent>
 		<!---//***************************************************************************************************************

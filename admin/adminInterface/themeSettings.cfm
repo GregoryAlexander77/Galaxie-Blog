@@ -224,63 +224,44 @@
 		}
 	</script>
 		
-	<!-- Collapsable style -->
 	<style>
-		.collapsible {
-			cursor: pointer;
-			padding: 10px;
-			width: 98%;
-			border: thin;
-			border-style: solid;
-			text-align: left;
-			outline: none;
-			font-size: 15px;
-			transition: max-height 0.2s ease-out;
-		}
-
-		.collapsible:after {
-			content: '\25BC';
-			color: white;
-			font-weight: bold;
-			float: right;
-			margin-left: 5px;
-			margin-left: 5px;
-		}
-
-		.active:after {
-		  content: "\25B2";
-		}
-
-		.content {
-		  padding: 0 18px;
-		  display: none;
-		  overflow: hidden;
-		}
-		
 		.setting-title {
 			font-size: 16px;
 			padding: 8px 12px;
 		}
-	</style>
-	
-	<!-- Collapsable script -->
-	<script>
-		var coll = document.getElementsByClassName("collapsible");
-		var i;
 
-		for (i = 0; i < coll.length; i++) {
-		  coll[i].addEventListener("click", function() {
-			this.classList.toggle("active");
-			var content = this.nextElementSibling;
-			if (content.style.display === "block") {
-			  content.style.display = "none";
-			} else {
-			  content.style.display = "block";
-			}
-		  });
+		/* Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless
+		   look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names,
+		   and resets box-shadow/background-image too since some Kendo skins draw the separator line that
+		   way instead of with a plain border. Scoped to direct structural children of each item so the
+		   real form content (tables, inputs, etc.) nested inside isn't affected. */
+		#themeSettingsPanelBar,
+		#themeSettingsPanelBar .k-item,
+		#themeSettingsPanelBar .k-link,
+		#themeSettingsPanelBar .k-header,
+		#themeSettingsPanelBar .k-content,
+		#themeSettingsPanelBar .k-panelbar-content,
+		#themeSettingsPanelBar .k-panelbar-content-wrapper,
+		#themeSettingsPanelBar .k-panelbar-item,
+		#themeSettingsPanelBar .k-panelbar-link,
+		#themeSettingsPanelBar .k-group,
+		#themeSettingsPanelBar > .k-item > *,
+		#themeSettingsPanelBar > .k-item > * > * {
+			border: none !important;
+			box-shadow: none !important;
+			background-image: none !important;
 		}
-	</script>	
-		
+	</style>
+
+	<script>
+		$(document).ready(function() {
+			// Create an accordian style panel for each theme settings section.
+			$("#themeSettingsPanelBar").kendoPanelBar({
+				expandMode: "multiple"
+			});
+		});//..document.ready
+	</script>
+
 	<script>
 		// ---------------------------- kendo theme dropdown. ----------------------------
 		var kendoThemeDs = new kendo.data.DataSource({
@@ -693,8 +674,11 @@
 	<!---//***********************************************************************************************
 						Themes Interface Header Custom Scripts
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Custom Header Script</button>
-	<div class="content k-content">
+	<ul id="themeSettingsPanelBar">
+	<li>
+		Custom Header Script
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -790,12 +774,16 @@
 		  </tr>
 		</table>
 	</div>
+	</div>
+	</li>
 		
 	<!---//***********************************************************************************************
 						Themes Interface Fav Icon
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Fav Icon</button>
-	<div class="content k-content">
+	<li>
+		Fav Icon
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -914,12 +902,16 @@
 		  </tr>
 		</table>
 	</div>
+	</div>
+	</li>
 			  
 	<!---//***********************************************************************************************
 						Themes Interface Fonts
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Fonts</button>
-	<div class="content k-content">
+	<li>
+		Fonts
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
@@ -1215,12 +1207,16 @@
 		  </tr>
 		</table>
 	</div>
+	</div>
+	</li>
 			  
 	<!---//***********************************************************************************************
 						Themes Interface Container Properties
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Blog Theme Style and Column Display</button>
-	<div class="content k-content">
+	<li>
+		Blog Theme Style and Column Display
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -1465,12 +1461,16 @@
 		  </tr>
 		</table>
 	</div>
+	</div>
+	</li>
 			
 	<!---//***********************************************************************************************
 						Themes Interface Backgrounds
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Backgrounds</button>
-	<div class="content k-content">
+	<li>
+		Backgrounds
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -1746,13 +1746,17 @@
 		  </tr>
 		</table>
 	</div>
+	</div>
+	</li>
 			
 	<!---//***********************************************************************************************
 						 Header
 	//************************************************************************************************--->
 				
-	<button type="button" class="collapsible k-header">Header</button>
-	<div class="content k-content">
+	<li>
+		Header
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -1876,13 +1880,17 @@
 		</cfif>  
 		</table>
 	</div>
+	</div>
+	</li>
 				
 	<!---//***********************************************************************************************
 						Themes Interface Logos
 	//************************************************************************************************--->
 				
-	<button type="button" class="collapsible k-header">Logo</button>
-	<div class="content k-content">
+	<li>
+		Logo
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -2103,13 +2111,17 @@
 			  
 		</table>
 	</div>
+	</div>
+	</li>
 			  
 	<!---//***********************************************************************************************
 						Themes Interface Blog Title
 	//************************************************************************************************--->
 				
-	<button type="button" class="collapsible k-header">Blog Title</button>
-	<div class="content k-content">
+	<li>
+		Blog Title
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -2204,13 +2216,17 @@
 			  
 		</table>
 	</div>
+	</div>
+	</li>
 			  
 	<!---//***********************************************************************************************
 						Menu's
 	//************************************************************************************************--->
 				
-	<button type="button" class="collapsible k-header">Menu</button>
-	<div class="content k-content">
+	<li>
+		Menu
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -2538,12 +2554,15 @@
 		</cfif> 
 		</table>
 	</div>
+	</div>
+	</li>
 			
 	<!---//***********************************************************************************************
 						Windows
 	//************************************************************************************************--->
 			
-	<button type="button" class="collapsible k-header">About & Bio Window Content</button>
+	<li>
+		About & Bio Window Content
 	<cfsilent>
 		
 		<!--- This logic is easily reproducable with a small number of variables. Set them here. --->
@@ -2560,7 +2579,8 @@
 		</cfinvoke>
 			
 	</cfsilent>		
-	<div class="content k-content">
+	<div class="k-content">
+	<div style="padding: 15px;">
 		
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
@@ -3001,12 +3021,15 @@
 		</cfif> 
 		</table>
 	</div>
+	</div>
+	</li>
 			
 	<!---//***********************************************************************************************
 						Pod Content
 	//************************************************************************************************--->
 			
-	<button type="button" class="collapsible k-header">Pod Content</button>
+	<li>
+		Pod Content
 	<cfsilent>
 		<!--- This logic is easily reproducable with a small number of variables. Set them here. --->
 		<cfset contentTemplateStr = "downloadPod">
@@ -3022,7 +3045,8 @@
 		</cfinvoke>
 		
 	</cfsilent>		
-	<div class="content k-content">
+	<div class="k-content">
+	<div style="padding: 15px;">
 		
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
@@ -4132,13 +4156,17 @@
 		  
 		</table>
 	</div>
+	</div>
+	</li>
 			
 	<!---//***********************************************************************************************
 						Footer
 	//************************************************************************************************--->
 				
-	<button type="button" class="collapsible k-header">Footer</button>
-	<div class="content k-content">
+	<li>
+		Footer
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -4353,11 +4381,15 @@
 		</cfif> 
 		</table>
 	</div>
+	</div>
+	</li>
 	<!---//***********************************************************************************************
 						Themes Interface Footer Custom Scripts
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Custom Footer Scripts</button>
-	<div class="content k-content">
+	<li>
+		Custom Footer Scripts
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -4453,6 +4485,9 @@
 		  </tr>
 		</table>
 	</div>
+	</div>
+	</li>
+	</ul>
 	<br/><br/>
 	<button id="themeSubmit" name="themeSubmit" class="k-button k-primary" type="button">Submit</button> 
 			  

@@ -1,7 +1,7 @@
 				<cfif postScrollWidgetType eq 'popularPosts'>
 					<h1 class="topContent" <cfif darkTheme>style="color:ivory"</cfif>>Popular Blogs</h1>
 				<cfelse>
-					<h2 class="topContent">Related Blogs</h3>
+					<h2 class="topContent">Related Blogs</h2>
 				</cfif>
 				
 				<!-- Kendo Scrollwrap container -->
@@ -47,7 +47,14 @@
 						<cfset promotedPost = getPosts[i]["Promoted"]>
 						<cfset title = getPosts[i]["Title"]>
 						<cfset author = getPosts[i]["FullName"]>
+						<!---
+						Original code
 						<cfset postUrl = application.blog.makeLink(getPosts[i]["PostId"])>
+						--->
+						<cfset postUrl = application.blog.makeLink(
+							isPage=getPosts[i]["IsPage"], 
+							postAlias=getPosts[i]["PostAlias"], 
+							datePosted=getPosts[i]["DatePosted"])>
 						<cfset postContent = getPosts[i]["Description"]>
 						<cfset enclosure = getPosts[i]["MediaUrl"]>
 						<cfset thumbnail = getPosts[i]["MediaThumbnailUrl"]>

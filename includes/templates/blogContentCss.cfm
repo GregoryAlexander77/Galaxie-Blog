@@ -4,6 +4,9 @@
 <cfif isDefined("URL.standalone") and len(URL.standalone)>
 	<cfset standAlone = true>
 	<cfset pageTypeId = 1><!--- Blog --->
+	<!--- Include the page functions in standalone mode --->
+	<cfinclude template="../../common/function/page.cfm">	
+	<!--- Now include the pageSettings template that uses the functions in the page template --->
 	<cfinclude template="pageSettings.cfm">	
 <cfelse>
 	<cfset standAlone = false>
@@ -763,7 +766,7 @@
 		
 		
 		/* Title bar of the calendar (we need more space for this widget) */
-		.calendarWidget h3.topContent {
+		.calendarWidget h2.h3.topContent {
 			font-size: 1em;
 			padding-top: 0px;
 			padding-right: 0px;
@@ -808,7 +811,7 @@
 		}
 
 		/* Title bar */
-		.widget h3.topContent {
+		.widget h2,h3.topContent {
 			font-size: 1em;
 			padding-top: 0px;
 			padding-right: 0px;
@@ -860,7 +863,7 @@
 		}
 				
 		/* Author name */
-		.author-bio h3.topContent {
+		.author-bio h2,h3.topContent {
 			font-size: 1em;
 			padding-top: 0px;
 			padding-right: 0px;

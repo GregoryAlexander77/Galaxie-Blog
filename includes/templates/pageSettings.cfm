@@ -1,17 +1,4 @@
 <!--- //******************************************************************************************************
-			Get the post(s)
-//********************************************************************************************************--->
-
-<cfinclude template="#application.baseUrl#/includes/templates/getPost.cfm"> 
-
-<!--- //******************************************************************************************************
-			Global page settings and cache
-//********************************************************************************************************--->
-
-<!--- Include the functions that are used in the UI --->
-<cfinclude template="#application.baseUrl#/common/function/page.cfm">
-
-<!--- //******************************************************************************************************
 			Common custom templates (ad-hoc scripts if the database does not contain the logic).
 //********************************************************************************************************
 
@@ -330,15 +317,16 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 			Logic to set vars for the client
 //********************************************************************************************************--->
 	
-<cfif pageTypeId eq 1 or pageTypeId eq 8><!--- Blogs and custom pages --->
+<cfif pageTypeId eq 2>
+	<!--- Administrative pages --->
+	<cfset breakPoint = 0><!--- 0 eliminates the sidebar --->
+<cfelse>
+	<!--- Blogs and custom pages --->
 	<cfset breakPoint = getTheme[1]["Breakpoint"]>
 	<!--- Safety check --->
 	<cfif not isNumeric(breakPoint) or breakPoint eq "">
 		<cfset breakPoint = 1921><!---Was 1300--->
 	</cfif>
-<!--- The administrative pages do not contain a breakpoint. We will hide the sidebar.cfm template and all of the pods to the right of the page.--->
-<cfelseif pageTypeId eq 2><!--- Administrative pages --->
-	<cfset breakPoint = 0><!--- 0 eliminates the sidebar --->
 </cfif>
 	
 <!--- //******************************************************************************************************

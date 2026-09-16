@@ -1,6 +1,7 @@
 <!doctype html>
 <cfsilent>
 <cfset gridName = "tagGrid">
+<cfset showEditButton = true>
 </cfsilent>
 <html>
 <head><cfoutput>
@@ -328,14 +329,6 @@
 			});
 		});
 
-		// Helper functions
-		function makePostLink(datePosted, postAlias){
-			var dt = new Date(datePosted);
-			var yyyy = dt.getFullYear();
-			var m = dt.getMonth()+1;
-			var d = dt.getDay()+1;
-			return yyyy + "/" + m + "/" + d + "/" + postAlias;
-		}
 		
    	</script>
 	
@@ -384,7 +377,7 @@
 				updateButtonTooltip: "Update",
 				cancelEditButtonTooltip: "Cancel edit",
 
-				editButton: true,
+				editButton: <cfoutput>#showEditButton#</cfoutput>,
 				deleteButton: true,
 				clearFilterButton: true,
 				modeSwitchButton: true,

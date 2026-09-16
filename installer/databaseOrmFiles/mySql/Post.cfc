@@ -13,6 +13,9 @@
 	<cfproperty name="EnclosureCarousel" ormtype="int" fieldtype="many-to-one" cfc="Carousel" fkcolumn="EnclosureCarouselRef" inversejoincolumn="PostRef" inverse="true" cascade="all" missingRowIgnored="true">
 	<!--- The PostAssests column below is a psuedo column that is used by this object. The PostMedia table is our link table. There are many posts with many different types of media (images and video) --->
 	<cfproperty name="PostAssets" singularname="PostAsset" ormtype="int" fieldtype="one-to-many" cfc="PostMedia" fkcolumn="PostRef" inversejoincolumn="MediaRef" inverse="true" cascade="all" missingRowIgnored="true">
+	<!--- A post can either be embedded into an external page or the blog --->
+	<cfproperty name="IsPage" ormtype="boolean" default="false">
+	<cfproperty name="IsBlogPost" ormtype="boolean" default="false">
 	<!--- Psuedo column that will not be placed into the actual database. We are using the PostCategoryLookup table as an intermediatory table to store the many to many relationships between a post and a category.  --->
 	<cfproperty name="Categories" singularname="Category" ormtype="int" fieldtype="many-to-many" cfc="Category" fkcolumn="PostRef" inversejoincolumn="CategoryRef" inverse="true" linktable="PostCategoryLookup" type="array" cascade="all" missingRowIgnored="true">
 	<!--- Psuedo column that will not be placed into the actual database. We are using the PostTagLookup table as an intermediatory table to store the many to many relationships between a post and a tag.  --->
@@ -25,7 +28,7 @@
 	<cfproperty name="PostUuid" ormtype="string" length="35" default="">
 	<cfproperty name="PostAlias" ormtype="string" length="100" default="">
 	<cfproperty name="Title" ormtype="string" length="125" default="">
-	<cfproperty name="Description" ormtype="string" length="1250" default="This should be set to a lenght of 160 in the future">
+	<cfproperty name="Description" ormtype="string" length="1250" default="This should be set to a length of 160 in the future">
 	<!--- SEO Stuff (I will break this into it's own table in a future version) --->
 	<cfproperty name="NoIndex" ormtype="boolean" default="false">
 	<cfproperty name="DisplayOnRss" ormtype="boolean" default="true">

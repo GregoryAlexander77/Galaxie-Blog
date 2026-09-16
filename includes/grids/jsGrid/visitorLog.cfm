@@ -1,6 +1,38 @@
 <!doctype html>
 <cfsilent>
 <cfset gridName = "visitorLogGrid">
+<cfset showEditButton = false>
+<!--- Note: this grid has various arguments, the usage is return createAdminInterfaceWindow(63, anonymousUserId,IpAddressId,postId) send in by the URL. The vars are: createCustomInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) You can send in a 0 for one of the arguments if you don't want to filter by one of the criteria. We will construct the URL sent to the server dyncamically --->
+<cfset getUrl = application.baseUrl & '/common/cfc/ProxyController.cfc?method=getVisitorLogForGrid&gridType=jsGrid'>
+<cfparam name="pageTitle" default="" type="string">
+
+<!--- Construct the URL --->
+<cfif structKeyExists(URL, "optArgs") and isNumeric(URL.optArgs) and URL.optArgs gt 0>
+	<cfset getUrl = getUrl & '&anonymousUserId=' & URL.optArgs>
+	<cfset pageTitle = "Visitor Statistics by User" & URL.optArgs>
+</cfif>
+<!--- Append the IpAddressId --->
+<cfif structKeyExists(URL, "otherArgs")  and isNumeric(URL.optArgs) and URL.otherArgs gt 0>
+	<cfset getUrl = getUrl & '&ipAddressId=' & URL.otherArgs>
+	<cfset pageTitle = "Visitor Statistics By IP">
+</cfif>
+<!--- Append the postId --->
+<cfif structKeyExists(URL, "otherArgs1") and isNumeric(URL.otherArgs1) and URL.otherArgs1 gt 0>
+	<cfset getUrl = getUrl & '&postId=' & URL.otherArgs1>
+	<cfset pageTitle = "Visitor Statistics By Page">
+</cfif>
+<!--- Finally, attach the csrfToken --->
+<cfset getUrl = getUrl & '&csrfToken=' & csrfToken>
+
+<!------>
+<cfdump var="#URL#" label="url">
+<cfoutput>
+	URL.optArgs: #URL.optArgs#<br/>
+	URL.otherArgs: #URL.otherArgs# <br/>
+	URL.otherArgs1: #URL.otherArgs1#<br/>
+	getUrl: #getUrl#<br/>
+</cfoutput>
+
 </cfsilent>
 <html>
 <head><cfoutput>
@@ -12,7 +44,9 @@
 	</cfoutput><!-- Fontawesome css -->
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 	
-	<p>All columns are sortable and searchable. To search, enter the search term on top of the column and click the search link at the right of the page. Note: this query only returns the last 10000 rows of data. However, all of data is intact in the VisitorLog table in the database if you need to perform further manual analsis.</p>
+	<cfif len(pageTitle)><h2><cfoutput>#pageTitle#</cfoutput></h2></cfif>
+	<p>All columns are sortable and searchable. To search, enter the search term on top of the column and click the search link at the right of the page.However, all of data inside the retention period specified in the blog options interface is intact in the VisitorLog table in the database if you need to perform further manual analsis.<br/>
+	Note: to conserve server resouces, this grid is limited to 5k records.</p>
 	
 	<style>
 		body {
@@ -141,7 +175,7 @@
 					console.log(filter);
 					return $.ajax({
 						type: "GET",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getVisitorLogForGrid&gridType=jsGrid&csrfToken=<cfoutput>#csrfToken#</cfoutput>", 
+						url: "<cfoutput>#getUrl#</cfoutput>", 
 						data: filter,
 						dataType: "json"
 					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
@@ -165,43 +199,70 @@
 			// Fields 
 			fields: [
 				{ 
-					name: "FullName", 
+					name: "AnonymousUserId", 
 					type: "text",
-					title: "User",
+					title: "UserId",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>20</cfif>/100)),
+					width: (pageWidth*(10/100)),
+					itemTemplate: function(value, item) {
+						// Link to the visitor details
+						return '<a href="javascript:createAdminInterfaceWindow(63, ' + item.AnonymousUserId + ');">' + value + '</a>';
+					}
 				},
 				{ 
 					name: "IpAddress", 
 					type: "text",
 					title: "IP Address",
 					editing: false,
+					width: (pageWidth*(<cfif session.isMobile>25<cfelse>15</cfif>/100)),
+					itemTemplate: function(value, item) {
+						// Link to this page using the ipAddressId (createAdminInterfaceWindow(48,[anonymousUserId,ipAddressId,postId]). This will show all of the pages that the ip has visited, not necessarilly the anonymous user which is a unique combination of the user agent and ip.
+					  	return '<a href="javascript:createAdminInterfaceWindow(64,0,' + item.IpAddressId + ',0);">' + value + '</a>';
+					}
+				},
+				{ 
+					name: "FullName", 
+					type: "text",
+					title: "Auth User",
+					editing: false,
 					width: (pageWidth*(<cfif session.isMobile>30<cfelse>20</cfif>/100)),
 				},
-				<!--- We just don't have the room for the user agent with mobile clients. --->
+				<!--- We just don't have the room for the posts on mobile. --->
 				<cfif not session.isMobile>
 				{ 
-					name: "HttpUserAgent", 
+					name: "PostTitle", 
 					type: "text",
-					title: "User Agent",
+					title: "Post",
 					editing: false,
 					width: (pageWidth*(40/100)),
+					itemTemplate: function(value, item) {
+						// Don't show null posts
+						if (item.VisitingHomePage) {
+							return 'Home';
+						} else if (item.PostTitle !== null) {
+							// Link to this page using the anonymousUserId and postId (createAdminInterfaceWindow(48,[anonymousUserId,ipAddressId,postId]). This will show all of the visitors for a given page
+					  		return '<a href="javascript:createAdminInterfaceWindow(48, 0,0,' + item.PostId + ');">' + value + '</a>';
+						}
+					}
 				},
 				</cfif>
+				{ 
+					name: "IsBot", 
+					type: "checkbox",
+					title: "Bot?",
+					editing: false,
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>5</cfif>/100))
+				},
 				{ 	
 					name: "dateVisited", 
 					type: "date",
 					title: "Date",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>20<cfelse>10</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>15</cfif>/100)),
 					itemTemplate: function (value, item) {
 						// Format the date using the dayjs lib.
 						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');
 					}
-				},
-				{ 
-					type: "control",
-					width: (pageWidth*(<cfif session.isMobile>20<cfelse>10</cfif>/100)),
 				}
 
 				]
@@ -255,7 +316,7 @@
 				updateButtonTooltip: "Update",
 				cancelEditButtonTooltip: "Cancel edit",
 
-				editButton: false,
+				editButton: <cfoutput>#showEditButton#</cfoutput>,
 				deleteButton: false,
 				clearFilterButton: true,
 				modeSwitchButton: true,

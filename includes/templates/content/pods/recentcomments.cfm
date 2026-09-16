@@ -303,7 +303,7 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 					<!--- Set the anchor link that will be wrapped around the title. There is extra logic required here as we need to grab this from various functions. --->
 
 					<!--- Set the link --->
-					<cfset commentLink = application.blog.makeCommentLink(commentPostId, PostDatePosted, commentPostAlias, commentId)>
+					<cfset commentLink = application.blog.makeCommentLink(postId=commentPostId, datePosted=PostDatePosted, postAlias=commentPostAlias, commentId=commentId)>
 
 					<!--- Shorten and format the comment.--->
 					<cfset formattedComment = comment>

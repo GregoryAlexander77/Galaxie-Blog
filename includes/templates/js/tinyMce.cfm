@@ -105,9 +105,9 @@
 	<!--- Note: this path should point to the foler for the Code Mirror library. Do not point to the folder where codemirror.js is found. --->
 	<cfset codeMirrorLibPath = application.baseUrl & "/common/libs/codemirror5/">
 	
-	<!--- Note: don't use the autosave plugin- its buggy! We are also using 'codemirror' as a plugin that replaces 'code'--->
+	<!--- Note: don't use the autosave plugin- its buggy! I removed the codemirror plugin in May of 26. I used to use 'codemirror' as a plugin that replaced 'code', however, it has security issues. --->
 	<cfparam name="pluginList" default="'advlist autolink lists hr link image charmap print preview anchor',
-		'searchreplace visualblocks codemirror code codesample fullscreen',
+		'searchreplace visualblocks code codesample fullscreen',
 		'insertdatetime media table paste imagetools wordcount iconfonts textpattern toc emoticons nonbreaking'">
 
 	<cfif  application.serverSupportsWoff2>
@@ -150,6 +150,55 @@
 	</style>
 
 	<script type="text/javascript">
+
+		// Rewrites the built-in 'toc' plugin's auto-generated anchor ids (mcetoc_xxxxxxxxxx) into
+		// human-readable slugs built from each heading's own text (eg. "background", or "background-1"
+		// for a repeated heading). This keeps the free toc plugin but gives us descriptive, stable
+		// anchors instead of the random ones it generates by default. Declared at the top level (not
+		// inside setup()) so it is available both to the ExecCommand hook below and to the save-time
+		// cleanup pass in postDetail.cfm.
+		function rewriteTocAnchors(editor) {
+			try {
+				var body = editor.getBody();
+				if (!body) return;
+
+				// Build a url-fragment-safe slug: lower case, spaces/punctuation collapsed to single
+				// dashes, leading/trailing dashes trimmed.
+				function slugify(text) {
+					var clean = (text || '').replace(/ /g, ' ').trim().toLowerCase();
+					var slug = clean.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+					return slug || 'section';
+				}
+
+				var usedSlugs = {};
+				var headings = body.querySelectorAll('h1[id^="mcetoc_"], h2[id^="mcetoc_"], h3[id^="mcetoc_"], h4[id^="mcetoc_"], h5[id^="mcetoc_"], h6[id^="mcetoc_"]');
+
+				headings.forEach(function (heading) {
+					var oldId = heading.id;
+					var baseSlug = slugify(heading.textContent);
+					var newSlug = baseSlug;
+
+					// Only append a numeric suffix when the plain slug is not already unique on this page.
+					var counter = 1;
+					while (usedSlugs[newSlug]) {
+						newSlug = baseSlug + '-' + counter;
+						counter++;
+					}
+					usedSlugs[newSlug] = true;
+
+					heading.id = newSlug;
+
+					// Keep the matching TOC link (built by the toc plugin) pointed at the new id.
+					var tocLink = body.querySelector('.mce-toc a[href="#' + oldId + '"]');
+					if (tocLink) {
+						tocLink.setAttribute('href', '#' + newSlug);
+					}
+				});
+			} catch (err) {
+				// Never let a TOC rewrite problem break saving/editing.
+				console.error('Error rewriting TOC anchors:', err);
+			}
+		}//..function rewriteTocAnchors(editor)
 
 		// Initiate the tinymce editor.
 		tinymce.init({
@@ -230,6 +279,7 @@
 			toolbar_sticky: "80px",// This fixes when the toolbar disappears with the toolbar_sticky
 			plugins: [<cfoutput>#pluginList#</cfoutput>],
 			// Code Mirror is our code viewer and is a custom plugin
+			/* Depracated in April 2026
 			external_plugins: {
 				codemirror: "<cfoutput>#codeMirrorPluginPath#</cfoutput>"
 			},
@@ -240,7 +290,7 @@
 					lineNumbers: true,
 					lineWrapping: true
 				}
-			},
+			},*/
 			// Change the toc_depth to support h4 tags (the default is h1-3)
 			toc_depth: 5,
 			// Allow the Prism folder to be the prism engine instead of the embedded version of Prism within TinyMce. This is required to have line numbers
@@ -281,6 +331,18 @@
 				editor.on('init', function (e) {
 					// Note: this string is a template literal (ie using ``) in order to deal with both single and double qoutes without breaking the editor. However, you can't use any other template literals or script tags in the code or this will break! We are also sanitizing the scripts by putting HTML comments around any script tag found before inserting it into the editor.
 					editor.setContent(`<cfoutput>#RendererObj.renderScriptsToTinyMce(contentVar)#</cfoutput>`);
+					// Clean up any table of contents that was already present in the loaded content (eg. an
+					// older post saved before this rewrite existed, or content reloaded after a prior insert).
+					rewriteTocAnchors(editor);
+				});
+
+				// Whenever the built-in toc plugin inserts or refreshes the table of contents, immediately
+				// replace its random mcetoc_xxxxxxxxxx anchor ids with descriptive slugs so what you see in
+				// the editor already matches what will be saved.
+				editor.on('ExecCommand', function (e) {
+					if (e.command === 'mceInsertToc' || e.command === 'mceUpdateToc') {
+						rewriteTocAnchors(editor);
+					}
 				});
 
 			<cfif selectorId eq 'enclosureEditor' or selectorId eq 'videoCoverEditor' or selectorId eq 'imageUploadEditor'>

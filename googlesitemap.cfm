@@ -5,10 +5,20 @@
 <cfset params = structNew()>
 <!--- This should be good for a while.... --->
 <cfset params.maxEntries = 99999>
-<cfset params.mode = "short">
 
-<!--- Get the posts ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ). --->
-<cfset getPosts = application.blog.getPost(params, false, false, false, false)>
+<!--- Get the posts ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ). 
+Original code: <cfset getPosts = application.blog.getPost(params, false, false, false, false)>
+--->
+<cfinvoke component="#application.blog#" method="getPost" returnvariable="getPosts">
+	<cfinvokeargument name="params" value="#params#">
+	<!--- Show both blog posts and pages --->
+	<cfinvokeargument name="showPages" value="true">
+	<cfinvokeargument name="showBlogPosts" value="true">
+	<cfinvokeargument name="showPendingPosts" value="false">
+	<cfinvokeargument name="showRemovedPosts" value="false">
+	<cfinvokeargument name="showJsonLd" value="false">
+	<cfinvokeargument name="showPromoteAtTopOfQuery" value="false">
+</cfinvoke>
 
 <!--- Time zone logic --->
 <cfset z = getTimeZoneInfo()>
@@ -49,7 +59,14 @@
 	<!--- Loop through the posts array --->
 	<cfloop from="1" to="#arrayLen(getPosts)#" index="i">
 		<!--- Set the link to the post --->
+		<!--- The following original code required an additional query to the database
 		<cfset postLink = application.blog.makeLink(getPosts[i]["PostId"])>
+		--->
+		<cfset postLink = application.blog.makeLink(
+			   isPage=getPosts[i]["IsPage"], 
+			   postAlias=getPosts[i]["PostAlias"], 
+			   datePosted=getPosts[i]["DatePosted"]
+		)>
 		<!--- If the application.serverRewriteRuleInPlace variable has been set to true, we need to eliminate 'index.cfm' from the URL --->
 		<cfif application.serverRewriteRuleInPlace>
 			<cfset postLink = replaceNoCase(postLink, '/index.cfm', '')>

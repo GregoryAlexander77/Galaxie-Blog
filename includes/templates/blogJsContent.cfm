@@ -539,7 +539,7 @@
 			} else if (Id == 24){
 				var windowName = "newPostWindow";
 				var windowTitle = "Create Post";
-				var windowHeight = "<cfif session.isMobile>66%<cfelse>40%</cfif>";
+				var windowHeight = "<cfif session.isMobile>66%<cfelse>66%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
 			} else if (Id == 25){
 				var windowName = "categoryGridWindow";
@@ -659,7 +659,7 @@
 			} else if (Id == 48){
 				var windowName = "visitorLogWindow";
 				var windowHeight = "70%";
-				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>85%</cfif>";
 				var windowTitle = "Visitor Logs";
 			} else if (Id == 49){
 				var windowName = "addTagWindow";
@@ -701,6 +701,61 @@
 				var windowHeight = "40%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>33%</cfif>";
 				var windowTitle = "Post URL Redirect";
+			} else if (Id == 57){
+				var windowName = "PageWindow";
+				var windowTitle = "Pages";
+				var windowHeight = "<cfif session.isMobile>80%<cfelse>75%</cfif>%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>85%</cfif>";
+			} else if (Id == 58){
+				var windowName = "adminLogWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Administrative Logs";
+			} else if (Id == 59){
+				var windowName = "errorLogWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Error Log";
+			} else if (Id == 60){
+				var windowName = "errorDetailWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Error Detail";
+			} else if (Id == 61){
+				var windowName = "searchQueryWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Search Queries";
+			} else if (Id == 62){
+				var windowName = "reactionLogWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Reaction Log";
+			} else if (Id == 63){
+				var windowName = "anonymousUserWindow";
+				var windowHeight = "50%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>66%</cfif>";
+				var windowTitle = "Visitor Details";
+			} else if (Id == 64){
+				var windowName = "userVisitsWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>66%</cfif>";
+				var windowTitle = "User Visits";
+			} else if (Id == 65){
+				var windowName = "userRatingWindow";
+				var windowHeight = "66%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>66%</cfif>";
+				var windowTitle = "User Visits";
+			} else if (Id == 66){
+				var windowName = "banVisitorsWindow";
+				var windowHeight = "60%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+				var windowTitle = "Ban Visitors";
+			} else if (Id == 67){
+				var windowName = "bannedUsersGridWindow";
+				var windowHeight = "70%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>85%</cfif>";
+				var windowTitle = "Banned Users";
 			}
 			
 			// Remove the window if it already exists
@@ -722,7 +777,10 @@
 				width: windowWidth,
 				height: windowHeight,// We must leave room if the user wants to select a bunch of categories.
 				iframe: false, // don't  use iframes unless it is content derived outside of your own site. 
-				content: "../includes/windows/adminInterface.cfm?adminInterfaceId=" + Id + "&optArgs=" + optArgs + "&otherArgs=" + otherArgs + "&otherArgs1=" + otherArgs1,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: {
+					url: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/adminInterface.cfm?adminInterfaceId=" + Id + "&optArgs=" + optArgs + "&otherArgs=" + otherArgs + "&otherArgs1=" + otherArgs1,
+					cache: false
+				},// Unlike every other window above, this one was still using a relative path with no cache-busting -- the browser was happily reusing whatever it first fetched for a given adminInterfaceId (e.g. the Error Log grid), even after the server-side file changed. Now absolute (same fix already applied elsewhere in this function) plus content.cache:false so Kendo always appends a cache-busting param and refetches fresh content every time a window opens.
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -1014,14 +1072,14 @@
 				data: {
 					postId: postId,
 					uiInterface: uiInterface,
+				<cfif application.logVisitors and isDefined("AnonymousUserDbObj")>
+					anonymousUserId: <cfoutput>#AnonymousUserDbObj.getAnonymousUserId()#</cfoutput>,
+				</cfif>
 					postTitle: postTitle,
 					commenterName: commenterName,
 					commenterEmail: commenterEmail,
 					commenterWebSite: commenterWebSite,
 					comments: comments,
-					<!---user: "<cfoutput>#getAuthUser()#</cfoutput>", CF2023 Cache issue, replace this with application.blog.getUsersId() --->
-					ipAddress: "<cfoutput>#CGI.Remote_Addr#</cfoutput>",
-					httpUserAgent: "<cfoutput>#CGI.Http_User_Agent#</cfoutput>",
 					<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
 					captchaText: captchaText,
 					captchaHash: captchaHash,
@@ -1405,22 +1463,27 @@
 				$('#sidebarPanel').css('margin-top', marginTop);
 			}
 		}//..function setSidebarPadding(layer){
+		
 		//**************************************************************************************************************
 		// Helper functions 
 		//**************************************************************************************************************
 		
 		// Functions to create various links
-		function makePostLink(datePosted, postAlias){
-			var dt = new Date(datePosted);
-			var yyyy = dt.getFullYear();
-			var m = dt.getMonth()+1;
-			var d = dt.getDay()+1;
-			return yyyy + "/" + m + "/" + d + "/" + postAlias;
+		function makePostLink(isPage, datePosted, postAlias){
+			if (isPage){
+				return postAlias;
+			} else {
+				var dt = new Date(datePosted);
+				var yyyy = dt.getFullYear();
+				var m = dt.getMonth()+1;
+				var d = dt.getDay()+1;
+				return yyyy + "/" + m + "/" + d + "/" + postAlias;
+			}
 		}
 		
 		// The comment link is the post link with a ''#c' + commentId 
-		function makeCommentLink(datePosted, postAlias, commentId){
-			var postLink = makePostLink(datePosted, postAlias);
+		function makeCommentLink(isPage, datePosted, postAlias, commentId){
+			var postLink = makePostLink(isPage, datePosted, postAlias);
 			var commentLink = postLink + "#c" + commentId;
 			return commentLink;
 		}

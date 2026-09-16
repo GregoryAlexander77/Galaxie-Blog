@@ -1,6 +1,7 @@
 <!doctype html>
 <cfsilent>
 <cfset gridName = "userGrid">
+<cfset showEditButton = true>
 </cfsilent>
 <html>
 <head><cfoutput>
@@ -390,7 +391,7 @@
 			updateButtonTooltip: "Update",
 			cancelEditButtonTooltip: "Cancel edit",
 
-			editButton: true,
+			editButton: <cfoutput>#showEditButton#</cfoutput>,
 			deleteButton: true,
 			clearFilterButton: true,
 			modeSwitchButton: true,

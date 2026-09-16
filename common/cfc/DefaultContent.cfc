@@ -535,11 +535,13 @@
 					<cfset recentPostUuid = recentPosts[i]["PostUuid"]>
 					<cfset recentPostId = recentPosts[i]["PostId"]>
 					<cfset recentPostTitle = recentPosts[i]["Title"]>
-					<cfif application.serverRewriteRuleInPlace>
-						<cfset entryLink = replaceNoCase(application.blog.makeLink(recentPostId), '/index.cfm', '')>
-					<cfelse>
-						<cfset entryLink = application.blog.makeLink(recentPostId)>
-					</cfif>
+						
+					<!--- Create the link --->
+					<cfset entryLink = application.blog.makeLink(
+						isPage=recentPosts[i]["IsPage"], 
+						postAlias=recentPosts[i]["PostAlias"], 
+						datePosted=recentPosts[i]["DatePosted"])>
+						
 					</cfsilent>
 					<cfoutput>
 					<tr class="#iif(recentPostLoopCount MOD 2,DE('k-content'),DE('k-alt'))#">

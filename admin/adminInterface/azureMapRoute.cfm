@@ -35,7 +35,7 @@
 		var fuzzyGeoServiceUrl = "<cfoutput>#application.azureMapsFuzzySearchUrl#</cfoutput>"; 
 		
 		// URL for the Azure Maps Route API. Used when two or more locations are selected to render the route.
-        var routeGeoServiceUrl = '<cfoutput>#application.azureMapsDirectionsApiUrl#<cfoutput>/&language=en-US&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
+        var routeGeoServiceUrl = '<cfoutput>#application.azureMapsDirectionsApiUrl#</cfoutput>/&language=en-US&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
 		
 		// create DropDownList from select HTML element
         $("#countrySelector").kendoMultiSelect({

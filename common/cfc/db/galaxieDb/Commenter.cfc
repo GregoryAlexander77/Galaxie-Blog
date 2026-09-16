@@ -6,6 +6,7 @@
 	<cfproperty name="FullName" ormtype="string" length="255" default="">
 	<cfproperty name="Email" ormtype="string" length="150" default="">
 	<cfproperty name="Website" ormtype="string" length="255" default="">
+	<!--- We are storing the IP Address and the HTTP User Agent inside this table instead of using the AnonymousUser table as records from the AnonymousUser are only retained for a certain period of time and I want to keep these values stored permanently --->
 	<cfproperty name="IpAddress" ormtype="string" length="30" default="">
 	<cfproperty name="HttpUserAgent" ormtype="string" length="500" default="">
 	<cfproperty name="Banned" ormtype="boolean" default="false">

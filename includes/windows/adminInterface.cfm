@@ -42,7 +42,7 @@
 </cfif>
 
 <!--- Clear CF Caching 
-Note: this is broke with CF2023
+Note: the following flush line is broke with CF2023
 <cfcache action="flush"></cfcache>
 --->
 	
@@ -142,7 +142,7 @@ TinyMce styles
 //************************************************************************************************--->
 	
 <cfcase value=1>
-	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
 						kendo grid Comments
 		//************************************************************************************************--->
@@ -181,9 +181,12 @@ TinyMce styles
 	<cfinclude template="../../admin/adminInterface/galleryItems.cfm">  		
 </cfcase>
 		
+<!---//*******************************************************************************************************************
+				Post Grid
+//********************************************************************************************************************--->
 <cfcase value=5>
 	
-	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
 						kendo grid Comments
 		//************************************************************************************************--->
@@ -235,15 +238,15 @@ TinyMce styles
 				
 <cfcase value=10>
 	
-	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
-						kendo grid Comments
+						kendo grid 
 		//************************************************************************************************--->
 		<cfinclude template="../grids/kendo/userHistory.cfm">
 
 	<cfelse><!---<cfif application.kendoCommercial>--->
 		<!---//***********************************************************************************************
-						jsGrid Comments
+						jsGrid 
 		//************************************************************************************************--->
 		<cfinclude template="../grids/jsGrid/userHistory.cfm">
 
@@ -374,7 +377,7 @@ TinyMce styles
 			  
 <cfcase value=25>
 			  
-	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
 						kendo grid 
 		//************************************************************************************************--->
@@ -395,7 +398,7 @@ TinyMce styles
 //********************************************************************************************************************--->
 <cfcase value=26>
 			  
-	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
 						kendo grid 
 		//************************************************************************************************--->
@@ -425,7 +428,7 @@ TinyMce styles
 		  
 <cfcase value=28>
 			  
-	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
 						kendo grid 
 		//************************************************************************************************--->
@@ -450,7 +453,7 @@ TinyMce styles
 	<!--- The themes grid is used for multiple purposes differentiated by the themeType --->
 	<cfset themeGridType = "themeProperty">
 			  
-	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
 						kendo grid 
 		//************************************************************************************************--->
@@ -497,7 +500,7 @@ TinyMce styles
 		
 <cfcase value=33>
 		
-	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
 						kendo grid Comments
 		//************************************************************************************************--->
@@ -628,15 +631,15 @@ TinyMce styles
 		  
 <cfcase value="48">
 		  
-		<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+		<cfif application.kendoCommercial>
 		<!---//*****************************************************************************************
-						kendo grid Comments
+						jsGrid visitor log
 		//******************************************************************************************--->
-		<cfinclude template="../grids/kendo/userHistory.cfm">
+		<cfinclude template="../grids/kendo/visitorLog.cfm">
 
 	<cfelse><!---<cfif application.kendoCommercial>--->
 		<!---//*****************************************************************************************
-						jsGrid Comments
+						jsGrid visitor log
 		//******************************************************************************************--->
 		<cfinclude template="../grids/jsGrid/visitorLog.cfm">
 
@@ -658,7 +661,7 @@ TinyMce styles
 			  
 <cfcase value=50>
 			  
-	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
 						kendo grid 
 		//************************************************************************************************--->
@@ -707,7 +710,7 @@ TinyMce styles
 	<!--- The themes grid is used for multiple purposes differentiated by the themeType --->
 	<cfset themeGridType = "contentTemplate">
 			  
-	<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
+	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
 						kendo grid 
 		//************************************************************************************************--->
@@ -741,7 +744,189 @@ TinyMce styles
 <cfcase value=56>
 	<cfinclude template="../../admin/adminInterface/postUrlRedirect.cfm"> 			
 </cfcase>
-			
-</cfswitch>	
 	
+<!---//*******************************************************************************************************************
+				Page Grid
+//********************************************************************************************************************--->
+<cfcase value=57>
+	
+	<cfif application.kendoCommercial>
+		<!---//***********************************************************************************************
+						kendo grid 
+		//************************************************************************************************--->
+		<cfinclude template="../grids/kendo/pages.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//***********************************************************************************************
+						jsGrid 
+		//************************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/pages.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->
+</cfcase>
+			
+<!---//*******************************************************************************************************************
+				Admin Grid
+//********************************************************************************************************************--->
+<cfcase value=58>
+	
+	<cfif application.kendoCommercial>
+		<!---//***********************************************************************************************
+						kendo grid 
+		//************************************************************************************************--->
+		<cfinclude template="../grids/kendo/adminLog.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//***********************************************************************************************
+						jsGrid 
+		//************************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/adminLog.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->
+</cfcase>
+			
+<!---//*******************************************************************************************************************
+				Error Grid
+//********************************************************************************************************************--->
+<cfcase value=59>
+	
+	<cfif application.kendoCommercial>
+		<!---//***********************************************************************************************
+						kendo grid 
+		//************************************************************************************************--->
+		<cfinclude template="../grids/kendo/errorLog.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//***********************************************************************************************
+						jsGrid 
+		//************************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/errorLog.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->
+</cfcase>
+			
+<!--- //************************************************************************************************
+		Error Details 
+//**************************************************************************************************--->
+		
+<cfcase value=60>
+	<cfinclude template="../../admin/adminInterface/errorDetail.cfm">	
+</cfcase>
+	
+<!--- //************************************************************************************************
+		Search Query Grid 
+//**************************************************************************************************--->
+		
+<cfcase value=61>
+	<cfif application.kendoCommercial>
+		<!---//*****************************************************************************************
+						Kendo Grid
+		//******************************************************************************************--->
+		<cfinclude template="../grids/kendo/searchQuery.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//*****************************************************************************************
+						jSGrid
+		//******************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/searchQuery.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->
+</cfcase>
+
+<!--- //************************************************************************************************
+		Reaction Log Grid
+//**************************************************************************************************--->
+
+<cfcase value=62>
+	<cfif application.kendoCommercial>
+		<!---//*****************************************************************************************
+						Kendo Grid
+		//******************************************************************************************--->
+		<cfinclude template="../grids/kendo/rating.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//*****************************************************************************************
+						jSGrid
+		//******************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/rating.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->
+</cfcase>
+	
+<!--- //************************************************************************************************
+		Anonymous User Detail
+//**************************************************************************************************--->
+	
+<cfcase value=63>
+	<cfinclude template="../../admin/adminInterface/anonymousUserDetail.cfm">	
+</cfcase>
+	
+<cfcase value="64">
+		  
+	<cfif application.kendoCommercial>
+		<!---//*****************************************************************************************
+						jsGrid visitor log
+		//******************************************************************************************--->
+		<cfinclude template="../grids/kendo/userVisits.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//*****************************************************************************************
+						jsGrid visitor log
+		//******************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/userVisits.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->  
+		  
+</cfcase>
+			
+<cfcase value="65">
+		  
+	<cfif application.kendoCommercial>
+		<!---//*****************************************************************************************
+						Kendo Grid
+		//******************************************************************************************--->
+		<cfinclude template="../grids/kendo/rating.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//*****************************************************************************************
+						jSGrid
+		//******************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/rating.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->
+
+</cfcase>
+
+<!--- //************************************************************************************************
+		Ban Visitors (by IP address or HTTP User-Agent, via a Kendo MultiSelect)
+//**************************************************************************************************--->
+
+<cfcase value="66">
+	<cfinclude template="../../admin/adminInterface/banVisitors.cfm">
+</cfcase>
+
+<!--- //************************************************************************************************
+		Banned Users grid (read only) - shows anonymous visitors whose IP or User-Agent is currently banned
+//**************************************************************************************************--->
+
+<cfcase value="67">
+
+	<cfif application.kendoCommercial>
+		<!---//*****************************************************************************************
+						Kendo Grid
+		//******************************************************************************************--->
+		<cfinclude template="../grids/kendo/bannedUsers.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//*****************************************************************************************
+						jsGrid
+		//******************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/bannedUsers.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->
+
+</cfcase>
+
+</cfswitch>
+
 </html>

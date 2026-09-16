@@ -23,7 +23,7 @@
 
 <!--- Enforce ssl if necessary. --->
 <cfif useSsl and (CGI.https eq "off")>
-	<cfheader statuscode="308" statustext="Moved permanently">
+	<cfheader statuscode="308">
 	<!--- Determine the proper URL. We need to use the alias in the URL property if it exists. --->
 	<cfif URL.mode eq "alias">
 		<cfheader name="Location" value="#application.blog.makeLink(articles.id[1])#">
@@ -65,8 +65,8 @@
 <cfoutput><title>#titleMetaTagValue#</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="title" content="#titleMetaTagValue#" />
-<meta name="keywords" content="#application.BlogDbObj.getBlogMetaKeywords()#" />
+<meta name="title" content="#titleMetaTagValue#" /><cfif len(application.BlogDbObj.getBlogMetaKeywords())>
+<meta name="keywords" content="#application.BlogDbObj.getBlogMetaKeywords()#" /></cfif>
 <meta name="robots" content="<cfif noIndex>noindex<cfelse>index, follow</cfif>" />
 <cfif len(favIconHtml)>
 	<cfsilent>
@@ -181,9 +181,9 @@
 	}
 </script>
 	<cfsilent>
-		<!--- The thisKendoCommercial is a post directive that is used to overwrite the default application kendoCommercial variable.--->
-		<cfif isDefined("thisKendoCommercial") and thisKendoCommercial>
-			<!--- Use the value in the post directive --->
+		<!--- The thisKendoCommercial is a post directive (or the automatic postNeedsKendoCommercial() detection - see seoMetaTags.cfm) that overwrites the default application kendoCommercial variable. Note: this checks isDefined() alone, not "and thisKendoCommercial" - an explicit false (a post directive that turns Kendo Commercial off, or automatic detection finding the post doesn't need it) must be honored rather than silently falling through to the site default below. --->
+		<cfif isDefined("thisKendoCommercial")>
+			<!--- Use the value in the post directive, or the automatic detection result --->
 			<cfset kendoCommercial = thisKendoCommercial>
 		<cfelse>
 			<!--- Use the value that is in the blog options UI --->
@@ -310,6 +310,17 @@ Either use https://code.jquery.com/jquery-3.7.1.min.js or https://ajax.googleapi
 <script type="#scriptTypeString#">
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#/common/libs/plyr/themeCss/#kendoTheme#.css') );
 </script>
+<cfif application.logVisitors><!--
+	Important notes:
+	* I am not using the full version of the UA Parser as it is large and bloated. Instead, I am using the basic ua-parser.js script along with the isBot library to determine if the visitor is a 'good bot'. I don't need anything else. 
+	* The UA Parser library has a AGPL-3.0 open source license that is free to use and distribute for open source projects. However, when used, you also must open source your code. This does not affect Galaxie Blog as it is already open-sourced. See https://github.com/faisalman/ua-parser-js/blob/master/LICENSE.md for more information. 
+	* These libraries are small and are not deffered
+-->
+<script src="#application.baseUrl#/common/libs/uaParser/ua-parser.js"></script>
+<script src="#application.baseUrl#/common/libs/isBot/isbot.js"></script>
+<!-- Like/Dislike widget -->
+<script src="#application.baseUrl#/common/libs/likeDislike/js/like-dislike.min.js"></script>
+</cfif>
 <cfif addSocialMediaUnderEntry><!-- Add this is depracated as of May 2023 --></cfif>
 <cfif arrayLen(getPost) and getPost[1]['LoadScrollMagic'] and application.includeGsap>
 <!-- Scroll magic and other green sock plugins. -->

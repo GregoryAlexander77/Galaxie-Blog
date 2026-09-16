@@ -9,8 +9,9 @@
 	<cfproperty name="AnonymousUserRef" ormtype="int" fieldtype="many-to-one" cfc="AnonymousUser" fkcolumn="AnonymousUserRef">
 	<!--- There are many log records with one HTTP Referrer --->
 	<cfproperty name="HttpReferrerRef" fieldtype="many-to-one" cfc="HttpReferrer" fkcolumn="HttpReferrerRef" missingRowIgnored="true">
+	<cfproperty name="VisitingHomePage" ormtype="boolean" default="false">
 	<!--- There are many log records with one post --->
 	<cfproperty name="PostRef" ormtype="int" fieldtype="many-to-one" cfc="Post" fkcolumn="PostRef" missingRowIgnored="true">
-	<cfproperty name="Date" ormtype="timestamp"> 
+	<cfproperty name="Date" ormtype="timestamp">  
 
 </cfcomponent>

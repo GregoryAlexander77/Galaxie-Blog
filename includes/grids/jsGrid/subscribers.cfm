@@ -1,6 +1,22 @@
 <!doctype html>
 <cfsilent>
 <cfset gridName = "subscriberGrid">
+<cfset showEditButton = true>
+	
+<!---
+You can view this in a couple of ways. Typically, the grid displays all records, you can limit it to the ipAddressId by passing in the optional ipAddressId.
+The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInterfaceWindow(Id, optArgs, otherArgs, otherArgs1)
+--->
+<cfparam name="pageTitle" default="" type="string">
+<cfset getUrl = application.baseUrl & '/common/cfc/ProxyController.cfc?method=getSubscribersForGrid&gridType=jsGrid&verifiedOnly=false'>
+<!--- Append the IpAddressId --->
+<cfif structKeyExists(URL, "optArgs")  and isNumeric(URL.optArgs) and URL.optArgs gt 0>
+	<cfset getUrl = getUrl & '&ipAddressId=' & URL.optArgs>
+	<cfset pageTitle = "Subscribers By IP">
+</cfif>
+<!--- Finally, attach the csrfToken --->
+<cfset getUrl = getUrl & '&csrfToken=' & csrfToken>
+	
 </cfsilent>
 <html>
 <head><cfoutput>
@@ -175,7 +191,7 @@
 					console.log(filter);
 					return $.ajax({
 						type: "GET",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getSubscribersForGrid&gridType=jsGrid&verifiedOnly=false&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
+						url: "<cfoutput>#getUrl#</cfoutput>",
 						data: filter,
 						dataType: "json"
 					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
@@ -331,15 +347,6 @@
 				]
 			});
 		});
-
-		// Helper functions
-		function makePostLink(datePosted, postAlias){
-			var dt = new Date(datePosted);
-			var yyyy = dt.getFullYear();
-			var m = dt.getMonth()+1;
-			var d = dt.getDay()+1;
-			return yyyy + "/" + m + "/" + d + "/" + postAlias;
-		}
 		
    	</script>
 </form>
@@ -389,7 +396,7 @@
 			updateButtonTooltip: "Update",
 			cancelEditButtonTooltip: "Cancel edit",
 
-			editButton: true,
+			editButton: <cfoutput>#showEditButton#</cfoutput>,
 			deleteButton: true,
 			clearFilterButton: true,
 			modeSwitchButton: true,

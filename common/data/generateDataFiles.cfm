@@ -44,7 +44,7 @@ Blog table
 		  ,SaltAlgorithmSize
 		  ,HashAlgorithm
 		  ,ServiceKeyEncryptionPhrase
-		  ,'4.07' as BlogVersion
+		  ,'4.5' as BlogVersion
 		  ,'Bella''s Edition' as BlogVersionName
 		  ,'' as BlogVersionDate
 		  ,1 as IsProd
@@ -91,6 +91,10 @@ Blog Option table
 		  ,1 as DeferScriptsAndCss
 		  ,1 as MinimizeCode
 		  ,0 as DisableCache
+		  ,1 as SendDiagnostics
+		  ,1 as LogVisitors
+		  ,1 as MonthsToRetainVisitorLog
+		  ,12 as MonthsToRetainAdminLog
 		  ,12 as EntriesPerBlogPage
 		  ,1 as BlogModerated
 		  ,1 as UseCaptcha
@@ -861,14 +865,3 @@ PageContentTemplate
 	This is written
 	
 </cfif>
-
-
-
-
-
-
-
-
-	
-	
-

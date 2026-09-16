@@ -7,6 +7,7 @@
 	<cfproperty name="JQueryCDNPath" ormtype="string" length="225" default="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js">
 	<cfproperty name="KendoCommercial" ormtype="boolean" default="false">
 	<cfproperty name="KendoFolderPath" ormtype="string" length="225" default="/common/libs/kendoCore/">
+	<cfproperty name="DeferKendoCommercialOnPublicSite" ormtype="boolean" default="false">
 	<cfproperty name="DeferScriptsAndCss" ormtype="boolean" default="true">
 	<cfproperty name="UseSsl" ormtype="boolean" default="true">
 	<cfproperty name="ServerRewriteRuleInPlace" ormtype="boolean" default="false">	
@@ -16,12 +17,17 @@
 	<cfproperty name="UseCaptcha" ormtype="boolean" default="true">
 	<cfproperty name="AllowGravatar" ormtype="boolean" default="true">
 	<cfproperty name="BlogModerated" ormtype="boolean" default="true">
+	<cfproperty name="LogVisitors" ormtype="boolean" default="true">
+	<cfproperty name="MonthsToRetainVisitorLog" ormtype="integer" default="true">
+	<cfproperty name="MonthsToRetainAdminLog" ormtype="integer" default="true">
+	<cfproperty name="SendDiagnostics" ormtype="boolean" default="true">
 	<cfproperty name="BackgroundImageResolution" ormtype="string" length="35" default="LowRes" hint="Either 'HiRes', 'MedRes', or 'LowRes'. LowRes is default.">
 	<cfproperty name="IncludeGsap" ormtype="boolean" default="false">
 	<cfproperty name="IncludeDisqus" ormtype="boolean" default="true">
 	<cfproperty name="DefaultMediaPlayer" ormtype="string" length="35" default="Plyr" hint="Either 'Plyr' or 'KendoUi'. Plyr is default.">
 	<cfproperty name="GoogleAnalyticsString" ormtype="string"  length="900" default="">
 	<cfproperty name="AddThisApiKey" ormtype="string" length="75" default="">
+	<!--- Add this is depracated --->
 	<cfproperty name="AddThisToolboxString" ormtype="string" length="75" default="">
 	<cfproperty name="BingMapsApiKey" ormtype="string" length="100" default="">
 	<cfproperty name="AzureMapsApiKey" ormtype="string" length="100" default="">

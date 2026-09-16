@@ -10,6 +10,7 @@
 	<cfset jQueryCDNPath = application.BlogOptionDbObj.getJQueryCDNPath()>
 	<cfset kendoCommercial = application.BlogOptionDbObj.getKendoCommercial()>
 	<cfset kendoFolderPath = application.BlogOptionDbObj.getKendoFolderPath()>
+	<cfset deferKendoCommercialOnPublicSite = application.BlogOptionDbObj.getDeferKendoCommercialOnPublicSite()>
 	<cfset useSsl = application.BlogOptionDbObj.getUseSsl()>
 	<cfset serverRewriteRuleInPlace = application.BlogOptionDbObj.getServerRewriteRuleInPlace()>
 	<cfset deferScriptsAndCss = application.BlogOptionDbObj.getDeferScriptsAndCss()>
@@ -41,38 +42,29 @@
 	</cfif>
 		
 	<style>
-		.collapsible {
-			cursor: pointer;
-			padding: 10px;
-			width: 98%;
-			border: thin;
-			border-style: solid;
-			text-align: left;
-			outline: none;
-			font-size: 15px;
-			transition: max-height 0.2s ease-out;
-		}
-
-		.collapsible:after {
-			content: '\25BC';
-			color: white;
-			font-weight: bold;
-			float: right;
-			margin-left: 5px;
-			margin-left: 5px;
-		}
-
-		.active:after {
-		  content: "\25B2";
-		}
-
-		.content {
-		  padding: 0 18px;
-		  display: none;
-		  overflow: hidden;
+		/* Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless
+		   look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names,
+		   and resets box-shadow/background-image too since some Kendo skins draw the separator line that
+		   way instead of with a plain border. Scoped to direct structural children of each item so the
+		   real form content (tables, inputs, etc.) nested inside isn't affected. */
+		#blogOptionsPanelBar,
+		#blogOptionsPanelBar .k-item,
+		#blogOptionsPanelBar .k-link,
+		#blogOptionsPanelBar .k-header,
+		#blogOptionsPanelBar .k-content,
+		#blogOptionsPanelBar .k-panelbar-content,
+		#blogOptionsPanelBar .k-panelbar-content-wrapper,
+		#blogOptionsPanelBar .k-panelbar-item,
+		#blogOptionsPanelBar .k-panelbar-link,
+		#blogOptionsPanelBar .k-group,
+		#blogOptionsPanelBar > .k-item > *,
+		#blogOptionsPanelBar > .k-item > * > * {
+			border: none !important;
+			box-shadow: none !important;
+			background-image: none !important;
 		}
 	</style>
-		
+
 	<script>
 		
 		// Numeric inputs
@@ -165,21 +157,13 @@
 	</script>
 		
 	<script>
-		var coll = document.getElementsByClassName("collapsible");
-		var i;
-
-		for (i = 0; i < coll.length; i++) {
-		  coll[i].addEventListener("click", function() {
-			this.classList.toggle("active");
-			var content = this.nextElementSibling;
-			if (content.style.display === "block") {
-			  content.style.display = "none";
-			} else {
-			  content.style.display = "block";
-			}
-		  });
-		}
-	</script>	
+		$(document).ready(function() {
+			// Create an accordian style panel for each blog options section.
+			$("#blogOptionsPanelBar").kendoPanelBar({
+				expandMode: "multiple"
+			});
+		});//..document.ready
+	</script>
 		
 	<form id="optionsForm" action="#" method="post" data-role="validator">
 	<!---<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>">--->
@@ -313,6 +297,33 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+	  <!-- Errors -->
+	  <tr valign="middle" height="30px">
+		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
+			To help us improve the blog, you can let your blog send the blog developer, Gregory Alexander, error related information. These errors only contain data related to the error and do not contain any personal information.
+		</td>
+	  </tr>
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr valign="middle" height="30px">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">Send Diagnostics?</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input type="checkbox" name="sendDiagnostics" id="sendDiagnostics" value="1" <cfif application.SendDiagnostics>checked</cfif>>
+		</td>
+	  </tr>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	  <!-- Caching -->
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
@@ -339,8 +350,11 @@
 	<!---//***********************************************************************************************
 						Jquery and Kendo UI
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Jquery Location and Kendo UI</button>
-	<div class="content k-content">
+	<ul id="blogOptionsPanelBar">
+	<li>
+		Jquery Location and Kendo UI
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
@@ -423,6 +437,32 @@
 		  </tr>
 		</cfif>
 		  <!-- Border -->
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<!--- Only takes effect when Commercial Kendo UI Edition (above) is enabled - lets the site keep the smaller Kendo Core download on public pages by default, and only pull in the larger Kendo Professional library for a specific post when it's actually needed (eg. it embeds a Kendo Grid). Admin pages always load Kendo Professional when the option above is checked, regardless of this setting. --->
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="deferKendoCommercialOnPublicSite">Kendo UI Professional is a much larger download than Kendo Core. Defer it on public-facing pages and only load it when a post actually needs it (e.g. it embeds a Kendo Grid)? Admin pages always get Kendo Professional regardless of this setting.</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input type="checkbox" name="deferKendoCommercialOnPublicSite" id="deferKendoCommercialOnPublicSite" <cfif deferKendoCommercialOnPublicSite>checked</cfif>>
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr valign="middle" height="30px">
+			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:20%">
+				<label for="deferKendoCommercialOnPublicSite">Kendo UI Professional is a much larger download than Kendo Core. Defer it on public-facing pages and only load it when a post actually needs it (e.g. it embeds a Kendo Grid)? Admin pages always get Kendo Professional regardless of this setting.</label>
+			</td>
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:80%">
+				<input type="checkbox" name="deferKendoCommercialOnPublicSite" id="deferKendoCommercialOnPublicSite" <cfif deferKendoCommercialOnPublicSite>checked</cfif>>
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
 		  <tr height="2px">
 			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
@@ -470,12 +510,218 @@
 		  </tr>
 		</table>
 	</div>
+	</div>
+	</li>
+			
+	<!---//***********************************************************************************************
+						Logging
+	//************************************************************************************************--->
+	<li>
+		Logging
+	<div class="k-content">
+	<div style="padding: 15px;">
+		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+			
+		  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+		  </cfsilent>
+	
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+			  	Galaxie Blog logs all administrative login's and may optionally create log files for all visitors.
+			  </td>
+		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="enableVisitorLog">Enable Visitor Logging:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input id="enableVisitorLog" name="enableVisitorLog" type="checkbox" value="1" <cfif application.logVisitors>checked</cfif> />    
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 25%"> 
+				<label for="enableVisitorLog">Enable Visitor Logging:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input id="enableVisitorLog" name="enableVisitorLog" type="checkbox" value="1" <cfif application.logVisitors>checked</cfif> />    
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+			 
+		  <tr height="2px">
+		  	<td align="left" valign="bottom" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr valign="middle" height="30px">
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
+				Visitor logs will fill up pretty quickly and and it is recommended that you only retain the logs several months. Setting this too high may impact blog performance as it floods your database with records; be careful when changing this setting.
+			</td>
+		  </tr>
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="visitorLogMonths">Months to retain visitor logs:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<script>
+					$("#visitorLogMonths").kendoDropDownList({
+					});
+				</script>
+				<select name="visitorLogMonths" id="visitorLogMonths">
+					<option value="1" <cfif application.monthsToRetainVisitorLog eq 1>selected</cfif>>1</option>
+					<option value="2" <cfif application.monthsToRetainVisitorLog eq 2>selected</cfif>>2</option>
+					<option value="3" <cfif application.monthsToRetainVisitorLog eq 3>selected</cfif>>3</option>
+					<option value="4" <cfif application.monthsToRetainVisitorLog eq 4>selected</cfif>>4</option>
+					<option value="5" <cfif application.monthsToRetainVisitorLog eq 5>selected</cfif>>5</option>
+					<option value="6" <cfif application.monthsToRetainVisitorLog eq 6>selected</cfif>>6</option>
+				</select>
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		   <tr valign="middle" height="30px">
+			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<label for="visitorLogMonths">Months to retain visitor logs:</label>
+			</td>
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<script>
+					$("#visitorLogMonths").kendoDropDownList({
+					});
+				</script>
+				<select name="visitorLogMonths" id="visitorLogMonths">
+					<option value="1" <cfif application.monthsToRetainVisitorLog eq 1>selected</cfif>>1</option>
+					<option value="2" <cfif application.monthsToRetainVisitorLog eq 2>selected</cfif>>2</option>
+					<option value="3" <cfif application.monthsToRetainVisitorLog eq 3>selected</cfif>>3</option>
+					<option value="4" <cfif application.monthsToRetainVisitorLog eq 4>selected</cfif>>4</option>
+					<option value="5" <cfif application.monthsToRetainVisitorLog eq 5>selected</cfif>>5</option>
+					<option value="6" <cfif application.monthsToRetainVisitorLog eq 6>selected</cfif>>6</option>
+				</select>
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="bottom" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr valign="middle" height="30px">
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
+				Site errors administrative logins are automatically logged to your database. The default retention period for the error and administrative logs is one year. Since the frequency of administrative logins is generally low, setting this to a higher setting should not impact blog performance.
+			</td>
+		  </tr>
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="adminLogMonths">Retain error and administrative logs for:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<script>
+					$("#adminLogMonths").kendoDropDownList({
+					});
+				</script>
+				<select name="adminLogMonths" id="adminLogMonths">
+					<option value="1" <cfif application.monthsToRetainAdminLog eq 1>selected</cfif>>1 month</option>
+					<option value="2" <cfif application.monthsToRetainAdminLog eq 2>selected</cfif>>2 months</option>
+					<option value="3" <cfif application.monthsToRetainAdminLog eq 3>selected</cfif>>3 months</option>
+					<option value="4" <cfif application.monthsToRetainAdminLog eq 4>selected</cfif>>4 months</option>
+					<option value="5" <cfif application.monthsToRetainAdminLog eq 5>selected</cfif>>5 months</option>
+					<option value="6" <cfif application.monthsToRetainAdminLog eq 6>selected</cfif>>6 months</option>
+					<option value="7" <cfif application.monthsToRetainAdminLog eq 7>selected</cfif>>7 months</option>
+					<option value="8" <cfif application.monthsToRetainAdminLog eq 8>selected</cfif>>8 months</option>
+					<option value="9" <cfif application.monthsToRetainAdminLog eq 9>selected</cfif>>9 months</option>
+					<option value="10" <cfif application.monthsToRetainAdminLog eq 10>selected</cfif>>10 months</option>
+					<option value="11" <cfif application.monthsToRetainAdminLog eq 11>selected</cfif>>11 months</option>
+					<option value="12" <cfif application.monthsToRetainAdminLog eq 12>selected</cfif>>12 months</option>
+					<option value="15" <cfif application.monthsToRetainAdminLog eq 15>selected</cfif>>1 year and 3 months</option>
+					<option value="18" <cfif application.monthsToRetainAdminLog eq 18>selected</cfif>>1 year and 6 months</option>
+					<option value="21" <cfif application.monthsToRetainAdminLog eq 21>selected</cfif>>1 year and 9 months</option>
+					<option value="24" <cfif application.monthsToRetainAdminLog eq 24>selected</cfif>>2 years</option>
+				</select>
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr valign="middle" height="30px">
+			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<label for="adminLogMonths">Months to retain error and administrative logs:</label>
+			</td>
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<script>
+					$("#adminLogMonths").kendoDropDownList({
+					});
+				</script>
+				<select name="adminLogMonths" id="adminLogMonths">
+					<option value="1" <cfif application.monthsToRetainAdminLog eq 1>selected</cfif>>1 month</option>
+					<option value="2" <cfif application.monthsToRetainAdminLog eq 2>selected</cfif>>2 months</option>
+					<option value="3" <cfif application.monthsToRetainAdminLog eq 3>selected</cfif>>3 months</option>
+					<option value="4" <cfif application.monthsToRetainAdminLog eq 4>selected</cfif>>4 months</option>
+					<option value="5" <cfif application.monthsToRetainAdminLog eq 5>selected</cfif>>5 months</option>
+					<option value="6" <cfif application.monthsToRetainAdminLog eq 6>selected</cfif>>6 months</option>
+					<option value="7" <cfif application.monthsToRetainAdminLog eq 7>selected</cfif>>7 months</option>
+					<option value="8" <cfif application.monthsToRetainAdminLog eq 8>selected</cfif>>8 months</option>
+					<option value="9" <cfif application.monthsToRetainAdminLog eq 9>selected</cfif>>9 months</option>
+					<option value="10" <cfif application.monthsToRetainAdminLog eq 10>selected</cfif>>10 months</option>
+					<option value="11" <cfif application.monthsToRetainAdminLog eq 11>selected</cfif>>11 months</option>
+					<option value="12" <cfif application.monthsToRetainAdminLog eq 12>selected</cfif>>12 months</option>
+					<option value="15" <cfif application.monthsToRetainAdminLog eq 15>selected</cfif>>1 year and 3 months</option>
+					<option value="18" <cfif application.monthsToRetainAdminLog eq 18>selected</cfif>>1 year and 6 months</option>
+					<option value="21" <cfif application.monthsToRetainAdminLog eq 21>selected</cfif>>1 year and 9 months</option>
+					<option value="24" <cfif application.monthsToRetainAdminLog eq 24>selected</cfif>>2 years</option>
+				</select>
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		</table>
+	</div>
+	</div>		
+	</li>
 			
 	<!---//***********************************************************************************************
 						Google Analytics GTAG String
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Google Analytics</button>
-	<div class="content k-content">
+	<li>
+		Google Analytics
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -539,14 +785,18 @@
 		  </tr>
 		</table>
 	</div>
+	</div>
+	</li>
 		
 	<cfif 1 eq 2>
 		<!---//***********************************************************************************************
 							Add This (depracated as of March 2023)
 		//************************************************************************************************--->
 
-		<button type="button" class="collapsible k-header">Add This Library</button>
-		<div class="content k-content">
+		<li>
+			Add This Library
+		<div class="k-content">
+	<div style="padding: 15px;">
 			<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 
 			  <cfsilent>
@@ -636,14 +886,18 @@
 				<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 			  </tr>
 			</table>
+	</div>
 		</div>
+		</li>
 	</cfif>
 					
 	<!---//***********************************************************************************************
 						Azure Maps
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Azure Maps Library</button>
-	<div class="content k-content">
+	<li>
+		Azure Maps Library
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
@@ -693,12 +947,16 @@
 		
 		</table>
 	</div>
+	</div>
+	</li>
 			  
 	<!---//***********************************************************************************************
 						Bing Maps
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Bing Maps Library</button>
-	<div class="content k-content">
+	<li>
+		Bing Maps Library
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
@@ -748,12 +1006,16 @@
 		
 		</table>
 	</div>
+	</div>
+	</li>
 			  
 	<!---//***********************************************************************************************
 						Disqus
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Disqus Libary</button>
-	<div class="content k-content">
+	<li>
+		Disqus Libary
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
@@ -988,12 +1250,16 @@
 		  </tr>
 		</table>
 	</div>
+	</div>
+	</li>
 			  
 	<!---//***********************************************************************************************
 						Greensock
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Greensock Animation Library</button>
-	<div class="content k-content">
+	<li>
+		Greensock Animation Library
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -1055,6 +1321,9 @@
 		  </tr>
 		</table>
 	</div>
+	</div>
+	</li>
+	</ul>
 		
 	<br/><br/>
 	<button id="optionsSubmit" name="optionsSubmit" class="k-button k-primary" type="button">Submit</button> 

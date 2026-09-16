@@ -1,7 +1,5 @@
 	<cfsilent>
-	<!---//***************************************************************************************************************
-				Kendo Scripts
-	//****************************************************************************************************************--->
+	<!--- The URL.optArgs will either be newPost or newPage. --->
 	</cfsilent>
 	<script>
 		$(document).ready(function() {
@@ -160,6 +158,7 @@
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					// We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#deptDetails").serialize()' or use the stringify method to pass it as an array of values. 
 					action: action, // either update or insert.
+					postType: $("input[name='postType']:checked").val(),
 					datePosted: kendo.toString($("#newDatePosted").data("kendoDateTimePicker").value(), 'MM/dd/yyyy'),
 					timePosted: kendo.toString($("#newDatePosted").data("kendoDateTimePicker").value(), 'hh:mm tt'),
 					author: $("#author").data("kendoDropDownList").value(),
@@ -369,6 +368,48 @@
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->
+		<cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+	  	  <!-- Form content -->
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="postType">Post Type:</label><br/>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="radio" name="postType" id="blogPost" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPost'>checked<cfelseif !structKeyExists(URL, "optArgs")>checked</cfif> />
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="radio" name="postType" id="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> />
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr valign="middle" height="35">
+			<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<label for="postType">Post Type</label><br/>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="radio" name="postType" id="blogPost" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPost'>checked<cfelseif !structKeyExists(URL, "optArgs")>checked</cfif> /> Blog Post <input type="radio" name="postType" id="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page
+			</td>
+		  </tr>
+		  <tr valign="middle" height="35">
+			<td></td>
+			<td>
+			Both Blog Posts and pages are nearly identical but have several significant differences.<br/>
+			Blog Posts are dynamic and are placed in the blogs section that is ordered by the most recent date. Posts are also meant to be interactive and may have comments.
+			Page content is generally permanent, does not have comments or a visible published date, and links to the page are much more prominent and placed on the menu. Conversely, pages are not shown on the RSS feeds.<br/>
+			Use pages for universal site content or evergreen content that does not change, and use blog posts for specific content that is dynamic or that may change.
+			</td>
+		  </tr>
+		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -382,7 +423,7 @@
 		  <tr valign="middle">
 			<td height="25" valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
 			<td height="25" valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<button id="newPostSubmit" name="newPostSubmit" class="k-button k-primary" type="button">Submit</button>
+				<button id="newPostSubmit" name="newPostSubmit" class="k-button k-primary" type="button">Next</button>
 			</td>
 		  </tr>
 		</table>

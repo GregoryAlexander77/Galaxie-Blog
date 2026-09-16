@@ -3,6 +3,8 @@
 	<cfproperty name="SearchQueryId" fieldtype="id" generator="native" setter="false">
 	<!--- There can be many searches for one blog. --->
 	<cfproperty name="BlogRef" ormtype="int" fieldtype="many-to-one" cfc="Blog" fkcolumn="BlogRef" cascade="all">
+	<!--- Store the IP address and other user information --->
+	<cfproperty name="AnonymousUserRef" ormtype="int" fieldtype="many-to-one" cfc="AnonymousUser" fkcolumn="AnonymousUserRef" cascade="all">
 	<cfproperty name="SearchQuery" ormtype="string" default="" length="255" hint="The search query">
 	<cfproperty name="Date" ormtype="timestamp">
 

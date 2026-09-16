@@ -1,10 +1,6 @@
 <!--- //**************************************************************************************************************
 		Get the posts. The posts can either be one post, or multiple posts. It is designed this way to keep the output logic the same.
 //****************************************************************************************************************--->
-
-<!--- Raymond's module to inspect the URL to determine what to pass to the getPost method. Get mode also deterines the start and end row determined by what type of page this is (blog or post for example). I am going to rewrite this in version 4ish --->
-<cfmodule template="#application.baseUrl#/tags/getmode.cfm" r_params="params"/>
-<!---<cfdump var="#params#">--->
   
 <!--- 
 Get the post count (getPostCount(params,showRemovedPosts, released))
@@ -18,9 +14,46 @@ Get the post count (getPostCount(params,showRemovedPosts, released))
 	<cfset showPendingPosts = false>
 </cfif>
 
-<!--- Note: a post may be removed and have a redirect to another URL. We need to allow for removed posts to get the redirect if it exists. --->
-<!--- Get the posts ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ) --->
-<cfset getPost = application.blog.getPost(params, showPendingPosts, false, true, true)>
+<!--- Notes: 
+1) External pages will be set by either setting the postId on the index page or setting the IsPage column in the post table. All other pages will use the params structure to get the post 
+2) a post may be removed and have a redirect to another URL. We need to allow for removed posts to get the redirect if it exists. 
+--->
+<!---<cfdump var="#URL#" label="URL">--->
+	
+<!--- Custom page with a hard coded postId --->
+<cfif pageTypeId eq 9 and isDefined("postId")>
+	<!--- Custom pages --->
+	<!--- Get the individual post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+	<cfset getPost = application.blog.getPostByPostId(postId,true,false)>
+<cfelse>
+	<!--- Get the posts ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ) 
+	<cfset getPost = application.blog.getPost(params, showPendingPosts, false, true, true)>
+	--->
+	<!--- 
+	Get the posts 
+	Original code: ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ) 
+	<cfset getPost = application.blog.getPost(params, showPendingPosts, false, true, true)>
+	--->
+	<cfinvoke component="#application.blog#" method="getPost" returnvariable="getPost">
+		<cfinvokeargument name="params" value="#params#">
+		<!--- Show blog posts and pages --->
+		<cfinvokeargument name="showPages" value="true">
+		<cfinvokeargument name="showBlogPosts" value="true">
+		<cfinvokeargument name="showPendingPosts" value="#showPendingPosts#">
+		<cfinvokeargument name="showRemovedPosts" value="false">
+		<cfinvokeargument name="showJsonLd" value="true">
+		<cfinvokeargument name="showPromoteAtTopOfQuery" value="true">
+		<!--- Show pages and blog posts when looking at an page --->
+		<cfif URL.mode eq 'page' or url.mode eq "alias" or URL.mode eq 'entry'>
+			<cfinvokeargument name="showPages" value="true">
+			<cfinvokeargument name="showBlogPosts" value="true">
+		<cfelse>
+			<!--- Otherwise, only show the posts --->
+			<cfinvokeargument name="showPages" value="false">
+			<cfinvokeargument name="showBlogPosts" value="true">
+		</cfif>
+	</cfinvoke>
+</cfif>
 	
 <!--- Determine if the post was found --->
 <cfif arrayLen(getPost) eq 0>

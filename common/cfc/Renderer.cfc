@@ -2745,8 +2745,16 @@
 		<cfparam name="google1_1Thumbnail" default="">
 	
 		<!--- Get the URL. its created dynamically. --->
+		<!--- 
+		Original code
 		<cfset postUrl = application.blog.getPostUrlByPostId(getPost[1]["PostId"])>
-		
+		--->
+		<cfset postUrl = application.blog.makeLink(
+			isPage=getPost[1]["IsPage"], 
+			postAlias=getPost[1]["PostAlias"], 
+			datePosted=getPost[1]["DatePosted"])>
+			
+		<cfset IsPage = getPost[1]["IsPage"]>
 		<cfset title = getPost[1]["Title"]>
 		<cfset description = getPost[1]["Description"]>
 		<cfset body = getPost[1]["Body"]>
@@ -2840,7 +2848,7 @@
 			<cfset tab = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'>
 		</cfif>
 		
-		<!--- Yes, I know that this is a horrendous way of doing this, but it is fast and it works. Next version write a function to handle the formatting.--->
+		<!--- Yes, I know that this the best way of doing this, but it is fast and it works. Next version write a function to handle the formatting.--->
 		<cfoutput>
 		<cfset ldJson = ''>
 		<cfset ldJson = ldJson & '{'>
@@ -2856,7 +2864,11 @@
 		  <cfset ldJson = ldJson & '"mainEntityOfPage":{'>
 			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
 			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-			<cfset ldJson = ldJson & '"@type":"Article",'>
+			<cfif IsPage>
+				<cfset ldJson = ldJson & '"@type":"WebPage",'>
+			<cfelse>
+				<cfset ldJson = ldJson & '"@type":"Article",'>
+			</cfif>
 			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
 			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
 			<cfset ldJson = ldJson & '"@id":"https://google.com/article"'>

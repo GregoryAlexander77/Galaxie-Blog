@@ -9,12 +9,6 @@ This tag sets the params that are sent to the getPost query. Most (but not all) 
 <cfparam name="attributes.r_params" type="variableName">
 
 <cfset params = structNew()>
-<!--- 
-	  SES parsing is abstracted out. This file is getting a bit large so I want to keep things nice and simple.
-	  Plus if folks don't like this, they can just get rid of it.
-	  Of course, the Blog makes use of it... but I'll worry about that later.
---->
-<cfmodule template="parseses.cfm" /> 
 
 <!--- //******************************************************************************************************************
 			Set the start row for pagination
@@ -37,7 +31,6 @@ This tag sets the params that are sent to the getPost query. Most (but not all) 
 <!--- //******************************************************************************************************************
 			Delete previously set vars for day, month, year
 //********************************************************************************************************************--->
-
 <cfif isDefined("url.day") and (not isNumeric(url.day) or val(url.day) is not url.day)>
 	<cfset structDelete(url,"day")>
 </cfif>
@@ -52,7 +45,13 @@ This tag sets the params that are sent to the getPost query. Most (but not all) 
 			Determine the params based upon the page mode.
 //********************************************************************************************************************--->
 	
-<cfif url.mode is "day" and isDefined("url.day") and isDefined("url.month") and url.month gte 1 and url.month lte 12 and isDefined("url.year")>
+<cfif url.mode eq 'page'>
+	<cfset params.byAlias = url.alias>
+<cfelseif url.mode is "alias" and isDefined("url.alias") and len(trim(url.alias))>
+	<cfset params.byAlias = url.alias>
+<cfelseif url.mode is "entry" and isDefined("url.entry")>
+	<cfset params.byEntry = url.entry>
+<cfelseif url.mode is "day" and isDefined("url.day") and isDefined("url.month") and url.month gte 1 and url.month lte 12 and isDefined("url.year")>
 	<cfset params.byDay = val(url.day)>
 	<cfset params.byMonth = val(url.month)>
 	<cfset params.byYear = val(url.year)>
@@ -79,10 +78,6 @@ This tag sets the params that are sent to the getPost query. Most (but not all) 
 	<cfif url.startrow neq 1>
 		<cfset params.dontlogsearch = true>
 	</cfif>
-<cfelseif url.mode is "entry" and isDefined("url.entry")>
-	<cfset params.byEntry = url.entry>
-<cfelseif url.mode is "alias" and isDefined("url.alias") and len(trim(url.alias))>
-	<cfset params.byAlias = url.alias>
 <cfelse>
 	<cfset url.mode = "full">
 </cfif>

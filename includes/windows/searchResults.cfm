@@ -33,8 +33,21 @@
 <cfset params.releasedonly = true />
 
 <cfif len(searchTerm)>
-	<!--- Get the posts ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ) --->
+	<!--- 
+	Get the posts 
+	Original code: ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ) 
 	<cfset results = application.blog.getPost(params,false,false,false,false)>
+	--->
+	<cfinvoke component="#application.blog#" method="getPost" returnvariable="results">
+		<cfinvokeargument name="params" value="#params#">
+		<!--- Show all posts --->
+		<cfinvokeargument name="showPages" value="true">
+		<cfinvokeargument name="showBlogPosts" value="true">
+		<cfinvokeargument name="showPendingPosts" value="false">
+		<cfinvokeargument name="showRemovedPosts" value="false">
+		<cfinvokeargument name="showJsonLd" value="true">
+		<cfinvokeargument name="showPromoteAtTopOfQuery" value="false">
+	</cfinvoke>
 	<cfset searched = true>
 <cfelse>
 	<cfset searched = false>

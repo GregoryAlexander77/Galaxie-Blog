@@ -1,6 +1,7 @@
 <!doctype html>
 <cfsilent>
 <cfset gridName = "commentGrid">
+<cfset showEditButton = true>
 </cfsilent>
 <html>
 <head><cfoutput>
@@ -291,22 +292,6 @@
 				]
 			});
 		});
-
-		// Helper functions
-		function makePostLink(datePosted, postAlias){
-			var dt = new Date(datePosted);
-			var yyyy = dt.getFullYear();
-			var m = dt.getMonth()+1;
-			var d = dt.getDay()+1;
-			return yyyy + "/" + m + "/" + d + "/" + postAlias;
-		}
-		
-		// The comment link is the post link with a ''#c' + commentId 
-		function makeCommentLink(datePosted, postAlias, commentId){
-			var postLink = makePostLink(datePosted, postAlias);
-			var commentLink = postLink + "#c" + commentId;
-			return commentLink;
-		}
 		
 		function cleanCommentString(str){
 			// Replace the known videos. These are automatically embedded as iframes
@@ -365,7 +350,7 @@
 				updateButtonTooltip: "Update",
 				cancelEditButtonTooltip: "Cancel edit",
 
-				editButton: true,
+				editButton: <cfoutput>#showEditButton#</cfoutput>,
 				deleteButton: true,
 				clearFilterButton: true,
 				modeSwitchButton: true,

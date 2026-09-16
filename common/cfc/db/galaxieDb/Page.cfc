@@ -5,13 +5,12 @@
 	<cfproperty name="BlogRef" ormtype="int" fieldtype="many-to-one" cfc="Blog" fkcolumn="BlogRef" cascade="all">
 	<!--- Many pages can have one page type. Do not use a cascade argument here. According to Adobe, cascade should not be used with many-to-one relationships. --->
 	<cfproperty name="PageTypeRef" ormtype="int" fieldtype="many-to-one" cfc="PageType" fkcolumn="PageTypeRef" missingrowignored="true">
-		
+	<!--- Many pages can have one theme. Do not use a cascade argument here. According to Adobe, cascade should not be used with many-to-one relationships. 
+	<cfproperty name="ThemeRef" ormtype="int" fieldtype="many-to-one" cfc="Theme" fkcolumn="ThemeRef" missingrowignored="true" hint="The theme is only used for custom pages. All other pages take on the blog theme">--->
 	<!--- There can one page with many zones. --->
 	<cfproperty name="PageZones" singularname="PageZone" ormtype="int" fieldtype="one-to-many" cfc="ContentZone" fkcolumn="PageRef" inversejoincolumn="ContentZoneRef" cascade="all" inverse="true" missingRowIgnored="true">
-	
 	<!--- This is a psuedo column used by the object that will not be placed into the actual database. We are using the PageContentTemplate table as an intermediatory table to store the many to many relationships between a page and a zone. This is different than all of the other relationship types. --->
 	<cfproperty name="ContentTemplates" singularname="ContentTemplate" ormtype="int" fieldtype="many-to-many" cfc="ContentTemplate" fkcolumn="PageRef" inversejoincolumn="ContentTemplateRef" linktable="PageContentTemplate" type="array" cascade="all" inverse="true" missingRowIgnored="true">
-	
 	<cfproperty name="PageName" ormtype="string" length="155" default="">
 	<cfproperty name="PageDescription" ormtype="string" length="250" default="">
 	<cfproperty name="PagePath" ormtype="string" length="250" default="">

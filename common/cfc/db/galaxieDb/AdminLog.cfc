@@ -4,8 +4,8 @@
 	<!--- There are many http referrers for a blog... --->
 	<cfproperty name="BlogRef" ormtype="int" fieldtype="many-to-one" cfc="Blog" fkcolumn="BlogRef" cascade="all">
 	<cfproperty name="UserRef" ormtype="int" fieldtype="many-to-one" cfc="Users" fkcolumn="UserRef" cascade="all" missingRowIgnored="true">
-	<cfproperty name="IpAddressRef" ormtype="int" fieldtype="many-to-one" cfc="IpAddress" fkcolumn="IpAddressRef" cascade="all" missingRowIgnored="true">
-	<cfproperty name="HttpUserAgentRef" ormtype="int" fieldtype="many-to-one" cfc="HttpUserAgent" fkcolumn="HttpUserAgentRef" cascade="all" missingRowIgnored="true">
+	<!--- The anonymous user table stores IP addresses, http user agents and http referrer strings. --->
+	<cfproperty name="AnonymousUserRef" ormtype="int" fieldtype="many-to-one" cfc="AnonymousUser" fkcolumn="AnonymousUserRef" cascade="all"  missingRowIgnored="true">
 	<cfproperty name="Date" ormtype="timestamp"> 
 
 </cfcomponent>

@@ -11,6 +11,9 @@
 	<cfproperty name="CategoryAlias" ormtype="string" length="75" default="">
 	<cfproperty name="Category" ormtype="string" length="125" default="">
 	<cfproperty name="CategoryDesc" ormtype="string" length="1250" default="">
+	<cfproperty name="CategoryIcon" ormtype="string" length="220" default="A category may have an optional associated icon image. This is generally used when creating category icons on a landing page.">
+	<cfproperty name="CategoryThumbnail" ormtype="string" length="220" default="A category may have an optional associated thumbnail image. This is generally used when creating category thumbnail images on a landing page.">
+	<cfproperty name="CategoryLink" ormtype="string" length="220" default="A category may have an optional external link. If provided, this will override the link that is automatically generated">
 	<cfproperty name="Date" ormtype="timestamp">
 
 </cfcomponent>

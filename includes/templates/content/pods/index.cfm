@@ -31,19 +31,22 @@
 							
 				</cfsilent>
 				<aside>
-					<cfsilent>
-						<!--- Is the template active? --->
-						<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
-							<cfinvokeargument name="contentTemplate" value="downloadPod">
-						</cfinvoke>
-							
-						<!--- Cache notes: We're saving this to the file system. We need to save the dark theme. The timeout is set indefinately and will be updated if the user changes the content --->
-						<cfif darkTheme>
-							<cfset cacheName = "archivesDark">
-						<cfelse>
-							<cfset cacheName = "archives">
-						</cfif>
-					</cfsilent>
+				<cfsilent>
+					<!--- *******************************************************************************************************
+						Download 
+					**********************************************************************************************************--->
+					<!--- Is the template active? --->
+					<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
+						<cfinvokeargument name="contentTemplate" value="downloadPod">
+					</cfinvoke>
+
+					<!--- Cache notes: We're saving this to the file system. We need to save the dark theme. The timeout is set indefinately and will be updated if the user changes the content --->
+					<cfif darkTheme>
+						<cfset cacheName = "blogDownloadDark">
+					<cfelse>
+						<cfset cacheName = "blogDownload">
+					</cfif>
+				</cfsilent>
 				<cfif isActive>
 					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/pods/#cacheName#.cfm" disabled="#application.disableCache#">
 					<div class="widget k-content flexItem">
@@ -54,12 +57,15 @@
 					</div>
 					</cfmodule>
 				</cfif>
-					<cfsilent>
-						<!--- Is the template active? --->
-						<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
-							<cfinvokeargument name="contentTemplate" value="subscribePod">
-						</cfinvoke>
-					</cfsilent>
+				<cfsilent>
+					<!--- *******************************************************************************************************
+						Subscribe 
+					**********************************************************************************************************--->
+					<!--- Is the template active? --->
+					<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
+						<cfinvokeargument name="contentTemplate" value="subscribePod">
+					</cfinvoke>
+				</cfsilent>
 				<cfif isActive>
 					<div class="widget k-content flexItem">
 						<span class="innerContentContainer">
@@ -71,19 +77,22 @@
 						</span>
 				   </div>
 				</cfif>
-					<cfsilent>
-						<!--- Is the template active? --->
-						<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
-							<cfinvokeargument name="contentTemplate" value="cfBlogsFeedPod">
-						</cfinvoke>
-						
-						<!--- Set up cache. We are going to store this in application scope and timeout after 30 minutes --->
-						<cfif session.isMobile>
-							<cfset cacheName = "podRssFeedMobile">
-						<cfelse>
-							<cfset cacheName = "podRssFeed">
-						</cfif>
-					</cfsilent>
+				<cfsilent>
+					<!--- *******************************************************************************************************
+						CFBlogs.org Feed 
+					**********************************************************************************************************--->
+					<!--- Is the template active? --->
+					<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
+						<cfinvokeargument name="contentTemplate" value="cfBlogsFeedPod">
+					</cfinvoke>
+
+					<!--- Set up cache. We are going to store this in application scope and timeout after 30 minutes --->
+					<cfif session.isMobile>
+						<cfset cacheName = "podRssFeedMobile">
+					<cfelse>
+						<cfset cacheName = "podRssFeed">
+					</cfif>
+				</cfsilent>
 				<cfif isActive>
 					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/pods/#cacheName#.cfm" timeout="#(60*30)#" debug="false" disabled="#application.disableCache#">
 					<div class="widget k-content flexItem">
@@ -95,22 +104,80 @@
 					</cfmodule>
 				</cfif>
 				<cfsilent>
-						<!--- Is the template active? --->
-						<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
-							<cfinvokeargument name="contentTemplate" value="recentPostsPod">
-						</cfinvoke>
-							
-						<!--- Cache notes: We're saving this indefinately to the file system and will be updated if the blog owner changes the content. We need to differentiate between the dark theme and light themes in the key. --->
-						<cfif session.isMobile>
-							<cfset cacheName = "recentPostsMobile">
-						<cfelse>
-							<cfset cacheName = "recentPosts">
+					<!--- *******************************************************************************************************
+						Pages. This pod is a bit different and requires the queries to occur upfront to determine if it should be shown. 
+						We will not display this pod if it there is no custom content or if there are no pages.
+					**********************************************************************************************************--->
+					<!--- Is the template active? --->
+					<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
+						<cfinvokeargument name="contentTemplate" value="pagePod">
+					</cfinvoke>
+						
+					<!--- 
+					********* Content template common logic *********
+					Other than setting the thisTemplate var, this logic is identical for most of the content output templates --->
+					<cfset thisTemplate = "pagePod">
+					<!--- The following logic does not need to be modified and will work with most of the content output templates --->
+					<!--- Reset our display content output var --->
+					<cfset displayContentOutputData = false>
+					<!--- This template drives the navigation menu and is a unordered HTML list. This template uses the getContentOutputData function to determine the content. It will display custom content that is in the database or use the default code below if no custom code exists  --->
+					<cfinvoke component="#application.blog#" method="getContentOutputData" returnvariable="contentOutputData">
+						<cfinvokeargument name="contentTemplate" value="#thisTemplate#">
+						<cfinvokeargument name="isMobile" value="#session.isMobile#">
+						<cfif isDefined("URL.optArgs") and len(URL.optArgs)>
+							<cfinvokeargument name="themeRef" value="#URL.optArgs#">
 						</cfif>
-						<!--- Dark theme --->
-						<cfif darkTheme>
-							<cfset cacheName = "recentPostsDark">
-						</cfif>
-					</cfsilent>
+					</cfinvoke>		
+					<!--- Determine if we should display the data or use the default HTML --->
+					<cfif len(contentOutputData)>
+						<cfset displayContentOutputData = true>		
+					</cfif>
+					<!--- ********* End content template logic *********--->
+
+					<!--- Get the new recent posts --->
+					<cfset getPages = application.blog.getPages()>
+
+					<!--- Cache notes: We're saving this indefinately to the file system and will be updated if the blog owner changes the content. We need to differentiate between the dark theme and light themes in the key. --->
+					<cfif session.isMobile>
+						<cfset cacheName = "pagePodMobile">
+					<cfelse>
+						<cfset cacheName = "pagePod">
+					</cfif>
+					<!--- Dark theme --->
+					<cfif darkTheme>
+						<cfset cacheName = "pagePodDark">
+					</cfif>
+				</cfsilent>
+				<cfif isActive or displayContentOutputData or arrayLen(getPages)>
+					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" displayContentOutputData="#displayContentOutputData#" getPages="#getPages#" scope="html" file="#application.baseUrl#/cache/pods/#cacheName#.cfm" disabled="#application.disableCache#">
+					<div class="widget k-content flexItem">
+						<span class="innerContentContainer">
+							<h3 class="topContent"><i class="fa-solid fa-file-lines"></i> Page Categories</h3>
+							<cfinclude template="pages.cfm">
+						</span>
+				   	</div>
+					</cfmodule>
+				</cfif>
+				<cfsilent>
+					<!--- *******************************************************************************************************
+						Recent posts
+					**********************************************************************************************************--->
+					<!--- Is the template active? --->
+					<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
+						<cfinvokeargument name="contentTemplate" value="recentPostsPod">
+					</cfinvoke>
+
+					<!--- Cache notes: We're saving this indefinately to the file system and will be updated if the blog owner changes the content. We need to differentiate between the dark theme and light themes in the key. --->
+					<cfif session.isMobile>
+						<cfset cacheName = "recentPostsMobile">
+					<cfelse>
+						<cfset cacheName = "recentPosts">
+					</cfif>
+					<!--- Dark theme --->
+					<cfif darkTheme>
+						<cfset cacheName = "recentPostsDark">
+					</cfif>
+				</cfsilent>
 				<cfif isActive>
 					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/pods/#cacheName#.cfm" disabled="#application.disableCache#">
 					<div class="widget k-content flexItem">
@@ -122,6 +189,9 @@
 					</cfmodule>
 				</cfif>
 				<cfsilent>
+					<!--- *******************************************************************************************************
+						Recent comments
+					**********************************************************************************************************--->
 					<!--- Is the template active? --->
 					<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
 						<cfinvokeargument name="contentTemplate" value="recentCommentsPod">
@@ -154,6 +224,9 @@
 					</cfmodule>
 				</cfif>
 				<cfsilent>
+					<!--- *******************************************************************************************************
+						Categories
+					**********************************************************************************************************--->
 					<!--- Is the template active? --->
 					<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
 						<cfinvokeargument name="contentTemplate" value="categoriesPod">
@@ -177,6 +250,9 @@
 					</cfmodule>
 				</cfif>
 				<cfsilent>
+					<!--- *******************************************************************************************************
+						Monthly archives
+					**********************************************************************************************************--->
 					<!--- Is the template active? --->
 					<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
 						<cfinvokeargument name="contentTemplate" value="monthlyArchivesPod">
@@ -199,18 +275,21 @@
 					</div>
 					</cfmodule>
 				</cfif>
-					<cfsilent>
+				<cfsilent>
+					<!--- *******************************************************************************************************
+						Calendar
+					**********************************************************************************************************--->
 					<!--- Notes: 
 					1: this widget is always active in this version as it does not have custom output. I need to change this in a later version
 					2: the calendar widget is the last item on this page as when using touch devices, it is hard to find space to touch scroll.--->
-					
+
 					<!--- Cache notes: We're saving this to the application scope. We need to save the sideBarPanelType. The timeout is set to 1 hour --->
 					<cfif sideBarType eq 'div'>
 						<cfset cacheName = "calendarDiv">
 					<cfelseif sideBarType eq 'panel'>
 						<cfset cacheName = "calendarPanel">
 					</cfif>
-					</cfsilent>
+				</cfsilent>
 					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="application" file="#application.baseUrl#/cache/pods/#cacheName#.cfm" timeout="#(60*60)#" debug="false" disabled="#application.disableCache#">
 					<div class="widget k-content flexItem">
 						<span class="innerContentContainer">

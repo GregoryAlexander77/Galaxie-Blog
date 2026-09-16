@@ -3,51 +3,60 @@
 <!---
 	Name         : parseses.cfm
 	Author       : Raymond Camden/Gregory Alexander 
-	Created      : June 23, 2005
-	Last Updated : August 31, 2006
-	History      : Reset for 5.0 (5/1/06)
-				 : catch long cats (8/31/06)
-				 : One line by Mike D
 				 : Other edits by Gregory Alexander, check GitHub for more information.
 	Purpose		 : Attempts to find SES info in URL and set URL vars
+	Desc		 : This template gets the number of forward slashes in a year and determines what is being sent by the positions of the elements in the URL.
+
+If there is one forward slash this assumes it is a category: /galaxie-blog-2025-roadmap
+Tags are sent via the URL like so: tag/galaxie-blog-2025-roadmap
+Author links are: postedby/Gregory_Alexander
+ 
+Important note: the URL and param variables that are used in this function are set in three places, parseses.cfm, getMode.cfm, and in the getPost method in blog.cfc. I need to consolidate this logic in the future.
 --->
 
 <cfscript>
 /**
- * Parses my SES format. Demands /YYYY/MMMM/TITLE or /YYYY/MMMM/DDDD/TITLE
- * One line from MikeD
- *
- * @author Raymond Camden (ray@camdenfamily.com)
- * @version 2, Jan 21, 2005 (19 years after it was released)
+ * Parses my SES format. A blog post uses /YYYY/MMMM/TITLE or /YYYY/MMMM/DDDD/TITLE
  * 
  */ 
 function parseMySES() {
-	// line below from Mike D.
 	var urlVars=reReplaceNoCase(trim(cgi.path_info), '.+\.cfm/? *', '');
 	var r = structNew();
 	var theLen = listLen(urlVars,"/");
-
-	if(len(urlVars) is 0 or urlvars is "/" or len(theLen) GT 4) return r;
 	
-	// handles categories
+	/** Debugging
+	writeOutput('urlVars:' & urlVars);
+	writeOutput('theLen:' & theLen);
+	 */ 
+	
+	/* Return an empty struct if there are no URL vars or the number of URL variables exceeds 4 */
+	if (len(urlVars) is 0 or urlvars is "/" or len(theLen) GT 4) return r;
+	
+	// handles categories and pages
 	if (theLen is 1) {
-			urlVars = replace(urlVars, "/","");
-			r.categoryName = urlVars;	
-			return r;
+		urlVars = replace(urlVars, "/","");
+		// See if the page exists
+		if (application.blog.pageExists(postAlias=urlVars)){
+			r.pageName = urlVars;	
+		} else {
+			// We assume that it's a category
+			r.categoryName = urlVars;
+		}
+		return r;
 	}
 	
 	// handles tags
 	if (theLen is 2 and urlVars contains "tag") {
-			urlVars = replace(urlVars, "/tag/","");
-			r.tagName = urlVars;	
-			return r;
+		urlVars = replace(urlVars, "/tag/","");
+		r.tagName = urlVars;	
+		return r;
 	}
 	
 	// handles users (aka posters, authors)
 	if (theLen is 2 and urlVars contains "postedby") {
-			urlVars = replace(urlVars, "/postedby/","");
-			r.postedby = urlVars;	
-			return r;
+		urlVars = replace(urlVars, "/postedby/","");
+		r.postedby = urlVars;	
+		return r;
 	}
 
 	r.year = listFirst(urlVars,"/");
@@ -57,6 +66,7 @@ function parseMySES() {
 	return r;
 }
 </cfscript>
+<!---<cfdump var="#parseMySES()#" label="ses">--->
 
 <!--- Try to load my info from the URL ... --->
 <cfset sesInfo = parseMySES()> 
@@ -69,8 +79,14 @@ function parseMySES() {
 
 <cfset params = structNew()>
 	
-<!--- First see if we have a category --->
-<cfif structKeyExists(sesInfo, "categoryName")>
+<!--- Handle pages --->
+<cfif structKeyExists(sesInfo, "pageName")>
+	<cfset params.byAlias = sesInfo.pageName>
+	<cfset url.mode = 'page'>
+	<cfset url.alias = params.byAlias>
+	
+<!--- Handle a category --->
+<cfelseif structKeyExists(sesInfo, "categoryName")>
 
 	<cfif len(trim(sesInfo.categoryName)) and len(trim(sesInfo.categoryName)) lte 50>
 		<!--- Set the URL mode, get the categoryId and save it. --->
@@ -117,7 +133,7 @@ function parseMySES() {
 		<cfset url.mode = "month">
 	</cfif>
 	
-<!--- This is a full entry --->
+<!--- This is a full blog entry --->
 <cfelse>
 
 	<!--- The blog checks, but lets be extra careful --->
@@ -136,7 +152,8 @@ function parseMySES() {
 	<cfset url.mode = "alias">
 	<cfset url.alias = params.byAlias>
 
-</cfif>
+</cfif>	
+<!---<cfdump var="#URL#" label="url set in parseses">--->
 
 <!--- Return vars --->
 <cfset caller.params = params>

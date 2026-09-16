@@ -1,6 +1,7 @@
 <!doctype html>
 <cfsilent>
 <cfset gridName = "fontGrid">
+<cfset showEditButton = true>
 </cfsilent>
 <html>
 <head><cfoutput>
@@ -391,7 +392,7 @@
 			updateButtonTooltip: "Update",
 			cancelEditButtonTooltip: "Cancel edit",
 
-			editButton: true,
+			editButton: <cfoutput>#showEditButton#</cfoutput>,
 			deleteButton: true,
 			clearFilterButton: true,
 			modeSwitchButton: true,

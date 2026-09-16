@@ -16,11 +16,53 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 //********************************************************************************************************************--->
 	
 <!--- Unique page settings that may vary on each different page. --->
-<cfset pageId = 1>
-<cfset pageName = "Blog"><!--- Blog --->
-<cfset pageTypeId = 1><!--- Blog --->
+<cfscript>
+	pageId = 1;
+	pageName = "Blog"; // Blog
+	pageTypeId = 1; // Blog
+</cfscript>
 
-<!--- Common and theme settings and includes the getMode tag in order to set the params for the getPost query. The pageSettings also determines when we should cache the page depending upon if the user is logged in. --->
+<!---
+Custom page example:
+<cfset pageId = unique number>
+<cfset pageName = "unique string">
+<cfset pageTypeId = 9>
+
+Optional custom page variables 
+postId: Id allows to create content from a unique post in the database. This usually is not necessary as you can create dynamic pages from a post using the admin page that sets the isPage column to true in the database.
+customPageTemplate: path allows to use a custom template using a hardcoded cfinclude. 
+--->	
+	
+<!--- //******************************************************************************************************************
+			Inspect the URL 
+//********************************************************************************************************************--->
+
+<!--- This template gets the number of forward slashes in a year and determines what is being sent by the positions of the elements in the URL. --->
+<cfmodule template="#application.baseUrl#/tags/parseses.cfm" /> 
+	
+<!--- Raymond's module to inspect the URL to determine what to pass to the getPost method. Get mode also deterines the start and end row determined by what type of page this is (blog or post for example). This works in conjunction with parses.cfm above. I may rewrite this in a future version. --->
+<cfmodule template="#application.baseUrl#/tags/getmode.cfm" r_params="params"/>
+<!---<cfdump var="#params#" label="params">--->
+	
+<!--- //******************************************************************************************************************
+			Get the post(s)
+//********************************************************************************************************************--->
+	
+<cfinclude template="#application.baseUrl#/includes/templates/getPost.cfm"> 
+<!---<cfdump var="#getPost#" label="getPost">--->
+	
+<!--- //******************************************************************************************************************
+			Global page settings and cache
+//********************************************************************************************************************--->
+
+<!--- Include the functions that are used in the UI --->
+<cfinclude template="#application.baseUrl#/common/function/page.cfm">
+	
+<!--- //******************************************************************************************************************
+			Get the page properties
+//********************************************************************************************************************--->
+	
+<!--- The pageSettings also determines when we should cache the page depending upon if the user is logged in. --->
 <cfinclude template="#application.baseUrl#/includes/templates/pageSettings.cfm">
 
 <!--- //******************************************************************************************************************
@@ -29,6 +71,12 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 	
 <!--- Determine whether we should disable the cache. --->
 <cfset disableCache = application.blog.getDisableCache()>	
+<!--- We need to differentiate material and non-material themes to apply the right settings to the buttons. Computed once here instead of twice further down (sidebar div and sidebar panel both need it). --->
+<cfif kendoTheme contains 'material'>
+	<cfset materialTheme = true>
+<cfelse>
+	<cfset materialTheme = false>
+</cfif>
 <!--- Get post information from the db --->
 <cfinclude template="#application.baseUrl#/includes/templates/coreLogic.cfm">
 
@@ -37,8 +85,6 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 //********************************************************************************************************************--->
 </cfsilent>
 <html lang="en-US"><head><cfoutput>
-	
-<!---<cfdump var="#getPost#">--->
 <cfinclude template="#application.baseUrl#/includes/templates/head.cfm" />
 </head>
 </cfoutput>	
@@ -64,14 +110,10 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 //********************************************************************************************************************--->
 
 <!--- Set up cache. This needs to use the themeId as the fonts are different for each theme. The fonts should never expire. This code is also minimized. --->
-<cfif session.isMobile>
-	<cfset cacheName = "fontThemeId=#themeId#Mobile">
-<cfelse>
-	<cfset cacheName = "fontThemeId=#themeId#">
-</cfif>
+<cfset cacheName = buildCacheKey("font", themeId)>
 <!--- galaxieCache will read content between the cfmodule tags (or a normal tag) and save the content to the file system. This can't be in a cfsilent block --->
 </cfsilent>
-<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/fonts/#cacheName#.cfm" debug="false" disabled="#disableCache#">
+<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cacheName#" scope="html" file="#application.baseUrl#/cache/fonts/#cacheName#.cfm" debug="false" disabled="#disableCache#">
 <cfinclude template="#application.baseUrl#/includes/templates/font.cfm" />
 </cfmodule>
 
@@ -91,23 +133,23 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 <!--  Outer container. This container controls the blog width. The 'k-alt' class is used when there are alternating rows and you want to differentiate them. Typically, it is a darker color that 'k-content'. We will set the min width of the container to be 968 pixels and the min width of the blog content to be 640 pixels. This should give approximately 300 miniumum pixels to the side bar on the right. -->
 	
 <!--- Set up cache. We need to save the theme and the device type (ie mobile) in the cache name. --->
-<cfif session.isMobile>
-	<cfset cacheName = "topMenuThemeId=#themeId#Mobile">
-<cfelse>
-	<cfset cacheName = "topMenuThemeId=#themeId#">
-</cfif>
-	
-<!--- Note: there are two different layouts depending upon the stretchHeaderAcrossPage. --->
+<cfset cacheName = buildCacheKey("topMenu", themeId)>
+
+<!--- Note: there are two different layouts depending upon the stretchHeaderAcrossPage. Render the cached header once into a variable, then only branch on where it gets placed relative to the <table> tag. --->
 </cfsilent>
-	
+
+<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. !!! We need to use the themeId as each theme uses different background images in the menu --->
+<cfsavecontent variable="headerHtml">
+<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cacheName#" scope="html" file="#application.baseUrl#/cache/header/#cacheName#.cfm" debug="false" disabled="#disableCache#">
+	<cfinclude template="#application.baseUrl#/includes/templates/topMenuHtml.cfm" />
+</cfmodule>
+</cfsavecontent>
+
 <cfif not stretchHeaderAcrossPage>
 <table id="mainBlog" class="k-alt" cellpadding="0" cellspacing="0" align="center">
 	<tr>
 	 <td>
-		<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. !!! We need to use the themeId as each theme uses different background images in the menu --->
-		<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/header/#cacheName#.cfm" debug="false" disabled="#disableCache#">
-			<cfinclude template="#application.baseUrl#/includes/templates/topMenuHtml.cfm" />
-		</cfmodule>
+		<cfoutput>#headerHtml#</cfoutput>
 	 </td>
 	</tr>
 	<cfsilent>
@@ -116,11 +158,8 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 	//****************************************************************************************************************--->
 	</cfsilent>
 <cfelse><!---<cfif not stretchHeaderAcrossPage>--->
-	<!--- Note: this needs to be an independent layer for the blog menu to keep the z-index intact in order to float over the top of the rest of the layers, such as the footer. !!! We need to use the themeId as each theme uses different background images in the menu --->
-<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/header/#cacheName#.cfm" debug="false" disabled="#disableCache#">
-	<cfinclude template="#application.baseUrl#/includes/templates/topMenuHtml.cfm" />
-</cfmodule>
-	
+	<cfoutput>#headerHtml#</cfoutput>
+
 <table id="mainBlog" class="k-alt" cellpadding="0" cellspacing="0" align="center">
 </cfif><!---<cfif not stretchHeaderAcrossPage>--->
    <tr>
@@ -131,19 +170,33 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 				Blog content html
 	//****************************************************************************************************************--->
 		
-	<!--- Note: the blog content HTML template is too sophisticated to cache the entire template. Instead, we will cache parts of it  --->
-	</cfsilent>			
+	<!--- Note: the blog content HTML template is too sophisticated to cache the entire template. Instead, we will cache parts of it  
+		
+	Debugging
+	<cfoutput>getPageMode(): #getPageMode()# condensedGridView: #condensedGridView#</cfoutput>
+	<cfdump var="#params#" label="params">
+	<cfdump var="#URL#" label="URL">
+	--->
+	</cfsilent>		
+	
 	<!-- Blog body -->
 	<main>
-		<cfif pageTypeId eq 1><!--- Blog --->
+		<cfif pageTypeId eq 1>
+			<!--- Main blog --->
 			<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
+		<cfelseif pageTypeId eq 9>
+			<cfif isDefined("customPageTemplate") and len(customPageTemplate)>
+				<!--- Custom page with a hardcoded template --->
+				<cfinclude template="#customPageTemplate#">
+			<cfelse>
+				<!--- Standard page --->
+				<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
+			</cfif>
 		<cfelse>
 			<div id='contentInnerContainer' class="k-content"><!--- This must be a content container class --->
-				<cfif pageTypeId eq 2><!--- Admin --->
+				<cfif pageTypeId eq 2><!--- Admin pages --->
 					<!-- Dynamic content loaded via jQuery and Ajax. -->
 					<cfinclude template="#application.baseUrl##getTemplatePathByPageName(pageName)#" /><!--- The getTemplatePathByPageName is in /common/function/page.cfm --->
-				<cfelse>
-					<!--- External pages coming soon --->
 				</cfif>
 			</div><!--<div id='contentInnerContainer' class="k-content">-->
 		</cfif><!---<cfif pageTypeId eq 1>--->
@@ -153,12 +206,6 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 		In classic mode, the side bar div is always displayed on the right side of the blog page. It is also used as a responsive panel on desktop devices when the screen size is small. We will not include it if the break point is not 0 or is equal or above 50000. If the chosen theme type is classic, this get's loaded first and then the panel below gets loaded. If the device is mobile or the theme is a modern theme, this sidebar does not exist.
 		//****************************************************************************************************************--->
 
-		<!--- We need to differentiate material and non-material themes to appy the right settings to the buttons --->
-		<cfif kendoTheme contains 'material'>
-			<cfset materialTheme = true>
-		<cfelse>
-			<cfset materialTheme = false>
-		</cfif>
 		</cfsilent>	
 		<cfif breakpoint gt 0>
 			<div id="sidebar">
@@ -174,12 +221,6 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 		This sidebar panel is always a fly-out panel on the left of the page. This panel is a duplicate of the sidebar div when the theme type is classic. If the theme type is modern or when the device is mobile, this is the only panel on the page. This panel is invoked when the user clicks on the hamburger icon in the menu at the top of the page.
 		//****************************************************************************************************************--->
 
-		<!--- We need to differentiate material and non-material themes to appy the right settings to the buttons --->
-		<cfif kendoTheme contains 'material'>
-			<cfset materialTheme = true>
-		<cfelse>
-			<cfset materialTheme = false>
-		</cfif>
 		</cfsilent>	
 		<nav id="sidebarPanel" class="k-content">
 			<div id="sidebarPanelWrapper" name="sidebarPanelWrapper" class="flexScroll"> 
@@ -230,15 +271,11 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 			Footer (the administrative interface does not need a footer)
 //**************************************************************************************************************--->
 		
-<!--- galaxieCache will read content between the cfmodule tags (or a normal tag) and save the content to the file system. The module or tag can't be in a cfsilent block --->
-<cfif session.isMobile>
-	<cfset cachename = 'footerHtmlMobile'>
-<cfelse>
-	<cfset cachename = 'footerHtml'>
-</cfif>
+<!--- galaxieCache will read content between the cfmodule tags (or a normal tag) and save the content to the file system. The module or tag can't be in a cfsilent block. Bug fix: this cache key previously omitted themeId entirely ('footerHtml'/'footerHtmlMobile'), so every theme after the first served a stale, wrong-theme footer from cache. Now theme-aware like the header and font cache keys. --->
+<cfset cacheName = buildCacheKey("footer", themeId)>
 </cfsilent>
 <!--- galaxieCache will read content between the cfmodule tags (or a normal tag) and save the content to the file system. This can't be in a cfsilent block --->
-<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/footer/#cacheName#.cfm" debug="false" disabled="#disableCache#">
+<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cacheName#" scope="html" file="#application.baseUrl#/cache/footer/#cacheName#.cfm" debug="false" disabled="#disableCache#">
 	<cfinclude template="#application.baseUrl#/includes/templates/content/footer/footer.cfm" />
 </cfmodule>  
 <cfsilent>

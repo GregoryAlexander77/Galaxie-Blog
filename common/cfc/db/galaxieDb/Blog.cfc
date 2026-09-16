@@ -24,8 +24,6 @@
 	<cfproperty name="BlogEmailFailToAddress" ormtype="string" length="75" default="">
 	<cfproperty name="BlogEmail" ormtype="string" length="125" default="">
 	<cfproperty name="CcEmailAddress" ormtype="string" length="125" default="">
-	<!--- This works for both SQL Server and MariaDb --->
-	<cfproperty name="IpBlockList" ormtype="string" length="2000" default="">
 	<cfproperty name="SaltAlgorithm" ormtype="string" length="255" default="">
 	<cfproperty name="SaltAlgorithmSize" ormtype="string" length="255" default="">
 	<cfproperty name="HashAlgorithm" ormtype="string" length="255" default="">

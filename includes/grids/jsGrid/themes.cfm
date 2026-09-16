@@ -6,6 +6,7 @@
 <cfelseif themeGridType eq 'contentTemplate'>
 	<cfset gridName = "themeContentGrid">
 </cfif>
+<cfset showEditButton = true>
 
 </cfsilent>
 <html>
@@ -371,14 +372,6 @@
 			});
 		});
 
-		// Helper functions
-		function makePostLink(datePosted, postAlias){
-			var dt = new Date(datePosted);
-			var yyyy = dt.getFullYear();
-			var m = dt.getMonth()+1;
-			var d = dt.getDay()+1;
-			return yyyy + "/" + m + "/" + d + "/" + postAlias;
-		}
 		
    	</script>
 </form>
@@ -428,7 +421,7 @@
 			updateButtonTooltip: "Update",
 			cancelEditButtonTooltip: "Cancel edit",
 
-			editButton: true,
+			editButton: <cfoutput>#showEditButton#</cfoutput>,
 			deleteButton: true,
 			clearFilterButton: true,
 			modeSwitchButton: true,

@@ -2,15 +2,24 @@
 		Page Mode
 ******************************************************************************************************--->
 
-<!--- Get the page mode which depends upon what the page is rendering. The page mode on the index.cfm page is 'blog', when the user is reading a post, the pageMode is post, etc.--->
+<!--- 
+Get the page mode which depends upon what the page is rendering. The page mode on the index.cfm page is 'blog', when the user is reading a post, the pageMode is post, etc.
+Important note: the URL and param variables that are used in this function are set in three places, parseses.cfm, getMode.cfm, and in the getPost method in blog.cfc. I need to consolidate this logic in the future.
+--->
 <cffunction name="getPageMode" access="public" output="false" returntype="string" hint="Determines what the page is rendering.">
 
-	<cfif not isDefined("URL.mode")>
+	<cfif pageTypeId eq 9 and isDefined("postId")>
+		<!--- The postId is defined when using an external page --->
+		<cfset pageMode = "post">
+	<cfelseif not isDefined("URL.mode")>
 		<cfset pageMode = "blog">	
 	<cfelse>
 		<cfswitch expression="#URL.mode#">
+			<!--- Note: when in post mode- we will create a new strucuture and get the data to display a single post. This applies to the next 3 blocks. --->
+			<cfcase value="page">
+				<cfset pageMode = "post">
+			</cfcase>
 			<cfcase value="alias">
-				<!--- Note: when the page is in alias mode- we will create a new strucuture and get the data from the post. --->
 				<cfset pageMode = "post">
 			</cfcase>
 			<cfcase value="entry">
@@ -36,13 +45,59 @@
 			<cfdefaultcase>
 				<cfset pageMode = "blog">
 			</cfdefaultcase>
-
 		</cfswitch>
 	</cfif>
 
 	<!--- Return the pageMode value --->
 	<cfreturn pageMode>
 
+</cffunction>
+				
+<!--- 
+Determine if the post is a page. This uses URL variables, if available, to make this determination.
+--->
+<cffunction name="isPageMode" access="public" output="false" returntype="boolean" hint="Determine if the post is a page. This uses URL variables, if available, to make this determination.">
+	
+	<!--- Preset the var --->
+	<cfset isPage = false>
+	
+		<!--- Reset it if the isPage URL var is set --->
+	<cfif structKeyExists(URL, "isPage")>
+		 <cfif URL.isPage>
+			<cfset isPage = true>
+		</cfif>
+	</cfif>
+	<cfreturn isPage>
+</cffunction>
+
+<!---******************************************************************************************************
+		Cache
+******************************************************************************************************--->
+
+<!---
+Builds a theme- and device-aware cache key, e.g. buildCacheKey("font", themeId) -> "fontThemeId=3Mobile".
+Centralizes the mobile-suffix logic that was previously duplicated at each cache-key call site in index.cfm.
+--->
+<cffunction name="buildCacheKey" access="public" output="false" returntype="string" hint="Builds a cache key of the form {prefix}ThemeId={themeId}[Mobile].">
+	<cfargument name="prefix" type="string" required="true" hint="Cache key prefix, e.g. 'font', 'topMenu', 'footer'.">
+	<cfargument name="themeId" type="string" required="true" hint="The current theme id.">
+	<cfreturn arguments.prefix & "ThemeId=" & arguments.themeId & (session.isMobile ? "Mobile" : "")>
+</cffunction>
+
+<!---
+Applies the "XML keyword overrides a database-derived fallback" pattern used throughout coreLogic.cfm's
+video-metadata and SEO meta-tag sections. If keywordName is embedded in the post header XML, its value wins;
+otherwise the caller-supplied fallback (already computed by the caller) is used.
+--->
+<cffunction name="getXmlOverride" access="public" output="false" returntype="string" hint="Returns the XML-embedded keyword value if present, otherwise the supplied fallback.">
+	<cfargument name="xmlKeywords" type="string" required="true">
+	<cfargument name="postHeader" type="string" required="true">
+	<cfargument name="keywordName" type="string" required="true">
+	<cfargument name="fallback" type="string" default="">
+	<cfif findNoCase(arguments.keywordName, arguments.xmlKeywords) gt 0>
+		<cfreturn application.blog.getXmlKeywordValue(arguments.postHeader, arguments.keywordName)>
+	</cfif>
+	<cfreturn arguments.fallback>
 </cffunction>
 				
 <!---******************************************************************************************************

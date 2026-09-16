@@ -2,7 +2,16 @@
 	<!--- Include the stylesheet for the theme for jsGrid. The Kendo grid stylsheet will be included if we are using the commerial version of Kendo --->
 	<cfinclude template="#application.baseUrl#/common/libs/jsGrid/kendoThemeCss.cfm">
 </cfif>
-<cfsilent>	
+<cfsilent>
+
+<!--- Get a CSRF token for the Refresh Site / Reload ORM Objects icons below. forceNew=false reuses the
+	existing session token (matching the same csrfGenerateToken("admin", false) call used in
+	adminInterface.cfm and latestVersionCheck.cfm) rather than minting a new one. --->
+<cfset csrfToken = csrfGenerateToken("admin", false)>
+
+<!--- Clean up the logs. This will delete records that fall outside of the specified retention period. --->
+<cfset logCleanup = application.blog.cleanUpLogs()>
+	
 <!--- Get roles and capabilities. This is used to determine what to display depending upon the permissions --->
 <!--- Get the list of roles (a user should only be one role at in V2). We can either extract a roleId list, or a role list. Here, we want to get the actual role name (roleList) --->
 <cfset currentUserRole = application.blog.getUserBlogRoles(session.userName, 'roleList')>
@@ -24,6 +33,12 @@
 	<cfset titleList = listAppend(titleList, 'Create Post')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(24);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/post.png")>
+</cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
+	<cfset iconList = listAppend(iconList, 'Pages')>
+	<cfset titleList = listAppend(titleList, 'Pages')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(57);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/contentEditor.png")>
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
 	<cfset iconList = listAppend(iconList, 'Posts')>
@@ -78,7 +93,7 @@
 	
 <cfif listFindNoCase(currentUserCapabilityList, 'EditTheme') gt 0>
 	<cfset iconList = listAppend(iconList, 'Themes')>
-	<cfset titleList = listAppend(titleList, 'Themes & Display')>
+	<cfset titleList = listAppend(titleList, 'Themes & Content')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(29);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/themes.png")>
 </cfif>
@@ -94,14 +109,7 @@
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(38);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/settings.gif")>
 </cfif>
-<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
-	<cfset iconList = listAppend(iconList, 'BlogUpdate')>
-	<cfset titleList = listAppend(titleList, 'Blog Updates')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(40);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/blogUpdates.gif")>
-</cfif>
-<!--- I am temporararily removing the visitor log until I implement a new interface to allow the blog admins to turn it on or off. I am having ORM lock issues on occassion since the logging requires capturing data for each visitor ---> 
-<cfif 1 eq 2>
+<!--- There are occassional ORM lock issues on occassion since the logging requires capturing data for each visitor ---> 
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
 	<!--- Visitor Log --->
 	<cfset iconList = listAppend(iconList, 'VisitorLog')>
@@ -109,6 +117,47 @@
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(48);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/visitorLog.gif")>
 </cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
+	<!--- Ban Visitors by IP address or HTTP User-Agent string --->
+	<cfset iconList = listAppend(iconList, 'BanVisitors')>
+	<cfset titleList = listAppend(titleList, 'Ban Visitors')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(66);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/banUser.gif")>
+</cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
+	<!--- Grid of anonymous visitors currently blocked by a banned IP address or User-Agent --->
+	<cfset iconList = listAppend(iconList, 'BannedUsers')>
+	<cfset titleList = listAppend(titleList, 'Banned Users')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(67);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/banUserGrid.gif")>
+</cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
+	<!--- Visitor Log --->
+	<cfset iconList = listAppend(iconList, 'AdminLog')>
+	<cfset titleList = listAppend(titleList, 'Admin Log')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(58);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/adminLog.gif")>
+</cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
+	<!--- Visitor Log --->
+	<cfset iconList = listAppend(iconList, 'ErrorLog')>
+	<cfset titleList = listAppend(titleList, 'Error Log')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(59);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/errorLog.gif")>
+</cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
+	<!--- Reaaction Log --->
+	<cfset iconList = listAppend(iconList, 'reactionLog')>
+	<cfset titleList = listAppend(titleList, 'Reaction Log')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(62);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/likes.gif")>
+</cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
+	<!--- Visitor Log --->
+	<cfset iconList = listAppend(iconList, 'SearchQuery')>
+	<cfset titleList = listAppend(titleList, 'Search Queries')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(61);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/searchQuery.gif")>
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
 	<cfset iconList = listAppend(iconList, 'ImportData')>
@@ -116,14 +165,104 @@
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(41);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/import.png")>
 </cfif>
-<cfset iconList = listAppend(iconList, 'RefreshSite')> 
+<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
+	<cfset iconList = listAppend(iconList, 'BlogUpdate')>
+	<cfset titleList = listAppend(titleList, 'Blog Updates')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(40);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/blogUpdates.gif")>
+</cfif>
+<!--- Note: this used to be a plain href to "#application.baseUrl#/?reinit=1", which navigated the
+	whole browser away from the admin page to reinitialize the site. It's now a javascript: call so we
+	can show a small Kendo confirmation window instead -- the refreshSite() function (defined below)
+	makes an AJAX request back to this same "?reinit=1" URL param, which Application.cfc's
+	onRequestStart still processes exactly as before, and then reports success/failure. --->
+<cfset iconList = listAppend(iconList, 'RefreshSite')>
 <cfset titleList = listAppend(titleList, 'Refresh Site')>
-<cfset linkList = listAppend(linkList, "#application.baseUrl#/?reinit=1")>
+<cfset linkList = listAppend(linkList, "javascript:refreshSite();")>
 <cfset imageList = listAppend(imageList, "/images/icons/refresh.gif")>
-	
+
+<!--- Reload the ColdFusion ORM (Hibernate) object metadata. Same pattern as Refresh Site above -- the
+	reloadOrmObjects() function makes an AJAX request carrying "?reloadOrm=1", which Application.cfc's
+	onRequestStart already knows how to handle, and then reports success/failure in a Kendo window. --->
+<cfset iconList = listAppend(iconList, 'ReloadOrm')>
+<cfset titleList = listAppend(titleList, 'Reload ORM Objects')>
+<cfset linkList = listAppend(linkList, "javascript:reloadOrmObjects();")>
+<cfset imageList = listAppend(imageList, "/images/icons/refreshOrm.gif")>
+
 <!--- Get any new recent comments and prompt the user if they want to review them. --->
 <cfset recentCommentCount = application.blog.getRecentCommentCount()>
 </cfsilent>
+<!--- Refresh Site / Reload ORM Objects. Both follow the same shape: show a "please wait" window,
+	make an AJAX call to a ProxyController function whose URL also carries the same reinit/reloadOrm
+	param that Application.cfc's onRequestStart already knows how to process, then swap the "please
+	wait" window for a small Kendo confirmation (or error) window once the response comes back. --->
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+	function refreshSite(){
+
+		// Open the please wait window while the request is in flight.
+		$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Refreshing the site...", icon: "k-ext-information" }));
+
+		$.ajax({
+			type: 'post',
+			// The reinit=1 param is what Application.cfc's onRequestStart looks for to reset the app
+			// vars and flush the caches -- it runs before this method's own code executes.
+			url: '<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=refreshSite&reinit=1',
+			data: {
+				csrfToken: '<cfoutput>#csrfToken#</cfoutput>'
+			},
+			dataType: "json",
+			cache: false,
+			success: function(data){
+				kendo.ui.ExtWaitDialog.hide();
+				if (data && data.success){
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "Site Refreshed", message: "The site has been successfully refreshed.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
+				} else {
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "Refresh Failed", message: "Unable to refresh the site" + (data && data.errorMessage ? ": " + data.errorMessage : "."), icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
+				}
+			},
+			error: function(){
+				kendo.ui.ExtWaitDialog.hide();
+				$.when(kendo.ui.ExtAlertDialog.show({ title: "Refresh Failed", message: "Unable to refresh the site.", icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
+			}
+		});
+
+		// Prevent the anchor's href from doing anything else.
+		return false;
+	}//..function refreshSite()
+
+	function reloadOrmObjects(){
+
+		// Open the please wait window while the request is in flight.
+		$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Reloading the ORM objects...", icon: "k-ext-information" }));
+
+		$.ajax({
+			type: 'post',
+			// The reloadOrm=1 param is what Application.cfc's onRequestStart looks for to call
+			// ORMReload() -- it runs before this method's own code executes.
+			url: '<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=reloadOrmObjects&reloadOrm=1',
+			data: {
+				csrfToken: '<cfoutput>#csrfToken#</cfoutput>'
+			},
+			dataType: "json",
+			cache: false,
+			success: function(data){
+				kendo.ui.ExtWaitDialog.hide();
+				if (data && data.success){
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "ORM Objects Reloaded", message: "The ORM objects have been successfully reloaded.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
+				} else {
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "Reload Failed", message: "Unable to reload the ORM objects" + (data && data.errorMessage ? ": " + data.errorMessage : "."), icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
+				}
+			},
+			error: function(){
+				kendo.ui.ExtWaitDialog.hide();
+				$.when(kendo.ui.ExtAlertDialog.show({ title: "Reload Failed", message: "Unable to reload the ORM objects.", icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
+			}
+		});
+
+		// Prevent the anchor's href from doing anything else.
+		return false;
+	}//..function reloadOrmObjects()
+</script>
 <!--- If there are any unapproved comments, launch a prompt asking the user if they want to review the comments. --->
 <cfif recentCommentCount gt 0>
 	
@@ -422,10 +561,26 @@
 							</cfif>
 						</td>
 						<td style="text-align:center">
-							<!--- Nothing here yet --->
+							<cfset i = 17>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+							</span>
+							</cfif>
 						</td>
 						<td style="text-align:center">
-							<!--- Nothing here yet --->
+							<cfset i = 18>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+							</span>
+							</cfif>
 						</td>
 					</tr>
 					<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
@@ -434,6 +589,94 @@
 						<td colspan="3" style="height: 20px">&nbsp;</td>
 					</tr>
 				</cfif>
+					<tr>
+						<td colspan="3">&nbsp;</td>
+					</tr>
+					<tr>
+						<td style="text-align:center">
+							<cfset i = 19>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+
+							</span>
+							</cfif>
+						</td>
+						<td style="text-align:center">
+							<cfset i = 20>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+
+							</span>
+							</cfif>
+						</td>
+						<td style="text-align:center">
+							<cfset i = 21>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+
+							</span>
+							</cfif>
+						</td>
+					</tr>
+					<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
+				<cfif session.isMobile>
+					<tr>
+						<td colspan="3" style="height: 20px">&nbsp;</td>
+					</tr>
+				</cfif>
+					<tr>
+						<td colspan="3">&nbsp;</td>
+					</tr>
+					<tr>
+						<td style="text-align:center">
+							<cfset i = 22>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+
+							</span>
+							</cfif>
+						</td>
+						<td style="text-align:center">
+							<cfset i = 23>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+
+							</span>
+							</cfif>
+						</td>
+						<td style="text-align:center">
+							<cfset i = 24>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+
+							</span>
+							</cfif>
+						</td>
+					</tr>
 				</table>
 
 			</span>

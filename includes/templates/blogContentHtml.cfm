@@ -29,6 +29,8 @@
 		<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/cards/#cacheName#.cfm" timeout="#(24*3600)#" debug="false" disabled="#application.disableCache#">
 			<cfinvoke component="#application.blog#" method="getPost" returnvariable="getPosts">
 				<cfinvokeargument name="showPopularPosts" value="true">
+				<cfinvokeargument name="showPages" value="false">
+				<cfinvokeargument name="showBlogPosts" value="true">
 			</cfinvoke>
 		<cfif arrayLen(getPost)>
 			<cfset postScrollWidgetType = "popularPosts">
@@ -96,7 +98,9 @@
 				</cfif>
 				<cfset condensedCardViewLabel = "Posts made on " & condensedCardViewLabel>
 			<cfelseif getPageMode() eq 'blog'>
-				<cfset condensedCardViewLabel = "All Blogs">			
+				<cfset condensedCardViewLabel = "All Blogs">	
+			<cfelse>
+				<cfset condensedCardViewLabel = "">
 			</cfif> 
 
 			<!--- Determine the k-card class- when the cards are in a row, use k-card-deck, when each card is in a single column, use k-card-list. --->
@@ -217,8 +221,12 @@
 
 				<!--- Get the comment count for this post. --->
 				<cfset commentCount = application.blog.getCommentCountByPostId(postId)>
-				<!--- Get the post link. The makeRewriteRuleSafeLink function will be used within the makeLink function for server side rewrite rules --->
-				<cfset postLink = application.blog.makeLink(getPost[i]["PostId"])>
+				<!--- Get the post link. The makeLink function will be used within the makeLink function for server side rewrite rules --->
+				<!--- Create the link --->
+				<cfset postLink = application.blog.makeLink(
+					isPage=getPost[i]["IsPage"], 
+					postAlias=getPost[i]["PostAlias"], 
+					datePosted=getPost[i]["DatePosted"])>
 				<!--- We need to perform the same logic for the post author (remove the 'index.cfm' string when a rewrite rule is in place). --->
 				<cfset userLink = application.blog.makeUserLink(getPost[i]["FullName"])>
 				<!--- Render the post. This will render cfinclude and video directives if present, the encosure and the body. --->
@@ -264,7 +272,7 @@
 					"position": 1,
 					"name": "#parentLabel#",
 					"item": "#parentLink#"
-				  },{<cfif parentSite>
+				  },{<cfif parentSite and !isPageMode()>
 					"@type": "ListItem",
 					"position": 2,
 					"name": "Blog",
@@ -300,11 +308,14 @@
 							</h1>
 							<cfsilent><!--- Debugging: currentRow(i): #i# arrayLen(getPost): #arrayLen(getPost)# postId: #postId#<br/>---></cfsilent>
 						<cfif session.isMobile>
+							<!--- The postDate is not displayed for pages --->
+							<cfif !isPageMode()>
 							<p class="postDate">
 								<!--- We are getting the accent color to set the color in the month class instead of using Kendo's 'k-primary' class to render the primary accent color background. This is a change that I implemented chasing a perfect Google Lighthouse Score (background and foreground contrast issue ) --->
 								<span class="month">#dateFormat(datePosted, "mmm")#</span>
 								<span class="day k-alt">#day(datePosted)#</span>
 							</p>
+							</cfif><!---<cfif isPageMode()>--->
 							<p class="postAuthor">
 								<span class="info">
 									<cfif len(fullName)>by <a href="#userLink#" aria-label="#userLink#" class="k-content"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
@@ -327,6 +338,8 @@
 							</cfsilent>
 							<table cellpadding="0" cellspacing="0">
 								<tr>
+								<!--- The postDate is not displayed for pages --->
+								<cfif !isPageMode()>
 									<td style="vertical-align: top">
 										<p class="postDate">
 											<!--- We are getting the accent color to set the color in the month class instead of using Kendo's 'k-primary' class to render the primary accent color background. This is a change that I implemented chasing a perfect Google Lighthouse Score (background and foreground contrast issue ) --->
@@ -335,11 +348,12 @@
 										</p>
 									</td>
 									<td width="20"></td>
+								</cfif><!---<cfif isPageMode()>--->
 									<td>
 										<nav>
 											<ol class="cd-breadcrumb triangle">
 												<li><a href="<cfoutput>#parentLink#</cfoutput>" aria-label="Home"><i class="fas fa-house" style="alignment-baseline:middle;"></i></a></li>
-											<cfif parentSite>
+											<cfif parentSite and !isPageMode()>
 												<li><a href="<cfoutput>#application.blogHostUrl#</cfoutput>"  aria-label="Blog">Blog</a></li>
 											</cfif>
 												<cfloop from="1" to="#arrayLen(getCategories)#" index="i">
@@ -387,8 +401,188 @@
 								</cfif>
 							</cfif><!---<cfif len(morebody)>--->
 							</span><!--<span class="postContent">-->
+							<cfsilent>
+							<!--- ********************************************************************************************
+								Like/Dislike
+							**********************************************************************************************--->
+							</cfsilent>
+							<cfif getPageMode() eq 'post' and isDefined("AnonymousUserDbObj") and application.logVisitors>
+								<cfsilent>
+								<!--- Get the current likes and dislikes --->
+								<cfset totalLikes = application.blog.getPostLikeCount(postId)>
+								<cfset totalDislikes = application.blog.getPostDislikeCount(postId)>
+								<!--- See if the current user already voted. This contains an array of helpful and unhelpful votes.  --->
+								<cfset myVotes = application.blog.myVotes(postId,AnonymousUserDbObj.getAnonymousUserId())>
+								<!--- My votes returns a list separated by an underscore (likes_dislikes) --->
+								<cfset myLikeCount = listGetAt(myVotes,1,"_")>
+								<cfset myDislikeCount = listGetAt(myVotes,2,"_")>
+							
+								<!--- Set the class for the vote buttons. If the user has already voted, use the Kendo primary class to indicate how they voted. Otherwise, use muted buttons --->
+								<!--- Like classes --->
+								<cfset likeButtonClassSelected = 'k-icon k-primary btn btn-default like'>
+								<cfset likeButtonClassUnselected = 'k-icon k-alt btn btn-default like likeOutline'>
+								<!--- Dislike classes --->
+								<cfset dislikeButtonClassSelected = 'k-icon k-primary btn btn-default dislike'>
+								<cfset dislikeButtonClassUnselected = 'k-icon k-alt btn btn-default dislike dislikeOutline'>
+									
+								<!--- Determine the initial button class --->
+								<cfif myLikeCount gt 0>
+									<cfset likeButtonClass = likeButtonClassSelected>
+								<cfelse>
+									<cfset likeButtonClass = likeButtonClassUnselected>
+								</cfif>
+										
+								<cfif myDislikeCount gt 0>
+									<cfset dislikeButtonClass = dislikeButtonClassSelected>
+								<cfelse>
+									<cfset dislikeButtonClass = dislikeButtonClassUnselected>
+								</cfif>
+								
+								<!--- Debugging --->
+								<cfdump var="#myVotes#" label="myVotes">
+								<cfoutput>totalLikes: #totalLikes# totalDislikes: #totalDislikes# myLikeCount:#myLikeCount# myDislikeCount: #myDislikeCount#</cfoutput>
+								</cfsilent>
+								
+								<h2 class="topContent">Reactions</h2>
+								<script>
+									$(document).ready(function(){
+										
+										$('#chr(35)#rating').likeDislike({
+											reverseMode: false,
+											disabledClass: 'disable',
+											click: function (value, l, d, event) {
+												// Create variables of likes and dislikes
+												var totalLikes = <cfoutput>#totalLikes#</cfoutput>;
+												var totalDislikes = <cfoutput>#totalDislikes#</cfoutput>;
+												// Class variables
+												// Like buttons
+												var likeButtonClassSelected = '<cfoutput>#likeButtonClassSelected#</cfoutput>';
+												var likeButtonClassUnselected = '<cfoutput>#likeButtonClassUnselected#</cfoutput>';
+												// Dislike buttons
+												var dislikeButtonClassSelected = '<cfoutput>#dislikeButtonClassSelected#</cfoutput>';
+												var dislikeButtonClassUnselected = '<cfoutput>#dislikeButtonClassUnselected#</cfoutput>';
+												// Vars to indicate the text element that contains the number of votes
+												var likes = $(this.element).find('.likes');
+												var dislikes =  $(this.element).find('.dislikes');
+												
+												// Submit the result to the server
+												$.ajax({
+													type: 'post', 
+													// This posts to the proxy controller as it needs to have session vars and performs client side operations.
+													url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=saveReaction",
+													data: {
+														postId: '<cfoutput>#postId#</cfoutput>',
+														anonymousUserId: '<cfoutput>#AnonymousUserDbObj.getAnonymousUserId()#</cfoutput>',
+														selectedId: event.target.id
+													},//..data: {
+													dataType: "json",
+													cache: false,
+													success: function(data) {
+														// Extract the data in the response.
+														for (var i = 0; i < data.length; i++) {
+															// Calculate the new totals depending upon what was sent
+															if ( event.target.id == 'like'){
+																// Only increment if I have not voted yet
+																if (<cfoutput>#myLikeCount#</cfoutput> === 0){
+																	totalLikes = <cfoutput>#totalLikes#</cfoutput> + 1;
+																	//console.log('Incrementing like');
+																}
+																// Subract 1 from the dislikes if I disliked this in the past
+																if (<cfoutput>#myDislikeCount#</cfoutput> > 0){
+																	totalDislikes = <cfoutput>#totalDislikes#</cfoutput> - 1;
+																	//console.log('Removing prior dislike');
+																}
+																// Change the selected like button class
+																	$('#chr(35)#likeButton').attr('class', likeButtonClassSelected);
+																	// Change the unlike button class
+																	$('#chr(35)#dislikeButton').attr('class', dislikeButtonClassUnselected);
+															} else {
+																// Increment the dislikes if I have not already disliked this
+																if (<cfoutput>#myDislikeCount#</cfoutput> === 0){
+																	totalDislikes = <cfoutput>#totalDislikes#</cfoutput> + 1;
+																	//console.log('Incrementing dislike');
+																}
+																// Remove the like if I already liked this and now dislike this
+																if (<cfoutput>#myLikeCount#</cfoutput> > 0){
+																	totalLikes = <cfoutput>#totalLikes#</cfoutput> - 1;
+													   				//console.log('Removing prior like');
+																}
+																// Change the selected dislike button class
+																$('#chr(35)#likeButton').attr('class', likeButtonClassUnselected);
+																// Change the unlike button class
+																$('#chr(35)#dislikeButton').attr('class', dislikeButtonClassSelected);
+															}
+															/**/
+															console.log('like:' + totalLikes);
+															console.log('dislike:' + totalDislikes);
+															
+															// Increment the counts
+															likes.text(parseInt(totalLikes));
+															dislikes.text(parseInt(totalDislikes));
 
-							<p class="bottomContent">
+														}
+													}//..success: function(data) {
+												});//..$.ajax({
+
+											}
+										});
+										
+									});
+								</script>
+
+								<style>
+									.dislike {
+										/* Step 1: Make the button a perfect circle */
+										width: 40px;
+										height: 40px;
+										border-radius: 50%;
+										display: flex;
+										justify-content: center; /* Centers horizontally */
+										align-items: center;     /* Centers vertically */
+										font-size: 16pt;
+									}
+
+									.like {
+										/* Step 1: Make the button a perfect circle */
+										width: 40px;
+										height: 40px;
+										border-radius: 50%;
+										display: flex;
+										justify-content: center; /* Centers horizontally */
+										align-items: center;     /* Centers vertically */
+										font-size: 16pt;
+									}
+									
+									.dislikeOutline {
+										outline: 1px solid orange;
+									}
+
+									.likeOutline {
+										outline: 1px solid green;
+									}
+
+								</style>
+								<div class="rating" id="rating">
+									<!-- I need a table to align the buttons properly and remove the page break -->
+									<table align="left" class="k-content" width="200px" cellpadding="5" cellspacing="0" border="0">
+										<tr>
+											<td width="25%">
+												<span id="likeButton" class="<cfoutput>#likeButtonClass#</cfoutput>"><i id="like" class="far fa-thumbs-up"></i></span>
+											</td>
+											<td>
+												<span class="likes"><cfoutput>#totalLikes#</cfoutput></span>
+											</td>
+											<td width="25%">
+												<span id="dislikeButton" class="<cfoutput>#dislikeButtonClass#</cfoutput>"><i id="dislike" class="far fa-thumbs-down"></i></span>
+											</td>
+											<td>
+												<span class="dislikes"><cfoutput>#totalDislikes#</cfoutput></span>
+											</td>
+										</tr>
+									</table>
+								</div><br/><br/>
+								<h3 class="topContent"></h3>
+							</cfif>
 							<cfsilent>
 							<!--- ********************************************************************************************
 								Related entries
@@ -403,15 +597,19 @@
 								</cfloop>
 
 								<cfinvoke component="#application.blog#" method="getPost" returnvariable="getPosts">
+									<!--- Show both layers and pages --->
+									<cfinvokeargument name="showPages" value="true">
+									<cfinvokeargument name="showBlogPosts" value="true">
 									<cfinvokeargument name="showPendingPosts" value="false">
 									<cfinvokeargument name="showRemovedPosts" value="false">
 									<cfinvokeargument name="showJsonLd" value="false">
 									<cfinvokeargument name="showPromoteAtTopOfQuery" value="false">
+									<!--- Send the postId's to be shown --->
 									<cfinvokeargument name="postIdList" value="#postIdList#">
 								</cfinvoke>
 								<cfset postScrollWidgetType = "Related Blogs">
 								<cfinclude template="popularPosts.cfm">
-								<h3 class="topContent"></h3>								
+															
 							</cfif>
 							<cfsilent>
 							<!--- ********************************************************************************************
@@ -436,6 +634,19 @@
 						</cfoutput>
 						</cfmodule><!--- End Post Cache --->
 						<cfsilent>
+						<cfif getPageMode() eq 'post' and application.logVisitors>
+							<!--- Log that the post has been read --->
+							<cftry>
+								<cfif isDefined("AnonymousUserDbObj")>
+									<cfset logPostRead = application.blog.logPostRead(postId=postId,AnonymousUserDbObj=AnonymousUserDbObj)>
+								<cfelse>
+									<cfset logPostRead = application.blog.logPostRead(postId=postId)>
+								</cfif>
+								<cfcatch type="any">
+									<!--- Do nothing --->
+								</cfcatch>
+							</cftry>
+						</cfif>
 						<!--- ********************************************************************************************
 							Author Bio
 						**********************************************************************************************--->
@@ -502,8 +713,21 @@
 						<!--- ********************************************************************************************
 							Comment interfaces (Disqus and Galaxie Blog)
 						**********************************************************************************************--->
+							
+						<!--- We will not show the comment interface at all if this is a page and if the user did not turn on commenting when saving the page  --->
+						<cfif isPageMode()>
+							<cfif allowComment>
+								<cfset showCommentInterface = true>
+							<cfelse>
+								<cfset showCommentInterface = false>
+							</cfif>
+						<cfelse>
+							<cfset showCommentInterface = true>
+						</cfif>
+								
 						</cfsilent>
 						<cfoutput>
+						<cfif showCommentInterface>
 						<!-- Button navigation. -->
 						<!-- Set a smaller font in the kendo buttons. Note: adjusting the .k-button class alone also adjusts the k-input in the multi-select so we will set it here.-->
 						<cfif allowComment>
@@ -570,7 +794,9 @@
 							<!--- ********************************************************************************************
 								Original comments interface (non Disqus).
 							**********************************************************************************************--->
+							<!--- We will not show the comment interface at all if this is a page and if the user did not turn on commenting when saving the page  --->
 							</cfsilent>
+							<!---<cfdump var="#AnonymousUserDbObj#" label="AnonymousUserDbObj">--->
 							<cfif len(commentCount) gt 0 and not application.includeDisqus>
 								<cfsilent>
 								<!--- Set the cache name --->
@@ -593,6 +819,7 @@
 								<cfloop from="1" to="#arrayLen(comments)#" index="i">
 									 <cfsilent>
 									 <!--- Set the vars. --->
+									 <cfset isPage = comments[i]["IsPage"]>
 									 <cfset commentId = comments[i]["CommentId"]>
 									 <cfset commentUuid = comments[i]["CommentUuid"]>
 									 <cfset comment = comments[i]["Comment"]>
@@ -610,11 +837,17 @@
 										 <cfset commenterWebsite = "">
 									 </cfif>
 									 <cfset commentDatePosted = comments[i]["DatePosted"]>
+									 <!--- Create the comment link --->
+									 <cfset commentLink = application.blog.makeLink(
+										isPage=comments[i]["IsPage"], 
+										postAlias=comments[i]["PostAlias"], 
+										datePosted=comments[i]["DatePosted"],
+										commentId=comments[i]["CommentId"])>
 									 </cfsilent>
 									 <!--- Note: the URL is appended with an extra 'c' in front of the commentId. --->
 									 <tr id="c#CommentId#" name="" class="<cfif commentLoopCount mod 2>k-content<cfelse>k-alt</cfif>">
 										<td class="fixedCommentTableContent">
-											 <a class="comment-id" href="#application.blog.makeLink(postId)###c#CommentId#" aria-label="Comment by #commenterFullName#" class="k-content">###i#</a> by <b>
+											 <a class="comment-id" href="#commentLink#" aria-label="Comment by #commenterFullName#" class="k-content">###i#</a> by <b>
 											 <cfif len(commenterWebsite)>
 												<a href="#commenterWebsite#" aria-label="#commenterFullName#" rel="nofollow">#commenterFullName#</a>
 											 <cfelse>
@@ -652,13 +885,15 @@
 							</div><!---<div id="comment#CommentId#" class="widget k-content" style="display:none;">--->
 							</cfmodule><!--- End Cache Comment --->
 						</cfif><!---<cfif application.includeDisqus>--->
+						</cfif><!---<cfif showCommentInterface>--->
 						</span><!---<span class="innerContentContainer">--->
 					</div><!---<div class="blogPost">--->
 				</article>
 			</cfoutput></cfloop><!---<cfloop from="1" to="#arrayLen(getPost)#" index="i">--->
 		</cfif><!---<cfif condensedGridView>--->
-	</cfif><!---<cfif arrayLen(getPost)>--->					
-		<a href="#chr(35)#" id="pagerAnchor" aria-label="Pager+"></a>			
+	</cfif><!---<cfif arrayLen(getPost)>--->
+	<a href="#" id="pagerAnchor" aria-label="Pager+"></a><!--- This anchor is used to quickly scroll to the bottom of the page using the menu --->	
+	<cfif (URL.startRow gt 1) or (arrayLen(getPost) gte maxEntries)>	
 		<cfsilent>
 		<!--- *******************************************************************************************************
 			Pagination 
@@ -666,32 +901,30 @@
 		<!---  
 		Debugging: <cfoutput>url.startRow: #url.startRow# maxEntries: #maxEntries# arrayLen(getPost): #arrayLen(getPost)# URL.startRow + maxEntries: #round(URL.startRow + maxEntries)# postCount:#postCount# </cfoutput>
 		<cfdump var="#getPost#">--->
+
+		<!--- Get the number of pages --->
+		<cfset totalPages = ceiling(postCount/maxEntries)>
+
+		<!--- Set links --->
+		<!--- Get the path if not /index.cfm --->
+		<cfset path = rereplace(cgi.path_info, "(.*?)/index.cfm", "")>
+		<!--- Clean out startrow from query string --->
+		<cfset queryString = cgi.query_string>
+		<!--- Safety check. Handle: http://www.coldfusionjedi.com/forums/messages.cfm?threadid=4DF1ED1F-19B9-E658-9D12DBFBCA680CC6 --->
+		<cfset queryString = reReplace(queryString, "<.*?>", "", "all")>
+		<cfset queryString = reReplace(queryString, "[\<\>]", "", "all")>
+		<cfset queryString = reReplaceNoCase(queryString, "&*startrow=[\-0-9]+", "")>
+		<!--- Remove the page variable. This is hard coded in the datasource below. --->
+		<cfset queryString = reReplaceNoCase(queryString, "&*page=[\-0-9]+", "")>
+		<!--- If it is not already defined, preset the URL page var --->
+		<cfif not isDefined("URL.page")>
+			<cfset URL.page = 0>
+		</cfif>
+		<!--- 
+		Debugging: 
+		url.startRow: #url.startRow# maxEntries: #maxEntries# lastPageQueryString: #lastPageQueryString# currentPage: #currentPage# totalPages: #totalPages# prevPageEnabled:#prevPageEnabled# nextPageEnabled:#nextPageEnabled#--->
+
 		</cfsilent>
-		<cfif (URL.startRow gt 1) or (arrayLen(getPost) gte maxEntries)>
-			<cfsilent>
-			<!--- Get the number of pages --->
-			<cfset totalPages = ceiling(postCount/maxEntries)>
-
-			<!--- Set links --->
-			<!--- Get the path if not /index.cfm --->
-			<cfset path = rereplace(cgi.path_info, "(.*?)/index.cfm", "")>
-			<!--- Clean out startrow from query string --->
-			<cfset queryString = cgi.query_string>
-			<!--- Safety check. Handle: http://www.coldfusionjedi.com/forums/messages.cfm?threadid=4DF1ED1F-19B9-E658-9D12DBFBCA680CC6 --->
-			<cfset queryString = reReplace(queryString, "<.*?>", "", "all")>
-			<cfset queryString = reReplace(queryString, "[\<\>]", "", "all")>
-			<cfset queryString = reReplaceNoCase(queryString, "&*startrow=[\-0-9]+", "")>
-			<!--- Remove the page variable. This is hard coded in the datasource below. --->
-			<cfset queryString = reReplaceNoCase(queryString, "&*page=[\-0-9]+", "")>
-			<!--- If it is not already defined, preset the URL page var --->
-			<cfif not isDefined("URL.page")>
-				<cfset URL.page = 0>
-			</cfif>
-			<!--- 
-			Debugging: 
-			url.startRow: #url.startRow# maxEntries: #maxEntries# lastPageQueryString: #lastPageQueryString# currentPage: #currentPage# totalPages: #totalPages# prevPageEnabled:#prevPageEnabled# nextPageEnabled:#nextPageEnabled#--->
-
-			</cfsilent>
 			<cfoutput>
 				<div id="pager" data-role="pager" class="k-pager-wrap k-widget k-floatwrap k-pager-lg">
 				<script  type="#scriptTypeString#">
@@ -730,6 +963,66 @@
 				</div>
 			</cfoutput>
 		</cfif>
+		<cfsilent>
+			<!--- ****************************************************************************************
+				Display current visitors for admins
+			******************************************************************************************--->
+		</cfsilent>
+		<cfif application.logVisitors and application.Udf.isLoggedIn()>
+			<cfsilent>
+			<!--- Get the current visitors --->
+			<!--- Determine if the visitor is on the home page --->
+			<cfif application.siteUrl contains getPageContext().getRequest().getRequestURI()>
+				<cfset isHomePage = true>
+			<cfelse>
+				<cfset isHomePage = false>
+			</cfif>
+			</cfsilent>
+			<!--- Only show visitors if the user agent is reading a post or visiting the home page (index.cfm) --->
+			<cfif isHomePage or structKeyExists(URL,"postId")>
+				<cfsilent>
+				<cfinvoke component="#application.blog#" method="getVisitorLog" returnvariable="getVisitorDbObj">
+					<cfif structKeyExists(URL,"postId")>
+						<cfinvokeargument name="postId" value="#URL.postId#">
+					<cfelse>
+						<cfinvokeargument name="visitingHome" value="true">
+					</cfif>
+					<cfinvokeargument name="onlyShowCurrentVisitors" value="true">
+				</cfinvoke>
+				<!---<cfdump var="#visitor#">--->
+				</cfsilent>		
+				<cfif arrayLen(getVisitorDbObj)>
+				<script>
+					// Create a new parser object
+					var parser = new UAParser();
+					// Output the name of the browser
+					$(document).ready(function() {
+					// Loop through the visitors user agent strings 
+					<cfloop from="1" to="#arrayLen(getVisitorDbObj)#" index="i">
+						var ipAddress = '<cfoutput>#getVisitorDbObj[i]['IpAddress']#</cfoutput>';
+						var result = UAParser("<cfoutput>#getVisitorDbObj[i]['HttpUserAgent']#</cfoutput>");
+						$("#currentVisitors").append('<a href="https://www.ipalyzer.com/' + ipAddress + '" target="_new">' + result.browser + '</a>, ');
+					</cfloop>
+					});
+				</script>
+				<p><div id="currentVisitors" name="currentVisitors" style="font-size: 12pt;">Visitors: </div></p>
+				<cfelse><!---<cfif arrayLen(getVisitorDbObj)>--->
+				<script>
+					// Create a new parser object
+					var parser = new UAParser();
+					const result = UAParser("<cfoutput>#AnonymousUserDbObj.getHttpUserAgentRef().getHttpUserAgent()#</cfoutput>");
+					var ipAddress = '<cfoutput>#application.blog.getIpAddress()#</cfoutput>';
+					console.log('browser:' + result.browser);
+					// Output the name of the browser
+					$(document).ready(function() {
+						$("#currentVisitors").html(' Visitors: <a href="https://www.ipalyzer.com/' + ipAddress + '" target="_new">' + result.browser + '</a>');
+					});
+				</script>
+					<p><div id="currentVisitors" name="currentVisitors" style="font-size: 12pt;"></div></p>
+				</cfif><!---<cfif arrayLen(getVisitorDbObj)>--->
+				
+			</cfif><!---<cfif isHomePage or structKeyExists(URL,"postId")>--->
+		</cfif><!---<cfif application.logVisitors and application.Udf.isLoggedIn()>--->
 		<!--- **** Logic to display content when no data is found (ie when a user clicks on the wrong date) ****--->
 		<cfif arrayLen(getPost) eq 0>
 			<div class="blogPost widget k-content" style="font-weight: bold;">

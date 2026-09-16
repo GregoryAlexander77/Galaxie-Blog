@@ -1,8 +1,15 @@
 	<!--- Instantiate the Render.cfc. This will be used to render our directives and create video and map thumbnails --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 	
-	<!--- Get the post ( ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) ) --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
+	<!--- Get the post ( ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) ) 
+	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>--->
+	<cfinvoke component="#application.blog#" method="getPostByPostId" returnvariable="getPost">
+		<cfinvokeargument name="postId" value="#URL.optArgs#">
+		<cfinvokeargument name="showPages" value="true">
+		<cfinvokeargument name="showBlogPosts" value="true">
+		<cfinvokeargument name="showPendingPosts" value="true">
+		<cfinvokeargument name="showRemovedPosts" value="true">		
+	</cfinvoke>
 	<!---<cfdump var="#getPost#">--->
 		
 	<!--- Get the Body --->
@@ -461,8 +468,14 @@
 			postDetailSubmit.on('click', function(e){  
                 e.preventDefault();         
 				if (postDetailFormValidator.validate()) {
-					// Raise a dialog asking the admin if they want to send email to subscribers
-					verifyPostEmail('update');
+					// If the selected postType radio button is page, submit the page. Otherwise, raise a dialog asking the admin if they want to send email to subscribers
+					if ($("input[type=radio][name=postType]:checked" ).val() == 'page'){
+						// Submit the page and don't generate an email (postDetails(action, sendEmail))
+						postDetails('update', false);
+					} else {
+						// Raise a prompt to see if the author wants to send email 
+						verifyPostEmail('update');
+					}
 				} else { //if (postDetailFormValidator.validate()) {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Required fields have not been filled out. Please correct the highlighted fields and try again", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
@@ -547,8 +560,15 @@
 		// Post method on the detail form called from the commentDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
 		function postDetails(action, sendEmail){
 			
+			// Get a reference to the post editor and run a final pass to make sure any table-of-contents
+			// anchors use descriptive slugs (see rewriteTocAnchors in tinyMce.cfm) rather than the toc
+			// plugin's random mcetoc_ ids, in case the TOC was inserted/updated without triggering the
+			// editor's own ExecCommand hook for some reason. This guarantees the saved content is always clean.
+			var postEditor = tinymce.get("<cfoutput>#selectorName#</cfoutput>");
+			rewriteTocAnchors(postEditor);
+
 			// Get the post content
-			var postContent = tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent();
+			var postContent = postEditor.getContent();
 			//  Bypass ColdFusions global script protection to allow JavaScripts in a post. This is done by replacing '<script', '<style' and '<meta' with '<attachScript', '<attachStyle' and '<attachMeta' before the post content gets processed by the server. This JavaScript is in the blogJsContent.cfm template.
 			var postContentNoScripts = bypassScriptProtection(postContent);
 
@@ -559,6 +579,7 @@
 					// We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#formName").serialize()' or use the stringify method to pass it as an array of values. 
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					postId: $("#postId").val(),
+					postType: $("input[type=radio][name=postType]:checked" ).val(),
 					postAlias: $("#postAlias").val(),
 					datePosted: kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'MM/dd/yyyy'),
 					timePosted: kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'hh:mm tt'),
@@ -946,6 +967,41 @@
 		</td>
 	  </tr>
 	</cfif>
+		
+		<!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+		<!-- Form content -->
+	<cfif smallScreen>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+		<label for="postType">Post Type</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<input type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage']>checked</cfif> /> Blog Post <input type="radio" name="postType" value="page" <cfif getPost[1]['IsPage']>checked</cfif>/> Page
+		</td>
+	  </tr>
+	<cfelse><!---<cfif smallScreen>--->
+	  <tr valign="middle" height="35">
+		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<label for="postType">Post Type</label>
+		</td>
+		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage']>checked</cfif> /> Blog Post &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" name="postType" value="page" <cfif getPost[1]['IsPage']>checked</cfif>/> Page 
+		</td>
+	  </tr>
+	</cfif>  
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -1039,6 +1095,12 @@
 			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0">
 				<tr>
 					<td width="20%">
+						<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Alias</button>
+					</td>
+					<td width="20%">
+						<button id="postHeader" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(42,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Post Header</button>
+					</td>
+					<td width="20%">
 						<button id="cssButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(46,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">CSS</button>
 					</td>
 					<td width="20%">
@@ -1046,10 +1108,6 @@
 					</td>
 					<td width="20%">
 						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
-					</td>
-					<td width="20%">
-					</td>
-					<td width="20%">
 					</td>
 				</tr>
 			</table>
@@ -1101,7 +1159,7 @@
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	<!-- Form content -->
-	<cfif smallScreen>
+	<cfif smallScreen><!--- i.e. mobile devices --->
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<i class="far fa-edit"></i> 
@@ -1125,18 +1183,18 @@
 			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0">
 				<tr>
 					<td width="20%" align="left">
-						<!--- Make the link --->
-						<cfset postUrl = application.blog.getPostUrlByPostId(getPost[1]['PostId'])>
+						<cfset postUrl = application.blog.makeLink(
+							isPage=getPost[1]["IsPage"], 
+							postAlias=getPost[1]["PostAlias"], 
+							datePosted=getPost[1]["DatePosted"])>
 						<button id="postPreview" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="window.open('<cfoutput>#postUrl#</cfoutput>?showPendingPosts');">Preview</button>
 					</td>
 					<td width="20%" align="left">
-						<button id="postHeader" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(42,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Post Header</button>
-					</td>
-					<td width="20%" align="left">
-						<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Change Alias</button>
-					</td>
-					<td width="20%" align="left">
 						<button id="setTheme" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(44,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Set Theme</button>
+					</td>
+					<td width="20%" align="left">
+					</td>
+					<td width="20%" align="left">
 					</td>
 					<td width="20%" align="left">
 						<!--- Next version:
@@ -1147,7 +1205,7 @@
 			</table>
 		</td>
 	  </tr>
-	</cfif>
+	</cfif><!---<cfif smallScreen>--->
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -1179,19 +1237,26 @@
 						</cfsilent>
 						<input id="released" name="released" type="checkbox" <cfif released>checked</cfif> class="normalFontWeight">
 						<label for="released">Released</label>
-					</td>
+					</td>					
 					<td width="25%" align="left">
 						<cfsilent>
 							<!--- This field may not be defined (it may be null in the database) --->
 							<cfif structKeyExists(getPost[1], "AllowComment" )>
 								<cfset allowComment = getPost[1]["AllowComment"]>
 							<cfelse>
-								<cfset allowComment = 0>
+								<!--- By default, comments are turned off for pages --->
+								<cfif getPost[1]['IsPage']>
+									<cfset allowComment = false>
+								<cfelse>
+									<cfset allowComment = true>
+								</cfif>
 							</cfif>
 						</cfsilent>
 						<input id="allowComment" name="allowComment" type="checkbox" <cfif allowComment>checked</cfif> class="normalFontWeight">
 						<label for="allowComment">Allow Comments</label>
 					</td>
+				<cfif not getPost[1]['IsPage']>
+					<!--- You can only promote a blog post --->
 					<td width="25%" align="left">
 						<cfsilent>
 						<!--- This field may not be defined (it may be null in the database) --->
@@ -1204,6 +1269,7 @@
 						<input id="promote" name="promote" type="checkbox" <cfif promote>checked</cfif> class="normalFontWeight">
 						<label for="promote">Promote</label>
 					</td>
+				</cfif><!---<cfif not getPost[1]['IsPage']>--->
 					<td width="25%" align="left">
 						<cfsilent>
 							<!--- This field may not be defined (it may be null in the database) --->
@@ -1217,9 +1283,10 @@
 						<input id="remove" name="remove" type="checkbox" <cfif remove>checked</cfif> class="normalFontWeight" <cfif !postRemoved>onClick="confirmPostRemoval()"</cfif>>
 						<label for="remove">Remove</label>
 					</td>
-					<td width="20%" align="left">&nbsp;
-
-					</td>
+					<!--- Put an empty cell for pages --->
+				<cfif getPost[1]['IsPage']>
+					<td width="25%" align="left"></td>
+				</cfif>
 				</tr>
 			</table>
 		</td>

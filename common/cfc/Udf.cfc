@@ -9,7 +9,7 @@
 		/* Moved session scope vars to the top of the page.
 		Set a session var to indicate whether the user is an admin user.*/
 		function isLoggedIn() {
-			return structKeyExists(session,"loggedin");
+			return structKeyExists(session,"loggedin") and session.loggedin;
 		}
 
 		// ------------------------------------------------------ //

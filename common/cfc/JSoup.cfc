@@ -405,7 +405,6 @@
 			
 		<!--- Return the new string --->
 		<cfreturn text>
-		
-	</cffunction>
 
+	</cffunction>
 </cfcomponent>

@@ -1,194 +1,194 @@
-<!DOCTYPE html>
+<!doctype html>
 <cfsilent>
+<!--- Kendo Grid version of ../jsGrid/posts.cfm. Note: the previous draft of this file was actually a
+	stale, mislabeled copy of the comments grid (it called getCommentsForGrid, referenced an
+	undefined "postsGrid" variable and an undefined "commentType" var) -- it never worked and has
+	been replaced here with a real posts grid built against getPostsForGrid / updatePostViaKendoGrid
+	(released checkbox, batch saved) / removePostViaKendoGrid (delete). Also reused for the Pages
+	grid via cfcase 57 in adminInterface.cfm, same as the jsGrid version, by way of the showPages/
+	showBlogPosts args. --->
 <cfset gridName = "postsGrid">
-<!--- This argument is not really needed, but here if this template is used as a standalone template for demonstration purposes. --->
-<cfparam name="kendoTheme" default="default">
+<cfparam name="showPages" default="false">
+<cfparam name="showBlogPosts" default="true">
 </cfsilent>
 <html>
-<head>
-	<script type="text/javascript" src="<cfoutput>#application.blog.getRootUrl()#</cfoutput>/common/libs/dayjs/dayjs.min.js"></script>
+<head><cfoutput>
+	<script type="text/javascript" src="#application.baseUrl#/common/libs/dayjs/dayjs.min.js"></script>
+	</cfoutput>
+	<p><cfif not session.isMobile>All columns are sortable and searchable/filterable. Blog Posts have a date and are placed on the main blog page. To release a blog post, check the Released checkbox and click Save on the toolbar.</cfif> Click on a post's title or body to view its details.</p>
+	<button id="newPostBtn" class="k-button k-primary" type="button" onclick="createAdminInterfaceWindow(24,'newPost');">Create New Post</button>
 </head>
-<body>
-<script src="//cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.min.js"></script>
 
-<!--- Div where the grid will initialize. --->
+<body>
+
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
-	
-<!--- Kendo templates. These templates will be used in the post and comment columns in the grid. I could have used simple inline templates within the grid column declarations, however, its easier in a dedicated template as the qoutes need to be escaped. --->
-<!--- Create a link to the post. For mobile clients, this will open up an editor window. For desktop it will direct to the link on the main blog page. --->
-<script type="text/x-kendo-template" id="postTemplate">
-<cfif session.isMobile>
-	<a href="javascript:createAdminInterfaceWindow(2, #: CommentId #);" rel="noopener noreferrer"> rel="noopener noreferrer">#: PostTitle  #</a>
-<cfelse>
-	<a href="<cfoutput>#application.blog.getRootUrl()#</cfoutput>/index.cfm/#: makePostLink( DatePosted, PostAlias) #" target="_blank" rel="noopener noreferrer">#: PostTitle  #</a>
-</cfif>
+
+<script type="text/x-kendo-template" id="titleTemplate">
+	<a href="javascript:createAdminInterfaceWindow(6, #: PostId #);">#: Title #</a>
 </script>
-	
+<cfif not session.isMobile>
+<cfsilent><!--- #= var # (unencoded) is used here since the Body field can contain markup/placeholder tags (like postData) that truncateWithEllipses/removeStrBetween need to operate on and that we want stripped rather than shown escaped. ---></cfsilent>
+<script type="text/x-kendo-template" id="bodyTemplate">
+	<a href="javascript:createAdminInterfaceWindow(6, #: PostId #);">#= truncateWithEllipses(removeStrBetween(Body, "postData"), 125) #</a>
+</script>
+</cfif>
+
 <script>
 	$(document).ready(function() {
 
-		commentsDs = new kendo.data.DataSource({
-			// Determines which method and cfc to get and set data.
+		postsDs = new kendo.data.DataSource({
 			transport: {
-			   read:  {
-					url: "<cfoutput>#application.blog.getRootUrl()#</cfoutput>/common/cfc/ProxyController.cfc?method=getCommentsForGrid&commentType=<cfoutput>#commentType#</cfoutput>&gridType=kendo", // the cfc component which processes the query and returns a json string. 
-					dataType: "json", // Use json if the template is on the current server. If not, use jsonp for cross domain reads.
-					method: "post" // Note: when the method is set to "get", the query will be cached by default. This is not ideal. 
+				read: {
+					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getPostsForGrid&gridType=kendo&showPages=<cfoutput>#showPages#</cfoutput>&showBlogPosts=<cfoutput>#showBlogPosts#</cfoutput>&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
+					dataType: "json",
+					method: "post"
 				},
 				update: {
-                   	url: "<cfoutput>#application.blog.getRootUrl()#</cfoutput>/common/cfc/ProxyController.cfc?method=updateCommentViaKendoGrid", // the cfc component which processes upates the database. 
+					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=updatePostViaKendoGrid&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
 					dataType: "json",
 					method: "post"
 				},
 				destroy: {
-                   	url: "<cfoutput>#application.blog.getRootUrl()#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteCommentViaKendoGrid", // the cfc component which processes deletions in the database. 
+					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removePostViaKendoGrid&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
 					dataType: "json",
 					method: "post"
 				},
 				parameterMap: function(options, operation) {
 					if (operation !== "read" && options.models) {
-						return {models: kendo.stringify(options.models)};
+						return { models: kendo.stringify(options.models) };
 					}
 				}
 			},
 			cache: false,
-			batch: true, // determines if changes will be send to the server individually or as batch. Note: the batch arg must be in the datasource declaration, and not in the grid. Otherwise, a post to the cfc will not be made. 
-			pageSize: <cfif session.isMobile>7<cfelse>15</cfif>, // The number of rows within a grid.
+			batch: true,
+			pageSize: <cfif session.isMobile>7<cfelse>15</cfif>,
 			schema: {
 				model: {
-					id: "CommentId", // Note: in editiable grids- the id MUST be put in here, otherwise you will get a cryptic error 'Unable to get value of the property 'data': object is null or undefined'
+					id: "PostId",
 					fields: {
-						CommenterFullName: { type: "string", editable: false, nullable: false },
-						PostTitle: { type: "string", editable: false, nullable: false },
-						// Note: the date coming from the ColdFusion HQL query (hibernate) is not an actual date. its a string for some odd reason. For regular database queries, use date.
-						DatePosted: { type: "string", editable: false, nullable: false },
-						Comment: { type: "string", editable: false, nullable: false },
-						// Create a template to show true and false next to the checkbox.
-						Approved: { type: "boolean", editable: true, nullable: false, template: "#= BooleanVal ? 'true' : 'false' #" },
-						Remove: { type: "boolean", editable: true, nullable: false, template: "#= BooleanVal ? 'true' : 'false' #" }
-					}//fields:
-				}//model:
-			}//schema
-		});//commentsDs = new kendo.data.DataSource
+						PostId: { type: "number", editable: false, nullable: false },
+						FullName: { type: "string", editable: false, nullable: true },
+						Title: { type: "string", editable: false, nullable: false },
+						Body: { type: "string", editable: false, nullable: true },
+						BlogSortDate: { type: "string", editable: false, nullable: true },
+						DatePosted: { type: "string", editable: false, nullable: true },
+						ViewsPerDay: { type: "number", editable: false, nullable: true },
+						Released: { type: "boolean", editable: true, nullable: false }
+					}
+				}
+			}
+		});
 
-		$("#<cfoutput>#postsGrid#</cfoutput>").kendoGrid({
-			dataSource: commentsDs,
-			// Edit arguments
+		// Response from updatePostViaKendoGrid may ask us to prompt for emailing subscribers, same as the jsGrid version.
+		postsDs.bind("requestEnd", function(e) {
+			if (e.type === "update" && e.response && e.response.promptToEmailSubscriber) {
+				$.when(kendo.ui.ExtYesNoDialog.show({
+					title: "Email Post?",
+					message: "Do you want to email this post to the subscribers?",
+					icon: "k-ext-question",
+					width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>",
+					height: "215px"
+				})).done(function(response) {
+					if (response['button'] == 'Yes' && e.response.postId) {
+						sendEmailToSubscribers(e.response.postId);
+					}
+				});
+			}
+		});
+
+		$("#<cfoutput>#gridName#</cfoutput>").kendoGrid({
+			dataSource: postsDs,
 			editable: true,
-			// Toolbars. 
-			toolbar: [ "save", "cancel" ],
+			toolbar: ["save", "cancel"],
 			excel: {
-				fileName: "comments.xlsx",
-				proxyURL: "utilities/excelExport.cfm",
-				filterable: true, 
+				fileName: "posts.xlsx",
+				filterable: true,
 				allPages: true
 			},
 			<cfif session.isMobile>mobile: true,</cfif>
-			// General grid elements.
-			height: 725,// Percentages will not work here.
+			height: 725,
 			navigatable: true,
 			filterable: true,
-			sortable: {
-				mode: "multiple",
-				allowUnsort: true,
-				showIndexes: true
-			},
-			pageable: {
-				pageSizes: [10,20,50,100,"All"],
-				refresh: true
-			},
+			sortable: { mode: "multiple", allowUnsort: true, showIndexes: true },
+			pageable: { pageSizes: [10,20,50,100,"All"], refresh: true },
 			groupable: true,
-			<cfif session.isMobile>
-			mobile: true,
-			// Mobile clients can't have multiple selections and be able to scroll.
-			</cfif>
 			selectable: "<cfif session.isMobile>cell<cfelse>multiple cell</cfif>",
 			allowCopy: true,
 			reorderable: true,
 			resizable: true,
 			columnMenu: true,
 			columns: [{
-				// Columns
-				field:"CommentId",
+				field: "PostId",
 				title: "I.D.",
 				hidden: true,
 				filterable: false
 			}, {
-				field:"CommenterFullName",
-				title: "Name",
+				field: "FullName",
+				title: "Author",
 				filterable: true,
-				width: "<cfif session.isMobile>42<cfelse>25</cfif>%"
+				width: "<cfif session.isMobile>25<cfelse>10</cfif>%"
+			}, {
+				field: "Title",
+				title: "Title",
+				filterable: true,
+				width: "<cfif session.isMobile>40<cfelse>20</cfif>%",
+				template: kendo.template($("#titleTemplate").html())
 			<cfif not session.isMobile>}, {
-				field:"PostTitle",
+				field: "Body",
 				title: "Post",
 				filterable: true,
-				width: "25%",
-				template: kendo.template($("#postTemplate").html())
+				width: "28%",
+				template: kendo.template($("#bodyTemplate").html())
 			}, {
-				field:"DatePosted",
-				title: "Date",
+				field: "BlogSortDate",
+				title: "Sort Date",
 				filterable: true,
-				width: "10%",
-				// We are going to use moment.js to format this string. Note: the date coming from the ColdFusion HQL query is not an actual date.
-				template: "#= dayjs(DatePosted).format('MM/DD/YYYY LT') #"</cfif><!---<cfif not session.isMobile>--->
+				width: "8%",
+				template: "#= BlogSortDate ? dayjs(BlogSortDate).format('MM/DD/YYYY h:mm A') : '' #"
 			}, {
-				field:"Comment",
-				title: "Comment",
+				field: "DatePosted",
+				title: "Posted",
 				filterable: true,
-				width: "<cfif session.isMobile>42<cfelse>40</cfif>%",
-				template: kendo.template($("#commentTemplate").html())
+				width: "8%",
+				template: "#= DatePosted ? dayjs(DatePosted).format('MM/DD/YYYY h:mm A') : '' #"
 			}, {
-				field:"Approved",
-				<cfif session.isMobile>// Here, we are using a Kendo header template to place a fontawesome icon in the column in order to preserve more space for mobile clients
-				headerTemplate: '<i class="far fa-thumbs-up"></i>',
-				<cfelse>title: "Approved",</cfif><!---<cfif not session.isMobile>--->
+				field: "ViewsPerDay",
+				title: "Monthly Views",
 				filterable: true,
-				width: "<cfif session.isMobile>15<cfelse>10</cfif>%"
-			<!--- Only show the command button for non mobile clients. We just don't have the room for this on mobile devices. --->
-			<cfif not session.isMobile>
+				width: "8%"</cfif>
 			}, {
-				command: 
-					// Define multiple commands in an array
-					[ 
-						
-						{ name: "edit", iconClass:"k-icon k-i-edit", text:"Edit", click: showCommentDetails },
-					], 
-					//headerTemplate: '<i class="fas fa-trash-alt"></i>',
-					title: " ", 
-					width: "155px"
-			</cfif>
-			}
-			]// columns:
-		});// $("#<cfoutput>#gridName#</cfoutput>").kendoGrid({
+				field: "Released",
+				<cfif session.isMobile>headerTemplate: '<i class="fas fa-thumbs-up"></i>',<cfelse>title: "Released",</cfif>
+				filterable: true,
+				width: "<cfif session.isMobile>15<cfelse>8</cfif>%"
+			}, {
+				command: ["destroy"],
+				title: "&nbsp;",
+				width: "<cfif session.isMobile>20<cfelse>10</cfif>%"
+			}]
+		});
 
 	});//document ready
-	
-	// Department Detail window.  **********************************************************************************
-	function showCommentDetails(e) {
-		e.preventDefault();
-		// Get the Id
-		var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
-		selectedId = (dataItem['CommentId']);
-		// Create the edit comment window and pass along the selected CommentId.
-		createAdminInterfaceWindow(2, selectedId);
-	}		
-	
-	// Helper functions (these need to be outside of the ready block)
-	function makePostLink(datePosted, postAlias){
-		var dt = new Date(datePosted);
-		var yyyy = dt.getFullYear();
-		var m = dt.getMonth()+1;
-		var d = dt.getDay()+1;
-		return yyyy + "/" + m + "/" + d + "/" + postAlias;
-	}
 
-	// The comment link is the post link with a ''#c' + commentId 
-	function makeCommentLink(datePosted, postAlias, commentId){
-		var postLink = makePostLink(datePosted, postAlias);
-		var commentLink = postLink + "#c" + commentId;
-		return commentLink;
+	function sendEmailToSubscribers(postId) {
+		$.ajax({
+			type: 'post',
+			url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=sendPostEmailToSubscribers",
+			dataType: "json",
+			data: {
+				csrfToken: "<cfoutput>#csrfToken#</cfoutput>",
+				postId: postId
+			}
+		}).fail(function(jqXHR, textStatus, error) {
+			if (jqXHR.status === 403) {
+				createLoginWindow();
+			} else {
+				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the sendPostEmailToSubscribers function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })
+					).done(function() {});
+			}
+		});
 	}
-	
 </script>
-	
+
+</body>
 </html>

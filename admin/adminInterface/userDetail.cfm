@@ -57,6 +57,7 @@
 		<cfset userName = userDetails[1]["UserName"]>
 		<cfset firstName = userDetails[1]["FirstName"]>
 		<cfset lastName = userDetails[1]["LastName"]>
+		<cfset fullName = userDetails[1]["FullName"]>
 		<cfset displayName = userDetails[1]["DisplayName"]>
 		<cfset email = userDetails[1]["Email"]>
 		<cfset displayEmailOnBio = userDetails[1]["DisplayEmailOnBio"]>
@@ -128,56 +129,37 @@
 			
 	</cfif><!---<cfif detailAction eq 'update' or detailAction eq 'updateProfile'>--->
 			
-	<!-- Collapsable style -->
 	<style>
-		.collapsible {
-			cursor: pointer;
-			padding: 10px;
-			width: 98%;
-			border: thin;
-			border-style: solid;
-			text-align: left;
-			outline: none;
-			font-size: 15px;
-			transition: max-height 0.2s ease-out;
-		}
-
-		.collapsible:after {
-			content: '\25BC';
-			color: white;
-			font-weight: bold;
-			float: right;
-			margin-left: 5px;
-			margin-left: 5px;
-		}
-
-		.active:after {
-		  content: "\25B2";
-		}
-
-		.content {
-		  padding: 0 18px;
-		  display: none;
-		  overflow: hidden;
+		/* Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless
+		   look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names,
+		   and resets box-shadow/background-image too since some Kendo skins draw the separator line that
+		   way instead of with a plain border. Scoped to direct structural children of each item so the
+		   real form content (tables, inputs, etc.) nested inside isn't affected. */
+		#userDetailPanelBar,
+		#userDetailPanelBar .k-item,
+		#userDetailPanelBar .k-link,
+		#userDetailPanelBar .k-header,
+		#userDetailPanelBar .k-content,
+		#userDetailPanelBar .k-panelbar-content,
+		#userDetailPanelBar .k-panelbar-content-wrapper,
+		#userDetailPanelBar .k-panelbar-item,
+		#userDetailPanelBar .k-panelbar-link,
+		#userDetailPanelBar .k-group,
+		#userDetailPanelBar > .k-item > *,
+		#userDetailPanelBar > .k-item > * > * {
+			border: none !important;
+			box-shadow: none !important;
+			background-image: none !important;
 		}
 	</style>
-	
-	<!-- Collapsable script -->
-	<script>
-		var coll = document.getElementsByClassName("collapsible");
-		var i;
 
-		for (i = 0; i < coll.length; i++) {
-		  coll[i].addEventListener("click", function() {
-			this.classList.toggle("active");
-			var content = this.nextElementSibling;
-			if (content.style.display === "block") {
-			  content.style.display = "none";
-			} else {
-			  content.style.display = "block";
-			}
-		  });
-		}
+	<script>
+		$(document).ready(function() {
+			// Create an accordian style panel for each user detail section.
+			$("#userDetailPanelBar").kendoPanelBar({
+				expandMode: "multiple"
+			});
+		});//..document.ready
 	</script>
 			
 	<!--- Note: roles are not displayed when updating a profile --->
@@ -924,8 +906,11 @@
 	<!---//***********************************************************************************************
 						Profile Picture and Biography
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Profile Picture and Biography</button>
-	<div class="content k-content">
+	<ul id="userDetailPanelBar">
+	<li>
+		Profile Picture and Biography
+	<div class="k-content">
+	<div style="padding: 15px;">
 	<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  
 	<!-- Border -->
@@ -1019,12 +1004,16 @@
 	</cfif><!---<cfif smallScreen>--->
 	</table>
 	</div>
+	</div>
+	</li>
 
 	<!---//***********************************************************************************************
 						Social Media Links
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Social Media Links</button>
-	<div class="content k-content">
+	<li>
+		Social Media Links
+	<div class="k-content">
+	<div style="padding: 15px;">
 	<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 	<!-- Border -->
 	  <tr height="2px">
@@ -1170,12 +1159,16 @@
 		  
 	</table>
 	</div>
+	</div>
+	</li>
 
 	<!---//***********************************************************************************************
 						Security Questions
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Security Questions</button>
-	<div class="content k-content">
+	<li>
+		Security Questions
+	<div class="k-content">
+	<div style="padding: 15px;">
 	<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		
 	<!-- Border -->
@@ -1283,12 +1276,16 @@
 	</cfif><!---<cfif session.isMobile>--->
 	</table>
 	</div>
+	</div>
+	</li>
 	<cfif detailAction eq 'update'>	
 	<!---//***********************************************************************************************
 						Roles
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Roles</button>
-	<div class="content k-content">
+	<li>
+		Roles
+	<div class="k-content">
+	<div style="padding: 15px;">
 	<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 	  <!-- Border -->
 	  <tr height="2px">
@@ -1362,14 +1359,18 @@
 	</cfif><!---<cfif session.isMobile>--->
 	</table>
 	</div>
+	</div>
+	</li>
 	</cfif><!---<cfif detailAction eq 'update'>--->	
 	<!---//***********************************************************************************************
 						User Logs
 	//************************************************************************************************--->
    <!--- User log in history --->
    <cfif isDefined("currentUserRole") gt 0 and (userName eq session.userName or currentUserRole eq 'Administrator')>
-	<button type="button" class="collapsible k-header">User Logs</button>
-	<div class="content k-content">
+	<li>
+		User Logs
+	<div class="k-content">
+	<div style="padding: 15px;">
 	<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 	  <!-- Border -->
 	  <tr height="2px">
@@ -1392,7 +1393,7 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<button id="logonHistory" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="javascript:createAdminInterfaceWindow(10, '<cfoutput>#userName#</cfoutput>');">Login History</button>
+			<button id="logonHistory" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="javascript:createAdminInterfaceWindow(58, '<cfoutput>#fullName#</cfoutput>');">Login History</button>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
@@ -1402,12 +1403,15 @@
 			<label>Logs</label>
 		</td>
 		<td valign="bottom" align="left" width="85%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<button id="logonHistory" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="javascript:createAdminInterfaceWindow(10, '<cfoutput>#userName#</cfoutput>');">Login History</button>
+			<button id="logonHistory" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="javascript:createAdminInterfaceWindow(58, '<cfoutput>#fullName#</cfoutput>');">Login History</button>
 		</td>
 	  </tr>
 	</cfif><!---<cfif session.isMobile>--->
 	</table>
 	</div>
+	</div>
+	</li>
+	</ul>
    </cfif><!---<cfif isDefined("currentUserRole") gt 0 and (userName eq session.userName or currentUserRole eq 'Administrator')>--->
 	
 	<!---</cfif><cfif not structKeyExists(URL, "userName") or session.userName neq URL.userName>--->

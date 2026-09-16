@@ -37,11 +37,10 @@
 	<cfset failTo = application.BlogDbObj.getBlogEmailFailToAddress()>
 	<cfset blogEmail = application.BlogDbObj.getBlogEmail()>
 	<cfset ccEmailAddress = application.BlogDbObj.getCcEmailAddress()>
-	<!--- Algorithm and IP Block list --->
+	<!--- Algorithm --->
 	<cfset saltAlgorithm = application.BlogDbObj.getSaltAlgorithm()>
 	<cfset saltAlgorithmSize = application.BlogDbObj.getSaltAlgorithmSize()>
 	<cfset hashAlgorithm = application.BlogDbObj.getHashAlgorithm()>
-	<cfset ipBlockList = application.BlogDbObj.getIpBlockList()>
 	<!--- Version --->
 	<cfset blogVersion = application.BlogDbObj.getBlogVersion()>
 	<cfset blogVersionName = application.BlogDbObj.getBlogVersionName()>
@@ -50,35 +49,26 @@
 	
 	</cfsilent>	
 	<style>
-		.collapsible {
-			cursor: pointer;
-			padding: 10px;
-			width: 98%;
-			border: thin;
-			border-style: solid;
-			text-align: left;
-			outline: none;
-			font-size: 15px;
-			transition: max-height 0.2s ease-out;
-		}
-
-		.collapsible:after {
-			content: '\25BC';
-			color: white;
-			font-weight: bold;
-			float: right;
-			margin-left: 5px;
-			margin-left: 5px;
-		}
-
-		.active:after {
-		  content: "\25B2";
-		}
-
-		.content {
-		  padding: 0 18px;
-		  display: none;
-		  overflow: hidden;
+		/* Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless
+		   look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names,
+		   and resets box-shadow/background-image too since some Kendo skins draw the separator line that
+		   way instead of with a plain border. Scoped to direct structural children of each item so the
+		   real form content (tables, inputs, etc.) nested inside isn't affected. */
+		#blogSettingsPanelBar,
+		#blogSettingsPanelBar .k-item,
+		#blogSettingsPanelBar .k-link,
+		#blogSettingsPanelBar .k-header,
+		#blogSettingsPanelBar .k-content,
+		#blogSettingsPanelBar .k-panelbar-content,
+		#blogSettingsPanelBar .k-panelbar-content-wrapper,
+		#blogSettingsPanelBar .k-panelbar-item,
+		#blogSettingsPanelBar .k-panelbar-link,
+		#blogSettingsPanelBar .k-group,
+		#blogSettingsPanelBar > .k-item > *,
+		#blogSettingsPanelBar > .k-item > * > * {
+			border: none !important;
+			box-shadow: none !important;
+			background-image: none !important;
 		}
 	</style>
 		
@@ -166,20 +156,12 @@
 	</script>
 		
 	<script>
-		var coll = document.getElementsByClassName("collapsible");
-		var i;
-
-		for (i = 0; i < coll.length; i++) {
-		  coll[i].addEventListener("click", function() {
-			this.classList.toggle("active");
-			var content = this.nextElementSibling;
-			if (content.style.display === "block") {
-			  content.style.display = "none";
-			} else {
-			  content.style.display = "block";
-			}
-		  });
-		}
+		$(document).ready(function() {
+			// Create an accordian style panel for each blog settings section.
+			$("#blogSettingsPanelBar").kendoPanelBar({
+				expandMode: "multiple"
+			});
+		});//..document.ready
 	</script>
 		
 	<form id="settingsForm" action="#" method="post" data-role="validator">
@@ -411,89 +393,6 @@
 	<!---//***********************************************************************************************
 						Parent Site
 	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">Parent Site Name and Link</button>
-	<div class="content k-content">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
-			
-		  <cfsilent>
-			<!---The first content class in the table should be empty. --->
-			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
-			<!--- Set the colspan property for borders --->
-			<cfset thisColSpan = "2">
-		  </cfsilent>
-	
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
-			  	If this blog is part of a bigger site, enter the parent site name and link. This setting will allow the user to click on the icon at the top of the page to get back to your main site and will place a link inside of the menu to navigate to the parent site. These settings are optional.
-			  </td>
-		  </tr>
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		<cfif session.isMobile>
-		  <tr valign="middle">
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<label for="parentSiteName">Parent Site Name:</label>
-			</td>
-		   </tr>
-		   <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="text" id="parentSiteName" name="parentSiteName" value="<cfoutput>#parentSiteName#</cfoutput>" class="k-textbox" style="width: 95%" /> 
-			</td>
-		  </tr>
-		<cfelse><!---<cfif session.isMobile>--->
-		  <tr>
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
-				<label for="parentSiteName">Parent Site Name:</label>
-			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 80%">
-				<input type="text" id="parentSiteName" name="parentSiteName" value="<cfoutput>#parentSiteName#</cfoutput>" class="k-textbox" style="width: 50%" />    
-			</td>
-		  </tr>
-		</cfif>
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
-		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent>
-			 
-		  <tr height="2px">
-		  	<td align="left" valign="bottom" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		 <cfif session.isMobile>
-		  <tr valign="middle">
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<label for="parentSiteLink">Parent Site Link</label>
-			</td>
-		   </tr>
-		   <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="text" name="parentSiteLink" id="parentSiteLink" value="<cfoutput>#parentSiteLink#</cfoutput>" class="k-textbox" style="width: 95%">
-			</td>
-		  </tr>
-		<cfelse><!---<cfif session.isMobile>---> 
-		  <tr valign="middle" height="30px">
-			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<label for="parentSiteLink">Parent Site Link</label>
-			</td>
-			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" name="parentSiteLink" id="parentSiteLink" value="<cfoutput>#parentSiteLink#</cfoutput>" class="k-textbox" style="width: 50%">
-			</td>
-		  </tr>
-		</cfif>
-		  <!-- Border -->
-		  <tr height="2px">
-			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		
-		</table>
-	</div>
-			
 	<!---//***********************************************************************************************
 						Server Time Zone
 	//************************************************************************************************--->
@@ -747,9 +646,99 @@
 		}//...function onBlogTimeZoneChange(e)
 			  
 	</script>	
+	<ul id="blogSettingsPanelBar">
+	<li>
+		Parent Site Name and Link
+	<div class="k-content">
+	<div style="padding: 15px;">
+		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+			
+		  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+		  </cfsilent>
+	
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+			  	If this blog is part of a bigger site, enter the parent site name and link. This setting will allow the user to click on the icon at the top of the page to get back to your main site and will place a link inside of the menu to navigate to the parent site. These settings are optional.
+			  </td>
+		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="parentSiteName">Parent Site Name:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input type="text" id="parentSiteName" name="parentSiteName" value="<cfoutput>#parentSiteName#</cfoutput>" class="k-textbox" style="width: 95%" /> 
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+				<label for="parentSiteName">Parent Site Name:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 80%">
+				<input type="text" id="parentSiteName" name="parentSiteName" value="<cfoutput>#parentSiteName#</cfoutput>" class="k-textbox" style="width: 50%" />    
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+			 
+		  <tr height="2px">
+		  	<td align="left" valign="bottom" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		 <cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="parentSiteLink">Parent Site Link</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input type="text" name="parentSiteLink" id="parentSiteLink" value="<cfoutput>#parentSiteLink#</cfoutput>" class="k-textbox" style="width: 95%">
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>---> 
+		  <tr valign="middle" height="30px">
+			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<label for="parentSiteLink">Parent Site Link</label>
+			</td>
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="text" name="parentSiteLink" id="parentSiteLink" value="<cfoutput>#parentSiteLink#</cfoutput>" class="k-textbox" style="width: 50%">
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		
-	<button type="button" class="collapsible k-header">Server Time Zone</button>
-	<div class="content k-content">
+		</table>
+	</div>
+	</div>
+	</li>
+			
+		
+	<li>
+		Server Time Zone
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <input type="hidden" name="blogTimeZoneValue" id="blogTimeZoneValue" value="<cfoutput>#blogTimeZone#</cfoutput> ">
 		  <input type="hidden" name="serverTimeZoneValue" id="serverTimeZoneValue" value="<cfoutput>#serverTimeZoneData.offset#</cfoutput>">
@@ -869,13 +858,17 @@
 		</cfif>
 		</table>
 	</div>
+	</div>
+	</li>
 			  
 	<!---//***********************************************************************************************
 						Database connectivity
 	//************************************************************************************************--->
 				
-	<button type="button" class="collapsible k-header">Database Connectivity</button>
-	<div class="content k-content">
+	<li>
+		Database Connectivity
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
@@ -985,13 +978,17 @@
 		
 		</table>
 	</div>
+	</div>
+	</li>
 			  
 	<!---//***********************************************************************************************
 						Mail Server Settings
 	//************************************************************************************************--->
 				
-	<button type="button" class="collapsible k-header">Mail Server Settings</button>
-	<div class="content k-content">
+	<li>
+		Mail Server Settings
+	<div class="k-content">
+	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
@@ -1210,69 +1207,9 @@
 		  </tr>
 		</table>
 	</div>
-			  
-	<!---//***********************************************************************************************
-						IP Block List
-	//************************************************************************************************--->
-	<button type="button" class="collapsible k-header">IP Block List</button>
-	<div class="content k-content">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
-		  <cfsilent>
-			<!---The first content class in the table should be empty. --->
-			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
-			<!--- Set the colspan property for borders --->
-			<cfset thisColSpan = "2">
-		  </cfsilent>
-				
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
-		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr>
-			<td colspan="2"> 
-				You can block certain IP addresses from accessing this site by entering the IP address. This field is optional. 
-			</td>
-		  </tr>
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		<cfif session.isMobile>
-		  <tr valign="middle">
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<label for="ipBlockList">IP Block List:</label>
-			</td>
-		   </tr>
-		   <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="text" name="ipBlockList" id="ipBlockList" value="<cfoutput>#ipBlockList#</cfoutput>" class="k-textbox" style="width: 95%">
-			</td>
-		  </tr>
-		<cfelse><!---<cfif session.isMobile>--->
-		  <tr>
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
-				<label for="ipBlockList">IP Block List:</label>
-			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" name="ipBlockList" id="ipBlockList" value="<cfoutput>#ipBlockList#</cfoutput>" class="k-textbox" style="width: 75%">
-			</td>
-		  </tr>
-		</cfif>
-		  <!-- Border -->
-		  <tr height="2px" class="containerWidths">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-			  
-		</table>
 	</div>
-		
+	</li>
+	</ul>
+
 	<br/><br/>
-	<button id="settingsSubmit" name="settingsSubmit" class="k-button k-primary" type="button">Submit</button> 
+	<button id="settingsSubmit" name="settingsSubmit" class="k-button k-primary" type="button">Submit</button>
