@@ -329,8 +329,8 @@
 			setup: function (editor) {
 				// Load the intial content
 				editor.on('init', function (e) {
-					// Note: this string is a template literal (ie using ``) in order to deal with both single and double qoutes without breaking the editor. However, you can't use any other template literals or script tags in the code or this will break! We are also sanitizing the scripts by putting HTML comments around any script tag found before inserting it into the editor.
-					editor.setContent(`<cfoutput>#RendererObj.renderScriptsToTinyMce(contentVar)#</cfoutput>`);
+					// Note: the content is JSON-encoded before being embedded here (rather than dropped into a backtick template literal) so that a stored `${...}` sequence in the content can't be evaluated as a live JS expression the moment this script runs - a raw backtick literal is vulnerable to that regardless of the script-tag comment-wrapping below. We are also sanitizing the scripts by putting HTML comments around any script tag found before inserting it into the editor.
+					editor.setContent(<cfoutput>#serializeJSON(RendererObj.renderScriptsToTinyMce(contentVar))#</cfoutput>);
 					// Clean up any table of contents that was already present in the loaded content (eg. an
 					// older post saved before this rewrite existed, or content reloaded after a prior insert).
 					rewriteTocAnchors(editor);

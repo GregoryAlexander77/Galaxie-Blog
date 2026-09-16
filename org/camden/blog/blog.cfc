@@ -12095,7 +12095,8 @@
 			<cfset UserDbObj.setEmail(arguments.email)>
 			<cfset UserDbObj.setDisplayEmailOnBio(arguments.displayEmail)>
 			<cfset UserDbObj.setProfilePicture(arguments.profilePicture)>
-			<cfset UserDbObj.setBiography(arguments.biography)>
+			<!--- Sanitize on save (not just on display) so every place the biography is later shown - the admin edit view and the author bio at the end of their posts - gets clean content. Uses the JSoup wrapper, which degrades gracefully to plain text on Lucee (JSoup's clean() isn't supported there) rather than trying to selectively allow tags on both engines. --->
+			<cfset UserDbObj.setBiography(sanitizeString(arguments.biography))>
 			<cfset UserDbObj.setWebsite(arguments.website)>
 			<cfset UserDbObj.setLinkedInUrl(arguments.linkedInUrl)>
 			<cfset UserDbObj.setFacebookUrl(arguments.facebookUrl)>
