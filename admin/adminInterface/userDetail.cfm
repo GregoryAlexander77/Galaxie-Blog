@@ -67,7 +67,8 @@
 			<cfset website = userDetails[1]["Website"]>
 		</cfif>
 		<cfif structKeyExists(userRow, "Biography")>
-			<cfset biography = userDetails[1]["Biography"]>
+			<!--- Server-side sanitize stored biography HTML (defense-in-depth against TinyMCE client bypass / stored XSS) --->
+			<cfset biography = getSafeHTML(userDetails[1]["Biography"])>
 		</cfif>
 		<cfif structKeyExists(userRow, "ProfilePicture")>
 			<cfset profilePicture = userDetails[1]["ProfilePicture"]>
