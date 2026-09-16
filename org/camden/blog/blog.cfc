@@ -17,9 +17,9 @@
 	//******************************************************************************************--->
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "4.5" />
-	<cfset versionName = "4.5 (Bella's Edition)" />
-	<cfset versionDate =  "August 5th 2026"> 
+	<cfset version = "4.65" />
+	<cfset versionName = "4.65 (Bella's Edition)" />
+	<cfset versionDate =  "September 16th 2026">
 
 	<!--- Require version 9 or higher as we are using ORM --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>
@@ -12689,8 +12689,15 @@
 			
 		<!--- Include the string utilities cfc. --->
 		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
+		<!--- Include the time zone cfc so we can compute a DST-aware GMT offset per date instead of a single fixed offset. --->
+		<cfobject component="#application.timeZoneComponentPath#" name="TimeZoneObj">
 		<!--- Get the blog time zone --->
 		<cfset blogTimeZone = application.BlogDbObj.getBlogTimeZone()>
+		<!--- The blog time zone is stored as a raw GMT offset (eg -8), which doesn't say whether that zone observes DST.
+		Resolve it to a real IANA zone id sharing that raw offset so getTZOffset() below can give the correct offset,
+		DST or not, for any specific date (same approach already used by getServerDateTime()). --->
+		<cfset blogTimeZoneList = TimeZoneObj.getTZByOffset(blogTimeZone)>
+		<cfset blogTimeZoneId = blogTimeZoneList[1]>
 
 		<!--- Right now, we force this in. Useful to limit throughput of RSS feed. I may remove this later. --->
 		<cfif (structKeyExists(arguments.params,"maxEntries") and arguments.params.maxEntries gt 15) or not structKeyExists(arguments.params,"maxEntries")>
@@ -12733,14 +12740,19 @@
 		<cfabort>
 		--->
 
-		<cfif find("-", blogTimeZone)>
-			<!--- Note: we are not using the UTC Prefix in v3. Keeping around just in case --->
-			<cfset utcPrefix = " -">
-		<cfelse>
-			<cfset blogTimeZone = right(blogTimeZone, len(blogTimeZone) -1 )>
-			<!--- Note: we are not using the UTC Previx in v3. Keeping around just in case --->
-			<cfset utcPrefix = " +">
-		</cfif>
+		<cfscript>
+			// Returns the RFC 822 GMT offset (eg "-0700" or "+0530") for the blog time zone, correct for
+			// whatever date is passed in - so posts published during DST get a different offset than ones
+			// published during standard time, instead of the feed always using one fixed offset.
+			function formatRSSOffset(thisDate) {
+				var offsetHours = TimeZoneObj.getTZOffset(arguments.thisDate, blogTimeZoneId);
+				var sign = (offsetHours < 0) ? "-" : "+";
+				var absOffsetMinutes = round(abs(offsetHours) * 60);
+				var oHours = int(absOffsetMinutes / 60);
+				var oMinutes = absOffsetMinutes mod 60;
+				return sign & numberFormat(oHours, "00") & numberFormat(oMinutes, "00");
+			}
+		</cfscript>
 
 		<cfsavecontent variable="header">
 			<cfoutput><?xml version="1.0" encoding="utf-8"?>
@@ -12752,7 +12764,7 @@
 			<link>#StringUtilsObj.trimStr(xmlFormat(application.blogHostUrl))#</link>
 			<description>#xmlFormat(instance.blogDescription)#</description>
 			<language>en</language>
-			<pubDate>#dateFormat(blogNow(),"ddd, dd mmm yyyy") & " " & timeFormat(blogNow(),"HH:mm:ss") & " " & numberFormat(blogTimeZone,"00") & "00"#</pubDate>
+			<pubDate>#dateFormat(blogNow(),"ddd, dd mmm yyyy") & " " & timeFormat(blogNow(),"HH:mm:ss") & " " & formatRSSOffset(blogNow())#</pubDate>
 			<lastBuildDate>{LAST_BUILD_DATE}</lastBuildDate>
 			<generator>Galaxie Blog</generator>
 			<docs>http://blogs.law.harvard.edu/tech/rss</docs>
@@ -12783,7 +12795,7 @@
 				<cfset xmlLink = xmlFormat(makeLink(postId))>
 			</cfif>
 				
-			<cfset dateStr = dateFormat(datePosted,"ddd, dd mmm yyyy") & " " & timeFormat(datePosted,"HH:mm:ss") & " " & numberFormat(blogTimeZone,"00") & "00">
+			<cfset dateStr = dateFormat(datePosted,"ddd, dd mmm yyyy") & " " & timeFormat(datePosted,"HH:mm:ss") & " " & formatRSSOffset(datePosted)>
 				
 			<!--- Description. --->
 			<cfif len(description)>
@@ -12823,7 +12835,7 @@
 		</cfsavecontent>
 
 		<cfif arrayLen(getPost)>
-			<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & " " & numberFormat(blogTimeZone,"00") & "00"#','one')>
+			<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & " " & formatRSSOffset(getPost[1]["DatePosted"])#','one')>
 		</cfif>
 		<cfset rssStr = trim(header & items & "</channel></rss>")>
 

@@ -1,8 +1,8 @@
-<cfcomponent displayname="GalaxieBlog4_51" sessionmanagement="yes" clientmanagement="yes" output="false">
+<cfcomponent displayname="GalaxieBlog4_65" sessionmanagement="yes" clientmanagement="yes" output="false">
 	<cfsetting requesttimeout="60">
 
 	<!--- The name needs to be unique in order to have multiple blogs on the same server. Also, this will not work with a dynamic name using CF as it will break the extends in the admin subfolder --->
-	<cfset this.name = "GalaxieBlog4_51" /> 
+	<cfset this.name = "GalaxieBlog4_65" />
 	<!--- Preserve the case for database columns --->
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
