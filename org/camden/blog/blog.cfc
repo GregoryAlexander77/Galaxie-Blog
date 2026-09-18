@@ -1471,7 +1471,7 @@
 	
 		<!--- ******************************** Create exempt lists from the admin log table ******************************** --->
 		<cfquery name="adminLogAnonymousUserIds" dbtype="hql">
-			SELECT new Map ( 
+			SELECT new Map (
 			min( AnonymousUserRef.AnonymousUserId ) as AnonymousUserId
 			)
 			FROM AdminLog as AdminLog
