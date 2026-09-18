@@ -1873,8 +1873,8 @@
 		<cfargument name="width" type="numeric" required="yes">
 		<cfargument name="height" type="numeric" required="yes">
 
-		<!--- api-version=1.0 (not the newer dated Render V2 versions like 2024-04-01) - this account's other working Azure Maps call (application.azureMapsDirectionsApiUrl) also uses api-version=1, meaning it's provisioned on the Gen1 pricing tier, which only understands the older versioned-number API style. --->
-		<cfset requestUrl = "https://atlas.microsoft.com/map/static/png?api-version=1.0&subscription-key=" & application.azureMapsApiKey & "&layer=basic&style=main&width=" & arguments.width & "&height=" & arguments.height>
+		<!--- Render v1 (api-version=1.0, the /map/static/png path with layer/style params) was retired by Microsoft on 9/17/2026 - it started returning blank/placeholder images instead of an error. Render v2 uses a different path (/map/static, no /png suffix), a dated api-version, and tilesetId instead of layer+style. --->
+		<cfset requestUrl = "https://atlas.microsoft.com/map/static?api-version=2024-04-01&subscription-key=" & application.azureMapsApiKey & "&tilesetId=microsoft.base.road&width=" & arguments.width & "&height=" & arguments.height>
 
 		<cfif arguments.mapType eq 'route' and arrayLen(arguments.data) gt 1>
 			<cfset pinCoords = "">
@@ -1890,7 +1890,7 @@
 				<cfset arrayAppend(lats, val(thisLat))>
 			</cfloop>
 			<!--- lc/lw = line color/width for the path; co = pin color. Using the site's accent-ish orange so it's not a jarring style mismatch from the interactive version. Azure Maps' own docs show these pipe/space-delimited parameter values unencoded for readability, but a real request needs them percent-encoded - a raw space in the URL is what was causing the 400 Bad Request. --->
-			<!--- v1.0's bbox is mutually exclusive with width/height/center, and also has its own (undocumented) max-span limit that a long route like Zion-to-Arches exceeds ("bbox is too large"). Rather than fight that, center on the waypoints' midpoint and reuse the same fixed zoom=7 the interactive map already uses for every preview regardless of route length (previewZoomLevel) - matching existing convention instead of trying to auto-fit bounds. --->
+			<!--- bbox is documented as mutually exclusive with width/height/center, and its allowed lon/lat span is capped per zoom level - a long route like Zion-to-Arches exceeds that cap ("bbox is too large"). Rather than fight that, center on the waypoints' midpoint and reuse the same fixed zoom=7 the interactive map already uses for every preview regardless of route length (previewZoomLevel) - matching existing convention instead of trying to auto-fit bounds. --->
 			<cfset requestUrl = requestUrl & "&center=" & ((arrayMin(lons) + arrayMax(lons)) / 2) & "," & ((arrayMin(lats) + arrayMax(lats)) / 2) & "&zoom=7">
 			<!--- style and locations need a "||" separator, not "|" - pathCoords/pinCoords already start with a leading "|" before each location, so one more "|" here produces the required "||" between the style block and the location list. --->
 			<cfset requestUrl = requestUrl & "&path=" & URLEncodedFormat("lcFF5800|lw3" & "|" & pathCoords) & "&pins=" & URLEncodedFormat("default|coFF5800" & "|" & pinCoords)>
