@@ -1756,7 +1756,32 @@
 		<cfelse>
 			<cfset kCardMapClass = "k-card-scroll-image">
 		</cfif>
-			
+
+		<!--- Thumbnails (used on listing pages - home, category, tag, etc.) are shown many at a time and don't need to be interactive, so we render a cached static image instead of an iframe that would load the full Maps SDK and make a live routing/geocoding API call on every page view. The full interactive map (iframe, live SDK) is still used on the individual post page (renderThumbnail false). --->
+		<cfif arguments.renderThumbnail>
+			<cfif arguments.renderMediumCard>
+				<cfset thumbnailPixelWidth = 800>
+				<cfset thumbnailPixelHeight = 640>
+			<cfelse>
+				<cfset thumbnailPixelWidth = 246>
+				<cfset thumbnailPixelHeight = 135>
+			</cfif>
+			<cfset staticThumbnailUrl = getCachedMapThumbnail(mapId = arguments.mapId, mapType = mapType, width = thumbnailPixelWidth, height = thumbnailPixelHeight)>
+		<cfelse>
+			<cfset staticThumbnailUrl = "">
+		</cfif>
+
+		<cfif len(staticThumbnailUrl)>
+			<!--- Static image thumbnail. --->
+			<cfif renderKCardMediaClass>
+				<cfset mapHtmlStr = '<img title="map route" data-type="mapRoute" data-id="' & arguments.mapId & '" src="' & staticThumbnailUrl & '" width="' & width & '" height="' & height & '" class="' & kCardMapClass & '" alt="Map preview">'>
+			<cfelse>
+				<cfset mapHtmlStr = '<img title="map route" data-type="mapRoute" data-id="' & arguments.mapId & '" src="' & staticThumbnailUrl & '" width="' & width & '" height="' & height & '" alt="Map preview">'>
+			</cfif>
+			<cfreturn mapHtmlStr>
+		</cfif>
+
+		<!--- Fall back to the live interactive map: either this isn't a thumbnail request, or the static thumbnail couldn't be generated (eg. first request racing the provider call, or the provider call failed). --->
 		<!--- Note: we will not have an extension that we can read on an external URL --->
 		<cfif arguments.renderThumbnail>
 			<cfset mapHtmlStr = '<iframe title="map route" data-type="mapRoute" data-id="#arguments.mapId#" src="#application.baseUrl#/preview/maps.cfm?mapId=' & arguments.mapId & '&mapType=' & mapType & '&thumbnail=true'>
@@ -1769,9 +1794,147 @@
 		<cfelse>
 			<cfset mapHtmlStr = mapHtmlStr & '" width="' & width & '" height="' & height & '" allowfullscreen="allowfullscreen" frameBorder="0" scrolling="no"></iframe>'>
 		</cfif>
-		
+
 		<cfreturn mapHtmlStr>
-	
+
+	</cffunction>
+
+	<cffunction name="getCachedMapThumbnail" access="public" returnType="string" output="false"
+			hint="Returns the URL to a cached static thumbnail image for a map preview card, generating it via the map provider's static-image REST API the first time it's needed. This is what lets renderMapPreview avoid loading the full interactive Azure/Bing Maps SDK and firing a live routing/geocoding API call just to show a small preview - that cost is now paid once per map (whenever the cache file doesn't exist yet) instead of on every listing-page view by every visitor. Returns an empty string if generation fails, so callers can fall back to the live iframe.">
+		<cfargument name="mapId" type="string" required="yes">
+		<cfargument name="mapType" type="string" required="yes" hint="'static' or 'route'">
+		<cfargument name="width" type="numeric" required="no" default="246">
+		<cfargument name="height" type="numeric" required="no" default="135">
+
+		<cfset thumbnailFolder = expandPath("#application.baseUrl#/enclosures/thumbnails/maps")>
+		<cfif not directoryExists(thumbnailFolder)>
+			<cftry>
+				<cfdirectory action="create" directory="#thumbnailFolder#">
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfset thumbnailFileName = "map-" & arguments.mapId & ".png">
+		<cfset thumbnailFilePath = thumbnailFolder & "/" & thumbnailFileName>
+		<cfset thumbnailUrl = application.baseUrl & "/enclosures/thumbnails/maps/" & thumbnailFileName>
+
+		<!--- Fast path: already generated. This is the case for every request except the very first one for a given map. --->
+		<cfif fileExists(thumbnailFilePath)>
+			<cfreturn thumbnailUrl>
+		</cfif>
+
+		<cftry>
+			<cfif arguments.mapType eq 'route'>
+				<cfset mapData = application.blog.getMapRoutesByMapId(arguments.mapId)>
+			<cfelse>
+				<cfset mapData = application.blog.getMapByMapId(arguments.mapId)>
+			</cfif>
+
+			<cfif not arrayLen(mapData)>
+				<cfreturn "">
+			</cfif>
+
+			<cfset mapProvider = mapData[1]["MapProvider"]>
+
+			<cfif mapProvider eq 'Azure Maps'>
+				<cfset staticImageRequestUrl = buildAzureMapsStaticImageUrl(data = mapData, mapType = arguments.mapType, width = arguments.width, height = arguments.height)>
+			<cfelseif mapProvider eq 'Bing Maps'>
+				<cfset staticImageRequestUrl = buildBingMapsStaticImageUrl(data = mapData, mapType = arguments.mapType, width = arguments.width, height = arguments.height)>
+			<cfelse>
+				<cfreturn "">
+			</cfif>
+
+			<!--- Download straight to the cache location. getAsBinary + path/file writes the response body directly to disk without us handling the binary content by hand. --->
+			<cfhttp method="get" getAsBinary="yes" url="#staticImageRequestUrl#" path="#thumbnailFolder#" file="#thumbnailFileName#" throwOnError="true" timeout="8">
+
+			<cfif fileExists(thumbnailFilePath) and getFileInfo(thumbnailFilePath).size gt 0>
+				<cfreturn thumbnailUrl>
+			</cfif>
+
+			<cfreturn "">
+
+			<cfcatch type="any">
+				<!--- Provider call failed (bad/expired key, quota, network hiccup, etc). Don't leave a partial/empty file behind for the fast path to wrongly trust next time. --->
+				<cfif fileExists(thumbnailFilePath)>
+					<cftry>
+						<cffile action="delete" file="#thumbnailFilePath#">
+						<cfcatch type="any"></cfcatch>
+					</cftry>
+				</cfif>
+				<cfreturn "">
+			</cfcatch>
+		</cftry>
+
+	</cffunction>
+
+	<cffunction name="buildAzureMapsStaticImageUrl" access="private" returnType="string" output="false"
+			hint="Builds an Azure Maps 'Get Map Image' (static/png) request URL for a map thumbnail. For route maps, draws a straight line between waypoints rather than fetching the actual routed polyline from the Directions API - at thumbnail size the visual difference is not detectable, and it avoids a second live API call just to render a preview image.">
+		<cfargument name="data" type="array" required="yes">
+		<cfargument name="mapType" type="string" required="yes">
+		<cfargument name="width" type="numeric" required="yes">
+		<cfargument name="height" type="numeric" required="yes">
+
+		<cfset requestUrl = "https://atlas.microsoft.com/map/static/png?api-version=2024-04-01&subscription-key=" & application.azureMapsApiKey & "&layer=basic&style=main&width=" & arguments.width & "&height=" & arguments.height>
+
+		<cfif arguments.mapType eq 'route' and arrayLen(arguments.data) gt 1>
+			<cfset pinCoords = "">
+			<cfset pathCoords = "">
+			<cfloop from="1" to="#arrayLen(arguments.data)#" index="i">
+				<cfset thisLon = trim(listLast(arguments.data[i]["GeoCoordinates"]))>
+				<cfset thisLat = trim(listFirst(arguments.data[i]["GeoCoordinates"]))>
+				<cfset pinCoords = pinCoords & "|" & thisLon & " " & thisLat>
+				<cfset pathCoords = pathCoords & "|" & thisLon & " " & thisLat>
+			</cfloop>
+			<!--- lc/lw = line color/width for the path; co = pin color. Using the site's accent-ish orange so it's not a jarring style mismatch from the interactive version. --->
+			<cfset requestUrl = requestUrl & "&path=lcFF5800|lw3" & pathCoords & "&pins=default|coFF5800" & pinCoords>
+		<cfelse>
+			<cfset thisLon = arguments.data[1]["Longitude"]>
+			<cfset thisLat = arguments.data[1]["Latitude"]>
+			<cfif len(arguments.data[1]["Zoom"])>
+				<cfset thisZoom = arguments.data[1]["Zoom"]>
+			<cfelse>
+				<cfset thisZoom = 7>
+			</cfif>
+			<cfset requestUrl = requestUrl & "&center=" & thisLon & "," & thisLat & "&zoom=" & thisZoom & "&pins=default||" & thisLon & " " & thisLat>
+		</cfif>
+
+		<cfreturn requestUrl>
+
+	</cffunction>
+
+	<cffunction name="buildBingMapsStaticImageUrl" access="private" returnType="string" output="false"
+			hint="Builds a Bing Maps Imagery REST API (static map) request URL for a map thumbnail.">
+		<cfargument name="data" type="array" required="yes">
+		<cfargument name="mapType" type="string" required="yes">
+		<cfargument name="width" type="numeric" required="yes">
+		<cfargument name="height" type="numeric" required="yes">
+
+		<cfset pushpinParams = "">
+		<cfloop from="1" to="#arrayLen(arguments.data)#" index="i">
+			<cfset pushpinParams = pushpinParams & "&pushpin=" & trim(listFirst(arguments.data[i]["GeoCoordinates"])) & "," & trim(listLast(arguments.data[i]["GeoCoordinates"])) & ";66">
+		</cfloop>
+
+		<cfif arguments.mapType eq 'route' and arrayLen(arguments.data) gt 1>
+			<!--- Fit a bounding box around all the waypoints rather than picking a center/zoom by hand. --->
+			<cfset lats = arrayNew(1)>
+			<cfset lons = arrayNew(1)>
+			<cfloop from="1" to="#arrayLen(arguments.data)#" index="i">
+				<cfset arrayAppend(lats, val(listFirst(arguments.data[i]["GeoCoordinates"])))>
+				<cfset arrayAppend(lons, val(listLast(arguments.data[i]["GeoCoordinates"])))>
+			</cfloop>
+			<cfset mapArea = arrayMin(lats) & "," & arrayMin(lons) & "," & arrayMax(lats) & "," & arrayMax(lons)>
+			<cfset requestUrl = "https://dev.virtualearth.net/REST/v1/Imagery/Map/road?mapArea=" & mapArea & "&mapSize=" & arguments.width & "," & arguments.height & pushpinParams & "&key=" & application.bingMapsApiKey>
+		<cfelse>
+			<cfif len(arguments.data[1]["Zoom"])>
+				<cfset thisZoom = arguments.data[1]["Zoom"]>
+			<cfelse>
+				<cfset thisZoom = 7>
+			</cfif>
+			<cfset requestUrl = "https://dev.virtualearth.net/REST/v1/Imagery/Map/road/" & arguments.data[1]["Latitude"] & "," & arguments.data[1]["Longitude"] & "/" & thisZoom & "?mapSize=" & arguments.width & "," & arguments.height & pushpinParams & "&key=" & application.bingMapsApiKey>
+		</cfif>
+
+		<cfreturn requestUrl>
+
 	</cffunction>
 			
 	<!--- Determine which letter to show in the optional rows when rendering map routes. I am using a loop from 3 to 12 and need to put its corresponding letter (c,d,e, etc.) --->
