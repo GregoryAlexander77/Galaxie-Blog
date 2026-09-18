@@ -7,7 +7,7 @@
 	<cfproperty name="JQueryCDNPath" ormtype="string" length="225" default="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js">
 	<cfproperty name="KendoCommercial" ormtype="boolean" default="false">
 	<cfproperty name="KendoFolderPath" ormtype="string" length="225" default="">
-	<cfproperty name="DeferKendoCommercialOnPublicSite" ormtype="boolean" default="false">
+	<cfproperty name="DeferKendoCommercialOnPublicSite" ormtype="boolean" default="true">
 	<cfproperty name="DeferScriptsAndCss" ormtype="boolean" default="true">
 	<cfproperty name="UseSsl" ormtype="boolean" default="true">
 	<cfproperty name="ServerRewriteRuleInPlace" ormtype="boolean" default="false">	

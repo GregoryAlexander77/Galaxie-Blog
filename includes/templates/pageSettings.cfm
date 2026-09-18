@@ -140,21 +140,7 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <!--- Trim and set the granular settings stored in a structure that are determined by the theme. The getSettingsByTheme method in the Main.cfc template provides granular ui settings by theme. --->
 <!--- The site opacity will make the blog content semi-transparent so that you can see the background image. If you change this, be sure to set this between 80 and 100 as this will impact the readability of the entire site. Site opacity settings show the background image underneath. Each setting is individually set by the theme to ensure better readability. ---> 
 
-<!--- The Kendo css locations use the Kendo folder path when using Kendo commercial. Otherwise they point to the root folder and the embedded Kendo Core package. --->
-<!--- Kendo file locations. --->		
-<cfset kendoCommonCssFileLocation = trim(application.kendoFolderPath & getTheme[1]["KendoCommonCssFileLocation"])>
-<cfset kendoThemeCssFileLocation = trim(application.kendoFolderPath & getTheme[1]["KendoThemeCssFileLocation"])>
-<!--- The mobile theme has an appended 'mobile' string. --->
-<cfset kendoThemeMobileCssFileLocation = trim(application.kendoFolderPath & getTheme[1]["KendoThemeMobileCssFileLocation"])>
-<cfset kendoThemeMobileCssFileLocation = trim(application.kendoFolderPath & getTheme[1]["KendoThemeMobileCssFileLocation"])>
-	
-<!--- When using the Kendo Core package, add the root folder to the location if the location path does not already contain the baseUrl. This last bit of logic is used to fix a bug and this entire code may not be necessary. --->
-<cfif !application.kendoCommercial and !findNoCase(application.baseUrl, kendoCommonCssFileLocation)>
-	<cfset kendoCommonCssFileLocation = application.baseUrl & kendoCommonCssFileLocation>
-	<cfset kendoThemeCssFileLocation = application.baseUrl & kendoThemeCssFileLocation>
-	<cfset kendoThemeMobileCssFileLocation = application.baseUrl & kendoThemeMobileCssFileLocation>
-</cfif>
-	
+<!--- The Kendo CSS locations depend on which Kendo edition (Commercial vs Core) this specific request ends up using, which isn't known yet at this point in the page - deferKendoCommercialOnPublicSite can pick Core for this request even when the site-wide default is Commercial, or vice versa for an explicit post directive. That per-request decision isn't made until includes/templates/core/seoMetaTags.cfm runs (via coreLogic.cfm, included after this file), so kendoCommonCssFileLocation/kendoThemeCssFileLocation/kendoThemeMobileCssFileLocation are computed later, in includes/templates/head.cfm, once the right edition for this request is actually known. Computing them here from application.kendoSourceLocation - the site-wide default, fixed once at application start - mismatched the JS bundle on every page whose per-request edition differed from that default. --->
 <!--- Is a theme selected? --->
 <cfset selectedTheme = getTheme[1]["SelectedTheme"]>
 	

@@ -185,14 +185,28 @@
 			<!--- Use the value that is in the blog options UI --->
 			<cfset kendoCommercial = application.kendoCommercial>
 		</cfif>
-		<!--- Apply the same logic for the source. For the directives to work with the commercial edition of Kendo, we need both the kendoCommercial and kendoSource directives for a given post --->
+		<!--- Apply the same logic for the source. For the directives to work with the commercial edition of Kendo, we need both the kendoCommercial and kendoSource directives for a given post. Note: this is computed fresh per-request from application.kendoFolderPath/application.baseUrl rather than reusing application.kendoSourceLocation - that value is resolved once at application start from the site-wide application.kendoCommercial only, so it's wrong for any request whose per-request kendoCommercial (above) differs from the site-wide default, which is exactly the deferKendoCommercialOnPublicSite case. --->
 		<cfif isDefined("thisKendoSourceLocation") and len(thisKendoSourceLocation)>
 			<!--- Use the value in the post directive --->
 			<cfset kendoSourceLocation = thisKendoSourceLocation>
+		<cfelseif kendoCommercial>
+			<!--- This request needs Kendo Commercial - use the folder the blog owner configured for their licensed copy, same as application.kendoFolderPath is used when Commercial is the site-wide default. --->
+			<cfset kendoSourceLocation = application.kendoFolderPath>
+		<cfelseif len(application.kendoFolderPath) and not application.kendoCommercial and !isDefined("URL.init") and !isDefined("URL.reinit")>
+			<!--- This request uses Core, and so does the site-wide default, with a folder path configured for it (a blog owner can point Core at a custom folder too, eg. a locally-modified copy) - reuse it, matching what application.kendoSourceLocation would already resolve to in this exact case. --->
+			<cfset kendoSourceLocation = application.kendoFolderPath>
 		<cfelse>
-			<!--- Use the value in the blog options admin UI. The default location for Kendo Core is /common/libs/kendoCore/ and I use /common/libs/kendo/ for my own licensed version of Kendo --->
-			<cfset kendoSourceLocation = application.kendoSourceLocation>
+			<!--- This request uses Core but there's no Core-specific folder configured (either because Core is simply the default with nothing custom set, or because the site-wide default is actually Commercial and application.kendoFolderPath is configured for that instead, which is no good for Core). Point at the embedded Kendo Core package. --->
+			<cfset kendoSourceLocation = application.baseUrl & "/common/libs/kendoCore/">
 		</cfif>
+		<!--- Safety net: a folder path taken from the post directive or the blog options admin UI (the three branches above that don't already build from application.baseUrl) may have been entered as webroot-relative (eg. "/common/libs/kendoCore/") instead of app-relative (eg. "/blog/common/libs/kendoCore/"), which 404s everything built from it. Only touch it if it doesn't already start with the app's own base path or an absolute URL (an http(s):// CDN location is a valid thing to configure here and must be left alone). --->
+		<cfif len(kendoSourceLocation) and left(kendoSourceLocation, 4) neq "http" and findNoCase(application.baseUrl, kendoSourceLocation) neq 1>
+			<cfset kendoSourceLocation = application.baseUrl & kendoSourceLocation>
+		</cfif>
+		<!--- The Kendo CSS locations need to follow the same per-request edition as the JS above (they used to be computed once in pageSettings.cfm from the site-wide default only, which mismatched the JS bundle on any page where the per-request edition differed from the site default - eg. every deferred page once deferKendoCommercialOnPublicSite is turned on). --->
+		<cfset kendoCommonCssFileLocation = trim(kendoSourceLocation & getTheme[1]["KendoCommonCssFileLocation"])>
+		<cfset kendoThemeCssFileLocation = trim(kendoSourceLocation & getTheme[1]["KendoThemeCssFileLocation"])>
+		<cfset kendoThemeMobileCssFileLocation = trim(kendoSourceLocation & getTheme[1]["KendoThemeMobileCssFileLocation"])>
 	</cfsilent>
  	<!--- The jQuery script can't be defered as the Kendo controls won't work. We're using jQuery 1.2. Later jQuery versions don't work with Kendo UI core unfortunately. --->
 <cfif kendoCommercial>

@@ -386,10 +386,10 @@
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 25%"> 
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="jQueryCDNPath">JQuery CDN Location:</label>
 			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>"  style="width: 80%">
 				<input id="jQueryCDNPath" name="jQueryCDNPath" type="text" value="<cfoutput>#jQueryCDNPath#</cfoutput>" class="k-textbox" style="width: 50%" />    
 			</td>
 		  </tr>
@@ -437,14 +437,30 @@
 		  </tr>
 		</cfif>
 		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+			 
+		  <tr height="2px">
+		  	<td align="left" valign="bottom" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr valign="middle" height="30px">
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
+				Kendo UI Professional is a much larger download than Kendo Core. Defer it on public-facing pages and only load it when a post actually needs it (e.g. it embeds a Kendo Grid)? Admin pages always get Kendo Professional regardless of this setting. 
+			</td>
+		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-		<!--- Only takes effect when Commercial Kendo UI Edition (above) is enabled - lets the site keep the smaller Kendo Core download on public pages by default, and only pull in the larger Kendo Professional library for a specific post when it's actually needed (eg. it embeds a Kendo Grid). Admin pages always load Kendo Professional when the option above is checked, regardless of this setting. --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<label for="deferKendoCommercialOnPublicSite">Kendo UI Professional is a much larger download than Kendo Core. Defer it on public-facing pages and only load it when a post actually needs it (e.g. it embeds a Kendo Grid)? Admin pages always get Kendo Professional regardless of this setting.</label>
+				<label for="deferKendoCommercialOnPublicSite">Defer Kendo Commercial on Public Site?</label>
 			</td>
 		   </tr>
 		   <tr>
@@ -455,7 +471,7 @@
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
 			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:20%">
-				<label for="deferKendoCommercialOnPublicSite">Kendo UI Professional is a much larger download than Kendo Core. Defer it on public-facing pages and only load it when a post actually needs it (e.g. it embeds a Kendo Grid)? Admin pages always get Kendo Professional regardless of this setting.</label>
+				<label for="deferKendoCommercialOnPublicSite">Defer Kendo Commercial on Public Site?</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:80%">
 				<input type="checkbox" name="deferKendoCommercialOnPublicSite" id="deferKendoCommercialOnPublicSite" <cfif deferKendoCommercialOnPublicSite>checked</cfif>>
@@ -496,10 +512,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:20%">
 				<label for="kendoFolderPath">Kendo Folder Path:</label>
 			</td>
-			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:80%">
 				<input type="text" name="kendoFolderPath" id="kendoFolderPath" value="<cfoutput>#kendoFolderPath#</cfoutput>" class="k-textbox" style="width: 50%" required />
 			</td>
 		  </tr>
@@ -551,10 +567,10 @@
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 25%"> 
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="enableVisitorLog">Enable Visitor Logging:</label>
 			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:80%">
 				<input id="enableVisitorLog" name="enableVisitorLog" type="checkbox" value="1" <cfif application.logVisitors>checked</cfif> />    
 			</td>
 		  </tr>
@@ -587,7 +603,7 @@
 			</td>
 		   </tr>
 		   <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<script>
 					$("#visitorLogMonths").kendoDropDownList({
 					});
@@ -604,10 +620,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		   <tr valign="middle" height="30px">
-			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="visitorLogMonths">Months to retain visitor logs:</label>
 			</td>
-			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:80%">
 				<script>
 					$("#visitorLogMonths").kendoDropDownList({
 					});
@@ -677,7 +693,7 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="adminLogMonths">Months to retain error and administrative logs:</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -766,7 +782,7 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="googleAnalyticsString">Google GTAG String(s):</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
