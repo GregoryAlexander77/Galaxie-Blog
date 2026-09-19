@@ -382,10 +382,10 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" name="postType" id="blogPost" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPost'>checked<cfelseif !structKeyExists(URL, "optArgs")>checked</cfif> />
+				<input type="radio" name="postType" id="blogPost" value="blogPost" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPost'>checked<cfelseif !structKeyExists(URL, "optArgs")>checked</cfif> />
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" name="postType" id="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> />
+				<input type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> />
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -394,7 +394,7 @@
 			<label for="postType">Post Type</label><br/>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" name="postType" id="blogPost" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPost'>checked<cfelseif !structKeyExists(URL, "optArgs")>checked</cfif> /> Blog Post <input type="radio" name="postType" id="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page
+				<input type="radio" name="postType" id="blogPost" value="blogPost" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPost'>checked<cfelseif !structKeyExists(URL, "optArgs")>checked</cfif> /> Blog Post <input type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page
 			</td>
 		  </tr>
 		  <tr valign="middle" height="35">
