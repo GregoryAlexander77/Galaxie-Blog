@@ -1078,21 +1078,69 @@
 		</cfif>	
 	</cffunction>
 					
-	<cffunction name="saveReaction" access="remote" returnformat="json" output="false" 
-			hint="Saves a user reaction (like/dislike)">
+	<cffunction name="getReactionVisitorId" access="private" returnType="string" output="false"
+			hint="Returns the anonymous user id of the current visitor, or an empty string if the visitor is not known. The visitor is identified by the gauid cookie that the visitor tracking sets. The id must come from the cookie and not from the page: the post html is cached and shared by all visitors, so anything that is embedded in it belongs to whoever viewed the post first.">
+
+		<cfif structKeyExists(cookie, "gauid") and isNumeric(cookie.gauid) and not isNull(entityLoadByPK("AnonymousUser", cookie.gauid))>
+			<cfreturn int(cookie.gauid)>
+		</cfif>
+
+		<cfreturn "">
+	</cffunction>
+
+	<cffunction name="getPostReactionState" access="remote" returnformat="json" output="false"
+			hint="Returns the total likes and dislikes of a post and how the current visitor voted. This is requested by the post page after it loads, as the post html is cached and can't contain anything that is specific to the visitor.">
 		<cfargument name="postId" required="true">
-		<cfargument name="anonymousUserId" required="true">
+
+		<cfset var response = { "likes": 0, "dislikes": 0, "myVote": "" }>
+		<cfset var visitorId = "">
+		<cfset var myVotes = "">
+
+		<cfif isNumeric(arguments.postId)>
+			<cfset response["likes"] = application.blog.getPostLikeCount(arguments.postId)>
+			<cfset response["dislikes"] = application.blog.getPostDislikeCount(arguments.postId)>
+			<!--- How did this visitor vote? myVotes returns a list separated by an underscore (likes_dislikes) --->
+			<cfset visitorId = getReactionVisitorId()>
+			<cfif len(visitorId)>
+				<cfset myVotes = application.blog.myVotes(arguments.postId, visitorId)>
+				<cfif listGetAt(myVotes, 1, "_") gt 0>
+					<cfset response["myVote"] = "like">
+				<cfelseif listGetAt(myVotes, 2, "_") gt 0>
+					<cfset response["myVote"] = "dislike">
+				</cfif>
+			</cfif>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response and send it back to the client. --->
+			<cfreturn serializeJSON( response )>
+		</cfif>
+
+	</cffunction>
+
+	<cffunction name="saveReaction" access="remote" returnformat="json" output="false"
+			hint="Saves a user reaction (like/dislike). The visitor is identified by the gauid cookie and not by the anonymousUserId argument, which is only accepted for the pages that were cached before this change (the post html is cached, and the id in it belongs to whoever viewed the post first).">
+		<cfargument name="postId" required="true">
+		<cfargument name="anonymousUserId" required="false" default="" hint="Ignored. The visitor comes from the gauid cookie.">
 		<cfargument name="selectedId" default="" />
-			
+
+		<cfset var success = 0>
+		<cfset var visitorId = getReactionVisitorId()>
+
 		<!--- Set the default response object. --->
 		<cfset response = {} />
-			
-		<!--- Get the categories, don't  use the cached values. --->
-		<cfinvoke component="#application.blog#" method="saveReaction" returnvariable="success">
-			<cfinvokeargument name="postId" value="#arguments.postId#">
-			<cfinvokeargument name="anonymousUserId" value="#arguments.anonymousUserId#">
-			<cfinvokeargument name="selectedId" value="#arguments.selectedId#">
-		</cfinvoke>
+
+		<!--- Save the vote if we know who is voting. --->
+		<cfif len(visitorId) and isNumeric(arguments.postId) and listFindNoCase("like,dislike", arguments.selectedId)>
+			<cfinvoke component="#application.blog#" method="saveReaction" returnvariable="success">
+				<cfinvokeargument name="postId" value="#arguments.postId#">
+				<cfinvokeargument name="anonymousUserId" value="#visitorId#">
+				<cfinvokeargument name="selectedId" value="#arguments.selectedId#">
+			</cfinvoke>
+		</cfif>
 			
 		<!--- Create a JSON response to send back to the client --->
 		<cfif success eq 1>
@@ -2093,7 +2141,18 @@
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('editTheme')>
 			
+		<!--- Was this theme selected? The grids send true or false. There can only be one selected theme. --->
+		<cfset isSelectedTheme = structKeyExists(arguments, "selectedTheme") and isBoolean(arguments.selectedTheme) and arguments.selectedTheme>
+
 		<cftransaction>
+			<!--- If this theme was selected, deselect all of the other themes first (the theme settings form does the same). --->
+			<cfif isSelectedTheme>
+				<cfquery name="deselectAllThemes" dbtype="hql">
+					UPDATE Theme
+					SET SelectedTheme = ''
+					WHERE SelectedTheme = 1
+				</cfquery>
+			</cfif>
 			<!--- Load the theme entity. --->
 			<cfset ThemeDbObj = entityLoadByPK("Theme", arguments.themeId)>
 			<!--- Load the theme setting entity --->
@@ -2102,12 +2161,12 @@
 			<!--- Set the values --->
 			<cfif arguments.modernThemeStyle>
 				<cfset ThemeSettingDbObj.setBreakpoint(0)>
-				<!--- Set the content width to 50 if it was not already been changed. --->
-				<cfif arguments.contentWidth eq '66'>
-					<cfset ThemeSettingDbObj.setContentWidth('50')>	
+				<!--- Set the content width to 50 if it was not already been changed. The Kendo grid does not send the contentWidth. --->
+				<cfif structKeyExists(arguments, "contentWidth") and arguments.contentWidth eq '66'>
+					<cfset ThemeSettingDbObj.setContentWidth('50')>
 				</cfif>
 			</cfif>
-			<cfset ThemeDbObj.setSelectedTheme(arguments.selectedTheme)>
+			<cfset ThemeDbObj.setSelectedTheme(isSelectedTheme)>
 			<cfset ThemeDbObj.setUseTheme(arguments.useTheme)>				
 			<!--- Save the entities --->
 			<cfset EntitySave(ThemeSettingDbObj)>

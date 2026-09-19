@@ -406,54 +406,29 @@
 								Like/Dislike
 							**********************************************************************************************--->
 							</cfsilent>
-							<cfif getPageMode() eq 'post' and isDefined("AnonymousUserDbObj") and application.logVisitors>
+							<cfif getPageMode() eq 'post' and application.logVisitors>
 								<cfsilent>
-								<!--- Get the current likes and dislikes --->
-								<cfset totalLikes = application.blog.getPostLikeCount(postId)>
-								<cfset totalDislikes = application.blog.getPostDislikeCount(postId)>
-								<!--- See if the current user already voted. This contains an array of helpful and unhelpful votes.  --->
-								<cfset myVotes = application.blog.myVotes(postId,AnonymousUserDbObj.getAnonymousUserId())>
-								<!--- My votes returns a list separated by an underscore (likes_dislikes) --->
-								<cfset myLikeCount = listGetAt(myVotes,1,"_")>
-								<cfset myDislikeCount = listGetAt(myVotes,2,"_")>
-								<!--- The totals of all of the other visitors (the totals include my own vote) --->
-								<cfset otherLikes = totalLikes - min(myLikeCount, 1)>
-								<cfset otherDislikes = totalDislikes - min(myDislikeCount, 1)>
-							
-								<!--- Set the class for the vote buttons. If the user has already voted, use the Kendo primary class to indicate how they voted. Otherwise, use muted buttons --->
+								<!--- Note: this is inside of the post cache, so the html is shared by all visitors. Nothing that belongs to a visitor (their vote, the totals or their anonymous user id) can be output here, or every visitor would see and change the votes of whoever viewed the post first. The totals and the visitor's vote are requested after the page loads (see getPostReactionState in ProxyController.cfc). --->
+								<!--- Set the class for the vote buttons. The Kendo primary class indicates how the visitor voted. Otherwise, use muted buttons --->
 								<!--- Like classes --->
 								<cfset likeButtonClassSelected = 'k-icon k-primary btn btn-default like'>
 								<cfset likeButtonClassUnselected = 'k-icon k-alt btn btn-default like likeOutline'>
 								<!--- Dislike classes --->
 								<cfset dislikeButtonClassSelected = 'k-icon k-primary btn btn-default dislike'>
 								<cfset dislikeButtonClassUnselected = 'k-icon k-alt btn btn-default dislike dislikeOutline'>
-									
-								<!--- Determine the initial button class --->
-								<cfif myLikeCount gt 0>
-									<cfset likeButtonClass = likeButtonClassSelected>
-								<cfelse>
-									<cfset likeButtonClass = likeButtonClassUnselected>
-								</cfif>
-										
-								<cfif myDislikeCount gt 0>
-									<cfset dislikeButtonClass = dislikeButtonClassSelected>
-								<cfelse>
-									<cfset dislikeButtonClass = dislikeButtonClassUnselected>
-								</cfif>
 								</cfsilent>
-								
+
 								<h2 class="topContent">Reactions</h2>
 								<script>
-									<!--- Reactions. The user can like or dislike a post and can change their mind, but cannot remove a vote. The counts that are displayed are the totals from the other visitors plus my own vote. --->
+									<!--- Reactions. The user can like or dislike a post and can change their mind, but cannot remove a vote. The post html is cached and shared by all visitors, so it can't contain the totals or the visitor's vote. They are requested after the page loads, and the server identifies the visitor with the gauid cookie. --->
 									$(document).ready(function(){
 										var $rating = $('#chr(35)#rating');
 										var $likeButton = $('#chr(35)#likeButton');
 										var $dislikeButton = $('#chr(35)#dislikeButton');
-										<!--- My current vote: 'like', 'dislike' or '' if I have not voted yet. --->
-										var myVote = '<cfif myLikeCount gt 0>like<cfelseif myDislikeCount gt 0>dislike</cfif>';
-										<!--- The totals of everyone else. The totals on the page include my vote, so take it out. --->
-										var otherLikes = <cfoutput>#otherLikes#</cfoutput>;
-										var otherDislikes = <cfoutput>#otherDislikes#</cfoutput>;
+										<!--- My current vote: 'like', 'dislike' or '' if I have not voted yet, and the totals of all visitors (which include my vote). --->
+										var myVote = '';
+										var totalLikes = 0;
+										var totalDislikes = 0;
 										var busy = false;
 
 										<!--- The Kendo primary class shows how I voted. --->
@@ -467,8 +442,26 @@
 										function showVote() {
 											$likeButton.attr('class', myVote === 'like' ? classes.likeSelected : classes.likeUnselected);
 											$dislikeButton.attr('class', myVote === 'dislike' ? classes.dislikeSelected : classes.dislikeUnselected);
-											$rating.find('.likes').text(otherLikes + (myVote === 'like' ? 1 : 0));
-											$rating.find('.dislikes').text(otherDislikes + (myVote === 'dislike' ? 1 : 0));
+											$rating.find('.likes').text(totalLikes);
+											$rating.find('.dislikes').text(totalDislikes);
+										}
+
+										<!--- Get the totals and how this visitor voted. This can't be cached, so it always asks the server. --->
+										function loadReactions() {
+											$.ajax({
+												type: 'post',
+												url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=getPostReactionState",
+												data: { postId: '<cfoutput>#postId#</cfoutput>' },
+												dataType: "json",
+												cache: false
+											}).done(function(data) {
+												if (data) {
+													totalLikes = parseInt(data.likes, 10) || 0;
+													totalDislikes = parseInt(data.dislikes, 10) || 0;
+													myVote = (data.myVote === 'like' || data.myVote === 'dislike') ? data.myVote : '';
+													showVote();
+												}
+											});
 										}
 
 										function react(choice) {
@@ -477,11 +470,10 @@
 											busy = true;
 											$.ajax({
 												type: 'post',
-												<!--- This posts to the proxy controller as it needs to have session vars. --->
+												<!--- This posts to the proxy controller as it needs to have session vars. The server knows who is voting from the gauid cookie. --->
 												url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=saveReaction",
 												data: {
 													postId: '<cfoutput>#postId#</cfoutput>',
-													anonymousUserId: '<cfoutput>#AnonymousUserDbObj.getAnonymousUserId()#</cfoutput>',
 													selectedId: choice
 												},
 												dataType: "json",
@@ -489,7 +481,11 @@
 											}).done(function(data) {
 												<!--- The server returns [{like: 1, dislike: 0}] or [{like: 0, dislike: 1}], or zeros if the vote was not saved. --->
 												if (data && data.length && (data[0].like == 1 || data[0].dislike == 1)) {
+													<!--- Take my previous vote out of the totals and add the new one. --->
+													if (myVote === 'like') totalLikes--;
+													if (myVote === 'dislike') totalDislikes--;
 													myVote = data[0].like == 1 ? 'like' : 'dislike';
+													if (myVote === 'like') totalLikes++; else totalDislikes++;
 													showVote();
 												}
 											}).always(function() {
@@ -508,6 +504,8 @@
 												$(this).trigger('click');
 											}
 										});
+
+										loadReactions();
 									});
 								</script>
 
@@ -548,16 +546,16 @@
 									<table align="left" class="k-content" width="200px" cellpadding="5" cellspacing="0" border="0">
 										<tr>
 											<td width="25%">
-												<span id="likeButton" class="<cfoutput>#likeButtonClass#</cfoutput>"><i id="like" class="far fa-thumbs-up"></i></span>
+												<span id="likeButton" class="<cfoutput>#likeButtonClassUnselected#</cfoutput>"><i id="like" class="far fa-thumbs-up"></i></span>
 											</td>
 											<td>
-												<span class="likes"><cfoutput>#totalLikes#</cfoutput></span>
+												<span class="likes">&nbsp;</span>
 											</td>
 											<td width="25%">
-												<span id="dislikeButton" class="<cfoutput>#dislikeButtonClass#</cfoutput>"><i id="dislike" class="far fa-thumbs-down"></i></span>
+												<span id="dislikeButton" class="<cfoutput>#dislikeButtonClassUnselected#</cfoutput>"><i id="dislike" class="far fa-thumbs-down"></i></span>
 											</td>
 											<td>
-												<span class="dislikes"><cfoutput>#totalDislikes#</cfoutput></span>
+												<span class="dislikes">&nbsp;</span>
 											</td>
 										</tr>
 									</table>
