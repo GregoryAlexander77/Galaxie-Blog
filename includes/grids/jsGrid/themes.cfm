@@ -175,6 +175,12 @@
 			pageSize: 15,
 			pageButtonCount: 5,
 			deleteConfirm: "Do you really want to delete this theme?",
+			<!--- There can only be one selected theme. The server deselects the other themes when one is selected, so reload the grid to show the others unchecked. --->
+			onItemUpdated: function(args) {
+				if (args.item.SelectedTheme) {
+					args.grid.loadData();
+				}
+			},
 			controller: {
 				loadData: function (filter) {
 					console.log(filter);

@@ -104,6 +104,20 @@
 			}
 		});
 
+		<!--- There can only be one selected theme. When a theme is checked, uncheck the others so the grid shows what will be saved. The server also deselects the other themes (updateThemeViaJsGrid). --->
+		<cfoutput>#gridName#</cfoutput>Ds.bind("change", function(e) {
+			if (e.action === "itemchange" && e.field === "SelectedTheme" && e.items[0].SelectedTheme) {
+				var checkedItem = e.items[0];
+				$.each(this.data(), function(index, item) {
+					if (item.ThemeId !== checkedItem.ThemeId && item.SelectedTheme) {
+						item.set("SelectedTheme", false);
+					}
+				});
+				<!--- The grid does not redraw the cells of the rows that were changed here, so redraw them after the current edit is done. --->
+				setTimeout(function() { $("#<cfoutput>#gridName#</cfoutput>").data("kendoGrid").refresh(); }, 0);
+			}
+		});
+
 		$("#<cfoutput>#gridName#</cfoutput>").kendoGrid({
 			dataSource: <cfoutput>#gridName#</cfoutput>Ds,
 			editable: true,
