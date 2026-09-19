@@ -6,49 +6,49 @@
 		
 	<script>
 		
-		// Create a list to validate if the postAlias is already in use.
+		<!--- Create a list to validate if the postAlias is already in use. --->
 		var postAliasList = "<cfoutput>#postAliasList#</cfoutput>";
 		
 		// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 		$(document).ready(function() {
 
 			var postAliasValidator = $("#postAliasForm").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
-					// The postAlias must be unique. 
+					<!--- The postAlias must be unique. --->
 					postAliasIsUnique:
 					function(input){
-						// Do not continue if the user name is found in the currentUserName list 
+						<!--- Do not continue if the user name is found in the currentUserName list --->
 						if (input.is("[id='postAliasInput']") && ( listFind( postAliasList, input.val() ) != 0 ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-postAliasIsUnique-msg", "postAlias already exists");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#postAliasInput" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
-					// The alias must not contain a space. 
+					<!--- The alias must not contain a space. --->
 					postAliasNoSpace:
 					function(input){
-						// Do not continue if the user name is found in the currentUserName list 
+						<!--- Do not continue if the user name is found in the currentUserName list --->
 						if (input.is("[id='postAliasInput']") && ( hasWhiteSpace(input.val()) ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-postAliasNoSpace-msg", "Alias must not contain a space");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#postAliasInput" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
-					// The alias must not contain any special chars. 
+					<!--- The alias must not contain any special chars. --->
 					postAliasNoSpecialChars:
 					function(input){
-						// Do not continue if the user name is found in the currentUserName list 
+						<!--- Do not continue if the user name is found in the currentUserName list --->
 						if (input.is("[id='postAliasInput']") && ( input.val().includes('&')||input.val().includes('?')||input.val().includes(',') ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-postAliasNoSpecialChars-msg", "Alias must not contain a comma, question mark or an ampersand.");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#postAliasInput" ).focus();
 							return false;
 						}                                    
@@ -57,18 +57,18 @@
 				}
 			}).data("kendoValidator");
 
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var postAliasSubmit = $('#postAliasSubmit');
 			postAliasSubmit.on('click', function(e){  
-				//alert($("#postAliasInput").val())
+				<!--- alert($("#postAliasInput").val()) --->
 				
 				e.preventDefault();         
 				if (postAliasValidator.validate()) {
 					
-					// Open up a please wait dialog
+					<!--- Open up a please wait dialog --->
 					$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we process the Post Alias.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
 
-					// Send data to server after the new role was saved into the hidden form
+					<!--- Send data to server after the new role was saved into the hidden form --->
 					setTimeout(function() {
 						postNewAlias();
 					}, 250);
@@ -77,14 +77,14 @@
 
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}
 			});
 
 		});//...document.ready
 		
-		// Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postNewAlias(){
 
 			jQuery.ajax({
@@ -92,7 +92,7 @@
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=savePostAlias',
 				data: { // arguments
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
-					// Pass the form values
+					<!--- Pass the form values --->
 					postId: <cfoutput>#URL.optArgs#</cfoutput>,
 					postAlias: $("#postAliasInput").val()
 				},
@@ -101,29 +101,29 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the savePostAlias function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});		
 			});
 		};
 
 		function postAliasUpdateResult(response){
 			if (JSON.parse(response.success) == true){
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Close the window
+				<!--- Close the window --->
 				jQuery('#postAliasWindow').kendoWindow('destroy');
 			} else {
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Alert the user that the login has failed.
+				<!--- Alert the user that the login has failed. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving post", message: response.errorMessage, icon: "k-ext-warning", width: "425px", height: "125px" }) // or k-ext-error, k-ext-question
 				).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});
 			}//..if (JSON.parse(response.success) == true){
 		}

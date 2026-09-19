@@ -84,7 +84,7 @@ customPageTemplate: path allows to use a custom template using a hardcoded cfinc
 			Page output
 //********************************************************************************************************************--->
 </cfsilent>
-<html lang="en-US"><head><cfoutput>
+<cfsavecontent variable="pageHtml"><html lang="en-US"><head><cfoutput>
 <cfinclude template="#application.baseUrl#/includes/templates/head.cfm" />
 </head>
 </cfoutput>	
@@ -289,4 +289,6 @@ Note: if the Zion theme is screwed up, check the use custom theme setting in the
 --->
 </body>
 </html>
+</cfsavecontent>
+<cfinclude template="#application.baseUrl#/includes/templates/core/pageOutput.cfm" />
 </cfprocessingdirective>

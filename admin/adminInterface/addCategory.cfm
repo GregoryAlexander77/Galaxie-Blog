@@ -18,65 +18,65 @@
 		
 	<script>
 		
-		// Create a list to validate if the category is already in use.
+		<!--- Create a list to validate if the category is already in use. --->
 		var categoryList = "<cfoutput>#categoryList#</cfoutput>";
-		// Do the same for the alias
+		<!--- Do the same for the alias --->
 		var categoryAliasList = "<cfoutput>#categoryAliasList#</cfoutput>";
 		
 		// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 		$(document).ready(function() {
 
 			var addCategoryValidator = $("#categoryForm").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
-					// The category must be unique. 
+					<!--- The category must be unique. --->
 					categoryIsUnique:
 					function(input){
-						// Do not continue if the category is found in the category list 
+						<!--- Do not continue if the category is found in the category list --->
 						if (input.is("[id='category']") && ( listFind( categoryList, input.val() ) != 0 ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-categoryIsUnique-msg", "Category already exists");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#category" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
-					// The alias must be unique. 
+					<!--- The alias must be unique. --->
 					categoryAliasIsUnique:
 					function(input){
-						// Do not continue if the user name is found in the currentUserName list 
+						<!--- Do not continue if the user name is found in the currentUserName list --->
 						if (input.is("[id='categoryAlias']") && ( listFind( categoryAliasList, input.val() ) != 0 ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-categoryAliasIsUnique-msg", "Category Alias already exists");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#categoryAlias" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
 				<cfif len(URL.optArgs)>
-					// The alias must not contain a space. 
+					<!--- The alias must not contain a space. --->
 					categoryAliasNoSpace:
 					function(input){
-						// Do not continue if the user name is found in the currentUserName list 
+						<!--- Do not continue if the user name is found in the currentUserName list --->
 						if (input.is("[id='categoryAlias']") && ( hasWhiteSpace(input.val()) ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-categoryAliasNoSpace-msg", "Alias must not contain a space");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#categoryAlias" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
-					// The alias must not contain any special chars. 
+					<!--- The alias must not contain any special chars. --->
 					categoryAliasNoSpecialChars:
 					function(input){
-						// Do not continue if the user name is found in the currentUserName list 
+						<!--- Do not continue if the user name is found in the currentUserName list --->
 						if (input.is("[id='categoryAlias']") && ( input.val().includes('&')||input.val().includes('?')||input.val().includes(',') ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-categoryAliasNoSpecialChars-msg", "Alias must not contain a comma, question mark or an ampersand.");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#categoryAlias" ).focus();
 							return false;
 						}                                    
@@ -86,20 +86,20 @@
 				}
 			}).data("kendoValidator");
 
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var addCategorySubmit = $('#addCategorySubmit');
 			addCategorySubmit.on('click', function(e){  
 				
 				e.preventDefault();         
 				if (addCategoryValidator.validate()) {
 					
-					// Open up a please wait dialog
+					<!--- Open up a please wait dialog --->
 					$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we process the category.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
 					
-					// Get the value of the category that was typed in
+					<!--- Get the value of the category that was typed in --->
 					newCategory = $("#addCategory").val();
 
-					// Send data to server after the new role was saved into the hidden form
+					<!--- Send data to server after the new role was saved into the hidden form --->
 					setTimeout(function() {
 						postNewCategory();
 					}, 250);
@@ -108,14 +108,14 @@
 
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}
 			});
 
 		});//...document.ready
 		
-		// Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postNewCategory(){
 
 			jQuery.ajax({
@@ -123,7 +123,7 @@
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveCategory',
 				data: { // arguments
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
-					// Pass the form values
+					<!--- Pass the form values --->
 					category: $("#category").val()<cfif len(URL.optArgs)>,
 					categoryAlias: $("#categoryAlias").val()
 					</cfif>
@@ -133,51 +133,51 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveCategory function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});		
 			});
 		};
 
 		function saveCategoryResult(response){ 
 			
-			// Close the wait window that was launched in the calling function.
+			<!--- Close the wait window that was launched in the calling function. --->
 			kendo.ui.ExtWaitDialog.hide();
 			
 			if (JSON.parse(response.success) == true){
 					
 				try {
-					// Refresh the category grid window
+					<!--- Refresh the category grid window --->
 					$("#categoryGridWindow").data("kendoWindow").refresh();
 				} catch(e){
-					// Category grid is not initialized. This is a normal condition when the category grid is not open
+					<!--- Category grid is not initialized. This is a normal condition when the category grid is not open --->
 				}
 				
-				// Get the categoryId and category from the response
+				<!--- Get the categoryId and category from the response --->
 				var categoryId = response.categoryId;
 				var category = response.category;
 				
-				// Add the new post category option to the multiselect. This function is on the post detail page and not on the add category page
+				<!--- Add the new post category option to the multiselect. This function is on the post detail page and not on the add category page --->
 				try {
 					addNewPostCategory(categoryId, category);
 				} catch(e){
-					// Do nothing. This is expected on the add category window
+					<!--- Do nothing. This is expected on the add category window --->
 				}
 				
 			} else {
 				
-				// Display the errors
+				<!--- Display the errors --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving category", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
 				).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});
 			}//..if (JSON.parse(response.success) == true){
 			
-			// Close this window.
+			<!--- Close this window. --->
 			$('#addCategoryWindow').kendoWindow('destroy');
 		}
 		

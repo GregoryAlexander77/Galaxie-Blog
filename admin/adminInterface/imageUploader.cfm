@@ -55,7 +55,7 @@
 	<!---<cfoutput><br/>selectorId: #selectorId#</cfoutput>--->
 		
 	<script>
-		// Note: this function handles enclosure images, videos, theme and user profile images and needs to be changed according to what is being processed. This particular function handles user and theme images. Note: the invokedArguments is not used by CF, but shows the location where this function is being called from and the arguments for debugging purposes.
+		<!--- Note: this function handles enclosure images, videos, theme and user profile images and needs to be changed according to what is being processed. This particular function handles user and theme images. Note: the invokedArguments is not used by CF, but shows the location where this function is being called from and the arguments for debugging purposes. --->
 		function saveExternalUrl(url, mediaType, selectorId, invokedArguments){ 
 			jQuery.ajax({
 				type: 'post', 
@@ -64,10 +64,10 @@
 				dataType: "json",
 				data: { // arguments
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
-					// Pass the mediaId saved in the mediaId hidden form if it is available
+					<!--- Pass the mediaId saved in the mediaId hidden form if it is available --->
 					mediaId: $("#<cfoutput>#imageMediaIdField#</cfoutput>").val(),
 					externalUrl: url,
-					// This will either be userId or themeId depending upon the URL.optArgs string
+					<!--- This will either be userId or themeId depending upon the URL.optArgs string --->
 					<cfoutput>#processEntityTypeId#</cfoutput>: <cfoutput>#URL.optArgs#</cfoutput>,
 					mediaType: 'image',
 					imageType: <cfoutput>'#URL.otherArgs#'</cfoutput>,
@@ -77,41 +77,41 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
 
-				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveExternalMediaEnclosure function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});		
 			});
 		}
 		
-		// Submit the data and close this window.
+		<!--- Submit the data and close this window. --->
 		function blogUploadSubmit(){
 			setTimeout(function() {			
-				// Refresh the theme settings window. Note: this is also used for the user profile images so the window may not be defined
+				<!--- Refresh the theme settings window. Note: this is also used for the user profile images so the window may not be defined --->
 				try {
 					$("#themeSettingsWindow").data("kendoWindow").refresh();
 				} catch(e){
-					// Theme setting window is not defined
+					<!--- Theme setting window is not defined --->
 				}
 			}, 250);
 		<cfif URL.otherArgs eq 'profilePicture'>
-			// Do the same for the user detail and user profile windows
+			<!--- Do the same for the user detail and user profile windows --->
 			setTimeout(function() {	
 				try {
-					// Refresh the user detail window (the main user window)
+					<!--- Refresh the user detail window (the main user window) --->
 					$("#userDetailWindow").data("kendoWindow").refresh();
-					// Refresh the proile window that the secondary user fills out when a new user is added. Note: this is also used for the user profile images so the window may not be defined
+					<!--- Refresh the proile window that the secondary user fills out when a new user is added. Note: this is also used for the user profile images so the window may not be defined --->
 					$("#userProfileWindow").data("kendoWindow").refresh();
 				} catch(e){
-					// Window is not defined
+					<!--- Window is not defined --->
 				}
 			}, 250);
 		</cfif>
-			// Close the edit window
+			<!--- Close the edit window --->
 			$('#genericImageUploadWindow').kendoWindow('destroy');
 		}
 	</script>

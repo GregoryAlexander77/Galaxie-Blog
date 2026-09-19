@@ -67,16 +67,16 @@
 		<script>
 			$(document).ready(function() {
 
-				// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+				<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 				var webVttSubmit = $('#webVttSubmit');
 				webVttSubmit.on('click', function(e){      
 					e.preventDefault();         
-					// submit the form.
+					<!--- submit the form. --->
 					saveWebVttFile();
 				});
 			});//...document.ready
 
-			// Post method on the detail form called from the GalleryDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+			<!--- Post method on the detail form called from the GalleryDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 			function saveWebVttFile(){ 
 				jQuery.ajax({
 					type: 'post', 
@@ -93,19 +93,19 @@
 					error: function(ErrorMsg) {
 						console.log('Error' + ErrorMsg);
 					}
-				// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+				<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 				}).fail(function (jqXHR, textStatus, error) {
 
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveFile function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});		
 				});
 			};
 
 			function saveWebVttResponse(response){
-				// Close the webVtt editor window
+				<!--- Close the webVtt editor window --->
 				jQuery('#webVttFileWindow').kendoWindow('destroy');	
 			}
 

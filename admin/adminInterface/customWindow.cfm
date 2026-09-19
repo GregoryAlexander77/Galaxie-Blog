@@ -28,17 +28,16 @@
 		
 		<script>
 			function openCustomWindowInterface(windowId){
-				// Get the selected windowId
+				<!--- Get the selected windowId --->
 				windowId = $('input[name="customWindowId"]:checked').val();
-				// alert(windowId);
-				// Create a new custom window if no radio button was clicked
+				<!--- alert(windowId); Create a new custom window if no radio button was clicked --->
 				if (typeof windowId === 'undefined'){
-					// alert(0);
+					<!--- alert(0); --->
 					windowId = 0;
 				}
-				// Close this window 
+				<!--- Close this window --->
 				$('#customWindow').kendoWindow('destroy');
-				// Direct the user to the detail page. The windowId is either the selected customWindowId or zero (optArgs), the last arg (otherArgs) is the postId.
+				<!--- Direct the user to the detail page. The windowId is either the selected customWindowId or zero (optArgs), the last arg (otherArgs) is the postId. --->
 				createAdminInterfaceWindow(45,<cfoutput>#URL.optArgs#</cfoutput>,windowId);
 			}
 
@@ -208,42 +207,32 @@
 
 		<script>
 			
-			// Numeric inputs
-			$("#contentWidth").kendoNumericTextBox({
-				decimals: 0,
-				round: true
-			});
-
-			$("#mainContainerWidth").kendoNumericTextBox({
-				decimals: 0,
-				round: true
-			});
-			
+			<!--- Note: this template does not have the contentWidth and mainContainerWidth inputs (they are in the theme settings). Initializing them here changed the inputs of the theme settings window when it was still in the page and caused a script error. --->
 			$(document).ready(function() {
 				
 				// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 				var customWindowValidater = $("#customWindowForm").kendoValidator({
-					// Set up custom validation rules 
+					<!--- Set up custom validation rules --->
 					rules: {
-						// buttonLabel
+						<!--- buttonLabel --->
 						buttonLabelRequired:
 						function(input){
 							if (input.is("[id='buttonLabel']") && $.trim(input.val()).length < 3){
-								// Display an error on the page.
+								<!--- Display an error on the page. --->
 								input.attr("data-buttonLabelRequired-msg", "The label must be at least 3 characters");
-								// Focus on the current element
+								<!--- Focus on the current element --->
 								$( "#buttonLabel" ).focus();
 								return false;
 							}                                    
 							return true;
 						},
-						// windowTitle
+						<!--- windowTitle --->
 						windowTitleRequired:
 						function(input){
 							if (input.is("[id='windowTitle']") && $.trim(input.val()).length < 3){
-								// Display an error on the page.
+								<!--- Display an error on the page. --->
 								input.attr("data-windowTitleRequired-msg", "The title must be at least 3 characters");
-								// Focus on the current element
+								<!--- Focus on the current element --->
 								$( "#password" ).focus();
 								return false;
 							}                                    
@@ -252,15 +241,14 @@
 					}
 				}).data("kendoValidator");
 				
-				// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+				<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 				var customWindowSubmit = $('#customWindowSubmit');
 				customWindowSubmit.on('click', function(e){      
 					e.preventDefault();         
 					if (customWindowValidater.validate()) {
 						
 						if ( !($('#active').is(':checked')) ) {
-							// Raise a warning if the active checkbox is not checked
-							// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
+							<!--- Raise a warning if the active checkbox is not checked Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension. --->
 							$.when(kendo.ui.ExtYesNoDialog.show({ 
 								title: "Remove Window?",
 								message: "Are you sure? This will remove this window from the blog",
@@ -270,19 +258,19 @@
 							})
 							).done(function (response) { // If the user clicked 'yes', post it.
 								if (response['button'] == 'Yes'){// remember that js is case sensitive.
-									// Post it
+									<!--- Post it --->
 									postCustomWindowDetail();
 								}//..if (response['button'] == 'Yes'){
 							});
 						} else {
-							// submit the form.
+							<!--- submit the form. --->
 							postCustomWindowDetail();
 						}
 						
 					} else {
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", message: "Required fields are missing.", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 							).done(function () {
-							// Do nothing
+							<!--- Do nothing --->
 						});
 					}
 				});
@@ -301,9 +289,9 @@
 			
 			function postCustomWindowDetail(){
 				
-				// Get the contents of the editor
+				<!--- Get the contents of the editor --->
 				var customWindowCode = tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent();
-				// Modify any tags that may be deleted by ColdFusion on the server when using Global Script Protection and place an attach string in front of scripts, styles and meta tags.
+				<!--- Modify any tags that may be deleted by ColdFusion on the server when using Global Script Protection and place an attach string in front of scripts, styles and meta tags. --->
 				customWindowCode = bypassScriptProtection(customWindowCode);
 
 				jQuery.ajax({
@@ -322,17 +310,17 @@
 						active: $('#active').is(':checked'), // checkbox boolean value.
 						selectorId: '<cfoutput>#selectorId#</cfoutput>'
 					},
-					// This is one of the few times that we will be sending back an html response. We are going to use this directly to set the content in the editor. its easier to craft the html on the server side than to manipulate the dom with a json object on the client. Normally this is always json
+					<!--- This is one of the few times that we will be sending back an html response. We are going to use this directly to set the content in the editor. its easier to craft the html on the server side than to manipulate the dom with a json object on the client. Normally this is always json --->
 					dataType: "json",
 					success: customWindowDetailResult, // calls the result function.
 					error: function(ErrorMsg) {
 						console.log('Error' + ErrorMsg);
 					}
-				// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+				<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 				}).fail(function (jqXHR, textStatus, error) {
-					// Close the wait window that was launched in the calling function.
+					<!--- Close the wait window that was launched in the calling function. --->
 					kendo.ui.ExtWaitDialog.hide();
-					// Display the error. The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- Display the error. The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveCustomWindow function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
 
@@ -342,29 +330,29 @@
 			
 			function customWindowDetailResult(response){
 
-				// Did the server successfully process this?
+				<!--- Did the server successfully process this? --->
 				if (JSON.parse(response.success) == true){
-					// Is it active?
+					<!--- Is it active? --->
 					 if ($('#active').is(':checked')){
-						// Get the titleAlias from the response. This will be appended to the URL to make the link
+						<!--- Get the titleAlias from the response. This will be appended to the URL to make the link --->
 						titleAlias = JSON.parse(JSON.stringify(response.titleAlias));
-						// To set content, typically get use the tinymce.activeEditor. However, this will not work since there are now two active editors (this one and the post editor). We need to use the editor name to set the content. The post editor name is set using the minute and seconds appended to a 'postEditor' string, and we write a cookie when we create it to get to the proper name. Get this name
+						<!--- To set content, typically get use the tinymce.activeEditor. However, this will not work since there are now two active editors (this one and the post editor). We need to use the editor name to set the content. The post editor name is set using the minute and seconds appended to a 'postEditor' string, and we write a cookie when we create it to get to the proper name. Get this name --->
 						postEditorName = <cfoutput>'#evaluate("cookie.postEditor")#'</cfoutput>;
-						// Insert the content into the active tinymce editor. The response is json coming from the server
+						<!--- Insert the content into the active tinymce editor. The response is json coming from the server --->
 						tinymce.get(postEditorName).insertContent(JSON.parse(JSON.stringify(response.buttonHtml)));
-						// Display the link to the user
+						<!--- Display the link to the user --->
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "Your window has been created", message: 'A button has been placed in the editor to launch your custom window. You can get the source code by clicking on view source and copying the HTML. This HTML can be placed anywhere on the blog. The following link can also be used to open up your custom window:<br/> <cfoutput>#application.blogHostUrl#</cfoutput>/?customWindow=' + titleAlias, icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "325px" }) // or k-ext-error, k-ext-question
 						).done(function () {
-							// Do nothing
+							<!--- Do nothing --->
 						});
 					 }//..if ($('#active').is(':checked')){
-					// Close this window.
+					<!--- Close this window. --->
 					$('#customWindow').kendoWindow('destroy');
 				} else {
-					// Alert the user that the login has failed.
+					<!--- Alert the user that the login has failed. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving post", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
 					).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 					
 				}//..if (JSON.parse(response.error) == true){

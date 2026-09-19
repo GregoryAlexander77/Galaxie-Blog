@@ -35,9 +35,9 @@
 
 	<script>
 		function onImageSubmit(){
-			// Use a quick set timeout in order for the data to load.
+			<!--- Use a quick set timeout in order for the data to load. --->
 			setTimeout(function() {
-				// Close this window
+				<!--- Close this window --->
 				jQuery('#cursorImageWindow').kendoWindow('destroy');	
 			}, 500);	
 		}

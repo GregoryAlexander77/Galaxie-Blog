@@ -32,11 +32,11 @@
 
 		<script>
 			function onVideoImageCoverSubmit(){
-				// Refresh the media preview- pass in the postId
+				<!--- Refresh the media preview- pass in the postId --->
 				reloadEnclosureThumbnailPreview(<cfoutput>#URL.optArgs#</cfoutput>);
-				// Use a quick set timeout in order for the data to load.
+				<!--- Use a quick set timeout in order for the data to load. --->
 				setTimeout(function() {
-					// Close this window
+					<!--- Close this window --->
 					jQuery('#videoCoverWindow').kendoWindow('destroy');	
 				}, 500);	
 			}

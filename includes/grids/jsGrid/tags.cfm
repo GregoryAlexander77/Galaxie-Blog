@@ -20,18 +20,7 @@
 			font: 15px Arial, sans-serif;
 		}
 	
-		/* FontAwesome HEX codes:
-		Edit f044 or f6d9
-		Round edit F05D
-		Check f00c
-		Delete f1f8
-		Search f002
-		Eraser f12d
-		Cancel f05e
-		Add  f067 
-		Filter f0b0
-		Notes: make sure to remove the .jsgrid .jsgrid-button { background-image: url in the css file in the jsgrid .jsgrid-button declarations (there are two locations in the .css file), otherwise, a big red x will be overlaid on the controls.
-		*/
+		<!--- FontAwesome HEX codes: Edit f044 or f6d9 Round edit F05D Check f00c Delete f1f8 Search f002 Eraser f12d Cancel f05e Add f067 Filter f0b0 Notes: make sure to remove the .jsgrid .jsgrid-button { background-image: url in the css file in the jsgrid .jsgrid-button declarations (there are two locations in the .css file), otherwise, a big red x will be overlaid on the controls. --->
 
 		.jsgrid-button {
 			position: relative;
@@ -114,15 +103,15 @@
 	</table>
 	
 	<script>
-	// Get the page width. This is necessary to use percentage based widths in the columns.
+	<!--- Get the page width. This is necessary to use percentage based widths in the columns. --->
 	var pageWidth = $("#<cfoutput>#gridName#</cfoutput>").parent().width() - 100;
 
-	// Rebind our custom buttons.
+	<!--- Rebind our custom buttons. --->
 	window.FontAwesomeConfig = {
 		autoReplaceSvg: 'nest' 
 	}
 
-	// Set up the grid.
+	<!--- Set up the grid. --->
 	$(function() {
 			
 		jsGrid.setDefaults({
@@ -157,7 +146,7 @@
 			}
 		});
 		  
-		// Grid declaration
+		<!--- Grid declaration --->
 		$("#<cfoutput>#gridName#</cfoutput>").jsGrid({
 			height: "720px",
 			width: "100%",
@@ -179,19 +168,19 @@
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getTagsForGrid&gridType=jsGrid&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
 						data: filter,
 						dataType: "json"
-					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
+					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(result) {
 						return result.data;
-					// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
-						// This is a secured function. Display the login screen if there is a 403 response header.
+						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
 						if (jqXHR.status === 403) { 
 							createLoginWindow(); 
 						} else {//...if (jqXHR.status === 403) { 
-							// The full response is: jqXHR.responseText, but we just want to extract the error.
+							<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the getTags function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 								).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						}//...if (jqXHR.status === 403) { 
 					});
@@ -200,9 +189,9 @@
 					return $.ajax({
 						type: "post",
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=updateTagViaJsGrid",
-						// Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end.
+						<!--- Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end. --->
 						data: {
-							// Note: the PostId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available.
+							<!--- Note: the PostId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available. --->
 							csrfToken: <cfoutput>'#csrfToken#'</cfoutput>,
 							tagId: value.TagId,
 							tag: value.Tag,
@@ -210,29 +199,29 @@
 						},
 						dataType: "json",
 						cache: false,
-					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
+					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(response) {
 						
-						// If the controller returned a success, continue. Otherwise, display the errors that are returned from the controller.
+						<!--- If the controller returned a success, continue. Otherwise, display the errors that are returned from the controller. --->
 						if (!response.success){
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving tag", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
 							).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						} else {
 							return response.data;
 						}
 						
-					// Extract any ajax errors. This is a new jQuery promise based function as of jQuery 1.8.
+					<!--- Extract any ajax errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
 						
-						// This is a secured function. Display the login screen if there is a 403 response header.
+						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
 						if (jqXHR.status === 403) { 
 							createLoginWindow(); 
 						} else {//...if (jqXHR.status === 403) { 
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving tag", message: error, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
 							).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						}//...if (jqXHR.status === 403) {
 					
@@ -242,28 +231,27 @@
 					return $.ajax({
 						type: "post",
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteTagViaJsGrid",
-						// Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end.
+						<!--- Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end. --->
 						data: {
 							csrfToken: <cfoutput>'#csrfToken#'</cfoutput>,
-							// Pass the tagId to the cfc on the back end. 
-							// Note: the commentId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available.
+							<!--- Pass the tagId to the cfc on the back end. Note: the commentId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available. --->
 							tagId: value.TagId
 						},
 						dataType: "json",
 						cache: false,
-					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
+					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(result) {
 						console.log("done", result);
-					// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
-						// This is a secured function.  Display the login screen if there is a 403 response header.
+						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
 						if (jqXHR.status === 403) { 
 							createLoginWindow(); 
 						} else {//...if (jqXHR.status === 403) { 
-							// The full response is: jqXHR.responseText, but we just want to extract the error.
+							<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the deleteTagViaGrid function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 								).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						}//...if (jqXHR.status === 403) { 
 					});
@@ -282,7 +270,7 @@
 				},
 				
 			},
-			// Fields 
+			<!--- Fields --->
 			fields: [
 				{ 
 					name: "Tag", 
@@ -303,7 +291,7 @@
 				{ 
 					name: "PostCount", 
 					type: "text",
-					// We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead.
+					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: 'Post Count',
 					editing: false,
 					width: (pageWidth*(10/100)),
@@ -315,7 +303,7 @@
 					editing: false,
 					width: (pageWidth*(10/100)),
 					itemTemplate: function (value, item) {
-						// Format the date using the momentJs lib.
+						<!--- Format the date using the momentJs lib. --->
 						return dayjs(item.DatePosted).format('MM/DD/YYYY h:mm A');
 					},
 				},
@@ -333,7 +321,7 @@
    	</script>
 	
 	<script>
-		// Script to add custom font awesome buttons. This does not need to be editted unless you want to change the css class names (ie jsgrid-button etc).
+		<!--- Script to add custom font awesome buttons. This does not need to be editted unless you want to change the css class names (ie jsgrid-button etc). --->
 		(function(jsGrid, $, undefined) {
 
 			var Field = jsGrid.Field;

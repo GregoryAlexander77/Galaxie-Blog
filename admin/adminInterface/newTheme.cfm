@@ -8,12 +8,12 @@
 		
 		$(document).ready(function() {
 		
-			// ---------------------------- theme dropdown. ----------------------------
+			<!--- --- theme dropdown. --- --->
 			var themeDs = new kendo.data.DataSource({
 				transport: {
 					read: {
 						cache: false,
-						// Note: since this template is in a different directory, we can't specify the cfc template without the full path name.
+						<!--- Note: since this template is in a different directory, we can't specify the cfc template without the full path name. --->
 						url: function() { // The cfc component which processes the query and returns a json string. 
 							return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getThemesForDropdown&includeAllLabel=true&csrfToken=<cfoutput>#csrfToken#</cfoutput>"; 
 						}, 
@@ -24,7 +24,7 @@
 				} //...transport:
 			});//...var rolesDs...
 
-			// Create the top level dropdown
+			<!--- Create the top level dropdown --->
 			var copyThemeId = $("#copyThemeId").kendoDropDownList({
 				optionLabel: "Select...",
 				autoBind: false,
@@ -37,16 +37,16 @@
 			// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 		
 			var newThemeValidator = $("#newThemeForm").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
-					// The theme must be unique. 
+					<!--- The theme must be unique. --->
 					themeIsUnique:
 					function(input){
-						// Do not continue if the theme name is not unique
+						<!--- Do not continue if the theme name is not unique --->
 						if (input.is("[id='themeName']") && ( listFind( themeList, input.val().toLowerCase() ) != 0 ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-themeIsUnique-msg", "Theme name already exists");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#themeName" ).focus();
 							return false;
 						}                                    
@@ -55,18 +55,18 @@
 				}
 			}).data("kendoValidator");
 
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var newThemeSubmit = $('#newThemeSubmit');
 			newThemeSubmit.on('click', function(e){     
 				e.preventDefault();         
 				if (newThemeValidator.validate()) {
-					// Determine if there this is a new role and proceed.
+					<!--- Determine if there this is a new role and proceed. --->
 					postNewTheme();
 				} else {
 
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}
 			});
@@ -85,32 +85,30 @@
 					error: function(ErrorMsg) {
 						console.log('Error' + ErrorMsg);
 					}
-				// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+				<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 				}).fail(function (jqXHR, textStatus, error) {
 
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the createNewThemeFromCurrentTheme function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});		
 				});	
 			}
 
-			// Submit the data and close this window.
+			<!--- Submit the data and close this window. --->
 			function newThemeResult(response){
-				// alert(response)
-				// Note: the response is the new themeId 
-				// Open the new theme in the theme detail window
+				<!--- alert(response) Note: the response is the new themeId Open the new theme in the theme detail window --->
 				createAdminInterfaceWindow(30, response.themeId);
-				// Refresh the theme settings window
+				<!--- Refresh the theme settings window --->
 				$("#themeSettingsWindow").data("kendoWindow").refresh();
-				// Close the this window
+				<!--- Close the this window --->
 				$('#newThemeWindow').kendoWindow('destroy');
 			}
 			
 		});//...document.ready
 		
-		// I am having the dreaded 'Cannot read properties of undefined (reading 'value')' error when reading the copythemeid form so I am saving it when the user makes a change in the dropdown. 
+		<!--- I am having the dreaded 'Cannot read properties of undefined (reading 'value')' error when reading the copythemeid form so I am saving it when the user makes a change in the dropdown. --->
 		function saveThemeIdValue(themeId){
 			$("#selectedThemeId").val(themeId);
 		}

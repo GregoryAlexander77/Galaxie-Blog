@@ -231,7 +231,7 @@
 
 				<style>
 					#hero {
-						/* display: flex; */
+						<!--- display: flex; --->
 						justify-content: center;
 					}
 
@@ -240,7 +240,7 @@
 					}
 					
 					.k-card-deck-scrollwrap {
-						/*max-width: 728px;*/
+						<!--- max-width: 728px; --->
 					}
 					
 					.k-card-deck-scrollwrap { 

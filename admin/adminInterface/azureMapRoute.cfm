@@ -31,13 +31,13 @@
 	<script>	
 	$(document).ready(function(){
 		
-		// This is used to populate the autosuggest as well as render the map when the first input is used. Fuzzy searches include POI and addresses.
+		<!--- This is used to populate the autosuggest as well as render the map when the first input is used. Fuzzy searches include POI and addresses. --->
 		var fuzzyGeoServiceUrl = "<cfoutput>#application.azureMapsFuzzySearchUrl#</cfoutput>"; 
 		
-		// URL for the Azure Maps Route API. Used when two or more locations are selected to render the route.
+		<!--- URL for the Azure Maps Route API. Used when two or more locations are selected to render the route. --->
         var routeGeoServiceUrl = '<cfoutput>#application.azureMapsDirectionsApiUrl#</cfoutput>/&language=en-US&query={query}&routeRepresentation=polyline&travelMode=car&view=Auto';
 		
-		// create DropDownList from select HTML element
+		<!--- create DropDownList from select HTML element --->
         $("#countrySelector").kendoMultiSelect({
 			filter: "contains",
 			placeholder: "Please select countries...",
@@ -46,35 +46,35 @@
 		
 		$("#travelMode").kendoDropDownList();
 		
-		// Kendo UI Datasources		
+		<!--- Kendo UI Datasources --->
 		function getLocationDataSource(locationIndex){
 			return new kendo.data.DataSource({
 				transport: {
 					read: function(options) {
 
-						// Perform a custom the AJAX request to the Azure Maps API
+						<!--- Perform a custom the AJAX request to the Azure Maps API --->
 						$.ajax({
 							url: fuzzyGeoServiceUrl, // the URL of the API endpoint.
 							type: "get",// Azure maps require the get method and posts will fail with a 505 eror
 							data: {
-								// Pass the key. The dash will cause an error if the arg is not enclosed in a string
+								<!--- Pass the key. The dash will cause an error if the arg is not enclosed in a string --->
 								'subscription-key': <cfoutput>'#azureMapsKey#'</cfoutput>,
-								 // Pass the value typed in to the form for the query parameter
+								 <!--- Pass the value typed in to the form for the query parameter --->
 								query: function(){
 									return $("#location" + locationIndex).data("kendoAutoComplete").value();
 								},//..query
-								// Pass the selected country
+								<!--- Pass the selected country --->
 								countrySet: function(){
 									return $("#countrySelector").data("kendoMultiSelect").value();
 								}
 							},//..data
 							dataType: "json", // Use json if the template is on the current server. If not, use jsonp for cross domain reads.
 							success: function(result) {
-								// If the request is successful, call the options.success callback
+								<!--- If the request is successful, call the options.success callback --->
 								options.success( parseResponse(result) );
 							},
 							error: function(error) {
-								// If the request fails, call the options.error callback
+								<!--- If the request fails, call the options.error callback --->
 								options.error(error);
 							}
 						});//ajax
@@ -99,28 +99,28 @@
 			});//..return new kendo.data.DataSource({
 		}//..function getLocationDataSource(locationIndex){
 		
-		// The parseResponse manipulates the returned JSON to make it compatible with the Kendo UI autosuggest widget.
+		<!--- The parseResponse manipulates the returned JSON to make it compatible with the Kendo UI autosuggest widget. --->
 		function parseResponse(obj){
 
-			// Instantiate the json object
+			<!--- Instantiate the json object --->
 			jsonObj = [];
 
-			// Loop through the items in the object
+			<!--- Loop through the items in the object --->
 			for (var i = 0; i < obj.results.length; i++) {
 				if (obj.results[i]) {
-					// Get the data from the object
+					<!--- Get the data from the object --->
 					var results = obj.results[i];// Results is an array in the json returned from the server
 					
-					// The POI is only available if the type is POI 
+					<!--- The POI is only available if the type is POI --->
 					var poi = '';
 					var label = results.address.freeformAddress;
 					if (results.type === 'POI'){
 						poi = results.poi.name;	
-						// Now that we have the POI when it exists, set the label that we will use. We will use the POI Name if it exists, otherwise we will use the freeFormAddress
+						<!--- Now that we have the POI when it exists, set the label that we will use. We will use the POI Name if it exists, otherwise we will use the freeFormAddress --->
 						label = poi;
 					}
 					
-					// Create the struct. We need the latitute, longitude and the POI if it exists. 
+					<!--- Create the struct. We need the latitute, longitude and the POI if it exists. --->
 					let jsonItems = {
 						freeformAddress: results.address.freeformAddress,
 						poi: poi,
@@ -132,32 +132,31 @@
 						btmRightPointLon: results.viewport.btmRightPoint.lon, 
 						btmRightPointLat: results.viewport.btmRightPoint.lat
 					};
-					// Push the items into the new json object
+					<!--- Push the items into the new json object --->
 					jsonObj.push(jsonItems);
 				}
 			}//..for
-			// Write the object out for testing
+			<!--- Write the object out for testing --->
 			console.log('jsonObj:' + jsonObj);
-			// And return it...
+			<!--- And return it... --->
 			return jsonObj;
 		}//..function parseResponse(obj){
 		
-		// saveSelection(event, index)
+		<!--- saveSelection(event, index) --->
 		function saveSelection(e,locationIndex){
 			
-			// Since the Kendo DataSource is dynamic, we can't read the data from this DataSource, however, we can get the data from the jsonObj that we created using the selected index from the Kendo autosuggest widget.
+			<!--- Since the Kendo DataSource is dynamic, we can't read the data from this DataSource, however, we can get the data from the jsonObj that we created using the selected index from the Kendo autosuggest widget. --->
 			var selectedLocation = jsonObj[e.item.index()];
 			
-			// console.log('e.item.index():' + e.item.index());
-			// Write the selected index to the console for debugging
+			<!--- console.log('e.item.index():' + e.item.index()); Write the selected index to the console for debugging --->
 			console.log('selectedLocation' + selectedLocation);
 			
-			// Save the values in a hidden form. The forms change according to the location index that is passed in
+			<!--- Save the values in a hidden form. The forms change according to the location index that is passed in --->
 			$("#selectedFreeformAddress" + locationIndex).val(selectedLocation.freeformAddress);
 			$("#selectedLat" + locationIndex).val(selectedLocation.lat);
 			$("#selectedLon" + locationIndex).val(selectedLocation.lon);
 			
-			// Camera positions (only used for static maps)
+			<!--- Camera positions (only used for static maps) --->
 			if (locationIndex == 1){
 				$("#selectedTopLeftPointLon").val(selectedLocation.topLeftPointLon);
 				$("#selectedTopLeftPointLat").val(selectedLocation.topLeftPointLat);
@@ -165,9 +164,9 @@
 				$("#selectedBtmRightPointLat").val(selectedLocation.btmRightPointLat);
 			}//if (locationIndex == 1){
 			
-			// Render the static map once the first location is filled out, or render the map route when multiple locations are selected.
+			<!--- Render the static map once the first location is filled out, or render the map route when multiple locations are selected. --->
 			if (locationIndex == 1){
-				// Render the static map. This function does not need the locationIndex as it only uses the first index to render the static map
+				<!--- Render the static map. This function does not need the locationIndex as it only uses the first index to render the static map --->
 				getStaticMap<cfoutput>#mapId#</cfoutput>();
 			} else {
 				setTimeout(function() {
@@ -176,7 +175,7 @@
 			}
 		}//..function saveSelection(e,locationIndex){
 
-		// Kendo UI autocomplete widgets
+		<!--- Kendo UI autocomplete widgets --->
 		$("#location1").kendoAutoComplete({
 			minLength: 3,
 			dataSource: getLocationDataSource(1), // We are binding the widget to a dynamic datasource
@@ -209,21 +208,21 @@
 
 	});
 	
-	// This function is used to render a static map once the first form is filled out and a location is selected.
+	<!--- This function is used to render a static map once the first form is filled out and a location is selected. --->
 	function getStaticMap<cfoutput>#mapId#</cfoutput>() {
 		
-		// Get the necessary values from the hidden form values. Here, we are only using the selected values for the first location.
+		<!--- Get the necessary values from the hidden form values. Here, we are only using the selected values for the first location. --->
 		var freeformAddress = $("#selectedFreeformAddress1").val();
 		var lat = $("#selectedLat1").val();
 		var lon = $("#selectedLon1").val();
 		
-		// Camera positions. These are only used when rendering the static map once the first location is selected.
+		<!--- Camera positions. These are only used when rendering the static map once the first location is selected. --->
 		var topLeftPointLat = $("#selectedTopLeftPointLat").val();
 		var topLeftPointLon = $("#selectedTopLeftPointLon").val();
 		var btmRightPointLat = $("#selectedBtmRightPointLat").val();
 		var btmRightPointLon = $("#selectedBtmRightPointLon").val();
 		
-		// Initialize a map instance.
+		<!--- Initialize a map instance. --->
 		map = new atlas.Map('myMap', {
 			view: 'Auto',
 			authOptions: {
@@ -232,21 +231,21 @@
 			 }
 		});
 
-		// Wait until the map resources are ready.
+		<!--- Wait until the map resources are ready. --->
 		map.events.add('ready', function () {
-			// Create a data source to store the data in.
+			<!--- Create a data source to store the data in. --->
 			datasource = new atlas.source.DataSource();
-			// Add the datasource
+			<!--- Add the datasource --->
 			map.sources.add(datasource);
-			// Add a layer for rendering point data.
+			<!--- Add a layer for rendering point data. --->
 			map.layers.add(new atlas.layer.SymbolLayer(datasource));
-			// Remove any previous added data from the map.
+			<!--- Remove any previous added data from the map. --->
 			datasource.clear();
-			// Create a point feature to mark the selected location.
+			<!--- Create a point feature to mark the selected location. --->
 			datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat])));
-			//datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat]), ui.item));
+			<!--- datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat]), ui.item)); --->
 
-			// Zoom the map into the selected location.
+			<!--- Zoom the map into the selected location. --->
 			map.setCamera({
 				bounds: [
 					topLeftPointLon, btmRightPointLat,
@@ -255,8 +254,7 @@
 				padding: 0
 			});//map.setCamera
 			
-			// Add the controls
-			// Create a zoom control.
+			<!--- Add the controls Create a zoom control. --->
             map.controls.add(new atlas.control.ZoomControl({
                 zoomDelta: parseFloat(1),
                 style: "light"
@@ -264,7 +262,7 @@
 			  position: 'top-right'
 			}); 
 			
-			// Create the style control
+			<!--- Create the style control --->
 			map.controls.add(new atlas.control.StyleControl({
 			  mapStyles: ['road', 'road_shaded_relief', 'satellite', 'satellite_road_labels'],
 			  layout: 'icons'
@@ -278,32 +276,30 @@
 		
 	function renderMapRoute(locationIndex) {
 
-		// URL for the Azure Maps Route API.
+		<!--- URL for the Azure Maps Route API. --->
 		var routeUrl = '<cfoutput>#application.azureMapsDirectionsApiUrl#</cfoutput>/&query={query}&routeRepresentation=polyline&travelMode={travelMode}&view=Auto';
 		
-		// Get the travel mode (car, bus, etc.)
+		<!--- Get the travel mode (car, bus, etc.) --->
 		var travelMode = $("#travelMode").val();
 		
-		// Get the necessary values from the hidden form v}:alues. Here, we are only using the selected values for the first location.
-		// Get the starting point
+		<!--- Get the necessary values from the hidden form v}:alues. Here, we are only using the selected values for the first location. Get the starting point --->
 		var address1 = $("#selectedFreeformAddress1").val();
 		var lat1 = $("#selectedLat1").val();
 		var lon1 = $("#selectedLon1").val();
 		
-		// And the destination
-		// Get the necessary values from the hidden form values. Here, we are only using the selected values for the first location.
+		<!--- And the destination Get the necessary values from the hidden form values. Here, we are only using the selected values for the first location. --->
 		var address2 = $("#selectedFreeformAddress2").val();
 		var lat2 = $("#selectedLat2").val();
 		var lon2 = $("#selectedLon2").val();
 		
-		// Important note: in this example we must cast the longitude and latitude values, stored in the form, to a number otherwise the setCamera function will not work!
+		<!--- Important note: in this example we must cast the longitude and latitude values, stored in the form, to a number otherwise the setCamera function will not work! --->
 		var geoCoordinates1 = [Number(lon1),Number(lat1)];
 		var geoCoordinates2 = [Number(lon2),Number(lat2)];
 		
-		// Set the geocoordinates to set the map boundary. 
+		<!--- Set the geocoordinates to set the map boundary. --->
 		geoCoordinatePositionArray = [geoCoordinates1, geoCoordinates2];
 		
-		// Initialize a map instance.
+		<!--- Initialize a map instance. --->
 		map = new atlas.Map('myMap', {
 			center: geoCoordinates1,
 			zoom: 12,
@@ -316,13 +312,13 @@
 			 }
 		});
 
-		// Wait until the map resources are ready.
+		<!--- Wait until the map resources are ready. --->
 		map.events.add('ready', function () {
-			// Create a data source and add it to the map.
+			<!--- Create a data source and add it to the map. --->
 			datasource = new atlas.source.DataSource();
 			map.sources.add(datasource);
 
-			// Add a layer for rendering the route line and have it render under the map labels.
+			<!--- Add a layer for rendering the route line and have it render under the map labels. --->
 			map.layers.add(new atlas.layer.LineLayer(datasource, null, {
 				strokeColor: '#<cfoutput>#accentColor#</cfoutput>',
 				strokeWidth: 5,
@@ -330,7 +326,7 @@
 				lineCap: 'round'
 			}), 'labels');
 
-			// Add a layer for rendering point data.
+			<!--- Add a layer for rendering point data. --->
 			map.layers.add(new atlas.layer.SymbolLayer(datasource, null, {
 				iconOptions: {
 					image: ['get', 'iconImage'],
@@ -344,100 +340,95 @@
 				filter: ['any', ['==', ['geometry-type'], 'Point'], ['==', ['geometry-type'], 'MultiPoint']] //Only render Point or MultiPoints in this layer.
 			}));
 			
-			// Create the GeoJSON objects which represent the start and end point of the route
+			<!--- Create the GeoJSON objects which represent the start and end point of the route --->
 			var waypoint1 = new atlas.data.Feature(new atlas.data.Point(geoCoordinates1), {
 				title: address1,
 				iconImage: 'pin-blue'
 			});
 			
-			// Set the marker color to the 2nd waypoint. I want the default color to be blue and the final destination to be red
+			<!--- Set the marker color to the 2nd waypoint. I want the default color to be blue and the final destination to be red --->
 			if (locationIndex == 2){
 				var thisMarkerColor = 'pin-red';
 			} else {
 				var thisMarkerColor = 'pin-blue';
 			}
 
-			// Create the GeoJSON objects which represent the start and end point of the route
+			<!--- Create the GeoJSON objects which represent the start and end point of the route --->
 			var waypoint2 = new atlas.data.Feature(new atlas.data.Point(geoCoordinates2), {
 				title: address2,
 				iconImage: thisMarkerColor// The following svg based markers can be used: https://learn.microsoft.com/en-us/azure/azure-maps/how-to-use-image-templates-web-sdk
 			});
 			
-			// Note the GeoJSON objects have been switched from Bing Maps to Azure Maps. Now we are using longitude first then latitude instead of the other way around.
-			// Add the origin and destination coordinates to the data source.
+			<!--- Note the GeoJSON objects have been switched from Bing Maps to Azure Maps. Now we are using longitude first then latitude instead of the other way around. Add the origin and destination coordinates to the data source. --->
 			datasource.add([waypoint1, waypoint2]);
 			
 			var geoCoordinateStr = `${geoCoordinates1[1]},${geoCoordinates1[0]}:${geoCoordinates2[1]},${geoCoordinates2[0]}`;
 			
-			// Loop through the hidden form fields and create the geocoordinates that we will use to render the route
+			<!--- Loop through the hidden form fields and create the geocoordinates that we will use to render the route --->
 			for (var i = 3; i <= locationIndex; i++) {
 				
 				var thisAddress = $("#selectedFreeformAddress" + i).val();
 				var thisLat = $("#selectedLat" + i).val();
 				var thisLon = $("#selectedLon" + i).val();
 				var thisGeoCoordinates = [Number(thisLon),Number(thisLat)];
-				// Append the geocoordinates to the geoCoordinatePositionArray. This array is used to calculate the map boundaries
+				<!--- Append the geocoordinates to the geoCoordinatePositionArray. This array is used to calculate the map boundaries --->
 				geoCoordinatePositionArray.push(thisGeoCoordinates);
 				
-				// console.log('thisLat:' + thisLat);
-				// console.log('thisLon:' + thisLon);
-				// console.log('thisGeoCoordinates:' + thisGeoCoordinates);
+				<!--- console.log('thisLat:' + thisLat); console.log('thisLon:' + thisLon); console.log('thisGeoCoordinates:' + thisGeoCoordinates); --->
 				
-				// Set the marker color to this waypoint. I want the default color to be blue and the final destination to be red
+				<!--- Set the marker color to this waypoint. I want the default color to be blue and the final destination to be red --->
 				if (i == locationIndex){
 					var thisMarkerColor = 'pin-red';
 				} else {
 					var thisMarkerColor = 'pin-blue';
 				}
 				
-				// Create the GeoJSON objects which represent the start and end point of the route
+				<!--- Create the GeoJSON objects which represent the start and end point of the route --->
 				var thisWayPoint = new atlas.data.Feature(new atlas.data.Point(thisGeoCoordinates), {
 					title: thisAddress,
 					iconImage: thisMarkerColor
 				});
 				
-				// Add the new waypoint
+				<!--- Add the new waypoint --->
 				datasource.add([thisWayPoint]);
 				
-				// Append the new latitude and latitude to the geoCoordinateStr. Note: this is in reverse order of the waypoint!
+				<!--- Append the new latitude and latitude to the geoCoordinateStr. Note: this is in reverse order of the waypoint! --->
 				geoCoordinateStr = geoCoordinateStr.concat(`:${thisLat},${thisLon}`); 
-				// geoCoordinatePositionStr = geoCoordinates1, geoCoordinates2;
-				// console.log('geoCoordinateStr:' + geoCoordinateStr);
+				<!--- geoCoordinatePositionStr = geoCoordinates1, geoCoordinates2; console.log('geoCoordinateStr:' + geoCoordinateStr); --->
 			
 			}//for
 
-			// Fit the map window to the bounding box defined by the start and end positions. 
+			<!--- Fit the map window to the bounding box defined by the start and end positions. --->
 			map.setCamera({
 				bounds: atlas.data.BoundingBox.fromPositions(geoCoordinatePositionArray),
-				// Padding will essentially zoom out a bit. The default is 50, I am using 100 as I want the destinations on the map to be clearly shown
+				<!--- Padding will essentially zoom out a bit. The default is 50, I am using 100 as I want the destinations on the map to be clearly shown --->
 				padding: 100
 			});
 
-			// Create the route request with the query being the start and end point in the format 'startLongitude,startLatitude:endLongitude,endLatitude'. The replace function is a JavaScript function that uses backticks and the dollar signs indicate the expression.
+			<!--- Create the route request with the query being the start and end point in the format 'startLongitude,startLatitude:endLongitude,endLatitude'. The replace function is a JavaScript function that uses backticks and the dollar signs indicate the expression. --->
 			var routeRequestURL = routeUrl
 				.replace('{query}', geoCoordinateStr);
 			
-			// Set the travel mode
+			<!--- Set the travel mode --->
 			var routeRequestURL = routeRequestURL
 				.replace('{travelMode}', `${travelMode}`);
 
-			// Process the request and render the route result on the map.
+			<!--- Process the request and render the route result on the map. --->
 			processRequest(routeRequestURL).then(directions => {
-				// Extract the first route from the directions.
+				<!--- Extract the first route from the directions. --->
 				const route = directions.routes[0];
 
-				// Combine all leg coordinates into a single array.
+				<!--- Combine all leg coordinates into a single array. --->
 				const routeCoordinates = route.legs.flatMap(leg => leg.points.map(point => [point.longitude, point.latitude]));
 
-				// Create a LineString from the route path points.
+				<!--- Create a LineString from the route path points. --->
 				const routeLine = new atlas.data.LineString(routeCoordinates);
 
-				// Add it to the data source.
+				<!--- Add it to the data source. --->
 				datasource.add(routeLine);
 			});//..processRequest(routeRequestURL).then(directions => {
 			
-			// Add the controls
-			// Create a zoom control.
+			<!--- Add the controls Create a zoom control. --->
             map.controls.add(new atlas.control.ZoomControl({
                 zoomDelta: parseFloat(1),
                 style: "light"
@@ -445,7 +436,7 @@
 			  position: 'top-right'
 			}); 
 			
-			// Create the style control
+			<!--- Create the style control --->
 			map.controls.add(new atlas.control.StyleControl({
 			  mapStyles: ['road', 'road_shaded_relief', 'satellite', 'satellite_road_labels'],
 			  layout: 'icons'
@@ -458,14 +449,13 @@
 		
 	function saveMapRoute(locationGeoCoordinates){
 		
-		// Create a list of coordinates
-		//alert(getWaypoints());  
+		<!--- Create a list of coordinates alert(getWaypoints()); --->
 		
-		// Get the selected zoom and map style from the map
+		<!--- Get the selected zoom and map style from the map --->
 		let mapZoom = map.getCamera().zoom;
 		let mapStyle = map.getStyle().style;
 		
-		// Let the user know that we are processing the data
+		<!--- Let the user know that we are processing the data --->
 		$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we create your map.", icon: "k-ext-information" }));
 
 		jQuery.ajax({
@@ -474,7 +464,7 @@
 			data: {
 				provider: 'Azure Maps',
 				locationGeoCoordinates: getWaypoints(),
-				// Is this an enclosure? The otherArgs in the URL will determine what tinymce editor instance is being used.
+				<!--- Is this an enclosure? The otherArgs in the URL will determine what tinymce editor instance is being used. --->
 				isEnclosure: <cfif URL.otherArgs eq 'enclosureEditor'>true<cfelse>false</cfif>,
 				mapId: $("#enclosureMapId").val(),
 				mapRouteId: $("#mapRouteId").val(),
@@ -487,47 +477,46 @@
 			error: function(ErrorMsg) {
 				console.log('Error' + ErrorMsg);
 			}
-		// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+		<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 		}).fail(function (jqXHR, textStatus, error) {
 
-			// The full response is: jqXHR.responseText, but we just want to extract the error.
+			<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 			$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveMapRoute function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 				).done(function () {
-				// Do nothing
+				<!--- Do nothing --->
 			});		
 		});
 	}
 
 	function saveMapRouteResponse(response){
 
-		//alert(JSON.parse(response.postId));
+		<!--- alert(JSON.parse(response.postId)); --->
 		var postId = JSON.parse(response.postId);
 		var mapId = JSON.parse(response.mapId);
 
-		// Create our iframe html string
+		<!--- Create our iframe html string --->
 		var mapIframeHtml = '<iframe data-type="map" data-id=' + mapId + ' src="<cfoutput>#application.baseUrl#</cfoutput>/preview/maps.cfm?mapId=' + mapId + '&mapType=route" width="768" height="432" allowfullscreen="allowfullscreen"></iframe>';
-		// Insert the HTML string into the active editor
-		// If this is the enclosure content, replace the content. If it is a post editor, insert the content
+		<!--- Insert the HTML string into the active editor If this is the enclosure content, replace the content. If it is a post editor, insert the content --->
 		tinymce.activeEditor.<cfif URL.otherArgs eq 'enclosureEditor'>setContent<cfelse>insertContent</cfif>(mapIframeHtml);
 
-		// Use a quick set timeout in order for the data to load.
+		<!--- Use a quick set timeout in order for the data to load. --->
 		setTimeout(function() {
-			// Close the wait window that was launched in the calling function.
+			<!--- Close the wait window that was launched in the calling function. --->
 			kendo.ui.ExtWaitDialog.hide();
-			// Refresh the thumbnail image on the post detail page
+			<!--- Refresh the thumbnail image on the post detail page --->
 			reloadEnclosureThumbnailPreview(postId);
-			// Close the window
+			<!--- Close the window --->
 			$('#mapRoutingWindow').kendoWindow('destroy');
 		}, 500);
 
 	}
 		
-	// We need to extract the waypoints. We are going to format a string using address_latitude_longitude and separate each row with a coloon (:). I am using an underscore as the address may contain a comma. I am treating this as a ColdFusion like list.
+	<!--- We need to extract the waypoints. We are going to format a string using address_latitude_longitude and separate each row with a coloon (:). I am using an underscore as the address may contain a comma. I am treating this as a ColdFusion like list. --->
 	function getWaypoints(){
 		
 		var wayPointList = '';
 		
-		// Loop from 1 to 16 and get the selected location, latitude and longitude
+		<!--- Loop from 1 to 16 and get the selected location, latitude and longitude --->
 		for (let i = 1; i < 16; i++) {
 			var thisAddress = $("#selectedFreeformAddress" + i).val();
 			var thisLat = $("#selectedLat" + i).val();
@@ -545,14 +534,13 @@
 		return wayPointList;
 	}
 	
-	// functions to determine what fields should be shown and hidden.
-	// Function to show a menu
+	<!--- functions to determine what fields should be shown and hidden. Function to show a menu --->
 	function showLayer(id) {
 		var e = document.getElementById(id);
 		e.style.display = "table-row"; 
 	}
 	
-	// Function to hide a menu
+	<!--- Function to hide a menu --->
 	function hideLayer(id) { 
 		try{
 			var e = document.getElementById(id);
@@ -562,7 +550,7 @@
 		}
 	}
 	
-	// function to toggle the layers on and off.
+	<!--- function to toggle the layers on and off. --->
 	function toggleLayers(id) {
        var e = document.getElementById(id);
        if(e.style.display == 'table-row')
@@ -571,7 +559,7 @@
           e.style.display = 'table-row';
     }
 
-	// New functions to hide and show a div using jquery. 7/27/2017
+	<!--- New functions to hide and show a div using jquery. 7/27/2017 --->
 	function showDiv(divId) {
 	   $("#"+divId).show();
 	}
@@ -591,7 +579,7 @@
 
         .directionsContainer {
             width: 450px;
-			/* Set the input container at 425 pixels. Any less will cause part of the input to disappear */
+			<!--- Set the input container at 425 pixels. Any less will cause part of the input to disappear --->
             height: 100%;
             overflow-y: auto;
             float: left;
@@ -599,13 +587,13 @@
 
         #myMap {
             position: relative;
-			/* Set the dimensions of the main map */
+			<!--- Set the dimensions of the main map --->
             width:calc(100% - 450px);
             height: 100%;
             float: left;
         }
 		
-		/* Move the directions input container a little bit since its stuck at the left of the page margin-left: 45px;*/
+		<!--- Move the directions input container a little bit since its stuck at the left of the page margin-left: 45px; --->
 		.MicrosoftMap .directionsPanel {
 			margin-left: 25px;
 		}

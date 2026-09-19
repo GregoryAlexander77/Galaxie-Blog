@@ -35,40 +35,40 @@
 			$(document).ready(function() {
 
 				var userProfileValidator = $("#userProfileForm").kendoValidator({
-					// Set up custom validation rules 
+					<!--- Set up custom validation rules --->
 					rules: {
-						// first name
+						<!--- first name --->
 						profileFirstNameIsNumeric:
 						function(input){
 							if (input.is("[id='profileFirstName']") && $.isNumeric(input.val())){
-								// Display an error on the page.
+								<!--- Display an error on the page. --->
 								input.attr("data-profileFirstNameIsNumeric-msg", "Must be a string");
-								// Focus on the current element
+								<!--- Focus on the current element --->
 								$( "#profileFirstName" ).focus();
 								return false;
 							}                                    
 							return true;
 						},
-						// last name
+						<!--- last name --->
 						profileLastNameIsNumeric:
 						function(input){
 							if (input.is("[id='profileLastName']") && $.isNumeric(input.val())){
-								// Display an error on the page.
+								<!--- Display an error on the page. --->
 								input.attr("data-profileLastNameIsNumeric-msg", "Must be a string");
-								// Focus on the current element
+								<!--- Focus on the current element --->
 								$( "#profileLastName" ).focus();
 								return false;
 							}                                    
 							return true;
 						},
-						// Password
+						<!--- Password --->
 						profilePasswordMinLength: 
 						function(input) {
-							// Trim the string of spaces before checking  
+							<!--- Trim the string of spaces before checking --->
 							if (input.is("[id='profilePassword']") && $.trim(input.val()).length < 6) { //
-								// Display an error on the page.
+								<!--- Display an error on the page. --->
 								input.attr("data-profilePasswordMinLength-msg", "Must be at least 6 characters");
-								// Focus on the current element
+								<!--- Focus on the current element --->
 								$( "#profilePassword" ).focus();
 								return false;
 							}                                    
@@ -77,24 +77,23 @@
 					}
 				}).data("kendoValidator");
 
-				// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+				<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 				var userProfileSubmit = $('#userProfileSubmit');
 				userProfileSubmit.on('click', function(e){      
 					e.preventDefault();    
 					
 					if (userProfileValidator.validate()) {
 						
-						// If the password is being updated, ask the user to confirm the password again
+						<!--- If the password is being updated, ask the user to confirm the password again --->
 						if ( $("#updatePassword").val() == 1) {
-							// This interface will not let you pass until the passwords match
+							<!--- This interface will not let you pass until the passwords match --->
 							createAdminInterfaceWindow(9, 'confirmPassword');	
-							// This function will send data to the server if the passwords match
+							<!--- This function will send data to the server if the passwords match --->
 						} else {
 							
-							// Send data to server
-							// Open up a please wait dialog
+							<!--- Send data to server Open up a please wait dialog --->
 							$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we process the user.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
-							// Post the data to the server
+							<!--- Post the data to the server --->
 							setTimeout(function() {
 								postUserDetails('newProfile');
 							}, 250);
@@ -105,29 +104,29 @@
 
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 							).done(function () {
-							// Do nothing
+							<!--- Do nothing --->
 						});
 					}
 				});
 
 			});//...document.ready
 
-			// Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+			<!--- Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 			function postUserDetails(action){
 
 				jQuery.ajax({
 					type: 'post', 
 					url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveUser',
 					data: { // arguments
-						// We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#userDetails").serialize()' or use the stringify method to pass it as an array of values. 
+						<!--- We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#userDetails").serialize()' or use the stringify method to pass it as an array of values. --->
 						csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 						action: 'updateProfile', // either insert, newProfile, update, or updateProfile.
 					<cfif isDefined("URL.optArgs") and isDefined("URL.otherArgs") and URL.otherArgs eq true>
-						// When a new user has been invited, we need to pass in the pkey
+						<!--- When a new user has been invited, we need to pass in the pkey --->
 						pkey: '<cfoutput>#tempPassword#</cfoutput>',
 						newUser: <cfoutput>#URL.otherArgs#</cfoutput>,
 					</cfif>
-						// Pass the form values
+						<!--- Pass the form values --->
 						firstName: $("#profileFirstName").val(),
 						lastName: $("#profileLastName").val(),
 						displayName: $("#profileDisplayName").val(),
@@ -145,20 +144,20 @@
 					error: function(ErrorMsg) {
 						console.log('Error' + ErrorMsg);
 					}
-				// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+				<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 				}).fail(function (jqXHR, textStatus, error) {
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveUser function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});		
 				});
 			};
 
 			function userProfileUpdateResult(response){
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Prompt the user and log the user out
+				<!--- Prompt the user and log the user out --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Your profile was saved", message: "Please log in with your new password to continue", icon: "k-ext-information", width: "425px", height: "225px"}) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
 					window.location.href="?logout=1";

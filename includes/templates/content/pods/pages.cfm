@@ -17,7 +17,7 @@
 				<cfif arrayLen(getPageCategories)>
 				<script>
 					$(document).ready(function() {
-						// Create an accordian style panel for each page category. 
+						<!--- Create an accordian style panel for each page category. --->
 						$("#pagePodPanelBar").kendoPanelBar({
 							expandMode: "multiple"
 						});

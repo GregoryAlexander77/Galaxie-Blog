@@ -29,12 +29,11 @@
     <script src="../../common/libs/kendoCore/js/jquery.min.js"></script>
     <script src="../../common/libs/kendoCore/js/kendo.ui.core.min.js"></script>
 	
-	<script type="text/javascript" src="../../common/libs/momentJs/moments.js"></script>
 </head>
 <style>
 	
-	/* Table classes */
-	/* Applies a border on the outside of the table */
+	<!--- Table classes --->
+	<!--- Applies a border on the outside of the table --->
 	table.tableBorder {
 		border: 1px solid black;
 		width: 100%;
@@ -50,7 +49,7 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.min.js"></script>
 	
 <!---<cfoutput>blogUrl: #blogUrl#</cfoutput>--->
-<form action="step5OrmSetup.cfm" name="dsnSetup" id="dsnSetup" method="post">
+<form action="step5SaveDatabase.cfm" name="dsnSetup" id="dsnSetup" method="post">
 <table align="center" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="5">
 	<tr>
 		<td>
@@ -62,7 +61,7 @@
 			  <tr>
 				  <td align="left" valign="top" colspan="2" class="k-header" style="font-weight: bold">
 					Database DSN Credentials<br/>
-					(Step 4 of 6)
+					(Step 3 of 4)
 				  </td>
 			  </tr>
 			  <!-- Border -->
@@ -106,8 +105,8 @@
 							<td></td>
 						  	<td align="left" valign="middle">
 								<p>This blog <i>should</i> work with the databases listed in the dropdown below *.</p> 
-								<p>While not officially unsupported, you <b>may</b> be able to use a different database that is not in the list, but you will need to manually modify the <cfoutput>#session.basePath#</cfoutput>Application.cfc file and enter the fully qualified class name of the database dialect in the databaseDialect field. You will also need to do a search any strings labeled 'varchar(max)' and replace them with the proper variable length text field that is used by the chosen database (ie 'clob' or 'lob' for example).</p>
-								<p>* See notes on next page</p>
+								<p>While not officially unsupported, you <b>may</b> be able to use a different database that is not in the list, but you will need to modify the Application.cfc file in the blog's root directory and enter the fully qualified class name of the database dialect in the databaseDialect field. You will also need to add the type that your database uses for variable length text (ie 'clob' or 'lob' for example) to the list of databases in the /common/cfc/DatabaseOrmTypes.cfc template.</p>
+								<p>* The blog is DBMS independent and uses ColdFusion ORM. The columns that hold the contents of the posts, comments and other long strings are set up automatically for the database that you choose.</p>
 						  	</td>
 					    </tr>
 						<!-- Border -->
@@ -121,7 +120,7 @@
 							<td align="left" style="vertical-align:middle">
 							  <script>
 								$(document).ready(function() {
-									// create DropDownList from select HTML element
+									<!--- create DropDownList from select HTML element --->
 									$("#databaseType").kendoDropDownList();
 								});
 							  </script>

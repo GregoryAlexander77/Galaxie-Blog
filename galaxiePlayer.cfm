@@ -185,7 +185,7 @@ We need to inspect the URL to determine the provider, ie youtube, vimeo or a loc
 	width: 100% !important
 }
 <cfif isDefined("URL.posterUrl")>
-/* Style to have the video cover set at 100% */
+<!--- Style to have the video cover set at 100% --->
 mediaPlayer video {
    	background: transparent url('<cfoutput>#URL.posterUrl#</cfoutput>') 50% 50% / cover no-repeat ;
 }

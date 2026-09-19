@@ -3705,6 +3705,8 @@
 		<cfargument name="ipAddress" required="no" default="">
 		<cfargument name="userAgent" required="no" default="">
 		<cfargument name="loginDate" required="no" default="">
+		<cfargument name="httpUserAgent" required="no" default="" hint="The jsGrid sends the filter of the user agent column with this name">
+		<cfif len(arguments.httpUserAgent)><cfset arguments.userAgent = arguments.httpUserAgent></cfif>
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -3873,6 +3875,10 @@
 		<cfargument name="httpUserAgent" required="no" default="">
 		<cfargument name="isBot" required="no" default="">
 		<cfargument name="dateVisited" required="no" default="" hint="Changed from date to dateVisited to fix a new CF related bug in June 2025">
+		<!--- The window passes an id in the URL (ie anonymousUserId=1) and the jsGrid filter of the same column sends an empty value with the same name (AnonymousUserId=). ColdFusion combines URL variables that have the same name into a list ('1,') and the query fails to convert this to a number. Use the first value. --->
+		<cfloop list="anonymousUserId,postId,ipAddressId" index="idArgument">
+			<cfif find(",", arguments[idArgument])><cfset arguments[idArgument] = listFirst(arguments[idArgument])></cfif>
+		</cfloop>
 			
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -9449,14 +9455,31 @@
 		Update DB
 	*******************************************************************************************************--->
 				
-	<cffunction name="updateDb" access="remote" output="false" returnFormat="json"
-			hint="This function updates the database to a new version">
-		<cfargument name="blogVersion" required="true">
+	<cffunction name="getDatabaseUpdater" access="private" returnType="any" output="false"
+			hint="Returns the DatabaseUpdater. Application.cfc creates it when the application starts, but the application may have been running when new files were uploaded, so create it here if it is not there yet.">
+
+		<cfset var updaterComponentPath = "">
+
+		<cfif not isDefined("application.databaseUpdater")>
+			<cfif len(application.baseProxyUrl) gt 0>
+				<cfset updaterComponentPath = application.baseComponentPath & ".common.cfc.DatabaseUpdater">
+			<cfelse>
+				<cfset updaterComponentPath = "common.cfc.DatabaseUpdater">
+			</cfif>
+			<cfset application.databaseUpdater = createObject("component", updaterComponentPath).init(application.rootDirectoryPath, application.blogIniPath)>
+		</cfif>
+
+		<cfreturn application.databaseUpdater>
+
+	</cffunction>
+
+	<cffunction name="runDatabaseUpdate" access="remote" output="false" returnFormat="json"
+			hint="Brings the database up to the version of the code that was uploaded. See DatabaseUpdater.cfc and the scripts in /installer/updates/. This is run from the Blog Updates window on the administrative site.">
 		<cfargument name="csrfToken" required="true">
-			
+
 		<!--- Set the default response object.--->
 		<cfset response = {} />
-			
+
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
 			<!--- Set the response --->
@@ -9470,89 +9493,39 @@
 				<cfset serializedResponse = serializeJSON( response ) />
 				<!--- Send the response back to the client. --->
 				<cfreturn serializedResponse>
-			</cfif>	
+			</cfif>
 			<!--- Abort the process if the token is not validated. --->
 			<cfabort>
 		</cfif>
-			
+
 		<!--- Secure this function. This will abort the page and set a 403 status code if the user is not logged in --->
 		<cfset secureFunction('EditServerSetting')>
-			
+
 		<cfif application.Udf.isLoggedIn()>
-			
-			<!--- Determine what tables to update based upon the verson --->
-			<cfif arguments.blogVersion lte '3.12'>
-				<!--- Update all of the records in the Font table --->
-				<cfinvoke component="#application.blog#" method="updateDb" returnvariable="success">
-					<cfinvokeargument name="tablesToPopulate" value="Font">
-					<cfinvokeargument name="updateRecords" value="true">
-				</cfinvoke>
-						
-				<!--- Only insert the new Joshua Tree records into the Theme related tables. --->
-				<cfinvoke component="#application.blog#" method="updateDb" returnvariable="success">
-					<cfinvokeargument name="tablesToPopulate" value="Theme">
-					<cfinvokeargument name="updateRecords" value="false">
-				</cfinvoke>
-					
-				<!--- Update the version --->
-				<cfinvoke component="#application.blog#" method="updateBlogVersion" returnvariable="success">
-					<cfinvokeargument name="blogVersion" value="3.12">
-					<cfinvokeargument name="blogVersionName" value="Galaxie Blog 3.12">
-				</cfinvoke>
-						
-			</cfif>
-						
-			<cfif arguments.blogVersion lte '4.07'>
-				
-				<!--- Update all of the records in the Font table --->
-				<cfinvoke component="#application.blog#" method="updateDb" returnvariable="success">
-					<cfinvokeargument name="tablesToPopulate" value="MapProvider">
-					<cfinvokeargument name="updateRecords" value="true">
-				</cfinvoke>
-						
-				<!--- Only insert the new Joshua Tree records into the Theme related tables. --->
-				<cfinvoke component="#application.blog#" method="updateDb" returnvariable="success">
-					<cfinvokeargument name="tablesToPopulate" value="MapType">
-					<cfinvokeargument name="updateRecords" value="false">
-				</cfinvoke>
-					
-				<!--- Update the version --->
-				<cfinvoke component="#application.blog#" method="updateBlogVersion" returnvariable="success">
-					<cfinvokeargument name="blogVersion" value="4.07">
-					<cfinvokeargument name="blogVersionName" value="Galaxie Blog 4.07">
-				</cfinvoke>
-						
-			</cfif>
-						
-			<cfif arguments.blogVersion lte '4.5'>
-				<!--- Update all records in the Post table and set the IsBlogPost column to 1 and isPage to 0. This works as these columns are new and all of the records are posts prior to the 4.5 version --->
-				<cfquery name="updatePost" dbtype="hql">
-					UPDATE Post
-					SET IsBlogPost = <cfqueryparam value="1" cfsqltype="bit">,
-					IsPage = <cfqueryparam value="0" cfsqltype="bit">
-					WHERE IsPage IS NULL
-				</cfquery>	
-					
-				<cfquery name="updateBlogOption" dbtype="hql">
-					UPDATE BlogOption
-					SET LogVisitors = <cfqueryparam value="1" cfsqltype="bit">,
-					MonthsToRetainVisitorLog = <cfqueryparam value="1" cfsqltype="integer">,
-					MonthsToRetainAdminLog = <cfqueryparam value="12" cfsqltype="integer">,
-					SendDiagnostics = <cfqueryparam value="1" cfsqltype="bit">
-				</cfquery>			
-					
-				<!--- Update the version --->
-				<cfinvoke component="#application.blog#" method="updateBlogVersion" returnvariable="success">
-					<cfinvokeargument name="blogVersion" value="4.5">
-					<cfinvokeargument name="blogVersionName" value="Galaxie Blog 4.5">
-				</cfinvoke>
-						
-			</cfif><!---<cfif arguments.blogVersion lte '4.5'>--->
-					
-		</cfif><!---<cfif application.Udf.isLoggedIn()>--->
-	
-		<cfreturn true>
-			
+			<cfset response = getDatabaseUpdater().run()>
+		<cfelse>
+			<cfset response = { "success": false, "message": "You must be logged in to update the database.", "log": [] }>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'>
+			<!--- Do not serialize the response --->
+			<cfreturn response>
+		<cfelse>
+			<!--- Serialize the response --->
+			<cfset serializedResponse = serializeJSON( response ) />
+			<!--- Send the response back to the client. --->
+			<cfreturn serializedResponse>
+		</cfif>
+
+	</cffunction>
+
+	<cffunction name="updateDb" access="remote" output="false" returnFormat="json"
+			hint="Kept for the update instructions that come from the update site. The database is now updated by the scripts in /installer/updates/, in order, using the version that is saved in the database, so the arguments are not used.">
+		<cfargument name="blogVersion" required="false" default="">
+		<cfargument name="csrfToken" required="true">
+
+		<cfreturn runDatabaseUpdate(csrfToken=arguments.csrfToken)>
+
 	</cffunction>
 						
 </cfcomponent>

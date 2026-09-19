@@ -22,7 +22,7 @@
 			<cfif field is "enclosure" and len(trim(form.enclosure))>
 				<input type="hidden" name="enclosureerror" value="true">
 			<cfelseif not listFindNoCase("username,password", field) and isSimpleValue(form[field])>
-				<input type="hidden" name="<cfoutput>#field#</cfoutput>" value="<cfoutput>#htmleditformat(form[field])#</cfoutput>">
+				<input type="hidden" name="<cfoutput>#field#</cfoutput>" value="<cfoutput>#encodeForHTMLAttribute(form[field])#</cfoutput>">
 			</cfif>
 		</cfloop>
 

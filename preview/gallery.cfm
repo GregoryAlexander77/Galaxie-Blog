@@ -31,14 +31,14 @@
 		<link rel="stylesheet" type="text/css" href="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/fancyBox/v2/source/jquery.fancybox.css?v=2.1.5" media="screen" />
 		
 		<style>
-		/* FancyBox */
+		<!--- FancyBox --->
 		.fancybox-effects img {
 			border: 1px solid #808080; /* Gray border */
 			border-radius: 3px;  /* Rounded border */
 			padding: 5px; 
 		}
 
-		/* Add a hover effect (blue shadow) */
+		<!--- Add a hover effect (blue shadow) --->
 		.fancybox-effects img:hover {
 		  	box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5);
 			opacity: .82;
@@ -54,7 +54,7 @@
 			border-radius: 3px;
 		}
 			
-		/* FancyBox Thumnails */
+		<!--- FancyBox Thumnails --->
 		.thumbnail {
 			position: relative;
 			width: <cfif session.isMobile>105<cfelse>225</cfif>px;
@@ -84,9 +84,9 @@
 		  height: auto;
 		}
 		
-		/* See https://aaronparecki.com/2016/08/13/4/css-thumbnails */
+		<!--- See https://aaronparecki.com/2016/08/13/4/css-thumbnails --->
 		.squareThumbnail {
-			/* set the desired width/height and margin here */
+			<!--- set the desired width/height and margin here --->
 			width: 128px;
 			height: 128px;
 			margin-right: 1px;
@@ -114,10 +114,10 @@
 		<script type="text/javascript">
 			$(document).ready(function() {
 
-				// Load fancyBox */
+				<!--- Load fancyBox */ --->
 				$('.fancybox').fancybox();
 
-				// Set fancybox custom properties (I am over-riding basic functionality).
+				<!--- Set fancybox custom properties (I am over-riding basic functionality). --->
 				$(".fancybox-effects").fancybox({
 					wrapCSS    : 'fancybox-custom', //ga
 					padding: 5,

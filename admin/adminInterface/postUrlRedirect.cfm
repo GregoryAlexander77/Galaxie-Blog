@@ -12,25 +12,25 @@
 	<script>
 		
 		$(document).ready(function() {
-			// Create the redirect type dropdown
+			<!--- Create the redirect type dropdown --->
 			var postRedirectTypeDropdown = $("#postRedirectTypeDropdown").kendoDropDownList();
-			// Create the validator
+			<!--- Create the validator --->
 			var postRedirectValidator = $("#postRedirectForm").kendoValidator().data("kendoValidator");
 			
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var postRedirectSubmit = $('#postRedirectSubmit');
 				postRedirectSubmit.on('click', function(e){      
 					e.preventDefault();     
 					
 					if (postRedirectValidator.validate()) {
-						// Submit the form
+						<!--- Submit the form --->
 						onPostRedirectSubmit();
 
 					} else {
 
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 							).done(function () {
-							// Do nothing
+							<!--- Do nothing --->
 						});
 					}
 				});
@@ -40,10 +40,10 @@
 		});
 		
 		function onPostRedirectSubmit() {
-			// Change the hidden input fields on the post details page
+			<!--- Change the hidden input fields on the post details page --->
 			$("#redirectUrl").val($("#postRedirectUrl").val());
 			$("#redirectType").val($("#postRedirectTypeDropdown").val());
-			// Close this postUrlRedirectWindow.
+			<!--- Close this postUrlRedirectWindow. --->
 			$('#postUrlRedirectWindow').kendoWindow('destroy');
 		}
 		

@@ -1557,39 +1557,44 @@
   				error = "Error generating Kendo Panel for TOC";
 			}
 			
-			// Load fancyBox */
-			$('.fancybox').fancybox();
+			// FancyBox is only downloaded when the page has a gallery. See galaxieLoader in head.cfm.
+			if ($('.fancybox, .fancybox-effects, .fancybox-media').length) {
+				galaxieLoader.fancyBox(function() {
+				<!--- Load fancyBox --->
+				$('.fancybox').fancybox();
 
-			// Set fancybox custom properties (I am over-riding basic functionality).
-			$(".fancybox-effects").fancybox({
-				wrapCSS    : 'fancybox-custom', //ga
-				padding: 5,
-				openEffect : 'elastic',
-				openSpeed  : 150,
-				closeEffect : 'elastic',
-				closeSpeed  : 150,
-				closeClick : false,
-				helpers : {
-					title : {
-						 type: 'outside'
-					},
-					overlay : null
-				}
-			});
+				// Set fancybox custom properties (I am over-riding basic functionality).
+				$(".fancybox-effects").fancybox({
+					wrapCSS    : 'fancybox-custom', //ga
+					padding: 5,
+					openEffect : 'elastic',
+					openSpeed  : 150,
+					closeEffect : 'elastic',
+					closeSpeed  : 150,
+					closeClick : false,
+					helpers : {
+						title : {
+							 type: 'outside'
+						},
+						overlay : null
+					}
+				});
 
-			$('.fancybox-media')
-			.attr('rel', 'media-gallery')
-			.fancybox({
-				openEffect : 'none',
-				closeEffect : 'none',
-				prevEffect : 'none',
-				nextEffect : 'none',
-				arrows : false,
-				helpers : {
-					media : {},
-					buttons : {}
-				}
-			});
+				$('.fancybox-media')
+				.attr('rel', 'media-gallery')
+				.fancybox({
+					openEffect : 'none',
+					closeEffect : 'none',
+					prevEffect : 'none',
+					nextEffect : 'none',
+					arrows : false,
+					helpers : {
+						media : {},
+						buttons : {}
+					}
+				});
+				});
+			}
 
 		});//..document.ready
 		

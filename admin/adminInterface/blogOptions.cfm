@@ -10,7 +10,7 @@
 	<cfset jQueryCDNPath = application.BlogOptionDbObj.getJQueryCDNPath()>
 	<cfset kendoCommercial = application.BlogOptionDbObj.getKendoCommercial()>
 	<cfset kendoFolderPath = application.BlogOptionDbObj.getKendoFolderPath()>
-	<cfset deferKendoCommercialOnPublicSite = application.BlogOptionDbObj.getDeferKendoCommercialOnPublicSite()>
+	<cfset deferKendoCommercialOnPublicSite = application.deferKendoCommercialOnPublicSite>
 	<cfset useSsl = application.BlogOptionDbObj.getUseSsl()>
 	<cfset serverRewriteRuleInPlace = application.BlogOptionDbObj.getServerRewriteRuleInPlace()>
 	<cfset deferScriptsAndCss = application.BlogOptionDbObj.getDeferScriptsAndCss()>
@@ -42,11 +42,7 @@
 	</cfif>
 		
 	<style>
-		/* Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless
-		   look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names,
-		   and resets box-shadow/background-image too since some Kendo skins draw the separator line that
-		   way instead of with a plain border. Scoped to direct structural children of each item so the
-		   real form content (tables, inputs, etc.) nested inside isn't affected. */
+		<!--- Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names, and resets box-shadow/background-image too since some Kendo skins draw the separator line that way instead of with a plain border. Scoped to direct structural children of each item so the real form content (tables, inputs, etc.) nested inside isn't affected. --->
 		#blogOptionsPanelBar,
 		#blogOptionsPanelBar .k-item,
 		#blogOptionsPanelBar .k-link,
@@ -67,7 +63,7 @@
 
 	<script>
 		
-		// Numeric inputs
+		<!--- Numeric inputs --->
 		$("#entriesPerBlogPage").kendoNumericTextBox({
 			decimals: 0,
 			format: "#",
@@ -78,16 +74,16 @@
 		$(document).ready(function() {
 
 			var optionsValidator = $("#optionsForm").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
-					// The theme must be unique. 
+					<!--- The theme must be unique. --->
 					themeIsUnique:
 					function(input){
-						// Do not continue if the theme name is found in the currentTheme list 
+						<!--- Do not continue if the theme name is found in the currentTheme list --->
 						if (input.is("[id='themeName']") && ( listFind( themeList, input.val() ) != 0 ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-themeIsUnique-msg", "Theme name already exists");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#theme" ).focus();
 							return false;
 						}                                    
@@ -96,17 +92,17 @@
 				}
 			}).data("kendoValidator");
 
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var optionsSubmit = $('#optionsSubmit');
 			optionsSubmit.on('click', function(e){ 
 				
 				e.preventDefault();         
 				if (optionsValidator.validate()) {
 					
-					// Open up a please wait dialog
+					<!--- Open up a please wait dialog --->
 					$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we save the data.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
 
-					// Send data to server
+					<!--- Send data to server --->
 					setTimeout(function() {
 						postOptions();
 					}, 250);
@@ -115,31 +111,31 @@
 
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}
 			});
 
 		});//...document.ready
 		
-		// Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postOptions(){
 
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveBlogOptions&csrfToken=<cfoutput>#csrfToken#</cfoutput>',
-				// Serialize the form. The csrfToken is in the form.
+				<!--- Serialize the form. The csrfToken is in the form. --->
 				data: $('#optionsForm').serialize(),
 				dataType: "json",
 				success: postOptionsResult, // calls the result function.
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Display the error. The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- Display the error. The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveBlogOptions function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 
 					).done(function () {
@@ -149,16 +145,16 @@
 		};
 
 		function postOptionsResult(response){
-			// Close the wait window that was launched in the calling function.
+			<!--- Close the wait window that was launched in the calling function. --->
 			kendo.ui.ExtWaitDialog.hide();
-			// Close this window.
+			<!--- Close this window. --->
 			$('#optionsWindow').kendoWindow('destroy');
 		}
 	</script>
 		
 	<script>
 		$(document).ready(function() {
-			// Create an accordian style panel for each blog options section.
+			<!--- Create an accordian style panel for each blog options section. --->
 			$("#blogOptionsPanelBar").kendoPanelBar({
 				expandMode: "multiple"
 			});
@@ -273,7 +269,7 @@
 	  <!-- Minimize c-->
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
-			Galaxie Blog has logic to minimize the various Javascript and CSS in order to load the page quicker. This setting should be checked when you are in a production environment to improve page performance. You may want to turn this off if you are trying to debug code as the code is much easier to read when it is not compressed.
+			Galaxie Blog removes the comments and unneeded white space from the html, JavaScript and CSS of the page in order to load the page quicker (see /common/cfc/HtmlMinifier.cfc). This setting should be checked when you are in a production environment to improve page performance. You may want to turn this off if you are trying to debug code as the code is much easier to read when it is not compressed.
 		</td>
 	  </tr>
 	  <tr height="1px">

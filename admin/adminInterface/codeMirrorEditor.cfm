@@ -20,7 +20,7 @@
 	
 	<!--- Begin generic code editor template --->
 	<script>
-		// Instantiate code mirror
+		<!--- Instantiate code mirror --->
 		CodeMirrorEditor = CodeMirror.fromTextArea(document.getElementById("<cfoutput>#editorName#</cfoutput>"), {
 			mode: "text/html",
 			autoRefresh: true,
@@ -35,24 +35,24 @@
 			readOnly: false,
 			autofocus: true
 		});
-		// setSize( width, height ). An empty string will set the width to 100% of the container
+		<!--- setSize( width, height ). An empty string will set the width to 100% of the container --->
 		CodeMirrorEditor.setSize('', <cfoutput>#editorHeight#</cfoutput>); 
 		
 		$(document).ready(function() {
 			
-			// Invoked when the submit button is clicked. 
+			<!--- Invoked when the submit button is clicked. --->
 			var saveCodeMirrorCodeSubmit = $('#saveCodeMirrorCodeSubmit');
 			saveCodeMirrorCodeSubmit.on('click', function(e){ 
 				e.preventDefault();  
-				// Post the content
+				<!--- Post the content --->
 				postCodeMirrorContent();
 			});		
 			
 			function postCodeMirrorContent(){
 				
-				// Get the contents of the editor
+				<!--- Get the contents of the editor --->
 				var codeMirrorCode = CodeMirrorEditor.getValue();
-				// Modify any tags that may be deleted by ColdFusion on the server when using Global Script Protection and place an attach string in front of scripts, styles and meta tags.
+				<!--- Modify any tags that may be deleted by ColdFusion on the server when using Global Script Protection and place an attach string in front of scripts, styles and meta tags. --->
 				codeMirrorCode = bypassScriptProtection(codeMirrorCode);
 
 				jQuery.ajax({
@@ -69,11 +69,11 @@
 					error: function(ErrorMsg) {
 						console.log('Error' + ErrorMsg);
 					}
-				// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+				<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 				}).fail(function (jqXHR, textStatus, error) {
-					// Close the wait window that was launched in the calling function.
+					<!--- Close the wait window that was launched in the calling function. --->
 					kendo.ui.ExtWaitDialog.hide();
-					// Display the error. The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- Display the error. The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the <cfoutput>#postFunctionName#</cfoutput> function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
 
@@ -82,7 +82,7 @@
 			};
 
 			function postCodeMirrorResult(response){
-				// Close this window.
+				<!--- Close this window. --->
 				$('#<cfoutput>#windowInterfaceName#</cfoutput>').kendoWindow('destroy');
 			}
 		

@@ -48,12 +48,11 @@
     <script src="../../common/libs/kendoCore/js/jquery.min.js"></script>
     <script src="../../common/libs/kendoCore/js/kendo.ui.core.min.js"></script>
 	
-	<script type="text/javascript" src="../../common/libs/momentJs/moments.js"></script>
 </head>
 <style>
 	
-	/* Table classes */
-	/* Applies a border on the outside of the table */
+	<!--- Table classes --->
+	<!--- Applies a border on the outside of the table --->
 	table.tableBorder {
 		border: 1px solid black;
 		width: 100%;
@@ -76,7 +75,7 @@
 <body>
 <script src="//cdnjs.cloudflare.com/ajax/libs/jszip/2.4.0/jszip.min.js"></script>
 
-<form action="step3ExtendApp.cfm" method="post"><!---step3Dsn.cfm--->
+<form action="step3SaveSiteInfo.cfm" method="post">
 <table align="center" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="5">
 	<tr>
 		<td>
@@ -88,7 +87,7 @@
 			  <tr>
 				  <td align="left" valign="top" colspan="2" class="k-header" style="font-weight: bold">
 					General Site Information<br/>
-					(Step 2 of 6)
+					(Step 2 of 4)
 				  </td>
 			  </tr>
 			  <!-- Border -->

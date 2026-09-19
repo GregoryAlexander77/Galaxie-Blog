@@ -130,10 +130,10 @@
 			<cfoutput>
 			tinymce.EditorManager.execCommand('mceRemoveControl', true, '#evaluate("cookie.#selectorId#")#');
 			try {
-				// In order to make sure that *all* references are removed, use the destroy command. We are putting this in a try block in case the editor is removed. Notes: while testing the efficacy of the mceRemoveControl (above), I noticed that the editor is still referenced using the displayEditorNames() function. It is my educated guess that get method below determines that the editor is no longer active and automatically removes it rather than the destroy statement. That said, if I don't  use this line the editor is still in memory and this line will remove it.
+				<!--- In order to make sure that *all* references are removed, use the destroy command. We are putting this in a try block in case the editor is removed. Notes: while testing the efficacy of the mceRemoveControl (above), I noticed that the editor is still referenced using the displayEditorNames() function. It is my educated guess that get method below determines that the editor is no longer active and automatically removes it rather than the destroy statement. That said, if I don't use this line the editor is still in memory and this line will remove it. --->
 				tinymce.get("#evaluate("cookie.#selectorId#")#").destroy();
 			} catch {
-				// Do nothing
+				<!--- Do nothing --->
 			}
 			</cfoutput>
 		</script>
@@ -151,19 +151,13 @@
 
 	<script type="text/javascript">
 
-		// Rewrites the built-in 'toc' plugin's auto-generated anchor ids (mcetoc_xxxxxxxxxx) into
-		// human-readable slugs built from each heading's own text (eg. "background", or "background-1"
-		// for a repeated heading). This keeps the free toc plugin but gives us descriptive, stable
-		// anchors instead of the random ones it generates by default. Declared at the top level (not
-		// inside setup()) so it is available both to the ExecCommand hook below and to the save-time
-		// cleanup pass in postDetail.cfm.
+		<!--- Rewrites the built-in 'toc' plugin's auto-generated anchor ids (mcetoc_xxxxxxxxxx) into human-readable slugs built from each heading's own text (eg. "background", or "background-1" for a repeated heading). This keeps the free toc plugin but gives us descriptive, stable anchors instead of the random ones it generates by default. Declared at the top level (not inside setup()) so it is available both to the ExecCommand hook below and to the save-time cleanup pass in postDetail.cfm. --->
 		function rewriteTocAnchors(editor) {
 			try {
 				var body = editor.getBody();
 				if (!body) return;
 
-				// Build a url-fragment-safe slug: lower case, spaces/punctuation collapsed to single
-				// dashes, leading/trailing dashes trimmed.
+				<!--- Build a url-fragment-safe slug: lower case, spaces/punctuation collapsed to single dashes, leading/trailing dashes trimmed. --->
 				function slugify(text) {
 					var clean = (text || '').replace(/ /g, ' ').trim().toLowerCase();
 					var slug = clean.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -178,7 +172,7 @@
 					var baseSlug = slugify(heading.textContent);
 					var newSlug = baseSlug;
 
-					// Only append a numeric suffix when the plain slug is not already unique on this page.
+					<!--- Only append a numeric suffix when the plain slug is not already unique on this page. --->
 					var counter = 1;
 					while (usedSlugs[newSlug]) {
 						newSlug = baseSlug + '-' + counter;
@@ -188,42 +182,42 @@
 
 					heading.id = newSlug;
 
-					// Keep the matching TOC link (built by the toc plugin) pointed at the new id.
+					<!--- Keep the matching TOC link (built by the toc plugin) pointed at the new id. --->
 					var tocLink = body.querySelector('.mce-toc a[href="#' + oldId + '"]');
 					if (tocLink) {
 						tocLink.setAttribute('href', '#' + newSlug);
 					}
 				});
 			} catch (err) {
-				// Never let a TOC rewrite problem break saving/editing.
+				<!--- Never let a TOC rewrite problem break saving/editing. --->
 				console.error('Error rewriting TOC anchors:', err);
 			}
 		}//..function rewriteTocAnchors(editor)
 
-		// Initiate the tinymce editor.
+		<!--- Initiate the tinymce editor. --->
 		tinymce.init({
 			schema: 'html5',
 			selector: '#<cfoutput>#selectorName#</cfoutput>',
 			<cfif session.isMobile>// On mobile devices, subtract 25 pixels (for padding) from the content container pixel width 
 			width: (getContentPixelWidth()-25),</cfif>
-			// Skin
+			<!--- Skin --->
 			skin: "<cfoutput>#kendoTheme#</cfoutput>",//This points to the folder in the ui directory
 		<cfif includeCommonCss>
-			// Point to a common content.css. This does not impact the dynamic nature of the skin.
+			<!--- Point to a common content.css. This does not impact the dynamic nature of the skin. --->
 			content_css: ["<cfoutput>#application.baseUrl#</cfoutput>/includes/templates/blogContentCss.cfm?standalone=true",
 			"<cfoutput>#application.baseUrl##application.kendoFolderPath##trim(getTheme[1]['KendoCommonCssFileLocation'])#</cfoutput>",
 			"<cfoutput>#application.baseUrl##application.kendoFolderPath##trim(getTheme[1]['KendoThemeCssFileLocation'])#</cfoutput>",
-			// Include font awesome
+			<!--- Include font awesome --->
 			"https://use.fontawesome.com/releases/v6.1.0/css/all.css"],
 		<cfelse>
-			// Include font awesome
+			<!--- Include font awesome --->
 			content_css: ["https://use.fontawesome.com/releases/v6.1.0/css/all.css"],
 		</cfif>
 			//<cfoutput>#application.baseUrl#</cfoutput>/common/libs/tinymce/skins/ui/oxide/content.css"
 			height: "<cfoutput>#editorHeight#</cfoutput>",
-			// This only works with tinymce 5.6+
+			<!--- This only works with tinymce 5.6+ --->
 			images_file_types: 'peg,jpg,jpe,jfi,jif,jfif,png,gif,bmp,webp',
-			// Custom plugin argument to allow us to use fontawesome icons
+			<!--- Custom plugin argument to allow us to use fontawesome icons --->
 			iconfonts_selector: '.fa, .fab, .fal, .far, .fas, .glyphicon', // optional (default shown)
 		<!--- Set the menu depending upon the selector name. --->
 		<cfswitch expression="#selectorId#">
@@ -278,7 +272,7 @@
 			toolbar_sticky: true, // Makes the toolbar float at the top of the page
 			toolbar_sticky: "80px",// This fixes when the toolbar disappears with the toolbar_sticky
 			plugins: [<cfoutput>#pluginList#</cfoutput>],
-			// Code Mirror is our code viewer and is a custom plugin
+			<!--- Code Mirror is our code viewer and is a custom plugin --->
 			/* Depracated in April 2026
 			external_plugins: {
 				codemirror: "<cfoutput>#codeMirrorPluginPath#</cfoutput>"
@@ -291,11 +285,11 @@
 					lineWrapping: true
 				}
 			},*/
-			// Change the toc_depth to support h4 tags (the default is h1-3)
+			<!--- Change the toc_depth to support h4 tags (the default is h1-3) --->
 			toc_depth: 5,
-			// Allow the Prism folder to be the prism engine instead of the embedded version of Prism within TinyMce. This is required to have line numbers
+			<!--- Allow the Prism folder to be the prism engine instead of the embedded version of Prism within TinyMce. This is required to have line numbers --->
 			codesample_global_prismjs: true,
-			// Set the prism languages
+			<!--- Set the prism languages --->
 			codesample_languages: [
 				{ text: 'HTML/XML', value: 'markup' },
 				{ text: 'JavaScript', value: 'javascript' },
@@ -312,33 +306,27 @@
 			],
 			toolbar: '<cfoutput>#toolbarString#</cfoutput>',
 			media_live_embeds: true,
-			// Load our custom fonts
+			<!--- Load our custom fonts --->
 			font_formats: "<cfloop from="1" to="#arrayLen(getThemeAndWebSafeFonts)#" index="i"><cfoutput>#getThemeAndWebSafeFonts[i]['Font']#=<cfif len(getThemeAndWebSafeFonts[i]['WebSafeFallback'])>#lCase(getThemeAndWebSafeFonts[i]['WebSafeFallback'])#<cfelse>#lCase(getThemeAndWebSafeFonts[i]['Font'])#</cfif>;</cfoutput></cfloop>",
-			// Declare the font faces and set the font properties for the editor body
+			<!--- Declare the font faces and set the font properties for the editor body --->
 			content_style: '<cfoutput><cfloop from="1" to="#arrayLen(getSelfHostedFonts)#" index="i">@font-face {font-family: "#getSelfHostedFonts[i]['Font']#"; src: url("#application.baseUrl#/common/fonts/#getSelfHostedFonts[i]['FileName']#.#fontExtension#") format("#fontExtension#");}</cfloop> body { font-family:#themeBodyFont#; font-size:14px; }',</cfoutput>
-			// I am turning off script support as the setContent method will break if scripts are included. If you want it enabled add this string to the extended_valid_elements var below-  'script[src|async|defer|type|charset]', and use a different method to populate the editor.
-			// Alow a list item in order to incorporate font awesome icons, we also put onClick events on buttons.	 
+			<!--- I am turning off script support as the setContent method will break if scripts are included. If you want it enabled add this string to the extended_valid_elements var below- 'script[src|async|defer|type|charset]', and use a different method to populate the editor. Alow a list item in order to incorporate font awesome icons, we also put onClick events on buttons. --->
 			extended_valid_elements: 'i[*],a[href|class|id|onClick],button[*],span[*],input[*],script[src|async|defer|type|charset],more',
-			// Allows all elements: valid_elements : '*[*]',
-			// We need to allow javascript within URL's as are using javascript links in the navigation menu. Without this argument tinymce strips out the 'javascript:' string in URL's
+			<!--- Allows all elements: valid_elements : '*[*]', We need to allow javascript within URL's as are using javascript links in the navigation menu. Without this argument tinymce strips out the 'javascript:' string in URL's --->
 			allow_script_urls: true,
-			// Allow custom more tags
+			<!--- Allow custom more tags --->
 			custom_elements: 'more',
-			//autosave_interval: "240s",
-			// Set the content and add certain events
+			<!--- autosave_interval: "240s", Set the content and add certain events --->
 			setup: function (editor) {
-				// Load the intial content
+				<!--- Load the intial content --->
 				editor.on('init', function (e) {
-					// Note: the content is JSON-encoded before being embedded here (rather than dropped into a backtick template literal) so that a stored `${...}` sequence in the content can't be evaluated as a live JS expression the moment this script runs - a raw backtick literal is vulnerable to that regardless of the script-tag comment-wrapping below. We are also sanitizing the scripts by putting HTML comments around any script tag found before inserting it into the editor.
+					<!--- Note: the content is JSON-encoded before being embedded here (rather than dropped into a backtick template literal) so that a stored `${...}` sequence in the content can't be evaluated as a live JS expression the moment this script runs - a raw backtick literal is vulnerable to that regardless of the script-tag comment-wrapping below. We are also sanitizing the scripts by putting HTML comments around any script tag found before inserting it into the editor. --->
 					editor.setContent(<cfoutput>#serializeJSON(RendererObj.renderScriptsToTinyMce(contentVar))#</cfoutput>);
-					// Clean up any table of contents that was already present in the loaded content (eg. an
-					// older post saved before this rewrite existed, or content reloaded after a prior insert).
+					<!--- Clean up any table of contents that was already present in the loaded content (eg. an older post saved before this rewrite existed, or content reloaded after a prior insert). --->
 					rewriteTocAnchors(editor);
 				});
 
-				// Whenever the built-in toc plugin inserts or refreshes the table of contents, immediately
-				// replace its random mcetoc_xxxxxxxxxx anchor ids with descriptive slugs so what you see in
-				// the editor already matches what will be saved.
+				<!--- Whenever the built-in toc plugin inserts or refreshes the table of contents, immediately replace its random mcetoc_xxxxxxxxxx anchor ids with descriptive slugs so what you see in the editor already matches what will be saved. --->
 				editor.on('ExecCommand', function (e) {
 					if (e.command === 'mceInsertToc' || e.command === 'mceUpdateToc') {
 						rewriteTocAnchors(editor);
@@ -346,85 +334,72 @@
 				});
 
 			<cfif selectorId eq 'enclosureEditor' or selectorId eq 'videoCoverEditor' or selectorId eq 'imageUploadEditor'>
-				// Listen to events to determine if a new image or video has been added
+				<!--- Listen to events to determine if a new image or video has been added --->
 				editor.on('NodeChange', function (e) {
-					// The NodeChange may have several thousands of events if your not careful and try to inspect it. I have also tried the following events but have not made them work.
-					// editor.on('Change', function (e) {
-					// editor.on('SetContent', function(e) { 
-					// save_callback : "myCustomSaveContent"
+					<!--- The NodeChange may have several thousands of events if your not careful and try to inspect it. I have also tried the following events but have not made them work. editor.on('Change', function (e) { editor.on('SetContent', function(e) { save_callback : "myCustomSaveContent" --->
 
-					// Here, we are looking to see when an image has been added to the editor and save the URL into a hidden form in order to save the url to the database. 
+					<!--- Here, we are looking to see when an image has been added to the editor and save the URL into a hidden form in order to save the url to the database. --->
 					if (e.element.tagName === "IMG" && e.element.currentSrc != e.element.src) { 
-						// console.log('e.element.currentSrc:' + e.element.currentSrc + ' e.element.src:' + e.element.src);
-						// alert('newImage')
-						/* 	Original logic to find external links. 
-							if (e.element.tagName === "IMG" && e.element.currentSrc != e.element.src && e.element.src.indexOf(window.location.host) == -1) { 
-						*/
+						<!--- console.log('e.element.currentSrc:' + e.element.currentSrc + ' e.element.src:' + e.element.src); alert('newImage') --->
+						<!--- Original logic to find external links. if (e.element.tagName === "IMG" && e.element.currentSrc != e.element.src && e.element.src.indexOf(window.location.host) == -1) { --->
 					<!--- This logic only applies when using the enclosure editor --->
 					<cfif selectorId eq 'enclosureEditor'>
-						// Clear the previous content and send the current URL that was chosen to populate the tinymce control
+						<!--- Clear the previous content and send the current URL that was chosen to populate the tinymce control --->
 						clearPreviousEditorContent( e.element.src );
 					</cfif>
 
-						//alert('e.element.src: ' + e.element.src + ' $("#externalImageUrl").val(): ' + $("#externalImageUrl").val() );
+						<!--- alert('e.element.src: ' + e.element.src + ' $("#externalImageUrl").val(): ' + $("#externalImageUrl").val() ); --->
 
-						// If the image has changed, send the data to the server to update the database. I only want to do this once per URL.
+						<!--- If the image has changed, send the data to the server to update the database. I only want to do this once per URL. --->
 						if ( e.element.src != $("#externalImageUrl").val() ){
-							// Custom save external URL function is on the various interfaces that use this code
+							<!--- Custom save external URL function is on the various interfaces that use this code --->
 							saveExternalUrl(e.element.src, 'image', '<cfoutput>#selectorId#</cfoutput>', '');
-							// Once the URL has been sent to the server, save the new url into the externalImageUrl hidden form. We will use this string to compare to the editor image src to see if something is new in order to pass the URL to the server
+							<!--- Once the URL has been sent to the server, save the new url into the externalImageUrl hidden form. We will use this string to compare to the editor image src to see if something is new in order to pass the URL to the server --->
 							$("#externalImageUrl").val(e.element.src);
 						}
 					}
 
-					/* The onChange event can be used instead of the onNodeChage as well:
-						editor.on('change', function (e) {
-						console.log('change event fired');
-						console.log(e);
-					*/
+					<!--- The onChange event can be used instead of the onNodeChage as well: editor.on('change', function (e) { console.log('change event fired'); console.log(e); --->
 				});//..editor.on('NodeChange', function (e) {
 			</cfif>
 
 				function clearPreviousEditorContent(currentSrc){
-					//alert('clearing content');
+					<!--- alert('clearing content'); --->
 
-					// There can be only one image or video (an iframe) in an enclosure. Before doing this, we first need to get the current contents of the editor to determine if there are more than 1 images or videos. */
-					// Get the current editor html content
+					<!--- There can be only one image or video (an iframe) in an enclosure. Before doing this, we first need to get the current contents of the editor to determine if there are more than 1 images or videos. */ Get the current editor html content --->
 					currentEditorContent = tinymce.activeEditor.getContent();
 
-					// Find and remove any previous images or videos from YouTube or Vimeo. 
+					<!--- Find and remove any previous images or videos from YouTube or Vimeo. --->
 					if (($(currentEditorContent).find("img").length > 1) || ($(currentEditorContent).find("img","iframe").length > 1)){
-						// alert($(currentEditorContent).find("img","iframe").length)
+						<!--- alert($(currentEditorContent).find("img","iframe").length) --->
 						
-						// Create the new image
+						<!--- Create the new image --->
 						var newImage = '<img src="' + currentSrc + '">';
 
-						// Only keep the first image or video
+						<!--- Only keep the first image or video --->
 						tinymce.activeEditor.setContent( newImage );
 
-						// For the external image or video preview, let tinymce resolve the URL natively (this is a tinymce function). When we display the video from the database plyr will take over. This may fail if the saveExternalUrl function is called the 2nd time
+						<!--- For the external image or video preview, let tinymce resolve the URL natively (this is a tinymce function). When we display the video from the database plyr will take over. This may fail if the saveExternalUrl function is called the 2nd time --->
 						try {
 							tinymce.resolve({ html: '' });
 						} catch(e){
-							// Do nothing
+							<!--- Do nothing --->
 						}
 		
 					}
-					// Code to get current selected item
-					// console.log(editor.selection.getNode())
+					<!--- Code to get current selected item console.log(editor.selection.getNode()) --->
 				}
 
 			<cfif includeGallery>
-				// Custom dialogs that are invoked via the toolbar
+				<!--- Custom dialogs that are invoked via the toolbar --->
 
-				// FancyBox Gallery. This opens up an uppy dialog. Note: this also needs to be added to the toolBarString			
+				<!--- FancyBox Gallery. This opens up an uppy dialog. Note: this also needs to be added to the toolBarString --->
 				editor.ui.registry.addButton('fancyBoxGallery', {
 					icon: "gallery",
 					tooltip: 'Image Gallery',
 					onAction: function (_) {
 						$('#image').val('');
-						// console.log('gallery' + tinymce.activeEditor.selection.getNode());
-						// Open up a new gallery window. The code for this window is the next switch block below.
+						<!--- console.log('gallery' + tinymce.activeEditor.selection.getNode()); Open up a new gallery window. The code for this window is the next switch block below. --->
 						createAdminInterfaceWindow(3,<cfoutput>#URL.optArgs#</cfoutput>,'gallery');
 					}
 				});
@@ -438,22 +413,21 @@
 				});
 			</cfif>
 			<cfif includeCarousel>
-				// Custom dialogs that are invoked via the toolbar
-				// Carousel. This opens up the same uppy dialog as the gallery. Note: this also needs to be added to the toolBarString	
+				<!--- Custom dialogs that are invoked via the toolbar Carousel. This opens up the same uppy dialog as the gallery. Note: this also needs to be added to the toolBarString --->
 
-				// Create the icon
+				<!--- Create the icon --->
 				editor.ui.registry.addIcon(
 					'carousel',
 					'<svg><span data-fa-symbol="carousel" class="fontAwesomeIcon fa-solid fa-panorama">&nbsp;</span></svg>'
 				);
 
-				// Create the button (note: this also needs to be added to the toolBarString)
+				<!--- Create the button (note: this also needs to be added to the toolBarString) --->
 				editor.ui.registry.addButton('carousel', {
 					text: '<i class="fontAwesomeIcon fa-solid fa-panorama"></i>',
 					tooltip: 'Carousel',
 					onAction: function (_) {
 						$('#image').val('');
-						// Open up the uppy upload window.
+						<!--- Open up the uppy upload window. --->
 						createAdminInterfaceWindow(3,<cfoutput>#URL.optArgs#</cfoutput>,'carousel');
 					}
 				});
@@ -467,20 +441,19 @@
 				});
 			</cfif>
 			<cfif includeCustomWindow>
-				// Create the icon
+				<!--- Create the icon --->
 				editor.ui.registry.addIcon(
 					'customWindow', 
 					'<svg><span data-fa-symbol="customWindow" class="fontAwesomeIcon fa-regular fa-up-right-from-square">&nbsp;</span></svg>'
 				);
 
-				// Custom dialogs that are invoked via the toolbar
-				// Custom window. This opens up a dialog to create a popup window (note: this also needs to be added to the toolBarString)
+				<!--- Custom dialogs that are invoked via the toolbar Custom window. This opens up a dialog to create a popup window (note: this also needs to be added to the toolBarString) --->
 				editor.ui.registry.addButton('customWindow', {
 					text: '<i class="fontAwesomeIcon fa-regular fa-up-right-from-square"></i>',
 					tooltip: 'Create Custom Window',
 					onAction: function (_) {
 						$('#image').val('');
-						// Open up a new video upload window. The code for this window is the next switch block below.
+						<!--- Open up a new video upload window. The code for this window is the next switch block below. --->
 						createAdminInterfaceWindow(45, '<cfoutput>#URL.optArgs#</cfoutput>');
 					}
 				});
@@ -494,20 +467,19 @@
 				});
 			</cfif>				
 			<cfif includeVideoUpload>
-				// Create the icon
+				<!--- Create the icon --->
 				editor.ui.registry.addIcon(
 					'videoUpload', 
 					'<svg><span data-fa-symbol="videoUpload" class="fontAwesomeIcon fas fa-file-video">&nbsp;</span></svg>'
 				);
 
-				// Custom dialogs that are invoked via the toolbar
-				// Video upload. This opens up an uppy dialog (note: this also needs to be added to the toolBarString)
+				<!--- Custom dialogs that are invoked via the toolbar Video upload. This opens up an uppy dialog (note: this also needs to be added to the toolBarString) --->
 				editor.ui.registry.addButton('videoUpload', {
 					text: '<i class="fontAwesomeIcon fas fa-file-video"></i>',
 					tooltip: 'Upload Video',
 					onAction: function (_) {
 						$('#image').val('');
-						// Open up a new video upload window. The code for this window is the next switch block below.
+						<!--- Open up a new video upload window. The code for this window is the next switch block below. --->
 						createAdminInterfaceWindow(14, '<cfoutput>#URL.optArgs#</cfoutput>');
 					}
 				});
@@ -520,20 +492,20 @@
 					}
 				});
 
-				// Create the icon
+				<!--- Create the icon --->
 				editor.ui.registry.addIcon(
 					'webVttUpload', 
 					'<svg><span data-fa-symbol="videoUpload" class="fontAwesomeIcon fas fa-closed-captioning">&nbsp;</span></svg>'
 				);
 
-				// WebVTT file upload. This opens up an uppy dialog (note: this also needs to be added to the toolBarString)
+				<!--- WebVTT file upload. This opens up an uppy dialog (note: this also needs to be added to the toolBarString) --->
 				editor.ui.registry.addButton('webVttUpload', {
 					text: '<i class="fontAwesomeIcon fas fa-closed-captioning"></i>',
 					tooltip: 'Upload WebVTT file for video captioning',
 					id: 'webVttUpload',
 					onAction: function (_) {
 						$('#image').val('');
-						// Open up a new video upload window. The code for this window is the next switch block below.
+						<!--- Open up a new video upload window. The code for this window is the next switch block below. --->
 						createAdminInterfaceWindow(16, <cfoutput>#URL.optArgs#</cfoutput>);
 					}
 				});
@@ -546,19 +518,19 @@
 					}
 				});
 
-				// Create the icon
+				<!--- Create the icon --->
 				editor.ui.registry.addIcon(
 					'videoCoverUpload', 
 					'<svg><span data-fa-symbol="videoUpload" class="fontAwesomeIcon fas fa-file-image">&nbsp;</span></svg>'
 				);
 
-				// WebVTT file upload. This opens up an uppy dialog (note: this also needs to be added to the toolBarString)
+				<!--- WebVTT file upload. This opens up an uppy dialog (note: this also needs to be added to the toolBarString) --->
 				editor.ui.registry.addButton('videoCoverUpload', {
 					text: '<i class="fontAwesomeIcon fas fa-file-image"></i>',
 					tooltip: 'Upload video image cover',
 					onAction: function (_) {
 						$('#image').val('');
-						// Open up a new image upload window. The code for this window is the next switch block below.
+						<!--- Open up a new image upload window. The code for this window is the next switch block below. --->
 						createAdminInterfaceWindow(18,<cfoutput>#URL.optArgs#</cfoutput>);
 					}
 				});
@@ -572,14 +544,13 @@
 				});
 			</cfif>
 			<cfif includeFileUpload>
-				// Custom dialogs that are invoked via the toolbar
-				// File upload. This opens up an uppy dialog (note: this also needs to be added to the toolBarString)
+				<!--- Custom dialogs that are invoked via the toolbar File upload. This opens up an uppy dialog (note: this also needs to be added to the toolBarString) --->
 				editor.ui.registry.addButton('fileUpload', {
 					icon: "upload",
 					tooltip: 'Upload File',
 					onAction: function (_) {
 						$('#image').val('');
-						// Open up a new file upload window. The code for this window is the next switch block below.
+						<!--- Open up a new file upload window. The code for this window is the next switch block below. --->
 						createAdminInterfaceWindow(17, '<cfoutput>#URL.optArgs#</cfoutput>');
 					}
 				});
@@ -592,143 +563,139 @@
 				});
 			</cfif>
 			<cfif includeMaps>
-				// Map	
-				// Create the icon
+				<!--- Map Create the icon --->
 				editor.ui.registry.addIcon(
 					'map',
 					'<svg><span data-fa-symbol="map" class="fontAwesomeIcon fas fa-globe">&nbsp;</span></svg>'
 				);
 
-				// Create the button (note: this also needs to be added to the toolBarString)
+				<!--- Create the button (note: this also needs to be added to the toolBarString) --->
 				editor.ui.registry.addButton('map', {
 					text: '<i class="fontAwesomeIcon fas fa-globe"></i>',
 					tooltip: 'Create a map',
 					onAction: function (_) {
 						$('#image').val('');
-						// See if a current map is selected. If it is, pass along the mapid in order to edit a current map
+						<!--- See if a current map is selected. If it is, pass along the mapid in order to edit a current map --->
 						var selectedContent = tinymce.activeEditor.selection.getNode();
-						// Get the map id. Note: tinymce appends 'mce-p-' to the data-map-id.
+						<!--- Get the map id. Note: tinymce appends 'mce-p-' to the data-map-id. --->
 						mapId = $(selectedContent).attr("data-mce-p-data-id");
-						// Open up a new image upload window. The code for this window is the next switch block below.
+						<!--- Open up a new image upload window. The code for this window is the next switch block below. --->
 						createAdminInterfaceWindow(19,<cfoutput>#URL.optArgs#,'#selectorId#'</cfoutput>,mapId);
 					}
 				});
 
-				// Add the menu item
+				<!--- Add the menu item --->
 				editor.ui.registry.addMenuItem('map', {
 					icon: 'map',
 					text: 'Map',
 					onAction: function () {
-						// See if a current map is selected. If it is, pass along the mapid in order to edit a current map
+						<!--- See if a current map is selected. If it is, pass along the mapid in order to edit a current map --->
 						var selectedContent = tinymce.activeEditor.selection.getNode();
-						// Get the map id. Note: tinymce appends 'mce-p-' to the data-map-id.
+						<!--- Get the map id. Note: tinymce appends 'mce-p-' to the data-map-id. --->
 						mapId = $(selectedContent).attr("data-mce-p-data-id");
-						// Open up a new image upload window. The code for this window is the next switch block below.
+						<!--- Open up a new image upload window. The code for this window is the next switch block below. --->
 						createAdminInterfaceWindow(19,<cfoutput>#URL.optArgs#,'#selectorId#'</cfoutput>,mapId);
 					}
 				});
 
-				// Map routing	
-				// Create the icon
+				<!--- Map routing Create the icon --->
 				editor.ui.registry.addIcon(
 					'mapRouting',
 					'<svg><span data-fa-symbol="mapRouting" class="fontAwesomeIcon fas fa-location-arrow">&nbsp;</span></svg>'
 				);
 
-				// Create the button (note: this also needs to be added to the toolBarString)
+				<!--- Create the button (note: this also needs to be added to the toolBarString) --->
 				editor.ui.registry.addButton('mapRouting', {
 					text: '<i class="fontAwesomeIcon fas fa-location-arrow"></i>',
 					tooltip: 'Map Directions between 2 or more points',
 					onAction: function (_) {
 						$('#image').val('');
-						// Open up a new map window. The code for this window is the next switch block below.
-						// Note: we are also sending the selectorId to determine what interface we are on
+						<!--- Open up a new map window. The code for this window is the next switch block below. Note: we are also sending the selectorId to determine what interface we are on --->
 						createAdminInterfaceWindow(20,<cfoutput>#URL.optArgs#,'#selectorId#'</cfoutput>);
 					}
 				});
 
-				// Add the menu item
+				<!--- Add the menu item --->
 				editor.ui.registry.addMenuItem('mapRouting', {
 					icon: 'mapRouting',
 					text: 'Map Directions',
 					onAction: function () {
-						// Note: we are also sending the selectorId to determine what interface we are on
+						<!--- Note: we are also sending the selectorId to determine what interface we are on --->
 						createAdminInterfaceWindow(20,<cfoutput>#URL.optArgs#,'#selectorId#'</cfoutput>);
 					}
 				});
 			</cfif>
 
 				try {
-					// Set an data-mediaId attribute. We will insert the value when the image was succesfully uploaded and the mediaId was returned from the server. We saved the mediaId into the imageId hidden input field when the server returned data. Here, we are taking that value and inserting the mediaId.
+					<!--- Set an data-mediaId attribute. We will insert the value when the image was succesfully uploaded and the mediaId was returned from the server. We saved the mediaId into the imageId hidden input field when the server returned data. Here, we are taking that value and inserting the mediaId. --->
 					e.element.setAttribute("data-mediaid", $("#<cfoutput>#imageMediaIdField#</cfoutput>").val()); 
-					// Wrap the image with the class that we want
+					<!--- Wrap the image with the class that we want --->
 					if (!$('.<cfoutput>#imageClass#</cfoutput>').length){
 						$(e.element).wrap("<div class='<cfoutput>#imageClass#</cfoutput>'></div>");
 					}
-					// Important note: in order to be able to do other intented actions, such as editting an image, we must put a return here.
+					<!--- Important note: in order to be able to do other intented actions, such as editting an image, we must put a return here. --->
 					return true;
 				} catch {
 					return true;
 				}	
 			},
-			// Force tinymce to use the image path that I return it insted of changing the image url
+			<!--- Force tinymce to use the image path that I return it insted of changing the image url --->
 			relative_urls: false,
 			remove_script_host: false,
 			convert_urls: true,
-			// What is the URL on the server side that will save this image? This URL will return a json string indicating the full path of the image.
-			/* images_upload_url does not set a header on mobile devices. This causes an 'tinymce image upload failed due to a xhr transport error. Code 0' error when using an iPhone. When using mobile, we need to use a custom function that is used with the images_upload_handler argument instead. */ 
-			//images_upload_url: 'https://gregorysblog.org/common/cfc/ProxyController.cfc?method=uploadImage',
+			<!--- What is the URL on the server side that will save this image? This URL will return a json string indicating the full path of the image. --->
+			<!--- images_upload_url does not set a header on mobile devices. This causes an 'tinymce image upload failed due to a xhr transport error. Code 0' error when using an iPhone. When using mobile, we need to use a custom function that is used with the images_upload_handler argument instead. --->
+			<!--- images_upload_url: 'https://gregorysblog.org/common/cfc/ProxyController.cfc?method=uploadImage', --->
 			images_upload_handler: imageUploadHandler,
-			// Custom function that is called when we embed videos using the media plugin. We need to use this for enclosures in order to save the URL to the database.
+			<!--- Custom function that is called when we embed videos using the media plugin. We need to use this for enclosures in order to save the URL to the database. --->
 			media_url_resolver: function (data, resolve/*, reject*/) { 
-				// Do not try to inspect the events here, there are thousands of them and you're going to crash the browser.
+				<!--- Do not try to inspect the events here, there are thousands of them and you're going to crash the browser. --->
 
-				// Upload post related media
+				<!--- Upload post related media --->
 				jQuery.ajax({
 					type: 'post', 
 					url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveExternalMediaEnclosure&template=tinyMce',
 					data: { // arguments
 						csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
-						// Pass the mediaId saved in the mediaId hidden form if it is available
+						<!--- Pass the mediaId saved in the mediaId hidden form if it is available --->
 						mediaId: $("#<cfoutput>#imageMediaIdField#</cfoutput>").val(),
 						externalUrl: data.url,
-						// Many interfaces don't have the post ID in the URL
+						<!--- Many interfaces don't have the post ID in the URL --->
 						postId: <cfif structKeyExists(URL,"optArgs") and len(URL.optArgs)><cfoutput>#URL.optArgs#</cfoutput><cfelse>''</cfif>,
 						mediaType: 'video',
-						// Get the videoid and provider using the get-video-id javascript library. This script should be included on the UI that calls this template
+						<!--- Get the videoid and provider using the get-video-id javascript library. This script should be included on the UI that calls this template --->
 						providerVideoId: getVideoId(data.url).id,
 						videoProvider: getVideoId(data.url).service,
 						selectorId: '<cfoutput>#selectorId#</cfoutput>'
 					},
 					dataType: "json",
-					//success: saveWebVttResponse, // calls the result function.
+					<!--- success: saveWebVttResponse, // calls the result function. --->
 					error: function(ErrorMsg) {
 						console.log('Error' + ErrorMsg);
 					}
-				// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+				<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 				}).fail(function (jqXHR, textStatus, error) {
 
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveExternalMediaEnclosure function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning. You can also specify height.
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});		
 				});
 			<cfif selectorId eq 'enclosureEditor'>	
-				// Refresh the enclosure media preview- pass in the postId
+				<!--- Refresh the enclosure media preview- pass in the postId --->
 				reloadEnclosureThumbnailPreview(<cfoutput>#URL.optArgs#</cfoutput>);
-				// Remove previous enclosure editor content
+				<!--- Remove previous enclosure editor content --->
 				tinymce.activeEditor.setContent('');
 			</cfif>
-				// For the external video preview, let tinymce resolve the URL natively (this is a tinymce function). When we display the video from the database plyr will take over (Note: this does not remove prior content)
+				<!--- For the external video preview, let tinymce resolve the URL natively (this is a tinymce function). When we display the video from the database plyr will take over (Note: this does not remove prior content) --->
 				resolve({ html: '' });
 			},
-			// Turn off the 'powered by Tiny' advertisement at the bottom of the editor
+			<!--- Turn off the 'powered by Tiny' advertisement at the bottom of the editor --->
 			branding: false
 		});
 						
-		// Print the current menu (useful to get the current menu items for a given editor): 
-		// console.log(tinyMCE.activeEditor.ui.registry.getAll().menuItems);
+		<!--- Print the current menu (useful to get the current menu items for a given editor): console.log(tinyMCE.activeEditor.ui.registry.getAll().menuItems); --->
 		
 		function imageUploadHandler(blobInfo, success, failure) {
 			var xhr, formData;
@@ -736,11 +703,11 @@
 			xhr = new XMLHttpRequest();
 			xhr.withCredentials = true;
 			xhr.open('POST', "<cfoutput>#imageHandlerUrl#</cfoutput>");
-			//xhr.setRequestHeader('Content-Type', 'multipart/form-data;'); // manually set header
+			<!--- xhr.setRequestHeader('Content-Type', 'multipart/form-data;'); // manually set header --->
 
-			// Set a timeout for Safari on mobile
+			<!--- Set a timeout for Safari on mobile --->
 			xhr.timeout = 50000; // time in milliseconds (50 seconds)
-			// Onload event 
+			<!--- Onload event --->
 			xhr.onload = function() {
 				var json;
 
@@ -749,23 +716,21 @@
 					return;
 				}
 
-				// Extract the data from the json array. There should be the location and the new media id.
-				// Note: we don't need to loop thorugh anything as there is only one record in the response array.
+				<!--- Extract the data from the json array. There should be the location and the new media id. Note: we don't need to loop thorugh anything as there is only one record in the response array. --->
 				var json = JSON.parse(xhr.responseText);
 				var location = json.location; // or json["location"]
 				var mediaId = json.mediaId; // or json["mediaId"]
 				var mediaActions = json.mediaActions; // This is only present with image enclosures at this time
 				
-				// Remove and save the media id into the imageMediaId hidden form field. We need to retain the mediaId in order to append it to the image to associate the image to the record of the database. We can't perform any further action on the new source code here as the image has not yet been placed into the editor and is not available in the DOM. 
-				// Remove the prior mediaId 
+				<!--- Remove and save the media id into the imageMediaId hidden form field. We need to retain the mediaId in order to append it to the image to associate the image to the record of the database. We can't perform any further action on the new source code here as the image has not yet been placed into the editor and is not available in the DOM. Remove the prior mediaId --->
 				$("#<cfoutput>#imageMediaIdField#</cfoutput>").val('');
-				// And save it...
+				<!--- And save it... --->
 				$("#<cfoutput>#imageMediaIdField#</cfoutput>").val(mediaId);
 							
 			<cfif selectorId neq 'imageUploadEditor'>
-				// Raise a dialog indicating the actions taken 
+				<!--- Raise a dialog indicating the actions taken --->
 				var mediaActionHtmlList = "The images have been optimized for social media sharing and the following images have been created:<br/><ul>";
-				// Loop through the comma separated list and get each action
+				<!--- Loop through the comma separated list and get each action --->
 				for (i = 0; i < listLen(mediaActions); i++) {
 					mediaActionHtmlList = mediaActionHtmlList + "<li>" + listGetAt(mediaActions, i) + "</li>";
 				}
@@ -778,46 +743,45 @@
 				});	*/
 			</cfif>
 				
-				// Note: we can't reset the content of the editor here as it would remove the current image when editing is taking place.
-				// Call the tinymce success function and pass along the location to populate the editor. This is a native tinymce function.
+				<!--- Note: we can't reset the content of the editor here as it would remove the current image when editing is taking place. Call the tinymce success function and pass along the location to populate the editor. This is a native tinymce function. --->
 				success(location);
 				
 				<cfif selectorId eq 'enclosureEditor'>
 				try {
-					// When the enclosureEditor is being used, update the enclosure thumbnail image.
+					<!--- When the enclosureEditor is being used, update the enclosure thumbnail image. --->
 					if (location.includes(".png") || location.includes(".gif") || location.includes(".jpg")){
 						var thumbnailImage = document.getElementById("thumbnailImage");
 						thumbnailImage.src = location;
 					}
 				} catch(e) {
-					// Do nothing 
+					<!--- Do nothing --->
 				}
 				</cfif>
 			};
 
 			xhr.onabort = function (e) {
-				// XMLHttpRequest aborted.
+				<!--- XMLHttpRequest aborted. --->
 				alert('Process aborted');
 			};
 
 			xhr.onerror = function (e) {
-				// XMLHttpRequest errored. 
+				<!--- XMLHttpRequest errored. --->
 				alert('Error: ' + xhr.status);
 			};
 
 			xhr.ontimeout = function (e) {
-				// XMLHttpRequest timed out. 
+				<!--- XMLHttpRequest timed out. --->
 				tinymce.activeEditor.windowManager.close();
 			};
 
 			formData = new FormData();
-			// The file is the editor field
+			<!--- The file is the editor field --->
 			formData.append('file', blobInfo.blob(), blobInfo.filename());
 
 			xhr.send(formData);
 		}//function imageUploadHandler(blobInfo, success, failure) {
 		
-		// Displays the editors. Used for debugging
+		<!--- Displays the editors. Used for debugging --->
 		function displayEditorNames(){
 			if (!tinyMCE.editors.length) {
 				alert('none');
@@ -828,11 +792,6 @@
 			}
 		}
 		
-		/* Another way of setting content- but it also does not solve the problems that I am having as the editors are not defined:
-		for(i=0; i < tinymce.editors.length; i++){
-			alert('inserting content into ' + tinymce.editors[i])
-			tinymce.editors[i].setContent('content');
-		} 
-		*/
+		<!--- Another way of setting content- but it also does not solve the problems that I am having as the editors are not defined: for(i=0; i < tinymce.editors.length; i++){ alert('inserting content into ' + tinymce.editors[i]) tinymce.editors[i].setContent('content'); } --->
 	
 	</script>

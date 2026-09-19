@@ -19,18 +19,7 @@
 			font: 15px Arial, sans-serif;
 		}
 	
-		/* FontAwesome HEX codes:
-		Edit f044 or f6d9
-		Round edit F05D
-		Check f00c
-		Delete f1f8
-		Search f002
-		Eraser f12d
-		Cancel f05e
-		Add  f067 
-		Filter f0b0
-		Notes: make sure to remove the .jsgrid .jsgrid-button { background-image: url in the css file in the jsgrid .jsgrid-button declarations (there are two locations in the .css file), otherwise, a big red x will be overlaid on the controls.
-		*/
+		<!--- FontAwesome HEX codes: Edit f044 or f6d9 Round edit F05D Check f00c Delete f1f8 Search f002 Eraser f12d Cancel f05e Add f067 Filter f0b0 Notes: make sure to remove the .jsgrid .jsgrid-button { background-image: url in the css file in the jsgrid .jsgrid-button declarations (there are two locations in the .css file), otherwise, a big red x will be overlaid on the controls. --->
 
 		.jsgrid-button {
 			position: relative;
@@ -82,15 +71,15 @@
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
 	<script>
-	// Get the page width. This is necessary to use percentage based widths in the columns.
+	<!--- Get the page width. This is necessary to use percentage based widths in the columns. --->
 	var pageWidth = $("#<cfoutput>#gridName#</cfoutput>").parent().width() - 100;
 
-	// Rebind our custom buttons.
+	<!--- Rebind our custom buttons. --->
 	window.FontAwesomeConfig = {
 		autoReplaceSvg: 'nest' 
 	}
 
-	// Set up the grid.
+	<!--- Set up the grid. --->
 	$(function() {
 			
 		jsGrid.setDefaults({
@@ -125,7 +114,7 @@
 			}
 		});
 		  
-		// Grid declaration
+		<!--- Grid declaration --->
 		$("#<cfoutput>#gridName#</cfoutput>").jsGrid({
 			height: "720px",
 			width: "100%",
@@ -144,25 +133,25 @@
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getUserHistoryForGrid&gridType=jsGrid&username=<cfoutput>#URL.optArgs#</cfoutput>&&csrfToken=<cfoutput>#csrfToken#</cfoutput>", 
 						data: filter,
 						dataType: "json"
-					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
+					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(result) {
 						return result.data;
-					// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
-						// This is a secured function. Display the login screen if there is a 403 response header.
+						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
 						if (jqXHR.status === 403) { 
 							createLoginWindow(); 
 						} else {//...if (jqXHR.status === 403) { 
-							// The full response is: jqXHR.responseText, but we just want to extract the error.
+							<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the getUserHistoryForGrid function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 								).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						}//...if (jqXHR.status === 403) { 
 					});
 				},
 			},
-			// Fields 
+			<!--- Fields --->
 			fields: [
 				{ 
 					name: "IpAddress", 
@@ -188,7 +177,7 @@
 					editing: false,
 					width: (pageWidth*(<cfif session.isMobile>50<cfelse>20</cfif>/100)),
 					itemTemplate: function (value, item) {
-						// Format the date using the dayjs lib.
+						<!--- Format the date using the dayjs lib. --->
 						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');
 					}
 				},
@@ -204,7 +193,7 @@
    	</script>
 	
 	<script>
-		// Script to add custom font awesome buttons. This does not need to be editted unless you want to change the css class names (ie jsgrid-button etc).
+		<!--- Script to add custom font awesome buttons. This does not need to be editted unless you want to change the css class names (ie jsgrid-button etc). --->
 		(function(jsGrid, $, undefined) {
 
 			var Field = jsGrid.Field;

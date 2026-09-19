@@ -149,13 +149,13 @@
 	
 	<script>
 		
-		// Raise a dialog when the post has been released and the title has changed. Chaning the title can be detrimental to SEO once the post is released, however, there are times when the user may want to change it. 
+		<!--- Raise a dialog when the post has been released and the title has changed. Chaning the title can be detrimental to SEO once the post is released, however, there are times when the user may want to change it. --->
 		function checkTitle(){
-			// Set a var to determine if the post has been released. We also want to check the dates when the post is first released, but not afterward
+			<!--- Set a var to determine if the post has been released. We also want to check the dates when the post is first released, but not afterward --->
 			var postReleased = <cfif getPost[1]["Released"]>true<cfelse>false</cfif>;
 			
 			if ( postReleased && ( $("#title").val() != '<cfoutput>#getPost[1]["Title"]#</cfoutput>' ) ) {
-				// If the title has changed, raise an alert
+				<!--- If the title has changed, raise an alert --->
 				$.when(kendo.ui.ExtYesNoDialog.show({ 
 						title: "Change Title and Link?",
 						message: "Changing the post link after the post has been released can have adverse effects on SEO especially if Goolgle indexed the URL. Do you also want to change the link to your post?",
@@ -165,10 +165,10 @@
 					})
 				).done(function (response) { // If the user clicked 'yes'
 					if (response['button'] == 'Yes'){// remember that js is case sensitive.
-						// Change the hidden form to indicate that we will change the title and link
+						<!--- Change the hidden form to indicate that we will change the title and link --->
 						$("#changeTitleAndLink").val(1);
 					} else {
-						// We are changing the title, but not the link
+						<!--- We are changing the title, but not the link --->
 						$("#changeTitleAndLink").val(0);
 					}
 				});//).done(function (response)...
@@ -177,23 +177,23 @@
 
 		$(document).ready(function() {
 			
-			// Set a var to determine if the post has been released. We also want to check the dates when the post is first released, but not afterward
+			<!--- Set a var to determine if the post has been released. We also want to check the dates when the post is first released, but not afterward --->
 			var postReleased = <cfif getPost[1]["Released"]>true<cfelse>false</cfif>;
 			var todaysDate = new Date(); 
-			// Are the post dates and sort dates the same? If so, we are assuming that the two dates are identical when suggesting a date change. If they are different dates, we will leave the sort date alone when suggesting dates.
+			<!--- Are the post dates and sort dates the same? If so, we are assuming that the two dates are identical when suggesting a date change. If they are different dates, we will leave the sort date alone when suggesting dates. --->
 			var originalPostDate = <cfoutput>#application.Udf.jsDateFormat(getPost[1]['DatePosted'])#</cfoutput>;
 			var originalBlogSortDate = <cfoutput>#application.Udf.jsDateFormat(getPost[1]['BlogSortDate'])#</cfoutput>;
 			
-			// Compare the post date to the sort date and set a var
+			<!--- Compare the post date to the sort date and set a var --->
 			if (originalPostDate.getTime() === originalBlogSortDate.getTime() ){
 				var syncPostAndSortDate = true;
 			} else {
 				var syncPostAndSortDate = false;
 			}
 			
-			// Check and recommend dates when the date is changed or the post has just been released.
+			<!--- Check and recommend dates when the date is changed or the post has just been released. --->
 			function checkAndRecommendDates(selectedDate) {				
-				// Check to see if the selected date is greater than today
+				<!--- Check to see if the selected date is greater than today --->
 				if (selectedDate > todaysDate){
 					$.when(kendo.ui.ExtYesNoDialog.show({ 
 							title: "Release post in the future?",
@@ -204,17 +204,17 @@
 						})
 					).done(function (response) { // If the user clicked 'yes'
 						if (response['button'] == 'Yes'){// remember that js is case sensitive.
-							// Do nothing
+							<!--- Do nothing --->
 						} else {
-							// Change the date to now
+							<!--- Change the date to now --->
 							$("#datePosted").kendoDateTimePicker({
 								value: new Date(Date.now())
 							});
 						}
 					});//).done(function (response)..
-				// Is the selected date less than today's date?
+				<!--- Is the selected date less than today's date? --->
 				} else if (selectedDate < todaysDate){
-					// Suggest changing the post date
+					<!--- Suggest changing the post date --->
 					$.when(kendo.ui.ExtYesNoDialog.show({ 
 						title: "Can we change the post date to the current time and date?",
 						message: "You are using an older date and this may negatively impact the post placement and your RSS feeds. Can we change the post date using the current date?",
@@ -224,34 +224,33 @@
 						})
 					).done(function (response) { // If the user clicked 'yes'
 						if (response['button'] == 'Yes'){// remember that js is case sensitive.
-							// Change the date posted to now
+							<!--- Change the date posted to now --->
 							$("#datePosted").kendoDateTimePicker({
 								value: new Date(Date.now())
 							});
-							// Change the sort date in the hidden field when they are the same
+							<!--- Change the sort date in the hidden field when they are the same --->
 							$("#newBlogSortDate").val( todaysDate );
 						} else {
-							// Do nothing
+							<!--- Do nothing --->
 						}
 					});//).done(function (response)..
 				}//} else if (this.value() < todaysDate){{..
             }//..onDatePostedChange
 			
-			// Kendo Dropdowns
-			// Date posted date/time picker			
+			<!--- Kendo Dropdowns Date posted date/time picker --->
 			$("#datePosted").kendoDateTimePicker({
                 componentType: "modern",
 				value: <cfif len(getPost[1]['DatePosted'])>originalPostDate<cfelse>new Date()</cfif>,
 				change: onDatePostedChange
             });
 			
-			// Check the dates when the post date is changed.
+			<!--- Check the dates when the post date is changed. --->
 			function onDatePostedChange() {
-                // Check and recommend dates depending upon the selected date
+                <!--- Check and recommend dates depending upon the selected date --->
 				checkAndRecommendDates(this.value());
             }//..onDatePostedChange
 			
-			// Also check the dates when the released button is clicked
+			<!--- Also check the dates when the released button is clicked --->
 			$('#released').click(function(){
 				if($(this).is(':checked')){
 					var selectedDate = kendo.toString($("#datePosted").data("kendoDateTimePicker").value());
@@ -259,12 +258,12 @@
 				}
 			});
 			
-			// ---------------------------- author dropdown. ----------------------------
+			<!--- --- author dropdown. --- --->
 			var authorDs = new kendo.data.DataSource({
 				transport: {
 					read: {
 						cache: false,
-						// Note: since this template is in a different directory, we can't specify the cfc template without the full path name.
+						<!--- Note: since this template is in a different directory, we can't specify the cfc template without the full path name. --->
 						url: function() { // The cfc component which processes the query and returns a json string. 
 							return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getAuthorsForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>"; 
 						}, 
@@ -275,40 +274,40 @@
 				} //...transport:
 			});//...var authorDs...
 			
-			// Create the top level dropdown
+			<!--- Create the top level dropdown --->
 			var author = $("#author").kendoDropDownList({
-				//cascadeFrom: "agencyRateCompanyCode",
+				<!--- cascadeFrom: "agencyRateCompanyCode", --->
 				optionLabel: "Select...",
-				// Template to add a new type when no data was found.
+				<!--- Template to add a new type when no data was found. --->
 				noDataTemplate: $("#addUser").html(),
 				autoBind: false,
 				dataTextField: "FullName",
 				dataValueField: "UserId",
 				filter: "contains",
 				dataSource: authorDs,
-				// Use the close event to fire off events. The change event is fired off when setting the value of this dropdown list.
+				<!--- Use the close event to fire off events. The change event is fired off when setting the value of this dropdown list. --->
 				close: onAuthorChange
 			}).data("kendoDropDownList");
 
-			// Set default value by the value (this is used when the container is populated via the datasource).
+			<!--- Set default value by the value (this is used when the container is populated via the datasource). --->
 			var author = $("#author").data("kendoDropDownList");
 			author.value( <cfoutput>#getPost[1]['UserId']#</cfoutput> );
 			author.trigger("change");
 
-			// On change function to save the selected value.
+			<!--- On change function to save the selected value. --->
 			function onAuthorChange(e){
-				// Get the value
+				<!--- Get the value --->
 				userId = this.value();
 			}//...function onAuthorChange(e)
 			
-			// ---------------------------- category dropdown. ----------------------------
+			<!--- --- category dropdown. --- --->
 			
-			// Category datasource.
+			<!--- Category datasource. --->
 			var categoryDs = new kendo.data.DataSource({
-				// serverFiltering: "true",// Since we are using serverFiltering, the values from the previous dropdown will be sent to the server for processing.
+				<!--- serverFiltering: "true",// Since we are using serverFiltering, the values from the previous dropdown will be sent to the server for processing. --->
 				transport: {
 					read: {
-						// We are using a function to pass additional selected arguments to the cfc.
+						<!--- We are using a function to pass additional selected arguments to the cfc. --->
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getCategoriesForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
 						dataType: "json",
 						contentType: "application/json; charset=utf-8", // Note: when posting json via the request body to a coldfusion page, we must use this content type or we will get a 'IllegalArgumentException' on the ColdFusion processing page.
@@ -317,11 +316,11 @@
 				}//...transport:
 			});//...var categoryDs...
 
-			// Note: categories is a reserved Kendo word- if you name this categories, it will fail.
+			<!--- Note: categories is a reserved Kendo word- if you name this categories, it will fail. --->
 			$("#postCategories").kendoMultiSelect({
 				autoBind: true,
 				filter: "contains",
-				// Template to add a new type when no data was found.
+				<!--- Template to add a new type when no data was found. --->
 				noDataTemplate: $("#addCategoryNoData").html(),
 				placeholder: "Select Category...",
 				dataTextField: "Category",
@@ -335,21 +334,21 @@
                     { CategoryId: "<cfoutput>#categoryId#</cfoutput>", Category: "<cfoutput>#category#</cfoutput>" },
                 </cfloop>],
 				change: function(e){
-					// Get the value
+					<!--- Get the value --->
 					var selectedCategories = $("#postCategories").data("kendoMultiSelect").value();
-					// And set it into the hidden form
+					<!--- And set it into the hidden form --->
 					$("#selectedPostCategories").val(selectedCategories);
 				}
 			});//...$("#postCategories")
 			
-			// ---------------------------- tags dropdown. ----------------------------
+			<!--- --- tags dropdown. --- --->
 			
-			// tag datasource.
+			<!--- tag datasource. --->
 			var tagDs = new kendo.data.DataSource({
-				// serverFiltering: "true",// Since we are using serverFiltering, the values from the previous dropdown will be sent to the server for processing.
+				<!--- serverFiltering: "true",// Since we are using serverFiltering, the values from the previous dropdown will be sent to the server for processing. --->
 				transport: {
 					read: {
-						// We are using a function to pass additional selected arguments to the cfc.
+						<!--- We are using a function to pass additional selected arguments to the cfc. --->
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getTagsForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
 						dataType: "json",
 						contentType: "application/json; charset=utf-8", // Note: when posting json via the request body to a coldfusion page, we must use this content type or we will get a 'IllegalArgumentException' on the ColdFusion processing page.
@@ -358,11 +357,11 @@
 				}//...transport:
 			});//...var tagDs...
 
-			// Note: categories is a reserved Kendo word- if you name this categories, it will fail.
+			<!--- Note: categories is a reserved Kendo word- if you name this categories, it will fail. --->
 			$("#postTags").kendoMultiSelect({
 				autoBind: true,
 				filter: "contains",
-				// Template to add a new type when no data was found.
+				<!--- Template to add a new type when no data was found. --->
 				noDataTemplate: $("#addTagNoData").html(),
 				placeholder: "Select Tag...",
 				dataTextField: "Tag",
@@ -377,13 +376,13 @@
                 </cfloop>]
 			});//...$("#postTags")
 			
-			// ---------------------------- related posts dropdown. ----------------------------
+			<!--- --- related posts dropdown. --- --->
 			
-			// Related Posts datasource.
+			<!--- Related Posts datasource. --->
 			var relatedPostsDs = new kendo.data.DataSource({
 				transport: {
 					read: {
-						// We are using a function to pass additional selected arguments to the cfc.
+						<!--- We are using a function to pass additional selected arguments to the cfc. --->
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getPostsTitleAndId&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
 						dataType: "json",
 						contentType: "application/json; charset=utf-8", // Note: when posting json via the request body to a coldfusion page, we must use this content type or we will get a 'IllegalArgumentException' on the ColdFusion processing page.
@@ -408,19 +407,19 @@
                 </cfloop>]
 			});//...$("#relatedPosts")
 			
-			// ---------------------------- form validation ----------------------------
+			<!--- --- form validation --- --->
 		
 			// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 			var postDetailFormValidator = $("#postDetails").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
-					// title
+					<!--- title --->
 					titleRequired:
 					function(input){
 						if (input.is("[id='title']") && $.trim(input.val()).length < 3){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-titleRequired-msg", "The title must be at least 3 characters");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#title" ).focus();
 							return false;
 						}                                    
@@ -429,21 +428,21 @@
 					titleMaxLen:
 					function(input){
 						if (input.is("[id='title']") && $.trim(input.val()).length > 125){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-titleMaxLen-msg", "The title can't have more than 125 characters");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#title" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
-					// Desc
+					<!--- Desc --->
 					descriptionRequired:
 					function(input){
 						if (input.is("[id='description']") && $.trim(input.val()).length < 3){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-descriptionRequired-msg", "The description is required");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#description" ).focus();
 							return false;
 						}                                    
@@ -452,9 +451,9 @@
 					descriptionLen:
 					function(input){
 						if (input.is("[id='description']") && $.trim(input.val()).length > 1250){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-descriptionLen-msg", "The description needs to be under 1250 characters");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#description" ).focus();
 							return false;
 						}                                    
@@ -463,23 +462,23 @@
 				}
 			}).data("kendoValidator");
 		
-			// Invoked when the submit button is clicked. Instead of using '$("form").submit(function(event) {' and 'event.preventDefault();', we are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Instead of using '$("form").submit(function(event) {' and 'event.preventDefault();', we are using direct binding here to speed up the event. --->
 			var postDetailSubmit = $('#postDetailSubmit');
 			postDetailSubmit.on('click', function(e){  
                 e.preventDefault();         
 				if (postDetailFormValidator.validate()) {
-					// If the selected postType radio button is page, submit the page. Otherwise, raise a dialog asking the admin if they want to send email to subscribers
+					<!--- If the selected postType radio button is page, submit the page. Otherwise, raise a dialog asking the admin if they want to send email to subscribers --->
 					if ($("input[type=radio][name=postType]:checked" ).val() == 'page'){
-						// Submit the page and don't generate an email (postDetails(action, sendEmail))
+						<!--- Submit the page and don't generate an email (postDetails(action, sendEmail)) --->
 						postDetails('update', false);
 					} else {
-						// Raise a prompt to see if the author wants to send email 
+						<!--- Raise a prompt to see if the author wants to send email --->
 						verifyPostEmail('update');
 					}
 				} else { //if (postDetailFormValidator.validate()) {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Required fields have not been filled out. Please correct the highlighted fields and try again", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}//if (postDetailFormValidator.validate()) {
 			});
@@ -487,8 +486,7 @@
 		
 		function confirmPostRemoval(){
 			
-			// Confirm post removal
-			// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
+			<!--- Confirm post removal Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension. --->
 			$.when(kendo.ui.ExtYesNoDialog.show({ 
 				title: "Remove post?",
 				message: "Are you sure? This will remove the post from the blog.",
@@ -498,17 +496,17 @@
 			})
 			).done(function (response) { // If the user clicked 'yes', post it.
 				if (response['button'] == 'Yes'){// remember that js is case sensitive.
-					// Raise a dialog asking the admin if they want to create a redirect
+					<!--- Raise a dialog asking the admin if they want to create a redirect --->
 					promptForUrlRedirect('update');
 				} else {
-					// Uncheck the remove checkbox
+					<!--- Uncheck the remove checkbox --->
 					$('#remove').prop('checked', false);
 				}//..if (response['button'] == 'Yes'){
 			});
 		}
 		
 		function promptForUrlRedirect(action){
-			// If the post is released and it removed, prompt to see if we should create a URL redirect
+			<!--- If the post is released and it removed, prompt to see if we should create a URL redirect --->
 			if ( $('#released').is(':checked') && $('#remove').is(':checked') ){
 				$.when(kendo.ui.ExtYesNoDialog.show({ 
 					title: "Create URL Redirect?",
@@ -519,24 +517,24 @@
 				})
 				).done(function (response) { // If the user clicked 'yes'
 					if (response['button'] == 'Yes'){// remember that js is case sensitive.
-						// Open a new interface to enter the new URL 
+						<!--- Open a new interface to enter the new URL --->
 						createAdminInterfaceWindow(56,<cfoutput>#getPost[1]['PostId']#</cfoutput>)
 					} else {
-						// postDetails(action, sendEmail)
+						<!--- postDetails(action, sendEmail) --->
 						postDetails('update', false);
 					}//..if (response['button'] == 'Yes'){
 				});//..if ($('#released').is(':checked')){
 			} else {
-				// postDetails(action, sendEmail)
+				<!--- postDetails(action, sendEmail) --->
 				postDetails('update', false);
 			}
 		}
 		
 		function verifyPostEmail(action){
-			// Create a var to determine whether we sould prompt the user to email
+			<!--- Create a var to determine whether we sould prompt the user to email --->
 			var promptToEmailToSubscribers = <cfoutput>#promptToEmailToSubscribers#</cfoutput>;
 	
-			// If the post is released and it is not being removed, prompt to see if we should send an email to the subscribers
+			<!--- If the post is released and it is not being removed, prompt to see if we should send an email to the subscribers --->
 			if ( promptToEmailToSubscribers && $('#released').is(':checked') && !$('#remove').is(':checked') ){
 				$.when(kendo.ui.ExtYesNoDialog.show({ 
 					title: "<cfoutput>#promptEmailTitle#</cfoutput>",
@@ -557,17 +555,14 @@
 			}
 		}
 		
-		// Post method on the detail form called from the commentDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the commentDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postDetails(action, sendEmail){
 			
-			// Get a reference to the post editor and run a final pass to make sure any table-of-contents
-			// anchors use descriptive slugs (see rewriteTocAnchors in tinyMce.cfm) rather than the toc
-			// plugin's random mcetoc_ ids, in case the TOC was inserted/updated without triggering the
-			// editor's own ExecCommand hook for some reason. This guarantees the saved content is always clean.
+			<!--- Get a reference to the post editor and run a final pass to make sure any table-of-contents anchors use descriptive slugs (see rewriteTocAnchors in tinyMce.cfm) rather than the toc plugin's random mcetoc_ ids, in case the TOC was inserted/updated without triggering the editor's own ExecCommand hook for some reason. This guarantees the saved content is always clean. --->
 			var postEditor = tinymce.get("<cfoutput>#selectorName#</cfoutput>");
 			rewriteTocAnchors(postEditor);
 
-			// Get the post content
+			<!--- Get the post content --->
 			var postContent = postEditor.getContent();
 			//  Bypass ColdFusions global script protection to allow JavaScripts in a post. This is done by replacing '<script', '<style' and '<meta' with '<attachScript', '<attachStyle' and '<attachMeta' before the post content gets processed by the server. This JavaScript is in the blogJsContent.cfm template.
 			var postContentNoScripts = bypassScriptProtection(postContent);
@@ -576,14 +571,14 @@
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=savePost',
 				data: { // arguments
-					// We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#formName").serialize()' or use the stringify method to pass it as an array of values. 
+					<!--- We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#formName").serialize()' or use the stringify method to pass it as an array of values. --->
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					postId: $("#postId").val(),
 					postType: $("input[type=radio][name=postType]:checked" ).val(),
 					postAlias: $("#postAlias").val(),
 					datePosted: kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'MM/dd/yyyy'),
 					timePosted: kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'hh:mm tt'),
-					// The next two values are hidden form fields populated by the post sort date interface
+					<!--- The next two values are hidden form fields populated by the post sort date interface --->
 					blogSortDate: $("#newBlogSortDate").val(),
 					blogSortDateChanged: $("#blogSortDateChanged").val(),
 					themeId: $("#postThemeId").val(),
@@ -592,7 +587,7 @@
 					changeTitleAndLink: $("#changeTitleAndLink").val(),
 					// Pass in the contents of the editor with all <script tags replaced with attach script
 					post: postContentNoScripts,
-					// Get the value of the checkboxes
+					<!--- Get the value of the checkboxes --->
 					released: $('#released').is(':checked'), // checkbox boolean value.
 					allowComment: $('#allowComment').is(':checked'), // checkbox boolean value.
 					promote: $('#promote').is(':checked'), // checkbox boolean value.
@@ -600,13 +595,12 @@
 					redirectUrl: $("#redirectUrl").val(),
 					redirectType: $("#redirectType").val(),
 					description: $('#description').val(), 
-					// We are storing the post categories in a hidden field in order to preserve the selected category order
+					<!--- We are storing the post categories in a hidden field in order to preserve the selected category order --->
 					postCategories: $("#selectedPostCategories").val(),
-					// These multi-selects are in an array. We need to use the toString method to turn the array into comma separated values
-					//postCategories: $("#postCategories").data("kendoMultiSelect").value().toString(),
+					<!--- These multi-selects are in an array. We need to use the toString method to turn the array into comma separated values postCategories: $("#postCategories").data("kendoMultiSelect").value().toString(), --->
 					postTags: $("#postTags").data("kendoMultiSelect").value().toString(),
 					relatedPosts: $("#relatedPosts").data("kendoMultiSelect").value().toString(),
-					// The following media items are held in hidden forms. There should only be zero or one value that is sent
+					<!--- The following media items are held in hidden forms. There should only be zero or one value that is sent --->
 					imageMediaId: $("#imageMediaId").val(),
 					videoMediaId: $("#videoMediaId").val(),
 					videoMediaId: $("#mapId").val(),
@@ -617,42 +611,42 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// This is a secured function. Display the login screen.
+				<!--- This is a secured function. Display the login screen. --->
 				if (jqXHR.status === 403) { 
 					createLoginWindow(); 
 				} else {//...if (jqXHR.status === 403) { 
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the savePost function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}//...if (jqXHR.status === 403) { 
 			});//...jQuery.ajax({
 		};
 		
 		function postDetailsResult(response){
-			// Are the credentials correct?
+			<!--- Are the credentials correct? --->
 			if (JSON.parse(response.success) == true){
 				// Refresh the <cfif application.kendoCommercial>kendo<cfelse>jsgrid</cfif> grid 
 			<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
 				$('#postsGrid').data('kendoGrid').dataSource.read();
 			<cfelse>
-				// Try to refresh the post grid by refreshing the window. It may not be open so we are using a try block
+				<!--- Try to refresh the post grid by refreshing the window. It may not be open so we are using a try block --->
 				try {
 					$("#PostsWindow").data("kendoWindow").refresh();
 				} catch (error) {
-					// Do nothing
+					<!--- Do nothing --->
 				}			
 			</cfif>
-				// Close the window
+				<!--- Close the window --->
 				jQuery('#postDetailWindow').kendoWindow('destroy');
 			} else {
-				// Alert the user that the process has failed.
+				<!--- Alert the user that the process has failed. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving post", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
 				).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});
 			}//..if (JSON.parse(response.success) == true){
 		}//function postDetailsResult(response){
@@ -664,7 +658,7 @@
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deletePost',
 				data: { // arguments
-					// We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#formName").serialize()' or use the stringify method to pass it as an array of values. 
+					<!--- We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#formName").serialize()' or use the stringify method to pass it as an array of values. --->
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					postId: <cfoutput>#getPost[1]['PostId']#</cfoutput>
 				},
@@ -673,114 +667,113 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// This is a secured function. Display the login screen.
+				<!--- This is a secured function. Display the login screen. --->
 				if (jqXHR.status === 403) { 
 					createLoginWindow(); 
 				} else {//...if (jqXHR.status === 403) { 
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the deletePost function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}//...if (jqXHR.status === 403) { 
 			});//...jQuery.ajax({
 		};//function deletePost(){
 		
 		function deletePostResult(response){
-			// Are the credentials correct?
+			<!--- Are the credentials correct? --->
 			if (JSON.parse(response.success) == true){
 				// Refresh the <cfif application.kendoCommercial>kendo<cfelse>jsgrid</cfif> grid 
 			<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
 				$('#postsGrid').data('kendoGrid').dataSource.read();
 			<cfelse>
-				// Try to refresh the post grid by refreshing the window. It may not be open so we are using a try block
+				<!--- Try to refresh the post grid by refreshing the window. It may not be open so we are using a try block --->
 				try {
 					$("#PostsWindow").data("kendoWindow").refresh();
 				} catch (error) {
-					// Do nothing
+					<!--- Do nothing --->
 				}			
 			</cfif>
-				// Close the window
+				<!--- Close the window --->
 				jQuery('#postDetailWindow').kendoWindow('destroy');
 			} else {
-				// Alert the user that the process has failed.
+				<!--- Alert the user that the process has failed. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error deleting post", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
 				).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});
 			}//..if (JSON.parse(response.success) == true){
 		}
 		
 	</cfif>
 		
-		// Helper functions for the noData templates
-		// This adds a new option to the post author multi-select
+		<!--- Helper functions for the noData templates This adds a new option to the post author multi-select --->
         function addNewPostAuthor(userId,fullName) {
-			// Get the multiselect 
+			<!--- Get the multiselect --->
 			var multiSelect = $("#author").data("kendoMultiSelect"); 
-			// Get the datasource
+			<!--- Get the datasource --->
             var multiSelectDs = $("#author").data("kendoMultiSelect").dataSource;
 			
 
-			// Add the new item to the multiselects datasource
+			<!--- Add the new item to the multiselects datasource --->
 			multiSelectDs.add({
 				UserId: userId,
 				FullName: fullName 
 			});
 			
-			// Select the inserted value that was just added- it's in the last position in the list
+			<!--- Select the inserted value that was just added- it's in the last position in the list --->
 			multiSelectDs.one("sync", function() {
 				multiSelect.select(multiSelectDs.view().length - 1);
 			});
 			
-			// Sync the the datasource
+			<!--- Sync the the datasource --->
 			multiSelectDs.sync();
         };
 		
-		// This adds a new option to the post category multi-select
+		<!--- This adds a new option to the post category multi-select --->
         function addNewPostCategory(categoryId,category) {
-			// Get the multiselect 
+			<!--- Get the multiselect --->
 			var multiSelect = $("#postCategories").data("kendoMultiSelect"); 
-			// Get the datasource
+			<!--- Get the datasource --->
             var multiSelectDs = $("#postCategories").data("kendoMultiSelect").dataSource;
 			
-			// Add the new item to the multiselects datasource
+			<!--- Add the new item to the multiselects datasource --->
 			multiSelectDs.add({
 				CategoryId: categoryId,
 				Category: category 
 			});
 			
-			// Select the inserted value that was just added- it's in the last position in the list
+			<!--- Select the inserted value that was just added- it's in the last position in the list --->
 			multiSelectDs.one("sync", function() {
 				multiSelect.select(multiSelectDs.view().length - 1);
 			});
 			
-			// Sync the the datasource
+			<!--- Sync the the datasource --->
 			multiSelectDs.sync();
         };
 		
-		// This adds a new option to the post tags multi-select
+		<!--- This adds a new option to the post tags multi-select --->
         function addNewPostTag(tagId,tag) {
 			
-			// Get the multiselect 
+			<!--- Get the multiselect --->
 			var multiSelect = $("#postTags").data("kendoMultiSelect"); 
-			// Get the datasource
+			<!--- Get the datasource --->
             var multiSelectDs = $("#postTags").data("kendoMultiSelect").dataSource;
 		
-			// Add the new item to the multiselects datasource
+			<!--- Add the new item to the multiselects datasource --->
 			multiSelectDs.add({
 				TagId: tagId,
 				Tag: tag 
 			});
 			
-			// Select the inserted value that was just added- it's in the last position in the list
+			<!--- Select the inserted value that was just added- it's in the last position in the list --->
 			multiSelectDs.one("sync", function() {
 				multiSelect.select(multiSelectDs.view().length - 1);
 			});
 			
-			// Sync the the datasource
+			<!--- Sync the the datasource --->
 			multiSelectDs.sync();
         };
 		

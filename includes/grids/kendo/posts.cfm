@@ -79,7 +79,7 @@
 			}
 		});
 
-		// Response from updatePostViaKendoGrid may ask us to prompt for emailing subscribers, same as the jsGrid version.
+		<!--- Response from updatePostViaKendoGrid may ask us to prompt for emailing subscribers, same as the jsGrid version. --->
 		postsDs.bind("requestEnd", function(e) {
 			if (e.type === "update" && e.response && e.response.promptToEmailSubscriber) {
 				$.when(kendo.ui.ExtYesNoDialog.show({

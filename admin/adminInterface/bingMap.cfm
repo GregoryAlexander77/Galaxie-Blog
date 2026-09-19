@@ -46,11 +46,11 @@
 		}
 
 		function suggestionSelected(result) {
-			// Remove previously selected suggestions from the map.
+			<!--- Remove previously selected suggestions from the map. --->
 			map.entities.clear();
 			
 		
-			// Create custom Pushpin
+			<!--- Create custom Pushpin --->
 			var pin = new Microsoft.Maps.Pushpin(result.location, {
 				<cfif len(customMarkerUrl)>
 				icon: 'https://www.bingmapsportal.com/Content/images/poi_custom.png',
@@ -58,28 +58,26 @@
 				anchor: new Microsoft.Maps.Point(12, 39)
 			});
 		
-			// Show the suggestion as a pushpin and center map over it.
-			//var pin = new Microsoft.Maps.Pushpin(result.location);
+			<!--- Show the suggestion as a pushpin and center map over it. var pin = new Microsoft.Maps.Pushpin(result.location); --->
 			map.entities.push(pin);
-			//map.setOptions({ enableHoverStyle: true, enableClickedStyle: true });
+			<!--- map.setOptions({ enableHoverStyle: true, enableClickedStyle: true }); --->
 
 			map.setView({ bounds: result.bestView });
 			
-			// Save the location data into a hidden form
-			// console.log(result)
+			<!--- Save the location data into a hidden form console.log(result) --->
 			$("#mapAddress").val(result.formattedSuggestion);
 			$("#mapCoordinates").val(result.location.latitude + ',' + result.location.longitude);
 		}
 		
 		function saveMap(){
 			
-			// Let the user know that we are processing the data
+			<!--- Let the user know that we are processing the data --->
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we create your map.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
 			
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveMap',
-				// Serialize the form
+				<!--- Serialize the form --->
 				data: {
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					isEnclosure: <cfif URL.otherArgs eq 'enclosureEditor'>true<cfelse>false</cfif>,
@@ -97,36 +95,35 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
 
-				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveMap function", message: error, icon: "k-ext-error", width: "425px" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});		
 			});
 		}
 		
 		function saveMapResponse(response){
 			
-			//alert(JSON.parse(response.postId));
+			<!--- alert(JSON.parse(response.postId)); --->
 			var postId = JSON.parse(response.postId);
 			var mapId = JSON.parse(response.mapId);
 			
-			// Create our iframe html string
+			<!--- Create our iframe html string --->
 			var mapIframeHtml = '<iframe data-type="map" data-id=' + mapId + ' src="<cfoutput>#application.baseUrl#</cfoutput>/preview/maps.cfm?mapId=' + mapId + '&mapType=static" width="768" height="432" allowfullscreen="allowfullscreen"></iframe>';
-			// Insert the HTML string into the active editor
-			// If this is the enclosure content, replace the content. If it is a post editor, insert the content
+			<!--- Insert the HTML string into the active editor If this is the enclosure content, replace the content. If it is a post editor, insert the content --->
 			tinymce.activeEditor.<cfif URL.otherArgs eq 'enclosureEditor'>setContent<cfelse>insertContent</cfif>(mapIframeHtml);
 			
-			// Use a quick set timeout in order for the data to load.
+			<!--- Use a quick set timeout in order for the data to load. --->
 			setTimeout(function() {
-				// Refresh the thumbnail image on the post detail page
+				<!--- Refresh the thumbnail image on the post detail page --->
 				reloadEnclosureThumbnailPreview(postId);
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Close this window
+				<!--- Close this window --->
 				$('#mapWindow').kendoWindow('destroy');
 			}, 500);
 
@@ -142,7 +139,7 @@
 
         .directionsContainer {
             width: 450px;
-			/* Set the input container at 425 pixels. Any less will cause part of the input to disappear */
+			<!--- Set the input container at 425 pixels. Any less will cause part of the input to disappear --->
             height: 100%;
             overflow-y: auto;
             float: left;
@@ -150,13 +147,13 @@
 
         #myMap {
             position: relative;
-			/* Set the dimensions of the main map */
+			<!--- Set the dimensions of the main map --->
             width:calc(100% - 450px);
             height: 100%;
             float: left;
         }
 		
-		/* Move the directions input container a little bit since its stuck at the left of the page margin-left: 45px;*/
+		<!--- Move the directions input container a little bit since its stuck at the left of the page margin-left: 45px; --->
 		.MicrosoftMap .directionsPanel {
 			margin-left: 25px;
 		}

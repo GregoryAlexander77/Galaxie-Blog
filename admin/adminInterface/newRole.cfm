@@ -6,16 +6,16 @@
 		$(document).ready(function() {
 
 			var newRoleValidator = $("#newRoleForm").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
-					// The role must be unique. 
+					<!--- The role must be unique. --->
 					roleIsUnique:
 					function(input){
-						// Do not continue if the user name is found in the currentUserName list 
+						<!--- Do not continue if the user name is found in the currentUserName list --->
 						if (input.is("[id='subNewRole']") && ( listFind( currentRolesList, input.val() ) != 0 ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-roleIsUnique-msg", "Role already exists");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#subNewRole" ).focus();
 							return false;
 						}                                    
@@ -24,46 +24,46 @@
 				}
 			}).data("kendoValidator");
 
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var newRoleSubmit = $('#newRoleSubmit');
 			newRoleSubmit.on('click', function(e){  
 				
 				e.preventDefault();         
 				if (newRoleValidator.validate()) {
 					
-					// Open up a please wait dialog
+					<!--- Open up a please wait dialog --->
 					$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we process the user.", icon: "k-ext-information" }));
 					
-					// Get the value of the newRole that was typed in
+					<!--- Get the value of the newRole that was typed in --->
 					subNewRole = $("#subNewRole").val();
-					// Get the new role desc
+					<!--- Get the new role desc --->
 					subNewRoleDesc = $("#subNewRoleDesc").val();
 					
-					// Input the both the role name and desc in the hidden forms on the add user page. These forms all must have unique names
+					<!--- Input the both the role name and desc in the hidden forms on the add user page. These forms all must have unique names --->
 					$("#newRole").val(subNewRole);
-					// Populate the new role desc
+					<!--- Populate the new role desc --->
 					$("#newRoleDesc").val(subNewRoleDesc);
 					
-					// Send data to server after the new role was saved into the hidden form
+					<!--- Send data to server after the new role was saved into the hidden form --->
 					setTimeout(function() {
 						postUserDetails('insert');
 					}, 250);
 					
-					// Close the window.
+					<!--- Close the window. --->
 					$('#roleNameWindow').kendoWindow('destroy');
 					
 				} else {
 
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}
 			});
 
 		});//...document.ready
 		
-		// Create a list to validate if the role is already in use.
+		<!--- Create a list to validate if the role is already in use. --->
 		var currentRolesList = '<cfoutput>#currentRolesList#</cfoutput>';
 		
 	</script>

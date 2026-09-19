@@ -57,34 +57,33 @@
 	<script type='text/javascript'>
 		$(document).ready(function(){
 		
-			// This is used to populate the autosuggest as well as render the map when the first input is used. Fuzzy searches include POI and addresses.
+			<!--- This is used to populate the autosuggest as well as render the map when the first input is used. Fuzzy searches include POI and addresses. --->
 			var fuzzyGeoServiceUrl = "<cfoutput>#application.azureMapsFuzzySearchUrl#</cfoutput>"; 
 
-			// create DropDownList from select HTML element
+			<!--- create DropDownList from select HTML element --->
 			$("#countrySelector").kendoDropDownList();
 
 			function parseResponse(obj){
 
-				// https://stackoverflow.com/questions/15009448/creating-a-json-dynamically-with-each-input-value-using-jquery
-				// Instantiate the json objects
+				<!--- https://stackoverflow.com/questions/15009448/creating-a-json-dynamically-with-each-input-value-using-jquery Instantiate the json objects --->
 				jsonObj = [];
 
-				// Loop through the items in the object
+				<!--- Loop through the items in the object --->
 				for (var i = 0; i < obj.results.length; i++) {
 					if (obj.results[i]) {
-						// Get the data from the object
+						<!--- Get the data from the object --->
 						var results = obj.results[i];// Results is an array in the json returned from the server
 
-						// The POI is only available if the type is POI 
+						<!--- The POI is only available if the type is POI --->
 						var poi = '';
 						var label = results.address.freeformAddress;
 						if (results.type === 'POI'){
 							poi = results.poi.name;	
-							// Now that we have the POI when it exists, set the label that we will use. We will use the POI Name if it exists, otherwise we will use the freeFormAddress
+							<!--- Now that we have the POI when it exists, set the label that we will use. We will use the POI Name if it exists, otherwise we will use the freeFormAddress --->
 							label = poi;
 						}
 
-						// Create the struct. We need the latitute, longitude and the POI if it exists. 
+						<!--- Create the struct. We need the latitute, longitude and the POI if it exists. --->
 						let jsonItems = {
 							freeformAddress: results.address.freeformAddress,
 							poi: poi,
@@ -96,13 +95,13 @@
 							btmRightPointLon: results.viewport.btmRightPoint.lon, 
 							btmRightPointLat: results.viewport.btmRightPoint.lat
 						};
-						// Push the items into the new json object
+						<!--- Push the items into the new json object --->
 						jsonObj.push(jsonItems);
 					}
 				}//..for
-				// Write the object out for testing
+				<!--- Write the object out for testing --->
 				console.log(jsonObj);
-				// And return it...
+				<!--- And return it... --->
 				return jsonObj;
 			}
 
@@ -110,18 +109,18 @@
 				transport: {
 					read: function(options) {
 
-						// Perform a custom the AJAX request to the Azure Maps API
+						<!--- Perform a custom the AJAX request to the Azure Maps API --->
 						$.ajax({
 							url: fuzzyGeoServiceUrl, // the URL of the API endpoint.
 							type: "get",// Azure maps require the get method and posts will fail with a 505 eror
 							data: {
-								// Pass the key. The dash will cause an error if the arg is not enclosed in a string
+								<!--- Pass the key. The dash will cause an error if the arg is not enclosed in a string --->
 								'subscription-key': <cfoutput>'#azureMapsKey#'</cfoutput>,
-								 // Pass the value typed in to the form for the query parameter
+								 <!--- Pass the value typed in to the form for the query parameter --->
 								query: function(){
 									return $("#location").data("kendoAutoComplete").value();
 								},//..query
-								// Pass the selected country
+								<!--- Pass the selected country --->
 								countrySet: function(){
 									if ($("#countrySelector").data("kendoDropDownList").value() != 'all'){
 										return $("#countrySelector").data("kendoDropDownList").value();
@@ -131,11 +130,11 @@
 							},//..data
 							dataType: "json", // Use json if the template is on the current server. If not, use jsonp for cross domain reads.
 							success: function(result) {
-								// If the request is successful, call the options.success callback
+								<!--- If the request is successful, call the options.success callback --->
 								options.success( parseResponse(result) );
 							},
 							error: function(error) {
-								// If the request fails, call the options.error callback
+								<!--- If the request fails, call the options.error callback --->
 								options.error(error);
 							}
 						});//ajax
@@ -164,11 +163,11 @@
 				dataSource: locationDs, 
 				dataTextField: "label", // The widget is bound to the "label" 
 				select: function(e) {
-					// Store the selected index
+					<!--- Store the selected index --->
 					$("#selectedIndex").val(e.item.index());
-					// Read the items in the datasource using the selected index
+					<!--- Read the items in the datasource using the selected index --->
 					var selectedLocation = locationDs.at( e.item.index() );
-					// Save the values in a hidden form
+					<!--- Save the values in a hidden form --->
 					$("#selectedFreeformAddress").val(selectedLocation.freeformAddress);
 					$("#selectedLat").val(selectedLocation.lat);
 					$("#selectedLon").val(selectedLocation.lon);
@@ -176,10 +175,10 @@
 					$("#selectedTopLeftPointLat").val(selectedLocation.topLeftPointLat);
 					$("#selectedBtmRightPointLon").val(selectedLocation.btmRightPointLon);
 					$("#selectedBtmRightPointLat").val(selectedLocation.btmRightPointLat);
-					// Write the selected index to the console for debugging
+					<!--- Write the selected index to the console for debugging --->
 					console.log(selectedLocation);
 
-					// Render the map
+					<!--- Render the map --->
 					getMap();
 				}
 			});
@@ -188,17 +187,17 @@
 
 		function getMap() {
 
-			// Get the necessary valus from the hidden form values
+			<!--- Get the necessary valus from the hidden form values --->
 			var freeformAddress = $("#selectedFreeformAddress").val();
 			var lat = $("#selectedLat").val();
 			var lon = $("#selectedLon").val();
-			// Camera positions
+			<!--- Camera positions --->
 			var topLeftPointLat = $("#selectedTopLeftPointLat").val();
 			var topLeftPointLon = $("#selectedTopLeftPointLon").val();
 			var btmRightPointLat = $("#selectedBtmRightPointLat").val();
 			var btmRightPointLon = $("#selectedBtmRightPointLon").val();
 
-			// Initialize a map instance.
+			<!--- Initialize a map instance. --->
 			map = new atlas.Map('myMap', {
 				view: 'Auto',
 				authOptions: {
@@ -207,23 +206,23 @@
 				 }
 			});
 
-			// Wait until the map resources are ready.
+			<!--- Wait until the map resources are ready. --->
 			map.events.add('ready', function () {
-				// Load the custom image icon into the map resources. This must be done immediately after the ready event
+				<!--- Load the custom image icon into the map resources. This must be done immediately after the ready event --->
 				map.imageSprite.add('map-marker', '<cfoutput>#application.defaultAzureMapsCursor#</cfoutput>').then(function () {
-					// Create a data source to store the data in.
+					<!--- Create a data source to store the data in. --->
 					datasource = new atlas.source.DataSource();
-					// Add the datasource
+					<!--- Add the datasource --->
 					map.sources.add(datasource);
-					// Add a layer for rendering point data.
+					<!--- Add a layer for rendering point data. --->
 					map.layers.add(new atlas.layer.SymbolLayer(datasource));
-					// Remove any previous added data from the map.
+					<!--- Remove any previous added data from the map. --->
 					datasource.clear();
-					// Create a point feature to mark the selected location.
+					<!--- Create a point feature to mark the selected location. --->
 					datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat])));
-					//datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat]), ui.item));
+					<!--- datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat]), ui.item)); --->
 
-					// Zoom the map into the selected location.
+					<!--- Zoom the map into the selected location. --->
 					map.setCamera({
 						bounds: [
 							topLeftPointLon, btmRightPointLat,
@@ -232,9 +231,9 @@
 						padding: 0
 					});//map.setCamera
 
-					// Add the controls
+					<!--- Add the controls --->
 
-					// Create a zoom control.
+					<!--- Create a zoom control. --->
 					map.controls.add(new atlas.control.ZoomControl({
 						zoomDelta: parseFloat(1),
 						style: "light"
@@ -242,7 +241,7 @@
 					  position: 'top-right'
 					}); 
 
-					// Create the style control
+					<!--- Create the style control --->
 					map.controls.add(new atlas.control.StyleControl({
 					  mapStyles: ['road', 'grayscale_dark', 'night', 'road_shaded_relief', 'satellite', 'satellite_road_labels'],
 					  layout: 'icons'
@@ -256,17 +255,17 @@
 		
 		function saveMap(){
 			
-			// Get the selected zoom and map style
+			<!--- Get the selected zoom and map style --->
 			let mapZoom = map.getCamera().zoom;
 			let mapStyle = map.getStyle().style;
 			
-			// Let the user know that we are processing the data
+			<!--- Let the user know that we are processing the data --->
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we create your map.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
 			
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveMap',
-				// Serialize the form
+				<!--- Serialize the form --->
 				data: {
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					provider: 'Azure Maps',
@@ -285,36 +284,35 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
 
-				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveMap function", message: error, icon: "k-ext-error", width: "425px" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});		
 			});
 		}
 		
 		function saveMapResponse(response){
 			
-			//alert(JSON.parse(response.postId));
+			<!--- alert(JSON.parse(response.postId)); --->
 			var postId = JSON.parse(response.postId);
 			var mapId = JSON.parse(response.mapId);
 			
-			// Create our iframe html string
+			<!--- Create our iframe html string --->
 			var mapIframeHtml = '<iframe data-type="map" data-id=' + mapId + ' src="<cfoutput>#application.baseUrl#</cfoutput>/preview/maps.cfm?mapId=' + mapId + '&mapType=static" width="768" height="432" allowfullscreen="allowfullscreen"></iframe>';
-			// Insert the HTML string into the active editor
-			// If this is the enclosure content, replace the content. If it is a post editor, insert the content
+			<!--- Insert the HTML string into the active editor If this is the enclosure content, replace the content. If it is a post editor, insert the content --->
 			tinymce.activeEditor.<cfif URL.otherArgs eq 'enclosureEditor'>setContent<cfelse>insertContent</cfif>(mapIframeHtml);
 			
-			// Use a quick set timeout in order for the data to load.
+			<!--- Use a quick set timeout in order for the data to load. --->
 			setTimeout(function() {
-				// Refresh the thumbnail image on the post detail page
+				<!--- Refresh the thumbnail image on the post detail page --->
 				reloadEnclosureThumbnailPreview(postId);
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Close this window
+				<!--- Close this window --->
 				$('#mapWindow').kendoWindow('destroy');
 			}, 500);
 
@@ -330,7 +328,7 @@
 
         .directionsContainer {
             width: 450px;
-			/* Set the input container at 425 pixels. Any less will cause part of the input to disappear */
+			<!--- Set the input container at 425 pixels. Any less will cause part of the input to disappear --->
             height: 100%;
             overflow-y: auto;
             float: left;
@@ -338,13 +336,13 @@
 
         #myMap {
             position: relative;
-			/* Set the dimensions of the main map */
+			<!--- Set the dimensions of the main map --->
             width:calc(100% - 450px);
             height: 100%;
             float: left;
         }
 		
-		/* Move the directions input container a little bit since its stuck at the left of the page margin-left: 45px;*/
+		<!--- Move the directions input container a little bit since its stuck at the left of the page margin-left: 45px; --->
 		.MicrosoftMap .directionsPanel {
 			margin-left: 25px;
 		}

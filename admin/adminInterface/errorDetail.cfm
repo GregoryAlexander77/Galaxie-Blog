@@ -700,18 +700,16 @@
 	<script>
 		$(document).ready(function() {
 		
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var errorDetailSubmit = $('#errorDetailSubmit');
 			errorDetailSubmit.on('click', function(e){
                 e.preventDefault();
 
-				// submit the form.
-				// Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post.
-				// alert('posting');
+				<!--- submit the form. Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post. alert('posting'); --->
 				postErrorDetails();
 			});
 
-			// Invoked when the delete button is clicked.
+			<!--- Invoked when the delete button is clicked. --->
 			var errorDetailDelete = $('#errorDetailDelete');
 			errorDetailDelete.on('click', function(e){
 				e.preventDefault();
@@ -722,7 +720,7 @@
 			});
 		});//...document.ready
 
-		// Deletes this error log entry, then closes the window and refreshes the grid - same as a successful save.
+		<!--- Deletes this error log entry, then closes the window and refreshes the grid - same as a successful save. --->
 		function deleteErrorDetail(){
 			jQuery.ajax({
 				type: 'post',
@@ -736,62 +734,61 @@
 					console.log('Error' + ErrorMsg);
 				}
 			}).fail(function (jqXHR, textStatus, error) {
-				// This is a secured function. Display the login screen.
+				<!--- This is a secured function. Display the login screen. --->
 				if (jqXHR.status === 403) {
 					createLoginWindow();
 				} else {//...if (jqXHR.status === 403) {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the deleteErrorLogViaJsGrid function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })
 						).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 					});
 				}//...if (jqXHR.status === 403) {
 			});
 		};
 		
-		// Post method on the detail form called from the GalleryDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the GalleryDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postErrorDetails(action){
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveErrorLog&csrfToken=<cfoutput>#csrfToken#</cfoutput>',
-				// Serialize the form. The csrfToken is also in the form.
+				<!--- Serialize the form. The csrfToken is also in the form. --->
 				data: $('#errorDetailForm').serialize(),
-				// This is one of the few times that we will be sending back an html response. We are going to use this directly to set the content in the editor. its easier to craft the html on the server side than to manipulate the dom with a json object on the client. Normally this is always json
+				<!--- This is one of the few times that we will be sending back an html response. We are going to use this directly to set the content in the editor. its easier to craft the html on the server side than to manipulate the dom with a json object on the client. Normally this is always json --->
 				dataType: "html",
 				success: errorDetailUpdateResult, // calls the result function.
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// This is a secured function. Display the login screen.
+				<!--- This is a secured function. Display the login screen. --->
 				if (jqXHR.status === 403) { 
 					createLoginWindow(); 
 				} else {//...if (jqXHR.status === 403) { 
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveFont function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 					});		
 				}//...if (jqXHR.status === 403) { 
 			});
 		};
 		
 		function errorDetailUpdateResult(response){
-			// alert(response)
-			// Note: the response is an html string 
+			<!--- alert(response) Note: the response is an html string --->
 			
 			// Refresh the <cfif application.kendoCommercial>kendo<cfelse>jsgrid</cfif> grid 
 			try {
-				// Refresh the font grid if it is open
+				<!--- Refresh the font grid if it is open --->
 			<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
 				$('#errorGrid').data('kendoGrid').dataSource.read();
 			<cfelse>
 				$("#errorGrid").jsGrid("loadData");
 			</cfif> 
 			} catch(e){
-				// The grid or dropdown was not initialized. This is a normal error
+				<!--- The grid or dropdown was not initialized. This is a normal error --->
 			}
-			// Close this window
+			<!--- Close this window --->
 			$('#errorDetailWindow').kendoWindow('destroy');
 		}
 		

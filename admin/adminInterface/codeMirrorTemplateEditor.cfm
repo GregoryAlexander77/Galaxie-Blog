@@ -50,7 +50,7 @@
 	</cfif><!---<cfif len(templatePath)>--->
 
 	<script>
-		// Instantiate code mirror
+		<!--- Instantiate code mirror --->
 		CodeMirrorEditor = CodeMirror.fromTextArea(document.getElementById("code"), {
 			mode: "text/html",
 			autoRefresh: true,
@@ -65,35 +65,35 @@
 			readOnly: false,
 			autofocus: true
 		});
-		// setSize( width, height ). An empty string will set the width to 100% of the container
+		<!--- setSize( width, height ). An empty string will set the width to 100% of the container --->
 		CodeMirrorEditor.setSize('', <cfoutput>#editorHeight#</cfoutput>); 
 		
 		$(document).ready(function() {
 			
-			// Invoked when the submit button is clicked. 
+			<!--- Invoked when the submit button is clicked. --->
 			var saveCodeMirrorCodeSubmit = $('#saveCodeMirrorCodeSubmit');
 			saveCodeMirrorCodeSubmit.on('click', function(e){ 
 				e.preventDefault();  
-				// Get the contents of the editor
+				<!--- Get the contents of the editor --->
 				var codeMirrorCode = CodeMirrorEditor.getValue();
-				// Modify any tags that may be deleted by ColdFusion on the server when using Global Script Protection and place an attach string in front of scripts, styles and meta tags.
+				<!--- Modify any tags that may be deleted by ColdFusion on the server when using Global Script Protection and place an attach string in front of scripts, styles and meta tags. --->
 				codeMirrorCode = bypassScriptProtection(codeMirrorCode);
-				// Stuff the value into a hidden form. 
+				<!--- Stuff the value into a hidden form. --->
 				$("#<cfoutput>#URL.otherArgs#</cfoutput>Code").val( codeMirrorCode );
-				// Close this window
+				<!--- Close this window --->
 				$('#codeMirrorEditor').kendoWindow('destroy');												  
 
 			});		
 			
-			// Invoked when the preview button is clicked. 
+			<!--- Invoked when the preview button is clicked. --->
 			var previewCode = $('#previewCodeButton');
 			previewCode.on('click', function(e){ 
 				e.preventDefault();  
-				// Get the contents of the editor
+				<!--- Get the contents of the editor --->
 				var newCode = CodeMirrorEditor.getValue();
-				// Stuff the value into a hidden form. This hidden form is
+				<!--- Stuff the value into a hidden form. This hidden form is --->
 				$("#<cfoutput>#URL.otherArgs#</cfoutput>Code").val(newCode);
-				// Open the preview window
+				<!--- Open the preview window --->
 				createContentOutputPreviewWindow(<cfoutput>#URL.optArgs#,'#URL.otherArgs#',#session.isMobile#</cfoutput>)
 			});
 		});

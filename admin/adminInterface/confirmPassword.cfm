@@ -5,22 +5,22 @@
 		$(document).ready(function() {
 			// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 
-			// password that was typed in initially
+			<!--- password that was typed in initially --->
 			password = $("#password").val();
-			// confirmed password that was typed in
+			<!--- confirmed password that was typed in --->
 			confirmPasswordVal = $("#confirmPassword").val();
 
 			var confirmPasswordValidator = $("#confirmPasswordForm").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
-					// The value typed in must match the password in the previous add user form. 
+					<!--- The value typed in must match the password in the previous add user form. --->
 					confirmedPasswordMatch: 
 					function(input){
-						// Do not continue if the user name is found in the currentUserName list 
+						<!--- Do not continue if the user name is found in the currentUserName list --->
 						if (input.is("[id='confirmPassword']") && (input.val() != password)){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-confirmedPasswordMatch-msg", "Passwords don't  match");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#confirmPassword" ).focus();
 							return false;
 						}                                    
@@ -29,18 +29,17 @@
 				}
 			}).data("kendoValidator");
 
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var confirmPasswordSubmit = $('#confirmPasswordSubmit');
 			confirmPasswordSubmit.on('click', function(e){  
 				e.preventDefault();         
 				if (confirmPasswordValidator.validate()) {
-					// Send data to server
-					// Open up a please wait dialog
+					<!--- Send data to server Open up a please wait dialog --->
 					$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we process the user.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
-					// Post the data to the server
+					<!--- Post the data to the server --->
 					setTimeout(function() {
 						postUserDetails('<cfoutput>#URL.optArgs#</cfoutput>');
-						// Close the interface.
+						<!--- Close the interface. --->
 						setTimeout(function() {
 							$('#confirmPasswordWindow').kendoWindow('destroy');
 						}, 250);

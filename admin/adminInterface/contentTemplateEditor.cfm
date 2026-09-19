@@ -113,17 +113,17 @@
 		
 	<script>
 		
-		// Note: this function passes the template name and code to save the code to the db. action is either updateCode or revertCode.
+		<!--- Note: this function passes the template name and code to save the code to the db. action is either updateCode or revertCode. --->
 		function saveContentTemplate(action){ 
 			
-			// Get the selected themes
+			<!--- Get the selected themes --->
 			var contentTemplateThemes = $("#contentTemplateThemes").data("kendoMultiSelect").value().toString();
-			// Get the contents of the editor
+			<!--- Get the contents of the editor --->
 			var contentTemplateCode = tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent();
-			// Modify any tags that may be deleted by ColdFusion on the server when using Global Script Protection and place an attach string in front of scripts, styles and meta tags. These will get cleaned up prior to the data being inserted into the db.
+			<!--- Modify any tags that may be deleted by ColdFusion on the server when using Global Script Protection and place an attach string in front of scripts, styles and meta tags. These will get cleaned up prior to the data being inserted into the db. --->
 			var contentTemplateCode = bypassScriptProtection(contentTemplateCode);
 			
-			// Send the data to the service controller. 			
+			<!--- Send the data to the service controller. --->
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveContentTemplate',
@@ -131,64 +131,64 @@
 				success: saveContentTemplateResult(action), // calls the result function.
 				data: { // arguments
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
-					// The action arg is either updateCode or revertCode. It is needed as the processing template needs to determine whether to update the code or revert.
+					<!--- The action arg is either updateCode or revertCode. It is needed as the processing template needs to determine whether to update the code or revert. --->
 					action: action,
-					// Pass the selected theme Id. This will be 0 when all themes is selected. We are usign the toString method to pass the id's in a comma separated list
+					<!--- Pass the selected theme Id. This will be 0 when all themes is selected. We are usign the toString method to pass the id's in a comma separated list --->
 					selectedContentThemes: contentTemplateThemes,
-					// Pass the template 
+					<!--- Pass the template --->
 					contentTemplate: <cfoutput>'#contentTemplateName#'</cfoutput>,
-					// Users can update both mobile and desktop columns
+					<!--- Users can update both mobile and desktop columns --->
 					applyAcrossDevices: $('#applyAcrossDevices').prop('checked'),
-					// Pass in the code type (either contentTemplateName + 'Desktop' or 'Mobile')
+					<!--- Pass in the code type (either contentTemplateName + 'Desktop' or 'Mobile') --->
 					codeColumn: <cfoutput>'#URL.otherArgs#'</cfoutput>,
-					// Pass the actual code
+					<!--- Pass the actual code --->
 					code: contentTemplateCode
 					
 				},
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
 
-				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveContentTemplate function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});		
 			});
 		}
 		
-		// Submit the data and close this window.
+		<!--- Submit the data and close this window. --->
 		function saveContentTemplateResult(action){
 			setTimeout(function () {
 				$('#contentTemplateEditor').kendoWindow('destroy');
 			}, 250);//..setTimeout(function () {
 		}
 		
-		// Invoked when the preview button is clicked. 
+		<!--- Invoked when the preview button is clicked. --->
 		var previewContentTemplate = $('#previewContentTemplateButton');
 		previewContentTemplate.on('click', function(e){ 
 			e.preventDefault();  
-			// Get the contents of the editor
+			<!--- Get the contents of the editor --->
 			var contentTemplateCode = compositeHeaderDesktop.getValue();
-			// Stuff the value into a hidden form
+			<!--- Stuff the value into a hidden form --->
 			$("#compositeHeaderDesktopPreviewCode").val( <cfoutput>#selectorId#</cfoutput> );
-			// Open the preview window
+			<!--- Open the preview window --->
 			createContentOutputPreviewWindow(<cfoutput>#URL.optArgs#,'#URL.otherArgs#',#URL.otherArgs1#</cfoutput>)
 		});
 			
-		// Invoked when the submit button is clicked. 
+		<!--- Invoked when the submit button is clicked. --->
 		var saveContentSubmit = $('#saveContentSubmitButton');
 		saveContentSubmit.on('click', function(e){ 
 			e.preventDefault();  
-			// Send the data
+			<!--- Send the data --->
 			saveContentTemplate('updateCode');											  
 		});		
 		
 		function revertBackToOriginalCode(template){
 			
-			// Raise the prompt
+			<!--- Raise the prompt --->
 			$.when(kendo.ui.ExtYesNoDialog.show({ 
 				title: "Revert Changes?",
 				message: "Do you want to revert back to the original code? If you select yes, you will delete any previous custom changes that were made.",
@@ -198,7 +198,7 @@
 			})
 			).done(function (response) { // If the user clicked 'yes', retry.
 				if (response['button'] == 'Yes'){// remember that js is case sensitive.
-					// Send the data to update the database column with an empty string
+					<!--- Send the data to update the database column with an empty string --->
 					saveContentTemplate('revertCode');
 				}//..if (response['button'] == 'Yes'){
 				
@@ -282,14 +282,14 @@
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <script>
-		  //$(document).ready(function() {
+		  <!--- $(document).ready(function() { --->
 
-			// ---------------------------- theme dropdown. ----------------------------
+			<!--- --- theme dropdown. --- --->
 			var contentTemplateThemesDs = new kendo.data.DataSource({
 				transport: {
 					read: {
 						cache: false,
-						// Note: since this template is in a different directory, we can't specify the cfc template without the full path name.
+						<!--- Note: since this template is in a different directory, we can't specify the cfc template without the full path name. --->
 						url: function() { // The cfc component which processes the query and returns a json string. 
 							return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getThemesForDropdown&includeAllThemes=true&includeAllLabel=true&csrfToken=<cfoutput>#csrfToken#</cfoutput>"; 
 						}, 
@@ -300,7 +300,7 @@
 				} //...transport:
 			});//...var themeDs...
 
-			// Create the theme multiselect
+			<!--- Create the theme multiselect --->
 			var contentTemplateThemes = $("#contentTemplateThemes").kendoMultiSelect({
 				optionLabel: "Select...",
 				autoBind: false,
@@ -311,7 +311,7 @@
 				value: [<cfoutput>#themeDropdownValue#</cfoutput>]
 			}).data("kendoMultiSelect");
 
-		 //});//document.ready  
+		 <!--- });//document.ready --->
 
 	  </script>
 		  

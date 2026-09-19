@@ -31,7 +31,7 @@
 	<cfif arrayLen(getSelfHostedFonts)>
 	<!--- Preload the fonts. --->
 	<style rel="preload" as="font"><cfloop from="1" to="#arrayLen(getSelfHostedFonts)#" index="i"><cfif len(getSelfHostedFonts[i]['FileName'])><cfoutput>
-		/* #getSelfHostedFonts[i]['Font']# */
+		<!--- #getSelfHostedFonts[i]['Font']# --->
 		@font-face {
 			font-family: "#getSelfHostedFonts[i]['Font']#";
 			src: url(#application.baseUrl#/common/fonts/#getSelfHostedFonts[i]['FileName']#.#fontExtension#) format("#fontExtension#")<cfif getSelfHostedFonts[i]['Woff']>, url(#application.baseUrl#/common/fonts/#getSelfHostedFonts[i]['FileName']#.#fontExtension#) format("woff")</cfif>;

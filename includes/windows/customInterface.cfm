@@ -40,22 +40,22 @@
 </cfsilent>
 		
 <style>
-	/* Constraining images to a max width so that they don't  push the content containers out to the right */
+	<!--- Constraining images to a max width so that they don't push the content containers out to the right --->
 	.entryImage img {
 		max-width: 100%;
 		height: auto; 
-		/* Subtle drop shadow on the image layer */
+		<!--- Subtle drop shadow on the image layer --->
 		box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 	}
 
 	.entryMap {
 		height: 564px;
 		width: 100%; 
-		/* Subtle drop shadow on the layer */
+		<!--- Subtle drop shadow on the layer --->
 		box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 	}
 	
-	/* FancyBox Thumnails */
+	<!--- FancyBox Thumnails --->
 	.thumbnail {
 		position: relative;
 
@@ -86,9 +86,9 @@
 	  height: auto;
 	}
 
-	/* See https://aaronparecki.com/2016/08/13/4/css-thumbnails */
+	<!--- See https://aaronparecki.com/2016/08/13/4/css-thumbnails --->
 	.squareThumbnail {
-		/* set the desired width/height and margin here */
+		<!--- set the desired width/height and margin here --->
 		width: 128px;
 		height: 128px;
 

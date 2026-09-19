@@ -79,38 +79,36 @@
 
 				/* Unfortunately, due to a documented uppy bug, this implementation is causing this bit of code to be called for every image. We still need to get the file data here and will set the following variable that we will use on the uppy oncomplete method. We could populate a hiden input form with unique values, however, that would require that we test for the existence of the imageId on each iteration. It's more efficient to set this variable every time an image is uploaded and then use it on the on complete method to populate our hidden form. */
 
-				// Set a variable that we will use later in the on complete method to populate the hidden form. This is populated by the json coming back from the server
+				<!--- Set a variable that we will use later in the on complete method to populate the hidden form. This is populated by the json coming back from the server --->
 				jsonResponse = response.body;
 			}
 		})
 		
-		// Events
-		// 1) When the dashboard icon is clicked
-		// Note: there is no event when the dashboard my device button is clicked. This is a work-around. We are going to use jquery's on click event and put in the class of the button. This is required as the uppy button does not have an id.
+		<!--- Events 1) When the dashboard icon is clicked Note: there is no event when the dashboard my device button is clicked. This is a work-around. We are going to use jquery's on click event and put in the class of the button. This is required as the uppy button does not have an id. --->
 		$(".uppy-Dashboard-input").on('click', function(event){
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait for the file uploader interface to respond.", icon: "k-ext-information" }));
 		});
 		
-		// 2) When a file has been uploaded to uppy
+		<!--- 2) When a file has been uploaded to uppy --->
 		uppy.on('file-added', (file) => {
-		  	// Close the wait window that was launched in the calling function.
+		  	<!--- Close the wait window that was launched in the calling function. --->
 			kendo.ui.ExtWaitDialog.hide();
 		})
 		
-		// 3) When the upload button was pressed
+		<!--- 3) When the upload button was pressed --->
 		uppy.on('upload', (data) => {
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while the images are uploaded.", icon: "k-ext-information" }));
 		})
 		
-		// 4) Error handling
+		<!--- 4) Error handling --->
 		uppy.on('upload-error', (file, error, response) => {
-			// Use a quick set timeout in order for the data to load.
+			<!--- Use a quick set timeout in order for the data to load. --->
 			setTimeout(function() {
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
 			}, 500);
 			
-			// Alert the user
+			<!--- Alert the user --->
 			$.when(kendo.ui.ExtYesNoDialog.show({ 
 				title: "Upload failed",
 				message: "The following error was encountered: " + error + ". Do you want to retry the upload?",
@@ -120,32 +118,30 @@
 			})
 			).done(function (response) { // If the user clicked 'yes', retry.
 				if (response['button'] == 'Yes'){// remember that js is case sensitive.
-					// Retry
+					<!--- Retry --->
 					uppy.retryUpload(file.id);
 				}//..if (response['button'] == 'Yes'){
 			});	
 		})
 
-		// 5) When the upload is complete to the server
+		<!--- 5) When the upload is complete to the server --->
 		uppy.on('complete', (result) => {
 			
-			/* The complete event does not return the file information, the result only containes information regarding the operation such as success or fail. We have however set a jsonResponse variable inside of the upload-success method above. We will use this to populate a hidden input in order to pass the image id's to the next interface. */
+			<!--- The complete event does not return the file information, the result only containes information regarding the operation such as success or fail. We have however set a jsonResponse variable inside of the upload-success method above. We will use this to populate a hidden input in order to pass the image id's to the next interface. --->
 				
-			// a) Dump in the imageId's to the hidden mediaId list and separate the values with underscores. We will use a listGetAt function on the back end to extract the imageId's
+			<!--- a) Dump in the imageId's to the hidden mediaId list and separate the values with underscores. We will use a listGetAt function on the back end to extract the imageId's --->
 			for (i=0; i < jsonResponse.length; i++){
-				// alert(jsonResponse[i]['mediaId']);
-				// This appends an item to a list inside of a form: appendValueToElement(value, elementId, delimiter)*/
+				<!--- alert(jsonResponse[i]['mediaId']); This appends an item to a list inside of a form: appendValueToElement(value, elementId, delimiter)*/ --->
 				appendValueToElement(jsonResponse[i]['mediaId'],'mediaIdList','_');
 			}
 
-			// b) Close the please wait dialog
-			// Use a quick set timeout in order for the data to load.
+			<!--- b) Close the please wait dialog Use a quick set timeout in order for the data to load. --->
 			setTimeout(function() {
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
 			}, 500);
 			
-			// c) Create a new window in order to put in the fancy box group and the item details (such as the image title)
+			<!--- c) Create a new window in order to put in the fancy box group and the item details (such as the image title) --->
 			createAdminInterfaceWindow(<cfoutput>#adminInterfaceWindowId#,#URL.optArgs#</cfoutput>,$("#mediaIdList").val());
 		})		
 	

@@ -33,13 +33,13 @@
 	<cfproperty name="NoIndex" ormtype="boolean" default="false">
 	<cfproperty name="DisplayOnRss" ormtype="boolean" default="true">
 	<cfproperty name="CanonicalURL" ormtype="string" length="1000" default="">
-	<!--- The following 6 items are configured for MySql. Change these depending upon your db --->
-	<cfproperty name="JsonLd" ormtype="text" sqltype="longtext" default="">
-	<cfproperty name="PostHeader" ormtype="text" sqltype="longtext" default="">
-	<cfproperty name="CSS" ormtype="text" sqltype="longtext" default="">
-	<cfproperty name="JavaScript" ormtype="text" sqltype="longtext" default="">
-	<cfproperty name="Body" ormtype="text" sqltype="longtext" default="">
-	<cfproperty name="MoreBody" ormtype="text" sqltype="longtext" default="">
+	<!--- Long text column. The type of this column is different for each database, so Application.cfc rewrites it to match the database that the blog was installed on (see /common/cfc/DatabaseOrmTypes.cfc). This file is shipped set up for SQL Server. --->
+	<cfproperty name="JsonLd" ormtype="string" sqltype="varchar(max)" default="">
+	<cfproperty name="PostHeader" ormtype="string" sqltype="varchar(max)" default="">
+	<cfproperty name="CSS" ormtype="string" sqltype="varchar(max)" default="">
+	<cfproperty name="JavaScript" ormtype="string" sqltype="varchar(max)" default="">
+	<cfproperty name="Body" ormtype="string" sqltype="varchar(max)" default="">
+	<cfproperty name="MoreBody" ormtype="string" sqltype="varchar(max)" default="">
 	<cfproperty name="Released" ormtype="boolean" default="false">
 	<cfproperty name="Promote" ormtype="boolean" default="false">
 	<cfproperty name="AllowComment" ormtype="boolean" default="true">

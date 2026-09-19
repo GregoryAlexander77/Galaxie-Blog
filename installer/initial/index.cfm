@@ -20,12 +20,11 @@
     <script src="../../common/libs/kendoCore/js/jquery.min.js"></script>
     <script src="../../common/libs/kendoCore/js/kendo.ui.core.min.js"></script>
 	
-	<script type="text/javascript" src="../../common/libs/momentJs/moments.js"></script>
 </head>
 <style>
 	
-	/* Table classes */
-	/* Applies a border on the outside of the table */
+	<!--- Table classes --->
+	<!--- Applies a border on the outside of the table --->
 	table.tableBorder {
 		border: 1px solid black;
 		width: 100%;
@@ -52,7 +51,7 @@
 			  <tr>
 				  <td align="left" valign="top" colspan="2" class="k-header" style="font-weight: bold">
 					  Welcome to the Galaxie Blog Installer!</br>
-					  (Step 1 of 6)
+					  (Step 1 of 4)
 				  </td>
 			  </tr>
 			  <!-- Border -->

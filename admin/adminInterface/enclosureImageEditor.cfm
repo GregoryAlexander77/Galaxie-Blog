@@ -104,15 +104,9 @@
 	<!---<cfoutput><br/>selectorId: #selectorId#</cfoutput>--->
 		
 	<script>
-		/* Note: the function handles enclosure images, videos, and theme images and needs to be changed according to what is being processed. This particular function handles theme images. Note: the invokedArguments is not used by CF, but shows the location where this function is being called from and the arguments for debugging purposes.
-		When using:
-		insert edit image:
-		the image is retrieved from the source but this function is not called.
-		insert media:
-		this function is invoked as soon as the user enters a URL into the tinyMce editor. 
-		*/
+		<!--- Note: the function handles enclosure images, videos, and theme images and needs to be changed according to what is being processed. This particular function handles theme images. Note: the invokedArguments is not used by CF, but shows the location where this function is being called from and the arguments for debugging purposes. When using: insert edit image: the image is retrieved from the source but this function is not called. insert media: this function is invoked as soon as the user enters a URL into the tinyMce editor. --->
 		function saveExternalUrl(url, mediaType, selectorId, invokedArguments){ 
-			//alert('saveExternalUrl invoked');
+			<!--- alert('saveExternalUrl invoked'); --->
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveExternalMediaEnclosure&template=enclosureImageEditor',
@@ -120,7 +114,7 @@
 				data: { // arguments
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					selectorId: '<cfoutput>#selectorId#</cfoutput>',
-					// Pass the mediaId saved in the mediaId hidden form if it is available
+					<!--- Pass the mediaId saved in the mediaId hidden form if it is available --->
 					mediaId: $("#<cfoutput>#imageMediaIdField#</cfoutput>").val(),
 					externalUrl: url,
 					postId: <cfoutput>#URL.optArgs#</cfoutput>,
@@ -132,27 +126,23 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
 
-				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveExternalMediaEnclosure function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});		
 			});
 			
-			// Refresh the media preview- pass in the postId
+			<!--- Refresh the media preview- pass in the postId --->
 			reloadEnclosureThumbnailPreview(<cfoutput>#URL.optArgs#</cfoutput>);
 	
 		}
 											
 		function saveExternalUrlResponse(response){ 
-			// Note: this does not do anything. I suspect because the tinymce editor is modal mode when it is invoked. This is only used for debugging purposes now
-			//alert(response.postId)
-			//alert(response. mediaId)
-			//alert(response.externalUrl)
-			//$("#externalImageUrl").val(response.externalUrl);
+			<!--- Note: this does not do anything. I suspect because the tinymce editor is modal mode when it is invoked. This is only used for debugging purposes now alert(response.postId) alert(response. mediaId) alert(response.externalUrl) $("#externalImageUrl").val(response.externalUrl); --->
 		}
 		
 		function removeMediaEnclosure(){ 
@@ -167,32 +157,32 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
 
-				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the removeMediaEnclosure function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});		
 			});
 		}
 			
-		// Submit the data and close this window.
+		<!--- Submit the data and close this window. --->
 		function onPostEnclosureSubmit(){
 			// Get the editor content
 			// Original code that caused problems:
 			// var enclosureEditorContent = $("#<cfoutput>#imageMediaIdField#</cfoutput>").val();
 			var enclosureEditorContent = tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent();
-			// Get the media URL if it is an existing image
+			<!--- Get the media URL if it is an existing image --->
 			var externalImageUrl = $("#externalImageUrl").val();
-			// If there are no enclosures or an existing media URL, remove any enclosures that exists in the db.
+			<!--- If there are no enclosures or an existing media URL, remove any enclosures that exists in the db. --->
 			if (enclosureEditorContent == "" && externalImageUrl == ""){
 				removeMediaEnclosure();
 			}
-			// Refresh the thumbnail image on the post detail page to show the none image
+			<!--- Refresh the thumbnail image on the post detail page to show the none image --->
 			reloadEnclosureThumbnailPreview(<cfoutput>#URL.optArgs#</cfoutput>);
-			// Close the edit window
+			<!--- Close the edit window --->
 			$('#postEnclosureWindow').kendoWindow('destroy');
 		}
 	</script>

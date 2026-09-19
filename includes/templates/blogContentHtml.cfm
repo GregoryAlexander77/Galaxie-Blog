@@ -416,6 +416,9 @@
 								<!--- My votes returns a list separated by an underscore (likes_dislikes) --->
 								<cfset myLikeCount = listGetAt(myVotes,1,"_")>
 								<cfset myDislikeCount = listGetAt(myVotes,2,"_")>
+								<!--- The totals of all of the other visitors (the totals include my own vote) --->
+								<cfset otherLikes = totalLikes - min(myLikeCount, 1)>
+								<cfset otherDislikes = totalDislikes - min(myDislikeCount, 1)>
 							
 								<!--- Set the class for the vote buttons. If the user has already voted, use the Kendo primary class to indicate how they voted. Otherwise, use muted buttons --->
 								<!--- Like classes --->
@@ -437,102 +440,80 @@
 								<cfelse>
 									<cfset dislikeButtonClass = dislikeButtonClassUnselected>
 								</cfif>
-								
-								<!--- Debugging --->
-								<cfdump var="#myVotes#" label="myVotes">
-								<cfoutput>totalLikes: #totalLikes# totalDislikes: #totalDislikes# myLikeCount:#myLikeCount# myDislikeCount: #myDislikeCount#</cfoutput>
 								</cfsilent>
 								
 								<h2 class="topContent">Reactions</h2>
 								<script>
+									<!--- Reactions. The user can like or dislike a post and can change their mind, but cannot remove a vote. The counts that are displayed are the totals from the other visitors plus my own vote. --->
 									$(document).ready(function(){
-										
-										$('#chr(35)#rating').likeDislike({
-											reverseMode: false,
-											disabledClass: 'disable',
-											click: function (value, l, d, event) {
-												// Create variables of likes and dislikes
-												var totalLikes = <cfoutput>#totalLikes#</cfoutput>;
-												var totalDislikes = <cfoutput>#totalDislikes#</cfoutput>;
-												// Class variables
-												// Like buttons
-												var likeButtonClassSelected = '<cfoutput>#likeButtonClassSelected#</cfoutput>';
-												var likeButtonClassUnselected = '<cfoutput>#likeButtonClassUnselected#</cfoutput>';
-												// Dislike buttons
-												var dislikeButtonClassSelected = '<cfoutput>#dislikeButtonClassSelected#</cfoutput>';
-												var dislikeButtonClassUnselected = '<cfoutput>#dislikeButtonClassUnselected#</cfoutput>';
-												// Vars to indicate the text element that contains the number of votes
-												var likes = $(this.element).find('.likes');
-												var dislikes =  $(this.element).find('.dislikes');
-												
-												// Submit the result to the server
-												$.ajax({
-													type: 'post', 
-													// This posts to the proxy controller as it needs to have session vars and performs client side operations.
-													url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=saveReaction",
-													data: {
-														postId: '<cfoutput>#postId#</cfoutput>',
-														anonymousUserId: '<cfoutput>#AnonymousUserDbObj.getAnonymousUserId()#</cfoutput>',
-														selectedId: event.target.id
-													},//..data: {
-													dataType: "json",
-													cache: false,
-													success: function(data) {
-														// Extract the data in the response.
-														for (var i = 0; i < data.length; i++) {
-															// Calculate the new totals depending upon what was sent
-															if ( event.target.id == 'like'){
-																// Only increment if I have not voted yet
-																if (<cfoutput>#myLikeCount#</cfoutput> === 0){
-																	totalLikes = <cfoutput>#totalLikes#</cfoutput> + 1;
-																	//console.log('Incrementing like');
-																}
-																// Subract 1 from the dislikes if I disliked this in the past
-																if (<cfoutput>#myDislikeCount#</cfoutput> > 0){
-																	totalDislikes = <cfoutput>#totalDislikes#</cfoutput> - 1;
-																	//console.log('Removing prior dislike');
-																}
-																// Change the selected like button class
-																	$('#chr(35)#likeButton').attr('class', likeButtonClassSelected);
-																	// Change the unlike button class
-																	$('#chr(35)#dislikeButton').attr('class', dislikeButtonClassUnselected);
-															} else {
-																// Increment the dislikes if I have not already disliked this
-																if (<cfoutput>#myDislikeCount#</cfoutput> === 0){
-																	totalDislikes = <cfoutput>#totalDislikes#</cfoutput> + 1;
-																	//console.log('Incrementing dislike');
-																}
-																// Remove the like if I already liked this and now dislike this
-																if (<cfoutput>#myLikeCount#</cfoutput> > 0){
-																	totalLikes = <cfoutput>#totalLikes#</cfoutput> - 1;
-													   				//console.log('Removing prior like');
-																}
-																// Change the selected dislike button class
-																$('#chr(35)#likeButton').attr('class', likeButtonClassUnselected);
-																// Change the unlike button class
-																$('#chr(35)#dislikeButton').attr('class', dislikeButtonClassSelected);
-															}
-															/**/
-															console.log('like:' + totalLikes);
-															console.log('dislike:' + totalDislikes);
-															
-															// Increment the counts
-															likes.text(parseInt(totalLikes));
-															dislikes.text(parseInt(totalDislikes));
+										var $rating = $('#chr(35)#rating');
+										var $likeButton = $('#chr(35)#likeButton');
+										var $dislikeButton = $('#chr(35)#dislikeButton');
+										<!--- My current vote: 'like', 'dislike' or '' if I have not voted yet. --->
+										var myVote = '<cfif myLikeCount gt 0>like<cfelseif myDislikeCount gt 0>dislike</cfif>';
+										<!--- The totals of everyone else. The totals on the page include my vote, so take it out. --->
+										var otherLikes = <cfoutput>#otherLikes#</cfoutput>;
+										var otherDislikes = <cfoutput>#otherDislikes#</cfoutput>;
+										var busy = false;
 
-														}
-													}//..success: function(data) {
-												});//..$.ajax({
+										<!--- The Kendo primary class shows how I voted. --->
+										var classes = {
+											likeSelected: '<cfoutput>#likeButtonClassSelected#</cfoutput>',
+											likeUnselected: '<cfoutput>#likeButtonClassUnselected#</cfoutput>',
+											dislikeSelected: '<cfoutput>#dislikeButtonClassSelected#</cfoutput>',
+											dislikeUnselected: '<cfoutput>#dislikeButtonClassUnselected#</cfoutput>'
+										};
 
+										function showVote() {
+											$likeButton.attr('class', myVote === 'like' ? classes.likeSelected : classes.likeUnselected);
+											$dislikeButton.attr('class', myVote === 'dislike' ? classes.dislikeSelected : classes.dislikeUnselected);
+											$rating.find('.likes').text(otherLikes + (myVote === 'like' ? 1 : 0));
+											$rating.find('.dislikes').text(otherDislikes + (myVote === 'dislike' ? 1 : 0));
+										}
+
+										function react(choice) {
+											<!--- Ignore clicks when I have already voted this way or the last vote is still being saved. --->
+											if (busy || choice === myVote) return;
+											busy = true;
+											$.ajax({
+												type: 'post',
+												<!--- This posts to the proxy controller as it needs to have session vars. --->
+												url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=saveReaction",
+												data: {
+													postId: '<cfoutput>#postId#</cfoutput>',
+													anonymousUserId: '<cfoutput>#AnonymousUserDbObj.getAnonymousUserId()#</cfoutput>',
+													selectedId: choice
+												},
+												dataType: "json",
+												cache: false
+											}).done(function(data) {
+												<!--- The server returns [{like: 1, dislike: 0}] or [{like: 0, dislike: 1}], or zeros if the vote was not saved. --->
+												if (data && data.length && (data[0].like == 1 || data[0].dislike == 1)) {
+													myVote = data[0].like == 1 ? 'like' : 'dislike';
+													showVote();
+												}
+											}).always(function() {
+												busy = false;
+											});
+										}
+
+										<!--- Use the button (the circle) and not just the small icon inside of it. Both buttons are also reachable with the keyboard. --->
+										$likeButton.attr({ role: 'button', tabindex: 0, 'aria-label': 'Like this post' });
+										$dislikeButton.attr({ role: 'button', tabindex: 0, 'aria-label': 'Dislike this post' });
+										$likeButton.on('click', function() { react('like'); });
+										$dislikeButton.on('click', function() { react('dislike'); });
+										$rating.on('keydown', '[role=button]', function(e) {
+											if (e.which === 13 || e.which === 32) {
+												e.preventDefault();
+												$(this).trigger('click');
 											}
 										});
-										
 									});
 								</script>
 
 								<style>
 									.dislike {
-										/* Step 1: Make the button a perfect circle */
+										<!--- Step 1: Make the button a perfect circle --->
 										width: 40px;
 										height: 40px;
 										border-radius: 50%;
@@ -543,7 +524,7 @@
 									}
 
 									.like {
-										/* Step 1: Make the button a perfect circle */
+										<!--- Step 1: Make the button a perfect circle --->
 										width: 40px;
 										height: 40px;
 										border-radius: 50%;
@@ -771,16 +752,8 @@
 							<cfif application.includeDisqus and (url.mode eq "alias" or URL.mode eq 'entry')>
 								<div id="disqus_thread"></div>
 								<script type="#application.blog.getScriptTypeString()#">
-									/**
-									*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
-									*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#chr(35)#configuration-variables*/
-									/*
-									var disqus_config = function () {
-									var disqus_shortname = '#postAlias#';
-									this.page.url = #postLink#;  // Replace PAGE_URL with your page's canonical URL variable
-									this.page.identifier = #postId#; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
-									};
-									*/
+									<!--- RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS. LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#chr(35)#configuration-variables --->
+									<!--- var disqus_config = function () { var disqus_shortname = '#postAlias#'; this.page.url = #postLink#; // Replace PAGE_URL with your page's canonical URL variable this.page.identifier = #postId#; // Replace PAGE_IDENTIFIER with your page's unique identifier variable }; --->
 									(function() { // don't EDIT BELOW THIS LINE
 										var d = document, s = d.createElement('script');
 										s.src = 'https://gregorys-blog.disqus.com/embed.js';
@@ -928,7 +901,7 @@
 			<cfoutput>
 				<div id="pager" data-role="pager" class="k-pager-wrap k-widget k-floatwrap k-pager-lg">
 				<script  type="#scriptTypeString#">
-					// Create the datasource with the URL
+					<!--- Create the datasource with the URL --->
 					var pagerDataSource = new kendo.data.DataSource({
 					data: [<cfset thisStartRow = 0><!--- Loop through the pages. ---><cfloop from="1" to="#totalPages#" index="page"><cfset thisLink = queryString & "&startRow=" & thisStartRow & "&page=" & page>
 						{ pagerUrl: "#thisLink#", page: "#page#" }<cfif page lt totalPages>,</cfif><cfset thisStartRow = thisStartRow + maxEntries></cfloop>
@@ -950,13 +923,13 @@
 					pagerDataSource.read();
 
 					function onPagerChange(data){
-						// Get the current page of the pager. The method to extract the current page is 'page()'.
+						<!--- Get the current page of the pager. The method to extract the current page is 'page()'. --->
 						var currentPage = pager.page();
-						// We are going to get the data item held in the datasource using its zero index array, but first we need to subtract 1 from the page value.
+						<!--- We are going to get the data item held in the datasource using its zero index array, but first we need to subtract 1 from the page value. --->
 						var index = currentPage-1;
-						// Get the url that is stored in the datsource using our new index.
+						<!--- Get the url that is stored in the datsource using our new index. --->
 						var pagerUrl = "?" + data[index].pagerUrl;
-						// Open the page.
+						<!--- Open the page. --->
 						window.location.href = pagerUrl;
 					}
 				</script>
@@ -992,33 +965,16 @@
 				<!---<cfdump var="#visitor#">--->
 				</cfsilent>		
 				<cfif arrayLen(getVisitorDbObj)>
-				<script>
-					// Create a new parser object
-					var parser = new UAParser();
-					// Output the name of the browser
-					$(document).ready(function() {
-					// Loop through the visitors user agent strings 
-					<cfloop from="1" to="#arrayLen(getVisitorDbObj)#" index="i">
-						var ipAddress = '<cfoutput>#getVisitorDbObj[i]['IpAddress']#</cfoutput>';
-						var result = UAParser("<cfoutput>#getVisitorDbObj[i]['HttpUserAgent']#</cfoutput>");
-						$("#currentVisitors").append('<a href="https://www.ipalyzer.com/' + ipAddress + '" target="_new">' + result.browser + '</a>, ');
-					</cfloop>
-					});
-				</script>
-				<p><div id="currentVisitors" name="currentVisitors" style="font-size: 12pt;">Visitors: </div></p>
+				<!--- The visitors' browsers are identified on the server. This used to be done in the browser with the ua-parser.js library. --->
+				<p><div id="currentVisitors" name="currentVisitors" style="font-size: 12pt;">Visitors: 
+				<cfloop from="1" to="#arrayLen(getVisitorDbObj)#" index="i">
+					<cfset visitorBrowser = application.blog.parseBrowser(getVisitorDbObj[i]['HttpUserAgent'])>
+					<cfoutput><a href="https://www.ipalyzer.com/#encodeForHTMLAttribute(getVisitorDbObj[i]['IpAddress'])#" target="_new">#encodeForHTML(trim(visitorBrowser.family & " " & visitorBrowser.major))#</a><cfif i lt arrayLen(getVisitorDbObj)>, </cfif></cfoutput>
+				</cfloop>
+				</div></p>
 				<cfelse><!---<cfif arrayLen(getVisitorDbObj)>--->
-				<script>
-					// Create a new parser object
-					var parser = new UAParser();
-					const result = UAParser("<cfoutput>#AnonymousUserDbObj.getHttpUserAgentRef().getHttpUserAgent()#</cfoutput>");
-					var ipAddress = '<cfoutput>#application.blog.getIpAddress()#</cfoutput>';
-					console.log('browser:' + result.browser);
-					// Output the name of the browser
-					$(document).ready(function() {
-						$("#currentVisitors").html(' Visitors: <a href="https://www.ipalyzer.com/' + ipAddress + '" target="_new">' + result.browser + '</a>');
-					});
-				</script>
-					<p><div id="currentVisitors" name="currentVisitors" style="font-size: 12pt;"></div></p>
+				<cfset currentVisitorBrowser = application.blog.parseBrowser(AnonymousUserDbObj.getHttpUserAgentRef().getHttpUserAgent())>
+				<p><div id="currentVisitors" name="currentVisitors" style="font-size: 12pt;"> Visitors: <cfoutput><a href="https://www.ipalyzer.com/#encodeForHTMLAttribute(application.blog.getIpAddress())#" target="_new">#encodeForHTML(trim(currentVisitorBrowser.family & " " & currentVisitorBrowser.major))#</a></cfoutput></div></p>
 				</cfif><!---<cfif arrayLen(getVisitorDbObj)>--->
 				
 			</cfif><!---<cfif isHomePage or structKeyExists(URL,"postId")>--->

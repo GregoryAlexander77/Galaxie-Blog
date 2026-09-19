@@ -27,18 +27,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 			font: 15px Arial, sans-serif;
 		}
 	
-		/* FontAwesome HEX codes:
-		Edit f044 or f6d9
-		Round edit F05D
-		Check f00c
-		Delete f1f8
-		Search f002
-		Eraser f12d
-		Cancel f05e
-		Add  f067 
-		Filter f0b0
-		Notes: make sure to remove the .jsgrid .jsgrid-button { background-image: url in the css file in the jsgrid .jsgrid-button declarations (there are two locations in the .css file), otherwise, a big red x will be overlaid on the controls.
-		*/
+		<!--- FontAwesome HEX codes: Edit f044 or f6d9 Round edit F05D Check f00c Delete f1f8 Search f002 Eraser f12d Cancel f05e Add f067 Filter f0b0 Notes: make sure to remove the .jsgrid .jsgrid-button { background-image: url in the css file in the jsgrid .jsgrid-button declarations (there are two locations in the .css file), otherwise, a big red x will be overlaid on the controls. --->
 
 		.jsgrid-button {
 			position: relative;
@@ -121,15 +110,15 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 	</table>
 
 	<script>
-	// Get the page width. This is necessary to use percentage based widths in the columns.
+	<!--- Get the page width. This is necessary to use percentage based widths in the columns. --->
 	var pageWidth = $("#<cfoutput>#gridName#</cfoutput>").parent().width() - 100;
 
-	// Rebind our custom buttons.
+	<!--- Rebind our custom buttons. --->
 	window.FontAwesomeConfig = {
 		autoReplaceSvg: 'nest' 
 	}
 
-	// Set up the grid.
+	<!--- Set up the grid. --->
 	$(function() {
 			
 		jsGrid.setDefaults({
@@ -164,7 +153,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 			}
 		});
 		  
-		// Grid declaration
+		<!--- Grid declaration --->
 		$("#<cfoutput>#gridName#</cfoutput>").jsGrid({
 			height: "720px",
 			width: "100%",
@@ -185,25 +174,25 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getPostsForGrid&gridType=jsGrid&showPages=<cfoutput>#showPages#</cfoutput>&showBlogPosts=<cfoutput>#showBlogPosts#</cfoutput>&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
 						data: filter,
 						dataType: "json"
-					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
+					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(result) {
-						// The result will be false if the csrf token was not authorized.
+						<!--- The result will be false if the csrf token was not authorized. --->
 						if (!result){
 							createLoginWindow(); 
 						} else {
 							return result.data;
 						}
 						
-					// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
-						// This is a secured function. Display the login screen if there is a 403 response header.
+						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
 						if (jqXHR.status === 403) { 
 							createLoginWindow(); 
 						} else {//...if (jqXHR.status === 403) { 
-							// The full response is: jqXHR.responseText, but we just want to extract the error.
+							<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the getPosts function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 								).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						}//...if (jqXHR.status === 403) { 
 					});
@@ -212,20 +201,20 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					return $.ajax({
 						type: "post",
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=updatePostViaJsGrid",
-						// Pass the needed data. The only thing editable in this grid is the released checkbox
+						<!--- Pass the needed data. The only thing editable in this grid is the released checkbox --->
 						data: {
-							// Note: the PostId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available.
+							<!--- Note: the PostId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available. --->
 							csrfToken: $("#csrfToken").val(),
 							postId: value.PostId,
 							blogSortDate: value.blogSortDate,
-							// Get the value of the checkbox.
+							<!--- Get the value of the checkbox. --->
 							released: value.Released
 						},
 						dataType: "json",
 						cache: false,
-					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
+					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(response) {
-						// The response contains the postId and the boolean promptToEmailSubscriber. The promptToEmailSubscriber value will be true if the post is eligible to be emailed. If true- raise a dialog asking the user if they want to email the post to the subscribers. If the user chooses yes, send another ajax request along with the postId to have the post emailed.
+						<!--- The response contains the postId and the boolean promptToEmailSubscriber. The promptToEmailSubscriber value will be true if the post is eligible to be emailed. If true- raise a dialog asking the user if they want to email the post to the subscribers. If the user chooses yes, send another ajax request along with the postId to have the post emailed. --->
 						if (response.promptToEmailSubscriber){
 							$.when(kendo.ui.ExtYesNoDialog.show({ 
 								title: "Email Post?",
@@ -236,22 +225,22 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 							})
 							).done(function (response) { // If the user clicked 'yes', send email.
 								if (response['button'] == 'Yes'){// remember that js is case sensitive.
-									// Mail it
+									<!--- Mail it --->
 									sendEmailToSubscribers(value.PostId);
 								}//..if (response['button'] == 'Yes'){
 							});	
 						}
-					// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
 	
-						// This is a secured function. Display the login screen if there is a 403 response header.
+						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
 						if (jqXHR.status === 403) { 
 							createLoginWindow(); 
 						} else {//...if (jqXHR.status === 403) { 
-							// The full response is: jqXHR.responseText, but we just want to extract the error.
+							<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the updatePostViaJsGrid function", message: jqXHR.responseText, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 								).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						}//...if (jqXHR.status === 403) {
 					
@@ -261,29 +250,28 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					return $.ajax({
 						type: "post",
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removePostViaJsGrid",
-						// Pass the needed data. 
+						<!--- Pass the needed data. --->
 						data: {
-							// Pass the Post to the cfc on the back end. 
-							// Note: the postId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available.
+							<!--- Pass the Post to the cfc on the back end. Note: the postId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available. --->
 							csrfToken: $("#csrfToken").val(),
 							postId: value.PostId
 						},
 						dataType: "json",
 						cache: false,
-					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
+					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(result) {
-						// Write the response to the console
+						<!--- Write the response to the console --->
 						console.log("done", result);
-					// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
-						// This is a secured function.  Display the login screen if there is a 403 response header.
+						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
 						if (jqXHR.status === 403) { 
 							createLoginWindow(); 
 						} else {//...if (jqXHR.status === 403) { 
-							// The full response is: jqXHR.responseText, but we just want to extract the error.
+							<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the removePostViaGrid function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 								).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						}//...if (jqXHR.status === 403) { 
 					});
@@ -294,7 +282,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					}
 				},
 			},
-			// Fields 
+			<!--- Fields --->
 			fields: [
 				{ 
 					name: "FullName", 
@@ -321,7 +309,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					editing: false,
 					width: (pageWidth*(28/100)),
 					itemTemplate: function(value, item) {
-						// This does not work to strip out the HTML ($(value).text())
+						<!--- This does not work to strip out the HTML ($(value).text()) --->
 					  	return '<a href="javascript:createAdminInterfaceWindow(6, ' + item.PostId + ');">' + truncateWithEllipses(removeStrBetween(value, "postData"), 125) + '</a>';
 					}
 				},
@@ -333,7 +321,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					width: (pageWidth*(8/100)),
 					sorttype: 'date', 
 					itemTemplate: function (value, item) {
-						// Format the date using the momentJs lib.
+						<!--- Format the date using the momentJs lib. --->
 						return dayjs(item.BlogSortDate).format('MM/DD/YYYY h:mm A');
 					},
 				},
@@ -345,7 +333,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					width: (pageWidth*(8/100)),
 					sorttype: 'date', 
 					itemTemplate: function (value, item) {
-						// Format the date using the momentJs lib.
+						<!--- Format the date using the momentJs lib. --->
 						return dayjs(item.DatePosted).format('MM/DD/YYYY h:mm A');
 					},
 				},
@@ -361,7 +349,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 				{ 
 					name: "Released", 
 					type: "checkbox",
-					// We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead.
+					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: '<cfif session.isMobile><i class="fas fa-thumbs-up"></i><cfelse>Released</cfif>',
 					width: (pageWidth*(8/100)),
 					<!--- editTemplate: function(value, item) {
@@ -378,7 +366,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 			});
 		});
 		
-		// Send email to subscribers
+		<!--- Send email to subscribers --->
 		function sendEmailToSubscribers(postId){ 
 
 				jQuery.ajax({
@@ -393,20 +381,20 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					error: function(ErrorMsg) {
 						console.log('Error' + ErrorMsg);
 					}
-				// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+				<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 				}).fail(function (jqXHR, textStatus, error) {
 
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the sendPostEmailToSubscribers function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});		
 				});	
 			}
 
-			// Submit the data and close this window.
+			<!--- Submit the data and close this window. --->
 			function emailResult(response){
-				// Do nothing
+				<!--- Do nothing --->
 			}
 		
    	</script>
@@ -414,7 +402,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 </form>
 	
 <script>
-	// Script to add custom font awesome buttons. This does not need to be editted unless you want to change the css class names (ie jsgrid-button etc).
+	<!--- Script to add custom font awesome buttons. This does not need to be editted unless you want to change the css class names (ie jsgrid-button etc). --->
 	(function(jsGrid, $, undefined) {
 
 		var Field = jsGrid.Field;

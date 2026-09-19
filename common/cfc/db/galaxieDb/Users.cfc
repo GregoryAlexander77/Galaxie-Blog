@@ -16,7 +16,7 @@
 	<cfproperty name="Website" ormtype="string" default="" length="255">
 	<!--- The ProfileBody can be HTML that creates a page. --->
 	<cfproperty name="ProfilePicture" ormtype="string" default="" length="255">
-	<!--- This is configured for SQL Server. Manually change the varchar(max) property if you use another db --->
+	<!--- Long text column. The type of this column is different for each database, so Application.cfc rewrites it to match the database that the blog was installed on (see /common/cfc/DatabaseOrmTypes.cfc). This file is shipped set up for SQL Server. --->
 	<cfproperty name="Biography" ormtype="string" sqltype="varchar(max)" default="">
 	<!--- Social Media --->
 	<cfproperty name="FacebookUrl" ormtype="string" default="" length="255">

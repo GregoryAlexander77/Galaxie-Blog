@@ -77,7 +77,7 @@
 
 		<!--- Load the fonts. ---> 
 		<style>
-			/* fonts */
+			<!--- fonts --->
 			@font-face {
 				font-family: "<cfoutput>#fileName#</cfoutput>";
 				src: url('<cfoutput>#application.baseUrl#/common/fonts/#fileName#</cfoutput>');
@@ -120,7 +120,7 @@
 					<tr>
 						<td class="k-content">
 						<script>
-							// create DropDownList from select HTML element
+							<!--- create DropDownList from select HTML element --->
 							$("#chr(35)#fontWeight<cfoutput>#i#</cfoutput>").kendoDropDownList();
 						</script>
 						<select name="fontWeight<cfoutput>#i#</cfoutput>" id="fontWeight<cfoutput>#i#</cfoutput>">
@@ -138,7 +138,7 @@
 					<tr>
 						<td class="k-alt">
 							<script>
-								// create DropDownList from select HTML element
+								<!--- create DropDownList from select HTML element --->
                     			$("#chr(35)#fontType<cfoutput>#i#</cfoutput>").kendoDropDownList();
 							</script>
 							<select name="fontType<cfoutput>#i#</cfoutput>" id="fontType<cfoutput>#i#</cfoutput>">
@@ -185,7 +185,7 @@
 		$(document).ready(function() {
 			// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 			var fontUploadDetailFormValidator = $("#fontUploadDetail").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
 				<cfloop from="1" to="#arrayLen(getUploadedFont)#" index="i">
 					<cfsilent>
@@ -193,25 +193,25 @@
 						<cfset fontId = getUploadedFont[i]["FontId"]>
 						<cfset fileName = getUploadedFont[i]["FileName"]>
 					</cfsilent>
-					// font name
+					<!--- font name --->
 					font<cfoutput>#i#</cfoutput>:
 					function(input){
 						if (input.is("[id='font<cfoutput>#i#</cfoutput>']") && $.trim(input.val()).length < 4){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-font<cfoutput>#i#</cfoutput>Required-msg", "The font field must be at least 4 characters");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#font<cfoutput>#i#</cfoutput>" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
-					// file name
+					<!--- file name --->
 					fileName<cfoutput>#i#</cfoutput>:
 					function(input){
 						if (input.is("[id='fileName<cfoutput>#i#</cfoutput>']") && $.trim(input.val()).length < 4){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-fileName<cfoutput>#i#</cfoutput>Required-msg", "The font field must be at least 4 characters");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#fileName<cfoutput>#i#</cfoutput>" ).focus();
 							return false;
 						}                                    
@@ -221,57 +221,54 @@
 				}
 			}).data("kendoValidator");
 		
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var uploadFontDetailSubmit = $('#uploadFontDetailSubmit');
 			uploadFontDetailSubmit.on('click', function(e){      
                 e.preventDefault();         
 				if (fontUploadDetailFormValidator.validate()) {
-					// submit the form.
-					// Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post.
-					// alert('posting');
+					<!--- submit the form. Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post. alert('posting'); --->
 					postFontDetails('update');
 				} else {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Required fields are missing.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}
 			});
 		});//...document.ready
 		
-		// Post method on the detail form called from the GalleryDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the GalleryDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postFontDetails(action){
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveFontAfterUpload&csrfToken=<cfoutput>#csrfToken#</cfoutput>',
-				// Serialize the form. The csrfToken is also in the form.
+				<!--- Serialize the form. The csrfToken is also in the form. --->
 				data: $('#fontUploadDetail').serialize(),
-				// This is one of the few times that we will be sending back an html response. We are going to use this directly to set the content in the editor. its easier to craft the html on the server side than to manipulate the dom with a json object on the client. Normally this is always json
+				<!--- This is one of the few times that we will be sending back an html response. We are going to use this directly to set the content in the editor. its easier to craft the html on the server side than to manipulate the dom with a json object on the client. Normally this is always json --->
 				dataType: "html",
 				success: fontUpdateResult, // calls the result function.
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// This is a secured function. Display the login screen.
+				<!--- This is a secured function. Display the login screen. --->
 				if (jqXHR.status === 403) { 
 					createLoginWindow(); 
 				} else {//...if (jqXHR.status === 403) { 
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveFont function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 					});		
 				}//...if (jqXHR.status === 403) { 
 			});
 		};
 		
 		function fontUpdateResult(response){
-			// alert(response)
-			// Note: the response is an html string 
+			<!--- alert(response) Note: the response is an html string --->
 			
-			// Alert the user
+			<!--- Alert the user --->
 			$.when(kendo.ui.ExtYesNoDialog.show({ 
 
 				title: "Font was uploaded",
@@ -282,27 +279,27 @@
 			})
 			).done(function (response) { // If the user clicked 'yes'.
 				if (response['button'] == 'Yes'){// remember that js is case sensitive.
-					// Close this window
+					<!--- Close this window --->
 					$('#uploadFontDetailsWindow').kendoWindow('destroy');
-					// and do it again
+					<!--- and do it again --->
 					createAdminInterfaceWindow(31, '', 'addFont');
 				} else {
 					// Refresh the <cfif application.kendoCommercial>kendo<cfelse>jsgrid</cfif> grid 
 					try {
-						// Refresh the font grid if it is open
+						<!--- Refresh the font grid if it is open --->
 					<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
 						$('#fontsGrid').data('kendoGrid').dataSource.read();
 					<cfelse>
 						$("#fontsGrid").jsGrid("loadData");
 					</cfif> 
-						// Refresh the theme font dropdowns if the window is open
+						<!--- Refresh the theme font dropdowns if the window is open --->
 						$("#blogNameFontDropdown").data("kendoDropDownList").dataSource.read();
 					} catch(e){
-						// The grid or dropdown was not initialized. This is a normal error
+						<!--- The grid or dropdown was not initialized. This is a normal error --->
 					}
-					// Close the upload font window
+					<!--- Close the upload font window --->
 					$('#uploadFontWindow').kendoWindow('destroy');
-					// Close this window
+					<!--- Close this window --->
 					$('#uploadFontDetailsWindow').kendoWindow('destroy');
 				}//..if (response['button'] == 'Yes'){
 			});	

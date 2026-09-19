@@ -156,23 +156,22 @@
 </cfif><!---<cfif postFound>--->
 	<!--- Load resources and scripts. --->
 <script>
-	/* Script to defer script resources. See https://appseeds.net/defer.js/demo.html. 
-	/*!@shinsenter/defer.js@3.9.0*/
+	<!--- Script to defer script resources. See https://appseeds.net/defer.js/demo.html. /*!@shinsenter/defer.js@3.9.0 --->
 	!(function(r,c,f){function u(e,n,t,i){I?q(e,n):(1<(t=t===f?u.lazy:t)&&(i=e,N.push(e=function(){i&&(i(),i=f)},t)),(t?S:N).push(e,Math.max(t?350:0,n)))}function s(e){return"string"==typeof(e=e||{})?{id:e}:e}function a(n,e,t,i){l(e.split(" "),function(e){(i||r)[n+"EventListener"](e,t||o)})}function l(e,n){e.map(n)}function d(e,n){l(z.call(e.attributes),function(e){n(e.name,e.value)})}function p(e,n,t,i,o,r){if(o=E.createElement(e),t&&a(w,b,t,o),n)for(r in n)o[j](r,n[r]);return i&&E.head.appendChild(o),o}function m(e,n){return z.call((n||E).querySelectorAll(e))}function h(i,e){l(m("source,img",i),h),d(i,function(e,n,t){(t=y.exec(e))&&i[j](t[1],n)}),"string"==typeof e&&(i.className+=" "+e),i[b]&&i[b]()}function e(e,n,t){u(function(i){l(i=m(e||"script[type=deferjs]"),function(e,t){e[A]&&(t={},d(e,function(e,n){e!=C&&(t[e==A?"href":e]=n)}),t.as=g,t.rel="preload",p(v,t,f,r))}),(function o(e,t,n){(e=i[k]())&&(t={},h(e),d(e,function(e,n){e!=C&&(t[e]=n)}),n=t[A]&&!("async"in t),(t=p(g,t)).text=e.text,e.parentNode.replaceChild(t,e),n?a(w,b+" error",o,t):o())})()},n,t)}function o(e,n){for(n=I?(a(t,i),S):(a(t,x),I=u,S[0]&&a(w,i),N);n[0];)q(n[k](),n[k]())}var y=/^data-(.+)/,v="link",g="script",b="load",n="pageshow",w="add",t="remove",i="keydown mousemove mousedown touchstart wheel",x="on"+n in r?n:b,j="setAttribute",k="shift",A="src",C="type",D=r.IntersectionObserver,E=r.document,I=/p/.test(E.readyState),N=[],S=[],q=r.setTimeout,z=N.slice;u.all=e,u.dom=function(e,n,i,o,r){u(function(n){function t(e){n&&n.unobserve(e),o&&!1===o(e)||h(e,i)}n=D?new D(function(e){l(e,function(e){e.isIntersecting&&t(e.target)})},r):f,l(m(e||"[data-src]"),function(e){e[c]||(e[c]=u,n?n.observe(e):t(e))})},n,!1)},u.css=function(e,n,t,i,o){(n=s(n)).href=e,n.rel="stylesheet",u(function(){p(v,n,i,r)},t,o)},u.js=function(e,n,t,i,o){(n=s(n)).src=e,u(function(){p(g,n,i,r)},t,o)},u.reveal=h,r[c]=u,I||a(w,x),e()})(this,"Defer"),(function(e,n){n=e.defer=e.Defer,e.deferimg=e.deferiframe=n.dom,e.deferstyle=n.css,e.deferscript=n.js})(this);
 </script>
 
 <script>
-	// WebP support detection. Revised a script found on stack overflow: https://stackoverflow.com/questions/5573096/detecting-webp-support. It is the quickest loading script to determine webP that I have found so far.
+	<!--- WebP support detection. Revised a script found on stack overflow: https://stackoverflow.com/questions/5573096/detecting-webp-support. It is the quickest loading script to determine webP that I have found so far. --->
 	function webPImageSupport() {
-		// Detemine if the webp mime type is on the server. This is saved as a ColdFusion application variable.
+		<!--- Detemine if the webp mime type is on the server. This is saved as a ColdFusion application variable. --->
 		var serverSupportsWebP = <cfoutput>#application.serverSupportsWebP#</cfoutput>;
 		var elem = document.createElement('canvas');
 
 		if (serverSupportsWebP && !!(elem.getContext && elem.getContext('2d'))) {
-			// Is able to get WebP representation?
+			<!--- Is able to get WebP representation? --->
 			return elem.toDataURL('image/webp').indexOf('data:image/webp') == 0;
 		}
-		// Canvas is not supported on older browsers such as IE.
+		<!--- Canvas is not supported on older browsers such as IE. --->
 		return false;
 	}
 </script>
@@ -207,6 +206,35 @@
 		<cfset kendoCommonCssFileLocation = trim(kendoSourceLocation & getTheme[1]["KendoCommonCssFileLocation"])>
 		<cfset kendoThemeCssFileLocation = trim(kendoSourceLocation & getTheme[1]["KendoThemeCssFileLocation"])>
 		<cfset kendoThemeMobileCssFileLocation = trim(kendoSourceLocation & getTheme[1]["KendoThemeMobileCssFileLocation"])>
+		<!--- Which Kendo Core bundle to load. kendo.ui.core.min.js has every Kendo Core widget (about 900 KB), but this blog only uses a few of them. The public site loads kendo.galaxie.public.min.js, the administrative site loads kendo.galaxie.admin.min.js, and a post that uses a widget that is not in the public bundle gets the full bundle. See /common/libs/kendoCore/build-galaxie-bundle.sh. Kendo Professional (kendo.all.min.js) is not affected, and neither is Kendo Core that is loaded from a folder that is not the embedded Kendo Core folder. --->
+		<cfset kendoJsFile = "kendo.ui.core.min">
+		<cfif not kendoCommercial and left(kendoSourceLocation, 4) neq "http" and findNoCase("/common/libs/kendoCore/", kendoSourceLocation)>
+			<!--- Make sure that the bundles were uploaded (this is remembered until the application is restarted) --->
+			<cfif not structKeyExists(application, "kendoGalaxieBundlesExist")>
+				<cfset application.kendoGalaxieBundlesExist = fileExists(expandPath(application.baseUrl & "/common/libs/kendoCore/js/kendo.galaxie.public.min.js")) and fileExists(expandPath(application.baseUrl & "/common/libs/kendoCore/js/kendo.galaxie.admin.min.js"))>
+			</cfif>
+			<cfif application.kendoGalaxieBundlesExist>
+				<cfif pageTypeId eq 2 or application.Udf.isLoggedIn()>
+					<cfset kendoJsFile = "kendo.galaxie.admin.min">
+				<cfelse>
+					<cfset kendoJsFile = "kendo.galaxie.public.min">
+					<!--- A post may use a widget that is not in the public bundle --->
+					<cfif isDefined("url.mode") and (url.mode is "entry" or url.mode is "alias") and arrayLen(getPost)>
+						<cfset kendoPostText = "">
+						<cfloop list="Body,MoreBody,JavaScript,PostHeader" index="kendoPostColumn">
+							<cfif structKeyExists(getPost[1], kendoPostColumn)>
+								<cfset kendoPostText = kendoPostText & " " & getPost[1][kendoPostColumn]>
+							</cfif>
+						</cfloop>
+						<cfif application.blog.postNeedsFullKendoCore(kendoPostText)>
+							<cfset kendoJsFile = "kendo.ui.core.min">
+						</cfif>
+					</cfif>
+				</cfif>
+			</cfif>
+		</cfif>
+		<!--- The Kendo mobile stylesheet (kendo.<theme>.mobile.min.css) is only for the Kendo mobile widgets and a few badge and app bar styles that this blog does not use. It is not needed with the Kendo Core bundles of this blog (they do not have the mobile widgets). It is still loaded with Kendo Professional, and with the full Kendo Core file (which has the mobile widgets) that a post that needs it, or a custom Kendo folder, gets. --->
+		<cfset loadKendoMobileCss = kendoCommercial or kendoJsFile eq "kendo.ui.core.min">
 	</cfsilent>
  	<!--- The jQuery script can't be defered as the Kendo controls won't work. We're using jQuery 1.2. Later jQuery versions don't work with Kendo UI core unfortunately. --->
 <cfif kendoCommercial>
@@ -232,23 +260,27 @@ Either use https://code.jquery.com/jquery-3.7.1.min.js or https://ajax.googleapi
 <!--- The Kendo css locations are set in the includes/templates/pageSettings.cfm template and use the Kendo folder path when using Kendo commercial. Otherwise they point to the embedded Kendo Core package. --->
 </cfsilent>	
 <!-- Kendo scripts. Do not defer these! -->
-<script type="text/javascript" src="#kendoSourceLocation#js/<cfif kendoCommercial>kendo.all.min<cfelse>kendo.ui.core.min</cfif>.js"></script>
+<script type="text/javascript" src="#kendoSourceLocation#js/<cfif kendoCommercial>kendo.all.min<cfelse>#kendoJsFile#</cfif>.js"></script>
 <!-- Note: the Kendo stylesheets are critical to the look of the site and I am not deferring them. -->
 <script type="text/javascript">
 <cfif isDefined("thisKendoSourceLocation") and len(thisKendoSourceLocation)><!--- Allow the blog user to switch over to Kendo commercial using XML directives in the post header --->
-	// Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings.
+	<!--- Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings. --->
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#thisKendoSourceLocation#styles/kendo.common.min.css') );
-	// Less based theme css files.
+	<!--- Less based theme css files. --->
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#thisKendoSourceLocation#styles/kendo.default.min.css') );
-	// Mobile less based theme file.
+	<cfif loadKendoMobileCss>
+	<!--- Mobile less based theme file. --->
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#thisKendoSourceLocation#styles/kendo.default.mobile.min.css') );
+	</cfif>
 <cfelse>
-	// Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings.
+	<!--- Kendo common css. Note: Material black and office 365 themes require a different stylesheet. These are specified in the theme settings. --->
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#trim(kendoCommonCssFileLocation)#') );
-	// Less based theme css files.
+	<!--- Less based theme css files. --->
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#trim(kendoThemeCssFileLocation)#') );
-	// Mobile less based theme file.
+	<cfif loadKendoMobileCss>
+	<!--- Mobile less based theme file. --->
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#trim(kendoThemeMobileCssFileLocation)#') );
+	</cfif>
 </cfif>
 </script>
 <!-- Other  libraries  -->
@@ -262,18 +294,11 @@ Either use https://code.jquery.com/jquery-3.7.1.min.js or https://ajax.googleapi
 		<cfset prismTheme = "prismCoy">
 	</cfif>
 </cfsilent>
-<!-- Defer the extended scripts along with my notification library. Note: the blueopal and material black themes are not in the extended lib. -->
+<!-- Defer the extended stylesheet. Note: the blueopal and material black themes are not in the extended lib. -->
 <script type="#scriptTypeString#">
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.kendoUiExtendedLocation#/styles/#lCase(kendoTheme)#.kendo.ext.css') );
-	// Notification .css 
-	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/ui.notify.css') );
-	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.jQueryNotifyLocation#/notify.css') );
-	// Prism.css (must be in between the head tags)
-	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#/common/libs/prism/prism.min.css') );
-	// Prism theme (must be in between the head tags)
-	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#/common/libs/prism/themes/#prismTheme#.css') );
 </script>
-<!-- Note: the prism.min.js library (our code hightlighter) should not be placed here in the header. It is in the footer prior to the end body tag. This library must be placed between the body tags. -->
+<!-- Note: Prism (our code highlighter) is not loaded here. It is only downloaded when a page has code to highlight, see galaxieLoader below and tailEndScripts.cfm. -->
 <cfif pageId eq 2 and application.Udf.isLoggedIn()>
 <!--- Load scripts used for the admin page. We don't want the extra resources to be downloaded unless the is already logged in the admin site --->
 <!-- TinyMce must also be placed in the head in order for the set and get content methods to work. Read the notes in the /includes/templates/js/tinymce.cfm template for more information. -->
@@ -308,29 +333,67 @@ Either use https://code.jquery.com/jquery-3.7.1.min.js or https://ajax.googleapi
 <script type="#scriptTypeString#">
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://use.fontawesome.com/releases/v6.1.0/css/all.css') );
 </script>
-<!-- Fancy box (version 2). -->
-<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/fancyBox/v2/source/jquery.fancybox.js"></script>
-<!-- Defer the fancyBox css. -->
-<script type="#scriptTypeString#">
-	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#/common/libs/fancyBox/v2/source/jquery.fancybox.css') );
+<!-- Fancy box (version 2), Plyr (our HTML5 media player) and Prism (our code highlighter) are not needed on most pages, so they are not downloaded with every page. The first time that a page needs one of them, galaxieLoader downloads it and then runs the callback. Calling it again does not download it again. Used in blogJsContent.cfm, tailEndScripts.cfm and Renderer.cfc. -->
+<script>
+var galaxieLoader = (function() {
+	var libraries = {};
+	<!--- Runs the callback when the library is ready, and only loads the library the first time that it is asked for. --->
+	function whenReady(name, load, callback) {
+		var library = libraries[name];
+		if (!library) {
+			library = libraries[name] = { ready: false, started: false, callbacks: [] };
+		}
+		if (library.ready) {
+			if (callback) { callback(); }
+			return;
+		}
+		if (callback) { library.callbacks.push(callback); }
+		if (library.started) { return; }
+		library.started = true;
+		load(function() {
+			library.ready = true;
+			var callbacks = library.callbacks;
+			library.callbacks = [];
+			for (var i = 0; i < callbacks.length; i++) { callbacks[i](); }
+		});
+	}
+	function addCss(href) {
+		$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', href) );
+	}
+	function getScript(url) {
+		return $.ajax({ url: url, dataType: 'script', cache: true });
+	}
+	return {
+		fancyBox: function(callback) {
+			whenReady('fancyBox', function(ready) {
+				addCss('#application.baseUrl#/common/libs/fancyBox/v2/source/jquery.fancybox.css');
+				getScript('#application.baseUrl#/common/libs/fancyBox/v2/source/jquery.fancybox.js').done(ready);
+			}, callback);
+		},
+		plyr: function(callback) {
+			whenReady('plyr', function(ready) {
+				addCss('#application.baseUrl#/common/libs/plyr/themeCss/#kendoTheme#.css');
+				getScript('#application.baseUrl#/common/libs/plyr/plyr.min.js').done(ready);
+			}, callback);
+		},
+		prism: function(callback) {
+			whenReady('prism', function(ready) {
+				addCss('#application.baseUrl#/common/libs/prism/prism.min.css');
+				addCss('#application.baseUrl#/common/libs/prism/themes/#prismTheme#.css');
+				<!--- Prism highlights the page as soon as it loads, which would be before the line numbers plugin is there. Highlight it ourselves when both are loaded. --->
+				window.Prism = window.Prism || {};
+				window.Prism.manual = true;
+				getScript('#application.baseUrl#/common/libs/prism/prism.min.js').done(function() {
+					getScript('#application.baseUrl#/common/libs/prism/plugins/prism-line-numbers.min.js').done(function() {
+						Prism.highlightAll();
+						ready();
+					});
+				});
+			}, callback);
+		}
+	};
+})();
 </script>
-<!-- Plyr (our HTML5 media player) -->
-<script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/plyr/plyr.min.js"></script>
-<!-- Defer the plyr css. -->
-<script type="#scriptTypeString#">
-	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', '#application.baseUrl#/common/libs/plyr/themeCss/#kendoTheme#.css') );
-</script>
-<cfif application.logVisitors><!--
-	Important notes:
-	* I am not using the full version of the UA Parser as it is large and bloated. Instead, I am using the basic ua-parser.js script along with the isBot library to determine if the visitor is a 'good bot'. I don't need anything else. 
-	* The UA Parser library has a AGPL-3.0 open source license that is free to use and distribute for open source projects. However, when used, you also must open source your code. This does not affect Galaxie Blog as it is already open-sourced. See https://github.com/faisalman/ua-parser-js/blob/master/LICENSE.md for more information. 
-	* These libraries are small and are not deffered
--->
-<script src="#application.baseUrl#/common/libs/uaParser/ua-parser.js"></script>
-<script src="#application.baseUrl#/common/libs/isBot/isbot.js"></script>
-<!-- Like/Dislike widget -->
-<script src="#application.baseUrl#/common/libs/likeDislike/js/like-dislike.min.js"></script>
-</cfif>
 <cfif addSocialMediaUnderEntry><!-- Add this is depracated as of May 2023 --></cfif>
 <cfif arrayLen(getPost) and getPost[1]['LoadScrollMagic'] and application.includeGsap>
 <!-- Scroll magic and other green sock plugins. -->
@@ -343,7 +406,7 @@ Either use https://code.jquery.com/jquery-3.7.1.min.js or https://ajax.googleapi
 </cfif></cfoutput>
 				
 <script>
-// Passive event listener. This should remove many of the touchstart errors that Chrome reports: 'Added non-passive event listener to a scroll-blocking <some> event. Consider marking event handler as 'passive' to make the page more responsive.'
+<!--- Passive event listener. This should remove many of the touchstart errors that Chrome reports: 'Added non-passive event listener to a scroll-blocking <some> event. Consider marking event handler as 'passive' to make the page more responsive.' --->
 (function () {
     if (typeof EventTarget !== "undefined") {
         let func = EventTarget.prototype.addEventListener;

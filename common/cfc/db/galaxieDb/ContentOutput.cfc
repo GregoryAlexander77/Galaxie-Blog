@@ -8,7 +8,7 @@
 	<!--- This is a psuedo column used by the object that will not be placed into the actual database. We are using the ContentOutputTheme table as an intermediatory table to store the many to many relationships between a zone and a template. This is different than all of the other relationship types.---> 
 	<cfproperty name="ThemeRef" ormtype="int" hint="Foreign Key to the Theme.ThemeId. Like the PageRef column above, I am not joining to the Theme table it is easier to work without the join as I am also working with null values like so: WHERE ContentOutput.ThemeRef IS NULL OR ContentOutput.ThemeRef = 1">
 	
-	<!---  These two columns are configured for SQL Server. Manually change the varchar(max) property if you use another db --->
+	<!--- Long text column. The type of this column is different for each database, so Application.cfc rewrites it to match the database that the blog was installed on (see /common/cfc/DatabaseOrmTypes.cfc). This file is shipped set up for SQL Server. --->
 	<cfproperty name="ContentOutput" ormtype="string" sqltype="varchar(max)" default="">
 	<cfproperty name="ContentOutputMobile" ormtype="string" sqltype="varchar(max)" default="">
 	

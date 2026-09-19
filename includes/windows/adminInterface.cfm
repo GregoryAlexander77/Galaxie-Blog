@@ -82,7 +82,7 @@ TinyMce styles
 !!! This style is critical for tiny mce dialogs to work properly!!! 
 --->
 <style>
-	/* Set the z-index of the dialogs so that they appear above any other dialog windows. This is absolutely necessary when the UI is already in a dialog, such as a Kendo window. */
+	<!--- Set the z-index of the dialogs so that they appear above any other dialog windows. This is absolutely necessary when the UI is already in a dialog, such as a Kendo window. --->
 	.tox {
 		z-index: 16000 !important;
 	}
@@ -117,10 +117,9 @@ TinyMce styles
 
 <!--- Common scripts --->
 <script>
-	// Post editor scripts
-	// This function reloads the media preview when new media has been uploaded
+	<!--- Post editor scripts This function reloads the media preview when new media has been uploaded --->
 	function reloadEnclosureThumbnailPreview(postId){
-		// alert('reloading thumbnail')
+		<!--- alert('reloading thumbnail') --->
 		$("#mediaPreview").html("<p>Retrieving media....</p>").load("loadPreview.cfm?previewId=1&optArgs=" + postId);
 	}
 </script>

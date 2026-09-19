@@ -130,11 +130,7 @@
 	</cfif><!---<cfif detailAction eq 'update' or detailAction eq 'updateProfile'>--->
 			
 	<style>
-		/* Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless
-		   look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names,
-		   and resets box-shadow/background-image too since some Kendo skins draw the separator line that
-		   way instead of with a plain border. Scoped to direct structural children of each item so the
-		   real form content (tables, inputs, etc.) nested inside isn't affected. */
+		<!--- Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names, and resets box-shadow/background-image too since some Kendo skins draw the separator line that way instead of with a plain border. Scoped to direct structural children of each item so the real form content (tables, inputs, etc.) nested inside isn't affected. --->
 		#userDetailPanelBar,
 		#userDetailPanelBar .k-item,
 		#userDetailPanelBar .k-link,
@@ -155,7 +151,7 @@
 
 	<script>
 		$(document).ready(function() {
-			// Create an accordian style panel for each user detail section.
+			<!--- Create an accordian style panel for each user detail section. --->
 			$("#userDetailPanelBar").kendoPanelBar({
 				expandMode: "multiple"
 			});
@@ -166,13 +162,13 @@
 	<script>
 	<cfif detailAction eq 'update'>
 	
-		// ---------------------------- role dropdown. ----------------------------
+		<!--- --- role dropdown. --- --->
 		var roleDs = new kendo.data.DataSource({
 			transport: {
 				read: {
 					cache: false,
 					type: "GET", //Note: for large payloads coming from the server, use the get method. The post method may fail as it is less efficient.
-					// Note: since this template is in a different directory, we can't specify the cfc template without the full path name.
+					<!--- Note: since this template is in a different directory, we can't specify the cfc template without the full path name. --->
 					url: function() { // The cfc component which processes the query and returns a json string. 
 						return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getRolesForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>"; 
 					}, 
@@ -182,7 +178,7 @@
 			} //...transport:
 		});//...var rolesDs...
 
-		// Create the top level dropdown
+		<!--- Create the top level dropdown --->
 		var roleDropdown = $("#roleDropdown").kendoDropDownList({
 			optionLabel: "Select...",
 			autoBind: false,
@@ -190,66 +186,66 @@
 			dataValueField: "RoleId",
 			filter: "contains",
 			dataSource: roleDs,
-			// Use the change event to fire off events. The change event is fired off when setting the value of this dropdown list.
+			<!--- Use the change event to fire off events. The change event is fired off when setting the value of this dropdown list. --->
 			change: onRoleChange
 		}).data("kendoDropDownList");
 
 	<cfif isDefined("currentUserRoleId")>
-		// Set default value by the value (this is used when the container is populated via the datasource).
+		<!--- Set default value by the value (this is used when the container is populated via the datasource). --->
 		var roleDropdown = $("#roleDropdown").data("kendoDropDownList");
 		roleDropdown.value(<cfoutput>#currentUserRoleId#</cfoutput>);
-		//roleDropdown.trigger("change");
+		<!--- roleDropdown.trigger("change"); --->
 	</cfif><!---<cfif isDefined("currentUserRoleId")>--->
 
-		// On change function to save the selected value.
+		<!--- On change function to save the selected value. --->
 		function onRoleChange(e){
-			// Get the value
+			<!--- Get the value --->
 			roleId = this.value();
-			// Save the value in a hiden form in order to get at it in the next dropdown
+			<!--- Save the value in a hiden form in order to get at it in the next dropdown --->
 			$("#selectedRoleId").val(roleId);
-			// Refresh the capability dropdown that is dependent upon this value
+			<!--- Refresh the capability dropdown that is dependent upon this value --->
 			$("#capabilityDropdown").data("kendoMultiSelect").dataSource.read();
-			// Populate the next dropdown when something is chosen.
+			<!--- Populate the next dropdown when something is chosen. --->
 			if (roleId > 0){
 				setTimeout(function() {
-					// Populate it...
+					<!--- Populate it... --->
 					populateCapabilityDropdown();
 				}, 250);
 			}
 		}//...function onRolechange(e)
 		
-		// Populate the capabilities from the datasource
+		<!--- Populate the capabilities from the datasource --->
 		function populateCapabilityDropdown(){
-			// Clear the previous value
+			<!--- Clear the previous value --->
 			capabilityDropdown.value([]);
-			// Clear any applied filters
+			<!--- Clear any applied filters --->
 			capabilityDropdown.dataSource.filter({});
-			// Clear the defaultCapabilities form that we store the default values in
+			<!--- Clear the defaultCapabilities form that we store the default values in --->
 			$("#defaultCapabilities").val("");
-			// Fetch the data from the capabilityDs datasource
+			<!--- Fetch the data from the capabilityDs datasource --->
 			capabilityDs.fetch(function(){
-				// Get the data
+				<!--- Get the data --->
 				var capabilityDsData = capabilityDs.data();
-				// Create an array in order to populate multiple values 
+				<!--- Create an array in order to populate multiple values --->
 				var capabilityIdList = [];
-				// Loop through the data to create an array to send to the capability multi-select
+				<!--- Loop through the data to create an array to send to the capability multi-select --->
 				for (var i = 0; i < capabilityDsData.length; i++) {
-					// Get the capabilityId
+					<!--- Get the capabilityId --->
 					var capabilityId = capabilityDsData[i].CapabilityId;
-					// Populate our array with the value surrounded by qoutes
+					<!--- Populate our array with the value surrounded by qoutes --->
 					capabilityIdList.push(capabilityId);
 				}//..for (var i = 0; i < capabilityDsData.length; i++) 
 				
-				// Set the values in the multiselect after a timeout (1000ms)
+				<!--- Set the values in the multiselect after a timeout (1000ms) --->
 				if (capabilityIdList.length > 0){
-					// Get a reference to the dropdown. We will use this in the loop below to set its items.
+					<!--- Get a reference to the dropdown. We will use this in the loop below to set its items. --->
 					var capabilityDropdown = $("#capabilityDropdown").data("kendoMultiSelect");
 
 					setTimeout(function() {
 						capabilityDropdown.value(capabilityIdList);
 					}, 500);
 				}
-				// And populate a hidden form so that we can compare the list with what the user has chosen to determine if we should open up a dialog to save the new role name. We need to have a short timeout in order for the form to populate.
+				<!--- And populate a hidden form so that we can compare the list with what the user has chosen to determine if we should open up a dialog to save the new role name. We need to have a short timeout in order for the form to populate. --->
 				setTimeout(function() {
 					$("#defaultCapabilities").val(capabilityDropdown.value());
 				}, 500);
@@ -257,12 +253,12 @@
 			});//..capabilityDs.fetch(function(){
 		}//..function populateCapabilityDropdown()
 		
-		// ---------------------------- Capability dropdown. ----------------------------
+		<!--- --- Capability dropdown. --- --->
 		var capabilityDs = new kendo.data.DataSource({
 			transport: {
 				read: {
 					cache: false,
-					// Note: since this template is in a different directory, we can't specify the cfc template without the full path name.
+					<!--- Note: since this template is in a different directory, we can't specify the cfc template without the full path name. --->
 					url: function() { // The cfc component which processes the query and returns a json string. 
 						return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getCapabilitiesForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>"
 						+ "&role=" + roleDropdown.text(); 
@@ -274,14 +270,14 @@
 			} //...transport:
 		});//...var capabilityDs...
 
-		// Note: there are two datasources for the capability dropdown. Above, there is a dedicated datasource right above, and this one (Inline datasource). Both of these are needed in this implementation of the cascading multi select. The capability dropdown values are populated by the chosen role.
+		<!--- Note: there are two datasources for the capability dropdown. Above, there is a dedicated datasource right above, and this one (Inline datasource). Both of these are needed in this implementation of the cascading multi select. The capability dropdown values are populated by the chosen role. --->
 		var capabilityDropdown = $("#capabilityDropdown").kendoMultiSelect({
 			optionLabel: "Select...",
 			autoBind: false,
 			dataTextField: "CapabilityUiLabel",
 			dataValueField: "CapabilityId",
 			filter: "contains",
-			// Inline datasource. This is the 2nd datasource for the capability cascading list. Both datasources are needed with this implementation.
+			<!--- Inline datasource. This is the 2nd datasource for the capability cascading list. Both datasources are needed with this implementation. --->
 			dataSource: capabilityDs,
 			schema: {
 				data: function (data) { //return the datasource array that contains the data
@@ -290,7 +286,7 @@
 			}
 		}).data("kendoMultiSelect");
 	
-		// Populate the control with the current values determined by the users role
+		<!--- Populate the control with the current values determined by the users role --->
 		capabilityDropdown.dataSource.data([{
 		<cfloop from="1" to="#arrayLen(currentUserCapabilityObject)#" index="i"><cfoutput>
 		  CapabilityUiLabel: "#currentUserCapabilityObject[i]['CapabilityName']#", CapabilityId: #currentUserCapabilityObject[i]['CapabilityId']#
@@ -298,7 +294,7 @@
 		</cfoutput></cfloop>
 		}]);
 
-		// Set default value by the value (this is used when the container is populated via the datasource). Note: this method does not like comma separated values and will only show the first option if you use them (ie. 1,2,3). It expects the list in an array like so: [1,2,3]
+		<!--- Set default value by the value (this is used when the container is populated via the datasource). Note: this method does not like comma separated values and will only show the first option if you use them (ie. 1,2,3). It expects the list in an array like so: [1,2,3] --->
 		capabilityDropdown.value([<cfoutput>#currentUserCapabilityIdList#</cfoutput>]);
 	</cfif><!---<cfif detailAction eq 'update'>--->
 								  
@@ -306,68 +302,68 @@
 		$(document).ready(function() {
 
 			var userDetailValidator = $("#userDetails").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
-					// first name
+					<!--- first name --->
 					firstNameIsNumeric:
 					function(input){
 						if (input.is("[id='firstName']") && $.isNumeric(input.val())){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-firstNameIsNumeric-msg", "Must be a string");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#firstName" ).focus();
 							return false;
 						}                                    
 						return true;
 
 					},
-					// last name
+					<!--- last name --->
 					lastNameIsNumeric:
 					function(input){
 						if (input.is("[id='lastName']") && $.isNumeric(input.val())){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-lastNameIsNumeric-msg", "Must be a string");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#lastName" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
-					// user name
+					<!--- user name --->
 					userNameIsNumeric:
 					function(input){
 						if (input.is("[id='userName']") && $.isNumeric(input.val())){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-userNameIsNumeric-msg", "Must be a string");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#userName" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
 					<cfif detailAction eq 'insert'>
-					// The userName must be unique. 
+					<!--- The userName must be unique. --->
 					userNameIsUnique:
 					function(input){
-						// Do not continue if the user name is found in the currentUserName list 
+						<!--- Do not continue if the user name is found in the currentUserName list --->
 						if (input.is("[id='userName']") && ( listFind( currentUserNameList, input.val() ) != 0 ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-userNameIsUnique-msg", "Username already exists");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#userName" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
 					</cfif><!---<cfif detailAction eq 'insert'>--->
-					// Password
+					<!--- Password --->
 					passwordMinLength: 
 					function(input) {
-						// Trim the string of spaces before checking  
+						<!--- Trim the string of spaces before checking --->
 						if (input.is("[id='password']") && $.trim(input.val()).length < 6) { //
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-passwordMinLength-msg", "Must be at least 6 characters");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#password" ).focus();
 							return false;
 						}                                    
@@ -376,26 +372,26 @@
 				}
 			}).data("kendoValidator");
 
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var userDetailSubmit = $('#userDetailSubmit');
 			userDetailSubmit.on('click', function(e){      
 				e.preventDefault();         
 				
 				if (userDetailValidator.validate()) {
-					// If the password is being updated, ask the user to confirm the password again
+					<!--- If the password is being updated, ask the user to confirm the password again --->
 					if ( $("#updatePassword").val() == 1) {
-						// This interface will not let you pass until the passwords match
+						<!--- This interface will not let you pass until the passwords match --->
 						createAdminInterfaceWindow(9, '<cfoutput>#detailAction#</cfoutput>');	  
 					} else {//..if (userDetailValidator.validate()) 		  }
 					<cfif detailAction eq 'updateProfile'><!--- Roles are not used when updating the profile --->
-						// Open up a please wait dialog
+						<!--- Open up a please wait dialog --->
 						$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we process the user.", icon: "k-ext-information" }));
-						// Post the data to the server
+						<!--- Post the data to the server --->
 						setTimeout(function() {
 							postUserDetails('updateProfile');
 						}, 250);
 					<cfelseif detailAction eq 'update'><!---<cfif detailAction eq 'updateProfile'>--->
-						// Determine if there this is a new role and proceed.
+						<!--- Determine if there this is a new role and proceed. --->
 						checkForNewRole();
 					</cfif><!---<cfif detailAction eq 'updateProfile'>--->
 					}//...if ( $("#updatePassword").val() == 1) {
@@ -404,47 +400,46 @@
 
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}//..if (userDetailValidator.validate()) {
 			});
 
 		});//...document.ready
 								  
-		// Compare the capabilities held in the defaultCapabilities hidden form to the selected capabilities to see if they have changed. If they are different, pop-up an interface asking for the new role name, otherwise proceed to the postUserDetails function to send the data to the server for processing.
+		<!--- Compare the capabilities held in the defaultCapabilities hidden form to the selected capabilities to see if they have changed. If they are different, pop-up an interface asking for the new role name, otherwise proceed to the postUserDetails function to send the data to the server for processing. --->
 		function checkForNewRole(){
-			// Get the default capabilities for the role in the input form
+			<!--- Get the default capabilities for the role in the input form --->
 			var defaultCapabilities = $('#defaultCapabilities').val();
-			// Get the selected capabilities
+			<!--- Get the selected capabilities --->
 			var capabilityDropdown = $("#capabilityDropdown").data("kendoMultiSelect").value();				  
 			var selectedCapabilities = capabilityDropdown.toString();
 				
-			// If the defaultCapabilities has not changed (and is empty), or if the default capabilities match the selected capabilities process the data on the server.
+			<!--- If the defaultCapabilities has not changed (and is empty), or if the default capabilities match the selected capabilities process the data on the server. --->
 			if (defaultCapabilities == '' || defaultCapabilities == selectedCapabilities){
 				
-				// Open up a please wait dialog
+				<!--- Open up a please wait dialog --->
 				$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we process the user.", icon: "k-ext-information" }));
-				// Post the data to the server
+				<!--- Post the data to the server --->
 				setTimeout(function() {
 					postUserDetails('update');
 				}, 250);
 								  
 			} else {
-				// Open the new role interface
+				<!--- Open the new role interface --->
 				createAdminInterfaceWindow(8);
 			}					  
 		}
 
-		// Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postUserDetails(action){
 		<cfif detailAction eq 'update'>
-			// Administrators may update user roles
-			// Convert the capability multiselect into a comma delimited string.
+			<!--- Administrators may update user roles Convert the capability multiselect into a comma delimited string. --->
 			var capabilityDropdown = $("#capabilityDropdown").data("kendoMultiSelect").value();
 		</cfif><!---<cfif detailAction eq 'update'>--->
-			// The biography is only available when updating a user or profile
+			<!--- The biography is only available when updating a user or profile --->
 		<cfif detailAction neq 'insert'>
-			// Get the biography from the tinymce editor
+			<!--- Get the biography from the tinymce editor --->
 			var biographyContent = tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent();
 		</cfif><!---<cfif detailAction neq 'insert'>--->
 								  
@@ -452,7 +447,7 @@
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveUser',
 				data: { // arguments
-					// We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#userDetails").serialize()' or use the stringify method to pass it as an array of values. 
+					<!--- We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#userDetails").serialize()' or use the stringify method to pass it as an array of values. --->
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					action: action, // either update, updateProfile or insert.
 					firstName: $("#firstName").val(),
@@ -473,7 +468,7 @@
 					securityAnswer2: $("#securityAnswer2").val(),
 					securityAnswer3: $("#securityAnswer3").val(),	
 				</cfif><!---<cfif detailAction neq 'insert'>--->
-				// The notify checkbox is not present unless the admin is different than the logged in user. We don't need to notify ourselves if we took this action
+				<!--- The notify checkbox is not present unless the admin is different than the logged in user. We don't need to notify ourselves if we took this action --->
 				<cfif userName neq session.userName>
 					notify: $('#notify').is(':checked'),
 				<cfelse>
@@ -481,11 +476,11 @@
 				</cfif>
 					userName: $("#userName").val(),
 					password: $("#password").val(),
-				// Admins can update the groups
+				<!--- Admins can update the groups --->
 				<cfif detailAction eq 'update'>
-					// The value of the dropdown is the Id
+					<!--- The value of the dropdown is the Id --->
 					roleId: $("#roleDropdown").data("kendoDropDownList").value(), 
-					// The new role and desc will be sent after the user types in the new role when the default capabilities have been changed.
+					<!--- The new role and desc will be sent after the user types in the new role when the default capabilities have been changed. --->
 					newRole: $("#newRole").val(),
 					newRoleDesc: $("#newRoleDesc").val(),
 					capabilities: capabilityDropdown.toString()
@@ -496,20 +491,20 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveUser function", message: error, icon: "k-ext-error", width: "425px" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});		
 			});
 		};
 								  
 		function showPasswordNote(){	
-			// Determine if the note has already been seen
+			<!--- Determine if the note has already been seen --->
 			var passwordNoteSeen = $("#passwordNoteSeen").val();
-			// If the note has not been seen, pop it up
+			<!--- If the note has not been seen, pop it up --->
 			if (passwordNoteSeen == '0'){
 				$.when(kendo.ui.ExtOkCancelDialog.show({ 
 					title: "All passwords are encrypted", 
@@ -518,14 +513,13 @@
 				).done(function (response) {
 					if (response['button'] == 'OK'){
 			
-						// Change the updatePassword text field with a 1 to indicate that the password is being updated. This will be used to prompt the user to confirm the new password once the form is submitted
+						<!--- Change the updatePassword text field with a 1 to indicate that the password is being updated. This will be used to prompt the user to confirm the new password once the form is submitted --->
 						$("#updatePassword").val(1); 
-						// Clear the password input
-						// Clear the form
+						<!--- Clear the password input Clear the form --->
 						$("#password").val(''); 
-						// Focus the form
+						<!--- Focus the form --->
 						$("#password").focus();
-						// And set the hidden passwordNoteSeen form to 1 so the user does not have to keep on seeing this message when they try to change the password. 
+						<!--- And set the hidden passwordNoteSeen form to 1 so the user does not have to keep on seeing this message when they try to change the password. --->
 						var passwordNoteSeen = $("#passwordNoteSeen").val(1);
 					}
 				});
@@ -534,31 +528,31 @@
 
 		function userUpdateResult(response){
 			if (JSON.parse(response.success) == true){
-				// Refresh the user grid. This may not be present to put it in a try block
+				<!--- Refresh the user grid. This may not be present to put it in a try block --->
 				try {
 					$("#userGridWindow").data("kendoWindow").refresh();
 				} catch(e){
-					// Do nothing
+					<!--- Do nothing --->
 				}
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Close this interface.
+				<!--- Close this interface. --->
 				$('#userDetailWindow').kendoWindow('destroy');
 				
 			} else {
 				
-				// Close the please wait dialog
+				<!--- Close the please wait dialog --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Display the errors
+				<!--- Display the errors --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving user", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "325px" }) // or k-ext-error, k-ext-question
 				).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});
 			}//..if (JSON.parse(response.success) == true){
 			
 		}
 								  
-		// Create a list to validate that a user name is already in use.
+		<!--- Create a list to validate that a user name is already in use. --->
 		currentUserNameList = '<cfoutput>#currentUserNameList#</cfoutput>';
 					  
 	</script>

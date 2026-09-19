@@ -10165,6 +10165,42 @@
 
 	</cffunction>
 
+	<cffunction name="postNeedsFullKendoCore" access="public" returntype="boolean" output="false"
+			hint="Scans a post's content for a Kendo Core widget that is not in the small bundle that the public site loads (kendo.galaxie.public.min.js, see /common/libs/kendoCore/build-galaxie-bundle.sh). Returns true if the post needs the full Kendo Core bundle (kendo.ui.core.min.js). Keep the list of widgets in the bundle up to date: it is the PUBLIC list in build-galaxie-bundle.sh. Note: this is only used with Kendo Core, a post that needs Kendo Professional is handled by postNeedsKendoCommercial().">
+		<cfargument name="postContent" type="string" required="false" default="" hint="The text of the post to scan: the Body, MoreBody, JavaScript and PostHeader">
+
+		<!--- The widgets in the public bundle. The plugin names that are only used by Galaxie Blog directives and the extended dialogs (ExtAlertDialog, etc) are also fine. --->
+		<cfset var bundledWidgets = "Window,Validator,PanelBar,ResponsivePanel,Pager,Calendar,Menu,MultiSelect,Splitter,Animate,Stop,Destroy,Widget,Commercial,SourceLocation,Source">
+		<cfset var bundledDataRoles = "window,validator,panelbar,responsivepanel,pager,calendar,menu,multiselect,splitter">
+		<cfset var match = "">
+		<cfset var widgetName = "">
+		<cfset var dataRolePrefix = 'data-role\s*=\s*["'']?'>
+
+		<!--- Widgets that are called with jQuery ($("#id").kendoTabStrip()) or read by name (.data("kendoTabStrip")), and the widget classes that are used directly (kendo.ui.TabStrip) --->
+		<cfloop array="#reMatch('kendo[A-Z][A-Za-z]*', arguments.postContent)#" index="match">
+			<cfset widgetName = right(match, len(match) - 5)>
+			<cfif not listFind(bundledWidgets, widgetName) and left(widgetName, 3) neq "Ext">
+				<cfreturn true>
+			</cfif>
+		</cfloop>
+		<cfloop array="#reMatch('kendo\.ui\.[A-Z][A-Za-z]*', arguments.postContent)#" index="match">
+			<cfset widgetName = listLast(match, ".")>
+			<cfif not listFind(bundledWidgets, widgetName) and left(widgetName, 3) neq "Ext" and widgetName neq "progress">
+				<cfreturn true>
+			</cfif>
+		</cfloop>
+		<!--- The widgets that are created with the data-role attribute --->
+		<cfloop array="#reMatchNoCase(dataRolePrefix & '[a-z]+', arguments.postContent)#" index="match">
+			<cfset widgetName = lCase(reReplaceNoCase(match, dataRolePrefix, ''))>
+			<cfif not listFind(bundledDataRoles, widgetName)>
+				<cfreturn true>
+			</cfif>
+		</cfloop>
+
+		<cfreturn false>
+
+	</cffunction>
+
 	<!--- //***********************************************************************************************
 			Post Content Inspection Functions
 	//*************************************************************************************************--->
@@ -11933,6 +11969,10 @@
 		<cfset var Data = "[]" />
 
 		<cfset UserDbObj = entityLoad("Users", { UserName = arguments.userName }, "true" )>
+		<!--- There are no logins if the user does not exist --->
+		<cfif isNull(UserDbObj)>
+			<cfreturn []>
+		</cfif>
 		
 		<!--- Note: we need to specify the IpAddress table using an alias (IpAddress.IpAddress) to ensure that we will not get the IP address object stored in the Users table if I load the Users entity. --->
 		<cfquery name="Data" dbtype="hql">
@@ -13288,8 +13328,8 @@
 					<cfset MapProviderObj = entityLoad("MapProvider", { MapProvider = mapProvider }, "true" )>
 					<!--- Set the values. --->
 					<cfset MapTypeDbObj.setMapType(mapType)>
-					<!--- Pass the Map Provider obj --->
-					<cfset MapTypeDbObj.setMapProviderRef(MapProviderObj)>
+					<!--- MapProviderRef is a plain int column, not a many-to-one relation - pass the id, not the object (same as installer/insertData.cfm) --->
+					<cfset MapTypeDbObj.setMapProviderRef(MapProviderObj.getMapProviderId())>
 					<cfset MapTypeDbObj.setDate(now())>
 					<!--- Save it --->
 					<cfset EntitySave(MapTypeDbObj)>
@@ -13885,87 +13925,85 @@
 
 	</cffunction>
 			
-	<!--- ua-parser emulation logic rewritten completely in ColdFusion Tag Syntax. --->
-	<cffunction name="parseBrowser" access="public" returntype="struct" output="false">
+	<!--- Identifies the visitor's browser from the User-Agent string. This replaced the ua-parser.js library. The blog only needs to know the browser (see anonymousUserDetail.cfm). --->
+	<cffunction name="parseBrowser" access="public" returntype="struct" output="false"
+			hint="Identifies the browser in a User-Agent string. Returns a struct with the browser family (ie Chrome, Firefox, Safari, Edge), and the major, minor and patch version numbers. The family is 'Unknown' when the browser is not recognized.">
 		<cfargument name="userAgent" type="string" required="true" />
 
-		<!--- 1. Initialize variables --->
-		<cfset var local = structNew() />
+		<cfset var result = { "family": "Unknown", "major": "", "minor": "", "patch": "" }>
+		<cfset var parser = "">
+		<cfset var match = "">
+		<cfset var versionParts = []>
 
-		<!--- Default structure fallback --->
-		<cfset local.result = {
-			"family": "Unknown",
-			"major": "",
-			"minor": "",
-			"patch": ""
-		} />
-
-		<!--- 2. Emulated ordered parser database matching uap-core schema --->
-		<cfset local.parsers = [
-			{ "regex": "EdgA?/([0-9.]+)", "family": "Edge" },
+		<!--- The parsers are checked in order and the first match wins. Browsers that are built on top of Chrome or Safari (Edge, Opera, Vivaldi, Samsung Internet...) also have Chrome and Safari in their User-Agent, so they must be checked before Chrome and Safari. The first group in the expression is the version. --->
+		<cfset var parsers = [
+			{ "regex": "Edg(?:e|A|iOS)?/([0-9.]+)", "family": "Edge" },
+			{ "regex": "OPR/([0-9.]+)", "family": "Opera" },
+			{ "regex": "OPiOS/([0-9.]+)", "family": "Opera" },
+			{ "regex": "Opera.*Version/([0-9.]+)", "family": "Opera" },
+			{ "regex": "Vivaldi/([0-9.]+)", "family": "Vivaldi" },
+			{ "regex": "SamsungBrowser/([0-9.]+)", "family": "Samsung Internet" },
+			{ "regex": "UCBrowser/([0-9.]+)", "family": "UC Browser" },
+			{ "regex": "DuckDuckGo/([0-9.]+)", "family": "DuckDuckGo Browser" },
+			{ "regex": "MiuiBrowser/([0-9.]+)", "family": "MIUI Browser" },
+			{ "regex": "YaBrowser/([0-9.]+)", "family": "Yandex Browser" },
+			{ "regex": "Brave/([0-9.]+)", "family": "Brave" },
 			{ "regex": "Chromium/([0-9.]+)", "family": "Chromium" },
 			{ "regex": "CriOS/([0-9.]+)", "family": "Chrome for iOS" },
 			{ "regex": "Chrome/([0-9.]+)", "family": "Chrome" },
-			{ "regex": "Firefox/([0-9.]+)", "family": "Firefox" },
 			{ "regex": "FxiOS/([0-9.]+)", "family": "Firefox for iOS" },
+			{ "regex": "Firefox/([0-9.]+)", "family": "Firefox" },
 			{ "regex": "Version/([0-9.]+).*Safari/", "family": "Safari" },
 			{ "regex": "MSIE ([0-9.]+);", "family": "Internet Explorer" },
-			{ "regex": "Trident/.*rv:([0-9.]+)", "family": "Internet Explorer" },
-			{ "regex": "Opera.*Version/([0-9.]+)", "family": "Opera" },
-			{ "regex": "OPR/([0-9.]+)", "family": "Opera" },
-			{ "regex": "UCBrowser/([0-9.]+)", "family": "UC Browser" },
-			{ "regex": "SamsungBrowser/([0-9.]+)", "family": "Samsung Internet" },
-			{ "regex": "DuckDuckGo/([0-9.]+)", "family": "DuckDuckGo Browser" },
-			{ "regex": "MiuiBrowser/([0-9.]+)", "family": "MIUI Browser" },
-			{ "regex": "YComponent/([0-9.]+)", "family": "Yandex Browser" },
-			{ "regex": "Vivaldi/([0-9.]+)", "family": "Vivaldi" },
-			{ "regex": "Brave/([0-9.]+)", "family": "Brave" }
-		] />
+			{ "regex": "Trident/.*rv:([0-9.]+)", "family": "Internet Explorer" }
+		]>
 
-		<!--- 3. Linear Search Loop --->
-		<cfloop array="#local.parsers#" index="local.parser">
-			<!--- Execute regular expression find on the user agent --->
-			<cfset local.match = reFindNoCase(local.parser.regex, arguments.userAgent, 1, true) />
+		<cfloop array="#parsers#" index="parser">
 
-			<!--- If an expression is matched --->
-			<if condition="local.match.pos[1] gt 0">
-				<cfset local.result.family = local.parser.family />
+			<cfset match = reFindNoCase(parser.regex, arguments.userAgent, 1, true)>
 
-				<!--- If the regex captured token groups, extract versions (Major.Minor.Patch) --->
-				<cfif arrayLen(local.match.pos) gt 1 and local.match.len[2] gt 0>
-					<cfset local.fullVersion = mid(arguments.userAgent, local.match.pos[2], local.match.len[2]) />
-					<cfset local.versionParts = listToArray(local.fullVersion, ".") />
+			<cfif match.pos[1] gt 0>
+				<cfset result.family = parser.family>
 
-					<cfif arrayLen(local.versionParts) gte 1><cfset local.result.major = local.versionParts[1] /></cfif>
-					<cfif arrayLen(local.versionParts) gte 2><cfset local.result.minor = local.versionParts[2] /></cfif>
-					<cfif arrayLen(local.versionParts) gte 3><cfset local.result.patch = local.versionParts[3] /></cfif>
+				<!--- Split the version into the major, minor and patch numbers --->
+				<cfif arrayLen(match.pos) gt 1 and match.len[2] gt 0>
+					<cfset versionParts = listToArray(mid(arguments.userAgent, match.pos[2], match.len[2]), ".")>
+					<cfif arrayLen(versionParts) gte 1><cfset result.major = versionParts[1]></cfif>
+					<cfif arrayLen(versionParts) gte 2><cfset result.minor = versionParts[2]></cfif>
+					<cfif arrayLen(versionParts) gte 3><cfset result.patch = versionParts[3]></cfif>
 				</cfif>
 
-				<!--- Stop immediately upon matching ruleset order --->
-				<cfbreak />
-			</if>
+				<cfbreak>
+			</cfif>
+
 		</cfloop>
 
-		<cfreturn local.result />
+		<cfreturn result>
+
 	</cffunction>
-					
+
 	<!---
-    Detects if the current request is coming from a known bot, spider, or crawler.
-    Works seamlessly in both Adobe ColdFusion and Lucee 
+	Detects if a request is coming from a known bot, spider, crawler or automated tool. This replaced the isbot.js library. Works in both Adobe ColdFusion and Lucee. This is used to set the IsBot column when visitors are logged.
 	--->
 	<cffunction name="isBot" access="public" returntype="boolean" output="false">
 		<!--- Fetch the user agent and safely default to an empty string if missing --->
 		<cfargument name="userAgent" required="false" type="string" default="#trim(CGI.HTTP_USER_AGENT)#" />
 
-		<cfif len(arguments.userAgent) EQ 0>
+		<cfset var testAgent = arguments.userAgent>
+		<cfset var botPattern = "">
+
+		<cfif len(testAgent) EQ 0>
 			<cfreturn true><!--- Frequently, requests with entirely empty user agents are malicious bots --->
 		</cfif>
 
-		<!--- Define a regex pattern containing common major search engines and scraping bots --->
-		<cfset local.botPattern = "(?i)(googlebot|bingbot|yandexbot|baidu|slurp|duckduckgo|ia_archiver|facebot|facebookexternalhit|twitterbot|linkedinbot|pinterestbot|ahrefsbot|semrushbot|dotbot|rogerbot|mj12bot|screaming frog|curl|wget|python|php|libwww|crawl|spider|bot)">
+		<!--- The Cubot phone brand has 'bot' in its name and is not a bot --->
+		<cfset testAgent = reReplaceNoCase(testAgent, "cubot", "", "all")>
+
+		<!--- A regular expression of the common search engines, social media and SEO crawlers, and the tools that scripts and automated tests use to fetch pages. The generic crawl, spider and bot at the end catch most of the rest. --->
+		<cfset botPattern = "(?i)(googlebot|bingbot|yandexbot|baidu|slurp|duckduckgo|ia_archiver|facebot|facebookexternalhit|twitterbot|linkedinbot|pinterestbot|ahrefsbot|semrushbot|dotbot|rogerbot|mj12bot|screaming frog|whatsapp|telegram|lighthouse|pagespeed|gtmetrix|pingdom|headless|selenium|puppeteer|playwright|phantomjs|curl|wget|python|php|libwww|go-http-client|okhttp|axios|node-fetch|java/|httpclient|postman|insomnia|scrapy|aiohttp|urllib|mechanize|feedfetcher|crawl|spider|bot)">
 
 		<!--- Perform a regular expression match --->
-		<cfif reFind(local.botPattern, arguments.userAgent) GT 0>
+		<cfif reFind(botPattern, testAgent) GT 0>
 			<cfreturn true>
 		</cfif>
 

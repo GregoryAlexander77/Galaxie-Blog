@@ -363,15 +363,15 @@
 		
 			// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 			var commentDetailFormValidator = $("#commentDetails").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
-					// Commenter
+					<!--- Commenter --->
 					commenterRequired:
 					function(input){
 						if (input.is("[id='commenter']") && $.trim(input.val()).length < 7){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-commenterRequired-msg", "The commenter field must be at least 7 characters");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#commenter" ).focus();
 							return false;
 						}                                    
@@ -380,21 +380,21 @@
 					commenterIsNumeric:
 					function(input){
 						if (input.is("[id='commenter']") && $.isNumeric(input.val())){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-commenterIsNumeric-msg", "The commenter may not be numeric");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#commenter" ).focus();
 							return false;
 						}                                    
 						return true;
 					},
-					// Email
+					<!--- Email --->
 					commenterEmailRequired:
 					function(input){
 						if (input.is("[id='commenterEmail']") && $.trim(input.val()).length == ''){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-commenterEmailRequired-msg", "Required.");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#commenterEmail" ).focus();
 							return false;
 						}                                    
@@ -403,15 +403,14 @@
 				}
 			}).data("kendoValidator");
 		
-			// Invoked when the submit button is clicked. Instead of using '$("form").submit(function(event) {' and 'event.preventDefault();', we are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Instead of using '$("form").submit(function(event) {' and 'event.preventDefault();', we are using direct binding here to speed up the event. --->
 			var commentDetailSubmit = $('#commentDetailSubmit');
 			commentDetailSubmit.on('click', function(e){      
                 e.preventDefault();         
 				if (commentDetailFormValidator.validate()) {
 					
 					if ( ($('#spam').is(':checked')) ) {
-						// Raise a warning if the user chose to remove or make something as spam
-						// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
+						<!--- Raise a warning if the user chose to remove or make something as spam Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension. --->
 						$.when(kendo.ui.ExtYesNoDialog.show({ 
 							title: "Mark as spam?",
 							message: "Are you sure? This will remove every comment by this user and mark the IP address as spam.",
@@ -421,13 +420,12 @@
 						})
 						).done(function (response) { // If the user clicked 'yes', post it.
 							if (response['button'] == 'Yes'){// remember that js is case sensitive.
-								// Post it
+								<!--- Post it --->
 								postCommentDetails('update');
 							}//..if (response['button'] == 'Yes'){
 						});
 					} else if ( ($('#remove').is(':checked')) ) {
-						// Raise a warning if the user chose to remove or make something as spam
-						// Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension.
+						<!--- Raise a warning if the user chose to remove or make something as spam Note: this is a custom library that I am using. The ExtAlertDialog is not a part of Kendo but an extension. --->
 						$.when(kendo.ui.ExtYesNoDialog.show({ 
 							title: "Remove post?",
 							message: "Are you sure? This will delete this comment.",
@@ -437,20 +435,18 @@
 						})
 						).done(function (response) { // If the user clicked 'yes', post it.
 							if (response['button'] == 'Yes'){// remember that js is case sensitive.
-								// Post it
+								<!--- Post it --->
 								postCommentDetails('update');
 							}//..if (response['button'] == 'Yes'){
 						});
 					} else {//..if ( ($('#spam').is(':checked')) || ($('#remove').is(':checked')) ){
-						// submit the form.
-						// Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post.
-						// alert('posting');
+						<!--- submit the form. Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post. alert('posting'); --->
 						postCommentDetails('update');
 					}
 				} else {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Required fields have not been filled out. Please correct the highlighted fields and try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 
 
@@ -458,16 +454,16 @@
 			});
 		});//...document.ready
 		
-		// Post method on the detail form called from the commentDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the commentDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postCommentDetails(action){
-			// Open up a please wait dialog
+			<!--- Open up a please wait dialog --->
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we process the comment.", icon: "k-ext-information" }));
 			
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveComment',
 				data: { // arguments
-					// We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#deptDetails").serialize()' or use the stringify method to pass it as an array of values. 
+					<!--- We are going to map the extact same arguments, in order, of the method in the cfc here. Notes: we can also use 'data: $("#deptDetails").serialize()' or use the stringify method to pass it as an array of values. --->
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					action: action, // either update or insert.
 					commentId: $("#commentId").val(),
@@ -477,9 +473,9 @@
 					commenterWebsite:  $("#commenterWebsite").val(),
 					commenterIp: '<cfoutput>#cgi.remote_addr#</cfoutput>',
 					commenterHttpUserAgent: '<cfoutput>#cgi.http_user_agent#</cfoutput>',
-					// Get the contents of the editor
+					<!--- Get the contents of the editor --->
 					comment: tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent(),
-					// Get the value of the checkboxes
+					<!--- Get the value of the checkboxes --->
 					approved: $('#approved').is(':checked'), // checkbox boolean value.
 					remove: $('#remove').is(':checked'), // checkbox boolean value.
 					spam: $('#spam').is(':checked'), // checkbox boolean value.
@@ -491,32 +487,32 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// This is a secured function. Display the login screen.
+				<!--- This is a secured function. Display the login screen. --->
 				if (jqXHR.status === 403) { 
 					createLoginWindow(); 
 				} else {//...if (jqXHR.status === 403) { 
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveComment function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}//...if (jqXHR.status === 403) { 
 			});//...jQuery.ajax({
 		};
 		
 		function commentUpdateResult(response){
-			// Close the wait window that was launched in the calling function.
+			<!--- Close the wait window that was launched in the calling function. --->
 			kendo.ui.ExtWaitDialog.hide();
 			// Refresh the <cfif application.kendoCommercial>kendo<cfelse>jsgrid</cfif> grid 
 		<cfif application.kendoCommercial and 1 eq 2><!---We are not using the Kendo grids right now.--->
 			$('#commentsGrid').data('kendoGrid').dataSource.read();
 		<cfelse>
-			// Refresh the entire comments window
+			<!--- Refresh the entire comments window --->
 			$("#recentCommentsGridWindow").data("kendoWindow").refresh();
 		</cfif>
-			// Close the detail window
+			<!--- Close the detail window --->
 			jQuery('#commentDetailWindow').kendoWindow('destroy');
 		}
 	</script>

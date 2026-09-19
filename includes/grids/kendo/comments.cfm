@@ -36,7 +36,7 @@
 </script>
 
 <script>
-	// Strip out embedded iframes/images/galleries before truncating, same as the jsGrid version's cleanCommentString.
+	<!--- Strip out embedded iframes/images/galleries before truncating, same as the jsGrid version's cleanCommentString. --->
 	function cleanCommentString(str) {
 		var str = removeStrBetween(str, 'iframe');
 		var str = removeStrBetween(str, "img");
@@ -79,7 +79,7 @@
 						CommenterFullName: { type: "string", editable: false, nullable: false },
 						PostTitle: { type: "string", editable: false, nullable: true },
 						PostId: { type: "number", editable: false, nullable: true },
-						// Note: the date coming from the ColdFusion HQL query (hibernate) is not an actual date, it's a string.
+						<!--- Note: the date coming from the ColdFusion HQL query (hibernate) is not an actual date, it's a string. --->
 						DatePosted: { type: "string", editable: false, nullable: false },
 						Comment: { type: "string", editable: false, nullable: false },
 						Approved: { type: "boolean", editable: true, nullable: false }

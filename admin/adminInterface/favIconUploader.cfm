@@ -32,38 +32,32 @@
 			proudlyDisplayPoweredByUppy: false
 		})
 		
-		// Use XHR and send the media to the server for processing
+		<!--- Use XHR and send the media to the server for processing --->
 		.use(Uppy.XHRUpload, { endpoint: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=uploadFavIcon&csrfToken=<cfoutput>#csrfToken#</cfoutput>' })
 		.on('upload-success', (file, response) => {
-			// The server is returning location and mediaId in a json object. We need to extract these.
-			//alert(response.status) // HTTP status code
-			//alert(response.body.location) // The full path of the file that was just uploaded to the server
-			//alert(response.body.mediaId) // The MediaId value saved to the Media table in the database.
+			<!--- The server is returning location and mediaId in a json object. We need to extract these. alert(response.status) // HTTP status code alert(response.body.location) // The full path of the file that was just uploaded to the server alert(response.body.mediaId) // The MediaId value saved to the Media table in the database. --->
 			
 		})
 		
-		// Events
-		// 1) When the dashboard icon is clicked
-		// Note: there is no event when the dashboard my device button is clicked. This is a work-around. We are going to use jquery's on click event and put in the class of the button. This is required as the uppy button does not have an id.
+		<!--- Events 1) When the dashboard icon is clicked Note: there is no event when the dashboard my device button is clicked. This is a work-around. We are going to use jquery's on click event and put in the class of the button. This is required as the uppy button does not have an id. --->
 		$(".uppy-Dashboard-input").on('click', function(event){
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait for the file uploader interface to respond.", icon: "k-ext-information" }));
 		});
 		
-		// 2) When a file has been uploaded to uppy
+		<!--- 2) When a file has been uploaded to uppy --->
 		uppy.on('file-added', (file) => {
-		  	// Close the wait window that was launched in the calling function.
+		  	<!--- Close the wait window that was launched in the calling function. --->
 			kendo.ui.ExtWaitDialog.hide();
 		})
 		
-		// 3) When the upload button was pressed
+		<!--- 3) When the upload button was pressed --->
 		uppy.on('upload', (data) => {
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while the files are uploaded.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
 		})
 		
-		// 4) Error handling
+		<!--- 4) Error handling --->
 		uppy.on('upload-error', (file, error, response) => {
-			//alert(response.status);
-			// Alert the user
+			<!--- alert(response.status); Alert the user --->
 			$.when(kendo.ui.ExtYesNoDialog.show({ 
 				title: "Upload failed",
 				message: "The following error was encountered: " + error + ". Do you want to retry the upload?",
@@ -73,21 +67,20 @@
 			})
 			).done(function (response) { // If the user clicked 'yes', retry.
 				if (response['button'] == 'Yes'){// remember that js is case sensitive.
-					// Retry
+					<!--- Retry --->
 					uppy.retryUpload(file.id);
 				}//..if (response['button'] == 'Yes'){
 			});	
 		})
 
-		// 5) When the upload is complete to the server
+		<!--- 5) When the upload is complete to the server --->
 		uppy.on('complete', (result) => {
-			// Close the please wait dialog
-			// Use a quick set timeout in order for the data to load.
+			<!--- Close the please wait dialog Use a quick set timeout in order for the data to load. --->
 			setTimeout(function() {
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
 			}, 500);
-			// Close the window
+			<!--- Close the window --->
 			jQuery('#favIconUploadWindow').kendoWindow('destroy');
 		})
 	

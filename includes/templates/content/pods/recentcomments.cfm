@@ -80,9 +80,9 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 					position: relative;
 					z-index: 99;
 					border: 0px;
-					/* Pad the content to the right of the image */
+					<!--- Pad the content to the right of the image --->
 					margin-right: 5px;
-					/* The padding needs to be uniform, otherwise the avatar circle will be elongated */
+					<!--- The padding needs to be uniform, otherwise the avatar circle will be elongated --->
 					padding: <cfoutput>#avatarPadding#</cfoutput>;
 					-moz-border-radius: 50%;
 					-webkit-border-radius: 50%;

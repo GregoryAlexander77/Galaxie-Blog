@@ -1,7 +1,7 @@
 <cfcomponent displayname="GalaxieBlog4_65" sessionmanagement="yes" clientmanagement="yes" output="false">
 	<cfsetting requesttimeout="60">
 
-	<!--- The name needs to be unique in order to have multiple blogs on the same server. Also, this will not work with a dynamic name using CF as it will break the extends in the admin subfolder --->
+	<!--- The name needs to be unique in order to have multiple blogs on the same server. --->
 	<cfset this.name = "GalaxieBlog4_65" />
 	<!--- Preserve the case for database columns --->
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
@@ -33,7 +33,15 @@
 		
 	<!--- Turn on script protection. The admin site has this disabled tho --->
 	<cfset this.scriptProtect = "all">
-		
+
+	<!--- The administrative site (the /admin/ folder) used to have its own Application.cfc that extended this one, which forced the installer to have you edit an 'extends' path that depended on where the blog was placed. The admin site's settings are now applied here, by checking where the requested template lives on disk, so the blog works in any folder with nothing to configure. The admin login logic is in adminRequestStart() below. --->
+	<cfif isAdminRequest()>
+		<!--- Authors need to be able to use scripts in their posts. --->
+		<cfset this.scriptProtect = "none">
+		<!--- 1 hour session timeout on the admin site. --->
+		<cfset this.sessiontimeout = createTimeSpan(0,1,0,0)>
+	</cfif>
+
 	<!--- Note: do not user mappings here. Mappings do not work with CF ORM. They are causing errors. --->
 		
 	<!--- 
@@ -81,8 +89,10 @@
 			<cfset this.dialect = 'auto'>
 			<!--- Allow ColdFusion to update and create the tables when they do not already exist. Use none *only* if you are migrating between ColdFusion and Lucee --->
 			<cfset this.ormSettings.dbcreate = "update"><!---update--->
-			<!--- Set a pointer to the cfc directory --->
-			<cfset this.ormSettings.cfclocation = expandPath(getBaseUrl() & "/common/cfc/db/galaxieDb/")>
+			<!--- Seven of the entities (Post, Comment, etc.) have long text columns, which each database vendor declares differently (varchar(max), longtext, clob...). Set them to the type of the database that was chosen when the blog was installed. This must happen before ORM reads the entities. --->
+			<cfset applyDatabaseOrmTypes()>
+			<!--- Set a pointer to the cfc directory. This is a file system path (not built from the blog's URL) so the blog can be installed in the root or in any folder. --->
+			<cfset this.ormSettings.cfclocation = this.rootDirectoryPath & "common/cfc/db/galaxieDb/">
 			<!--- Note: without this argument, you will have a 'Session is closed!' error everytime you hit a function that processes a database transaction simultaneously. Use a transaction tag to commit the data instead. --->
 			<cfset this.ormsettings.flushAtRequestEnd = false>
 			<!--- Unfortunately, on occasion, there are database deadlocks. I want to set a quick timeout in order to convserve server resources. --->
@@ -108,7 +118,13 @@
 	</cffunction> 
 		
 	<cffunction name="OnRequestStart">
-		
+
+		<!--- Requests for templates in the /admin/ folder are handled by the admin logic (logon, session flags, etc.) instead of the site logic below. --->
+		<cfif isAdminRequest()>
+			<cfset adminRequestStart()>
+			<cfreturn true>
+		</cfif>
+
 		<!--- We will send copies of any error, minus form values, to the developer for debugging purposes. Note: although this helps me to catch errors, if you don't want to send the errors to the developer (i.e. me), make this an empty string (='') --->
 		<cfset application.developerEmailAddress = "gregoryalexander77@gmail.com">
 
@@ -293,6 +309,8 @@
 			<cfif debug>
 				The initial install has been completed. Trying to insert data by including the installer/insertData.cfm template<br/>
 			</cfif>
+			<!--- A brand new install starts out at the version of the files that were just installed. See the end of applicationInit(). --->
+			<cfset request.blogJustInstalled = true>
 			<cfinclude template="#getBaseUrl()#/installer/insertData.cfm">
 		</cfif>
 			
@@ -395,6 +413,13 @@
 			<cfset application.jsoupComponentPath = "common.cfc.JSoup">
 		</cfif>	
 
+		<!--- Brings the database up to date after uploading a new version. Run from the administrative site. --->
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset application.databaseUpdaterComponentPath = application.baseComponentPath & ".common.cfc.DatabaseUpdater">
+		<cfelse>
+			<cfset application.databaseUpdaterComponentPath = "common.cfc.DatabaseUpdater">
+		</cfif>
+
 		<cfif debug>
 			<cfoutput>
 			application.baseProxyUrl: #application.baseProxyUrl#<br/>
@@ -429,6 +454,8 @@
 		<cfset application.blog = createObject("component","#application.blogComponentPath#").init(blogname)>
 		<!--- load the UDF component --->
 		<cfset application.Udf = createObject("component","#application.udfComponentPath#")>
+		<!--- Brings the database up to date after uploading a new version (see DatabaseUpdater.cfc). --->
+		<cfset application.databaseUpdater = createObject("component", application.databaseUpdaterComponentPath).init(this.rootDirectoryPath, getBlogIniPath())>
 		
 		<!---//****************************************************************************************
 				Initialize the application and set core application vars.
@@ -454,7 +481,12 @@
 		<!--- Get the path to the Kendo UI folder. --->
 		<cfset application.kendoFolderPath = application.BlogOptionDbObj.getKendoFolderPath()>
 		<!--- When true, public-facing pages (not admin) default to Kendo Core instead of the larger Kendo Professional download, only switching to Professional for a specific post when postNeedsKendoCommercial() (blog.cfc) detects it's actually needed - see includes/templates/core/seoMetaTags.cfm. Admin pages always use kendoCommercial above, regardless of this setting. --->
-		<cfset application.deferKendoCommercialOnPublicSite = application.BlogOptionDbObj.getDeferKendoCommercialOnPublicSite()>
+		<!--- The column is NULL on databases that were created before this option existed. --->
+		<cfif isNull(application.BlogOptionDbObj.getDeferKendoCommercialOnPublicSite())>
+			<cfset application.deferKendoCommercialOnPublicSite = false>
+		<cfelse>
+			<cfset application.deferKendoCommercialOnPublicSite = application.BlogOptionDbObj.getDeferKendoCommercialOnPublicSite()>
+		</cfif>
 
 		<!--- Kendo version (is Kendo the open source or commercial version?) default on the open source blog, Kendo Core, is true. --->
 		<cfif application.kendoCommercial>
@@ -474,7 +506,6 @@
 		<!--- Note: we are using an open source version of the Kendo library, Kendo Core. It does not have all of the bells and whistles of the comercial licence of course. --->
 		<cfset application.kendoSourceLocation = kendoSourceLocation><!--- Commercial: /common/libs/kendo (without getBaseUrl() &). Open source: getBaseUrl() & "/common/libs/kendoCore" --->
 		<cfset application.kendoUiExtendedLocation = getBaseUrl() & "/common/libs/kendoUiExtended">
-		<cfset application.jQueryNotifyLocation = getBaseUrl() & "/common/libs/jQuery/jQueryNotify">
 		<!--- Note: the original blogCfc came with an older jQuery UI than the one that I am using and it is creating conflicts. We need to have two different jQuery incluedes, one for the administration part of the site, and the newer jquery UI for the new blogCfc.--->
 		<cfset application.adminjQueryUiPath = getBaseUrl() & "/includes/jqueryui/jqueryui.js">
 			
@@ -498,6 +529,12 @@
 		//******************************************************************************************--->
 			
 		<cfset application.dbBlogVersion = application.BlogDbObj.getBlogVersion()>
+		<!--- A new install starts at the version of the files that were installed. The seed data that the installer inserts carries an older version number, which would make a brand new blog look like it needs to be updated. --->
+		<cfif isDefined("request.blogJustInstalled") and request.blogJustInstalled>
+			<cfset application.blog.updateBlogVersion(application.blog.getVersion(), application.blog.getVersionName())>
+			<cfset entityReload(application.BlogDbObj)>
+			<cfset application.dbBlogVersion = application.blog.getVersion()>
+		</cfif>
 			
 		<!--- //****************************************************************************************
 				User defined settings.
@@ -511,7 +548,7 @@
 			
 		<!--- The user can turn off the caching features in order to debug stuff --->
 		<cfset application.disableCache = application.BlogOptionDbObj.getDisableCache()>
-		<!--- I minimized some of the code (such as the .css). This only works when caching is enabled --->
+		<!--- When true, the html of the page is minimized before it is sent to the browser (comments and unneeded white space are removed from the html, JavaScript and CSS, see /common/cfc/HtmlMinifier.cfc and /includes/templates/core/pageOutput.cfm). --->
 		<cfset application.minimizeCode = application.BlogOptionDbObj.getMinimizeCode()>
 			
 		<!--- Common cache settings --->
@@ -519,11 +556,6 @@
 			<cfset application.useCache = false>
 		<cfelse>
 			<cfset application.useCache = true>
-		</cfif>
-		<cfif application.minimizeCode>
-			<cfset application.stripWhiteSpace = true>
-		<cfelse>
-			<cfset application.stripWhiteSpace = false>
 		</cfif>
 			
 		<!--- How many posts should show up on the main blog page? --->
@@ -700,6 +732,134 @@
 		<cfreturn true>
 		<!---Exit the function.--->
 	</cffunction>
+	<!---//****************************************************************************************
+				Admin site and database specific ORM files
+	//*****************************************************************************************--->
+
+	<cffunction name="isAdminRequest" access="public" returnType="boolean" output="false"
+			hint="Determines if the requested template is in the /admin/ folder (or one of its subfolders). This compares the requested template's location on disk with this component's location on disk rather than looking at the URL, so it works when the blog is in the root directory, in a folder named 'blog', or in any other folder, and it does not depend on anything being configured.">
+
+		<cfset var adminDirectory = replace(this.rootDirectoryPath, "\", "/", "all")>
+		<cfif right(adminDirectory, 1) neq "/">
+			<cfset adminDirectory = adminDirectory & "/">
+		</cfif>
+		<cfset adminDirectory = adminDirectory & "admin/">
+
+		<cfset var requestedDirectory = replace(getDirectoryFromPath(getBaseTemplatePath()), "\", "/", "all")>
+
+		<!--- The requested directory is either the admin directory or is beneath it. The comparison is case insensitive as the file system may or may not be. --->
+		<cfreturn compareNoCase(left(requestedDirectory, len(adminDirectory)), adminDirectory) eq 0>
+
+	</cffunction>
+
+	<cffunction name="applyDatabaseOrmTypes" access="private" returnType="void" output="false"
+			hint="Sets the long text columns in the ORM entities to the type that the blog's database uses. The database is the databaseType that the installer saved in the ini file. This runs once for each database type that the application sees, so it costs nothing on normal requests, and it will not write to the file system when the entities are already correct. This also means that copying a new version of the entities over the old ones is not a problem, the columns will be corrected the next time the application starts.">
+
+		<cfset var databaseType = getDatabaseType()>
+		<cfset var databaseOrmTypes = "">
+
+		<!--- The database type is not known until the installer gets to that step --->
+		<cfif not len(databaseType)>
+			<cfreturn>
+		</cfif>
+
+		<cfif not (structKeyExists(application, "ormTypesAppliedFor") and application.ormTypesAppliedFor eq databaseType)>
+			<!--- The component path is relative to this file so this works wherever the blog is installed. --->
+			<cfset databaseOrmTypes = new common.cfc.DatabaseOrmTypes()>
+			<cfset databaseOrmTypes.apply(databaseType, this.rootDirectoryPath & "common/cfc/db/galaxieDb/")>
+			<cfset application.ormTypesAppliedFor = databaseType>
+		</cfif>
+
+	</cffunction>
+
+	<cffunction name="adminRequestStart" access="private" output="true" hint="The logon and session logic for the administrative site. This was the OnRequestStart function in the admin folder's Application.cfc, which no longer exists. It must be output=true as it displays the login page.">
+		
+		<!---//*****************************************************************************************
+			Mobile Detection
+		//******************************************************************************************--->
+		
+		<!--- This device detection code was updated on Feb 6 2019 (from http://detectmobilebrowsers.com/)--->
+		<cfif 
+		(reFindNoCase("(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino",CGI.HTTP_USER_AGENT) GT 0 OR reFindNoCase("1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-",Left(CGI.HTTP_USER_AGENT,4)) GT 0)>
+			<cfset session.isMobile = true>
+		<cfelse>
+			<cfset session.isMobile = false>
+		</cfif>
+			
+		<!---//*****************************************************************************************
+			Logon
+		//******************************************************************************************--->
+		
+		<!---Logout if the user is on the login page.--->
+		<cflogout>
+			
+		<cflogin>
+			<cfif isDefined("form.userName") and isDefined("form.password") and len(trim(form.username)) and len(trim(form.password))>
+				
+				<!--- Note: there is no way to reconstruct a password. The only thing you can do is to re-create a the same hashed password if you know the existing password and hash key. If you have access to the code, you *can* however add or 1 eq 1 to the following line to log in and change the password. Just change it back after changing it. --->
+				<cfif disableAuth or application.blog.authenticate(left(trim(form.username),255),left(trim(form.password),50), cgi.remote_addr, cgi.http_User_Agent)>
+
+					<cfloginuser name="#trim(form.username)#" password="#trim(form.password)#" roles="admin">
+					<cfset session.userName = trim(form.username)>
+					<cfset session.key = trim(form.password)>
+					<!--- Get the current logged in users Id --->
+					<cfset session.userId = application.blog.getUserIdByUserName(form.username)>
+					<!--- 
+						  This was added because CF's built in security system has no way to determine if a user is logged on.
+						  In the past, I used getAuthUser(), it would return the username if you were logged in, but
+						  it also returns a value if you were authenticated at a web server level. (cgi.remote_user)
+						  Therefore, the only say way to check for a user logon is with a flag. 
+					--->  
+					<cfset session.loggedin = true>
+					<!--- Add the blog user's specific roles to the session scope. --->
+					<cfset session.roles = application.blog.getUserBlogRoles(form.username, 'roleList')>
+					<!--- Set the capabilities. There are one or more capabilities for each role.--->
+					<cfset session.capabilityList = application.blog.getCapabilitiesByRole(session.roles, 'capabilityList')>
+					<!--- Also get the capability id's --->
+					<cfset session.capabilityIdList =  application.blog.getCapabilitiesByRole(session.roles, 'capabilityIdList')>
+					<!--- Drop a cookie on this machine to allow administators to preview posts that are not yet released (GA) --->
+					<!--- Using the cfcookie tag does not work with dynamic vars in the path. --->
+					<cfset cookie.isAdmin = { value="true", path="#application.baseUrl#", expires=30 }>
+
+				<cfelse>
+					<!--- Suggested by Shlomy Gantz to slow down brute force attacks --->
+					<cfset createObject("java", "java.lang.Thread").sleep(500)>
+				</cfif>
+					
+			</cfif><!---<cfif isDefined("form.userName") and isDefined("form.password") and len(trim(form.username)) and len(trim(form.password))>--->
+		</cflogin>
+
+		<!--- Allow the user to logout --->
+		<cfif isDefined("url.logout") and application.Udf.isLoggedIn()>
+			<cfset structDelete(session,"loggedin")>
+			<cflogout>
+		</cfif>
+
+		<cfif findNoCase("/admin", cgi.script_name) and not application.Udf.isLoggedIn()>
+			<cfsetting enablecfoutputonly="false">
+			<!--- Here we are using a module instead of a cfinclude as the include would essentially place the login.cfm template, which has identical logic to the other admin templates, which causes errors as there are duplicate functions. --->
+			<cfmodule template="admin/login.cfm">
+			<cfabort>
+		</cfif>
+				
+		<!---//*****************************************************************************************
+			Persist login
+		//******************************************************************************************--->
+				
+		<!--- We need to persist the login. It is not persisted with the changes to the application. --->
+		<cfif application.Udf.isLoggedIn()>
+			<cfloginuser name="admin" password="admin" roles="admin">
+			<!--- Set the session var. --->
+			<cfset session.loggedin = true>
+			<!--- Drop a cookie on this machine to allow administators to preview posts that are not yet released (GA) --->
+			<cfif not isDefined("cookie.isAdmin")>
+				<!--- Using the cfcookie tag does not work with dynamic vars in the path. --->
+				<cfset cookie.isAdmin = { value="true", path="#application.baseUrl#", expires=30 }>
+			</cfif>
+		</cfif>
+			
+	</cffunction>
+
 			
 	<!---//****************************************************************************************
 			System Functions 
@@ -1054,6 +1214,12 @@
 		<cfparam name="errorLine" default="">
 		<cfparam name="errorTemplate" default="">
 		<cfparam name="errorStacktrace" default="">
+		<!--- These are set below when the url has a .cfm or .cfc extension. They are also used when the error is displayed, and a request for a directory (ie /admin/) does not have an extension. --->
+		<cfparam name="errorEvent" default="#arguments.eventName#">
+		<cfparam name="errorType" default="#arguments.exception.type ?: ''#">
+		<cfparam name="errorMessage" default="#arguments.exception.message ?: ''#">
+		<cfparam name="errorDetail" default="#arguments.exception.detail ?: ''#">
+		<cfparam name="errorDate" default="#dateFormat(now(), 'short')# #timeFormat(now(), 'short')#">
 			
 		<!--- Note: application.blog is not defined during the installation process --->
 		<cfif isDefined("application.blog")>

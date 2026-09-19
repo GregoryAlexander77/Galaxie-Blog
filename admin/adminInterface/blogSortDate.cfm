@@ -21,20 +21,18 @@
 		var todaysDate = new Date();
 		var currentBlogSortDate = $("#newBlogSortDate").val();
 			
-		// Kendo Dropdowns
-		// Date posted date/time picker			
+		<!--- Kendo Dropdowns Date posted date/time picker --->
 		$("#blogSortDate").kendoDateTimePicker({
 			componentType: "modern",
 			value: <cfoutput>#application.Udf.jsDateFormat(getPost[1]['BlogSortDate'])#</cfoutput>,
-			/* Change the  blogSortDateChanged to 1 on the postDetails page */
+			<!--- Change the blogSortDateChanged to 1 on the postDetails page --->
 			change: function() {
 				$("#blogSortDateChanged").val(1);
 			}
 		});
 
 		function onBlogSortDateSubmit() {
-			// alert("Change :: " + kendo.toString(this.value(), 'g'));
-			// Check to see if the selected date is greater than today
+			<!--- alert("Change :: " + kendo.toString(this.value(), 'g')); Check to see if the selected date is greater than today --->
 			if ($("#blogSortDate").val() > todaysDate){
 				$.when(kendo.ui.ExtYesNoDialog.show({ 
 					title: "Set the sort date in the future?",
@@ -45,24 +43,24 @@
 				})
 				).done(function (response) { // If the user clicked 'yes'
 					if (response['button'] == 'Yes'){// remember that js is case sensitive.
-						// Change the hidden input field on the post details page
+						<!--- Change the hidden input field on the post details page --->
 						$("#newBlogSortDate").val($("#blogSortDate").val());
 					}//..if (response['button'] == 'Yes'){
 				});
 			} else {
-				// Change the hidden input field on the post details page
+				<!--- Change the hidden input field on the post details page --->
 				$("#newBlogSortDate").val($("#blogSortDate").val());
 			}
 			
-			// Close this window.
+			<!--- Close this window. --->
 			$('#blogSortDateWindow').kendoWindow('destroy');
 		}
 		
 		function syncDates(el) {
 			if (el.checked) {
-				// Set the sortDateChanged to false as we are syncing the dates and want the current blog sort to change
+				<!--- Set the sortDateChanged to false as we are syncing the dates and want the current blog sort to change --->
 				$("#blogSortDateChanged").val(0);
-				// Close this window when the button is checked
+				<!--- Close this window when the button is checked --->
 				$('#blogSortDateWindow').kendoWindow('destroy');
 			}
 		}

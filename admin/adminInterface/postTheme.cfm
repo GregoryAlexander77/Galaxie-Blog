@@ -12,14 +12,14 @@
 	<script>
 		
 		$(document).ready(function() {
-			// Create the top level dropdown
+			<!--- Create the top level dropdown --->
 			var postThemeDropdown = $("#postThemeDropdown").kendoComboBox();
 		});
 		
 		function onPostThemeSubmit() {
-			// Change the hidden input field on the post details page
+			<!--- Change the hidden input field on the post details page --->
 			$("#postThemeId").val($("#postThemeDropdown").val());
-			// Close this window.
+			<!--- Close this window. --->
 			$('#setPostThemeWindow').kendoWindow('destroy');
 		}
 		

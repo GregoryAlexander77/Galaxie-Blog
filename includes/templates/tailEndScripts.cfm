@@ -5,7 +5,7 @@
 			
 <!--- Include tail end scripts. --->
 <script>
-	// Lazy load the images.
+	<!--- Lazy load the images. --->
 	deferimg('img.fade', 100, 'lazied', function(img) {
 		img.onload = function() {
 			img.className+=' shown';
@@ -13,10 +13,13 @@
 	});
 </script>
 
-<!-- PrismJs (our code hightlighter). This *must* be placed between the body tags! -->
-<script type="<cfoutput>#scriptTypeString#</cfoutput>" src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/prism/prism.min.js"></script>
-<!-- Include the Prism line numbers plugin -->
-<script type="<cfoutput>#scriptTypeString#</cfoutput>" src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/prism/plugins/prism-line-numbers.min.js"></script> 
+<!-- PrismJs (our code hightlighter) is only downloaded when the page has code to highlight. See galaxieLoader in head.cfm. -->
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+	// These are the same elements that Prism highlights by default
+	if ($('code[class*="language-"], [class*="language-"] code, code[class*="lang-"], [class*="lang-"] code').length) {
+		galaxieLoader.prism();
+	}
+</script>
 
 <!--- When the page has been loaded, fade in the menu's. --->
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">
@@ -47,10 +50,14 @@
 </script>
 
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">
-	// Initialize the plyr.
-	const players = Plyr.setup('video', { captions: { active: true } });
-	// Expose player so it can be used from the console
-	window.players = players;
+	// Initialize plyr on the videos. Plyr is only downloaded when the page has a video. See galaxieLoader in head.cfm.
+	if ($('video').length) {
+		galaxieLoader.plyr(function() {
+			const players = Plyr.setup('video', { captions: { active: true } });
+			// Expose player so it can be used from the console
+			window.players = players;
+		});
+	}
 </script>
 <!--- Disqus tail end script to enable the number of page views and the comment count. Only include this when we are looking at the blog. Disqus comments are obviously not going to be available in the admin page! --->
 <cfif application.includeDisqus and pageTypeId eq 1>

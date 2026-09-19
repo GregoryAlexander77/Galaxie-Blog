@@ -35,18 +35,7 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 			font: 15px Arial, sans-serif;
 		}
 	
-		/* FontAwesome HEX codes:
-		Edit f044 or f6d9
-		Round edit F05D
-		Check f00c
-		Delete f1f8
-		Search f002
-		Eraser f12d
-		Cancel f05e
-		Add  f067 
-		Filter f0b0
-		Notes: make sure to remove the .jsgrid .jsgrid-button { background-image: url in the css file in the jsgrid .jsgrid-button declarations (there are two locations in the .css file), otherwise, a big red x will be overlaid on the controls.
-		*/
+		<!--- FontAwesome HEX codes: Edit f044 or f6d9 Round edit F05D Check f00c Delete f1f8 Search f002 Eraser f12d Cancel f05e Add f067 Filter f0b0 Notes: make sure to remove the .jsgrid .jsgrid-button { background-image: url in the css file in the jsgrid .jsgrid-button declarations (there are two locations in the .css file), otherwise, a big red x will be overlaid on the controls. --->
 
 		.jsgrid-button {
 			position: relative;
@@ -129,15 +118,15 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 	</table>
 
 	<script>
-	// Get the page width. This is necessary to use percentage based widths in the columns.
+	<!--- Get the page width. This is necessary to use percentage based widths in the columns. --->
 	var pageWidth = $("#<cfoutput>#gridName#</cfoutput>").parent().width() - 100;
 
-	// Rebind our custom buttons.
+	<!--- Rebind our custom buttons. --->
 	window.FontAwesomeConfig = {
 		autoReplaceSvg: 'nest' 
 	}
 
-	// Set up the grid.
+	<!--- Set up the grid. --->
 	$(function() {
 			
 		jsGrid.setDefaults({
@@ -172,7 +161,7 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 			}
 		});
 		  
-		// Grid declaration
+		<!--- Grid declaration --->
 		$("#<cfoutput>#gridName#</cfoutput>").jsGrid({
 			height: "720px",
 			width: "100%",
@@ -194,19 +183,19 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 						url: "<cfoutput>#getUrl#</cfoutput>",
 						data: filter,
 						dataType: "json"
-					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
+					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(result) {
 						return result.data;
-					// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
-						// This is a secured function. Display the login screen if there is a 403 response header.
+						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
 						if (jqXHR.status === 403) { 
 							createLoginWindow(); 
 						} else {//...if (jqXHR.status === 403) { 
-							// The full response is: jqXHR.responseText, but we just want to extract the error.
+							<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the getCategories function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 								).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						}//...if (jqXHR.status === 403) { 
 					});
@@ -215,9 +204,9 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 					return $.ajax({
 						type: "post",
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=updateSubscriberViaJsGrid",
-						// Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end.
+						<!--- Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end. --->
 						data: {
-							// Note: the SubscriberId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available.
+							<!--- Note: the SubscriberId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available. --->
 							csrfToken: <cfoutput>'#csrfToken#'</cfoutput>,
 							subscriberId: value.SubscriberId,
 							subscriberEmail: value.SubscriberEmail,
@@ -227,29 +216,29 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 						},
 						dataType: "json",
 						cache: false,
-					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
+					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(response) {
 						
-						// If the controller returned a success, continue. Otherwise, display the errors that are returned from the controller.
+						<!--- If the controller returned a success, continue. Otherwise, display the errors that are returned from the controller. --->
 						if (!response.success){
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving subscriber", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
 							).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						} else {
 							return response.data;
 						}
 						
-					// Extract any ajax errors. This is a new jQuery promise based function as of jQuery 1.8.
+					<!--- Extract any ajax errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
 						
-						// This is a secured function. Display the login screen if there is a 403 response header.
+						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
 						if (jqXHR.status === 403) { 
 							createLoginWindow(); 
 						} else {//...if (jqXHR.status === 403) { 
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving subscriber", message: error, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
 							).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						}//...if (jqXHR.status === 403) {
 					
@@ -259,28 +248,27 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 					return $.ajax({
 						type: "post",
 						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteSubscriberViaJsGrid",
-						// Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end.
+						<!--- Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end. --->
 						data: {
-							// Pass the subsriberId to the cfc on the back end. 
-							// Note: the subsriberId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available.
+							<!--- Pass the subsriberId to the cfc on the back end. Note: the subsriberId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available. --->
 							csrfToken: <cfoutput>'#csrfToken#'</cfoutput>,
 							subscriberId: value.SubscriberId
 						},
 						dataType: "json",
 						cache: false,
-					// Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here.
+					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(result) {
 						console.log("done", result);
-					// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
-						// This is a secured function.  Display the login screen if there is a 403 response header.
+						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
 						if (jqXHR.status === 403) { 
 							createLoginWindow(); 
 						} else {//...if (jqXHR.status === 403) { 
-							// The full response is: jqXHR.responseText, but we just want to extract the error.
+							<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 							$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the deleteSubscriberViaGrid function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 								).done(function () {
-								// Do nothing
+								<!--- Do nothing --->
 							});
 						}//...if (jqXHR.status === 403) { 
 					});
@@ -292,7 +280,7 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 				},
 				
 			},
-			// Fields 
+			<!--- Fields --->
 			fields: [
 				{ 
 					name: "SubscriberEmail", 
@@ -313,7 +301,7 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 				{ 
 					name: "SubscribeAll", 
 					type: "checkbox",
-					// We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead.
+					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: 'New Posts',
 					editing: true,
 					width: (pageWidth*(<cfif session.isMobile>10<cfelse>10</cfif>/100)),
@@ -321,7 +309,7 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 				{ 
 					name: "SubscriberVerified", 
 					type: "checkbox",
-					// We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead.
+					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: 'Verified',
 					editing: true,
 					width: (pageWidth*(<cfif session.isMobile>20<cfelse>10</cfif>/100)),
@@ -334,7 +322,7 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 					editing: false,
 					width: (pageWidth*(10/100)),
 					itemTemplate: function (value, item) {
-						// Format the date using the momentJs lib.
+						<!--- Format the date using the momentJs lib. --->
 						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');
 					},
 				},
@@ -352,7 +340,7 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 </form>
 	
 <script>
-	// Script to add custom font awesome buttons. This does not need to be editted unless you want to change the css class names (ie jsgrid-button etc).
+	<!--- Script to add custom font awesome buttons. This does not need to be editted unless you want to change the css class names (ie jsgrid-button etc). --->
 	(function(jsGrid, $, undefined) {
 
 		var Field = jsGrid.Field;

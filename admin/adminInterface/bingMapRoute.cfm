@@ -21,22 +21,22 @@
         {
             map = new Microsoft.Maps.Map('#myMap', {});
 
-            // Load the directions module.
+            <!--- Load the directions module. --->
             Microsoft.Maps.loadModule('Microsoft.Maps.Directions', function () {
-                // Create an instance of the directions manager.
+                <!--- Create an instance of the directions manager. --->
                 directionsManager = new Microsoft.Maps.Directions.DirectionsManager(map);
 			<cfif showCurrentDirections and len(enclosureMapId) and arrayLen(Data)><cfloop from="1" to="#arrayLen(Data)#" index="i"><cfoutput>
-				// Create our waypoints
+				<!--- Create our waypoints --->
 				directionsManager.addWaypoint(new Microsoft.Maps.Directions.Waypoint({ address: '#Data[i]['Location']#' }));
 			</cfoutput></cfloop></cfif>				
-                // Specify where to display the route instructions.
+                <!--- Specify where to display the route instructions. --->
                 directionsManager.setRenderOptions({ itineraryContainer: '#directionsItinerary' });
-                // Specify the where to display the input panel
+                <!--- Specify the where to display the input panel --->
                 directionsManager.showInputPanel('directionsPanel');
             });
         }
 		
-		// We need to extract the waypoints
+		<!--- We need to extract the waypoints --->
 		function getWaypoints(){
             var wp = directionsManager.getAllWaypoints();
 
@@ -46,7 +46,7 @@
 
             for(var i=0; i < wp.length; i++){
                 var loc = wp[i].getLocation();
-				// console.log(loc)
+				<!--- console.log(loc) --->
                 text += 'name ' + loc.name + ', waypoint ' + i + ': ' + loc.latitude + ', ' + loc.longitude + '\r\n';
 				if (i == 0){
 					valuesList += loc.name + '_' + loc.latitude + '_' + loc.longitude;
@@ -55,24 +55,23 @@
 				}
 				
             }
-			//alert(text);
-			// Post the values to the server
+			<!--- alert(text); Post the values to the server --->
 			saveMapRoute(valuesList);
         }
 		
 		function saveMapRoute(locationGeoCoordinates){ 
 			
-			// Let the user know that we are processing the data
+			<!--- Let the user know that we are processing the data --->
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we create your map.", icon: "k-ext-information" }));
 			
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveMapRoute',
-				// Serialize the form
+				<!--- Serialize the form --->
 				data: {
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					locationGeoCoordinates: locationGeoCoordinates,
-					// Is this an enclosure? The otherArgs in the URL will determine what tinymce editor instance is being used.
+					<!--- Is this an enclosure? The otherArgs in the URL will determine what tinymce editor instance is being used. --->
 					isEnclosure: <cfif URL.otherArgs eq 'enclosureEditor'>true<cfelse>false</cfif>,
 					mapId: $("#enclosureMapId").val(),
 					mapRouteId: $("#mapRouteId").val(),
@@ -83,36 +82,35 @@
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
 
-				// The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveMapRoute function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 				});		
 			});
 		}
 		
 		function saveMapRouteResponse(response){
 			
-			//alert(JSON.parse(response.postId));
+			<!--- alert(JSON.parse(response.postId)); --->
 			var postId = JSON.parse(response.postId);
 			var mapId = JSON.parse(response.mapId);
 			
-			// Create our iframe html string
+			<!--- Create our iframe html string --->
 			var mapIframeHtml = '<iframe data-type="map" data-id=' + mapId + ' src="<cfoutput>#application.baseUrl#</cfoutput>/preview/maps.cfm?mapId=' + mapId + '&mapType=route" width="768" height="432" allowfullscreen="allowfullscreen"></iframe>';
-			// Insert the HTML string into the active editor
-			// If this is the enclosure content, replace the content. If it is a post editor, insert the content
+			<!--- Insert the HTML string into the active editor If this is the enclosure content, replace the content. If it is a post editor, insert the content --->
 			tinymce.activeEditor.<cfif URL.otherArgs eq 'enclosureEditor'>setContent<cfelse>insertContent</cfif>(mapIframeHtml);
 			
-			// Use a quick set timeout in order for the data to load.
+			<!--- Use a quick set timeout in order for the data to load. --->
 			setTimeout(function() {
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Refresh the thumbnail image on the post detail page
+				<!--- Refresh the thumbnail image on the post detail page --->
 				reloadEnclosureThumbnailPreview(postId);
-				// Close the window
+				<!--- Close the window --->
 				$('#mapRoutingWindow').kendoWindow('destroy');
 			}, 500);
 
@@ -128,7 +126,7 @@
 
         .directionsContainer {
             width: 425px;
-			/* Set the input container at 425 pixels. Any less will cause part of the input to disappear */
+			<!--- Set the input container at 425 pixels. Any less will cause part of the input to disappear --->
             height: 100%;
             overflow-y: auto;
             float: left;
@@ -137,13 +135,13 @@
 
         #myMap{
             position: relative;
-			/* Set the dimensions of the main map */
+			<!--- Set the dimensions of the main map --->
             width:calc(100% - 425px);
             height: 100%;
             float: left;
         }
 		
-		/* Move the directions input container a little bit since its stuck at the left of the page margin-left: 45px;*/
+		<!--- Move the directions input container a little bit since its stuck at the left of the page margin-left: 45px; --->
 		.MicrosoftMap .directionsPanel {
 			margin-left: 25px;
 		}

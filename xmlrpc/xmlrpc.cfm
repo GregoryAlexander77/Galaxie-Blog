@@ -300,7 +300,7 @@
 		<cfset entry = structNew()>
 		<cfset entry.title = bareentry.title>
 		<cfset entry.body = bareentry.description>
-		<cfset application.body = htmleditformat(bareentry.description)>
+		<cfset application.body = encodeForHTML(bareentry.description)>
 		<!--- TODO: Handle <more/> --->
 
 		<!---// replace the ellipse character with the HTML entity //--->

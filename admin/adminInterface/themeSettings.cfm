@@ -120,7 +120,7 @@
 	<!--- Load the fonts for the dropdowns --->
 	<style>
 	<cfloop from="1" to="#arrayLen(getFonts)#" index="i">
-		/* fonts */
+		<!--- fonts --->
 		@font-face {
 			font-family: "<cfoutput>#getFonts[i]['FileName']#</cfoutput>";
 			src: url("<cfoutput>#application.baseUrl#/common/fonts/#getFonts[i]['FileName']#</cfoutput>.woff<cfif application.serverSupportsWoff2>2</cfif>");
@@ -134,25 +134,25 @@
 		
 	<script>
 		
-		// Create a list to validate if the theme is already in use.
+		<!--- Create a list to validate if the theme is already in use. --->
 		var themeList = "<cfoutput>#themeList#</cfoutput>";
 		
 		// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 		$(document).ready(function() {
 
 			var themeValidator = $("#themeForm").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
 					<!--- Only validate this when inserting a new theme. --->
 					<cfif not len(themeId)>
-					// The theme must be unique. 
+					<!--- The theme must be unique. --->
 					themeIsUnique:
 					function(input){
-						// Do not continue if the theme name is found in the currentTheme list 
+						<!--- Do not continue if the theme name is found in the currentTheme list --->
 						if (input.is("[id='themeName']") && ( listFind( themeList, input.val() ) != 0 ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-themeIsUnique-msg", "Theme name already exists");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#theme" ).focus();
 							return false;
 						}                                    
@@ -162,17 +162,17 @@
 				}
 			}).data("kendoValidator");
 
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var themeSubmit = $('#themeSubmit');
 			themeSubmit.on('click', function(e){ 
 				
 				e.preventDefault();         
 				if (themeValidator.validate()) {
 					
-					// Open up a please wait dialog
+					<!--- Open up a please wait dialog --->
 					$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we save the theme.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
 
-					// Send data to server
+					<!--- Send data to server --->
 					setTimeout(function() {
 						postTheme();
 					}, 250);
@@ -181,31 +181,31 @@
 
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}
 			});
 
 		});//...document.ready
 		
-		// Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postTheme(){
 
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveTheme',
-				// Serialize the form. The csrfToken is also in the form.
+				<!--- Serialize the form. The csrfToken is also in the form. --->
 				data: $('#themeForm').serialize(),
 				dataType: "json",
 				success: postThemeResult, // calls the result function.
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Display the error. The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- Display the error. The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the save theme function", message: error, icon: "k-ext-error", width: "425px" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
 					
@@ -214,12 +214,12 @@
 		};
 
 		function postThemeResult(response){
-			// Close the wait window that was launched in the calling function.
+			<!--- Close the wait window that was launched in the calling function. --->
 
 			kendo.ui.ExtWaitDialog.hide();
-			// Refresh the subscriber grid window
+			<!--- Refresh the subscriber grid window --->
 			$("#themeGridWindow").data("kendoWindow").refresh();
-			// Close this window.
+			<!--- Close this window. --->
 			$('#themeSettingsWindow').kendoWindow('destroy');
 		}
 	</script>
@@ -230,11 +230,7 @@
 			padding: 8px 12px;
 		}
 
-		/* Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless
-		   look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names,
-		   and resets box-shadow/background-image too since some Kendo skins draw the separator line that
-		   way instead of with a plain border. Scoped to direct structural children of each item so the
-		   real form content (tables, inputs, etc.) nested inside isn't affected. */
+		<!--- Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names, and resets box-shadow/background-image too since some Kendo skins draw the separator line that way instead of with a plain border. Scoped to direct structural children of each item so the real form content (tables, inputs, etc.) nested inside isn't affected. --->
 		#themeSettingsPanelBar,
 		#themeSettingsPanelBar .k-item,
 		#themeSettingsPanelBar .k-link,
@@ -255,7 +251,7 @@
 
 	<script>
 		$(document).ready(function() {
-			// Create an accordian style panel for each theme settings section.
+			<!--- Create an accordian style panel for each theme settings section. --->
 			$("#themeSettingsPanelBar").kendoPanelBar({
 				expandMode: "multiple"
 			});
@@ -263,12 +259,12 @@
 	</script>
 
 	<script>
-		// ---------------------------- kendo theme dropdown. ----------------------------
+		<!--- --- kendo theme dropdown. --- --->
 		var kendoThemeDs = new kendo.data.DataSource({
 			transport: {
 				read: {
 					cache: false,
-					// Note: since this template is in a different directory, we can't specify the cfc template without the full path name.
+					<!--- Note: since this template is in a different directory, we can't specify the cfc template without the full path name. --->
 					url: function() { // The cfc component which processes the query and returns a json string. 
 						return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getKendoThemesForDropdown"; 
 					}, 
@@ -279,7 +275,7 @@
 			} //...transport:
 		});//...var rolesDs...
 
-		// Create the top level dropdown
+		<!--- Create the top level dropdown --->
 		var kendoThemeId = $("#kendoThemeId").kendoDropDownList({
 			optionLabel: "Select...",
 			autoBind: false,
@@ -290,17 +286,17 @@
 		}).data("kendoDropDownList");
 
 	<cfif isDefined("kendoThemeId")>
-		// Set default value by the value (this is used when the container is populated via the datasource).
+		<!--- Set default value by the value (this is used when the container is populated via the datasource). --->
 		var kendoThemeId = $("#kendoThemeId").data("kendoDropDownList");
 		kendoThemeId.value( <cfoutput>#kendoThemeId#</cfoutput> );
 	</cfif>
 								 
-		// ---------------------------- font dropdowns. ----------------------------
+		<!--- --- font dropdowns. --- --->
 		var fontDs = new kendo.data.DataSource({
 			transport: {
 				read: {
 					cache: false,
-					// Note: since this template is in a different directory, we can't specify the cfc template without the full path name.
+					<!--- Note: since this template is in a different directory, we can't specify the cfc template without the full path name. --->
 					url: function() { // The cfc component which processes the query and returns a json string. 
 						return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getFontsForDropdown"; 
 					}, 
@@ -311,60 +307,59 @@
 			} //...transport:
 		});//...var fontDs...
 		
-		// Create the body font
+		<!--- Create the body font --->
 		var bodyFontDropdown = $("#bodyFontDropdown").kendoDropDownList({
 			autoBind: false,
 			dataTextField: "Font",
 			dataValueField: "FontId",
-			// Templates to display the fonts 
+			<!--- Templates to display the fonts --->
     		template: '<label style="font-family:#:data.FontFace#">#:data.Font#</label>',
-			//valueTemplate: '<label style="font-family: #:data.FontFace#">#:data.FontId#</label>',
-			// Template to add a new type when no data was found.
+			<!--- valueTemplate: '<label style="font-family: #:data.FontFace#">#:data.FontId#</label>', Template to add a new type when no data was found. --->
 			noDataTemplate: $("#addFont").html(),
 			filter: "contains",
 			dataSource: fontDs,
 		}).data("kendoDropDownList");
 
 	<cfif isDefined("fontId")>
-		// Set default value by the value (this is used when the container is populated via the datasource).
+		<!--- Set default value by the value (this is used when the container is populated via the datasource). --->
 		var bodyFontDropdown = $("#bodyFontDropdown").data("kendoDropDownList");
 		bodyFontDropdown.value( <cfoutput>#fontId#</cfoutput> );
 	</cfif>
 
-		// Create the blog namedropdown
+		<!--- Create the blog namedropdown --->
 		var blogNameFontDropdown = $("#blogNameFontDropdown").kendoDropDownList({
 			optionLabel: "Select...",
 			autoBind: false,
 			dataTextField: "Font",
 			dataValueField: "FontId",
 			template: '<label style="font-family:#:data.FontFace#">#:data.Font#</label>',
-			// Template to add a new type when no data was found.
+			<!--- Template to add a new type when no data was found. --->
 			noDataTemplate: $("#addFont").html(),
 			filter: "contains",
 			dataSource: fontDs,
 		}).data("kendoDropDownList");
 
 	<cfif isDefined("BlogNameFont")>
-		// Set default value by the value (this is used when the container is populated via the datasource).
+		<!--- Set default value by the value (this is used when the container is populated via the datasource). --->
 		var blogNameFontDropdown = $("#blogNameFontDropdown").data("kendoDropDownList");
 		blogNameFontDropdown.value( <cfoutput>#blogNameFontId#</cfoutput> );
 	</cfif>
 								   
-		// Create the menu font
+		<!--- Create the menu font --->
 		var menuFontDropdown = $("#menuFontDropdown").kendoDropDownList({
 			optionLabel: "Select...",
 			autoBind: false,
 			dataTextField: "Font",
 			dataValueField: "FontId",
 			template: '<label style="font-family:#:data.FontFace#">#:data.Font#</label>',
-			// Template to add a new type when no data was found.
+			<!--- Template to add a new type when no data was found. --->
 			noDataTemplate: $("#addFont").html(),
 			filter: "contains",
 			dataSource: fontDs,
 		}).data("kendoDropDownList");
 
 	<cfif isDefined("menuFontId")>
-		// Set default value by the value (this is used when the container is populated via the datasource).
+		<!--- Set default value by the value (this is used when the container is populated via the datasource). --->
 		var menuFontDropdown = $("#menuFontDropdown").data("kendoDropDownList");
 		menuFontDropdown.value( <cfoutput>#menuFontId#</cfoutput> );
 	</cfif>
@@ -384,7 +379,7 @@
 			buttons: true
 		});
 		
-		// Numeric inputs
+		<!--- Numeric inputs --->
 		$("#contentWidth").kendoNumericTextBox({
     		decimals: 0,
 			round: true
@@ -415,15 +410,15 @@
 			round: true
 		});
 						   
-		// When a user changes the width on one container, we need to change the value of the other container. The following function has quite a bit of casting 
+		<!--- When a user changes the width on one container, we need to change the value of the other container. The following function has quite a bit of casting --->
 		function changeContainerWidth(thisContainer, mainWidth, sidebarWidth){
-			// Get the current values
+			<!--- Get the current values --->
 			sideBarWidthVal = parseInt($("#sideBarContainerWidth").val());
 			mainWidthVal = parseInt($("#mainContainerWidth").val());
 
-			// Only make changes if the two containers don't  add up to 100
+			<!--- Only make changes if the two containers don't add up to 100 --->
 			if (parseFloat(sideBarWidthVal) + parseFloat(mainWidthVal) != 100 ){
-				// Change the value of the other container
+				<!--- Change the value of the other container --->
 				if (thisContainer == 'sideBarContainerWidth'){
 					$("#mainContainerWidth").val(parseFloat(100)-parseFloat(sideBarWidthVal));
 				} else if (thisContainer == 'mainContainerWidth'){
@@ -2373,7 +2368,7 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<script>
-					// create DropDownList from select HTML element
+					<!--- create DropDownList from select HTML element --->
 					$("#topMenuAlign").kendoDropDownList();
 				</script>
 				<select name="topMenuAlign" id="topMenuAlign">
@@ -2390,7 +2385,7 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<script>
-					// create DropDownList from select HTML element
+					<!--- create DropDownList from select HTML element --->
 					$("#topMenuAlign").kendoDropDownList();
 				</script>
 				<select name="topMenuAlign" id="topMenuAlign">

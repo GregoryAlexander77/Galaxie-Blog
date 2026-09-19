@@ -141,20 +141,20 @@
 		$(document).ready(function() {
 			// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 			var GalleryDetailFormValidator = $("#galleryDetail").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
 				<cfloop from="1" to="#arrayLen(getMediaUrl)#" index="i">
 					<cfsilent>
 						<!--- Set the variable values. I want to shorten the long variable names here. --->
 						<cfset mediaId = getMediaUrl[i]["MediaId"]>
 					</cfsilent>
-					// mediaTitle
+					<!--- mediaTitle --->
 					mediaItemTitle<cfoutput>#i#</cfoutput>:
 					function(input){
 						if (input.is("[id='mediaItemTitle<cfoutput>#i#</cfoutput>']") && $.trim(input.val()).length < 4){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-mediaItemTitle<cfoutput>#i#</cfoutput>Required-msg", "The title field must be at least 4 characters");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#mediaItemTitle<cfoutput>#i#</cfoutput>" ).focus();
 							return false;
 						}                                    
@@ -164,70 +164,61 @@
 				}
 			}).data("kendoValidator");
 		
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var galleryDetailSubmit = $('#galleryDetailSubmit');
 			galleryDetailSubmit.on('click', function(e){      
                 e.preventDefault();         
 				if (GalleryDetailFormValidator.validate()) {
-					// submit the form.
-					// Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post.
-					// alert('posting');
+					<!--- submit the form. Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post. alert('posting'); --->
 					postGalleryDetails('update');
 				} else {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Required fields are missing.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}
 			});
 		});//...document.ready
 		
-		// Post method on the detail form called from the GalleryDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the GalleryDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postGalleryDetails(action){
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveGallery&selectorId=gallery&darkTheme=<cfoutput>#darkTheme#</cfoutput>&csrfToken=<cfoutput>#csrfToken#</cfoutput>',
-				// Serialize the galleryDetail form. The csrfToken is in the form.
+				<!--- Serialize the galleryDetail form. The csrfToken is in the form. --->
 				data: $('#galleryDetail').serialize(),
-				// This is one of the few times that we will be sending back an html response. We are going to use this directly to set the content in the editor. its easier to craft the html on the server side than to manipulate the dom with a json object on the client. Normally this is always json
+				<!--- This is one of the few times that we will be sending back an html response. We are going to use this directly to set the content in the editor. its easier to craft the html on the server side than to manipulate the dom with a json object on the client. Normally this is always json --->
 				dataType: "html",
 				success: galleryUpdateResult, // calls the result function.
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// This is a secured function. Display the login screen.
+				<!--- This is a secured function. Display the login screen. --->
 				if (jqXHR.status === 403) { 
 					createLoginWindow(); 
 				} else {//...if (jqXHR.status === 403) { 
-					// The full response is: jqXHR.responseText, but we just want to extract the error.
+					<!--- The full response is: jqXHR.responseText, but we just want to extract the error. --->
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveGallery function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 						).done(function () {
-					// Do nothing
+					<!--- Do nothing --->
 					});		
 				}//...if (jqXHR.status === 403) { 
 			});
 		};
 		
 		function galleryUpdateResult(response){
-			// alert(response)
-			// Note: the response is an html string 
+			<!--- alert(response) Note: the response is an html string --->
 			
-			// Get the numGalleries value in the hidden form. It starts at 1. This is used to determine what id we should use in our hidden inputs that are created on the fly here.
+			<!--- Get the numGalleries value in the hidden form. It starts at 1. This is used to determine what id we should use in our hidden inputs that are created on the fly here. --->
 			var galleryNum = $("#numGalleries").val();
-			// Insert an iframe into the editor
-			// $("#dynamicGalleryLabel").append('Gallery ' + galleryNum + ' Preview');
-			// Show the preview row and insert content into the preview div
-			// $("#dynamicGalleryInputFields").append(response);
-			// Finally insert the content into the active tinymce editor. The response here is plain HTML coming from the server
-			//$('textarea.post').html('Some contents...');
+			<!--- Insert an iframe into the editor $("#dynamicGalleryLabel").append('Gallery ' + galleryNum + ' Preview'); Show the preview row and insert content into the preview div $("#dynamicGalleryInputFields").append(response); Finally insert the content into the active tinymce editor. The response here is plain HTML coming from the server $('textarea.post').html('Some contents...'); --->
 			tinymce.activeEditor.insertContent(response + '<br/><br/>');
 			
-			// Close all of the windows associated with the gallery
-			// Close the uppy dashboard
+			<!--- Close all of the windows associated with the gallery Close the uppy dashboard --->
 			$('#galleryWindow').kendoWindow('destroy');
-			// Close the gallery items window
+			<!--- Close the gallery items window --->
 			$('#galleryItemsWindow').kendoWindow('destroy');
 			
 			// Refresh the <cfif application.kendoCommercial>kendo<cfelse>jsgrid</cfif> grid 
@@ -236,8 +227,7 @@
 		<cfelse>
 			$("#commentsGrid").jsGrid("loadData");
 		</cfif>
-			// Close the comment window
-			//jQuery('#commentDetailWindow').kendoWindow('destroy');
+			<!--- Close the comment window jQuery('#commentDetailWindow').kendoWindow('destroy'); --->
 		}
 		
 	</script>

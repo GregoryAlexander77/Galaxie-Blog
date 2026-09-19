@@ -5,7 +5,7 @@
 	<cfproperty name="BlogRef" ormtype="int" fieldtype="many-to-one" cfc="Blog" fkcolumn="BlogRef" cascade="all">
 	<!--- A psuedo column to determine the templates for each page. --->
 	<cfproperty name="ContainerName" ormtype="string" missingRowIgnored="true">
-	<!--- This is configured for SQL Server. Manually change the varchar(max) property if you use another db --->
+	<!--- Long text column. The type of this column is different for each database, so Application.cfc rewrites it to match the database that the blog was installed on (see /common/cfc/DatabaseOrmTypes.cfc). This file is shipped set up for SQL Server. --->
 	<cfproperty name="ContainerContent" ormtype="string" sqltype="varchar(max)" default="">
 	<cfproperty name="ContainerPath" ormtype="string" length="250" default="">
 	<cfproperty name="ContainerUrl" ormtype="string" length="250" default="">

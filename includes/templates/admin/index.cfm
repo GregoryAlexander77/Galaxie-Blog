@@ -167,7 +167,12 @@
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
 	<cfset iconList = listAppend(iconList, 'BlogUpdate')>
-	<cfset titleList = listAppend(titleList, 'Blog Updates')>
+	<!--- Let the administrator know when the files are newer than the database. See DatabaseUpdater.cfc --->
+	<cfif isDefined("application.dbBlogVersion") and val(application.dbBlogVersion) lt val(application.blog.getVersion())>
+		<cfset titleList = listAppend(titleList, 'Blog Updates (database update needed)')>
+	<cfelse>
+		<cfset titleList = listAppend(titleList, 'Blog Updates')>
+	</cfif>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(40);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/blogUpdates.gif")>
 </cfif>
@@ -686,12 +691,12 @@
 		<style>
 
 			span.icon {
-				/* To correctly align image, regardless of content height: */
+				<!--- To correctly align image, regardless of content height: --->
 				vertical-align: top;
 				display: inline-block;
-				/* To horizontally center images and caption */
+				<!--- To horizontally center images and caption --->
 				text-align: center;
-				/* The width of the container also implies margin around the images. */
+				<!--- The width of the container also implies margin around the images. --->
 				width: <cfif session.isMobile>105<cfelse>125</cfif>px;
 				height: <cfif session.isMobile>105<cfelse>175</cfif>px;
 			}
@@ -701,18 +706,18 @@
 				height: <cfif session.isMobile>90<cfelse>133</cfif>px;;
 			}
 
-			/* Add a hover effect (blue shadow) */
+			<!--- Add a hover effect (blue shadow) --->
 			.icon img:hover {
 				box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5);
 				opacity: .82;
 			}
 
 			.caption {
-				/* Make the caption a block so it occupies its own line. */
+				<!--- Make the caption a block so it occupies its own line. --->
 				display: block;
 			}
 
-			/* Custom classes for the tooltips. These classes will be used to override the base k-tooltip class. */
+			<!--- Custom classes for the tooltips. These classes will be used to override the base k-tooltip class. --->
 			.iconBottomRow {
 				width: var(--toolTipWidth);
 				height: var(--toolTipHeight);
@@ -720,7 +725,7 @@
 				border-radius: 10px;
 			}
 
-			/* Custom classes for the tooltips. These classes will be used to override the base k-tooltip class. */
+			<!--- Custom classes for the tooltips. These classes will be used to override the base k-tooltip class. --->
 			.iconTopRow {
 				width: var(--toolTipWidth);
 				height: var(--toolTipHeight);

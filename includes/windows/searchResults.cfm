@@ -66,7 +66,7 @@
 <script>
 	$(document).ready(function() {
 		
-		// create MultiSelect from select HTML element
+		<!--- create MultiSelect from select HTML element --->
         var categoryMultiselect = $("#category").kendoMultiSelect().data("kendoMultiSelect");
 		
 	});//..document.ready

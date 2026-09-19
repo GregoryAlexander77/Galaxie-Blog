@@ -145,6 +145,8 @@
 						<cfsavecontent variable="videoEnclosure">
 						<cfoutput>
 						<script type="#application.blog.getScriptTypeString()#">
+							// Plyr is only downloaded when the page has a player. If this page does not have the loader from head.cfm, Plyr is assumed to be there already.
+							(window.galaxieLoader ? galaxieLoader.plyr : function(init) { init(); })(function() {
 							const mediaplayer#currentRow#Options = {
 							  autoplay: false,
 							  playsinline: true,
@@ -155,6 +157,7 @@
 							}
 
 							const mediaplayer#currentRow# = new Plyr('#chr(35)#mediaplayer#currentRow#', mediaplayer#currentRow#Options);
+							});
 						</script>
 						<div class="k-content wide">
 							<br/>
@@ -169,6 +172,8 @@
 						<cfsavecontent variable="videoEnclosure">
 						<cfoutput>
 						<script type="#application.blog.getScriptTypeString()#">
+							// Plyr is only downloaded when the page has a player. If this page does not have the loader from head.cfm, Plyr is assumed to be there already.
+							(window.galaxieLoader ? galaxieLoader.plyr : function(init) { init(); })(function() {
 							const mediaplayer#currentRow#Options = {
 							  autoplay: false,
 							  playsinline: true,
@@ -179,6 +184,7 @@
 							}
 
 							const mediaplayer#currentRow# = new Plyr('#chr(35)#mediaplayer#currentRow#', mediaplayer#currentRow#Options);
+							});
 						</script>
 						<div class="k-content wide">
 							<br/>
@@ -699,6 +705,8 @@
 			<cfsavecontent variable="videoHtml">
 				<cfoutput>
 				<script type="#application.blog.getScriptTypeString()#">
+					// Plyr is only downloaded when the page has a player. If this page does not have the loader from head.cfm, Plyr is assumed to be there already.
+					(window.galaxieLoader ? galaxieLoader.plyr : function(init) { init(); })(function() {
 					const mediaplayer#mediaId#Options = {
 					  // Autoplay when in post mode. don't  autoplay in blog mode.
 					  autoplay: false,
@@ -710,6 +718,7 @@
 					}
 
 					const mediaplayer#mediaId# = new Plyr('#chr(35)#mediaplayer#mediaId#', mediaplayer#mediaId#Options);
+					});
 				</script>
 				<div class="k-content wide">
 					<br/>
@@ -723,6 +732,8 @@
 			<cfsavecontent variable="videoHtml">
 				<cfoutput>
 				<script type="#application.blog.getScriptTypeString()#">
+					// Plyr is only downloaded when the page has a player. If this page does not have the loader from head.cfm, Plyr is assumed to be there already.
+					(window.galaxieLoader ? galaxieLoader.plyr : function(init) { init(); })(function() {
 					const mediaplayer#mediaId#Options = {
 					  // Autoplay when in post mode. don't  autoplay in blog mode.
 					  autoplay: false,
@@ -734,6 +745,7 @@
 					}
 
 					const mediaplayer#mediaId# = new Plyr('#chr(35)#mediaplayer#mediaId#', mediaplayer#mediaId#Options);
+					});
 				</script>
 				<div class="k-content wide">
 					<br/>
@@ -747,6 +759,8 @@
 			<cfsavecontent variable="videoHtml">
 				<cfoutput>
 				<script type="#application.blog.getScriptTypeString()#">
+					// Plyr is only downloaded when the page has a player. If this page does not have the loader from head.cfm, Plyr is assumed to be there already.
+					(window.galaxieLoader ? galaxieLoader.plyr : function(init) { init(); })(function() {
 					const mediaplayer#mediaId#Options = {
 					  autoplay: false,
 					  playsinline: true,
@@ -757,6 +771,7 @@
 					}
 
 					const mediaplayer#mediaId# = new Plyr('#chr(35)#mediaplayer#mediaId#', mediaplayer#mediaId#Options);
+					});
 				</script>
 				<div id="mediaPlayer#mediaId#" class="mediaPlayer">
 					<video

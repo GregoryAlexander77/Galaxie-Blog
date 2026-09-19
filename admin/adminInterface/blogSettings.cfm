@@ -49,11 +49,7 @@
 	
 	</cfsilent>	
 	<style>
-		/* Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless
-		   look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names,
-		   and resets box-shadow/background-image too since some Kendo skins draw the separator line that
-		   way instead of with a plain border. Scoped to direct structural children of each item so the
-		   real form content (tables, inputs, etc.) nested inside isn't affected. */
+		<!--- Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names, and resets box-shadow/background-image too since some Kendo skins draw the separator line that way instead of with a plain border. Scoped to direct structural children of each item so the real form content (tables, inputs, etc.) nested inside isn't affected. --->
 		#blogSettingsPanelBar,
 		#blogSettingsPanelBar .k-item,
 		#blogSettingsPanelBar .k-link,
@@ -78,16 +74,16 @@
 		$(document).ready(function() {
 
 			var settingsValidator = $("#settingsForm").kendoValidator({
-				// Set up custom validation rules 
+				<!--- Set up custom validation rules --->
 				rules: {
-					// The theme must be unique. 
+					<!--- The theme must be unique. --->
 					themeIsUnique:
 					function(input){
-						// Do not continue if the theme name is found in the currentTheme list 
+						<!--- Do not continue if the theme name is found in the currentTheme list --->
 						if (input.is("[id='themeName']") && ( listFind( themeList, input.val() ) != 0 ) ){
-							// Display an error on the page.
+							<!--- Display an error on the page. --->
 							input.attr("data-themeIsUnique-msg", "Theme name already exists");
-							// Focus on the current element
+							<!--- Focus on the current element --->
 							$( "#theme" ).focus();
 							return false;
 						}                                    
@@ -96,17 +92,17 @@
 				}
 			}).data("kendoValidator");
 
-			// Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event.
+			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->
 			var settingsSubmit = $('#settingsSubmit');
 			settingsSubmit.on('click', function(e){ 
 				
 				e.preventDefault();         
 				if (settingsValidator.validate()) {
 					
-					// Open up a please wait dialog
+					<!--- Open up a please wait dialog --->
 					$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while we save the data.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
 
-					// Send data to server
+					<!--- Send data to server --->
 					setTimeout(function() {
 						postSettings();
 					}, 250);
@@ -115,31 +111,31 @@
 
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
-						// Do nothing
+						<!--- Do nothing --->
 					});
 				}
 			});
 
 		});//...document.ready
 		
-		// Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'.
+		<!--- Post method on the detail form called from the deptDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
 		function postSettings(){
 
 			jQuery.ajax({
 				type: 'post', 
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveBlogSettings&csrfToken=<cfoutput>#csrfToken#</cfoutput>',
-				// Serialize the form along with the csrfToken.
+				<!--- Serialize the form along with the csrfToken. --->
 				data: $('#settingsForm').serialize(),
 				dataType: "json",
 				success: postSettingsResult, // calls the result function.
 				error: function(ErrorMsg) {
 					console.log('Error' + ErrorMsg);
 				}
-			// Extract any errors. This is a new jQuery promise based function as of jQuery 1.8.
+			<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 			}).fail(function (jqXHR, textStatus, error) {
-				// Close the wait window that was launched in the calling function.
+				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
-				// Display the error. The full response is: jqXHR.responseText, but we just want to extract the error.
+				<!--- Display the error. The full response is: jqXHR.responseText, but we just want to extract the error. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the saveBlogOptions function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 					).done(function () {
 					
@@ -148,16 +144,16 @@
 		};
 
 		function postSettingsResult(response){
-			// Close the wait window that was launched in the calling function.
+			<!--- Close the wait window that was launched in the calling function. --->
 			kendo.ui.ExtWaitDialog.hide();
-			// Close this window.
+			<!--- Close this window. --->
 			$('#settingsWindow').kendoWindow('destroy');
 		}
 	</script>
 		
 	<script>
 		$(document).ready(function() {
-			// Create an accordian style panel for each blog settings section.
+			<!--- Create an accordian style panel for each blog settings section. --->
 			$("#blogSettingsPanelBar").kendoPanelBar({
 				expandMode: "multiple"
 			});
@@ -573,9 +569,9 @@
 			{"label":"(GMT+13:00) Nuku'alofa","value":"13"}
 		]	
 		
-		// My timezone dropdown
+		<!--- My timezone dropdown --->
 		var blogTimeZone = $("#blogTimeZone").kendoDropDownList({
-			//cascadeFrom: "agencyRateCompanyCode",
+			<!--- cascadeFrom: "agencyRateCompanyCode", --->
 			optionLabel: "Select...",
 			dataTextField: "label",
 			dataValueField: "value",
@@ -584,13 +580,13 @@
 			change: onBlogTimeZoneChange,
 		}).data("kendoDropDownList");
 
-		// Set default value by the value (this is used when the container is populated via the datasource).
+		<!--- Set default value by the value (this is used when the container is populated via the datasource). --->
 		var blogTimeZone = $("#blogTimeZone").data("kendoDropDownList");
 		blogTimeZone.value( <cfoutput>'#blogTimeZone#'</cfoutput> );
 		
-		// Server timezone dropdown
+		<!--- Server timezone dropdown --->
 		var serverTimeZone = $("#serverTimeZone").kendoDropDownList({
-			//cascadeFrom: "agencyRateCompanyCode",
+			<!--- cascadeFrom: "agencyRateCompanyCode", --->
 			optionLabel: "Select...",
 			dataTextField: "label",
 			dataValueField: "value",
@@ -599,49 +595,49 @@
 			change: onServerTimeZoneChange
 		}).data("kendoDropDownList");
 
-		// Set default value by the value (this is used when the container is populated via the datasource).
+		<!--- Set default value by the value (this is used when the container is populated via the datasource). --->
 		var serverTimeZone = $("#serverTimeZone").data("kendoDropDownList");
 		serverTimeZone.value(<cfoutput>'#serverTimeZoneData.offset#'</cfoutput>);
 	<cfif len(blogTimeZone)>
-		// Prompt a change event to populate the hidden field
+		<!--- Prompt a change event to populate the hidden field --->
 		serverTimeZone.trigger("change");
 	<cfelse>
-		// Disable the server timezone dropdown menu if the blog time zone is not selected
+		<!--- Disable the server timezone dropdown menu if the blog time zone is not selected --->
 		serverTimeZone.enable(false);
 	</cfif>
 		
-		// Calculate the server offset by the blog time.
+		<!--- Calculate the server offset by the blog time. --->
 		function onBlogTimeZoneChange(e){
 		<cfif !len(blogTimeZone)>
-			// When the blog time zone was selected for the first time, enable the server time zone dropdown menu
+			<!--- When the blog time zone was selected for the first time, enable the server time zone dropdown menu --->
 			var serverTimeZone = $("#serverTimeZone").data("kendoDropDownList");
 			serverTimeZone.enable(true);
 		</cfif>
-			// Get the selected blog time zone value
+			<!--- Get the selected blog time zone value --->
 			blogTimeZone = this.value();
-			// Set the value of the hidden form 
+			<!--- Set the value of the hidden form --->
 			$("#blogTimeZoneValue").val(blogTimeZone);	
-			// Get the server timezone
+			<!--- Get the server timezone --->
 			serverTimeZone = $("#serverTimeZoneValue").val();			
-			// Calculate the offset
+			<!--- Calculate the offset --->
 			serverTimeZoneOffset = parseInt(blogTimeZone)-parseInt(serverTimeZone);
-			// And populate the server time offset container
+			<!--- And populate the server time offset container --->
 			$("#serverTimeZoneOffset").val(serverTimeZoneOffset);
 			
 		}//...function onBlogTimeZoneChange(e)
 		
-		// Calculate the server offset by the server time.
+		<!--- Calculate the server offset by the server time. --->
 		function onServerTimeZoneChange(e){
-			// Get the value
+			<!--- Get the value --->
 			serverTimeZone = this.value();
-			// Update the hidden form value
+			<!--- Update the hidden form value --->
 			$("#serverTimeZoneValue").val(serverTimeZone);
-			// Get the blog timezone
+			<!--- Get the blog timezone --->
 			var blogTimeZone = $("#blogTimeZone").data("kendoDropDownList");
 			blogTimeZoneValue = blogTimeZone.value();
-			// Calculate the offset
+			<!--- Calculate the offset --->
 			serverTimeZoneOffset = parseInt(blogTimeZoneValue)-parseInt(serverTimeZone);
-			// And populate the server time offset container
+			<!--- And populate the server time offset container --->
 			$("#serverTimeZoneOffset").val(serverTimeZoneOffset);
 		}//...function onBlogTimeZoneChange(e)
 			  
