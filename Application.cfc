@@ -194,6 +194,12 @@
 					<cfset error = 'cache does not exist'>
 				</cfcatch>
 			</cftry>
+			<!--- Delete the cached html files. The pages, comments, bio, cards, pods, header, footer, fonts and rss feeds are cached to disk by galaxieCache, and unlike the caches above they are not cleared by the cache flush, so after uploading new templates the old html would be served until it was cleared by hand. Each file is rebuilt the next time it is needed. This is the same function that clears the cache of a post when it is saved (type 'post'). The blog object may not exist yet when first installing the blog. --->
+			<cftry>
+				<cfset application.blog.flushGalaxieCache(type='all')>
+				<cfcatch type="any">
+				</cfcatch>
+			</cftry>
 			<!--- 
 			Debugging note: if you change the blog folder after installation, you may need to print these vars to reset them.
 			<cfoutput>getSiteUrl(): #getSiteUrl()# application.BlogDbObj.getBlogUrl(): #application.BlogDbObj.getBlogUrl()# getProfileString(application.blogIniPath, "default", "blogUrl"): #getProfileString(application.blogIniPath, "default", "blogUrl")#<br/></cfoutput>

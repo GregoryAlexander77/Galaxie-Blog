@@ -2425,22 +2425,68 @@
 		Galaxie Cache functions
 	//******************************************************************************************--->
 					
+	<cffunction name="getRelatedPostIdList" access="public" returntype="string" output="false"
+			hint="Returns a list of the id's of the posts that are related to a post. Posts are related in both directions, so this returns the posts that this post points to and the posts that point to this post. Unlike getRelatedPosts this does not care whether the posts are released. This is used to find the cached pages that show this post in their list of related posts.">
+		<cfargument name="postId" type="numeric" required="true" />
+
+		<cfset var relatedPostIdList = "">
+		<cfset var getRelated = []>
+		<cfset var i = 0>
+
+		<cfquery name="getRelated" dbtype="hql">
+			SELECT new Map (
+				RelatedPost.PostRef as PostRef,
+				RelatedPost.RelatedPostRef as RelatedPostRef
+			)
+			FROM RelatedPost as RelatedPost
+			WHERE RelatedPost.PostRef = #arguments.postId#
+				OR RelatedPost.RelatedPostRef = #arguments.postId#
+		</cfquery>
+
+		<cfloop from="1" to="#arrayLen(getRelated)#" index="i">
+			<!--- Add the post on the other side of the relation --->
+			<cfif getRelated[i]["PostRef"] eq arguments.postId>
+				<cfset relatedPostIdList = listAppend(relatedPostIdList, getRelated[i]["RelatedPostRef"])>
+			<cfelse>
+				<cfset relatedPostIdList = listAppend(relatedPostIdList, getRelated[i]["PostRef"])>
+			</cfif>
+		</cfloop>
+
+		<cfreturn listRemoveDuplicates(relatedPostIdList)>
+
+	</cffunction>
+
 	<cffunction name="flushGalaxieCache" access="public" returntype="boolean" output="true"
 			hint="Clears the scope cache. Returns a boolean value to indicate if the cache was cleared">
-		<cfargument name="type" type="string" required="true" hint="Either post, comment, bio, font, topMenu, sideBar, pod, or comment" />
+		<cfargument name="type" type="string" required="true" hint="Either all, post, comment, bio, font, topMenu, sideBar, pod, or comment" />
 		<cfargument name="postId" type="string" required="false" default="" hint="Required for a post or a comment" />
 		<cfargument name="themeId" type="string" required="false" default="" hint="Required for a font, or theme" />
 		<cfargument name="contentTemplate" type="string" required="false" default="" hint="Required when saving a content template" />
+		<cfargument name="relatedPostIdList" type="string" required="false" default="" hint="Optional. For a post: the id's of other posts whose cached pages should be cleared too, in addition to the posts that are related to this post right now. Pass in the posts that were related to the post before its related posts were changed or deleted." />
 
-		<!--- Flush our cache when a post is made --->
-		<cfif arguments.type eq 'post'>
-			
-			<!--- Clear the posts that use this postId --->
-			<cfset thisDirectory = application.baseUrl & '/cache/posts'>
-			<!--- This filter will match all posts that use the postId --->
-			<cfset thisFileNameOrFilter = 'postId=' & arguments.postId>
-			<!--- Delete the files --->
-			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+		<!--- Flush all of the html cache files. This is used by the Refresh Site button (?reinit=1). These are all of the folders that galaxieCache saves html files to. Each file is rebuilt the next time it is needed. --->
+		<cfif arguments.type eq 'all'>
+
+			<cfloop list="posts,comments,bio,cards,pods,header,footer,fonts,rss" index="cacheFolder">
+				<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/' & cacheFolder, '.cfm')>
+			</cfloop>
+
+		<!--- Flush our cache when a post is made. This clears the files that show this post: the post itself, its comments, the rss feeds and the pods and cards that list posts. --->
+		<cfelseif arguments.type eq 'post'>
+
+			<!--- Clear the posts that use this postId. The cached page of a post has a list of its related posts (with their titles and links), so the cached pages of the related posts have to be cleared too. The posts are related in both directions, and the relation may have just been removed (see the relatedPostIdList argument). --->
+			<cfset postIdsToFlush = arguments.postId>
+			<cfif isNumeric(arguments.postId)>
+				<cfset postIdsToFlush = listAppend(postIdsToFlush, getRelatedPostIdList(arguments.postId))>
+			</cfif>
+			<cfset postIdsToFlush = listAppend(postIdsToFlush, arguments.relatedPostIdList)>
+			<cfloop list="#postIdsToFlush#" index="postIdToFlush">
+				<cfset thisDirectory = application.baseUrl & '/cache/posts'>
+				<!--- The cached files are named postId=1+themeId=0 (and +mobile). The plus sign keeps postId=1 from matching postId=10 --->
+				<cfset thisFileNameOrFilter = 'postId=' & trim(postIdToFlush) & '+'>
+				<!--- Delete the files --->
+				<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+			</cfloop>
 
 			<!--- Delete the comment files associated with this post --->
 			<cfset thisDirectory = application.baseUrl & '/cache/comments'>
@@ -2448,9 +2494,9 @@
 			<!--- Delete the files --->
 			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
 				
-			<!--- Delete the popular post html files in the cache folder. This will clear all of the popularPost files. --->
+			<!--- Delete the popular post html files in the cache folder. This will clear all of the popularPost files (the desktop and mobile files of every theme). --->
 			<cfset thisDirectory = application.baseUrl & '/cache/cards'>
-			<cfset thisFileNameOrFilter = 'topMenu'>
+			<cfset thisFileNameOrFilter = 'popularPosts'>
 			<!--- Delete the files --->
 			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
 
@@ -2481,6 +2527,24 @@
 			<!--- Delete the categories (tagCloud) pod when a new post is made. This will delete the tagCloud files if they exist --->
 			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
 			<cfset thisFileNameOrFilter = 'tagCloud'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the monthly archives pod. The file is named monthyArchives, and the archives filter above will not match it when the file system is case sensitive. --->
+			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+			<cfset thisFileNameOrFilter = 'monthyArchives'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the pages pod. A page is saved with this function too and the pod lists all of the pages. --->
+			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+			<cfset thisFileNameOrFilter = 'pagePod'>
+			<!--- Delete the files --->
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the recent comments pods. They link to the posts using the title and the alias of the post. This will delete the recentCommentsDiv and recentCommentsPanel files. --->
+			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
+			<cfset thisFileNameOrFilter = 'recentComments'>
 			<!--- Delete the files --->
 			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
 
@@ -2615,6 +2679,11 @@
 		<cfargument name="fileFilter" type="string" default="" required="false" />
 		<!--- Set to true if you want to recursively delete files --->
 		<cfargument name="recursive" type="boolean" default="false" required="false" />
+
+		<!--- There is nothing to delete if the cache folder does not exist yet. Don't throw an error, as this is used when saving a post and the post has already been saved. --->
+		<cfif not directoryExists(expandPath(arguments.directory))>
+			<cfreturn 1>
+		</cfif>
 
 		<!--- Note: be careful if you don't specify a fileFilter as you may delete all of the files in a directory. If they are cache files, it is not a huge deal as they will be recreated again when someone visits a page when using Galaxie Cache. --->
 		<cfif len(arguments.fileFilter)>
@@ -9780,6 +9849,8 @@
 		<!--- **********************************************************************************************
 		Save the related posts 
 		*************************************************************************************************--->
+		<!--- Get the posts that are related to this post before the related posts are changed. The cached pages of these posts have to be cleared too (see the flush at the end of this function), and the posts that are no longer related to this post would be lost after saving. --->
+		<cfset previousRelatedPostIdList = getRelatedPostIdList(arguments.postId)>
 		<cfset saveRelatedPosts(arguments.postId, arguments.relatedPosts) />
 
 		<!--- **********************************************************************************************
@@ -9821,11 +9892,8 @@
 		
 		</cfif><!---<cfif dateCompare(getPost[1]["DatePosted"], blogNow()) is 1>--->
 		
-		<!--- Clear the scope cache when the post is released --->
-		<cfif released>
-			<!--- Remove the HTML file if it exists --->
-			<cfset flushGalaxieCache(type='post',postId="#arguments.postId#")>
-		</cfif>
+		<!--- Clear the cached html of this post (and the pods, cards and feeds that list it) whenever the post is saved. This must also be done when the post is not released: if the post was unreleased or edited, the html that was cached earlier would otherwise keep being shown. --->
+		<cfset flushGalaxieCache(type='post', postId="#arguments.postId#", relatedPostIdList="#previousRelatedPostIdList#")>
 						
 		<cfreturn PostDbObj.getPostId()>
 
@@ -9969,8 +10037,11 @@
 			<cfset EntitySave(PostDbObj)>
 		</cftransaction>
 				
-		<!--- Refresh the Galaxie Cache post objects --->
-		<cfset flushGalaxieCache(type='theme', postId='#arguments.postId#')>
+		<!--- Refresh the Galaxie Cache post objects. This clears the cached page of this post and the related posts that link to it, the comments, the pods, cards and feeds that list the post. Note: this used to use the 'theme' type, which cleared the posts, bio, fonts, footers and menus of every theme. --->
+		<cfset flushGalaxieCache(type='post', postId='#arguments.postId#')>
+		<!--- The post may be a page, and the navigation menu (the header) and the footer may link to it using the alias. --->
+		<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/header', 'topMenu')>
+		<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/footer', 'footer')>
 						
 		<cfreturn PostDbObj.getPostId()>
 
@@ -9979,7 +10050,10 @@
 	<cffunction name="deletePost" access="public" returnType="void" output="false"
 			hint="Replaces the deleteEntry function">
 		<cfargument name="postId" type="numeric" required="true">
-			
+
+		<!--- Get the posts that are related to this post before the relations are deleted. The cached pages of these posts list this post, so they have to be cleared after the post is deleted. --->
+		<cfset relatedPostIdList = getRelatedPostIdList(arguments.postId)>
+
 		<cftransaction>
 			
 			<!--- Load the post object --->
@@ -10059,9 +10133,9 @@
 			
 		</cftransaction>
 				
-		<!--- Refresh the Galaxie Cache post objects --->
-		<cfset flushGalaxieCache(type='post', postId='#arguments.postId#')>
-				
+		<!--- Refresh the Galaxie Cache post objects, including the pages of the posts that were related to this post --->
+		<cfset flushGalaxieCache(type='post', postId='#arguments.postId#', relatedPostIdList='#relatedPostIdList#')>
+
 	</cffunction>
 				
 	<!--- **********************************************************************************************
