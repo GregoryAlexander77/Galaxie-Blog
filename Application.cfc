@@ -757,6 +757,7 @@
 
 		<cfset var databaseType = getDatabaseType()>
 		<cfset var databaseOrmTypes = "">
+		<cfset var baseComponentPath = "">
 
 		<!--- The database type is not known until the installer gets to that step --->
 		<cfif not len(databaseType)>
@@ -764,8 +765,13 @@
 		</cfif>
 
 		<cfif not (structKeyExists(application, "ormTypesAppliedFor") and application.ormTypesAppliedFor eq databaseType)>
-			<!--- The component path is relative to this file so this works wherever the blog is installed. --->
-			<cfset databaseOrmTypes = new common.cfc.DatabaseOrmTypes()>
+			<!--- Build the component path from the blog's location, like the other components (application.blogComponentPath and so on). A bare 'common.cfc' path is looked up from the web root, and a site that has its own common folder (ie gregoryalexander.com/common) will not find it. --->
+			<cfset baseComponentPath = getBaseComponentPath(true)>
+			<cfif len(baseComponentPath)>
+				<cfset databaseOrmTypes = createObject("component", baseComponentPath & ".common.cfc.DatabaseOrmTypes")>
+			<cfelse>
+				<cfset databaseOrmTypes = createObject("component", "common.cfc.DatabaseOrmTypes")>
+			</cfif>
 			<cfset databaseOrmTypes.apply(databaseType, this.rootDirectoryPath & "common/cfc/db/galaxieDb/")>
 			<cfset application.ormTypesAppliedFor = databaseType>
 		</cfif>
