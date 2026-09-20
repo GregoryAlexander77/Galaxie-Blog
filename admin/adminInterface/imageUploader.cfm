@@ -137,7 +137,7 @@
 			<cfswitch expression="#URL.otherArgs#">
 				<cfcase value="blogBackgroundImage">
 					<p>The blog background image will cover the background. Make sure that the image is compressed.</p>
-					<p>Note: we are not yet supporting .webp file uploads. Instead upload them manually and link to them. The webp images will also show up as a broken image in the editor unfortunately.</p>
+					<p>Note: .webp images can be uploaded. Older browsers that do not support the .webp format will show them as a broken image in the editor.</p>
 				</cfcase>
 				<cfcase value="blogBackgroundImageMobile">
 					The Mobile Blog Background is used to display the background image on mobile devices. This image should be about 1/3rd smaller than the blog background image.

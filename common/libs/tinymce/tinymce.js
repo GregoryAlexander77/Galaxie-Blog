@@ -19841,7 +19841,8 @@
           'image/jpeg': 'jpg',
           'image/jpg': 'jpg',
           'image/gif': 'gif',
-          'image/png': 'png'
+          'image/png': 'png',
+          'image/webp': 'webp'
         };
         return mimes[mime.toLowerCase()] || 'dat';
       };

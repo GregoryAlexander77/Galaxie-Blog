@@ -216,7 +216,7 @@
 			//<cfoutput>#application.baseUrl#</cfoutput>/common/libs/tinymce/skins/ui/oxide/content.css"
 			height: "<cfoutput>#editorHeight#</cfoutput>",
 			<!--- This only works with tinymce 5.6+ --->
-			images_file_types: 'peg,jpg,jpe,jfi,jif,jfif,png,gif,bmp,webp',
+			images_file_types: 'jpeg,jpg,jpe,jfi,jif,jfif,png,gif,bmp,webp',
 			<!--- Custom plugin argument to allow us to use fontawesome icons --->
 			iconfonts_selector: '.fa, .fab, .fal, .far, .fas, .glyphicon', // optional (default shown)
 		<!--- Set the menu depending upon the selector name. --->
@@ -749,7 +749,7 @@
 				<cfif selectorId eq 'enclosureEditor'>
 				try {
 					<!--- When the enclosureEditor is being used, update the enclosure thumbnail image. --->
-					if (location.includes(".png") || location.includes(".gif") || location.includes(".jpg")){
+					if (location.includes(".png") || location.includes(".gif") || location.includes(".jpg") || location.includes(".webp")){
 						var thumbnailImage = document.getElementById("thumbnailImage");
 						thumbnailImage.src = location;
 					}

@@ -1,0 +1,17 @@
+Changes that Galaxie Blog made to the bundled TinyMCE 5.5.1
+=============================================================
+
+TinyMCE 5.5.1 does not accept .webp images in the Upload tab of the image dialog: the file is silently ignored.
+If TinyMCE is upgraded, check whether the new version accepts .webp. If it does not, apply these changes again.
+
+1. themes/silver/theme.js (and theme.min.js)
+   The list of accepted extensions is '.jpg,.jpeg,.png,.gif'. Add '.webp':
+     var extensionsAccepted = '.jpg,.jpeg,.png,.gif,.webp';
+   In theme.min.js the string is ".jpg,.jpeg,.png,.gif".split(...) .
+
+2. tinymce.js (and tinymce.min.js)
+   BlobCache.mimeToExt has no entry for image/webp, so the file name of an uploaded webp image ends in '.dat'.
+   Add:  'image/webp': 'webp'
+
+The original files are not kept in the repository. The images_file_types setting in includes/templates/js/tinyMce.cfm
+is not used by TinyMCE 5.5.1, and is only there for a newer TinyMCE.

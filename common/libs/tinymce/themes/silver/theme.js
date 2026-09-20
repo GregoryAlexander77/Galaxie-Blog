@@ -16369,7 +16369,7 @@
       memory: memory$1
     };
 
-    var extensionsAccepted = '.jpg,.jpeg,.png,.gif';
+    var extensionsAccepted = '.jpg,.jpeg,.png,.gif,.webp';
     var filterByExtension = function (files) {
       var re = new RegExp('(' + extensionsAccepted.split(/\s*,\s*/).join('|') + ')$', 'i');
       return filter(from$1(files), function (file) {
