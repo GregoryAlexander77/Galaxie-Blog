@@ -543,9 +543,6 @@
 			<cfset entityReload(application.BlogDbObj)>
 			<cfset application.dbBlogVersion = application.blog.getVersion()>
 		</cfif>
-		<!--- If the database is too old for the site to run (see the function), visitors get a 'being updated' page until the database is updated. --->
-		<cfset databaseUpdateGate()>
-			
 		<!--- //****************************************************************************************
 				User defined settings.
 		//******************************************************************************************--->
@@ -687,6 +684,9 @@
 			<cfset init = this.applicationInit()>
 		</cfif>
 			
+		<!--- If the database is too old for the site to run (see the function), visitors get a 'being updated' page until the database is updated. This is done last, after every application setting has been read, as the administrative site (which the administrator is sent to) and the error handler need those settings. --->
+		<cfset databaseUpdateGate()>
+
 		<cfsetting enablecfoutputonly="false"> 
 			
 	</cffunction>
@@ -775,6 +775,11 @@
 		</cfif>
 		<cfif val(application.dbBlogVersion) gte val(minimumDatabaseVersion) or val(application.dbBlogVersion) gte val(application.blog.getVersion())>
 			<cfreturn>
+		</cfif>
+
+		<!--- The settings that are read further down in OnRequestStart (for example sendDiagnostics) are not set when the request stops here, but onError and saveErrorLog need them. Give them safe defaults so an error on a gated request is logged and does not hide the real error. --->
+		<cfif not structKeyExists(application, "sendDiagnostics")>
+			<cfset application.sendDiagnostics = false>
 		</cfif>
 
 		<!--- Always allow the remote component calls (login and the database update itself) and the installer. --->
@@ -1327,6 +1332,24 @@
 		<cfparam name="errorDetail" default="#arguments.exception.detail ?: ''#">
 		<cfparam name="errorDate" default="#dateFormat(now(), 'short')# #timeFormat(now(), 'short')#">
 			
+		<!--- Always write the error to a ColdFusion log file (galaxieBlogErrors) as well. The error is normally saved to the database by saveErrorLog, which needs the application to be fully started. When that fails, the page only shows the error of the error handler and the real error is lost. --->
+		<cftry>
+			<cfset local.loggedError = arguments.exception>
+			<cfif isDefined("arguments.exception.rootCause") and (isStruct(arguments.exception.rootCause) or isObject(arguments.exception.rootCause))>
+				<cfset local.loggedError = arguments.exception.rootCause>
+			</cfif>
+			<cfif isObject(local.loggedError)>
+				<cfset local.loggedText = local.loggedError.toString()>
+			<cfelse>
+				<cfset local.loggedText = (local.loggedError.type ?: '') & ': ' & (local.loggedError.message ?: '') & ' ' & (local.loggedError.detail ?: '')>
+			</cfif>
+			<cfif isDefined("arguments.exception.tagContext") and isArray(arguments.exception.tagContext) and arrayLen(arguments.exception.tagContext)>
+				<cfset local.loggedText = local.loggedText & ' (' & arguments.exception.tagContext[1].template & ' line ' & arguments.exception.tagContext[1].line & ')'>
+			</cfif>
+			<cflog file="galaxieBlogErrors" type="error" text="#cgi.script_name# #arguments.eventName#: #local.loggedText#">
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+
 		<!--- Note: application.blog is not defined during the installation process --->
 		<cfif isDefined("application.blog")>
 			<cfset errorUrl = application.blog.getPageUrl()>
@@ -1429,7 +1452,32 @@
 
 			</cfif><!---<cfif errorUrl contains '.cfm' or errorUrl contains '.cfc'>--->
 
-		</cfif><!---<cfif arguments.disable>--->
+		<cfelse>
+			<!--- The application did not start (for example an error in the constructor or in the ORM setup), so there is no blog object to log the error with. Without this branch the page is blank and there is no trace of the error. It is written to the ColdFusion log galaxieBlogStartup, and the details are only shown when the URL has startupDebug=1. --->
+			<!--- Errors in an event handler are wrapped in an 'Event handler exception', the real error is in the root cause. --->
+			<cfset local.startupError = arguments.exception>
+			<!--- The root cause is a struct on Lucee and a Java exception object on Adobe ColdFusion. --->
+			<cftry>
+				<cfif isDefined("arguments.exception.rootCause") and (isStruct(arguments.exception.rootCause) or isObject(arguments.exception.rootCause))>
+					<cfset local.startupError = arguments.exception.rootCause>
+				</cfif>
+				<cfif isObject(local.startupError)>
+					<cfset local.startupMessage = local.startupError.toString()>
+				<cfelse>
+					<cfset local.startupMessage = (local.startupError.type ?: '') & ': ' & (local.startupError.message ?: '') & ' ' & (local.startupError.detail ?: '')>
+				</cfif>
+				<cfcatch type="any">
+					<cfset local.startupMessage = (arguments.exception.message ?: '')>
+				</cfcatch>
+			</cftry>
+			<cfif isDefined("arguments.exception.tagContext") and isArray(arguments.exception.tagContext) and arrayLen(arguments.exception.tagContext)>
+				<cfset local.startupMessage = local.startupMessage & ' (' & arguments.exception.tagContext[1].template & ' line ' & arguments.exception.tagContext[1].line & ')'>
+			</cfif>
+			<cflog file="galaxieBlogStartup" type="error" text="#local.startupMessage#">
+			<cftry><cfheader statuscode="503"><cfcatch type="any"></cfcatch></cftry>
+			<cfoutput><h2>This site is not available right now.</h2><p>Please try again in a few minutes.</p></cfoutput>
+			<cfif isDefined("url.startupDebug")><cfoutput><pre>#encodeForHTML(local.startupMessage)#</pre></cfoutput></cfif>
+		</cfif><!---<cfif isDefined("application.blog")>--->
 					
 		<!--- Don't return anything --->
 
