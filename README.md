@@ -41,6 +41,10 @@ Galaxie Blog is a wickedly fast, full-featured, free, open-source blog that supp
 *   **Supports all Modern Databases**  
     Galaxie Blog uses Hibernate ORM underneath the hood and can support all modern databases!
 
+## Updating
+
+To update an existing blog (any version, including 4.32), see [UPGRADING.md](UPGRADING.md).
+
 ## Documentation
 
 The Galaxie Blog documentation can be found on Gregory's Blog at https://www.gregoryalexander.com/blog/Galaxie-Blog. Gregory's Blog runs on the same codebase as the one found here. Many how-to articles on Gregory's Blog discuss how we have implemented some of the logic. 
@@ -115,7 +119,7 @@ Galaxie Blog uses web fonts for typography and needs web font mime types set up 
 Installing the Software
 -----------------------
 
-Galaxie Blog is simple to install and uses a built-in multi-step installer. However, a few manual steps are required after uploading the software to your web server.
+Galaxie Blog is simple to install and uses a built-in multi-step installer. No manual steps are required after uploading the software to your web server.
 
 1.  Migrate to the URL of your uploaded blog, and the blog should automatically open the installer.
     *   For example, if you uploaded the files to the root directory, go to [http://yourdomain.com/](http://yourdomain.com/).
