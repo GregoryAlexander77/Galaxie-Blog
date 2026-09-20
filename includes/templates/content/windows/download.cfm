@@ -111,7 +111,7 @@ Note: the following logic should not be cached as each theme may return a differ
 		</li>
 		<li>Create the Blogs ColdFusion DSN.
 			<ol>
-				<li>If you use a DSN other than GalaxieDb with <strong>Lucee</strong>, you must modify the DSN string in the root Application.cfc. Search for &lt;cfset this.datasource = "GalaxieDb"&gt; and modify the DSN.</li>
+				<li>The installer asks for the name of the DSN and saves it in the blog.ini.cfm file, on ColdFusion and on <strong>Lucee</strong>. The DSN can have any name, but it must exist in the ColdFusion or Lucee administrator before you run the installer. Each blog should have its own DSN and database if more than one blog is installed on a server.</li>
 				<li>As a precaution, set the maximum connections setting to&nbsp; a value that is less than the database max connections if you're using&nbsp; <strong>Lucee </strong>and one of the flavors of MySql</li>
 			</ol>
 		</li>

@@ -1,8 +1,8 @@
 <cfcomponent displayname="GalaxieBlog4_65" sessionmanagement="yes" clientmanagement="yes" output="false">
 	<cfsetting requesttimeout="60">
 
-	<!--- The name needs to be unique in order to have multiple blogs on the same server. --->
-	<cfset this.name = "GalaxieBlog4_65" />
+	<!--- The name needs to be unique in order to have multiple blogs on the same server: blogs with the same name share the application scope. The name is made unique by adding a short hash of the folder that this file is in, so nothing needs to be edited when a second blog is installed. --->
+	<cfset this.name = "GalaxieBlog4_65_" & left(hash(getDirectoryFromPath(getCurrentTemplatePath())), 10) />
 	<!--- Preserve the case for database columns --->
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
@@ -19,7 +19,7 @@
 	<!--- Allows the owner to access the admin portal without the proper user credentials. --->
 	<cfset disableAuth = false>
 	<!--- Error logging is typically set in the admin UI, however, when developing you can turn it off manually --->
-	<cfset disableErrorLogging = true>
+	<cfset disableErrorLogging = false>
 
 	<!--- 7 day application timeout. Be careful when you change this to a shorter timeout otherwise the variables on the admin pages won't stick --->
 	<cfset this.applicationTimeout = createTimeSpan(7,0,0,0) />
@@ -75,16 +75,18 @@
 	<cffunction name="initOrm"> 
 		
 		<!--- Put this in a try block as the database might not be set up when installing. --->
-		<cfif len(getDsn())>
-		
+		<!--- The datasource and the database type are read straight from the ini file in this folder. This code runs in the constructor, and Lucee also creates this component without an application (to read the settings), and the application scope that is visible then may belong to another blog on the same server. --->
+		<cfset ormDsn = getIniValue("dsn")>
+		<!--- getDsn() also sets the dsn variable that the other functions in this component use, so it must still be called. --->
+		<cfset getDsn()>
+		<cfif not len(ormDsn)>
+			<cfset ormDsn = getDsn()>
+		</cfif>
+		<cfif len(ormDsn)>
+
 			<cfset this.ormEnabled = "true">
-			<cfif getServerProduct() eq 'Lucee'>
-				<!--- For Lucee, this must be set manually (for the time being) --->
-				<cfset this.datasource = "GalaxieDb"><!--- GalaxieDb --->
-			<cfelse>
-				<!--- Get the datasource from the ini file. This is required as the database may not be set up yet prior to installing the blog and we need somewhere to store the db credentials. --->
-				<cfset this.datasource = getDsn()>
-			</cfif>
+			<!--- Get the datasource from the ini file, on Adobe ColdFusion and on Lucee. This is required as the database may not be set up yet prior to installing the blog and we need somewhere to store the name of the datasource. The datasource with this name must exist in the Lucee or ColdFusion administrator. This used to be hard coded to GalaxieDb on Lucee, which meant that every Lucee blog had to use a datasource with that name, and two blogs on one server could not have their own databases. The path to the ini file is built from the folder that this file is in (see getBlogIniPath), so it does not depend on the URL. --->
+			<cfset this.datasource = ormDsn>
 			<!--- At this time, the dialect is always 'auto'. --->
 			<cfset this.dialect = 'auto'>
 			<!--- Allow ColdFusion to update and create the tables when they do not already exist. Use none *only* if you are migrating between ColdFusion and Lucee --->
@@ -761,7 +763,8 @@
 	<cffunction name="applyDatabaseOrmTypes" access="private" returnType="void" output="false"
 			hint="Sets the long text columns in the ORM entities to the type that the blog's database uses. The database is the databaseType that the installer saved in the ini file. This runs once for each database type that the application sees, so it costs nothing on normal requests, and it will not write to the file system when the entities are already correct. This also means that copying a new version of the entities over the old ones is not a problem, the columns will be corrected the next time the application starts.">
 
-		<cfset var databaseType = getDatabaseType()>
+		<!--- Read the type from the ini file in this folder and not from the application scope, see getIniValue(). --->
+		<cfset var databaseType = getIniValue("databaseType")>
 		<cfset var databaseOrmTypes = "">
 		<cfset var baseComponentPath = "">
 
@@ -770,7 +773,7 @@
 			<cfreturn>
 		</cfif>
 
-		<cfif not (structKeyExists(application, "ormTypesAppliedFor") and application.ormTypesAppliedFor eq databaseType)>
+		<cfif not (structKeyExists(application, "ormTypesAppliedFor") and application.ormTypesAppliedFor eq databaseType & "|" & this.rootDirectoryPath)>
 			<!--- Build the component path from the blog's location, like the other components (application.blogComponentPath and so on). A bare 'common.cfc' path is looked up from the web root, and a site that has its own common folder (ie gregoryalexander.com/common) will not find it. --->
 			<cfset baseComponentPath = getBaseComponentPath(true)>
 			<cfif len(baseComponentPath)>
@@ -779,7 +782,7 @@
 				<cfset databaseOrmTypes = createObject("component", "common.cfc.DatabaseOrmTypes")>
 			</cfif>
 			<cfset databaseOrmTypes.apply(databaseType, this.rootDirectoryPath & "common/cfc/db/galaxieDb/")>
-			<cfset application.ormTypesAppliedFor = databaseType>
+			<cfset application.ormTypesAppliedFor = databaseType & "|" & this.rootDirectoryPath><!--- The folder is part of the flag, as the application scope that is visible here can belong to another blog (see getIniValue). --->
 		</cfif>
 
 	</cffunction>
@@ -908,6 +911,19 @@
 		
 	</cffunction>
 				
+	<cffunction name="getIniValue" access="private" returnType="string" output="false"
+			hint="Reads a value from the blog.ini.cfm file in the same folder as this Application.cfc. Unlike getDsn() and getDatabaseType(), this never looks at the application scope. Use it for the settings that are needed when the ORM is set up in the constructor.">
+		<cfargument name="key" type="string" required="true">
+
+		<cftry>
+			<cfreturn trim(getProfileString(this.rootDirectoryPath & "org/camden/blog/blog.ini.cfm", "default", arguments.key))>
+			<cfcatch type="any">
+				<!--- The ini file may not be readable yet when first installing the blog. --->
+				<cfreturn "">
+			</cfcatch>
+		</cftry>
+	</cffunction>
+
 	<cffunction name="getBlogIniPath" access="remote" returnType="string"
 			hint="Get the path to the ini file which stores our constant variables">
 		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset the path.">
