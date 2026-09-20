@@ -543,6 +543,8 @@
 			<cfset entityReload(application.BlogDbObj)>
 			<cfset application.dbBlogVersion = application.blog.getVersion()>
 		</cfif>
+		<!--- If the database is too old for the site to run (see the function), visitors get a 'being updated' page until the database is updated. --->
+		<cfset databaseUpdateGate()>
 			
 		<!--- //****************************************************************************************
 				User defined settings.
@@ -760,6 +762,80 @@
 
 	</cffunction>
 
+	<cffunction name="databaseUpdateGate" access="private" returnType="void" output="true"
+			hint="After new files are uploaded over an old version of the blog, some of the data that the site needs does not exist until the database update has been run (the new columns are empty). Below a certain database version the pages would raise errors, including the administrative site that holds the update button. In that case, visitors get a 'this site is being updated' page (status 503) and the administrator is sent to admin/update.cfm, which does not depend on the rest of the administrative site. A database at or above the minimum version keeps working until the administrator runs the update, as before.">
+
+		<!--- Raise this when a release needs an update script to run before the site can work. 4.5 is the release that added the IsPage and IsBlogPost columns to the Post table, which the 4.5 update script fills in. --->
+		<cfset var minimumDatabaseVersion = "4.5">
+		<cfset var requestedTemplate = lCase(replace(getBaseTemplatePath(), "\", "/", "all"))>
+
+		<!--- The versions are not known on the first request after the application started, or when the blog is not installed yet. --->
+		<cfif not isDefined("application.dbBlogVersion") or not isDefined("application.blog")>
+			<cfreturn>
+		</cfif>
+		<cfif val(application.dbBlogVersion) gte val(minimumDatabaseVersion) or val(application.dbBlogVersion) gte val(application.blog.getVersion())>
+			<cfreturn>
+		</cfif>
+
+		<!--- Always allow the remote component calls (login and the database update itself) and the installer. --->
+		<cfif right(requestedTemplate, 4) eq ".cfc" or find("/installer/", requestedTemplate)>
+			<cfreturn>
+		</cfif>
+
+		<cfif isAdminRequest()>
+			<cfif isDefined("application.Udf") and application.Udf.isLoggedIn()>
+				<!--- An administrator (the logon has already been handled) may use the update page, and is sent there from everywhere else. --->
+				<cfif right(requestedTemplate, 17) neq "/admin/update.cfm">
+					<cflocation url="#getBaseUrl()#/admin/update.cfm" addToken="false">
+				</cfif>
+			<cfelse>
+				<!--- Show a simple login form that does not depend on the database or the rest of the site. It posts to the update page, and the logon is handled by adminRequestStart before the update page is run. --->
+				<cfheader name="Cache-Control" value="no-store">
+				<cfcontent type="text/html; charset=utf-8" reset="true"><cfoutput><!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex">
+	<title>Sign in to update the blog</title>
+	<style>body { font-family: Arial, Helvetica, sans-serif; max-width: 360px; margin: 12% auto 0 auto; padding: 0 20px; color: ##333; } input { display: block; width: 100%; box-sizing: border-box; margin: 6px 0 14px 0; padding: 8px; font-size: 16px; } button { font-size: 16px; padding: 8px 18px; cursor: pointer; }</style>
+</head>
+<body>
+	<h2>Sign in to update the blog</h2>
+	<p>The blog files are newer than the database, so the database has to be updated before the site can run again.</p>
+	<form method="post" action="#getBaseUrl()#/admin/update.cfm">
+		<label for="userName">User name</label>
+		<input type="text" name="userName" id="userName" autocomplete="username" autofocus>
+		<label for="password">Password</label>
+		<input type="password" name="password" id="password" autocomplete="current-password">
+		<button type="submit">Sign in</button>
+	</form>
+</body>
+</html></cfoutput><cfabort>
+			</cfif>
+		<cfelse>
+			<cfheader statuscode="503">
+			<cfheader name="Retry-After" value="300">
+			<cfheader name="Cache-Control" value="no-store">
+			<cfcontent type="text/html; charset=utf-8" reset="true"><cfoutput><!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex">
+	<title>This site is being updated</title>
+	<style>body { font-family: Arial, Helvetica, sans-serif; text-align: center; margin: 15% 20px 0 20px; color: ##333; } a { color: ##555; }</style>
+</head>
+<body>
+	<h1>This site is being updated</h1>
+	<p>Please check back in a few minutes.</p>
+	<p><small><a href="#getBaseUrl()#/admin/update.cfm" rel="nofollow">Administrator sign in</a></small></p>
+</body>
+</html></cfoutput><cfabort>
+		</cfif>
+
+	</cffunction>
+
 	<cffunction name="applyDatabaseOrmTypes" access="private" returnType="void" output="false"
 			hint="Sets the long text columns in the ORM entities to the type that the blog's database uses. The database is the databaseType that the installer saved in the ini file. This runs once for each database type that the application sees, so it costs nothing on normal requests, and it will not write to the file system when the entities are already correct. This also means that copying a new version of the entities over the old ones is not a problem, the columns will be corrected the next time the application starts.">
 
@@ -850,6 +926,8 @@
 			<cflogout>
 		</cfif>
 
+		<!--- If the database is too old for the site to run (see the function), send the administrator to the update page. This has to be done before the login page is shown, as the login page does not run either. --->
+		<cfset databaseUpdateGate()>
 		<cfif findNoCase("/admin", cgi.script_name) and not application.Udf.isLoggedIn()>
 			<cfsetting enablecfoutputonly="false">
 			<!--- Here we are using a module instead of a cfinclude as the include would essentially place the login.cfm template, which has identical logic to the other admin templates, which causes errors as there are duplicate functions. --->

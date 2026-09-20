@@ -9562,6 +9562,13 @@
 
 		<cfif application.Udf.isLoggedIn()>
 			<cfset response = getDatabaseUpdater().run()>
+			<!--- The cached html was made by the old files and data, so clear it after a successful update (the same as the Refresh Site button). --->
+			<cfif response.success>
+				<cftry>
+					<cfset application.blog.flushGalaxieCache(type='all')>
+					<cfcatch type="any"></cfcatch>
+				</cftry>
+			</cfif>
 		<cfelse>
 			<cfset response = { "success": false, "message": "You must be logged in to update the database.", "log": [] }>
 		</cfif>
