@@ -43,5 +43,9 @@
 	"common/libs/kendoCore/js/kendo.mobile.splitview.min.js",
 	"common/libs/kendoCore/js/kendo.mobile.switch.min.js",
 	"common/libs/kendoCore/js/kendo.mobile.tabstrip.min.js",
-	"common/libs/kendoCore/js/kendo.mobile.view.min.js"
+	"common/libs/kendoCore/js/kendo.mobile.view.min.js",
+	"common/cfc/db/galaxieDb/Login.cfc",
+	"admin/page.cfm",
+	"includes/grids/jsGrid/galleries.cfm",
+	"updates/3_85"
 ])>
