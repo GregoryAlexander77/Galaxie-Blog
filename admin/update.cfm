@@ -51,6 +51,7 @@
 </head>
 <body>
 <cfoutput>
+	<img src="#encodeForHTMLAttribute(blogBaseUrl)#/installer/images/docking.jpg" alt="" width="375" height="300" style="display:block;max-width:100%;height:auto;margin:0 0 20px 0;border-radius:6px;">
 	<h1>Update the database</h1>
 
 	<cfif not blogIsRunning>
