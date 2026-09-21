@@ -1932,6 +1932,10 @@
 		<cfset var IpAddressDbObj = "">
 		<cfset var UserDbObj = "">
 		<cfset var anonymousUser = "">
+		<!--- The columns are 500 long (the ip address is checked in getIpAddress). A longer value, from a scanner for example, made saving the visitor fail. --->
+		<cfset arguments.httpUserAgent = left(arguments.httpUserAgent, 500)>
+		<cfset arguments.httpReferrer = left(arguments.httpReferrer, 500)>
+
 		<cfset var hitCount = "">
 		<cfset var httpReferrerId = "">
 		<cfset var httpUserAgentId = "">
@@ -1963,6 +1967,10 @@
 			<cfinvoke component="#application.blog#" method="saveIpAddress" returnVariable="ipAddressId">
 				<cfinvokeargument name="ipAddress" value="#arguments.ipAddress#">
 			</cfinvoke>
+			<!--- saveIpAddress returns the text IP Error when it could not save the address. There is no visitor to save then, and loading it as an id raised an error on every page. --->
+			<cfif not isNumeric(ipAddressId)>
+				<cfreturn "">
+			</cfif>
 			<!--- Load the Ip Address entity --->
 			<cfset IpAddressDbObj = entityLoadByPK("IpAddress", ipAddressId)>
 				
@@ -1978,7 +1986,10 @@
 				<cfinvokeargument name="httpReferrer" value="#arguments.httpReferrer#">
 			</cfinvoke>
 			<!--- Load the http referrer entity --->
-			<cfset HttpReferrerDbObj = entityLoadByPK("HttpReferrer", httpReferrerId)>
+			<!--- A visitor without a referrer (a direct visit) has no referrer id --->
+			<cfif isNumeric(httpReferrerId) and httpReferrerId gt 0>
+				<cfset HttpReferrerDbObj = entityLoadByPK("HttpReferrer", httpReferrerId)>
+			</cfif>
 				
 			<!--- Load the blog entity. --->
 			<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
@@ -14409,6 +14420,12 @@
 			<cfset ipAddress = CGI.Remote_Addr>
 		</cfif> 
 			
+		<!--- The headers are sent by the client, so they can hold anything: a list of addresses (x-forwarded-for has one address for each proxy, the visitor is the first), or text that a scanner made up. The ip address column is short, and a value that does not fit made saving the visitor fail. Use the first address, and only when it looks like an ip address, otherwise use the address of the connection. --->
+		<cfset ipAddress = trim(listFirst(ipAddress, ","))>
+		<cfif not reFind("^[0-9a-fA-F:.]{2,45}$", ipAddress) or not (find(".", ipAddress) or find(":", ipAddress))>
+			<cfset ipAddress = trim(CGI.Remote_Addr)>
+		</cfif>
+
 		<cfreturn ipAddress>
 			
 	</cffunction>
