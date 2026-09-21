@@ -548,11 +548,15 @@
 				</cflock>
 				<!--- There may be an error if the directory does not exist --->
 				<cfcatch type="any">
-					<!--- See of the directory exists --->
-					<cfset directoryPath = getDirectoryFromPath(attributes.file)>
-					<!--- Create the directory if it does not exist --->
+					<!--- See if the directory exists. The attributes.file is a path from the web root, so it has to be expanded. --->
+					<cfset directoryPath = getDirectoryFromPath(expandPath(attributes.file))>
+					<!--- Create the directory if it does not exist (ie a blog that was updated from an older version that did not have this cache folder) and write the file again. If that also fails, the page is still shown, it is just not cached. --->
 					<cfif not directoryExists(directoryPath)>
-						<p>The <cfoutput>#directoryPath#</cfoutput> does not exist. Please create it.</p>
+						<cftry>
+							<cfset directoryCreate(directoryPath, true, true)>
+							<cffile action="write" file="#expandPath(attributes.file)#" output="#thistag.generatedcontent#" charset="UTF-8">
+							<cfcatch type="any"></cfcatch>
+						</cftry>
 					</cfif>
 				</cfcatch>
 			</cftry>
@@ -597,7 +601,8 @@
 					<!--- Serialize to JSON --->
 					<cfset packet = serializeJSON(data)>
 				</cfif>
-				<!--- Write the file --->
+				<!--- Write the file. Create the folder first if it is missing. --->
+				<cfset directoryCreate(getDirectoryFromPath(expandPath(attributes.file)), true, true)>
 				<cflock name="#attributes.file#" type="exclusive" timeout="30">
 					<cffile action="write" file="#expandPath(attributes.file)#" output="#packet#" charset="UTF-8">
 				</cflock>
