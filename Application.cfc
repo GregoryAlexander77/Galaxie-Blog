@@ -127,8 +127,10 @@
 			<cfreturn true>
 		</cfif>
 
-		<!--- We will send copies of any error, minus form values, to the developer for debugging purposes. Note: although this helps me to catch errors, if you don't want to send the errors to the developer (i.e. me), make this an empty string (='') --->
-		<cfset application.developerEmailAddress = "gregoryalexander77@gmail.com">
+		<!--- Errors are emailed to the blog owner (the email address in the blog settings). The developer of a blog can also get a copy, for example the person who runs several blogs. This is off unless the developer's address is in blog.ini.cfm (developerEmail=name@example.com), so a downloaded blog never sends errors to anybody else. The file is only read when the application starts or is reinitialized. --->
+		<cfif not structKeyExists(application, "developerEmailAddress") or isDefined("URL.init") or isDefined("URL.reinit")>
+			<cfset application.developerEmailAddress = getIniValue("developerEmail")>
+		</cfif>
 
 		<!--- //****************************************************************************************
 				Error/lock storm throttling - tunable settings and in-memory trackers.

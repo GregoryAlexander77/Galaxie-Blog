@@ -1,5 +1,9 @@
 <html>
 <cfsilent>
+<!--- This window is opened by the blog with URL arguments. Stop quietly when the id is missing or is not a number (a bot, for example) instead of raising an error. --->
+<cfparam name="URL.interfaceId" default="">
+<cfparam name="URL.optArgs" default="">
+<cfif not isNumeric(URL.interfaceId)><cfabort></cfif>
 <!--- Debug flag. This will print the interfaceId along with the args send via the URL --->
 <cfset debug = 0>
 	

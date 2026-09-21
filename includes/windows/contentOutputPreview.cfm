@@ -1,4 +1,9 @@
 <cfsilent>
+<!--- This window is opened by the blog with URL arguments. When it is requested without them (a bot, for example), use empty values instead of raising an error. --->
+<cfparam name="URL.otherArgs" default="">
+<cfparam name="URL.otherArgs1" default="">
+<cfparam name="URL.optArgs" default="">
+<cfparam name="URL.interfaceId" default="">
 <!--- Debug flag. This will print the interfaceId along with the args send via the URL --->
 <cfset debug = 0>
 

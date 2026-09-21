@@ -18,6 +18,9 @@
 <cfparam name="subscribe" default="false">
 
 <!---Set params--->
+<!--- Stop quietly when the window is requested without its arguments or with an id that is not a number (a bot, for example) --->
+<cfparam name="URL.uiElement" default="">
+<cfif isDefined("URL.Id") and URL.Id neq '' and not isNumeric(URL.Id)><cfabort></cfif>
 <cfif isDefined("cookie.blog_name")>
 	<cfset commenterName = cookie.blog_name>
 	<cfset rememberMe = true>

@@ -89,6 +89,10 @@
 	<cfset enclosureMapIdList = getPost[1]["EnclosureMapIdList"]>
 	<!--- Get the map Id of the current row in the list. --->
 	<cfset enclosureMapId = getPost[i]["EnclosureMapId"]>
+	<!--- A post without an enclosure has NULL media columns. Assigning a NULL leaves the variable undefined, which raised errors such as Variable THUMBNAIL is undefined --->
+	<cfloop list="enclosure,thumbnail,mediaId,mediaUrl,providerVideoId,mediaVideoCoverUrl,mediaVideoVttFileUrl,enclosureMapId" index="nullableVariable">
+		<cfif not isDefined(nullableVariable)><cfset "#nullableVariable#" = ""></cfif>
+	</cfloop>
 	<!--- The carouselId may not exist --->
 	<cfif structKeyExists(getPost[1], "EnclosureCarouselId")>
 		<cfset enclosureCarouselId = getPost[i]["EnclosureCarouselId"]>

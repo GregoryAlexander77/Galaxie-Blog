@@ -227,6 +227,8 @@
 	</cffunction>
 	
 	<cffunction name="getScriptTypeString" access="public" output="false">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var scriptTypeString = "">
 		<!--- Set the type string --->
 		<cfif application.deferScriptsAndCss>
 			<!--- Defers the loading of the script and css using the deferjs library. --->
@@ -247,6 +249,8 @@
 			hint="Determines if a content template is active">
 		<cfargument name="contentTemplateId" type="string" required="false" default="">
 		<cfargument name="contentTemplate" type="string" required="false" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 			
 		<!---
 			Content template names are stored in the db. Some of these are:
@@ -491,6 +495,9 @@
 		<cfargument name="contentTemplate" required="yes" default="">
 		<cfargument name="isMobile" required="yes" default="">
 		<cfargument name="themeId" required="no" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var contentOutputData = "">
+		<cfset var getOutputContent = "">
 			
 		<!--- Note: the following function should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. --->
 		<!--- Reset the contentOutputData var --->
@@ -533,6 +540,8 @@
 		<cfargument name="device" type="string" required="false" default="">
 		<cfargument name="themeId" type="string" required="false" default="">
 		<cfargument name="active" type="string" required="false" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 			
 		<!--- Initialize our data object.--->
 		<cfset Data = [] />
@@ -714,6 +723,8 @@
 	//******************************************************************************************--->
 			
 	<cffunction name="getUsersId" access="public" returnType="numeric" output="false" hint="Gets the userId of the user when logged in. If the user is not logged in, will return a zero">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var usersId = "">
 		<!--- Determine if the user is logged in --->
 		<cfif structKeyExists(session,"userId")>
 			<cfset usersId = session.userId>
@@ -964,6 +975,9 @@
 		<cfargument name="postId" type="string" required="false" default="">
 		<cfargument name="PostTitle" type="string" required="false" default="">
 		<cfargument name="onlyShowCurrentVisitors" type="boolean" required="false" default="false">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
+		<cfset var fiveMinutesAgo = "">
 			
 		<cfif arguments.onlyShowCurrentVisitors>
 			<cfset fiveMinutesAgo = dateAdd("n", -5, now())>
@@ -1053,6 +1067,15 @@
 		<cfargument name="httReferrer" type="string" required="false" default="">
 		<cfargument name="visitingHomePage" type="string" required="false" default="false">
 		<cfargument name="postId" type="string" required="false" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var AnonymousUserDbObj = "">
+		<cfset var BlogDbObj = "">
+		<cfset var HttpReferrerDbObj = "">
+		<cfset var PostDbObj = "">
+		<cfset var UserDbObj = "">
+		<cfset var VisitorLogDbObj = "">
+		<cfset var httpReferrerId = "">
+		<cfset var visitorLogId = "">
 			
 		<cfparam name="visitorLogId" default="0">
 				
@@ -1236,69 +1259,173 @@
 		<cfargument name="errorTemplate" type="string" required="false" default="">
 		<cfargument name="errorStacktrace" type="string" required="false" default="">
 		<cfargument name="autoTimeoutApplied" type="boolean" required="false" default="false" hint="Passed in by Application.cfc's onError when this specific error is the one that just tripped recordDatabaseLockError()'s threshold for this visitor's IP - i.e. this error's IP has just been placed into a temporary timeout. Noted in the email body below so a human doesn't have to go digging to find out the bot was already dealt with automatically.">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var AnonymousUserDbObj = "">
+		<cfset var ErrorLogDbObj = "">
+		<cfset var emailBody = "">
+		<cfset var errorDate = "">
+		<cfset var errorMessageRecipients = "">
+		<cfset var errorSignature = "">
+		<cfset var isNewError = "">
+		<cfset var knownError = "">
+		<cfset var matchingError = "">
+		<cfset var matchingErrors = "">
+		<cfset var matchingMessage = "">
+		<cfset var normalizedMessage = "">
+		<cfset var saveCountNow = "">
+		<cfset var savedErrorLogId = "">
+		<cfset var suppressedEmailCount = "">
+		<cfset var updateErrorCount = "">
 
 		<!--- Set the date --->
 		<cfset errorDate = "#dateFormat(blogNow(), 'short')# #timeFormat(now(), 'short')#">
-			
-		<!--- Save the annonymous user. This will return an anonymous user object --->
-		<cfinvoke component="#application.blog#" method="saveAnonymousUser" returnVariable="AnonymousUserDbObj">
-			<cfinvokeargument name="ipAddress" value="#application.blog.getIpAddress()#">
-			<cfinvokeargument name="httpUserAgent" value="#CGI.Http_User_Agent#">
-		</cfinvoke>
-					
-		<!---******************************************************************************************************** 
-			Save the error to the db
-		*********************************************************************************************************--->
-			
-		<!---- See if this already exists in order to get the number of errors --->
-		<cfset getErrorLog = application.blog.getErrorLog(errorUrl=errorUrl,errorMessage=errorMessage,resolved=false)>
-			
-		<!--- Get previous records within the last minute. We don't want to spam folks with emails if the server is down or hackers overwhelm the server --->
-		<cfset oneMinuteAgo = dateAdd("n", -1, blogNow())>
-		<!---<cfset previousRecordsWithinPreviousMinute = application.blog.getErrorLog(errorDateLte=arguments.errorDateLte=blogNow(), errorDateGte=oneMinuteAgo)>--->
-			
-		<!--- Increment the numErrors value --->
-		<cfif arrayLen(getErrorLog)>
-			<cfset numErrors = getErrorLog[1]["NumErrors"]+1>
-			<cfset errorLogId = getErrorLog[1]["ErrorLogId"]>
-		<cfelse>
-			<cfset numErrors = 1>
-			<cfset errorLogId = arguments.errorLogId>
-		</cfif>
-		
-		<cftransaction>
 
-			<!--- Load the error object --->
-			<cfif len(errorLogId)>
-				<cfset ErrorLogDbObj = entityLoadByPK("ErrorLog", arguments.errorLogId)>
-			<cfelse>
-				<cfset ErrorLogDbObj = entityNew("ErrorLog")>
+		<!--- The columns of the ErrorLog table have a limited length. A longer value (a long address from a bot, for example) makes the insert fail, and the error handler must never fail. --->
+		<cfset arguments.errorUrl = left(arguments.errorUrl, 250)>
+		<cfset arguments.errorEvent = left(arguments.errorEvent, 125)>
+		<cfset arguments.errorType = left(arguments.errorType, 125)>
+		<cfset arguments.errorMessage = left(arguments.errorMessage, 500)>
+		<cfset arguments.errorDetail = left(arguments.errorDetail, 1500)>
+		<cfset arguments.errorTemplate = left(arguments.errorTemplate, 500)>
+		<cfset arguments.errorLine = left(arguments.errorLine, 7)>
+
+		<!---********************************************************************************************************
+			Is this error already known? An error is identified by what went wrong and where (its type, its message and the template and line),
+			NOT by the address that was requested and not by the numbers and ids in the message, which are different every time. A known error only
+			has its counter raised: no new record is written, no visitor record is saved and no email is sent. This keeps the table and the inbox
+			small when a bot, or one broken page, causes the same error thousands of times.
+		*********************************************************************************************************--->
+		<cfset normalizedMessage = reReplace(arguments.errorMessage, "[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", "<id>", "all")>
+		<cfset normalizedMessage = reReplace(normalizedMessage, "[0-9]+", "<n>", "all")>
+		<cfset errorSignature = hash(lCase(arguments.errorType & "|" & normalizedMessage & "|" & arguments.errorTemplate & "|" & arguments.errorLine), "MD5")>
+		<cfset isNewError = true>
+		<cfset knownError = "">
+		<cfset savedErrorLogId = "">
+		<cfset saveCountNow = false>
+
+		<cfif not len(arguments.errorLogId)>
+			<!--- 1. Is it in the memory of the application? --->
+			<cflock name="galaxieBlog.errorSignatures" type="exclusive" timeout="10">
+				<cfif not structKeyExists(application, "errorSignatures") or structCount(application.errorSignatures) gt 1000>
+					<cfset application.errorSignatures = structNew()>
+				</cfif>
+				<cfif structKeyExists(application.errorSignatures, errorSignature)>
+					<cfset knownError = application.errorSignatures[errorSignature]>
+					<cfset knownError.count = knownError.count + 1>
+					<cfset isNewError = false>
+					<!--- The counter is written to the table at most once a minute for each error. --->
+					<cfif dateDiff("n", knownError.lastSaved, now()) gte 1>
+						<cfset knownError.lastSaved = now()>
+						<cfset saveCountNow = true>
+					</cfif>
+				</cfif>
+			</cflock>
+
+			<!--- 2. Not in memory (the application was restarted, for example). Is it in the table? Only errors that have not been marked as resolved count. --->
+			<cfif isNewError>
+				<cftry>
+					<cfquery name="matchingErrors" dbtype="hql" ormoptions="#{maxresults=50}#">
+						SELECT new Map (
+							ErrorLog.ErrorLogId as ErrorLogId,
+							ErrorLog.ErrorMessage as ErrorMessage,
+							ErrorLog.NumErrors as NumErrors
+						)
+						FROM ErrorLog as ErrorLog
+						WHERE ErrorLog.ErrorType = <cfqueryparam value="#arguments.errorType#" cfsqltype="varchar">
+						AND ErrorLog.ErrorTemplate = <cfqueryparam value="#arguments.errorTemplate#" cfsqltype="varchar">
+						AND ErrorLog.ErrorLine = <cfqueryparam value="#arguments.errorLine#" cfsqltype="varchar">
+						AND (ErrorLog.Resolved = <cfqueryparam value="0" cfsqltype="bit"> OR ErrorLog.Resolved IS NULL)
+						ORDER BY ErrorLog.Date DESC
+					</cfquery>
+					<cfloop array="#matchingErrors#" index="matchingError">
+						<cfset matchingMessage = reReplace(matchingError["ErrorMessage"], "[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", "<id>", "all")>
+						<cfset matchingMessage = reReplace(matchingMessage, "[0-9]+", "<n>", "all")>
+						<cfif matchingMessage eq normalizedMessage>
+							<cfset knownError = { errorLogId: matchingError["ErrorLogId"], count: matchingError["NumErrors"] + 1, lastSaved: now() }>
+							<cflock name="galaxieBlog.errorSignatures" type="exclusive" timeout="10">
+								<cfset application.errorSignatures[errorSignature] = knownError>
+							</cflock>
+							<cfset isNewError = false>
+							<cfset saveCountNow = true>
+							<cfbreak>
+						</cfif>
+					</cfloop>
+					<cfcatch type="any"></cfcatch>
+				</cftry>
 			</cfif>
-			<!--- Insert the error into the db --->
-			<cfif isDefined("AnonymousUserDbObj")>
-				<cfset ErrorLogDbObj.setAnonymousUserRef(AnonymousUserDbObj)>
+
+			<!--- Write the counter of a known error. This is one small update, it does not load the record. --->
+			<cfif not isNewError and saveCountNow and isStruct(knownError) and len(knownError.errorLogId)>
+				<cftry>
+					<cfquery name="updateErrorCount" dbtype="hql">
+						UPDATE ErrorLog
+						SET NumErrors = <cfqueryparam value="#knownError.count#" cfsqltype="integer">,
+						Date = <cfqueryparam value="#blogNow()#" cfsqltype="cf_sql_timestamp">
+						WHERE ErrorLogId = <cfqueryparam value="#knownError.errorLogId#" cfsqltype="integer">
+					</cfquery>
+					<cfcatch type="any"></cfcatch>
+				</cftry>
 			</cfif>
-			<cfset ErrorLogDbObj.setErrorURL(arguments.errorUrl)>
-			<cfset ErrorLogDbObj.setErrorEvent(arguments.errorEvent)>
-			<cfset ErrorLogDbObj.setErrorType(arguments.errorType)>
-			<cfset ErrorLogDbObj.setErrorMessage(arguments.errorMessage)>
-			<cfset ErrorLogDbObj.setErrorDetail(arguments.errorDetail)>
-			<cfset ErrorLogDbObj.setErrorLine(arguments.errorLine)>
-			<cfset ErrorLogDbObj.setErrorTemplate(arguments.errorTemplate)>
-			<cfset ErrorLogDbObj.setDiagnosticsSent(application.sendDiagnostics)>	
-			<cfset ErrorLogDbObj.setStacktrace(arguments.errorStacktrace)>
-			<cfset ErrorLogDbObj.setDate(errorDate)>
-			<cfset ErrorLogDbObj.setNumErrors(numErrors)>	
-			<!--- And save the entity --->
-			<cfset EntitySave(ErrorLogDbObj)>
-		</cftransaction>
-				
+		</cfif>
+
+		<!--- A known error is done here. The email is only for new errors. --->
+		<cfif not isNewError>
+			<cfreturn 1>
+		</cfif>
+
+		<!---********************************************************************************************************
+			Save the new error to the db. This must never raise an error of its own.
+		*********************************************************************************************************--->
+		<cftry>
+			<!--- Save the annonymous user. This will return an anonymous user object --->
+			<cfinvoke component="#application.blog#" method="saveAnonymousUser" returnVariable="AnonymousUserDbObj">
+				<cfinvokeargument name="ipAddress" value="#application.blog.getIpAddress()#">
+				<cfinvokeargument name="httpUserAgent" value="#CGI.Http_User_Agent#">
+			</cfinvoke>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+
+		<cftry>
+			<cftransaction>
+				<!--- Load the error object when a record was passed in, otherwise this is a new record --->
+				<cfif len(arguments.errorLogId)>
+					<cfset ErrorLogDbObj = entityLoadByPK("ErrorLog", arguments.errorLogId)>
+				<cfelse>
+					<cfset ErrorLogDbObj = entityNew("ErrorLog")>
+				</cfif>
+				<cfif isObject(AnonymousUserDbObj)>
+					<cfset ErrorLogDbObj.setAnonymousUserRef(AnonymousUserDbObj)>
+				</cfif>
+				<cfset ErrorLogDbObj.setErrorURL(arguments.errorUrl)>
+				<cfset ErrorLogDbObj.setErrorEvent(arguments.errorEvent)>
+				<cfset ErrorLogDbObj.setErrorType(arguments.errorType)>
+				<cfset ErrorLogDbObj.setErrorMessage(arguments.errorMessage)>
+				<cfset ErrorLogDbObj.setErrorDetail(arguments.errorDetail)>
+				<cfset ErrorLogDbObj.setErrorLine(arguments.errorLine)>
+				<cfset ErrorLogDbObj.setErrorTemplate(arguments.errorTemplate)>
+				<cfset ErrorLogDbObj.setDiagnosticsSent(application.sendDiagnostics)>
+				<cfset ErrorLogDbObj.setStacktrace(arguments.errorStacktrace)>
+				<cfset ErrorLogDbObj.setDate(errorDate)>
+				<cfset ErrorLogDbObj.setNumErrors(1)>
+				<cfset EntitySave(ErrorLogDbObj)>
+			</cftransaction>
+			<cfset savedErrorLogId = ErrorLogDbObj.getErrorLogId()>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+
+		<!--- Remember this error, also when it could not be saved, so that a database problem does not turn into a storm of retries and emails. --->
+		<cfif not len(arguments.errorLogId)>
+			<cflock name="galaxieBlog.errorSignatures" type="exclusive" timeout="10">
+				<cfset application.errorSignatures[errorSignature] = { errorLogId: savedErrorLogId, count: 1, lastSaved: now() }>
+			</cflock>
+		</cfif>
+
 		<!---******************************************************************************************************** 
 			Send email to the blog owner and developer. 
 			I will only send email if this is a new error. I don't want to spam everyone
 			Do not send any form values via email as they may contain sensitive login information
 		*********************************************************************************************************--->
-		<cfif !arrayLen(getErrorLog) and application.sendDiagnostics and application.blog.shouldSendErrorEmail()>
+		<cfif isNewError and application.sendDiagnostics and application.blog.shouldSendErrorEmail()>
 		<!---<cfif !arrayLen(getErrorLog) and !arrayLen(previousRecordsWithinPreviousMinute) and application.sendDiagnostics>--->
 
 			<!--- How many emails the rate limiter above has silently dropped since the last one we actually sent. Fetching (and resetting) this here, right before building the email, means it gets reported exactly once per email rather than lost or repeated. --->
@@ -1332,14 +1459,19 @@
 				</cfoutput>
 			</cfsavecontent>
 
-			<cfif len(application.developerEmailAddress) and (application.BlogDbObj.getBlogEmail() neq application.developerEmailAddress)>
-				<!--- Send errors via email to both blog owner and developer. When sending email to developer, I am always sending a copy to the blog owner. --->
-				<cfset errorMessageRecipients = application.BlogDbObj.getBlogEmail() & ',' & application.developerEmailAddress>
-			<cfelse>
-				<!--- This is the blog developers blog --->
-				<cfset errorMessageRecipients = application.developerEmailAddress>
+			<!--- The recipients: the blog owner, and the developer address when one is set in blog.ini.cfm (developerEmail). Empty addresses are left out. --->
+			<cfset errorMessageRecipients = "">
+			<cfif len(trim(application.BlogDbObj.getBlogEmail()))>
+				<cfset errorMessageRecipients = listAppend(errorMessageRecipients, trim(application.BlogDbObj.getBlogEmail()))>
+			</cfif>
+			<cfif len(trim(application.developerEmailAddress)) and not listFindNoCase(errorMessageRecipients, trim(application.developerEmailAddress))>
+				<cfset errorMessageRecipients = listAppend(errorMessageRecipients, trim(application.developerEmailAddress))>
 			</cfif>
 
+			<!--- An error in the error email must never become a new error --->
+			<cftry>
+			<!--- mail() stops the request when the blog email address has not been set up yet --->
+			<cfif len(errorMessageRecipients) and len(trim(application.BlogDbObj.getBlogEmail()))>
 			<!--- Render the email body --->
 			<cfinvoke component="#RendererObj#" method="renderEmail" returnvariable="emailBody">
 				<cfinvokeargument name="email" value="#errorMessageRecipients#">
@@ -1348,11 +1480,14 @@
 				<cfinvokeargument name="emailBody" value="#errorString#">
 			</cfinvoke>
 
-			<!--- Send it ---> 
+			<!--- Send it --->
 			<cfset UtilsObj.mail(
-				to=#errorMessageRecipients#,
+				to=errorMessageRecipients,
 				subject="New Galaxie Blog Error",
 				body=emailBody)>
+			</cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
 
 		</cfif>
 				
@@ -1416,7 +1551,33 @@
 			
 	</cffunction>
 					
-	<cffunction name="cleanUpLogs" access="public" returnType="numeric" output="false" hint="This will delete records in the various logs that fall outside of the log retention period">				
+	<cffunction name="cleanUpLogs" access="public" returnType="numeric" output="false" hint="This will delete records in the various logs that fall outside of the log retention period">		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var adminLogAnonymousUserIds = "">
+		<cfset var adminLogIpAddressIds = "">
+		<cfset var adminLogRetentationDate = "">
+		<cfset var adminLogRetentionDate = "">
+		<cfset var adminLogRetentionMonth = "">
+		<cfset var adminLogRetentionYear = "">
+		<cfset var adminLogUserAgentIds = "">
+		<cfset var debug = "">
+		<cfset var deleteAdminLog = "">
+		<cfset var deleteAnonymousUser = "">
+		<cfset var deleteErrorLog = "">
+		<cfset var deleteHttpReferrer = "">
+		<cfset var deleteHttpUserAgent = "">
+		<cfset var deleteIP = "">
+		<cfset var deleteVisitorLog = "">
+		<cfset var exemptAnonymousUserIdList = "">
+		<cfset var exemptIpAddressList = "">
+		<cfset var exemptUserAgentList = "">
+		<cfset var i = "">
+		<cfset var postRatingUserIds = "">
+		<cfset var removeConstraints = "">
+		<cfset var visitorLogRetentationDate = "">
+		<cfset var visitorLogRetentionDate = "">
+		<cfset var visitorLogRetentionMonth = "">
+		<cfset var visitorLogRetentionYear = "">
+				
 		<cfset debug = false>
 
 		<!--- This calculation will determine the proper year and month for the visitor log retention date from the database --->
@@ -1763,6 +1924,18 @@
 		<cfargument name="httpReferrer" type="string" required="false" default="">
 		<cfargument name="ScreenWidth" type="string" required="false" default="9999">
 		<cfargument name="ScreenHeight" type="string" required="false" default="9999">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var AnonymousUserDbObj = "">
+		<cfset var BlogDbObj = "">
+		<cfset var HttpReferrerDbObj = "">
+		<cfset var HttpUserAgentDbObj = "">
+		<cfset var IpAddressDbObj = "">
+		<cfset var UserDbObj = "">
+		<cfset var anonymousUser = "">
+		<cfset var hitCount = "">
+		<cfset var httpReferrerId = "">
+		<cfset var httpUserAgentId = "">
+		<cfset var ipAddressId = "">
 			
 		<cfparam name="httpUserAgentId" default="0">
 			
@@ -1877,6 +2050,9 @@
 	<!--- ************************** Ip Address for logging (visits, comments, and admin logins) ************************** --->
 	<cffunction name="getIpAddressId" access="public" returnType="string" output="false" hint="Gets an IP address.">
 		<cfargument name="ipAddress" type="string" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var getIpAddressId = "">
+		<cfset var ipAddressId = "">
 			
 		<!--- Get the IP. ---> 	
 		<cfquery name="getIpAddressId" dbtype="hql" ormoptions="#{maxresults=1}#">		
@@ -1897,6 +2073,10 @@
 			
 	<cffunction name="saveIpAddress" access="public" returnType="string" output="false" hint="Saves a unique IP to the db.">
 		<cfargument name="ipAddress" type="string" required="true" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var BlogDbObj = "">
+		<cfset var IpAddressDbObj = "">
+		<cfset var ipAddressId = "">
 		<!--- Get the IP. ---> 
 		<cfset ipAddressId = this.getIpAddressId(arguments.ipAddress)>
 		<cftry>
@@ -1925,6 +2105,9 @@
 	<!--- ************************** Http User Agent strings for logging (visits, comments, and admin logins) ************************** --->
 	<cffunction name="getHttpUserAgentId" access="public" returnType="string" output="false" hint="Gets a HTTP Remote Agent Id.">
 		<cfargument name="httpUserAgent" type="string" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var getHttpUserAgent = "">
+		<cfset var httpUserAgentId = "">
 			
 		<!--- Get the remote agent from the db. ---> 
 		<cfquery name="getHttpUserAgent" dbtype="hql" ormoptions="#{maxresults=1}#">		
@@ -1945,6 +2128,10 @@
 			
 	<cffunction name="saveHttpUserAgent" access="public" returnType="string" output="false" hint="Saves a remote agent and passes back the HttpUserAgentId.">
 		<cfargument name="httpUserAgent" type="string" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var BlogDbObj = "">
+		<cfset var HttpUserAgentObj = "">
+		<cfset var httpUserAgentId = "">
 			
 		<!--- Preset the httpUserAgentId --->
 		<cfparam name="httpUserAgentId" default="">
@@ -2051,6 +2238,8 @@
 		<cfargument name="httpUserAgents" type="array" required="true" hint="Array of User-Agent strings to ban/unban.">
 		<cfargument name="banned" type="boolean" required="false" default="true">
 		<cfargument name="note" type="string" required="false" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var updateHttpUserAgentBan = "">
 
 		<cfset var success = false>
 		<cfset var thisUserAgent = "">
@@ -2342,14 +2531,22 @@
 		<cfset var allowed = false>
 		<cfset var nowTime = now()>
 
+		<cfset var maxPerDay = application.errorEmailMaxPerDay ?: 15>
+
 		<cflock name="galaxieBlog.errorEmailThrottle" type="exclusive" timeout="5">
+			<!--- There is also a limit for a whole day, so that a blog that has many different errors can not fill the inbox. The day counter starts again every day. --->
+			<cfif not structKeyExists(application, "errorEmailDay") or application.errorEmailDay neq dateFormat(nowTime, "yyyymmdd")>
+				<cfset application.errorEmailDay = dateFormat(nowTime, "yyyymmdd")>
+				<cfset application.errorEmailDayCount = 0>
+			</cfif>
 			<cfif dateDiff("s", application.errorEmailThrottle.windowStart, nowTime) gt application.errorEmailWindowSeconds>
 				<!--- The window has expired - start a new one, but keep any suppressed count that hasn't been reported yet. --->
 				<cfset application.errorEmailThrottle = { windowStart: nowTime, count: 0, suppressedCount: application.errorEmailThrottle.suppressedCount }>
 			</cfif>
 
-			<cfif application.errorEmailThrottle.count lt application.errorEmailMaxPerWindow>
+			<cfif application.errorEmailThrottle.count lt application.errorEmailMaxPerWindow and application.errorEmailDayCount lt maxPerDay>
 				<cfset application.errorEmailThrottle.count = application.errorEmailThrottle.count + 1>
+				<cfset application.errorEmailDayCount = application.errorEmailDayCount + 1>
 				<cfset allowed = true>
 			<cfelse>
 				<cfset application.errorEmailThrottle.suppressedCount = application.errorEmailThrottle.suppressedCount + 1>
@@ -2374,6 +2571,9 @@
 	<!--- ************************** Http Referrer strings ************************** --->
 	<cffunction name="getHttpReferrerId" access="public" returnType="string" output="false" hint="Gets a HTTP Referrer Id.">
 		<cfargument name="httpReferrer" type="string" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var getHttpReferrer = "">
+		<cfset var httpReferrerId = "">
 			
 		<!--- Get the remote agent from the db. ---> 
 		<cfquery name="getHttpReferrer" dbtype="hql" ormoptions="#{maxresults=1}#">		
@@ -2394,6 +2594,10 @@
 			
 	<cffunction name="saveHttpReferrer" access="public" returnType="string" output="false" hint="Saves a HttpReferrer and passes back the HttpReferrerId.">
 		<cfargument name="httpReferrer" type="string" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var BlogDbObj = "">
+		<cfset var HttpReferrerObj = "">
+		<cfset var httpReferrerId = "">
 		
 		<cfparam name="httpReferrerId" default="0">
 			
@@ -2463,6 +2667,12 @@
 		<cfargument name="themeId" type="string" required="false" default="" hint="Required for a font, or theme" />
 		<cfargument name="contentTemplate" type="string" required="false" default="" hint="Required when saving a content template" />
 		<cfargument name="relatedPostIdList" type="string" required="false" default="" hint="Optional. For a post: the id's of other posts whose cached pages should be cleared too, in addition to the posts that are related to this post right now. Pass in the posts that were related to the post before its related posts were changed or deleted." />
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var cacheFolder = "">
+		<cfset var postIdToFlush = "">
+		<cfset var postIdsToFlush = "">
+		<cfset var thisDirectory = "">
+		<cfset var thisFileNameOrFilter = "">
 
 		<!--- Flush all of the html cache files. This is used by the Refresh Site button (?reinit=1). These are all of the folders that galaxieCache saves html files to. Each file is rebuilt the next time it is needed. --->
 		<cfif arguments.type eq 'all'>
@@ -2705,6 +2915,8 @@
 			
 	<cffunction name="getDisableCache" access="remote" output="yes" returntype="boolean" 
 			hint="Determines whether the cache should be disabled. This is used to refresh the contents of the site when needed. I expect this function to become more complex to allow for granular caching in the future">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var disableCache = "">
 		
 		<cfparam name="disableCache" default="false">
 
@@ -2726,6 +2938,8 @@
 	<!--- Date and time functions. --->
 	<cffunction name="blogNow" access="public" returntype="date" output="false"
 			hint="Returns now() with the offset.">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var blogDateTime = "">
 			
 		<!--- Get the local time. MomentCfc requires the new keyword to initialize. See https://github.com/AlumnIQ/momentcfc/blob/master/readme.md for documentation. Note: this requires the time zone string to work right now and it is not used.
 		<cfset blogDateTime = new "#application.momentComponentPath#"( now() ).tz( instance.blogTimeZone ).time> --->
@@ -2748,6 +2962,12 @@
 	<cffunction name="getServerDateTime" access="public" returntype="date" output="false"
 			hint="Takes a date from the client and returns the date that it should be on the Server. This is used to schedule tasks on the server from the front end.">
 		<cfargument name="dateTime" type="date" required="true" />
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var blogTimeZone = "">
+		<cfset var blogTimeZoneId = "">
+		<cfset var blogTimeZoneList = "">
+		<cfset var serverDateTime = "">
+		<cfset var serverTimeZoneId = "">
 		
 		<!--- Invoke the Time Zone cfc --->
 		<cfobject component="#application.timeZoneComponentPath#" name="TimeZoneObj">
@@ -2788,6 +3008,8 @@
 	<cffunction name="makeCategoryLink" access="public" returnType="string" output="false"
 			hint="Generates links for a category.">
 		<cfargument name="categoryId" type="numeric" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var categoryLink = "">
 		
 		<cfset var Data = []>
 
@@ -2827,6 +3049,8 @@
 	<cffunction name="makeTagLink" access="public" returnType="string" output="false"
 			hint="Generates links for a tag.">
 		<cfargument name="tagId" type="numeric" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var tagLink = "">
 		
 		<cfset var Data = []>
 
@@ -2866,6 +3090,8 @@
 	<cffunction name="makeUserLink" access="public" returnType="string" output="false"
 				hint="Generates links for viewing blog posts by user/blog poster.">
 		<cfargument name="name" type="string" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var link = "">
 			
 		<cfset link = instance.blogUrl & '/postedby/' & replace(arguments.name," ","_", "all")>
 
@@ -2880,6 +3106,9 @@
 		<cfargument name="postAlias" type="string" default="" required="false" hint="This is optional, however, you can skip requiring a query to the database if you pass in the postAlias, isPage and datePosted arguments" />
 		<cfargument name="datePosted" type="string" default="" required="false" hint="This is optional, however, you can skip requiring a query to the database if you pass in the postAlias, isPage and datePosted arguments" />
 		<cfargument name="commentId" type="string" default="" required="false" hint="This is optional and is used when creating comment links" />
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
+		<cfset var returnStr = "">
 		
 		<!--- Include the string utilities. --->
 		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
@@ -2953,6 +3182,8 @@
 		<cfargument name="datePosted" type="date" required="true" />
 		<cfargument name="postAlias" type="string" required="true" />
 		<cfargument name="commentId" type="numeric" required="true" />
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var commentLink = "">
 		
 		<cfset commentLink = instance.blogUrl & "/" 
 			   & year(arguments.datePosted) & "/" 
@@ -2968,6 +3199,8 @@
 	<cffunction name="makeRewriteRuleSafeLink" access="public" returnType="string" output="false"
 			hint="Removes the index.cfm from links. This is necessary for the server side rewrite rule.">
 		<cfargument name="link" required="yes" hint="Pass in the link">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var newLink = "">
 			
 		<cfif application.serverRewriteRuleInPlace>
 			<cfset newLink = replaceNoCase(arguments.link, '/index.cfm', '')>
@@ -3082,6 +3315,8 @@
 	<cffunction name="getCustomWindowContent" access="public" returnType="any" output="false"
 			hint="Gets the custom windows for a post">
 		<cfargument name="postId" type="string" required="false" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 
 			
 		<!--- Get the custom windows from the db --->
@@ -3112,6 +3347,8 @@
 	<cffunction name="getCustomWindowContentById" access="public" returnType="any" output="false"
 				hint="Handles adding a view to an entry.">
 		<cfargument name="customWindowId" type="numeric" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 			
 			<!--- Get the custom windows from the db --->
 		<cfquery name="Data" dbtype="hql">
@@ -3527,6 +3764,9 @@
 	</cffunction>
 			
 	<cffunction name="getSelectedThemeAlias" access="public" returnType="string" hint="This will return the ThemeAlias">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var getSelectedThemeAlias = "">
+		<cfset var theme = "">
 		
 		<!--- Get the selected theme. --->
 		<cfquery name="getSelectedThemeAlias" dbtype="hql">
@@ -3568,6 +3808,10 @@
 			
 	<cffunction name="getSelectedKendoTheme" access="public" returnType="string" 
 			hint="This will return the selected kendo theme, or the default kendo theme by day if one is not selected.">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var getTheme = "">
+		<cfset var kendoTheme = "">
+		<cfset var themeAlias = "">
 		
 		<!--- Get the selected theme alias. --->
 		<cfset themeAlias = this.getSelectedThemeAlias()>
@@ -3583,6 +3827,9 @@
 
 	<!--- Since we have a bunch of different themes, we am going to show a different theme each day to keep the site looking fresh and to show off the themes. --->
 	<cffunction name="getThemeAliasByDay" access="public" returntype="string" hint="This will return the ThemeAlias">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var theme = "">
+		<cfset var thisDay = "">
 		<!--- The blogNow() will return the current date minus the offset. --->
 		<cfset thisDay = day(application.blog.blogNow())>
 		<cfset theme = "">
@@ -3638,6 +3885,10 @@
 		<cfargument name="themeId" type="string" required="false" default="">
 
 		<cfargument name="themeAlias" type="string" required="false" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var getBlogNameFont = "">
+		<cfset var getMenuFont = "">
+		<cfset var i = "">
 		<cfset var Data = []> 
 			
 		<cfquery name="Data" dbtype="hql">
@@ -3885,6 +4136,10 @@
 			hint="Returns the path of the logo. This is used for branding purposes, such as placing the logo in our correspondence.">
 		<cfargument name="themeId" type="string"  default="" required="false" hint="Either the themeId, theme, or kendoTheme is required">
 		<cfargument name="themeName" type="string" required="false" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
+		<cfset var logoImage = "">
+		<cfset var themeAlias = "">
 			
 		<!--- First we need to get the theme if it has not been passed --->
 		<cfif  arguments.themeId eq '' and arguments.themeName eq ''>
@@ -3919,6 +4174,23 @@
 	<cffunction name="getPrimaryColorsByTheme">
 		<cfargument name="kendoTheme"  required="true" hint="Pass in the Kendo theme name."/>
 		<cfargument name="setting"  required="true" hint="What setting name do you want to see?"/>
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var accentColor = "">
+		<cfset var alternateBgColor = "">
+		<cfset var baseColor = "">
+		<cfset var buttonAccentColor = "">
+		<cfset var contentBgColor = "">
+		<cfset var contentBorderColor = "">
+		<cfset var error = "">
+		<cfset var headerBgColor = "">
+		<cfset var headerTextColor = "">
+		<cfset var hoverBgColor = "">
+		<cfset var hoverBorderColor = "">
+		<cfset var info = "">
+		<cfset var selectedTextColor = "">
+		<cfset var success = "">
+		<cfset var textColor = "">
+		<cfset var warning = "">
 		<cfswitch expression="#kendoTheme#">
 			<cfcase value="black">
 				<cfset buttonAccentColor = "db4240">
@@ -4495,7 +4767,9 @@
 	//**************************************************************************************************************--->
 			
 	<cffunction name="getDefaultFontId" access="public" returntype="numeric" 
-		hint="Gets the fontId of the Arial font, for now...">	
+		hint="Gets the fontId of the Arial font, for now...">		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var getDefaultFont = "">
+	
 		
 		<cfquery name="getDefaultFont" dbtype="hql">
 			SELECT new Map (
@@ -4541,6 +4815,13 @@
 		<cfargument name="themeId" required="true" type="numeric" />
 		<cfargument name="selfHosted" required="false" type="boolean" default="true" />
 		<cfargument name="includeWebSafeFonts" required="false" type="boolean" default="true" />
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var blogFontId = "">
+		<cfset var fontId = "">
+		<cfset var fontIdList = "">
+		<cfset var getThemeFonts = "">
+		<cfset var i = "">
+		<cfset var menuFontId = "">
 		
 		<cfset var Data = []>
 		
@@ -4642,6 +4923,8 @@
 		<cfargument name="googleFont" required="false" default="" hint="Is this a google font? This blog can have many google fonts." />
 		<cfargument name="SelfHosted" required="false" default="" hint="Is this font hosted on the server? Note: this is not used yet." />
 		<cfargument name="useFont" required="false" default="" hint="Determines whether this font will be loaded on the page."/>
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var i = "">
 		<cfset var Data = []>
 			
 		<cfquery name="Data" dbtype="hql">
@@ -4937,6 +5220,12 @@
 		
 		<cfargument name="parentCategory" type="boolean" default="false" required="false">
 		<cfargument name="childCategory" type="boolean" default="false" required="false">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var categoryId = "">
+		<cfset var getAllCategoryPostCounts = "">
+		<cfset var i = "">
+		<cfset var postCount = "">
+		<cfset var postCountByCategoryId = "">
 		
 		<cfset var getCategories = []>
 		<cfset var getTotal = "">
@@ -5162,6 +5451,8 @@
 	<cffunction name="getCategoryIdByCategoryAlias" access="public" returnType="string" output="false" 
 			hint="Returns the categoryId, if it exists, using the category alias. This is used on the RSS feed when an alias is used in the catId URL">
 		<cfargument name="categoryAlias" type="string" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 			
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
@@ -5250,6 +5541,12 @@
 		<cfargument name="categoryId" required="true" hint="Pass in the initial cateoryId to start things off">
 		<!--- Note: this argument is *not* used externally but called within this function recursively --->
 		<cfargument name="parentCategoriesQuery" required="false" default="" hint="this is the final list that will be returned when there are no more parentCategoryId's left">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var category = "">
+		<cfset var categoryLevel = "">
+		<cfset var categoryList = "">
+		<cfset var getCategory = "">
+		<cfset var parentCategoryId = "">
 
 		<!---
 		Example usage:
@@ -6196,6 +6493,8 @@
 	<cffunction name="getTagsByPostId" access="public" returntype="array" output="false"
 		hint="Returns the tags for a given post id. Used in the blogContentHtml.cfm and Blog.cfc templates">	
 		<cfargument name="postId" type="numeric" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 			
 		<!--- Get the categories. --->
 		<cfquery name="Data" dbtype="hql">
@@ -6862,6 +7161,9 @@
 				
 	<cffunction name="getRecentCommentCount" access="public" returnType="numeric"  output="false"
 			hint="Gets the number of recent comments that are not yet approved. This is used on the admin page to determine to prompt the admin to approve new comments.">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
+		<cfset var commentCount = "">
 
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
@@ -6884,6 +7186,8 @@
 	<cffunction name="getCommentCountByPostId" access="public" returntype="numeric" output="false"
 		hint="Returns number of comments for a postId.">	
 		<cfargument name="postId" type="numeric" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 		<!--- Get the number of comments --->
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
@@ -8149,6 +8453,8 @@
 	<cffunction name="postExists" access="public" returnType="boolean" output="false"
 			hint="Returns true or false if an entry exists.">
 		<cfargument name="id" type="numeric" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var postFound = "">
 			
 		<cfset var Data = []>
 
@@ -8186,6 +8492,8 @@
 			hint="Queries the Post table using the posId or alias and returns true or false if a page exists. Used in the parses.cfm tag to distinguish between a category and a page. Both categories and pages will only have one value in the URL, the category alias, or the post alias">
 		<cfargument name="postId" type="string" required="false" default="">
 		<cfargument name="postAlias" type="string" required="false" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var postFound = "">
 			
 		<cfset var Data = []>
 			
@@ -8375,6 +8683,8 @@
 	<cffunction name="getPostRedirect" access="public" returnType="array" output="false"
 			hint="Gets a post redirect, if it exists">
 		<cfargument name="postAlias" type="string" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 		
 		<!--- Get the alias. --->
 		<cfquery name="Data" dbtype="hql">
@@ -8481,6 +8791,8 @@
 	<cffunction name="getPostUrlByPostId" access="public" returnType="string" output="false"
 			hint="The post URL is created dynamically. Use this function to get the postUrl by a given Post.PostId">
 		<cfargument name="postId" required="yes">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var postUrl = "">
 		
 		<!--- If the application.serverRewriteRuleInPlace variable has been set to true, we need to eliminate 'index.cfm' from the blog post link. --->
 		<cfif application.serverRewriteRuleInPlace>
@@ -8498,6 +8810,9 @@
 		<cfargument name="postId" type="numeric" required="true">
 		<cfargument name="showPendingPosts" type="boolean" required="false" default="false">
 		<cfargument name="showRemovedPosts" type="boolean" required="false" default="false">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var getPost = "">
+		<cfset var params = "">
 		
 		<!--- Create our parameters struct --->
 		<cfset params = structNew()>
@@ -8560,6 +8875,8 @@
 	<!--- Used with the recent posts pod --->
 	<cffunction name="getRecentPosts" access="public" returntype="array" output="false"
 		hint="Returns the last 5 posts.">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 		
 		<cfquery name="Data" dbtype="hql" ormoptions="#{maxresults=5}#">		
 			SELECT new Map (
@@ -8583,6 +8900,8 @@
 	<cffunction name="getPages" access="public" returntype="array" output="false"
 		hint="Returns the pages from the post table">
 		<cfargument name="type" type="string" required="false" default="active" hint="Get 'active' pages, or 'all'">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 		
 		<cfquery name="Data" dbtype="hql">		
 			SELECT DISTINCT new Map (
@@ -8609,6 +8928,8 @@
 		hint="Returns the pages from the post table">
 		<cfargument name="categoryId" type="string" required="true" default="" hint="Gets the pages by a given categoryId">
 		<cfargument name="type" type="string" required="false" default="active" hint="Get 'active' pages, or 'all'">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 			
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (       
@@ -8639,6 +8960,12 @@
 	<cffunction name="getRelatedPosts" access="public" returntype="array" output="false" 
 			hint="returns related posts for a specific blog post.">
 	    <cfargument name="postId" type="numeric" required="true" />
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
+		<cfset var getBackwardRelatedPost = "">
+		<cfset var getRelatedPost = "">
+		<cfset var i = "">
+		<cfset var relatedPosts = "">
 	
 		<!--- Initialize our data object.--->
 		<cfset Data = [] />
@@ -8881,6 +9208,20 @@
 		<cfset var validOrderByDir = "ASC, DESC">
 		<cfset var loadScrollMagic = false>
 		<cfset var Data = []>
+		<!--- These variables were not local to the function, so they lived in the component's variables scope, which is shared by every request. Two visitors at the same time overwrote each other's loop counter and post array (for example the error 'The element at position 7 of the array cannot be found'). --->
+		<cfset var i = 0>
+		<cfset var PostStruct = "">
+		<cfset var postRow = "">
+		<cfset var PostArray = "">
+		<cfset var mapIds = "">
+		<cfset var mapCount = 0>
+		<cfset var offset = 0>
+		<cfset var numRows = 0>
+		<cfset var enclosureMapCount = 0>
+		<cfset var categoryIdFromAlias = "">
+		<cfset var lastXDaysDate = "">
+		<cfset var title = "">
+		<cfset var debug = false>
 		<!--- And set the initial EnclosureMapCount --->
 		<cfset enclosureMapCount = 0>
 
@@ -9381,6 +9722,10 @@
 		<cfargument name="params" type="struct" required="false" default="#structNew()#">
 		<cfargument name="showRemovedPosts" type="boolean" required="false" default="false">
 		<cfargument name="released" type="boolean" required="false" default="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var lastXDaysDate = "">
+		<cfset var numRows = "">
+		<cfset var offset = "">
 			
 		<cfset var Data = []>
 
@@ -10146,6 +10491,10 @@
 			hint="Logs the user that read the post.">
 		<cfargument name="postId" type="numeric" required="true">
 		<cfargument name="AnonymousUserDbObj" type="any" required="false" hint="Pass in the anonymous user db object. It may already be available as it is loaded using the core logic template">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var PostDbObj = "">
+		<cfset var PostReadDbObj = "">
+		<cfset var getAnonymousUser = "">
 			
 		<!--- Load the post entity. --->
 		<cfset PostDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
@@ -10221,6 +10570,10 @@
 			hint="Scans a post's content for anything that requires the Kendo UI Professional library rather than the much smaller Kendo Core. Used on the public-facing site when the DeferKendoCommercialOnPublicSite blog option is enabled, so a post only pulls in the larger Professional download when it actually needs it - see includes/templates/core/seoMetaTags.cfm. Keep this list of signatures up to date as more Professional-only widgets (Scheduler, Gantt, Spreadsheet, PivotGrid, TreeList, etc.) get used in posts - this is the one place that needs to change, rather than every call site.">
 		<cfargument name="body" type="string" required="false" default="" hint="The post's Body">
 		<cfargument name="moreBody" type="string" required="false" default="" hint="The post's MoreBody (content after a Read More break)">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var i = "">
+		<cfset var kendoProfessionalSignatures = "">
+		<cfset var postContent = "">
 
 		<!--- Add a signature here for every Kendo Professional-only widget that might be embedded in a post. A post embeds these by hand-writing the widget's init script directly (eg. $("#id").kendoGrid({...})), rather than through any structured wrapper element, so a plain substring check against the raw content is the only reliable signal. --->
 		<cfset kendoProfessionalSignatures = [
@@ -10283,6 +10636,8 @@
 	<cffunction name="inspectPostContentForXmlKeywords" access="public" returntype="string"
 			hint="Determines if there is any action needed if the post content contains certain keywords. Returns a list of keywords if the xml keyword has been found.">
 		<cfargument name="postContent" required="yes" hint="Pass in the post body">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var xmlKeyWords = "">
 
 		<!--- Preset the var as an empty string. --->
 		<cfset xmlKeyWords="">
@@ -10525,6 +10880,19 @@
 	<cffunction name="getXmlKeywordStruct" access="public" returnType="any" output="false"
 			hint="Gets the XML keywords from the post header">
 		<cfargument name="postHeader" type="string" required="false" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var cfincludePath = "">
+		<cfset var largeVideoSourceUrl = "">
+		<cfset var mediumVideoSourceUrl = "">
+		<cfset var smallVideoSourceUrl = "">
+		<cfset var videoCaptionsUrl = "">
+		<cfset var videoCrossOrigin = "">
+		<cfset var videoDirective = "">
+		<cfset var videoPosterImageUrl = "">
+		<cfset var videoType = "">
+		<cfset var vimeoVideoId = "">
+		<cfset var xmlKeywords = "">
+		<cfset var youTubeUrl = "">
 
 		<!--- Inspect they xml keywords for directives. --->
 		<cfset xmlKeywords = application.blog.inspectPostContentForXmlKeywords(postHeader)>
@@ -10619,6 +10987,15 @@
 		<cfargument name="postContent" required="yes" hint="The post content is typically 'RendererObj.renderBody(body,mediaPath)'.">
 		<cfargument name="xmlKeyword" required="yes" hint="Grab the keyword from the inspectPostContent function.">
 		<cfargument name="xmlVersion" required="no" default="2" hint="I changed the structure to a more standard format on version 2.">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var error = "">
+		<cfset var keyWordEndPos = "">
+		<cfset var keyWordEndString = "">
+		<cfset var keyWordStartPos = "">
+		<cfset var keyWordStartString = "">
+		<cfset var keyWordValue = "">
+		<cfset var keyWordValueStartPos = "">
+		<cfset var valueCount = "">
 		
 		<cfparam name="keyWordValue" default="">
 			
@@ -10667,6 +11044,12 @@
 	<cffunction name="logSearch" access="private" returnType="void" output="false"
 			hint="Logs the search.">
 		<cfargument name="searchterm" type="string" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var AnonymousUserDbObj = "">
+		<cfset var BlogDbObj = "">
+		<cfset var SearchQueryObj = "">
+		<cfset var getAnonymousUser = "">
+		<cfset var sanitizedSearchTerm = "">
 			
 		<!--- Sanitize the search term --->
 		<cfset sanitizedSearchTerm = sanitizeString(arguments.searchTerm)>
@@ -10699,6 +11082,8 @@
 	<cffunction name="logView" access="public" returnType="void" output="false"
 				hint="Handles adding a view to an entry.">
 		<cfargument name="postId" type="numeric" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 			
 		<cfquery name="Data" dbtype="hql">
 			UPDATE Post
@@ -10826,6 +11211,8 @@
 			hint="Helper function to extract the enclosures mediaUrl from the mediaPath.">
 		<cfargument name="mediaPath" type="string" required="true">
 		<cfargument name="returnAbsolutePath" type="boolean" required="false" default="true" hint="If set to true, this only returns the absolute path minus the domain name (ie https://www.google.com)">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var enclosureUrl = "">
 			
 		<cfparam name="enclosureUrl" default="">
 		
@@ -11171,6 +11558,9 @@
 	<cffunction name="getMapRoutesByMapId" access="public" returnType="array" output="false"
 			hint="Get's the routes for a given map id">
 		<cfargument name="mapId" type="string" required="true" hint="Pass in the map id.">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
+		<cfset var MapDbObj = "">
 			
 		<!--- Load the map entity. We need to do this as using a cfqueryparam does not work when using values for a primary or a foriegn key. --->
 		<cfset MapDbObj = entityLoadByPK("Map", arguments.mapId)>
@@ -11208,6 +11598,13 @@
 	<cffunction name="getMapByMapId" access="public" returnType="any" output="false"
 			hint="Get's the map for a given map id">
 		<cfargument name="mapId" type="string" required="true" hint="Pass in the map id.">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
+		<cfset var MapArray = "">
+		<cfset var MapDbObj = "">
+		<cfset var MapStruct = "">
+		<cfset var i = "">
+		<cfset var mapRow = "">
 			
 		<!--- Load the map entity. We need to do this as using a cfqueryparam does not work when using values for a primary or a foriegn key. --->
 		<cfset MapDbObj = entityLoadByPK("Map", arguments.mapId)>
@@ -11503,6 +11900,8 @@
 	<cffunction name="getCarousel" access="public" returnType="any" output="false"
 			hint="Returns the carousel data for a given post">
 		<cfargument name="carouselId" required="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
 				
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
@@ -11756,6 +12155,10 @@
 		<cfargument name="email" type="string" required="false" default="">
 		<cfargument name="active" type="boolean" required="false" default="true">
 		<cfargument name="includeSecurityCredentials" type="boolean" required="false" default="true">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var UserArray = "">
+		<cfset var i = "">
+		<cfset var userRow = "">
 			
 		<cfset var Data = "[]">
 			
@@ -11859,6 +12262,8 @@
 					
 	<cffunction name="getBlogOwner" access="public" returnType="array" output="false" 
 			hint="Returns the user information for the blog owner">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var blogOwner = "">
 		<cfset blogOwner = this.getUser(userName=application.blogOwner)>
 		<cfreturn blogOwner>
 	</cffunction>
@@ -12509,6 +12914,8 @@
 			hint="The return type is specified in the returnType argument. This can return a list of RoleId's (returnType=roleIdList), a list of Role Names (returnType=roleList), or by default a HQL query object.">
 		<cfargument name="username" type="string" required="true">
 		<cfargument name="returnType" type="string" required="false" default="" hint="Either an emtpyString (''), 'roleIdList', 'roleList', or HQL. This can return a list of the roles, or a HQL query array of structs object">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var i = "">
 			
 		<cfset var Data = "[]">
 		<cfset var roleIdList = "">
@@ -12677,6 +13084,11 @@
 			hint="The return type is specified in the returnType argument. This can return a list of CapabilityId's, a list of capabilities, or a HQL query object for a given role.">
 		<cfargument name="roles" type="string" required="true" hint="Pass in the session roles variable. This can (and often is) a list.">
 		<cfargument name="returnType" type="string" required="false" default="capabilityIdList" hint="Either capabilityIdList, capabilityList, or HQL. This can return a list of the capabilities, or a HQL query array of structs object">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var Data = "">
+		<cfset var capabilityIdList = "">
+		<cfset var capabilityList = "">
+		<cfset var i = "">
 			
 		<!--- Preset the lists. --->
 		<cfparam name="capabilityIdList" default="">
@@ -12762,6 +13174,8 @@
 			
 	<cffunction name="getGalaxieBlogDirectives" access="public" returnType="string" output="false"
 			hint="Get a list of the Galaxie Blog Directives">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var directiveList = "">
 		
 		<!--- Galaxie Blog Directives. ---> 
 		<cfset directiveList = "postData,attachScript,cfincludeTemplate,titleMetaTagValue,descriptionMetaTagValue,socialMediaDescMetaTagValue,facebookImageMetaTagValue,twitterImageMetaTagValue,videoPosterImageUrl,smallVideoSourceUrl,mediumVideoSourceUrl,largeVideoSourceUrl,videoCaptionsUrl,videoWidthMetaData,videoHeightMetaData,youTubeUrl,vimeoVideoId">
@@ -12782,6 +13196,27 @@
 		<cfargument name="params" type="struct" required="false" default="#structNew()#" hint="Passed to getPost. Note, maxEntries can't be bigger than 30 and is always 9 on the landing page with the card layout.">
 		<cfargument name="version" type="numeric" required="false" default="2" hint="Depracated. No longer supporting version 1">
 		<cfargument name="additionalTitle" type="string" required="false" default="" hint="Adds a title to the end of your blog title. Used mainly by the cat view.">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var blogTimeZone = "">
+		<cfset var blogTimeZoneId = "">
+		<cfset var blogTimeZoneList = "">
+		<cfset var body = "">
+		<cfset var datePosted = "">
+		<cfset var description = "">
+		<cfset var email = "">
+		<cfset var fullName = "">
+		<cfset var getCategoriesArray = "">
+		<cfset var getPost = "">
+		<cfset var i = "">
+		<cfset var mediaPath = "">
+		<cfset var mediaSize = "">
+		<cfset var mediaType = "">
+		<cfset var mimeType = "">
+		<cfset var moreBody = "">
+		<cfset var postId = "">
+		<cfset var thisDesc = "">
+		<cfset var title = "">
+		<cfset var xmlLink = "">
 			
 		<!--- 
 		Important note: the feed now works with a ?category=categoryId in the url (ie https://gregoryalexander.com/blog/rss.cfm?category=59)
@@ -13946,6 +14381,9 @@
 					
 	<!--- Gets the client IP address. See https://www.gregoryalexander.com/blog/2025/4/5/getting-the-clients-ip-address-using-lucee-and-coldfusion for more information --->
 	<cffunction name="getIpAddress" returntype="string" output="false">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var httpHeaders = "">
+		<cfset var ipAddress = "">
 		
 		<!--- Get the HTTP Headers --->
 		<cfset httpHeaders = getHTTPRequestData()["headers"]>
@@ -14139,6 +14577,8 @@
 	<cffunction name="sanitizeString" access="public" returnType="string" output="false" 
 			hint="Sanitizes the HTML from a string. This function uses Jsoup and should be used prior to inserting data into the database to sanitize a string. Note: this is a slower function so don't use it when looping through tons of strings.">
 		<cfargument name="str" type="string" required="true" default="">
+		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
+		<cfset var sanitizedStr = "">
 			
 		<!--- We need to clean up the html and other special characters from the json ---> 
 		<!--- Remove non breaking spaces --->

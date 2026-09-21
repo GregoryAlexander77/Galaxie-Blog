@@ -40,7 +40,7 @@
 				<cfinvokeargument name="screenHeight" value="#screenHeight#">
 			</cfinvoke>
 			<!--- Note: this may not be defined if there is a lock error with the transaction --->
-			<cfif isDefined("AnonymousUserDbObj")>
+			<cfif isDefined("AnonymousUserDbObj") and len(AnonymousUserDbObj.getAnonymousUserId() ?: '')>
 				<cfset anonymousUserId = AnonymousUserDbObj.getAnonymousUserId()>
 				<!--- Drop a cookie with the Galaxie Anonymous User Id --->
 				<cfcookie expires="NEVER" name="gauid" value="#anonymousUserId#">
@@ -73,7 +73,7 @@
 		<!--- Finally, log the visitor. On rare occasions, this causes an error with Lucee so put it in a try block --->			
 		<cftry>
 			<cfinvoke component="#application.blog#" method="saveVisitorLog" returnVariable="visitorLog">
-				<cfif isDefined("AnonymousUserDbObj")>
+				<cfif isDefined("AnonymousUserDbObj") and len(AnonymousUserDbObj.getAnonymousUserId() ?: '')>
 					<cfinvokeargument name="anonymousUserId" value="#AnonymousUserDbObj.getAnonymousUserId()#">
 				</cfif>
 				<cfif application.blog.getUsersId()>
