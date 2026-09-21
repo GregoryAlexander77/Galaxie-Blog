@@ -23,6 +23,16 @@
 		#databaseUpdateResult ul {
 			margin-top: 5px;
 		}
+		#databaseUpdate, #databaseUpdate li, #databaseUpdateResult li, #recentVersionCheck td, #upgradeDetails, #upgradeDetails p, #upgradeDetails li, #upgradeDetails pre, #upgradeDetails code {
+			overflow-wrap: anywhere;
+			word-break: break-word;
+		}
+		#upgradeDetails pre {
+			white-space: pre-wrap;
+		}
+		#recentVersionCheck {
+			table-layout: fixed;
+		}
 	</style>
 
 	<cfoutput>
@@ -30,6 +40,7 @@
 		<cfif not databaseUpdateStatus.updateNeeded>
 			<p class="k-block k-success-colored">The database is up to date (version #encodeForHTML(databaseUpdateStatus.databaseVersion)#).</p>
 		<cfelse>
+			<div id="databaseUpdateIntro">
 			<p class="k-block k-warning-colored"><b>The database needs to be updated.</b><br/>
 			The files are version #encodeForHTML(databaseUpdateStatus.codeVersion)# and the database is version #encodeForHTML(databaseUpdateStatus.databaseVersion)#.</p>
 			<cfif arrayLen(databaseUpdateStatus.pending)>
@@ -44,6 +55,7 @@
 			</cfif>
 			<p>As with any update, please make a backup of your database first. Your posts, settings and users are not changed by the update, and it is safe to run more than once.</p>
 			<p><button type="button" id="runDatabaseUpdateButton" class="k-button k-primary">Update the database</button></p>
+			</div><!---<div id="databaseUpdateIntro">--->
 			<div id="databaseUpdateResult"></div>
 		</cfif>
 	</div>
@@ -89,6 +101,10 @@
 				return;
 			}
 			if (data.success) {
+				<!--- The update is done, so the explanation and the button that ran it are no longer needed. --->
+				$("#databaseUpdateIntro").remove();
+				<!--- The icon caption on the admin page said that an update was needed. --->
+				$("#BlogUpdate .caption").text("Blog Updates");
 				$result.append($("<p class='k-block k-success-colored'>").text(data.message));
 			} else {
 				$("#runDatabaseUpdateButton").prop("disabled", false);
@@ -101,6 +117,15 @@
 				});
 				$result.append($list);
 			}
+			if (data.success) {
+				<!--- A button at the bottom of the result to close this window. --->
+				var $closeButton = $("<button type='button' id='closeUpdateWindowButton' class='k-button k-primary'>").text("Close");
+				$closeButton.on("click", function() {
+					var updatesWindow = $("#updatesWindow").data("kendoWindow");
+					if (updatesWindow) { updatesWindow.close(); }
+				});
+				$result.append($("<p>").append($closeButton));
+			}
 		}
 
 		<!--- Get the summary information about the latest release from the update site. --->
@@ -110,6 +135,7 @@
 
 	<table id="recentVersionCheck" class="k-content" width="100%" cellpadding="0" cellspacing="0" border="0">
 	  <tr class="k-alt">
+		<td>
 		  <span id="upgradeDetails" style="display: inline-block; width: 100%"></span>
 		</td>
 	  </tr>

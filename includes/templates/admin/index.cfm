@@ -169,7 +169,7 @@
 	<cfset iconList = listAppend(iconList, 'BlogUpdate')>
 	<!--- Let the administrator know when the files are newer than the database. See DatabaseUpdater.cfc --->
 	<cfif isDefined("application.dbBlogVersion") and val(application.dbBlogVersion) lt val(application.blog.getVersion())>
-		<cfset titleList = listAppend(titleList, 'Blog Updates (database update needed)')>
+		<cfset titleList = listAppend(titleList, 'Blog Updates (update needed)')>
 	<cfelse>
 		<cfset titleList = listAppend(titleList, 'Blog Updates')>
 	</cfif>
@@ -698,7 +698,13 @@
 				text-align: center;
 				<!--- The width of the container also implies margin around the images. --->
 				width: <cfif session.isMobile>105<cfelse>125</cfif>px;
-				height: <cfif session.isMobile>105<cfelse>175</cfif>px;
+				height: <cfif session.isMobile>130<cfelse>195</cfif>px;
+			}
+
+			<!--- Room under the last row, so that a caption that wraps to two lines does not run into the border of the panel. --->
+			#iconNavMenu {
+				display: block;
+				padding-bottom: 25px;
 			}
 
 			.icon img {
