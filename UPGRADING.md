@@ -7,7 +7,7 @@ You do not need to run the installer again, and your posts, comments, users, set
 ## Before you start
 
 1. **Back up your database.**
-2. **Back up the `org/camden/blog/blog.ini.cfm` file** (the folder is `/org/camden/blog/`). It holds your datasource name and settings. Never overwrite it with a file from the download, the download does not have one.
+2. **Back up the `org/camden/blog/blog.ini.cfm` file** (the folder is `/org/camden/blog/`). It holds your datasource name and settings. The download contains an empty starter file with the same name. **Never upload it over your own**, or the blog forgets its settings and starts the installer again. If you upload the whole download, leave that file out.
 3. Make sure that your database user can create and alter tables. The update adds columns and tables.
 
 ## Updating
@@ -31,6 +31,19 @@ After this, the **Blog Updates** window of the administrative site shows when a 
 * Files that are no longer used, from all of the versions in between, are deleted by the update.
 * The columns that hold long text (posts, comments) are set up automatically for the database type that the installer saved in `blog.ini.cfm`. The old manual step of copying database specific ORM files is gone.
 * The datasource is read from `blog.ini.cfm`. On Lucee you do not need to create a datasource with a special name, and you can run several blogs on one server, each in its own folder with its own `blog.ini.cfm`.
+
+## Tips for uploading the files
+
+Most problems with an update come from the upload, not from the blog. These are the things that we have seen.
+
+* **Upload into the right folder.** The files go directly into the folder that holds `Application.cfc` and `index.cfm`, or into the folder named `blog` if that is where you installed the blog. Do not extract an archive inside of the blog folder if the archive already starts with a `blog` folder, or you get a second folder, `blog/blog`, and the blog will find the incomplete copy there. If that happened, delete the extra folder, and then clear the caches of your server (see below).
+* **Some servers do not let you overwrite a file that is already there.** The upload of that file fails with 'Access denied' or 'Permission denied', and it can work when you try again. When it keeps failing, delete the file on the server first (with your hosting control panel's file manager), and then upload it again.
+* **Do not trust an FTP program that says 'same' or 'not transferred'.** Some programs (Dreamweaver, for example) remember what they uploaded before, and skip a file that they believe is already on the server, even when it is not, or when it is an old version. Use the program's **Put** command on the files or folders to force the upload, or use the file manager of your hosting control panel. Afterwards, look at the size of a few files on the server (the file manager shows it) and compare it with the size on your computer.
+* **On Linux, upper and lower case letters count.** `latestVersionCheck.cfm` and `latestversioncheck.cfm` are two different files. Use the names exactly as they are in the download, and never rename a file to lower case, or let a program do it for you.
+* **Do not upload `org/camden/blog/blog.ini.cfm`.** The download has an empty starter copy of it, and your own copy holds your settings. Uploading the starter over yours makes the blog start the installer again.
+* **Upload everything.** Version 4.66 changed files in many places (the entities in `common/cfc/db/galaxieDb`, the templates, the libraries, the installer). If you only upload some of the files, the blog can start with a mix of old and new files, and stops with errors such as a field or a function that 'does not exist'. When you see an error like that, a file in that area is still the old version.
+* **Restart, or clear the caches, after moving or deleting files.** ColdFusion and Lucee remember where they found a component, and the database mapping (the entities) is read when the application starts. After you fix files on the server, restart the ColdFusion or Lucee service (or ask your host to), or at least clear the template cache in the administrator, and open `/?reinit=1` after you signed in.
+* **See the real error.** While the blog is starting, the error page only says that an error occurred. Add `?startupDebug=1` to the address (for example `https://yourdomain.com/?startupDebug=1`) and the real error is shown. It is also written to a log file named `galaxieBlogErrors.log` in the logs folder of ColdFusion or Lucee. Please include that message when you ask for help.
 
 ## If something goes wrong
 
