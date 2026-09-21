@@ -66,8 +66,8 @@
 		<p><a href="#encodeForHTMLAttribute(blogBaseUrl)#/admin/">Go to the administrative site</a></p>
 	<cfelse>
 		<div class="box warning">
-			<p><b>The database needs to be updated.</b></p>
-			<p>The files are version #encodeForHTML(status.codeVersion)# and the database is version #encodeForHTML(status.databaseVersion)#.</p>
+			<p><b>Galaxie Blog needs to finish updating.</b></p>
+			<p>The files that you uploaded are version #encodeForHTML(status.codeVersion)#, but the blog's database tables are still at version #encodeForHTML(status.databaseVersion)#. Press the button below to bring them up to date.</p>
 		</div>
 		<cfif arrayLen(status.pending)>
 			<p>These updates will be run, in order:</p>
@@ -80,12 +80,12 @@
 			<p>There are no data changes in this update. The database only needs to be marked with the new version.</p>
 		</cfif>
 		<p>As with any update, please make a backup of your database first. Your posts, settings and users are not changed by the update, and it is safe to run more than once.</p>
-		<p><button type="button" id="runUpdateButton">Update the database</button></p>
+		<p><button type="button" id="runUpdateButton">Update Galaxie Blog's database</button></p>
 		<div id="updateResult"></div>
 
 		<script>
 			document.getElementById("runUpdateButton").addEventListener("click", function () {
-				if (!confirm("Have you backed up your database? Do you want to update it now?")) { return; }
+				if (!confirm("Update the blog's tables to version #encodeForJavaScript(status.codeVersion)#? Your posts, comments and users are kept. Please make a backup of your database first. Click OK to update, or Cancel to stop.")) { return; }
 				var button = this;
 				var result = document.getElementById("updateResult");
 				button.disabled = true;

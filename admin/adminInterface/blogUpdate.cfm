@@ -41,8 +41,8 @@
 			<p class="k-block k-success-colored">The database is up to date (version #encodeForHTML(databaseUpdateStatus.databaseVersion)#).</p>
 		<cfelse>
 			<div id="databaseUpdateIntro">
-			<p class="k-block k-warning-colored"><b>The database needs to be updated.</b><br/>
-			The files are version #encodeForHTML(databaseUpdateStatus.codeVersion)# and the database is version #encodeForHTML(databaseUpdateStatus.databaseVersion)#.</p>
+			<p class="k-block k-warning-colored"><b>Galaxie Blog needs to finish updating.</b><br/>
+			The files that you uploaded are version #encodeForHTML(databaseUpdateStatus.codeVersion)#, but the blog's database tables are still at version #encodeForHTML(databaseUpdateStatus.databaseVersion)#. Press the button below to bring them up to date.</p>
 			<cfif arrayLen(databaseUpdateStatus.pending)>
 				<p>These updates will be run, in order:</p>
 				<ul>
@@ -54,7 +54,7 @@
 				<p>There are no data changes in this update. The database only needs to be marked with the new version.</p>
 			</cfif>
 			<p>As with any update, please make a backup of your database first. Your posts, settings and users are not changed by the update, and it is safe to run more than once.</p>
-			<p><button type="button" id="runDatabaseUpdateButton" class="k-button k-primary">Update the database</button></p>
+			<p><button type="button" id="runDatabaseUpdateButton" class="k-button k-primary">Update Galaxie Blog's database</button></p>
 			</div><!---<div id="databaseUpdateIntro">--->
 			<div id="databaseUpdateResult"></div>
 		</cfif>
@@ -66,11 +66,11 @@
 		$("#runDatabaseUpdateButton").on("click", function() {
 			<!--- Note: this is a custom library that I am using. The ExtYesNoDialog is not a part of Kendo but an extension. --->
 			$.when(kendo.ui.ExtYesNoDialog.show({
-				title: "Please confirm that you want to update the database",
-				message: "Have you backed up your database? Do you want to update it now?",
+				title: "Update Galaxie Blog's database?",
+				message: "Update the blog's tables to version <cfoutput>#encodeForJavaScript(databaseUpdateStatus.codeVersion)#</cfoutput>? Your posts, comments and users are kept. Please make a backup of your database first. Click Yes to update, or No to cancel.",
 				icon: "k-ext-information",
 				width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>",
-				height: "215px"
+				height: "250px"
 			})).done(function(response) {
 				if (response['button'] == 'Yes') {
 					$("#runDatabaseUpdateButton").prop("disabled", true);
