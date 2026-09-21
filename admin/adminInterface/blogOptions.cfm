@@ -306,6 +306,7 @@
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">Send Diagnostics?</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input type="checkbox" name="sendDiagnostics" id="sendDiagnostics" value="1" <cfif application.SendDiagnostics>checked</cfif>>
+			<span style="font-size:smaller"> Email new errors to the blog owner. A copy also goes to the developer of Galaxie Blog to help to find bugs: the error, its address and the stack trace, never form values. To send the copy to someone else, or not at all, set developerEmail in blog.ini.cfm.</span>
 		</td>
 	  </tr>
 	  <!-- Border -->

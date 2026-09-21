@@ -127,9 +127,16 @@
 			<cfreturn true>
 		</cfif>
 
-		<!--- Errors are emailed to the blog owner (the email address in the blog settings). The developer of a blog can also get a copy, for example the person who runs several blogs. This is off unless the developer's address is in blog.ini.cfm (developerEmail=name@example.com), so a downloaded blog never sends errors to anybody else. The file is only read when the application starts or is reinitialized. --->
+		<!--- Errors are emailed to the blog owner (the email address in the blog settings) when Send Diagnostics is checked in the blog options. A copy also goes to the developer of Galaxie Blog, to help to find bugs. Only the error, its address and the stack trace are sent, no form values. To send the copy to somebody else, or to not send it, put developerEmail=name@example.com (or developerEmail= with nothing after it) in blog.ini.cfm. The file is only read when the application starts or is reinitialized. --->
 		<cfif not structKeyExists(application, "developerEmailAddress") or isDefined("URL.init") or isDefined("URL.reinit")>
-			<cfset application.developerEmailAddress = getIniValue("developerEmail")>
+			<cfset application.developerEmailAddress = "gregoryalexander77@gmail.com">
+			<cftry>
+				<!--- getProfileString returns an empty string for a key that is not there and for a key without a value, so look for the key. --->
+				<cfif listFindNoCase(getProfileSections(this.rootDirectoryPath & "org/camden/blog/blog.ini.cfm")["default"], "developerEmail")>
+					<cfset application.developerEmailAddress = getIniValue("developerEmail")>
+				</cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
 		</cfif>
 
 		<!--- //****************************************************************************************
