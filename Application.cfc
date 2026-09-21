@@ -806,6 +806,7 @@
 	<style>body { font-family: Arial, Helvetica, sans-serif; max-width: 360px; margin: 12% auto 0 auto; padding: 0 20px; color: ##333; } input { display: block; width: 100%; box-sizing: border-box; margin: 6px 0 14px 0; padding: 8px; font-size: 16px; } button { font-size: 16px; padding: 8px 18px; cursor: pointer; }</style>
 </head>
 <body>
+	<img src="#getBaseUrl()#/installer/images/docking.jpg" alt="" width="375" height="300" style="display:block;max-width:100%;height:auto;margin:0 auto 20px auto;border-radius:6px;">
 	<h2>Sign in to update the blog</h2>
 	<p>The blog files are newer than the database, so the database has to be updated before the site can run again.</p>
 	<form method="post" action="#getBaseUrl()#/admin/update.cfm">
@@ -832,6 +833,7 @@
 	<style>body { font-family: Arial, Helvetica, sans-serif; text-align: center; margin: 15% 20px 0 20px; color: ##333; } a { color: ##555; }</style>
 </head>
 <body>
+	<img src="#getBaseUrl()#/installer/images/docking.jpg" alt="" width="375" height="300" style="display:block;max-width:100%;height:auto;margin:0 auto 20px auto;border-radius:6px;">
 	<h1>This site is being updated</h1>
 	<p>Please check back in a few minutes.</p>
 	<p><small><a href="#getBaseUrl()#/admin/update.cfm" rel="nofollow">Administrator sign in</a></small></p>
@@ -1349,6 +1351,15 @@
 			<cflog file="galaxieBlogErrors" type="error" text="#cgi.script_name# #arguments.eventName#: #local.loggedText#">
 			<cfcatch type="any"></cfcatch>
 		</cftry>
+
+		<!--- The error handler (saveErrorLog) reads application.sendDiagnostics, which is only set further down in OnRequestStart. When an error happens before that (ie while the application is starting after new files were uploaded), the handler would fail on the missing setting and hide the real error, so give it a safe default. --->
+		<cfif isDefined("application.blog") and not structKeyExists(application, "sendDiagnostics")>
+			<cfset application.sendDiagnostics = false>
+		</cfif>
+		<!--- ?startupDebug=1 shows the real error to a signed in administrator, or while the application has not finished starting. Otherwise it is only written to the galaxieBlogErrors log. --->
+		<cfif isDefined("url.startupDebug") and isDefined("local.loggedText") and (not structKeyExists(application, "init") or (isDefined("application.Udf") and application.Udf.isLoggedIn()))>
+			<cfoutput><pre>#encodeForHTML(local.loggedText)#</pre></cfoutput>
+		</cfif>
 
 		<!--- Note: application.blog is not defined during the installation process --->
 		<cfif isDefined("application.blog")>
