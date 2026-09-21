@@ -553,7 +553,8 @@
 					<!--- Create the directory if it does not exist (ie a blog that was updated from an older version that did not have this cache folder) and write the file again. If that also fails, the page is still shown, it is just not cached. --->
 					<cfif not directoryExists(directoryPath)>
 						<cftry>
-							<cfset directoryCreate(directoryPath, true, true)>
+							<!--- The cfdirectory tag works on every version. The directoryCreate function only takes one argument on ColdFusion 2023. --->
+							<cfdirectory action="create" directory="#directoryPath#">
 							<cffile action="write" file="#expandPath(attributes.file)#" output="#thistag.generatedcontent#" charset="UTF-8">
 							<cfcatch type="any"></cfcatch>
 						</cftry>
@@ -602,7 +603,10 @@
 					<cfset packet = serializeJSON(data)>
 				</cfif>
 				<!--- Write the file. Create the folder first if it is missing. --->
-				<cfset directoryCreate(getDirectoryFromPath(expandPath(attributes.file)), true, true)>
+				<cfset cacheFolderPath = getDirectoryFromPath(expandPath(attributes.file))>
+				<cfif not directoryExists(cacheFolderPath)>
+					<cfdirectory action="create" directory="#cacheFolderPath#">
+				</cfif>
 				<cflock name="#attributes.file#" type="exclusive" timeout="30">
 					<cffile action="write" file="#expandPath(attributes.file)#" output="#packet#" charset="UTF-8">
 				</cflock>
