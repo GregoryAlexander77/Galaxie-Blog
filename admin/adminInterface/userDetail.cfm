@@ -33,8 +33,11 @@
 	<cfelseif structKeyExists(URL, "optArgs") and isNumeric(URL.optArgs)>
 		<cfset detailAction = "update">
 	<cfelse>
-		<!--- The user is opening up their own profile and there is no userId present --->
-		<cfset URL.optArgs = session.userId>
+		<!--- The user is opening up their own profile and there is no userId present. session.userId is never set anywhere at login, only session.userName is, so look the id up from that instead of reading an id that does not exist. --->
+		<cfset ownProfileLookup = application.blog.getUser(userName=session.userName)>
+		<cfif arrayLen(ownProfileLookup)>
+			<cfset URL.optArgs = ownProfileLookup[1]["UserId"]>
+		</cfif>
 		<cfset detailAction = "updateProfile">
 	</cfif>
 	<!---<cfoutput>detailAction: #detailAction#</cfoutput>--->

@@ -12175,6 +12175,7 @@
 			
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
+				User.UserId as UserId,
 				User.UserName as UserName,
 				User.UserToken as UserToken,
 				User.FirstName as FirstName,
