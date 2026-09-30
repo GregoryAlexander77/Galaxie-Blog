@@ -17,9 +17,9 @@
 	//******************************************************************************************--->
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "4.66" />
-	<cfset versionName = "4.66 (Bella's Edition)" />
-	<cfset versionDate =  "September 19th 2026">
+	<cfset version = "4.66.1" />
+	<cfset versionName = "4.66.1 (Bella's Edition)" />
+	<cfset versionDate =  "September 30th 2026">
 
 	<!--- Require version 9 or higher as we are using ORM --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>
@@ -3495,7 +3495,7 @@
 
 					<!--- Email it --->
 					<cfset utils.mail(
-						to=email,
+						to=getSubscribers[i]['SubscriberEmail'],
 						subject="#blogTitle# / #getPost[1]['Title']#",
 						body=emailBody)>
 
