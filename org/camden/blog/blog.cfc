@@ -17,8 +17,8 @@
 	//******************************************************************************************--->
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "4.66.1" />
-	<cfset versionName = "4.66.1 (Bella's Edition)" />
+	<cfset version = "4.66.2" />
+	<cfset versionName = "4.66.2 (Bella's Edition)" />
 	<cfset versionDate =  "September 30th 2026">
 
 	<!--- Require version 9 or higher as we are using ORM --->
@@ -5985,12 +5985,16 @@
 			<cfloop from="1" to="#arrayLen(getCategoriesNotInList)#" index="i">
 				<cfset categoryId = getCategoriesNotInList[i]["CategoryId"]>
 				<cfif debug><cfdump var="#categoryId#"></cfif>
+				<!--- 4.66.2: this DELETE was missing a PostRef scope, so saving any post that dropped a category
+				wiped that category off every post site-wide that had ever been tagged with it, not just the
+				post being edited. --->
 				<cfquery name="deleteExcessCategories" dbtype="hql">
 					DELETE
-					FROM  
+					FROM
 						PostCategoryLookup as PostCategoryLookup
-					WHERE 
-						PostCategoryLookup.CategoryRef = #categoryId#		
+					WHERE
+						PostCategoryLookup.PostRef = #thisPostId#
+						AND PostCategoryLookup.CategoryRef = #categoryId#
 				</cfquery>
 			</cfloop>
 		</cfif>
@@ -6845,12 +6849,16 @@
 			<cfloop from="1" to="#arrayLen(getTagsNotInList)#" index="i">
 				<cfset tagId = getTagsNotInList[i]["TagId"]>
 				<cfif debug><cfdump var="#tagId#"></cfif>
+				<!--- 4.66.2: sibling of the savePostCategories() fix above - this DELETE was missing the same
+				PostRef scope, so saving any post that dropped a tag wiped that tag off every post site-wide
+				that had ever been tagged with it, not just the post being edited. --->
 				<cfquery name="deleteExcessTags" dbtype="hql">
 					DELETE
-					FROM  
+					FROM
 						PostTagLookup as PostTagLookup
-					WHERE 
-						PostTagLookup.TagRef = #tagId#		
+					WHERE
+						PostTagLookup.PostRef = #thisPostId#
+						AND PostTagLookup.TagRef = #tagId#
 				</cfquery>
 			</cfloop>
 		</cfif>
