@@ -1,4 +1,4 @@
-﻿/* General */
+/* General */
 /* This is a copy of the default css. Office365 did not have a css file in the orig lib */
 
 .k-ext-required {
@@ -33,7 +33,7 @@
 	cursor: pointer;
 	background-color: transparent;
 	background-repeat: no-repeat;
-	background-image: url('./Images/small-sprites.gif') !important;
+	background-image: url('./images/small-sprites.gif') !important;
 	margin: 0;
 }
 
@@ -62,7 +62,7 @@
 	height: 32px;
 	background-color: transparent;
 	background-repeat: no-repeat;
-	background-image: url('./Images/medium-sprites.png');
+	background-image: url('./images/medium-sprites.png');
 	margin: 0;
 }
 

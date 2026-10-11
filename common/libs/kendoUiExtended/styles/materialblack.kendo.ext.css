@@ -1,4 +1,4 @@
-﻿/* This is a copy of the original black css file. Material black was not included in the original lib */
+/* This is a copy of the original black css file. Material black was not included in the original lib */
 /* General */
 
 .k-ext-required {
@@ -33,7 +33,7 @@
 	cursor: pointer;
 	background-color: transparent;
 	background-repeat: no-repeat;
-	background-image: url('./Images/small-sprites.gif') !important;
+	background-image: url('./images/small-sprites.gif') !important;
 	margin: 0;
 }
 
@@ -62,7 +62,7 @@
 	height: 32px;
 	background-color: transparent;
 	background-repeat: no-repeat;
-	background-image: url('./Images/medium-sprites.png');
+	background-image: url('./images/medium-sprites.png');
 	margin: 0;
 }
 

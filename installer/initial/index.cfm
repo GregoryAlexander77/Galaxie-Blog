@@ -13,8 +13,8 @@
 	<!--- Attach the style for the theme --->
 	<a href=""></a>
     <cfoutput>
-	<link rel="stylesheet" href="../common/libs/kendoCore/styles/kendo.#kendoTheme#.min.css" />
-    <link rel="stylesheet" href="../common/libs/kendoCore/styles/kendo.#kendoTheme#.mobile.min.css" />
+	<link rel="stylesheet" href="../../common/libs/kendoCore/styles/kendo.#kendoTheme#.min.css" />
+    <link rel="stylesheet" href="../../common/libs/kendoCore/styles/kendo.#kendoTheme#.mobile.min.css" />
 	</cfoutput>
 
     <script src="../../common/libs/kendoCore/js/jquery.min.js"></script>

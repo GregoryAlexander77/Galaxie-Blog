@@ -210,10 +210,23 @@
 		<cfset var flavorName = "">
 		<cfset var createSql = "">
 
-		<cfquery name="alreadyExists" datasource="#application.dsn#">
-			SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = <cfqueryparam value="#arguments.tableName#" cfsqltype="cf_sql_varchar" maxlength="128">
-		</cfquery>
-		<cfif alreadyExists.recordCount>
+		<!--- The table names come from the update scripts, never from a user, but only plain names are allowed here as they go into the SQL below. --->
+		<cfif not reFind("^[A-Za-z][A-Za-z0-9_]*$", arguments.tableName)>
+			<cfset addToLog("Skipped the table '#arguments.tableName#': not a valid table name.")>
+			<cfreturn>
+		</cfif>
+
+		<!--- Does the table exist in the blog's own database? Selecting nothing from it succeeds if it does and errors if it does not. This used to look the name up in INFORMATION_SCHEMA.TABLES, but on MySQL and MariaDB that lists the tables of every database on the server, so when another Galaxie Blog database on the same server already had the table, it was never created for this blog (found in the 4.8 install test on Lucee and MariaDB, 2026-10-11). --->
+		<cfset alreadyExists = true>
+		<cftry>
+			<cfquery datasource="#application.dsn#">
+				SELECT 1 FROM #arguments.tableName# WHERE 1 = 0
+			</cfquery>
+			<cfcatch type="database">
+				<cfset alreadyExists = false>
+			</cfcatch>
+		</cftry>
+		<cfif alreadyExists>
 			<cfset addToLog("The #arguments.tableName# table already exists.")>
 			<cfreturn>
 		</cfif>

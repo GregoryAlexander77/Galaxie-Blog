@@ -1,4 +1,4 @@
-﻿/* General */
+/* General */
 /* Note this is a copy of the silver theme. Blue Opal was not part of the orig lib */
 .k-ext-required {
     background-color: pink;
@@ -32,7 +32,7 @@
 	cursor: pointer;
 	background-color: transparent;
 	background-repeat: no-repeat;
-	background-image: url('./Images/small-sprites.gif') !important;
+	background-image: url('./images/small-sprites.gif') !important;
 	margin: 0;
 }
 
@@ -61,7 +61,7 @@
 	height: 32px;
 	background-color: transparent;
 	background-repeat: no-repeat;
-	background-image: url('./Images/medium-sprites.png');
+	background-image: url('./images/medium-sprites.png');
 	margin: 0;
 }
 

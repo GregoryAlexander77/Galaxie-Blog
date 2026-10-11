@@ -541,8 +541,12 @@
 				also skip every social platform queued up after this one in the same request). --->
 				<cfif application.imageEngineSupportsWebP>
 					<cfset webpDestination = reReplaceNoCase(getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType), "\.[^.]+$", ".webp")>
-					<cfimage source="#shareImage#" action="write" format="webp" destination="#webpDestination#" overwrite="yes" quality="#arguments.quality#">
-					<cfset fileSetAccessMode("#webpDestination#", "644")>
+					<!--- imageWrite with a .webp file name, not <cfimage format="webp">: Lucee's cfimage tag only accepts gif, jpg, png, tiff and bmp for its format attribute even though Lucee writes WebP fine, so on Lucee this threw, the upload's cftry swallowed it, and every crop after the first (Twitter, Google, classic) was silently skipped (found in the 4.8 install test, 2026-10-11). A WebP copy that can't be written is skipped rather than stopping the other crops. --->
+					<cftry>
+						<cfset imageWrite(shareImage, webpDestination, arguments.quality, true)>
+						<cfset fileSetAccessMode("#webpDestination#", "644")>
+						<cfcatch type="any"></cfcatch>
+					</cftry>
 				</cfif>
 
 			</cfif>
@@ -587,8 +591,12 @@
 				preCrop branch's own copy of this comment for why. --->
 				<cfif application.imageEngineSupportsWebP>
 					<cfset webpDestination = reReplaceNoCase(getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType), "\.[^.]+$", ".webp")>
-					<cfimage source="#thisImage#" action="write" format="webp" destination="#webpDestination#" overwrite="yes" quality="#arguments.quality#">
-					<cfset fileSetAccessMode("#webpDestination#", "644")>
+					<!--- imageWrite with a .webp file name, not <cfimage format="webp">: Lucee's cfimage tag only accepts gif, jpg, png, tiff and bmp for its format attribute even though Lucee writes WebP fine, so on Lucee this threw, the upload's cftry swallowed it, and every crop after the first (Twitter, Google, classic) was silently skipped (found in the 4.8 install test, 2026-10-11). A WebP copy that can't be written is skipped rather than stopping the other crops. --->
+					<cftry>
+						<cfset imageWrite(thisImage, webpDestination, arguments.quality, true)>
+						<cfset fileSetAccessMode("#webpDestination#", "644")>
+						<cfcatch type="any"></cfcatch>
+					</cftry>
 				</cfif>
 
 			<cfelse>
@@ -626,8 +634,12 @@
 				preCrop branch's own copy of this comment for why. --->
 				<cfif application.imageEngineSupportsWebP>
 					<cfset webpDestination = reReplaceNoCase(getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType), "\.[^.]+$", ".webp")>
-					<cfimage source="#thisImage#" action="write" format="webp" destination="#webpDestination#" overwrite="yes" quality="#arguments.quality#">
-					<cfset fileSetAccessMode("#webpDestination#", "644")>
+					<!--- imageWrite with a .webp file name, not <cfimage format="webp">: Lucee's cfimage tag only accepts gif, jpg, png, tiff and bmp for its format attribute even though Lucee writes WebP fine, so on Lucee this threw, the upload's cftry swallowed it, and every crop after the first (Twitter, Google, classic) was silently skipped (found in the 4.8 install test, 2026-10-11). A WebP copy that can't be written is skipped rather than stopping the other crops. --->
+					<cftry>
+						<cfset imageWrite(thisImage, webpDestination, arguments.quality, true)>
+						<cfset fileSetAccessMode("#webpDestination#", "644")>
+						<cfcatch type="any"></cfcatch>
+					</cftry>
 				</cfif>
 
 			</cfif>
