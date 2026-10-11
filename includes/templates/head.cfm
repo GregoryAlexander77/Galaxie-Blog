@@ -32,10 +32,9 @@
 	</cfif><!---<cfif URL.mode eq "alias">--->
 </cfif><!---<cfif useSsl and (CGI.https eq "off")>--->
 
-<!--- Handle the title when the post is not found --->
-<cfif postFound>
-	<cfset titleMetaTagValue = titleMetaTagValue>
-<cfelse>
+<!--- Handle the title when the post is not found. Only when a single post or page was asked for: a blog with no posts yet (a brand new install) also finds no posts on the home page, and its title showed "Post Not Found" (found in the 4.8 install test, 2026-10-11). --->
+<cfparam name="titleMetaTagValue" default="#encodeForHTML(application.BlogDbObj.getBlogTitle())#">
+<cfif not postFound and structKeyExists(URL, "mode") and listFindNoCase("alias,entry,page", URL.mode)>
 	<cfset titleMetaTagValue = "Post Not Found">
 </cfif>
 	

@@ -958,7 +958,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="text" name="dsnPassword" id="dsnPassword" value="<cfoutput>#blogDsnPassword#</cfoutput>" class="k-textbox" style="width: 95%" />
+				<input type="password" name="dsnPassword" id="dsnPassword" autocomplete="new-password" value="<cfoutput>#encodeForHTMLAttribute(blogDsnPassword)#</cfoutput>" class="k-textbox" style="width: 95%" />
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -967,7 +967,7 @@
 				<label for="dsnPassword">DSN Password:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" name="dsnPassword" id="dsnPassword" value="<cfoutput>#blogDsnPassword#</cfoutput>" class="k-textbox" style="width: 50%" />
+				<input type="password" name="dsnPassword" id="dsnPassword" autocomplete="new-password" value="<cfoutput>#encodeForHTMLAttribute(blogDsnPassword)#</cfoutput>" class="k-textbox" style="width: 50%" />
 			</td>
 		  </tr>
 		</cfif>
@@ -1089,7 +1089,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="text" name="mailPassword" id="mailPassword" value="<cfoutput>#mailPassword#</cfoutput>" class="k-textbox" style="width: 95%" required />
+				<input type="password" name="mailPassword" id="mailPassword" autocomplete="new-password" value="<cfoutput>#encodeForHTMLAttribute(mailPassword)#</cfoutput>" class="k-textbox" style="width: 95%" required />
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -1098,7 +1098,7 @@
 				<label for="mailPassword">Mail Password:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" name="mailPassword" id="mailPassword" value="<cfoutput>#mailPassword#</cfoutput>" class="k-textbox" style="width: 50%" required /> 
+				<input type="password" name="mailPassword" id="mailPassword" autocomplete="new-password" value="<cfoutput>#encodeForHTMLAttribute(mailPassword)#</cfoutput>" class="k-textbox" style="width: 50%" required /> 
 			</td>
 		  </tr>
 		</cfif>	  

@@ -246,6 +246,20 @@
 
 	</cffunction>
 
+	<cffunction name="ensureRawSqlTables" access="public" returnType="void" output="false"
+			hint="Creates the tables that are managed with raw SQL rather than an ORM entity (ORM's automatic table creation never sees them) if they are missing. Called by the 4.7 update script for existing blogs, and by Application.cfc when a brand new blog is installed - a new install starts at the current version, so it never runs the 4.7 script (found in the 4.8 install test, 2026-10-11: 'Invalid object name PageCollectionMemberLookup' when opening the first post). Safe to run more than once.">
+
+		<cfset createTableIfMissing("PageCollectionMemberLookup", {
+			"sqlServer": "CREATE TABLE PageCollectionMemberLookup (PageCollectionMemberLookupId INT NOT NULL IDENTITY(1,1) PRIMARY KEY, [Date] DATETIME2 NULL, PostRef INT NULL, PageCollectionRef INT NULL, SortOrder INT NULL)",
+			"mySql": "CREATE TABLE PageCollectionMemberLookup (PageCollectionMemberLookupId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, Date DATETIME NULL, PostRef INT NULL, PageCollectionRef INT NULL, SortOrder INT NULL)"
+		})>
+		<cfset createTableIfMissing("PageCollectionDissolveNotice", {
+			"sqlServer": "CREATE TABLE PageCollectionDissolveNotice (PageCollectionDissolveNoticeId INT NOT NULL IDENTITY(1,1) PRIMARY KEY, BlogRef INT NULL, Message NVARCHAR(500) NULL, Created DATETIME2 NULL, Dismissed BIT NOT NULL DEFAULT 0)",
+			"mySql": "CREATE TABLE PageCollectionDissolveNotice (PageCollectionDissolveNoticeId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, BlogRef INT NULL, Message VARCHAR(500) NULL, Created DATETIME NULL, Dismissed TINYINT(1) NOT NULL DEFAULT 0)"
+		})>
+
+	</cffunction>
+
 	<cffunction name="seedTables" access="public" returnType="void" output="false"
 			hint="Adds the reference data that is in the /installer/dataFiles/ folder to the database. By default this only adds the records that are missing and leaves existing records (and any changes that the user made to them) alone. Only pass updateRecords as true for tables that the user can't change.">
 		<cfargument name="tables" type="string" required="true" hint="A list of tables. Any table that application.blog.updateDb() handles, ie Font, Theme, MapProvider or MapType.">

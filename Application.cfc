@@ -64,13 +64,10 @@
 				jSoup
 	//*****************************************************************************************--->
 		
-	<!--- Note: this may cause an error when you're first installing the blog as the proper paths are not yet set. --->
-	<cfif getInstalled()>
-		<!--- Create the path. This is bracketed as the init function expects an array --->
-		<cfset application.jSoupPath = [expandPath(getBaseUrl() & "/common/java/jSoup/jsoup-1.15.1.jar")]>
-		<!--- Load Jsoup using this.javaSettings. Don't create the object until it is needed. This will be done in Jsoup.cfc --->
-		<cfset this.javaSettings = { loadPaths = application.jSoupPath, loadColdFusionClassPath=true, reloadOnChange=false }>
-	</cfif><!---<cfif getInstalled()>--->
+	<!--- The path is worked out from this file's own folder, so it is right even while the blog is being installed, before the site URLs are set. This used to be inside <cfif getInstalled()>, but ColdFusion only reads this.javaSettings when the application starts, and a new blog's application starts before the install has finished - so on every fresh install jsoup was missing ("Class not found: org.jsoup.Jsoup" when saving the first post) until the application was restarted (found in the 4.8 install test, 2026-10-11). This is bracketed as javaSettings expects an array. --->
+	<cfset jSoupLoadPaths = [getDirectoryFromPath(getCurrentTemplatePath()) & "common/java/jSoup/jsoup-1.15.1.jar"]>
+	<!--- Load Jsoup using this.javaSettings. Don't create the object until it is needed. This will be done in Jsoup.cfc --->
+	<cfset this.javaSettings = { loadPaths = jSoupLoadPaths, loadColdFusionClassPath=true, reloadOnChange=false }>
 		
 	<!--- Enable ORM --->
 	<cfset initOrm()>
@@ -248,7 +245,7 @@
 
 		<!--- Reload the ORM schema. Note: forcing this to load on every page load will create ORM related errors when including the mapPreview.cfm template. The error is 'Orm not configured...' most likely due to the ORMReload statement interfering with the ORM initialization. ' --->
 		<!--- Security: URL.init/URL.reinit resets app-level vars and flushes all caches. Since this has real side effects, only allow it to be triggered via the URL when an administrator is already logged in (application.Udf.isLoggedIn() checks session.loggedin, the same session flag set by ProxyController.cfc's ajaxLogin() on successful admin login) - OR when we're in the middle of installing the blog (not getInstalled()), since the 7 part initial installer (installer/initial/step7Post.cfm) redirects here with ?init=1&install=true before any admin account exists to log into - OR when reinstallIni/reinstallDb are true (the developer-only flags declared at the top of this component, manually flipped by someone who already has file system access, used to force a re-run of the installer/data population). An anonymous request carrying ?init=1/?reinit=1 outside of these cases is silently ignored - no error, no indication the param was seen. --->
-		<cfif (isDefined("URL.init") or isDefined("URL.reinit")) and (application.Udf.isLoggedIn() or reinstallIni or reinstallDb or not getInstalled())>
+		<cfif (isDefined("URL.init") or isDefined("URL.reinit")) and ((structKeyExists(application, "Udf") and application.Udf.isLoggedIn()) or reinstallIni or reinstallDb or not getInstalled())>
 
 			<!--- Reset the main app vars --->
 			<cfset getRootDirectoryPath(true)>
@@ -311,7 +308,7 @@
 				
 		<!--- Reload ORM --->
 		<!--- Security: ORMReload() is expensive and briefly disrupts every in-flight request against the ORM. Only allow ?reloadOrm=1 to trigger it when an administrator is already logged in (same application.Udf.isLoggedIn() check as above), OR when we're mid-install / a developer-forced reinstall is in progress (same reinstallIni/reinstallDb/not getInstalled() bypass used for URL.init/URL.reinit above) - the installer needs to be able to force an ORM reload before any admin account exists. An anonymous request carrying the param outside of these cases is silently ignored. --->
-		<cfif isDefined("URL.reloadOrm") and (application.Udf.isLoggedIn() or reinstallIni or reinstallDb or not getInstalled())>
+		<cfif isDefined("URL.reloadOrm") and ((structKeyExists(application, "Udf") and application.Udf.isLoggedIn()) or reinstallIni or reinstallDb or not getInstalled())>
 			<cfset ORMReload()>
 		</cfif>
 
@@ -547,8 +544,25 @@
 			
 		<!--- Load the Blog Db object (there is only one record in this version) --->
 		<cfset application.BlogDbObj = entityLoadByPK("Blog", 1)>
+		<!--- The Blog row is normally id 1, but SQL Server and MySQL use up ids on failed or rolled back inserts, so a blog whose first install attempt failed can end up with a different id. Use the first row instead. If there is no Blog row at all while blog.ini.cfm says the blog is installed (for example the datasource was pointed at a new, empty database after an earlier install attempt), mark the blog as not installed and start the request again so that the starter data is inserted. Without this, the blog failed in blog.cfc's init with 'Element BLOGDBOBJ is undefined' and could not recover without editing blog.ini.cfm and restarting the application (found in the 4.8 install test, 2026-10-11). --->
+		<cfif isNull(application.BlogDbObj)>
+			<cfset local.firstBlogRows = entityLoad("Blog", {}, "BlogId asc", {maxresults=1})>
+			<cfif arrayLen(local.firstBlogRows)>
+				<cfset application.BlogDbObj = local.firstBlogRows[1]>
+			<cfelse>
+				<cfset setProfileString(application.iniFile, "default", "installed", false)>
+				<cfset application.installed = false>
+				<cflocation url="#getBaseUrl()#/index.cfm" addToken="false">
+			</cfif>
+		</cfif>
 		<!--- Load the BlogOptions Db Object (there is only one record in this version) --->
 		<cfset application.BlogOptionDbObj = entityLoadByPK("BlogOption", 1)>
+		<cfif isNull(application.BlogOptionDbObj)>
+			<cfset local.firstBlogOptionRows = entityLoad("BlogOption", {}, "BlogOptionId asc", {maxresults=1})>
+			<cfif arrayLen(local.firstBlogOptionRows)>
+				<cfset application.BlogOptionDbObj = local.firstBlogOptionRows[1]>
+			</cfif>
+		</cfif>
 			
 		<!--- Notes: the blogname reference here is really important to the underlying logic in this application. Raymond coded this. I assumed that this was just a label, or something else inconsequential. its not. It actually is the first line in the blog.ini.cfm file that sets the configuration for the entire application. Unless there is something that I missed, it is essential that you leave this alone.  I am not sure why you should ever edit this, it will break the blog. 
 		Raymond's comment: "Edit this line if you are not using a default blog", but I am not sure why and when this would ever apply.
@@ -635,6 +649,8 @@
 		<cfset application.dbBlogVersion = application.BlogDbObj.getBlogVersion()>
 		<!--- A new install starts at the version of the files that were installed. The seed data that the installer inserts carries an older version number, which would make a brand new blog look like it needs to be updated. --->
 		<cfif isDefined("request.blogJustInstalled") and request.blogJustInstalled>
+			<!--- Starting at the current version means the update scripts never run, so create the tables that only the update scripts used to create (see DatabaseUpdater.cfc's ensureRawSqlTables). --->
+			<cfset application.databaseUpdater.ensureRawSqlTables()>
 			<cfset application.blog.updateBlogVersion(application.blog.getVersion(), application.blog.getVersionName())>
 			<cfset entityReload(application.BlogDbObj)>
 			<cfset application.dbBlogVersion = application.blog.getVersion()>

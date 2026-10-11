@@ -6,6 +6,11 @@
 <cfif !len(dsn)>
 	<cfset dsn = "GalaxieDb">
 </cfif>
+<!--- Set by step5SaveDatabase.cfm when the datasource could not be used. Show the name that was typed so it can be corrected. --->
+<cfset dsnError = structKeyExists(session, "dsnError") ? session.dsnError : "">
+<cfif len(dsnError) and structKeyExists(session, "dsnErrorValue")>
+	<cfset dsn = session.dsnErrorValue>
+</cfif>
 <cfset databaseType = getProfileString(application.iniFile, "default", "databaseType")>
 </cfsilent>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
@@ -85,6 +90,14 @@
 							  Please create an <b>empty</b> database and create a ColdFusion Datasource for the new database. You can use <b>any modern</b> database that you wish, however, ensure this DSN and database exists!
 							</td>
 						</tr>
+						<cfif len(dsnError)>
+						<tr>
+							<td></td>
+							<td align="left" style="vertical-align:middle">
+							  <b><cfoutput>#encodeForHtml(dsnError)#</cfoutput></b>
+							</td>
+						</tr>
+						</cfif>
 						<!-- Border -->
 					    <tr height="2px">
 						  	<td align="left" valign="middle" colspan="2" class="k-content border"></td>
@@ -94,7 +107,7 @@
 								DSN:
 							</td>
 							<td align="left" style="vertical-align:middle">
-							  <input type="text" id="dsn" name="dsn" class="k-textbox" style="width:45%" value="<cfoutput>#dsn#</cfoutput>" required>
+							  <input type="text" id="dsn" name="dsn" class="k-textbox" style="width:45%" value="<cfoutput>#encodeForHtmlAttribute(dsn)#</cfoutput>" required>
 							</td>
 						</tr>
 						<!-- Border -->
