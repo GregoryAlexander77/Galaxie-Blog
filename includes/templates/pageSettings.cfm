@@ -85,12 +85,12 @@ Note: in order to debug- remove the cfsilent that wraps around the pageSettings.
 <!--- When we are looking at a post and the post theme is defined, get the theme. Otherwise get the current selected theme. --->
 <cfif getPageMode() eq 'post' and isDefined("postThemeId") and postThemeId gt 0>
 	<!--- Get the theme data by the theme id. --->
-	<cfset getTheme = application.blog.getTheme(themeId=postThemeId)>	
+	<cfset getTheme = application.blog.getTheme(themeId=postThemeId)>
 <cfelse>
 	<!--- Get the current theme --->
 	<cfset selectedThemeAlias = trim(application.blog.getSelectedThemeAlias())>
 	<!--- Get the Theme data for this theme. --->
-	<cfset getTheme = application.blog.getTheme(themeAlias=selectedThemeAlias)>	
+	<cfset getTheme = application.blog.getTheme(themeAlias=selectedThemeAlias)>
 </cfif>
 <cfif not arrayLen(getTheme)>
 	<cfset getTheme = application.blog.getTheme(themeAlias="Delicate-Arch")>		

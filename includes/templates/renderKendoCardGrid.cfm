@@ -130,13 +130,38 @@
 	<cfif not len(thumbnail) and len(enclosure)>
 		<cfset cardImage = enclosure>
 	</cfif>
-	<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and use the noImage.jpg if the share image or thumbnail does not exist (likely due to a cfinclude, errors or a blog upgrade) --->
+	<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and if not, defer to BlogOption.NoImageFallbackMode - noImage.jpg (default, unchanged), generated CSS/SVG art, a rendered carousel from the shared hero image pool (isHtml=true reuses the thumbnailCarousel slot below, same as a post's own enclosure carousel), or no image area at all ('none' mode). --->
+	<cfset suppressCardImage = false>
 	<cfif not len(cardImage)>
 		<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[i]["PostHeader"], 'facebookImageUrlMetaData')>
 		<cfif len(facebookImageMetaTagValue)>
 			<cfset cardImage = facebookImageMetaTagValue>
+		<!--- 2026-10-01: a Hero Cover Image (static uploaded photo, for a post with no real Image/Video/Map/
+		Carousel) takes priority over the Gradient/generated-fallback below, but a manually-typed
+		facebookImageUrlMetaData directive (checked just above) still wins for backward compatibility on an
+		older post - same relative priority seoMetaTags.cfm uses for the social-share image. --->
+		<cfelseif len(getPost[i]["HeroCoverImageUrl"])>
+			<cfset cardImage = getPost[i]["HeroCoverImageUrl"]>
+		<!--- An explicit gradient the user picked (see gradientEditor.cfm/Post.cfc's HeroGradient) is a real,
+		deliberate hero choice - checked before the auto-generated-art fallback below, same priority reasoning as
+		Renderer.cfc's renderEnclosure()/renderMediaPreview(). Reuses the thumbnailCarousel HTML slot, same as the
+		hero-pool-carousel fallback does (see this cfif block's own header comment above). --->
+		<cfelseif len(getPost[i]["HeroGradient"])>
+			<!--- Renderer.cfc.renderHeroGradientHtml() - single point of truth for this HTML, shared with
+			Renderer.cfc's own renderMediaPreview()/renderEnclosure() and the other two card templates. --->
+			<!--- Named arguments (2026-10-09): the 4th positional argument became heroOverlayFont when font support was added, so a positional "true" set the font to "true" and left the card at the tiny admin-thumbnail size. --->
+			<cfset thumbnailCarousel = RendererObj.renderHeroGradientHtml(heroGradient=getPost[i]["HeroGradient"], heroOverlayText=getPost[i]["HeroOverlayText"], heroOverlayTextColor=getPost[i]["HeroOverlayTextColor"], heroOverlayFont=(structKeyExists(getPost[i], "HeroOverlayFont") ? getPost[i]["HeroOverlayFont"] : ""), heroOverlayFontSize=(structKeyExists(getPost[i], "HeroOverlayFontSize") ? getPost[i]["HeroOverlayFontSize"] : ""), cardMode=true)>
 		<cfelse>
-			<cfset cardImage = application.baseUrl & "/images/thumbnails/noImage.jpg">
+			<cfset heroFallback = RendererObj.getHeroFallbackHtml(postId=getPost[i]["PostId"], cardMode=true)>
+			<cfif heroFallback.isHtml>
+				<cfset thumbnailCarousel = heroFallback.content>
+			<cfelseif heroFallback.suppressImage>
+				<cfset suppressCardImage = true>
+			<cfelseif len(heroFallback.content)>
+				<cfset cardImage = heroFallback.content>
+			<cfelse>
+				<cfset cardImage = application.baseUrl & "/images/thumbnails/noImage.jpg">
+			</cfif>
 		</cfif>
 	</cfif>
 	<cfif isDebug>
@@ -258,7 +283,7 @@
 							<cfoutput>#thumbnailMap#</cfoutput>
 						<cfelseif len(thumbnailCarousel)>
 							<cfoutput>#thumbnailCarousel#</cfoutput>
-						<cfelse>
+						<cfelseif not suppressCardImage>
 							<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div>
 						</cfif>
 					</a>

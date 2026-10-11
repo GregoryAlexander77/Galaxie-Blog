@@ -32,9 +32,11 @@
 		<cfset editorHeight = "650">
 	</cfif>
 	
-	<!--- We need to pass the theme or the user ID depending upon the upload type specified from the URL.optArgs --->
+	<!--- We need to pass the theme, user, or page collection ID depending upon the upload type specified from the URL.otherArgs --->
 	<cfif URL.otherArgs eq 'profilePicture'>
 		<cfset processEntityTypeId = "userId">
+	<cfelseif URL.otherArgs eq 'pageCollectionHero'>
+		<cfset processEntityTypeId = "pageCollectionId">
 	<cfelse>
 		<!--- Standard pathway --->
 		<cfset processEntityTypeId = "themeId">
@@ -46,14 +48,112 @@
 	<cfset imageMediaIdField = "mediaId">
 	<cfset imageClass = "entryImage">
 
+	<!--- PARTIALLY PAUSED 2026-09-26 (per feedback - same pattern already used in enclosureImageEditor.cfm): "image"
+	is back in the toolbar, restoring TinyMCE's own native "Insert/Edit Image" dialog. That dialog's own "Upload" tab
+	now opens a standalone Uppy popup instead (see includes/templates/js/tinyMce.cfm's OpenWindow listener and
+	admin/adminInterface/imageUploadUppyUploadWindow.cfm, window 76) - clicking the image icon no longer shows Uppy
+	immediately; it only appears once the admin explicitly clicks Upload inside that dialog. The always-visible
+	inline Uppy panel below (still present, just gated off by showInlineUppyPanel, set below) was confusing next to
+	the plain TinyMCE editor showing right underneath it, always visible with no need to click anything first.
+	"editimage" stays either way - it edits an image already in the content. --->
 	<cfset toolbarString = "undo redo | image editimage ">
 	<cfset disableVideoCoverAndWebVttButtons = true>
+	<cfset showInlineUppyPanel = false>
 
 	</cfsilent>
 	<!--- Include the tinymce js template --->
 	<cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">
 	<!---<cfoutput><br/>selectorId: #selectorId#</cfoutput>--->
-		
+
+	<!--- PARTIALLY PAUSED 2026-09-26 - see the toolbarString comment above. Upload an Image - Uppy + its ImageEditor
+	plugin (crop/rotate/flip/zoom), the same cropping tool used for galleries/carousels and now the Enclosure Editor
+	(see doc/standardizingImageUploadsWithUppy), standardized here too in place of TinyMCE's own plain, no-crop
+	insert-image dialog. Single file only. Posts to the exact same imageHandlerUrl endpoint TinyMCE's own upload
+	handler already used, so uploadImage()'s existing behavior for whichever mediaProcessType this screen was opened
+	for applies unchanged - only how the file reaches that endpoint has changed. metaFields: [] strips Uppy's own
+	auto-added name/type meta fields, which uploadImage() (a remote CFC method with a fixed argument list) would
+	otherwise reject the whole request over - see the article above for the "does not support type as an argument"
+	error this avoids. Change showInlineUppyPanel back to true above to reverse. --->
+	<cfif showInlineUppyPanel>
+	<script>
+		var imageUploaderUppy = Uppy.Core({
+			restrictions: {
+				maxNumberOfFiles: 1,
+				allowedFileTypes: ['image/*']
+			}
+		})
+
+		.use(Uppy.Dashboard, {
+			theme: '<cfoutput>#(darkTheme ? "dark" : "light")#</cfoutput>',
+			inline: true,
+			target: '#imageUploaderUppyUpload',
+			height: 350,
+			proudlyDisplayPoweredByUppy: false
+		})
+
+		.use(Uppy.Webcam, { target: Uppy.Dashboard })
+
+		.use(Uppy.ImageEditor, {
+			target: Uppy.Dashboard,
+			quality: 0.8
+		})
+
+		.use(Uppy.XHRUpload, {
+			fieldName: 'file',
+			formData: true,
+			bundle: false,
+			metaFields: [],
+			endpoint: '<cfoutput>#imageHandlerUrl#</cfoutput>'
+		});
+
+		imageUploaderUppy.on('upload', function(data) {
+			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while the image is uploaded.", icon: "k-ext-information" }));
+		});
+
+		var imageUploaderUppyResponse = null;
+
+		imageUploaderUppy.on('upload-success', function(file, response) {
+			if (response.body.errorMessage) {
+				imageUploaderUppyResponse = null;
+				alert("Error: " + response.body.errorMessage);
+			} else {
+				imageUploaderUppyResponse = response.body;
+			}
+		});
+
+		imageUploaderUppy.on('upload-error', function(file, error, response) {
+			setTimeout(function() { kendo.ui.ExtWaitDialog.hide(); }, 500);
+			$.when(kendo.ui.ExtYesNoDialog.show({
+				title: "Upload failed",
+				message: "The following error was encountered: " + error + ". Do you want to retry the upload?",
+				icon: "k-ext-warning",
+				width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>",
+				height: "215px"
+			})).done(function(response) {
+				if (response['button'] == 'Yes') {
+					imageUploaderUppy.retryUpload(file.id);
+				}
+			});
+		});
+
+		imageUploaderUppy.on('complete', function(result) {
+			setTimeout(function() { kendo.ui.ExtWaitDialog.hide(); }, 500);
+
+			if (!imageUploaderUppyResponse) { return; }
+
+			<!--- Same end state TinyMCE's own upload handler already produced - an <img> in the editor content and
+			the mediaId hidden field set - blogUploadSubmit() and everything downstream needs no changes. --->
+			$("#<cfoutput>#imageMediaIdField#</cfoutput>").val(imageUploaderUppyResponse.mediaId);
+			tinymce.get("<cfoutput>#selectorName#</cfoutput>").setContent('<img src="' + imageUploaderUppyResponse.location + '" alt="">');
+
+			<!--- Reset so uploading a second image (replacing this one before Submit) starts clean. --->
+			imageUploaderUppy.cancelAll();
+			imageUploaderUppyResponse = null;
+		});
+	</script>
+	</cfif>
+	<!--- end PARTIALLY PAUSED 2026-09-26 --->
+
 	<script>
 		<!--- Note: this function handles enclosure images, videos, theme and user profile images and needs to be changed according to what is being processed. This particular function handles user and theme images. Note: the invokedArguments is not used by CF, but shows the location where this function is being called from and the arguments for debugging purposes. --->
 		function saveExternalUrl(url, mediaType, selectorId, invokedArguments){ 
@@ -100,12 +200,22 @@
 			}, 250);
 		<cfif URL.otherArgs eq 'profilePicture'>
 			<!--- Do the same for the user detail and user profile windows --->
-			setTimeout(function() {	
+			setTimeout(function() {
 				try {
 					<!--- Refresh the user detail window (the main user window) --->
 					$("#userDetailWindow").data("kendoWindow").refresh();
 					<!--- Refresh the proile window that the secondary user fills out when a new user is added. Note: this is also used for the user profile images so the window may not be defined --->
 					$("#userProfileWindow").data("kendoWindow").refresh();
+				} catch(e){
+					<!--- Window is not defined --->
+				}
+			}, 250);
+		</cfif>
+		<cfif URL.otherArgs eq 'pageCollectionHero'>
+			<!--- Refresh Configure Page Collections so the new hero image/thumbnail shows up right away, same pattern as above. --->
+			setTimeout(function() {
+				try {
+					$("#configurePageCollectionsWindow").data("kendoWindow").refresh();
 				} catch(e){
 					<!--- Window is not defined --->
 				}
@@ -166,7 +276,10 @@
 				<cfcase value="profilePicture">
 					Your profile image should be around 250x250 pixels and use landscape orientation.
 				</cfcase>
-				
+				<cfcase value="pageCollectionHero">
+					The hero image doubles as this Page Collection's icon and its card image wherever the Collection is listed. Only images are supported.
+				</cfcase>
+
 			</cfswitch>
 			 
 		</td>
@@ -183,13 +296,37 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+	  <!-- Upload an Image (Uppy + cropping) - PARTIALLY PAUSED 2026-09-26, see the toolbarString comment above -->
+	  <cfif showInlineUppyPanel>
+	  <tr valign="middle">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px 0px;">
+			<label>Upload an Image (crop, rotate and flip before it's saved):</label>
+		</td>
+	  </tr>
+	  <tr valign="middle">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 6px 12px 12px;">
+			<div id="imageUploaderUppyUpload"></div>
+		</td>
+	  </tr>
+	  </cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+	    	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<!--- TinyMce container --->
+			<!--- TinyMce container - now only used for editing an image already inserted (alt text, dimensions via
+			"editimage") - new images come from the Uppy uploader above instead. --->
 			<div style="position: relative;">
 				<textarea id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>"></textarea>
-			</div>   
+			</div>
 		</td>
 	  </tr>
 	  <cfsilent>

@@ -11,6 +11,19 @@
 		FROM Media
 		WHERE MediaId IN (<cfqueryparam value="#mediaIdList#" cfsqltype="integer" list="yes">)
 	</cfquery>
+	<!--- Show the pictures in mediaIdList's order - the order they were picked in the upload window. The IN (...) query
+	above returns them in the database's own order, and saveCarousel/saveGallery pair each form field with mediaIdList
+	by position, so a different order here put the slides out of order (and could attach a title to the wrong picture). --->
+	<cfset orderedMedia = []>
+	<cfloop list="#mediaIdList#" index="thisOrderedMediaId">
+		<cfloop array="#getMediaUrl#" item="thisMediaRow">
+			<cfif thisMediaRow["MediaId"] eq thisOrderedMediaId>
+				<cfset arrayAppend(orderedMedia, thisMediaRow)>
+				<cfbreak>
+			</cfif>
+		</cfloop>
+	</cfloop>
+	<cfset getMediaUrl = orderedMedia>
 	<!--- 
 	Debugging:<br/>
 	<cfoutput>mediaIdList: #mediaIdList#</cfoutput>
@@ -63,7 +76,7 @@
 		<cfelse>
 			<td align="left" valign="top" class="border" width="90%">
 		</cfif>
-				<a class="fancybox-effects" href="<cfoutput>#imageUrl#</cfoutput>"><img data-src="<cfoutput>#imageUrl#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#imageUrl#</cfoutput>"></a>
+				<a class="glightbox" href="<cfoutput>#imageUrl#</cfoutput>"><img data-src="<cfoutput>#imageUrl#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#imageUrl#</cfoutput>"></a>
 			</td>
 		</tr>
 		<tr>
@@ -95,7 +108,7 @@
 
 			<td align="left" valign="top" class="border" width="240px">
 		</cfif>
-			<a class="fancybox-effects" href="<cfoutput>#imageUrl#</cfoutput>"><img data-src="<cfoutput>#imageUrl#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#imageUrl#</cfoutput>"></a>
+			<a class="glightbox" href="<cfoutput>#imageUrl#</cfoutput>"><img data-src="<cfoutput>#imageUrl#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#imageUrl#</cfoutput>"></a>
 		</td>
 		<cfif i eq 1>
 			<td valign="top">

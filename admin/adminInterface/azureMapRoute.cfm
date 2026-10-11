@@ -4,8 +4,14 @@
 	<cfset accentColor = application.blog.getPrimaryColorsByTheme(kendoTheme:'default',setting:'accentColor')>
 	<!--- Instantiate the Render.cfc. This will be used to build the HTML for the image if the MediaUrl is present in the database. --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
+	<!--- Same Page-Collection-vs-Post switch as enclosureImageEditor.cfm - see its comment. --->
+	<cfset isPageCollectionEnclosure = (isDefined("URL.entityType") and URL.entityType eq 'pageCollection')>
+	<cfif isPageCollectionEnclosure>
+		<cfset getPost = application.blog.getPageCollectionByPageCollectionId(URL.optArgs)>
+	<cfelse>
+		<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+		<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
+	</cfif>
 	<!---<cfdump var="#getPost#">--->
 		
 	<!--- When the map already contains routes the location does not show up when submitting the form. This flag will turn off the existing directions so that the user has to fill out the form again. --->
@@ -14,12 +20,16 @@
 	<cfset mapId = URL.optArgs>
 	<!--- Get the current routes if available --->
 	<cfset enclosureMapId = getPost[1]["EnclosureMapId"]>
+	<cfset mapRouteId = 0>
 	<cfif len(enclosureMapId)>
 		<cfset Data = application.blog.getMapRoutesByMapId(enclosureMapId)>
-		<cfset mapRouteId = Data[1]["MapRouteId"]>
+		<!--- A static map is also an EnclosureMapId but has no route rows yet - eg. turning a static map into a route.
+		Data[1] then doesn't exist ("Key [1] doesn't exist"), so only read it when there is a route; otherwise this
+		starts a new route (mapRouteId 0), same as a post with no map at all. --->
+		<cfif arrayLen(Data)>
+			<cfset mapRouteId = Data[1]["MapRouteId"]>
+		</cfif>
 		<!---<cfdump var="#Data#">--->
-	<cfelse>
-		<cfset mapRouteId = 0>
 	</cfif>
 		
 	<!-- Add references to the Azure Maps Map control JavaScript and CSS files. -->
@@ -145,8 +155,17 @@
 		<!--- saveSelection(event, index) --->
 		function saveSelection(e,locationIndex){
 			
-			<!--- Since the Kendo DataSource is dynamic, we can't read the data from this DataSource, however, we can get the data from the jsonObj that we created using the selected index from the Kendo autosuggest widget. --->
-			var selectedLocation = jsonObj[e.item.index()];
+			<!--- Use the item Kendo hands the select event (e.dataItem) - the exact suggestion that was clicked, from
+			this location box's own list. This used to read jsonObj[e.item.index()], but jsonObj is one global shared
+			by every location box, overwritten by whichever box searched last - with several stops (eg. Seattle, Boise,
+			Salt Lake City, Moki Dugway, Moab) a selection could pick up another box's result or nothing at all, leaving
+			the hidden lat/lon/bounds fields blank: "The bounds specified are invalid: [,,,]" and a route that would
+			not save. The jsonObj lookup is only kept as a fallback. --->
+			var selectedLocation = e.dataItem || jsonObj[e.item.index()];
+			if (!selectedLocation) {
+				console.log('saveSelection: no location found for this selection');
+				return;
+			}
 			
 			<!--- console.log('e.item.index():' + e.item.index()); Write the selected index to the console for debugging --->
 			console.log('selectedLocation' + selectedLocation);
@@ -245,14 +264,24 @@
 			datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat])));
 			<!--- datasource.add(new atlas.data.Feature(new atlas.data.Point([lon,lat]), ui.item)); --->
 
-			<!--- Zoom the map into the selected location. --->
-			map.setCamera({
-				bounds: [
-					topLeftPointLon, btmRightPointLat,
-					btmRightPointLon, topLeftPointLat
-				],
-				padding: 0
-			});//map.setCamera
+			<!--- Zoom the map into the selected location. Only use the result's bounding box when all four values are
+			real numbers - an empty one throws "The bounds specified are invalid: [,,,]" inside the map SDK and stops the
+			rest of this setup (the controls below). Otherwise just center on the point. --->
+			var cameraBounds = [Number(topLeftPointLon), Number(btmRightPointLat), Number(btmRightPointLon), Number(topLeftPointLat)];
+			var boundsAreValid = [topLeftPointLon, btmRightPointLat, btmRightPointLon, topLeftPointLat].every(function (v) {
+				return v !== undefined && v !== null && v !== '' && !isNaN(Number(v));
+			});
+			if (boundsAreValid) {
+				map.setCamera({
+					bounds: cameraBounds,
+					padding: 0
+				});//map.setCamera
+			} else {
+				map.setCamera({
+					center: [Number(lon), Number(lat)],
+					zoom: 10
+				});
+			}
 			
 			<!--- Add the controls Create a zoom control. --->
             map.controls.add(new atlas.control.ZoomControl({
@@ -370,6 +399,13 @@
 				var thisAddress = $("#selectedFreeformAddress" + i).val();
 				var thisLat = $("#selectedLat" + i).val();
 				var thisLon = $("#selectedLon" + i).val();
+				<!--- Skip a stop box that has no selected place (eg. stop 4 left empty and the next place typed into stop
+				5). It used to be added anyway as ":," in the route query - Azure answers that with 400 Bad Request, so the
+				route never drew - and as a marker with null coordinates ("Expected value to be of type number, but found
+				null"). getWaypoints(), which builds the list that gets saved, already skips empty stops the same way. --->
+				if (!thisAddress || !thisLat || !thisLon) {
+					continue;
+				}
 				var thisGeoCoordinates = [Number(thisLon),Number(thisLat)];
 				<!--- Append the geocoordinates to the geoCoordinatePositionArray. This array is used to calculate the map boundaries --->
 				geoCoordinatePositionArray.push(thisGeoCoordinates);
@@ -399,6 +435,11 @@
 			}//for
 
 			<!--- Fit the map window to the bounding box defined by the start and end positions. --->
+			<!--- Skip any stop whose coordinates are blank (Number('') is 0, Number(undefined) is NaN) so one bad stop
+			can't make the map SDK throw an invalid-bounds error and stop the route from drawing. --->
+			geoCoordinatePositionArray = geoCoordinatePositionArray.filter(function (position) {
+				return isFinite(position[0]) && isFinite(position[1]) && !(position[0] === 0 && position[1] === 0);
+			});
 			map.setCamera({
 				bounds: atlas.data.BoundingBox.fromPositions(geoCoordinatePositionArray),
 				<!--- Padding will essentially zoom out a bit. The default is 50, I am using 100 as I want the destinations on the map to be clearly shown --->
@@ -468,7 +509,11 @@
 				isEnclosure: <cfif URL.otherArgs eq 'enclosureEditor'>true<cfelse>false</cfif>,
 				mapId: $("#enclosureMapId").val(),
 				mapRouteId: $("#mapRouteId").val(),
+				<cfif isPageCollectionEnclosure>
+				pageCollectionId: "<cfoutput>#URL.optArgs#</cfoutput>",
+				<cfelse>
 				postId: "<cfoutput>#URL.optArgs#</cfoutput>",
+				</cfif>
 				mapZoom: mapZoom,
 				mapType: mapStyle
 			},
@@ -497,7 +542,16 @@
 		<!--- Create our iframe html string --->
 		var mapIframeHtml = '<iframe data-type="map" data-id=' + mapId + ' src="<cfoutput>#application.baseUrl#</cfoutput>/preview/maps.cfm?mapId=' + mapId + '&mapType=route" width="768" height="432" allowfullscreen="allowfullscreen"></iframe>';
 		<!--- Insert the HTML string into the active editor If this is the enclosure content, replace the content. If it is a post editor, insert the content --->
-		tinymce.activeEditor.<cfif URL.otherArgs eq 'enclosureEditor'>setContent<cfelse>insertContent</cfif>(mapIframeHtml);
+		<!--- A Page Collection's hero enclosure has no TinyMCE editor - write straight into its plain preview div
+		instead (window.currentEnclosureEntityType is set by enclosureImageEditor.cfm, reset to '' everywhere else). --->
+		if (window.currentEnclosureEntityType === 'pageCollection') {
+			$('#enclosurePreview').html(mapIframeHtml);
+			<!--- Refresh the Page Collection Detail window's hero preview (and the grid) so the new route shows there, same as gradientEditor.cfm does. --->
+			try { reloadPageCollectionHeroPreview(<cfoutput>#URL.optArgs#</cfoutput>); } catch(e) {}
+			try { $("#configurePageCollectionsWindow").data("kendoWindow").refresh(); } catch(e) {}
+		} else {
+			tinymce.activeEditor.<cfif URL.otherArgs eq 'enclosureEditor'>setContent<cfelse>insertContent</cfif>(mapIframeHtml);
+		}
 
 		<!--- Use a quick set timeout in order for the data to load. --->
 		setTimeout(function() {
@@ -517,17 +571,13 @@
 		var wayPointList = '';
 		
 		<!--- Loop from 1 to 16 and get the selected location, latitude and longitude --->
-		for (let i = 1; i < 16; i++) {
+		for (let i = 1; i <= 16; i++) {
 			var thisAddress = $("#selectedFreeformAddress" + i).val();
 			var thisLat = $("#selectedLat" + i).val();
 			var thisLon = $("#selectedLon" + i).val();
 			if ((thisAddress) && (thisLat) && (thisLon)){ 
 				var thisGeoCoordinates = [Number(thisLon),Number(thisLat)];
-				if (i == 0){
-					wayPointList += thisAddress + '_' + thisLat + '_' + thisLon;
-				} else {
-					wayPointList += ':' + thisAddress + '_' + thisLat + '_' + thisLon;
-				}
+				wayPointList += (wayPointList === "" ? "" : ":") + thisAddress + "_" + thisLat + "_" + thisLon;
 			}
 		}
 

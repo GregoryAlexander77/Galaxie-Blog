@@ -2,6 +2,8 @@
 	
 	<cfproperty name="CarouselId" fieldtype="id" generator="native" setter="false">
 	<cfproperty name="PostRef" ormtype="int" fieldtype="many-to-one" cfc="Post" fkcolumn="PostRef" cascade="all" missingrowignored="true" hint="Foreign Key to the Post.PostId">
+	<!--- A carousel can instead belong to a Page Collection's hero enclosure rather than a Post - mutually exclusive with PostRef. --->
+	<cfproperty name="PageCollectionRef" ormtype="int" fieldtype="many-to-one" cfc="PageCollection" fkcolumn="PageCollectionRef" cascade="all" missingrowignored="true" hint="Foreign Key to the PageCollection.PageCollectionId">
 	<!--- The CarouselItems column below is a psuedo column that is used by this object. There one gallery with many items --->
 	<cfproperty name="CarouselItems" singularname="CarouselItem" ormtype="int" fieldtype="one-to-many" cfc="CarouselItem" fkcolumn="CarouselRef" type="array" cascade="all" inverse="true" missingRowIgnored="true">
 	<cfproperty name="CarouselName" ormtype="string" default="" length="175" hint="The name of the carousel.">

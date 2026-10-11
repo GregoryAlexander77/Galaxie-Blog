@@ -60,6 +60,8 @@
 		<!--- Preset the default social media image URLs. We will overwrite these later if they're available. --->
 		<cfset facebookImageMetaTagValue = thisUrl & getTheme[1]["DefaultLogoImageForSocialMediaShare"]>
 		<cfset twitterImageMetaTagValue = thisUrl & getTheme[1]["DefaultLogoImageForSocialMediaShare"]>
+		<!--- Only ever set (non-empty) for an actual post whose Pinterest crop exists - see the pinterest block below. Preset empty here so head.cfm's <cfif len(pinterestImageMetaTagValue)> check always has a defined variable to read on every page type. --->
+		<cfset pinterestImageMetaTagValue = "">
 
 		<!--- Default twitter card type. We will rewrite this if the twitterMediaUrlMetaData is defined. --->
 		<cfset twitterCardType = "summary_large_image">
@@ -74,21 +76,98 @@
 
 			<cfif len(getPost[1]["MediaUrl"]) and (getPost[1]["MediaUrl"] contains '.jpg' or getPost[1]["MediaUrl"] contains '.gif' or getPost[1]["MediaUrl"] contains '.png' or getPost[1]["MediaUrl"] contains '.webp')>
 
-				<!--- If social media images are uploaded when a post is made, use the social media URL. --->
-				<cfset facebookImageUrl = thisUrl & "/enclosures/facebook/" & getFileFromPath(getPost[1]["MediaUrl"])>
-				<cfset twitterImageUrl = thisUrl & "/enclosures/twitter/" & getFileFromPath(getPost[1]["MediaUrl"])>
+				<!--- Fallback chain per platform: the platform's own crop (webp preferred, since createSocialMediaImages()
+				now always writes a webp companion alongside the original-format file) -> the classic GalaxieBlog
+				1200x900 crop (also always generated, see Image.cfc) -> whatever's already preset above (the theme's
+				DefaultLogoImageForSocialMediaShare) -> the raw, uncropped original as the very last resort. Only that
+				last step used to run - a missing platform crop (eg. an old post from before this pipeline existed, or
+				before the webp companion existed) silently served the full-size original as the og:image/twitter:image
+				instead of falling back to anything sized sensibly. --->
+				<cfset socialMediaEnclosureFileName = getFileFromPath(getPost[1]["MediaUrl"])>
+				<cfset socialMediaEnclosureFileNameNoExt = reReplaceNoCase(socialMediaEnclosureFileName, "\.[^.]+$", "")>
+				<cfset classicGalaxieBlogImageUrl = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileName>
 
-				<!--- If they exist, overwrite the meta tag vars. --->
-				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & getFileFromPath(getPost[1]["MediaUrl"])))>
+				<cfset facebookImageUrl = thisUrl & "/enclosures/facebook/" & socialMediaEnclosureFileName>
+				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
+					<cfset facebookImageMetaTagValue = thisUrl & "/enclosures/facebook/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileName))>
 					<cfset facebookImageMetaTagValue = facebookImageUrl>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
+					<cfset facebookImageMetaTagValue = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
+					<cfset facebookImageMetaTagValue = classicGalaxieBlogImageUrl>
 				<cfelse>
-					<!--- I am manually converting files to webp in the enlosure directory and often the image won't be found in the facebook or twitter directories. If this is the case, just use the enclosure URL --->
 					<cfset facebookImageMetaTagValue = getPost[1]["MediaUrl"]>
 				</cfif>
-				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & getFileFromPath(getPost[1]["MediaUrl"])))>
+
+				<cfset twitterImageUrl = thisUrl & "/enclosures/twitter/" & socialMediaEnclosureFileName>
+				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
+					<cfset twitterImageMetaTagValue = thisUrl & "/enclosures/twitter/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileName))>
 					<cfset twitterImageMetaTagValue = twitterImageUrl>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
+					<cfset twitterImageMetaTagValue = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
+					<cfset twitterImageMetaTagValue = classicGalaxieBlogImageUrl>
 				<cfelse>
 					<cfset twitterImageMetaTagValue = getPost[1]["MediaUrl"]>
+				</cfif>
+
+				<!--- Pinterest only gets an extra og:image tag when its own 1000x1500 crop actually exists - unlike
+				facebook/twitter/classic, there's no fallback tier for it (see Image.cfc), so most images simply won't
+				have one. Multiple og:image tags are valid per the Open Graph spec; Pinterest evaluates all of them
+				when generating a Rich Pin, so this is additive, not a replacement for the primary og:image below. --->
+				<cfset pinterestImageMetaTagValue = "">
+				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
+					<cfset pinterestImageMetaTagValue = thisUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileName))>
+					<cfset pinterestImageMetaTagValue = thisUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileName>
+				</cfif>
+
+			<!--- 2026-10-01: a Hero Cover Image - a static uploaded photo for a post with no real Image enclosure
+			(Gradient/animation/generated fallback) - drives the social-share image the same way a real enclosure
+			image does, via the exact same platform-crop fallback chain above (createSocialMediaImages() ran on
+			it the same way at upload time - see ProxyController.cfc's uploadImage()). This is what replaces the
+			old per-post practice of hand-typing facebookImageUrlMetaData/twitterImageUrlMetaData directives for
+			exactly this case - a manually-typed directive, if one still exists on an older post, still wins
+			below (getXmlOverride() runs after this block regardless of which branch set these values). --->
+			<cfelseif len(getPost[1]["HeroCoverImageUrl"])>
+
+				<cfset socialMediaEnclosureFileName = getFileFromPath(getPost[1]["HeroCoverImageUrl"])>
+				<cfset socialMediaEnclosureFileNameNoExt = reReplaceNoCase(socialMediaEnclosureFileName, "\.[^.]+$", "")>
+				<cfset classicGalaxieBlogImageUrl = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileName>
+
+				<cfset facebookImageUrl = thisUrl & "/enclosures/facebook/" & socialMediaEnclosureFileName>
+				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
+					<cfset facebookImageMetaTagValue = thisUrl & "/enclosures/facebook/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileName))>
+					<cfset facebookImageMetaTagValue = facebookImageUrl>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
+					<cfset facebookImageMetaTagValue = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
+					<cfset facebookImageMetaTagValue = classicGalaxieBlogImageUrl>
+				<cfelse>
+					<cfset facebookImageMetaTagValue = getPost[1]["HeroCoverImageUrl"]>
+				</cfif>
+
+				<cfset twitterImageUrl = thisUrl & "/enclosures/twitter/" & socialMediaEnclosureFileName>
+				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
+					<cfset twitterImageMetaTagValue = thisUrl & "/enclosures/twitter/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileName))>
+					<cfset twitterImageMetaTagValue = twitterImageUrl>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
+					<cfset twitterImageMetaTagValue = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
+					<cfset twitterImageMetaTagValue = classicGalaxieBlogImageUrl>
+				<cfelse>
+					<cfset twitterImageMetaTagValue = getPost[1]["HeroCoverImageUrl"]>
+				</cfif>
+
+				<cfset pinterestImageMetaTagValue = "">
+				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
+					<cfset pinterestImageMetaTagValue = thisUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileName))>
+					<cfset pinterestImageMetaTagValue = thisUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileName>
 				</cfif>
 
 			</cfif><!---<cfif (getPost[1]["MediaUrl"] contains '.jpg' or getPost[1]["MediaUrl"] contains '.gif' or getPost[1]["MediaUrl"] contains '.png' or getPost[1]["MediaUrl"] contains '.mp3')>--->
@@ -158,4 +237,34 @@
 				<cfset canonicalUrl = replaceNoCase(canonicalUrl, '/index.cfm', '')>
 			</cfif>
 			<cfset addSocialMediaUnderEntry = true>
+		<cfelse>
+			<!--- Every other page - a Page Collection, a category, the collections page, page 2+ of a listing - used to
+			fall back to the site's root URL, which told search engines it was a copy of the homepage; Lighthouse
+			reports that as "Document does not have a valid rel=canonical" (2026-10-09). Use the page's own address
+			instead: the blog's own scheme and host (the www redirect already sends visitors there), plus the path as
+			the visitor sees it, before any URL rewrite. Query strings are dropped except startRow, so each page of a
+			listing stays its own page. The homepage itself keeps the root URL. --->
+			<cfif structKeyExists(cgi, "http_x_original_url") and len(cgi.http_x_original_url)>
+				<cfset canonicalPath = cgi.http_x_original_url>
+			<cfelseif structKeyExists(cgi, "request_uri") and len(cgi.request_uri)>
+				<cfset canonicalPath = cgi.request_uri>
+			<cfelse>
+				<cfset canonicalPath = cgi.script_name & cgi.path_info>
+			</cfif>
+			<cfset canonicalPath = listFirst(canonicalPath, "?")>
+			<!--- The path comes from the request and head.cfm writes canonicalUrl into several tags unescaped, so keep
+			only characters a real Galaxie Blog address uses. --->
+			<cfset canonicalPath = reReplace(canonicalPath, "[^A-Za-z0-9/_.~%-]", "", "all")>
+			<cfif application.serverRewriteRuleInPlace>
+				<cfset canonicalPath = replaceNoCase(canonicalPath, "/index.cfm", "")>
+			</cfif>
+			<cfset canonicalOrigin = reReplaceNoCase(application.blogHostUrl, "^(https?://[^/]+).*$", "\1")>
+			<cfset canonicalBasePath = replace(application.blogHostUrl, canonicalOrigin, "")>
+			<!--- Only override for a path below the blog's own root; the root itself stays thisUrl. --->
+			<cfif len(canonicalPath) and canonicalPath neq "/" and reReplace(canonicalPath, "/$", "") neq reReplace(canonicalBasePath, "/$", "") and canonicalPath neq canonicalBasePath & "/index.cfm">
+				<cfset canonicalUrl = canonicalOrigin & canonicalPath>
+			</cfif>
+			<cfif isDefined("url.startRow") and isNumeric(url.startRow) and url.startRow gt 1>
+				<cfset canonicalUrl = canonicalUrl & (reFind("^https?://[^/]+$", canonicalUrl) ? "/" : "") & "?startRow=" & int(url.startRow)>
+			</cfif>
 		</cfif>

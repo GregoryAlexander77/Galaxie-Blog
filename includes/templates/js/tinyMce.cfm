@@ -94,6 +94,9 @@
 	<cfparam name="includeCarousel" default="false">
 	<cfparam name="includeCustomWindow" default="false">
 	<cfparam name="includeVideoUpload" default="false">
+	<cfparam name="includeGradient" default="false">
+	<cfparam name="includeHeroAnimation" default="false">
+	<cfparam name="includeHeroCoverImage" default="false">
 	<cfparam name="includeFileUpload" default="false">
 	<cfparam name="disableWebVttAndVideoCoverButtons" default="true">
 	<cfparam name="includeMaps" default="true">
@@ -164,6 +167,12 @@
 					return slug || 'section';
 				}
 
+				<!--- TinyMCE serializes a link from its data-mce-href attribute, not its href. Changing only href is silently undone on save, so both are set together. --->
+				function setTocLinkTarget(link, target) {
+					link.setAttribute('href', target);
+					link.setAttribute('data-mce-href', target);
+				}
+
 				var usedSlugs = {};
 				var headings = body.querySelectorAll('h1[id^="mcetoc_"], h2[id^="mcetoc_"], h3[id^="mcetoc_"], h4[id^="mcetoc_"], h5[id^="mcetoc_"], h6[id^="mcetoc_"]');
 
@@ -185,8 +194,22 @@
 					<!--- Keep the matching TOC link (built by the toc plugin) pointed at the new id. --->
 					var tocLink = body.querySelector('.mce-toc a[href="#' + oldId + '"]');
 					if (tocLink) {
-						tocLink.setAttribute('href', '#' + newSlug);
+						setTocLinkTarget(tocLink, '#' + newSlug);
 					}
+				});
+
+				<!--- Safety net: any TOC link still pointing at an mcetoc_ id that no longer exists on the page (the link
+				update above can miss on a first save, leaving the saved TOC broken until a second save) is re-pointed at
+				the heading with the same text. The toc plugin builds each link from its heading's text. --->
+				body.querySelectorAll('.mce-toc a[href^="#mcetoc_"]').forEach(function (tocLink) {
+					var targetId = tocLink.getAttribute('href').substring(1);
+					if (body.querySelector('[id="' + targetId + '"]')) return;
+					var linkText = tocLink.textContent.trim();
+					body.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function (heading) {
+						if (heading.textContent.trim() === linkText) {
+							setTocLinkTarget(tocLink, '#' + heading.id);
+						}
+					});
 				});
 			} catch (err) {
 				<!--- Never let a TOC rewrite problem break saving/editing. --->
@@ -203,10 +226,19 @@
 			<!--- Skin --->
 			skin: "<cfoutput>#kendoTheme#</cfoutput>",//This points to the folder in the ui directory
 		<cfif includeCommonCss>
+			<!--- The Kendo folder for the editor's stylesheets, worked out the same way as head.cfm does for the page
+			(2026-10-10): the Kendo folder from Blog Options when one is set, otherwise the built-in Kendo Core folder, and
+			the blog's base path added only if the folder doesn't already start with it (or is a full http address). This
+			used to add the base path every time, so with the blog in /blog and the Kendo folder set to
+			/blog/common/libs/kendo/ the editor asked for /blog/blog/common/libs/kendo/... and got 404s. --->
+			<cfset editorKendoLocation = len(trim(application.kendoFolderPath)) ? trim(application.kendoFolderPath) : application.baseUrl & "/common/libs/kendoCore/">
+			<cfif left(editorKendoLocation, 4) neq "http" and len(application.baseUrl) and findNoCase(application.baseUrl, editorKendoLocation) neq 1>
+				<cfset editorKendoLocation = application.baseUrl & editorKendoLocation>
+			</cfif>
 			<!--- Point to a common content.css. This does not impact the dynamic nature of the skin. --->
 			content_css: ["<cfoutput>#application.baseUrl#</cfoutput>/includes/templates/blogContentCss.cfm?standalone=true",
-			"<cfoutput>#application.baseUrl##application.kendoFolderPath##trim(getTheme[1]['KendoCommonCssFileLocation'])#</cfoutput>",
-			"<cfoutput>#application.baseUrl##application.kendoFolderPath##trim(getTheme[1]['KendoThemeCssFileLocation'])#</cfoutput>",
+			"<cfoutput>#editorKendoLocation##trim(getTheme[1]['KendoCommonCssFileLocation'])#</cfoutput>",
+			"<cfoutput>#editorKendoLocation##trim(getTheme[1]['KendoThemeCssFileLocation'])#</cfoutput>",
 			<!--- Include font awesome --->
 			"https://use.fontawesome.com/releases/v6.1.0/css/all.css"],
 		<cfelse>
@@ -226,7 +258,7 @@
 			menu: {
 				file: {title: 'File', items: 'preview print'},
 				edit: {title: 'Edit', items: 'undo redo | cut copy paste | selectall'},
-				insert: {title: 'Insert', items: 'image | media | carousel | videoUpload webVttUpload videoCoverUpload | map mapRouting'},
+				insert: {title: 'Insert', items: 'image | media | gradient heroAnimation heroCoverImage carousel | videoUpload webVttUpload videoCoverUpload | map mapRouting'},
 				view: {title: 'View', items: 'code | visualaid | preview fullscreen'}
 			},
 		</cfcase>
@@ -263,7 +295,7 @@
 				file: { title: 'File', items: 'newdocument restoredraft | preview | print ' },
 				edit: { title: 'Edit', items: 'undo redo | cut copy paste | selectall | searchreplace' },
 				view: { title: 'View', items: 'code | visualaid visualchars visualblocks | spellchecker | preview fullscreen' },
-				insert: { title: 'Insert', items: 'image link media | fancyBoxGallery carousel | customWindow | map mapRouting | template codesample inserttable | charmap emoticons hr | pagebreak nonbreaking anchor toc | insertdatetime' },
+				insert: { title: 'Insert', items: 'image gradient heroAnimation link media | fancyBoxGallery carousel | customWindow | map mapRouting | template codesample inserttable | charmap emoticons hr | pagebreak nonbreaking anchor toc | insertdatetime' },
 				format: { title: 'Format', items: 'bold italic underline strikethrough superscript subscript codeformat | formats blockformats fontformats fontsizes align lineheight | forecolor backcolor | removeformat' },
 				table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
 			},
@@ -333,7 +365,7 @@
 					}
 				});
 
-			<cfif selectorId eq 'enclosureEditor' or selectorId eq 'videoCoverEditor' or selectorId eq 'imageUploadEditor'>
+			<cfif selectorId eq 'enclosureEditor' or selectorId eq 'videoCoverEditor' or selectorId eq 'imageUploadEditor' or selectorId eq 'heroCoverImageEditor'>
 				<!--- Listen to events to determine if a new image or video has been added --->
 				editor.on('NodeChange', function (e) {
 					<!--- The NodeChange may have several thousands of events if your not careful and try to inspect it. I have also tried the following events but have not made them work. editor.on('Change', function (e) { editor.on('SetContent', function(e) { save_callback : "myCustomSaveContent" --->
@@ -362,6 +394,137 @@
 					<!--- The onChange event can be used instead of the onNodeChage as well: editor.on('change', function (e) { console.log('change event fired'); console.log(e); --->
 				});//..editor.on('NodeChange', function (e) {
 			</cfif>
+
+			<cfif selectorId eq 'enclosureEditor' or selectorId eq 'videoCoverEditor' or selectorId eq 'imageUploadEditor' or selectorId eq 'heroCoverImageEditor'>
+				<!--- 2026-09-25, extended 2026-09-26: bridges TinyMCE's own native "Insert/Edit Image" dialog to a
+				standalone Uppy cropping window - clicking the dialog's "Upload" tab opens a separate window
+				(createAdminInterfaceWindow Id 74/75/76, one per screen - see each *UppyUploadWindow.cfm's own
+				comments) instead of using the dialog's own plain dropzone, which is left in place, unaffected, as a
+				second option. Per the "get all uploads onto Uppy" roadmap goal (see
+				[[reminder-unify-image-uploader]]), this covers every screen that shares the single-image
+				NodeChange handling above (enclosureEditor, videoCoverEditor, imageUploadEditor) - started with
+				enclosureEditor only, extended to the other two once that first bridge was confirmed working. On a
+				successful upload, each window file closes this dialog itself
+				(tinymce.activeEditor.windowManager.close()), then itself, then the screen's own containing window -
+				see each file for specifics. Kendo's own z-index counter didn't reliably clear the still-open
+				dialog's tox-dialog-wrap (z-index up to 1400) on its own, so the Id==74/75/76 branches of
+				createAdminInterfaceWindow (blogJsContent.cfm) force the new window's z-index explicitly after
+				creation. --->
+				editor.on('OpenWindow', function (e) {
+					setTimeout(function() {
+						var dialogRoot = $('.tox-dialog:visible').last();
+						if (dialogRoot.find('.tox-dialog__title').text().trim() !== 'Insert/Edit Image') { return; }
+						var uploadTab = dialogRoot.find('.tox-dialog__body-nav-item').filter(function() {
+							return $(this).text().trim() === 'Upload';
+						});
+						if (!uploadTab.length || uploadTab.data('uppyUploadBound')) { return; }
+						uploadTab.data('uppyUploadBound', true);
+						uploadTab.on('click', function() {
+							<cfif selectorId eq 'enclosureEditor'>
+								createAdminInterfaceWindow(74, <cfoutput>#URL.optArgs#</cfoutput>);
+							<cfelseif selectorId eq 'videoCoverEditor'>
+								createAdminInterfaceWindow(75, <cfoutput>#URL.optArgs#</cfoutput>);
+							<cfelseif selectorId eq 'imageUploadEditor'>
+								createAdminInterfaceWindow(76, <cfoutput>#URL.optArgs#</cfoutput>, '<cfoutput>#URL.otherArgs#</cfoutput>');
+							<cfelseif selectorId eq 'heroCoverImageEditor'>
+								createAdminInterfaceWindow(81, <cfoutput>#URL.optArgs#</cfoutput>);
+							</cfif>
+						});
+					}, 50);
+				});
+			</cfif>
+
+			<!--- 2026-09-30: this editor instance is itself hosted inside a Kendo window (eg. the main Post
+			Editor is a window opened via newPost.cfm, included from adminInterface.cfm). TinyMCE's own dialogs
+			(.tox-dialog-wrap) cap out around z-index 1400 in the tox skin's CSS - a fixed, not climbing, value -
+			while Kendo's own z-index counter keeps climbing every time a window opens and can easily exceed
+			that. Once it does, any TinyMCE dialog (View > Source Code being the one that surfaced this) renders
+			behind its own containing Kendo window instead of on top of it, making the dialog look like it
+			silently failed to open.
+
+			2026-10-07: raising the dialog's own z-index is not enough by itself - see galaxieRaiseToxFloatingUi
+			below for the full explanation (TinyMCE's floating-UI host sets its own fixed z-index and creates a
+			CSS stacking context that caps every descendant, however high its own z-index is set). This handler
+			is kept as a fast first response to OpenWindow; the shared function below also runs on an interval as
+			a safety net, so a dialog gets fixed even if this specific event is ever missed. --->
+			editor.on('OpenWindow', function (e) {
+				setTimeout(galaxieRaiseToxFloatingUi, 0);
+			});
+
+			<!--- 2026-10-07: FOUND AND CONFIRMED LIVE, after five earlier attempts (each fixed one failure mode and
+			was then disproven by a new one - see the session transcript / memory for the full story). None of
+			those attempts worked because they were all aimed at the wrong target.
+
+			The actual cause: TinyMCE renders every dialog AND every menu into its own floating-UI host element,
+			.tox-tinymce-aux. That element has a fixed z-index (16000 in the tox skin's CSS) and position:relative
+			of its own, which makes it a CSS stacking context root. Once an element creates a stacking context, no
+			z-index on any of its DESCENDANTS, however high, can ever escape that context when compared to a
+			SIBLING outside it (like a Kendo window) - the entire subtree paints as one unit at the CONTAINER's own
+			z-index. Every attempt tonight raised the z-index of the dialog or menu ITSELF, which was always
+			futile once a Kendo window's z-index passed 16000 (which happens quickly, confirmed by this session's
+			own earlier logs showing k-window values like 100044-100048) - confirmed directly with
+			document.elementFromPoint(): the menu had the believed-correct z-index, yet an unrelated iframe still
+			painted on top, because the menu's real container was never touched.
+
+			It gets worse with more than one TinyMCE instance open at once (eg. the Post Enclosure editor open
+			over the main post editor, exactly the "upload an image, then open a menu" sequence that kept
+			reproducing this): there is then more than one .tox-tinymce-aux on the page, one per instance, and a
+			single global selector for it always finds the SAME one regardless of which editor is actually being
+			used - confirmed live that it was finding the OTHER (hidden, inactive) instance's container every
+			time, never the one that actually held the open menu. The fix has to find the right container
+			per-element, via closest(), never via a single querySelector.
+
+			Defined on window, guarded to run only once, even though this whole script block runs once per editor
+			instance on the page - every instance's OpenWindow handler above calls the bare identifier
+			galaxieRaiseToxFloatingUi, which resolves to this single shared one via normal scope lookup. --->
+			if (!window.galaxieTocMenuObserverAttached) {
+				window.galaxieTocMenuObserverAttached = true;
+				window.galaxieRaiseToxFloatingUi = (function() {
+					var pinned = (typeof WeakSet !== 'undefined') ? new WeakSet() : null;
+					var pin = function(el, z) {
+						el.style.setProperty('z-index', z, 'important');
+						if (pinned) {
+							if (pinned.has(el)) { return; }
+							pinned.add(el);
+						}
+						<!--- Re-applies if TinyMCE's own position/style recalculation ever overwrites this later - confirmed live this does happen to a dialog/menu element itself (though not to its aux container, which is what actually matters - kept as a belt-and-suspenders measure). --->
+						new MutationObserver(function() {
+							if (getComputedStyle(el).zIndex !== String(z)) {
+								el.style.setProperty('z-index', z, 'important');
+							}
+						}).observe(el, { attributes: true, attributeFilter: ['style'] });
+					};
+					return function() {
+						var found = $('.tox-menu:visible, .tox-dialog-wrap:visible');
+						if (!found.length) { return; }
+						var topZ = 100000;
+						$('.k-window:visible').each(function(){
+							var z = parseInt($(this).css('zIndex'), 10);
+							if (!isNaN(z) && z > topZ) { topZ = z; }
+						});
+						found.each(function() {
+							pin(this, topZ + 10);
+							<!--- The actual fix: raise this element's own containing floating-UI host too, found
+							relative to THIS element (not a single page-wide lookup), so it is correct even with
+							more than one editor instance open at once. --->
+							var aux = this.closest('.tox-tinymce-aux');
+							if (aux) { pin(aux, topZ + 10); }
+						});
+					};
+				})();
+				<!--- Menu-bar and toolbar dropdowns (eg. Insert > Table of Contents) never fire OpenWindow, so
+				also re-check shortly after anything is clicked that could plausibly open one, and on a short
+				recurring interval as a safety net for whatever that click-based check misses (eg. a menu TinyMCE
+				creates some time after the click, such as after an image upload finishes). --->
+				document.addEventListener('mousedown', function(e) {
+					if (!e.target || !e.target.closest) { return; }
+					if (e.target.closest('.tox-mbtn, .tox-tbtn, .tox-menu, .tox-collection__item')) {
+						setTimeout(window.galaxieRaiseToxFloatingUi, 30);
+						setTimeout(window.galaxieRaiseToxFloatingUi, 150);
+					}
+				}, true);
+				setInterval(window.galaxieRaiseToxFloatingUi, 100);
+			}
 
 				function clearPreviousEditorContent(currentSrc){
 					<!--- alert('clearing content'); --->
@@ -437,6 +600,91 @@
 					text: 'Carousel',
 					onAction: function () {
 						createAdminInterfaceWindow(3,<cfoutput>#URL.optArgs#</cfoutput>,'carousel');
+					}
+				});
+			</cfif>
+			<cfif includeGradient>
+				<!--- Insert/Edit Gradient - opens the Grapick+Pickr popup (window 77). Same pattern as carousel
+				above; note: this also needs to be added to the toolBarString. --->
+
+				<!--- Create the icon - fa-swatchbook is Font Awesome's free tier, matching the toolbar's existing
+				fas solid-icon convention (not a brand icon). --->
+				editor.ui.registry.addIcon(
+					'gradient',
+					'<svg><span data-fa-symbol="gradient" class="fontAwesomeIcon fas fa-swatchbook">&nbsp;</span></svg>'
+				);
+
+				<!--- Create the button (note: this also needs to be added to the toolBarString) --->
+				editor.ui.registry.addButton('gradient', {
+					text: '<i class="fontAwesomeIcon fas fa-swatchbook"></i>',
+					tooltip: 'Insert/Edit Gradient',
+					onAction: function (_) {
+						createAdminInterfaceWindow(77,<cfoutput>#URL.optArgs#</cfoutput>);
+					}
+				});
+
+				editor.ui.registry.addMenuItem('gradient', {
+					icon: 'gradient',
+					text: 'Gradient',
+					onAction: function () {
+						createAdminInterfaceWindow(77,<cfoutput>#URL.optArgs#</cfoutput>);
+					}
+				});
+			</cfif>
+			<cfif includeHeroAnimation>
+				<!--- Choose Animation - opens the animation effect picker (window 79, currently Vanta.js). Same
+				pattern as carousel/gradient above; note: this also needs to be added to the toolBarString.
+				2026-10-03: renamed from includeVanta/'vanta' while still dev-only/unmigrated. --->
+
+				<!--- Create the icon - fa-water matches the admin button's own icon choice before this was
+				folded into TinyMCE's native toolbar/menu. --->
+				editor.ui.registry.addIcon(
+					'heroAnimation',
+					'<svg><span data-fa-symbol="heroAnimation" class="fontAwesomeIcon fas fa-water">&nbsp;</span></svg>'
+				);
+
+				<!--- Create the button (note: this also needs to be added to the toolBarString) --->
+				editor.ui.registry.addButton('heroAnimation', {
+					text: '<i class="fontAwesomeIcon fas fa-water"></i>',
+					tooltip: 'Choose Animation',
+					onAction: function (_) {
+						createAdminInterfaceWindow(79,<cfoutput>#URL.optArgs#</cfoutput>);
+					}
+				});
+
+				editor.ui.registry.addMenuItem('heroAnimation', {
+					icon: 'heroAnimation',
+					text: 'Choose Animation',
+					onAction: function () {
+						createAdminInterfaceWindow(79,<cfoutput>#URL.optArgs#</cfoutput>);
+					}
+				});
+			</cfif>
+			<cfif includeHeroCoverImage>
+				<!--- Hero Cover Image - opens the cover-image upload editor (window 80). Same pattern as carousel/
+				gradient/the animation picker above; note: this also needs to be added to the toolBarString. 2026-10-01. --->
+
+				<!--- Create the icon - fa-camera-retro matches a "cover photo" concept, distinct from the plain
+				fa-image icon the "image" button already uses. --->
+				editor.ui.registry.addIcon(
+					'heroCoverImage',
+					'<svg><span data-fa-symbol="heroCoverImage" class="fontAwesomeIcon fas fa-camera-retro">&nbsp;</span></svg>'
+				);
+
+				<!--- Create the button (note: this also needs to be added to the toolBarString) --->
+				editor.ui.registry.addButton('heroCoverImage', {
+					text: '<i class="fontAwesomeIcon fas fa-camera-retro"></i>',
+					tooltip: 'Cover Image',
+					onAction: function (_) {
+						createAdminInterfaceWindow(80,<cfoutput>#URL.optArgs#</cfoutput>);
+					}
+				});
+
+				editor.ui.registry.addMenuItem('heroCoverImage', {
+					icon: 'heroCoverImage',
+					text: 'Cover Image',
+					onAction: function () {
+						createAdminInterfaceWindow(80,<cfoutput>#URL.optArgs#</cfoutput>);
 					}
 				});
 			</cfif>
@@ -777,6 +1025,13 @@
 			formData = new FormData();
 			<!--- The file is the editor field --->
 			formData.append('file', blobInfo.blob(), blobInfo.filename());
+			<!--- The enclosure editor's quality slider (imageQualitySlider) isn't present on every screen this
+			handler serves, so check before reading it - uploadImage() falls back to Blog Options' own default
+			quality when this isn't sent at all. Restored 2026-09-27: this dropped out when the Uppy pipeline
+			(paused - see enclosureImageEditor.cfm) took over reading the slider for its own upload path instead. --->
+			if ($("#imageQualitySlider").data("kendoSlider")) {
+				formData.append('quality', $("#imageQualitySlider").data("kendoSlider").value());
+			}
 
 			xhr.send(formData);
 		}//function imageUploadHandler(blobInfo, success, failure) {

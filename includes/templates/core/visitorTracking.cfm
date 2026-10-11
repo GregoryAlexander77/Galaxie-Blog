@@ -6,8 +6,13 @@
 	<!--- //**************************************************************************************************************
 			Visitor Logging (in blog mode)
 	//****************************************************************************************************************--->
-	<!--- Are we looking at the blog? --->
-	<cfif pageTypeId eq 1 and application.logVisitors>
+	<!--- Are we looking at the blog? Also runs for pageTypeId 9/20/21/22/23/24 (a Page, Page Collection, a multi-page
+	selection, a multi-collection selection set as the homepage, the fixed "browse all Collections" page, or the
+	additive/curated homepage) - blogContentHtml.cfm unconditionally references AnonymousUserDbObj whenever
+	isHomePage is true, regardless of which of these pageTypeIds got it there, so this must set it up for all of
+	them or that reference throws. pageTypeId 22/23/24 don't reference it directly, but are included here anyway so
+	bot-blocking/visitor-logging apply consistently everywhere. --->
+	<cfif (pageTypeId eq 1 or pageTypeId eq 9 or pageTypeId eq 20 or pageTypeId eq 21 or pageTypeId eq 22 or pageTypeId eq 23 or pageTypeId eq 24) and application.logVisitors>
 
 		<!--- Block a visitor under a temporary timeout first. Temporary timeouts are applied automatically by blog.cfc's recordDatabaseLockError (called from Application.cfc's onError) when the same IP causes a burst of org.hibernate.exception.LockAcquisitionException database lock errors - typically a bot hammering the site. isTemporarilyTimedOut() is a pure in-memory struct lookup (see Application.cfc's OnRequestStart), so checking it here, ahead of the DB-backed isVisitorBanned() check below, blocks that IP's subsequent requests without spending a single extra query on a database that may already be under strain. --->
 		<cfif application.blog.isTemporarilyTimedOut(application.blog.getIpAddress())>

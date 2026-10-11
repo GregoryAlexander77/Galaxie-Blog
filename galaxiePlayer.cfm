@@ -38,24 +38,32 @@ Check to see we are calling this to preview or display a video within a post. If
 <cfparam name="VimeoUrl" default="">
 <cfparam name="providerVideoId" default="">
 	
-<cfif !structKeyExists(URL, "postId")>
+<cfif !structKeyExists(URL, "postId") and !structKeyExists(URL, "pageCollectionId")>
 	<!--- Set the resonse header to 403 (denied) --->
 	<cfset getpagecontext().getresponse().setstatus(403)>
 	<!--- And abort --->
 	<cfabort>
 <cfelse>
-	<!--- Get the individual post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) )--->
-	<cfset getPost = application.blog.getPostByPostId(URL.postId,true,true)>
+	<!--- Get the individual post or, for a Page Collection's hero video, the collection instead -
+	getPageCollectionByPageCollectionId() returns the same MediaUrl field getPostByPostId() does, so the
+	MediaUrl-matching authorization below applies unchanged either way. A Page Collection has no PostHeader
+	(no directive system), so the PostHeader-contains checks are skipped in that case rather than erroring on a
+	key that doesn't exist. --->
+	<cfset isPageCollectionVideo = structKeyExists(URL, "pageCollectionId")>
+	<cfif isPageCollectionVideo>
+		<cfset getPost = application.blog.getPageCollectionByPageCollectionId(val(URL.pageCollectionId))>
+	<cfelse>
+		<cfset getPost = application.blog.getPostByPostId(URL.postId,true,true)>
+	</cfif>
 	<cfif isDebug>
 		<cfdump var="#getPost#">
 		<cfoutput>
-			Post Header: #getPost[1]["PostHeader"]#<br/>
 			#getPost[1]["MediaUrl"]# (MediaUrl)<br/>
 			#URL.videoUrl# (URL.videoUrl)<br/>
 			findNoCase(URL.videoUrl, getPost[1]["MediaUrl"]): #findNoCase(URL.videoUrl, getPost[1]["MediaUrl"])#<br/>
 		</cfoutput>
 	</cfif>
-		
+
 	<!--- Videos will either have a mediaUrl in the getPost array or be within a post header (a directive in this case). If there is a videoUrl present, it must match the mediaUrl in the database. --->
 	<cfif len( URL.videoUrl)>
 		<!--- Only play the video if the videoUrl specified in the URL matches the media URL in the database. --->
@@ -70,13 +78,13 @@ Check to see we are calling this to preview or display a video within a post. If
 			<cfif len(getMediaByUrl)>
 				<cfset auth = true>
 			</cfif>
-			<!--- Finally, see if the post header contains the media URL or providerVideoId. It will when there is a Galaxie Blog Directive --->
-			<cfif getPost[1]["PostHeader"] contains URL.videoUrl>
+			<!--- Finally, see if the post header contains the media URL or providerVideoId. It will when there is a Galaxie Blog Directive - not applicable to a Page Collection, which has no post header. --->
+			<cfif not isPageCollectionVideo and getPost[1]["PostHeader"] contains URL.videoUrl>
 				<cfset auth = true>
 			</cfif>
 		</cfif>
 	<cfelse>
-    	<cfif getPost[1]["PostHeader"] contains URL.providerVideoId>
+		<cfif not isPageCollectionVideo and getPost[1]["PostHeader"] contains URL.providerVideoId>
         	<cfset auth = true>
         </cfif>
 		<!--- Play the video if there is a mediaUrl and there is no videoUrl --->
@@ -84,8 +92,8 @@ Check to see we are calling this to preview or display a video within a post. If
 			<cfset auth = true>
 		</cfif>
 	</cfif><!---<cfif len( URL.videoUrl)>--->
-	
-	<!--- Abort the request if not found --->	
+
+	<!--- Abort the request if not found --->
 	<cfif !auth>
 		<!--- Set the resonse header to 403 (denied) --->
 		<cfset getpagecontext().getresponse().setstatus(403)>
@@ -184,6 +192,22 @@ We need to inspect the URL to determine the provider, ie youtube, vimeo or a loc
 .mediaPlayer video {
 	width: 100% !important
 }
+<cfif URL.kcard>
+<!--- On a card the frame has the same 3:2 shape as the card pictures, so fill it and crop, the way the pictures do
+(object-fit: cover), instead of fitting the whole video and leaving a gap. Without this the video sat at its own 16:9
+shape, inside the page's default 8px margin, and the card looked a little shorter than its neighbours. 2026-10-09. --->
+html, body {
+	margin: 0;
+	height: 100%;
+	overflow: hidden;
+}
+video {
+	display: block;
+	width: 100% !important;
+	height: 100%;
+	object-fit: cover;
+}
+</cfif>
 <cfif isDefined("URL.posterUrl")>
 <!--- Style to have the video cover set at 100% --->
 mediaPlayer video {

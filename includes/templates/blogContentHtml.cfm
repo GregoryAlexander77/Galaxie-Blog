@@ -7,6 +7,24 @@
 	<!--- Set the default max entries. --->
 	<cfset maxEntries = application.maxEntries>
 
+	<!--- Page 2+ of the curated homepage's Blog Posts section (pageTypeId 24) caps at a flat 15 per page, instead
+	of the flat application.maxEntries every other page here uses. index.cfm already over-fetched to 15 before this
+	array arrived, so this just trims down to it.
+	2026-10-04: this used to multiply by homepageNumColumns (5 rows * 1 column on mobile = 5, vs 5 rows * 3 columns
+	= 15 on desktop) to visually match page 1's own row-capped grid - but that meant a mobile reader needed 3x as
+	many "next page" clicks as a desktop reader to get through the same content, which is worse UX on the device
+	where clicking is more friction, not less. Page 2+ has no Featured Pages/Collections competing for vertical
+	space the way page 1 does (see curatedHomepageContentHtml.cfm's 7-row budget comment), so there's no real
+	reason to cap it by row count at all here - a flat, column-independent total keeps page COUNT (not grid shape)
+	consistent between mobile and desktop: desktop still renders 5 rows of 3, mobile renders the same 15 posts
+	stacked as one column, 15 deep. --->
+	<cfif pageTypeId eq 24>
+		<cfset maxEntries = 15>
+		<cfif arrayLen(getPost) gt maxEntries>
+			<cfset getPost = arraySlice(getPost, 1, maxEntries)>
+		</cfif>
+	</cfif>
+
 	<!--- 
 	Wide div in the center left of page.
 	Note: this is the div that will be refreshed when new entries are made. All of the dynamic elements within this div 
@@ -25,8 +43,12 @@
 			<cfset cacheKey = 'popularPosts#themeId#'>
 		</cfif>
 		</cfsilent>
-		<!--- Cache this for a day --->
-		<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/cards/#cacheName#.cfm" timeout="#(24*3600)#" debug="false" disabled="#application.disableCache#">
+		<!--- Cache this for a day. Bug fix: this previously referenced the stale "cachename"/"cacheName" variable
+		left over from whatever cache was last set earlier in the request (e.g. the header/topMenu cache), not the
+		cacheKey computed just above - it still worked (each cache still wrote to its own distinct file), but it
+		shared its server-scope cache-metadata bookkeeping (timeout/hit count) with that unrelated cache. Now uses
+		cacheKey, like it was clearly meant to. --->
+		<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cacheKey#" scope="html" file="#application.baseUrl#/cache/cards/#cacheKey#.cfm" timeout="#(24*3600)#" debug="false" disabled="#application.disableCache#">
 			<cfinvoke component="#application.blog#" method="getPost" returnvariable="getPosts">
 				<cfinvokeargument name="showPopularPosts" value="true">
 				<cfinvokeargument name="showPages" value="false">
@@ -80,7 +102,18 @@
 			</cfif>
 
 			<!--- Create the label for the condensed view --->
-			<cfif getPageMode() eq 'category'>
+			<cfif pageTypeId eq 21>
+				<!--- Configure Homepage set to 2+ specific Pages (the multi-select homepage feature) - this shares
+				blogContentHtml.cfm's rendering with the real "All Blogs" main listing (pageTypeId 1), but that
+				generic label is wrong here since this is a curated, ad-hoc set of Pages, not the blog itself. Same
+				name as the sidebar pod showing this same set (includes/templates/content/pods/homepagePages.cfm). --->
+				<cfset condensedCardViewLabel = "Featured Pages">
+			<cfelseif pageTypeId eq 20>
+				<!--- A Page Collection's own page (eg. /docs-writing-and-editing-posts) also renders here, and fell through to
+				getPageMode() eq 'blog' below - so its member pages were headed "All Blogs". Use the collection's own title. --->
+				<cfset labelCollection = entityLoadByPK("PageCollection", homepageCollectionId)>
+				<cfset condensedCardViewLabel = isObject(labelCollection) ? labelCollection.getTitle() : "Pages">
+			<cfelseif getPageMode() eq 'category'>
 				<!--- Get the category name and desc. --->
 				<cfset getCategory = application.blog.getCategory(categoryId=URL.categoryId)>
 				<cfset condensedCardViewLabel = getCategory[1]["Category"] & " related posts">
@@ -114,6 +147,19 @@
 				Render card output
 			**********************************************************************************************--->
 			</cfsilent>
+			<!--- Page Collection breadcrumb: a single Collection shows Home > Blog > Collection, the same way a category archive shows its category. --->
+			<cfif pageTypeId eq 20 and not session.isMobile>
+				<cfset breadcrumbCollection = entityLoadByPK("PageCollection", homepageCollectionId)>
+				<div class="k-content" style="padding:5px; width: 100%;">
+				<nav>
+					<ol class="cd-breadcrumb triangle">
+						<li><a href="<cfoutput>#application.parentSiteLink#</cfoutput>" aria-label="Home"><i class="fas fa-house" style="alignment-baseline:middle;"></i></a></li>
+						<li><a href="<cfoutput>#application.blogHostUrl#</cfoutput>" aria-label="Blog">Blog</a></li>
+						<li class="current"><a href="<cfoutput>#application.blog.makeCollectionLink(homepageCollectionId)#</cfoutput>" class="k-content"><cfoutput>#breadcrumbCollection.getTitle()#</cfoutput></a></li>
+					</ol>
+				</nav>
+				</div>
+			</cfif>
 			<cfif getPageMode() eq 'category' and not session.isMobile>
 				<!--- Get the all of the parent categories. Unlike the rest of the blog, this returns a regular ColdFusion query object as it was easy to create within the function to return all of the parent categories. --->
 				<cfset getParentCategories = application.blog.getParentCategoryQuery(URL.categoryId)>
@@ -159,6 +205,8 @@
 				<cfsilent>
 				<!--- Set the variable values. I want to shorten the long variable names here. --->
 				<cfset postId = getPost[i]["PostId"]>
+				<!--- Read here, not where it is used: the Related Posts/Tags/etc. loops further down reuse i as their own index, so getPost[i] is no longer this post by then. --->
+				<cfset postIsPage = getPost[i]["IsPage"]>
 				<cfset postAlias = getPost[i]["PostAlias"]>
 				<cfset postUuid = getPost[i]["PostUuid"]>
 				<cfset themeId = getPost[i]["ThemeRef"]>
@@ -230,18 +278,29 @@
 				<!--- We need to perform the same logic for the post author (remove the 'index.cfm' string when a rewrite rule is in place). --->
 				<cfset userLink = application.blog.makeUserLink(getPost[i]["FullName"])>
 				<!--- Render the post. This will render cfinclude and video directives if present, the encosure and the body. --->
-				<cfset post = RendererObj.renderPost(kendoTheme,getPost,i)> 
+				<cfset post = RendererObj.renderPost(kendoTheme,getPost,i,(getPageMode() eq 'post'))>
 				<!--- Get the post content --->
 				<cfset postContent = RendererObj.renderBody(body, mediaPath, getPageMode())>
 
 				<!--- Cache the post html to disk using my new GalaxieCache custom tag. The post will be cached permently unless the post has been editted. --->
 
-				<!--- Set the cache name --->
+				<!--- Set the cache name. The +noAnimation suffix matters even for a post that doesn't use the
+				'animation' fallback mode at all: without it, this same postId+themeId cache file would be shared
+				by every page mode that renders a full post through this loop (the post's own permalink AND the
+				blog roll/category/postedBy/month listings that also render full posts here) - whichever mode
+				rendered a given post first would "win" the cache for every other mode until the post is next
+				edited. A post viewed first via a listing would cache without its live animation and then never
+				show it on the permalink page; a post viewed first via its permalink would cache WITH a live
+				canvas that then shows up inside a multi-post listing - exactly the "more than one live animation
+				on a page" outcome the whole feature exists to prevent. Same idiom the existing +mobile suffix
+				already uses to partition this cache by device. 2026-10-03: renamed from +noVanta/vantaEligible
+				while still dev-only/unmigrated. --->
+				<cfset animationEligible = (getPageMode() eq 'post' and not session.isMobile)>
 				<cfif session.isMobile>
 					<cfset cacheName = 'postId=' & getPost[1]["PostId"] & '+themeId=' & themeId & '+mobile'>
 				<cfelse>
-					<cfset cacheName = 'postId=' & getPost[1]["PostId"] & '+themeId=' & themeId>
-				</cfif> 
+					<cfset cacheName = 'postId=' & getPost[1]["PostId"] & '+themeId=' & themeId & (animationEligible ? '' : '+noAnimation')>
+				</cfif>
 				<!--- galaxieCache will read content between the cfmodule tags (or a normal tag) and save the content to the file system. This can't be in a cfsilent block --->
 				</cfsilent>
 				<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/posts/#cacheName#.cfm" debug="false" disabled="#disableCache#">
@@ -353,6 +412,13 @@
 										<nav>
 											<ol class="cd-breadcrumb triangle">
 												<li><a href="<cfoutput>#parentLink#</cfoutput>" aria-label="Home"><i class="fas fa-house" style="alignment-baseline:middle;"></i></a></li>
+											<!--- Page Collection crumbs: a page that belongs to a Collection shows it, the same way a post shows its categories. --->
+<cfif isPageMode()>
+	<cfset pageCollectionCrumbs = application.blog.getPageCollectionsForPost(postId)>
+	<cfloop from="1" to="#arrayLen(pageCollectionCrumbs)#" index="pcIndex">
+		<li class="<cfif arrayLen(getCategories) eq 0 and pcIndex eq arrayLen(pageCollectionCrumbs)>current</cfif>"><a href="<cfoutput>#application.blog.makeCollectionLink(pageCollectionCrumbs[pcIndex].pageCollectionId)#</cfoutput>" aria-label="<cfoutput>#pageCollectionCrumbs[pcIndex].title#</cfoutput>" class="k-content"><cfoutput>#pageCollectionCrumbs[pcIndex].title#</cfoutput></a></li>
+	</cfloop>
+</cfif>
 											<cfif parentSite and !isPageMode()>
 												<li><a href="<cfoutput>#application.blogHostUrl#</cfoutput>"  aria-label="Blog">Blog</a></li>
 											</cfif>
@@ -588,7 +654,38 @@
 								</cfinvoke>
 								<cfset postScrollWidgetType = "Related Blogs">
 								<cfinclude template="popularPosts.cfm">
-															
+
+							</cfif>
+							<cfsilent>
+							<!--- ********************************************************************************************
+								Related Pages - Pages only. Unlike the manually-curated Related Posts above, this is
+								sourced automatically from Page Collection membership (see getRelatedPagesByCollection()
+								in blog.cfc) - a Page in no Collection simply shows nothing here, no fallback.
+							**********************************************************************************************--->
+							</cfsilent>
+							<cfif postIsPage>
+								<cfset getRelatedPages = application.blog.getRelatedPagesByCollection(postId=postId) />
+								<cfif arrayLen(getRelatedPages)>
+									<cfset postIdList = ""/>
+									<cfloop from="1" to="#arrayLen(getRelatedPages)#" index="i">
+										<cfset postIdList = listAppend(postIdList, getRelatedPages[i]["PostId"])>
+									</cfloop>
+
+									<cfinvoke component="#application.blog#" method="getPost" returnvariable="getPosts">
+										<!--- Show both layers and pages --->
+										<cfinvokeargument name="showPages" value="true">
+										<cfinvokeargument name="showBlogPosts" value="true">
+										<cfinvokeargument name="showPendingPosts" value="false">
+										<cfinvokeargument name="showRemovedPosts" value="false">
+										<cfinvokeargument name="showJsonLd" value="false">
+										<cfinvokeargument name="showPromoteAtTopOfQuery" value="false">
+										<!--- Send the postId's to be shown --->
+										<cfinvokeargument name="postIdList" value="#postIdList#">
+									</cfinvoke>
+									<cfset postScrollWidgetType = "Related Pages">
+									<cfinclude template="popularPosts.cfm">
+
+								</cfif>
 							</cfif>
 							<cfsilent>
 							<!--- ********************************************************************************************
@@ -643,7 +740,8 @@
 						<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/bio/#cacheName#.cfm" debug="false" disabled="#disableCache#">
 						<cfoutput>
 						<!---<cfdump var="#authorData#">--->
-						<cfif len( authorData[1]["Biography"] ) >
+						<!--- Guard against an empty authorData: getUser() can come back with no row (for example, a userId that does not resolve the way it usually does when a post is reached through the pageTypeId=9 custom-page path rather than its own URL), and authorData[1] would otherwise raise an error here. --->
+						<cfif arrayLen(authorData) and len( authorData[1]["Biography"] ) >
 							<table align="center" class="k-content" width="100%" cellpadding="0" cellspacing="0" border="0">
 								<tr>
 									<td width="100">
@@ -873,8 +971,14 @@
 		Debugging: <cfoutput>url.startRow: #url.startRow# maxEntries: #maxEntries# arrayLen(getPost): #arrayLen(getPost)# URL.startRow + maxEntries: #round(URL.startRow + maxEntries)# postCount:#postCount# </cfoutput>
 		<cfdump var="#getPost#">--->
 
-		<!--- Get the number of pages --->
-		<cfset totalPages = ceiling(postCount/maxEntries)>
+		<!--- Get the number of pages. If a "fps" (first page size) query param is present, page 1 was a different
+		size than every page after it - see curatedHomepageContentHtml.cfm, whose page 1 shows a dynamic row count
+		instead of the standard maxEntries, and passes fps forward on its own pager links so this shared pager keeps
+		computing correct offsets for page 3+. When fps is absent (every pre-existing caller), effectiveFirstPageSize
+		equals maxEntries and this produces the exact same totalPages/links as before - a strict generalization, not
+		a behavior change for pageTypeId 1/9/20/21. --->
+		<cfset effectiveFirstPageSize = (isDefined("URL.fps") and isNumeric(URL.fps) and val(URL.fps) gt 0) ? val(URL.fps) : maxEntries>
+		<cfset totalPages = 1 + ceiling(max(0, postCount - effectiveFirstPageSize) / maxEntries)>
 
 		<!--- Set links --->
 		<!--- Get the path if not /index.cfm --->
@@ -887,12 +991,14 @@
 		<cfset queryString = reReplaceNoCase(queryString, "&*startrow=[\-0-9]+", "")>
 		<!--- Remove the page variable. This is hard coded in the datasource below. --->
 		<cfset queryString = reReplaceNoCase(queryString, "&*page=[\-0-9]+", "")>
+		<!--- Remove any existing fps too - it gets re-added below (or dropped) as this page's own links are rebuilt. --->
+		<cfset queryString = reReplaceNoCase(queryString, "&*fps=[\-0-9]+", "")>
 		<!--- If it is not already defined, preset the URL page var --->
 		<cfif not isDefined("URL.page")>
 			<cfset URL.page = 0>
 		</cfif>
-		<!--- 
-		Debugging: 
+		<!---
+		Debugging:
 		url.startRow: #url.startRow# maxEntries: #maxEntries# lastPageQueryString: #lastPageQueryString# currentPage: #currentPage# totalPages: #totalPages# prevPageEnabled:#prevPageEnabled# nextPageEnabled:#nextPageEnabled#--->
 
 		</cfsilent>
@@ -901,8 +1007,12 @@
 				<script  type="#scriptTypeString#">
 					<!--- Create the datasource with the URL --->
 					var pagerDataSource = new kendo.data.DataSource({
-					data: [<cfset thisStartRow = 0><!--- Loop through the pages. ---><cfloop from="1" to="#totalPages#" index="page"><cfset thisLink = queryString & "&startRow=" & thisStartRow & "&page=" & page>
-						{ pagerUrl: "#thisLink#", page: "#page#" }<cfif page lt totalPages>,</cfif><cfset thisStartRow = thisStartRow + maxEntries></cfloop>
+					data: [<!--- Page 1 always starts at row 0; every page after it steps by the standard maxEntries from wherever page 1 actually left off (effectiveFirstPageSize), not from a naive (page-1)*maxEntries - that's what keeps this correct when page 1 was an odd size. fps is carried on every link so the SAME effectiveFirstPageSize keeps being used if this pager is rebuilt again from page 3, 4, etc. --->
+					<cfloop from="1" to="#totalPages#" index="page">
+						<cfset thisStartRow = (page eq 1) ? 0 : (effectiveFirstPageSize + ((page - 2) * maxEntries))>
+						<cfset thisLink = queryString & "&startRow=" & thisStartRow & "&page=" & page & "&fps=" & effectiveFirstPageSize>
+						{ pagerUrl: "#thisLink#", page: "#page#" }<cfif page lt totalPages>,</cfif>
+					</cfloop>
 					],
 						pageSize: 1,// Leave this at 1.
 						page: #URL.page#
@@ -971,14 +1081,33 @@
 				</cfloop>
 				</div></p>
 				<cfelse><!---<cfif arrayLen(getVisitorDbObj)>--->
-				<cfset currentVisitorBrowser = application.blog.parseBrowser(AnonymousUserDbObj.getHttpUserAgentRef().getHttpUserAgent())>
-				<p><div id="currentVisitors" name="currentVisitors" style="font-size: 12pt;"> Visitors: <cfoutput><a href="https://www.ipalyzer.com/#encodeForHTMLAttribute(application.blog.getIpAddress())#" target="_new">#encodeForHTML(trim(currentVisitorBrowser.family & " " & currentVisitorBrowser.major))#</a></cfoutput></div></p>
+				<!--- The anonymous visitor may not have a stored user agent yet (for example on a new local install), so only show the browser when one exists. --->
+				<cfset currentVisitorUserAgent = "">
+				<cfif isObject(AnonymousUserDbObj) and isObject(AnonymousUserDbObj.getHttpUserAgentRef())>
+					<cfset currentVisitorUserAgent = AnonymousUserDbObj.getHttpUserAgentRef().getHttpUserAgent()>
+				</cfif>
+				<cfif len(currentVisitorUserAgent)>
+					<cfset currentVisitorBrowser = application.blog.parseBrowser(currentVisitorUserAgent)>
+					<p><div id="currentVisitors" name="currentVisitors" style="font-size: 12pt;"> Visitors: <cfoutput><a href="https://www.ipalyzer.com/#encodeForHTMLAttribute(application.blog.getIpAddress())#" target="_new">#encodeForHTML(trim(currentVisitorBrowser.family & " " & currentVisitorBrowser.major))#</a></cfoutput></div></p>
+				</cfif>
 				</cfif><!---<cfif arrayLen(getVisitorDbObj)>--->
 				
 			</cfif><!---<cfif isHomePage or structKeyExists(URL,"postId")>--->
 		</cfif><!---<cfif application.logVisitors and application.Udf.isLoggedIn()>--->
 		<!--- **** Logic to display content when no data is found (ie when a user clicks on the wrong date) ****--->
 		<cfif arrayLen(getPost) eq 0>
+			<!--- Diagnostic-only logging for the 2026-09-30 "No Entries" pager bug (unconfirmed root cause, see
+			[[pager-no-entries-bug-2026-09-30]] memory) - scoped tightly to the one suspicious shape: a page N>1
+			request (has a startRow beyond the first page) that came back with zero rows, which a normal 404'd
+			alias/day/empty-blog case never has. Wrapped in its own cftry so a logging problem can never break the
+			page itself. Safe to remove once the real cause is confirmed and fixed - this is a trap, not a
+			permanent feature. --->
+			<cftry>
+				<cfif isDefined("URL.startRow") and val(URL.startRow) gt 0>
+					<cflog file="galaxieBlogPagerNoEntries" type="information" text="url.mode=#(isDefined('url.mode') ? url.mode : '')# startRow=#URL.startRow# page=#(isDefined('URL.page') ? URL.page : '')# fps=#(isDefined('URL.fps') ? URL.fps : '')# isMobile=#session.isMobile# postCount=#(isDefined('postCount') ? postCount : '')# maxEntries=#(isDefined('maxEntries') ? maxEntries : '')# themeId=#(isDefined('themeId') ? themeId : '')# referrer=#cgi.http_referer# queryString=#cgi.query_string# alias=#(isDefined('URL.alias') ? URL.alias : '')# categoryId=#(isDefined('URL.categoryId') ? URL.categoryId : '')# pathInfo=#cgi.path_info# userAgent=#cgi.http_user_agent#">
+				</cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
 			<div class="blogPost widget k-content" style="font-weight: bold;">
 				<span class="innerContentContainer">
 					<h1 class="topContent">

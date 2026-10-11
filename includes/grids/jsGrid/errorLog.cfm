@@ -173,7 +173,7 @@ The arguments are: createAdminInterfaceWindow(59[,ipAddressId]) (createAdminInte
 				deleteItem: function(item) {
 					return $.ajax({
 						type: "post",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=deleteErrorLogViaJsGrid",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteErrorLogViaJsGrid",
 						<!--- Pass the errorLogId to the cfc on the back end. --->
 						data: {
 							csrfToken: <cfoutput>'#csrfToken#'</cfoutput>,

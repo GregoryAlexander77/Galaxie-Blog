@@ -134,8 +134,8 @@
 					</cfif>
 					<!--- ********* End content template logic *********--->
 
-					<!--- Get the new recent posts --->
-					<cfset getPages = application.blog.getPages()>
+					<!--- Pages are organized into Page Collections now, not Categories (see [[front-page-page-groups-design-rethink]]) - this pod lists every visible (2+ member) Collection, same as Configure Homepage's own picker and the /collections page. --->
+					<cfset getPages = application.blog.getEligiblePageCollectionsForHomepage()>
 
 					<!--- Cache notes: We're saving this indefinately to the file system and will be updated if the blog owner changes the content. We need to differentiate between the dark theme and light themes in the key. --->
 					<cfif session.isMobile>
@@ -152,13 +152,55 @@
 					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" displayContentOutputData="#displayContentOutputData#" getPages="#getPages#" scope="html" file="#application.baseUrl#/cache/pods/#cacheName#.cfm" disabled="#application.disableCache#">
 					<div class="widget k-content flexItem">
 						<span class="innerContentContainer">
-							<h3 class="topContent"><i class="fa-solid fa-file-lines"></i> Page Categories</h3>
+							<h3 class="topContent"><i class="fas fa-book-open"></i> <cfif session.isMobile>Collections<cfelse>Page Collections</cfif></h3>
 							<cfinclude template="pages.cfm">
 						</span>
 				   	</div>
 					</cfmodule>
 				</cfif>
 				<cfsilent>
+					<!--- *******************************************************************************************************
+						Homepage Pages. Only shows when Configure Homepage's "A specific page" mode currently has 1+ pages
+						selected - not every Page on the site, just whichever one(s) are live on the homepage right now.
+						Listed in the SAME order they were selected (matching the homepage's own card order), not
+						alphabetically - this list is always short (only ever what's on the homepage), so echoing the
+						admin's own chosen order is more useful than re-sorting a handful of items by name.
+					**********************************************************************************************************--->
+					<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
+						<cfinvokeargument name="contentTemplate" value="homepagePagesPod">
+					</cfinvoke>
+					<cfset homepageSettingsForPod = application.blog.getHomepageSettings()>
+					<cfset homepagePagesForPod = []>
+					<!--- Only the 2+-pages case - exactly 1 page is the single-page-takeover override (pageTypeId=9), which IS the homepage itself, not a pod pointing at it. --->
+					<cfif homepageSettingsForPod.showPages and listLen(homepageSettingsForPod.pageIdList) gt 1>
+						<cfloop list="#homepageSettingsForPod.pageIdList#" index="oneHomepagePageId">
+							<cfset onePageForPod = entityLoadByPK("Post", oneHomepagePageId)>
+							<cfif isObject(onePageForPod)>
+								<cfset arrayAppend(homepagePagesForPod, { title: onePageForPod.getTitle(), link: application.blog.makeLink(postId=oneHomepagePageId) })>
+							</cfif>
+						</cfloop>
+					</cfif>
+					<cfif session.isMobile>
+						<cfset cacheName = "homepagePagesPodMobile">
+					<cfelse>
+						<cfset cacheName = "homepagePagesPod">
+					</cfif>
+					<cfif darkTheme>
+						<cfset cacheName = "homepagePagesPodDark">
+					</cfif>
+				</cfsilent>
+				<cfif isActive or arrayLen(homepagePagesForPod)>
+					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/pods/#cacheName#.cfm" disabled="#application.disableCache#">
+					<div class="widget k-content flexItem">
+						<span class="innerContentContainer">
+							<h3 class="topContent"><i class="fa-regular fa-file-lines"></i> Featured Pages</h3>
+							<cfinclude template="homepagePages.cfm">
+						</span>
+				   	</div>
+					</cfmodule>
+				</cfif>
+				<cfsilent>
+
 					<!--- *******************************************************************************************************
 						Recent posts
 					**********************************************************************************************************--->

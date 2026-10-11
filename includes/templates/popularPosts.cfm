@@ -1,9 +1,32 @@
 				<cfif postScrollWidgetType eq 'popularPosts'>
 					<h1 class="topContent" <cfif darkTheme>style="color:ivory"</cfif>>Popular Blogs</h1>
+				<cfelseif postScrollWidgetType eq 'Related Pages'>
+					<h2 class="topContent">Related Pages</h2>
 				<cfelse>
 					<h2 class="topContent">Related Blogs</h2>
 				</cfif>
-				
+
+				<!--- Card width: renderNarrowPopularPostCard picks between the original fixed-235px narrow-carousel
+				look and the real post grid's responsive width (renderKendoCardGrid.cfm / blogContentHtml.cfm) - a
+				hardcoded width doesn't scale with the container the way the percentage-based real post cards do, so
+				with it off this widget lines up with the "All Blogs" cards below it at any viewport instead of
+				visibly shrinking relative to them. The curated homepage (curatedHomepageContentHtml.cfm) sets a
+				page-scope renderNarrowPopularPostCard before including this template (narrow when no Featured
+				Pages/Collections are showing, aligned when either is) - checked explicitly with isDefined() rather
+				than relying on an implicit scope cascade to application.cfc, which isn't guaranteed across engines.
+				Every other caller (blogContentHtml.cfm's own hero widget, the single-post Related Blogs carousel)
+				has no such override, so falls back to the application.cfc default below. --->
+				<cfif not isDefined("renderNarrowPopularPostCard")>
+					<cfset renderNarrowPopularPostCard = application.renderNarrowPopularPostCard>
+				</cfif>
+				<cfif renderNarrowPopularPostCard>
+					<cfset popularPostCardWidthStyle = "235px">
+				<cfelseif session.isMobile or showSidebar>
+					<cfset popularPostCardWidthStyle = "100%">
+				<cfelse>
+					<cfset popularPostCardWidthStyle = "31%">
+				</cfif>
+
 				<!-- Kendo Scrollwrap container -->
 				<div class="k-card-deck-scrollwrap">
 					<!-- Render the cards -->
@@ -84,13 +107,39 @@
 						<!--- ************************* Handle enlosure ************************* --->
 						<!--- For the popular posts widget, always use the thumbnail image --->
 						<cfset cardImage = thumbnail>	
-						<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and use the noImage.jpg if the share image or thumbnail does not exist (likely due to a cfinclude, errors or a blog upgrade) --->
+						<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and if not, defer to BlogOption.NoImageFallbackMode - noImage.jpg (default, unchanged), generated CSS/SVG art, a rendered carousel from the shared hero image pool (isHtml=true reuses the thumbnailCarousel slot below, same as a post's own enclosure carousel), or no image area at all ('none' mode). --->
+						<cfset suppressCardImage = false>
 						<cfif not len(cardImage)>
 							<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPosts[i]["PostHeader"], 'facebookImageUrlMetaData')>
 							<cfif len(facebookImageMetaTagValue)>
 								<cfset cardImage = facebookImageMetaTagValue>
+							<!--- 2026-10-01: a Hero Cover Image takes priority over the Gradient/generated-fallback
+							below, but a manually-typed facebookImageUrlMetaData directive (checked just above) still
+							wins for backward compatibility - same relative priority renderKendoCardGrid.cfm and
+							seoMetaTags.cfm use. --->
+							<cfelseif len(getPosts[i]["HeroCoverImageUrl"])>
+								<cfset cardImage = getPosts[i]["HeroCoverImageUrl"]>
+							<!--- An explicit gradient the user picked (see gradientEditor.cfm/Post.cfc's HeroGradient)
+							is a real, deliberate hero choice - checked before the auto-generated-art fallback below,
+							same priority reasoning as Renderer.cfc's renderEnclosure()/renderMediaPreview(). Reuses
+							the thumbnailCarousel HTML slot, same as the hero-pool-carousel fallback does. --->
+							<cfelseif len(getPosts[i]["HeroGradient"])>
+								<!--- Renderer.cfc.renderHeroGradientHtml() - single point of truth for this HTML,
+								shared with Renderer.cfc's own renderMediaPreview()/renderEnclosure() and the other
+								two card templates. --->
+								<!--- Named arguments (2026-10-09) - see renderKendoCardGrid.cfm: a positional "true" here landed in heroOverlayFont, not cardMode. --->
+								<cfset thumbnailCarousel = RendererObj.renderHeroGradientHtml(heroGradient=getPosts[i]["HeroGradient"], heroOverlayText=getPosts[i]["HeroOverlayText"], heroOverlayTextColor=getPosts[i]["HeroOverlayTextColor"], heroOverlayFont=(structKeyExists(getPosts[i], "HeroOverlayFont") ? getPosts[i]["HeroOverlayFont"] : ""), heroOverlayFontSize=(structKeyExists(getPosts[i], "HeroOverlayFontSize") ? getPosts[i]["HeroOverlayFontSize"] : ""), cardMode=true)>
 							<cfelse>
-								<cfset cardImage = application.baseUrl & "/images/thumbnails/noImage.jpg">
+								<cfset heroFallback = RendererObj.getHeroFallbackHtml(postId=getPosts[i]["PostId"], cardMode=true)>
+								<cfif heroFallback.isHtml>
+									<cfset thumbnailCarousel = heroFallback.content>
+								<cfelseif heroFallback.suppressImage>
+									<cfset suppressCardImage = true>
+								<cfelseif len(heroFallback.content)>
+									<cfset cardImage = heroFallback.content>
+								<cfelse>
+									<cfset cardImage = application.baseUrl & "/images/thumbnails/noImage.jpg">
+								</cfif>
 							</cfif>
 						</cfif>
 
@@ -182,8 +231,9 @@
 							
 						</cfsilent>
 							<!--- Note: this is using the k-card-deck image --->
-							<div class="k-card k-card-type-rich<cfif promotedPost>highlightedWidget</cfif>" style="width:235px;">
-								<a href="<cfoutput>#postUrl#</cfoutput>"><cfif len(enclosureMapId)><cfoutput>#thumbnailMap#</cfoutput><cfelseif len(enclosureCarouselId)><cfoutput>#thumbnailCarousel#</cfoutput><cfelseif len(thumbnailMedia)><cfoutput>#thumbnailMedia#</cfoutput><cfelse><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-scroll-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif></a>
+							<div class="k-card k-card-type-rich<cfif promotedPost>highlightedWidget</cfif>" style="width: <cfoutput>#popularPostCardWidthStyle#</cfoutput>;">
+								<!--- Was <cfelseif len(enclosureCarouselId)> - switched to checking thumbnailCarousel itself (the rendered HTML), not the post's own enclosureCarouselId, since the hero image pool fallback above can populate thumbnailCarousel from a different carousel (the shared pool) with no enclosureCarouselId on the post at all. Every existing case is unaffected: a real enclosure carousel always has both set together. --->
+								<a href="<cfoutput>#postUrl#</cfoutput>"><cfif len(enclosureMapId)><cfoutput>#thumbnailMap#</cfoutput><cfelseif len(thumbnailCarousel)><cfoutput>#thumbnailCarousel#</cfoutput><cfelseif len(thumbnailMedia)><cfoutput>#thumbnailMedia#</cfoutput><cfelseif not suppressCardImage><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-scroll-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif></a>
 								<div class="k-card-body">
 									<!-- The font should be 14pt for this compact widget. No extra margins are necessary for the popular posts -->
 									<h2 class="k-card-title" style="font-size: 14pt;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h4>
@@ -208,11 +258,10 @@
 				
 				<script type="<cfoutput>#application.blog.getScriptTypeString()#</cfoutput>">
 					function scrollButtonClick(e) {
-						console.log(e);
 						var button = $(e.currentTarget);
-						console.log( button.find(".k-i-arrow-chevron-left").length );
 						var scrollToLeft = button.find(".k-i-arrow-chevron-left").length !== 0;
-						var scrollContainer = $(".k-card-deck").eq(0);
+						// Scope to this widget's own strip. A bare $(".k-card-deck") picks the first deck on the page, which can be another widget's (for example Featured Collections).
+						var scrollContainer = button.closest(".k-card-deck-scrollwrap").find(".k-card-deck").eq(0);
 						var lastCard = scrollContainer.find(".k-card").last();
 						var cardWidth = lastCard.outerWidth(true);
 
@@ -223,9 +272,28 @@
 						}
 					};
 
+					// Only show the arrows when there is something to scroll to: none when every card fits, back
+					// only once the strip is scrolled past the start, and forward only until the last card is visible.
+					function updateScrollButtons() {
+						var wrap = $(".k-card-deck-scrollwrap").eq(0);
+						var scrollContainer = wrap.find(".k-card-deck").eq(0);
+						var backButton = wrap.find(".k-i-arrow-chevron-left").closest(".k-button-scroll");
+						var forwardButton = wrap.find(".k-i-arrow-chevron-right").closest(".k-button-scroll");
+						var el = scrollContainer.get(0);
+						if (!el) return;
+						var overflows = el.scrollWidth > el.clientWidth + 1;
+						var atStart = el.scrollLeft <= 1;
+						var atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+						backButton.toggle(overflows && !atStart);
+						forwardButton.toggle(overflows && !atEnd);
+					};
+
 					$(document).ready(function () {
 						var cardDeck = $(".k-card-deck-scrollwrap").eq(0);
 						cardDeck.on("click", ".k-button-scroll", scrollButtonClick);
+						cardDeck.find(".k-card-deck").on("scroll", updateScrollButtons);
+						$(window).on("resize load", updateScrollButtons);
+						updateScrollButtons();
 					});
 				</script>
 

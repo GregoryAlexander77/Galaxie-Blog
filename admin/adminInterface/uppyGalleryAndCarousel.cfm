@@ -129,20 +129,31 @@
 			
 			<!--- The complete event does not return the file information, the result only containes information regarding the operation such as success or fail. We have however set a jsonResponse variable inside of the upload-success method above. We will use this to populate a hidden input in order to pass the image id's to the next interface. --->
 				
-			<!--- a) Dump in the imageId's to the hidden mediaId list and separate the values with underscores. We will use a listGetAt function on the back end to extract the imageId's --->
+			<!--- a) Put the pictures back in the order this window showed them (the order they were added). The server
+			returns them in the order it happened to process them, which made the slides come out in a different order
+			than the one picked. The server sends each picture's original file name (clientFile) to match them up;
+			anything it can't match keeps its place at the end. --->
+			var uppyFileOrder = uppy.getFiles().map(function (f) { return f.name; });
+			var uppyOrderOf = function (item) {
+				var position = uppyFileOrder.indexOf(item['clientFile'] || item['CLIENTFILE'] || '');
+				return position === -1 ? uppyFileOrder.length : position;
+			};
+			jsonResponse = jsonResponse.slice().sort(function (a, b) { return uppyOrderOf(a) - uppyOrderOf(b); });
+
+			<!--- b) Dump in the imageId's to the hidden mediaId list and separate the values with underscores. We will use a listGetAt function on the back end to extract the imageId's --->
 			for (i=0; i < jsonResponse.length; i++){
 				<!--- alert(jsonResponse[i]['mediaId']); This appends an item to a list inside of a form: appendValueToElement(value, elementId, delimiter)*/ --->
 				appendValueToElement(jsonResponse[i]['mediaId'],'mediaIdList','_');
 			}
 
-			<!--- b) Close the please wait dialog Use a quick set timeout in order for the data to load. --->
+			<!--- c) Close the please wait dialog Use a quick set timeout in order for the data to load. --->
 			setTimeout(function() {
 				<!--- Close the wait window that was launched in the calling function. --->
 				kendo.ui.ExtWaitDialog.hide();
 			}, 500);
 			
-			<!--- c) Create a new window in order to put in the fancy box group and the item details (such as the image title) --->
+			<!--- d) Create a new window in order to put in the fancy box group and the item details (such as the image title) --->
 			createAdminInterfaceWindow(<cfoutput>#adminInterfaceWindowId#,#URL.optArgs#</cfoutput>,$("#mediaIdList").val());
 		})		
 	
-    </script>
+    </script>

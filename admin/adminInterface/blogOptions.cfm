@@ -35,6 +35,11 @@
 	<cfset bingMapsApiKey = application.BlogOptionDbObj.getBingMapsApiKey()>
 	<cfset facebookAppId = application.BlogOptionDbObj.getFacebookAppId()>
 	<cfset twitterAppId = application.BlogOptionDbObj.getTwitterAppId()>
+	<cfset defaultImageQuality = application.BlogOptionDbObj.getDefaultImageQuality()>
+	<cfset videoMaxFileSizeMB = application.BlogOptionDbObj.getVideoMaxFileSizeMB()>
+	<cfset noImageFallbackMode = application.BlogOptionDbObj.getNoImageFallbackMode()>
+	<cfset heroCarouselImageCount = application.BlogOptionDbObj.getHeroCarouselImageCount()>
+	<cfset heroPoolDisplayMode = application.BlogOptionDbObj.getHeroPoolDisplayMode()>
 		
 	<!--- The azureMapsApiKey is a new variable and it may be null. --->
 	<cfif !isDefined("azureMapsApiKey")>
@@ -59,6 +64,14 @@
 			box-shadow: none !important;
 			background-image: none !important;
 		}
+
+		<!--- The compression slider's track - a visual "smaller file <-> higher quality" cue, red fading to green
+		left to right, matching the 0.1-1.0 min/max the slider itself is initialized with above. Kendo draws its
+		own default track first; this overrides it. --->
+		#defaultImageQuality .k-slider-track {
+			background: linear-gradient(to right, #d9534f, #f0ad4e, #5cb85c) !important;
+			height: 6px;
+		}
 	</style>
 
 	<script>
@@ -68,6 +81,37 @@
 			decimals: 0,
 			format: "#",
 			round: true
+		});
+
+		$("#videoMaxFileSizeMB").kendoNumericTextBox({
+			decimals: 0,
+			format: "#",
+			round: true,
+			min: 1
+		});
+
+		$("#heroCarouselImageCount").kendoNumericTextBox({
+			decimals: 0,
+			format: "#",
+			round: true,
+			min: 1,
+			max: 10
+		});
+
+		<!--- The default-quality slider - matches cfimage's own 0.1-1.0 "quality" attribute range, shown as a
+		percentage. tickPlacement none + the gradient track CSS below (see #defaultImageQuality .k-slider-track)
+		is the "easy to see gradient" cue: red/small-file at the low end fading to green/high-quality at the high
+		end, so the tradeoff reads at a glance without needing a live image preview. --->
+		$("#defaultImageQuality").kendoSlider({
+			min: 0.1,
+			max: 1.0,
+			smallStep: 0.05,
+			largeStep: 0.1,
+			tickPlacement: "none",
+			showButtons: false,
+			tooltip: {
+				format: "{0:p0}"
+			}
 		});
 		
 		// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
@@ -158,6 +202,7 @@
 			$("#blogOptionsPanelBar").kendoPanelBar({
 				expandMode: "multiple"
 			});
+
 		});//..document.ready
 	</script>
 		
@@ -302,13 +347,37 @@
 	  <tr height="1px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+	  <!--- 2026-10-03: mobile's narrow single-column width crammed the checkbox and this whole description into
+	  one shared cell, which read as cluttered - moved the description to its own full-width row above the
+	  checkbox instead, same "label row, then content row" stacking convention this file already uses elsewhere
+	  (eg. noImageFallbackMode above). Desktop's wider two-column layout had room for both in one cell, so it's
+	  unchanged. --->
+	  <cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">Send Diagnostics?</td>
+	  </tr>
+	  <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 0px 12px 8px;">
+			<span style="font-size:smaller">Email new errors to the blog owner. A copy also goes to the developer of Galaxie Blog to help to find bugs: the error, its address and the stack trace, never form values. To send the copy to someone else, or not at all, set developerEmail in blog.ini.cfm.</span>
+		</td>
+	  </tr>
+	  <tr valign="middle" height="30px">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<input type="checkbox" name="sendDiagnostics" id="sendDiagnostics" value="1" <cfif application.SendDiagnostics>checked</cfif>>
+		</td>
+	  </tr>
+	  <cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">Send Diagnostics?</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input type="checkbox" name="sendDiagnostics" id="sendDiagnostics" value="1" <cfif application.SendDiagnostics>checked</cfif>>
-			<span style="font-size:smaller"> Email new errors to the blog owner. A copy also goes to the developer of Galaxie Blog to help to find bugs: the error, its address and the stack trace, never form values. To send the copy to someone else, or not at all, set developerEmail in blog.ini.cfm.</span>
+			<!--- 2026-10-03: desktop's text was reported as too small - this span used to carry font-size:smaller
+			same as mobile's; removed here so desktop reads at the normal body size. Mobile keeps its own
+			smaller size above (narrower column, different tradeoff, not reported as an issue). --->
+			<span> Email new errors to the blog owner. A copy also goes to the developer of Galaxie Blog to help to find bugs: the error, its address and the stack trace, never form values. To send the copy to someone else, or not at all, set developerEmail in blog.ini.cfm.</span>
 		</td>
 	  </tr>
+	  </cfif>
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -348,6 +417,270 @@
 						Jquery and Kendo UI
 	//************************************************************************************************--->
 	<ul id="blogOptionsPanelBar">
+	<li>
+		Media Uploads
+	<div class="k-content">
+	<div style="padding: 15px;">
+		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+		  </cfsilent>
+
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<p>Sets the site-wide defaults for image and video uploads. The image quality slider pre-fills the same slider shown on each upload - admins can still nudge it per image, but this is where it starts. It only affects JPG/WebP; PNG/GIF uploads ignore it since those formats don't have a lossy quality dial. The video size limit rejects an enclosure video upload outright once it crosses this size, before it ever reaches the site's videos folder.</p>
+			</td>
+		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="defaultImageQuality">Default Image Quality:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
+				<input id="defaultImageQuality" name="defaultImageQuality" value="<cfoutput>#defaultImageQuality#</cfoutput>" />
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+				<label for="defaultImageQuality">Default Image Quality:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 40px 8px 12px;">
+				<input id="defaultImageQuality" name="defaultImageQuality" value="<cfoutput>#defaultImageQuality#</cfoutput>" />
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfsilent>
+		<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		</cfsilent>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="videoMaxFileSizeMB">Max Video Upload Size (MB):</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input id="videoMaxFileSizeMB" name="videoMaxFileSizeMB" value="<cfoutput>#videoMaxFileSizeMB#</cfoutput>" />
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+				<label for="videoMaxFileSizeMB">Max Video Upload Size (MB):</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input id="videoMaxFileSizeMB" name="videoMaxFileSizeMB" value="<cfoutput>#videoMaxFileSizeMB#</cfoutput>" />
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfsilent>
+		<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		</cfsilent>
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding-top: 14px;">
+				<h3 style="margin: 0 0 10px; padding-bottom: 8px; border-bottom: 1px solid #ccc;">No-Image Fallback</h3>
+			</td>
+		  </tr>
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<p>What shows in place of a post's missing image, for posts with no enclosure at all. "Generic" keeps today's plain placeholder image. "Generated CSS Gradients" shows a unique color-gradient banner per post - a deterministic gradient built from the post itself, not an AI-generated image, and nothing to upload or manage. "Pool Photo" shows either a single photo or a small carousel (see Pool Display below) drawn from a shared pool you upload once (Manage Hero Image Pool, elsewhere in the admin) - which image(s) a post gets is picked deterministically from the post's own ID, not randomly, so the same post always shows the same picture(s) instead of reshuffling on every visit. Pool Image Count controls how many images the carousel shows per post. "None" removes the image area entirely, for a text-only look. Pool falls back to Generated CSS Gradients automatically until that pool has at least one image in it.</p>
+			</td>
+		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="noImageFallbackMode">No-Image Fallback:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
+				<script>
+					<!--- Kendo's own width init option silently ignores a percentage in this version - it falls
+					back to its default calculated size (confirmed live at 206x40) instead of resolving against the
+					cell. Setting the rendered wrapper's CSS width directly after init, instead of through Kendo's
+					own option, is the standard workaround and isn't subject to that bug. --->
+					$("#noImageFallbackMode").kendoDropDownList({
+						change: function() {
+							$("#manageHeroImagePoolWrapper").toggle(this.value() === "pool");
+							$("#configureAnimationDefaultsWrapper").toggle(this.value() === "animation");
+							$(".poolDisplayModeRow, .poolImageCountRow").toggle(this.value() === "pool");
+						}
+					}).data("kendoDropDownList").wrapper.css("width", "95%");
+				</script>
+				<select name="noImageFallbackMode" id="noImageFallbackMode">
+					<option value="generic" <cfif noImageFallbackMode eq "generic">selected</cfif>>Generic (today's placeholder image)</option>
+					<option value="generated" <cfif noImageFallbackMode eq "generated">selected</cfif>>Generated CSS Gradients (no AI)</option>
+					<option value="pool" <cfif noImageFallbackMode eq "pool">selected</cfif>>Pool Photo (same each time, not random)</option>
+					<option value="animation" <cfif noImageFallbackMode eq "animation">selected</cfif>>Animated Background (single-post pages only)</option>
+					<option value="none" <cfif noImageFallbackMode eq "none">selected</cfif>>None (no image area)</option>
+				</select>
+				<!--- Only meaningful once No-Image Fallback is actually set to Pool - shown/hidden by the dropdown's
+				own change handler above, matching its initial state here so there's no flash of the wrong state on load. --->
+				<div id="manageHeroImagePoolWrapper" style="margin-top: 8px;<cfif noImageFallbackMode neq 'pool'> display: none;</cfif>">
+					<button type="button" class="k-button k-primary" onclick="createAdminInterfaceWindow(73)" ontouchend="createAdminInterfaceWindow(73)">Manage Hero Image Pool</button>
+				</div>
+				<!--- Same shown-once-relevant pattern as the pool button above, just for 'animation'. Sets
+				window.currentEnclosureEntityType='blogOption' right before opening window 79 so
+				heroAnimationEditor.cfm/saveBlogOptionAnimation save the SITE-WIDE default (BlogOption.AnimationEffect/AnimationOptions),
+				not a per-post override - see heroAnimationEditor.cfm's own file-header comment on the two contexts. --->
+				<div id="configureAnimationDefaultsWrapper" style="margin-top: 8px;<cfif noImageFallbackMode neq 'animation'> display: none;</cfif>">
+					<button type="button" class="k-button k-primary" onclick="window.currentEnclosureEntityType='blogOption';createAdminInterfaceWindow(79,<cfoutput>#blogOptionId#</cfoutput>);" ontouchend="window.currentEnclosureEntityType='blogOption';createAdminInterfaceWindow(79,<cfoutput>#blogOptionId#</cfoutput>);">Configure Animation Defaults</button>
+				</div>
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+				<label for="noImageFallbackMode">No-Image Fallback:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 40px 8px 12px;">
+				<script>
+					<!--- Kendo's own width init option silently ignores a percentage in this version - it falls
+					back to its default calculated size (confirmed live at 206x40) instead of resolving against the
+					cell. Setting the rendered wrapper's CSS width directly after init, instead of through Kendo's
+					own option, is the standard workaround and isn't subject to that bug. --->
+					$("#noImageFallbackMode").kendoDropDownList({
+						change: function() {
+							$("#manageHeroImagePoolWrapper").toggle(this.value() === "pool");
+							$("#configureAnimationDefaultsWrapper").toggle(this.value() === "animation");
+							$(".poolDisplayModeRow, .poolImageCountRow").toggle(this.value() === "pool");
+						}
+					}).data("kendoDropDownList").wrapper.css("width", "60%");
+				</script>
+				<select name="noImageFallbackMode" id="noImageFallbackMode">
+					<option value="generic" <cfif noImageFallbackMode eq "generic">selected</cfif>>Generic (today's placeholder image)</option>
+					<option value="generated" <cfif noImageFallbackMode eq "generated">selected</cfif>>Generated CSS Gradients (no AI)</option>
+					<option value="pool" <cfif noImageFallbackMode eq "pool">selected</cfif>>Pool Photo (same each time, not random)</option>
+					<option value="animation" <cfif noImageFallbackMode eq "animation">selected</cfif>>Animated Background (single-post pages only)</option>
+					<option value="none" <cfif noImageFallbackMode eq "none">selected</cfif>>None (no image area)</option>
+				</select>
+				<!--- Only meaningful once No-Image Fallback is actually set to Pool - shown/hidden by the dropdown's
+				own change handler above, matching its initial state here so there's no flash of the wrong state on load. --->
+				<div id="manageHeroImagePoolWrapper" style="margin-top: 8px;<cfif noImageFallbackMode neq 'pool'> display: none;</cfif>">
+					<button type="button" class="k-button k-primary" onclick="createAdminInterfaceWindow(73)" ontouchend="createAdminInterfaceWindow(73)">Manage Hero Image Pool</button>
+				</div>
+				<!--- Same shown-once-relevant pattern as the pool button above, just for 'animation'. Sets
+				window.currentEnclosureEntityType='blogOption' right before opening window 79 so
+				heroAnimationEditor.cfm/saveBlogOptionAnimation save the SITE-WIDE default (BlogOption.AnimationEffect/AnimationOptions),
+				not a per-post override - see heroAnimationEditor.cfm's own file-header comment on the two contexts. --->
+				<div id="configureAnimationDefaultsWrapper" style="margin-top: 8px;<cfif noImageFallbackMode neq 'animation'> display: none;</cfif>">
+					<button type="button" class="k-button k-primary" onclick="window.currentEnclosureEntityType='blogOption';createAdminInterfaceWindow(79,<cfoutput>#blogOptionId#</cfoutput>);" ontouchend="window.currentEnclosureEntityType='blogOption';createAdminInterfaceWindow(79,<cfoutput>#blogOptionId#</cfoutput>);">Configure Animation Defaults</button>
+				</div>
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfsilent>
+		<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		</cfsilent>
+		<!--- 2026-10-03: only meaningful when noImageFallbackMode is actually 'pool' - shown/hidden by that
+		dropdown's own change handler above, matching its initial state here so there's no flash of the wrong
+		state on load (same shown-once-relevant pattern as manageHeroImagePoolWrapper/
+		configureAnimationDefaultsWrapper, just applied to whole table rows instead of a div). --->
+		<cfif session.isMobile>
+		  <tr valign="middle" class="poolDisplayModeRow" <cfif noImageFallbackMode neq 'pool'>style="display:none;"</cfif>>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="heroPoolDisplayMode">Pool Display:</label>
+			</td>
+		   </tr>
+		   <tr class="poolDisplayModeRow" <cfif noImageFallbackMode neq 'pool'>style="display:none;"</cfif>>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
+				<script>
+					<!--- See noImageFallbackMode's own comment above - Kendo's width init option ignores a
+					percentage here, so the wrapper's CSS width is set directly after init instead. --->
+					$("#heroPoolDisplayMode").kendoDropDownList({}).data("kendoDropDownList").wrapper.css("width", "95%");
+				</script>
+				<select name="heroPoolDisplayMode" id="heroPoolDisplayMode">
+					<option value="carousel" <cfif heroPoolDisplayMode eq "carousel">selected</cfif>>Carousel (rotates through Pool Image Count images)</option>
+					<option value="single" <cfif heroPoolDisplayMode eq "single">selected</cfif>>Single Image (one photo, no carousel widget)</option>
+				</select>
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr class="poolDisplayModeRow" <cfif noImageFallbackMode neq 'pool'>style="display:none;"</cfif>>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+				<label for="heroPoolDisplayMode">Pool Display:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 40px 8px 12px;">
+				<script>
+					<!--- See noImageFallbackMode's own comment above - Kendo's width init option ignores a
+					percentage here, so the wrapper's CSS width is set directly after init instead. --->
+					$("#heroPoolDisplayMode").kendoDropDownList({}).data("kendoDropDownList").wrapper.css("width", "60%");
+				</script>
+				<select name="heroPoolDisplayMode" id="heroPoolDisplayMode">
+					<option value="carousel" <cfif heroPoolDisplayMode eq "carousel">selected</cfif>>Carousel (rotates through Pool Image Count images)</option>
+					<option value="single" <cfif heroPoolDisplayMode eq "single">selected</cfif>>Single Image (one photo, no carousel widget)</option>
+				</select>
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px" class="poolDisplayModeRow" <cfif noImageFallbackMode neq 'pool'>style="display:none;"</cfif>>
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfsilent>
+		<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		</cfsilent>
+		<cfif session.isMobile>
+		  <tr valign="middle" class="poolImageCountRow" <cfif noImageFallbackMode neq 'pool'>style="display:none;"</cfif>>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="heroCarouselImageCount">Pool Image Count:</label>
+			</td>
+		   </tr>
+		   <tr class="poolImageCountRow" <cfif noImageFallbackMode neq 'pool'>style="display:none;"</cfif>>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input id="heroCarouselImageCount" name="heroCarouselImageCount" value="<cfoutput>#heroCarouselImageCount#</cfoutput>" />
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr class="poolImageCountRow" <cfif noImageFallbackMode neq 'pool'>style="display:none;"</cfif>>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+				<label for="heroCarouselImageCount">Pool Image Count:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input id="heroCarouselImageCount" name="heroCarouselImageCount" value="<cfoutput>#heroCarouselImageCount#</cfoutput>" />
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		</table>
+	</div>
+	</div>
+	</li>
 	<li>
 		Jquery Location and Kendo UI
 	<div class="k-content">
@@ -1337,6 +1670,6 @@
 	</div>
 	</li>
 	</ul>
-		
+
 	<br/><br/>
-	<button id="optionsSubmit" name="optionsSubmit" class="k-button k-primary" type="button">Submit</button> 
+	<button id="optionsSubmit" name="optionsSubmit" class="k-button k-primary" type="button">Submit</button>

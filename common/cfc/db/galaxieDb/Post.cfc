@@ -11,6 +11,56 @@
 	<cfproperty name="EnclosureMap" ormtype="int" fieldtype="many-to-one" cfc="Map" fkcolumn="EnclosureMapRef" inversejoincolumn="PostRef" inverse="true" cascade="all" missingRowIgnored="true">
 	<!--- There can be many posts to one carousel. If there was a unique carousel for every post, this would be a one to one relationship. However, many posts don't have carousels (where there would be multipe nulls) and many posts can share the same carousel. --->
 	<cfproperty name="EnclosureCarousel" ormtype="int" fieldtype="many-to-one" cfc="Carousel" fkcolumn="EnclosureCarouselRef" inversejoincolumn="PostRef" inverse="true" cascade="all" missingRowIgnored="true">
+	<!--- A freeform CSS linear/radial-gradient() string (built via the Insert/Edit Gradient popup - see
+	gradientEditor.cfm) as an alternative hero/enclosure option alongside EnclosureMedia/Map/Carousel above.
+	Optional overlay title text, its color, and (2026-10-01) its font, rendered centered over the gradient - see
+	Renderer.cfc's renderMediaPreview()/renderEnclosure() for the priority order these are checked in relative to
+	the other enclosure types. Same shape as PageCollection.cfc's own HeroGradient/HeroOverlayText/
+	HeroOverlayTextColor (that one doesn't have HeroOverlayFont yet - Page Collections are out of scope for the
+	font picker for now, same as they are for the live animation). HeroOverlayText/HeroOverlayTextColor/
+	HeroOverlayFont are shared with HeroAnimation below, not duplicated per hero type - only one hero type is
+	ever active on a post at a time (see savePostHeroGradient()/savePostHeroAnimation() in
+	org/camden/blog/blog.cfc), so whichever one is
+	currently picked owns these three columns. HeroOverlayFont is a font NAME (matches a Font.Font value from
+	application.blog.getThemeFonts()), not a file path - the actual @font-face CSS comes from
+	includes/templates/font.cfm, same font-serving mechanism tinyMce.cfm's own font picker already uses. --->
+	<cfproperty name="HeroGradient" ormtype="string" length="1000" default="">
+	<cfproperty name="HeroOverlayText" ormtype="string" length="500" default="">
+	<cfproperty name="HeroOverlayTextColor" ormtype="string" length="20" default="">
+	<cfproperty name="HeroOverlayFont" ormtype="string" length="100" default="">
+	<!--- 2026-10-03: the pixel size of HeroOverlayText, stored as digits only (eg. "26"), empty meaning "use
+	whichever default the render call site already falls back to" - same empty-string-means-unset convention as
+	HeroOverlayFont above. A string, not an int, for the same reason HeroOverlayTextColor is a string: this gets
+	built straight into an inline style="font-size:...px" attribute at render time, never arithmetic on its own,
+	and a string sidesteps ORM needing a non-empty numeric default for "not set yet". Shared with HeroAnimation
+	below, same as every other HeroOverlay* column. --->
+	<cfproperty name="HeroOverlayFontSize" ormtype="string" length="10" default="">
+	<!--- A live animated background (currently rendered via Vanta.js, see heroAnimationEditor.cfm) as another
+	alternative hero/enclosure option, alongside EnclosureMedia/Map/Carousel and HeroGradient above. Named
+	generically (not after Vanta specifically) so the rendering library can change later without a column
+	rename - 2026-10-03, renamed from HeroVantaEffect/HeroVantaOptions while still dev-only/unmigrated, the
+	cheapest time to do it. HeroAnimationEffect is one of 'WAVES'/'NET'/'RINGS'/'CLOUDS' (TOPOLOGY was dropped
+	2026-09-30 - a real upstream vanta.js bug, see heroAnimationEditor.cfm's header comment) - these are
+	Vanta's own effect names, out of scope for this rename. HeroAnimationOptions is a raw JSON string of that
+	effect's color/speed parameters, parsed only client-side. Mutually exclusive with HeroGradient - as of
+	2026-10-01 both savePostHeroAnimation() and savePostHeroGradient() SET the shared HeroOverlayText/
+	HeroOverlayTextColor/HeroOverlayFont columns above from their own form (previously savePostHeroAnimation()
+	only ever cleared them) - whichever hero type was saved most recently owns the current overlay values (see
+	org/camden/blog/blog.cfc). Only ever rendered live on a post's own single-post page (never in a card/grid
+	context or on mobile) - see Renderer.cfc's renderEnclosure()/getHeroFallbackHtml(). --->
+	<cfproperty name="HeroAnimationEffect" ormtype="string" length="20" default="">
+	<cfproperty name="HeroAnimationOptions" ormtype="string" length="1000" default="">
+	<!--- 2026-10-01: a static uploaded photo shown on cards/listings and used to drive the social-media share
+	images (og:image/twitter:image), for a post whose hero is Gradient/the live animation/the auto-generated
+	fallback art - none of which have a real photo to show on a card or share to social media. Orthogonal to
+	HeroGradient/HeroAnimationEffect above (not mutually exclusive with either - savePostHeroCoverImage() in
+	blog.cfc never touches those fields), and never used on the post's own single-post page, where the real
+	Gradient/animation keeps rendering live regardless - see Renderer.cfc's renderMediaPreview()/card-grid templates (which DO use
+	this) vs. renderEnclosure()/getHeroFallbackHtml() (which deliberately don't). Replaces the old per-post
+	practice of hand-typing <facebookImageUrlMetaData:...>/<twitterImageUrlMetaData:...> XML Post Directives
+	into the Post Header field for this exact purpose (see seoMetaTags.cfm) - a manually-typed directive, if one
+	still exists on an older post, still wins over this for backward compatibility. --->
+	<cfproperty name="HeroCoverImageUrl" ormtype="string" length="500" default="">
 	<!--- The PostAssests column below is a psuedo column that is used by this object. The PostMedia table is our link table. There are many posts with many different types of media (images and video) --->
 	<cfproperty name="PostAssets" singularname="PostAsset" ormtype="int" fieldtype="one-to-many" cfc="PostMedia" fkcolumn="PostRef" inversejoincolumn="MediaRef" inverse="true" cascade="all" missingRowIgnored="true">
 	<!--- A post can either be embedded into an external page or the blog --->

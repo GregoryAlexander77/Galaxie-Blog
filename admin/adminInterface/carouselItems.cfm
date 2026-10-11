@@ -13,6 +13,19 @@
 		FROM Media
 		WHERE MediaId IN (<cfqueryparam value="#mediaIdList#" cfsqltype="integer" list="yes">)
 	</cfquery>
+	<!--- Show the pictures in mediaIdList's order - the order they were picked in the upload window. The IN (...) query
+	above returns them in the database's own order, and saveCarousel/saveGallery pair each form field with mediaIdList
+	by position, so a different order here put the slides out of order (and could attach a title to the wrong picture). --->
+	<cfset orderedMedia = []>
+	<cfloop list="#mediaIdList#" index="thisOrderedMediaId">
+		<cfloop array="#getMediaUrl#" item="thisMediaRow">
+			<cfif thisMediaRow["MediaId"] eq thisOrderedMediaId>
+				<cfset arrayAppend(orderedMedia, thisMediaRow)>
+				<cfbreak>
+			</cfif>
+		</cfloop>
+	</cfloop>
+	<cfset getMediaUrl = orderedMedia>
 	<!--- 
 	Debugging:<br/>
 	<cfoutput>mediaIdList: #mediaIdList#</cfoutput>
@@ -24,8 +37,13 @@
 	<form id="carouselDetail" name="carouselDetail" data-role="validator">
 	<!--- Pass the csrfToken --->
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
-	<!--- Pass the postId --->
-	<input type="hidden" name="postId" id="postId" value="<cfoutput>#URL.optArgs#</cfoutput>" />
+	<!--- Pass the postId - or pageCollectionId when this carousel is a Page Collection's hero enclosure instead of a
+	Post's (see enclosureImageEditor.cfm's window.currentEnclosureEntityType / blogJsContent.cfm's entityType param). --->
+	<cfif isDefined("URL.entityType") and URL.entityType eq 'pageCollection'>
+		<input type="hidden" name="pageCollectionId" id="postId" value="<cfoutput>#URL.optArgs#</cfoutput>" />
+	<cfelse>
+		<input type="hidden" name="postId" id="postId" value="<cfoutput>#URL.optArgs#</cfoutput>" />
+	</cfif>
 	<!--- Hidden input to pass the mediaIdList --->
 	<input type="hidden" name="mediaIdList" id="mediaIdList" value="<cfoutput>#URL.otherArgs#</cfoutput>">
 	<!--- Store the number of galleries that were created by the user. We'll increment this for every gallery --->
@@ -157,7 +175,7 @@
 		<cfelse>
 			<td align="left" valign="top" class="border" width="90%">
 		</cfif>
-				<a class="fancybox-effects" href="<cfoutput>#imageUrl#</cfoutput>"><img data-src="<cfoutput>#imageUrl#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#imageUrl#</cfoutput>"></a>
+				<a class="glightbox" href="<cfoutput>#imageUrl#</cfoutput>"><img data-src="<cfoutput>#imageUrl#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#imageUrl#</cfoutput>"></a>
 			</td>
 		</tr>
 		<tr>
@@ -192,7 +210,7 @@
 		<cfelse>
 			<td align="left" valign="top" class="border" width="240px">
 		</cfif>
-			<a class="fancybox-effects" href="<cfoutput>#imageUrl#</cfoutput>"><img data-src="<cfoutput>#imageUrl#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#imageUrl#</cfoutput>"></a>
+			<a class="glightbox" href="<cfoutput>#imageUrl#</cfoutput>"><img data-src="<cfoutput>#imageUrl#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#imageUrl#</cfoutput>"></a>
 		</td>
 		<cfif i eq 1>
 			<td valign="top">
@@ -228,7 +246,7 @@
 											 $("#carouselFontColor<cfoutput>#i#</cfoutput>").kendoColorPicker({
 												input: false,
 												preview:false,
-												value: "#<cfoutput>#primaryColor#</cfoutput>",
+												value: "#ffffff", <!--- white by default: slide text sits on the photo --->
 												buttons: false,
 												views: ["gradient"]
 											});
@@ -307,13 +325,32 @@
 			<!--- Get the numGalleries value in the hidden form. It starts at 1. This is used to determine what id we should use in our hidden inputs that are created on the fly here. --->
 			var carouselNum = $("#numCarousels").val();
 			<!--- Insert an iframe into the editor $("#dynamicGalleryLabel").append('Gallery ' + galleryNum + ' Preview'); Show the preview row and insert content into the preview div $("#dynamicGalleryInputFields").append(response); Finally insert the content into the active tinymce editor. The response here is plain HTML coming from the server $('textarea.post').html('Some contents...'); --->
-			tinymce.activeEditor.insertContent(response + '<br/><br/>');
-			
+			<!--- A Page Collection's hero enclosure has no TinyMCE editor to insert into (see enclosureImageEditor.cfm) -
+			write straight into its plain preview div instead. window.currentEnclosureEntityType is set by that file
+			right before it opens this window, and reset to '' for every other caller, so this never misfires. --->
+			if (window.currentEnclosureEntityType === 'pageCollection') {
+				$('#enclosurePreview').html(response);
+				<!--- Refresh the Page Collection Detail window's hero preview (and the grid) so the new carousel shows there, same as gradientEditor.cfm does. --->
+				try { reloadPageCollectionHeroPreview(<cfoutput>#URL.optArgs#</cfoutput>); } catch(e) {}
+				try { $("#configurePageCollectionsWindow").data("kendoWindow").refresh(); } catch(e) {}
+			} else {
+				<!--- If TinyMCE cannot take the content (for example its active editor was already removed), an uncaught error here stopped the rest of this function, so the windows below never closed. Log it and carry on. --->
+				try { tinymce.activeEditor.insertContent(response + '<br/><br/>'); } catch(e) { console.log('Carousel insert into the editor failed', e); }
+				<!--- 2026-09-26 per feedback: the Post Enclosure window itself was being left open after a
+				successful carousel upload, showing a stale (non-updated) preview - confusing, and unnecessary,
+				since the post editor's own hero image thumbnail already refreshes on its own after this. Reuses the
+				same submit/close function the window's own Submit button calls, same as the Uppy bridge windows
+				already do on their own successful upload (see enclosure-insert-image-upload-tab-uppy-bridge memory) -
+				not done for a Page Collection's hero enclosure, which has no equivalent "post editor" underneath it
+				to return to. --->
+				try { onPostEnclosureSubmit(); } catch(e) { console.log('Closing the Post Enclosure window failed', e); }
+			}
+
 			<!--- Close all of the windows associated with the gallery Close the uppy dashboard. We are using the uppy galleryWindow for both galleries and carousels --->
 			$('#galleryWindow').kendoWindow('destroy');
 			<!--- Close the carousel items window --->
 			$('#carouselItemsWindow').kendoWindow('destroy');
-			
+
 		}
 		
 	</script>

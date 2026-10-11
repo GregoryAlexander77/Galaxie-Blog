@@ -9,7 +9,7 @@ cd "$(dirname "$0")/js" || exit 1
 
 # Splitter and Menu are needed by every page as kendo.web.ext.js (the extended dialogs) extends the Window, Splitter and Menu widgets when it loads.
 PUBLIC="core userevents data.odata data.xml data binder fx validator draganddrop mobile.scroller resizable selectable popup list calendar virtuallist multiselect menu panelbar pager responsivepanel splitter window"
-ADMIN="$PUBLIC badge button dateinput datepicker autocomplete dropdownlist combobox color slider colorpicker numerictextbox floatinglabel timepicker datetimepicker"
+ADMIN="$PUBLIC badge button dateinput datepicker autocomplete dropdownlist combobox color slider colorpicker numerictextbox floatinglabel timepicker datetimepicker sortable"
 
 ORDER=$(grep -o 'define("kendo\.[a-z.0-9]*\.min"' kendo.ui.core.min.js | sed 's/define("kendo\.//;s/\.min"//' | grep -v '^ui\.core$' | tr '\n' ' ')
 

@@ -5,6 +5,12 @@
 		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
 		<cfcatch type="any"></cfcatch>
 	</cftry>
+
+	<!--- Instantiate Image.cfc - used by getHeroFallbackHtml() for generateHeroArt(). Same guarded pattern as StringUtilsObj above, for the same install-time reason. --->
+	<cftry>
+		<cfobject component="#application.imageComponentPath#" name="ImageObj">
+		<cfcatch type="any"></cfcatch>
+	</cftry>
 		
 	<!--- //************************************************************************************************
 		Helper functions
@@ -49,7 +55,8 @@
 		<cfargument name="kendoTheme" type="string" required="false" default="">
 		<cfargument name="getPost" type="any" required="false" default="">
 		<cfargument name="currentRow" type="string" required="false" default="1" hint="If there is more than one row, we may be in blog mode (or category, tag, etc), if there is only one post, we are most likely reading a single post.">
-		
+		<cfargument name="isSinglePostPage" type="boolean" required="false" default="false" hint="Pass getPageMode() eq 'post' from the caller (blogContentHtml.cfm) - true only for a post's own permalink/page view. Threaded through to renderEnclosure() to gate the live hero animation per-post override to that context alone.">
+
 		<!--- Extract the needed data from the query. These variables are from the post header and not the actual post body --->
 		<cfset postHeader = getPost[currentRow]["PostHeader"]>
 		<cfset css = getPost[currentRow]["CSS"]>
@@ -255,7 +262,7 @@
 					
 					<!--- This is the standard pathway if there are no cfincludes, scripts or video directives. --->
 					<!--- Render the enclosure. We need to pass in the kendoTheme, getPost query and the current row. This will render all of the enclosure types- images, video's and maps. --->
-					<cfset enclosure = renderEnclosure(arguments.kendoTheme,arguments.getPost,arguments.currentRow)>
+					<cfset enclosure = renderEnclosure(arguments.kendoTheme,arguments.getPost,arguments.currentRow,arguments.isSinglePostPage)>
 					<cfif scriptDirective>
 						<!--- Render the postHeader, enclosure and body --->
 						<cfif len(enclosure)>
@@ -280,7 +287,7 @@
 			
 			<!--- This is the standard pathway if there are no cfinclude or video directives. --->
 			<!--- Render the enclosure. We need to pass in the kendoTheme, getPost query and the current row. This will render all of the enclosure types- images, video's and maps. --->
-			<cfset enclosure = renderEnclosure(arguments.kendoTheme,arguments.getPost,arguments.currentRow)>
+			<cfset enclosure = renderEnclosure(arguments.kendoTheme,arguments.getPost,arguments.currentRow,arguments.isSinglePostPage)>
 			<!--- Render the body --->
 			<cfif len(enclosure)>
 				<cfset post = enclosure & '<br/>' & renderCssAndScript(css, javaScript) & renderBody(body)>
@@ -346,7 +353,8 @@
 		<cfargument name="kendoTheme" type="any" required="yes" hint="Pass in the kendo theme">
 		<cfargument name="getPost" type="any" required="yes" hint="Pass in the getPost HQL query">
 		<cfargument name="currentRow" type="any" required="no" default="1" hint="What row of the query to you want extracted? This is needed as the blog may have many rows. Specify 1 if there is only 1 row, otherwise, put in the current row that you want inspected. The default value is 1.">
-			
+		<cfargument name="isSinglePostPage" type="boolean" required="no" default="false" hint="Passed from renderPost(), ultimately from blogContentHtml.cfm's getPageMode() eq 'post' check (a CFC can't see that page-scoped UDF directly). True only for a post's own permalink/page view, never the blog roll/category/postedBy/month listings that also render full posts through this same function. Gates the live hero animation per-post override below.">
+
 		<!--- Preset the vars --->
 		<cfset enclosureHtml=''>
 		<cfset mediaId = ''>
@@ -437,11 +445,66 @@
 			</cfif>
 		</cfif>
 		<!---<cfdump var="#mediaHtml#" label="mediaHtml">--->
-			
+
+		<!---*********************    Handle the Hero Gradient  *********************--->
+		<!--- Only when nothing above already produced something (Map/Carousel/Image/Video all take priority, same
+		as PageCollection's own hero render chain and renderMediaPreview() above) - see gradientEditor.cfm/
+		Post.cfc's HeroGradient. Checked before getHeroFallbackHtml() below, since that's the "no enclosure of any
+		kind" fallback tier (auto-generated art etc.) - an explicit Gradient the user picked is a real enclosure,
+		not a fallback. --->
+		<cfif not len(enclosureHtml) and len(getPost[arguments.currentRow]["HeroGradient"])>
+			<cfset enclosureHtml = this.renderHeroGradientHtml(heroGradient=getPost[arguments.currentRow]["HeroGradient"], heroOverlayText=getPost[arguments.currentRow]["HeroOverlayText"], heroOverlayTextColor=getPost[arguments.currentRow]["HeroOverlayTextColor"], heroOverlayFont=getPost[arguments.currentRow]["HeroOverlayFont"], heroOverlayFontSize=getPost[arguments.currentRow]["HeroOverlayFontSize"], fullSize=true)>
+		</cfif>
+
+		<!--- Explicit per-post animation pick (see Post.cfc's HeroAnimationEffect) - same priority tier as
+		HeroGradient above (an explicit override is a real enclosure, not a fallback), but only rendered live on
+		the post's own single-post page. Every other context (blog roll/category/archive listings also rendered
+		through this same function, or mobile) falls through to the normal chain below instead -
+		getHeroFallbackHtml()'s own 'animation' branch (BlogOption.AnimationEffect / Image.cfc's
+		generateAnimationDefault) has the exact same gating for the case where no per-post override was ever
+		picked. Validated against the current supported effect list, same reasoning as getHeroFallbackHtml()'s
+		own guard - a stale per-post pick from a since-dropped effect falls through to the normal chain
+		(ultimately the deterministic default) instead of rendering something known-broken (eg. TOPOLOGY, see
+		heroAnimationEditor.cfm's header comment). 2026-10-03: renamed from HeroVantaEffect/HeroVantaOptions/
+		renderHeroVantaHtml/vantaEffect/vantaOptions while still dev-only/unmigrated - these are Vanta's own
+		effect names (WAVES/NET/RINGS/CLOUDS), out of scope for this rename. --->
+		<cfif not len(enclosureHtml) and len(getPost[arguments.currentRow]["HeroAnimationEffect"])
+				and listFindNoCase("WAVES,NET,RINGS,CLOUDS,BIRDS,FOG,CLOUDS2,GLOBE", getPost[arguments.currentRow]["HeroAnimationEffect"])
+				and arguments.isSinglePostPage and not session.isMobile>
+			<cfset enclosureHtml = this.renderHeroAnimationHtml(
+				postId = getPost[arguments.currentRow]["PostId"],
+				animationEffect = getPost[arguments.currentRow]["HeroAnimationEffect"],
+				animationOptions = (len(getPost[arguments.currentRow]["HeroAnimationOptions"]) ? deserializeJson(getPost[arguments.currentRow]["HeroAnimationOptions"]) : structNew()),
+				heroOverlayText = getPost[arguments.currentRow]["HeroOverlayText"],
+				heroOverlayTextColor = getPost[arguments.currentRow]["HeroOverlayTextColor"],
+				heroOverlayFont = getPost[arguments.currentRow]["HeroOverlayFont"],
+				heroOverlayFontSize = getPost[arguments.currentRow]["HeroOverlayFontSize"],
+				cardMode = false)>
+		</cfif>
+
+		<!--- The post had no map, carousel, or enclosure at all. NoImageFallbackMode='none' (suppressImage=true) means
+		no image area at all, by design. Every other mode should show something, matching the card views
+		(renderKendoCardGrid.cfm/popularPosts.cfm) - including 'generic', which falls through to renderEnclosureImage's
+		own empty-mediaUrl default (noImage.jpg), the same default those card views already show for 'generic'. --->
+		<cfif not len(enclosureHtml)>
+			<cfset heroFallback = this.getHeroFallbackHtml(postId=getPost[arguments.currentRow]["PostId"], cardMode=false, isSinglePostPage=arguments.isSinglePostPage)>
+			<cfif heroFallback.isHtml>
+				<cfset enclosureHtml = heroFallback.content>
+			<cfelseif heroFallback.suppressImage>
+				<!--- 'none' - leave enclosureHtml empty, no image area at all. --->
+			<cfelse>
+				<cfinvoke component="#this#" method="renderEnclosureImage" returnvariable="enclosureHtml">
+					<cfinvokeargument name="mediaUrl" value="#heroFallback.content#">
+					<cfinvokeargument name="mediaId" value="">
+					<cfinvokeargument name="useFadeClass" value="true">
+				</cfinvoke>
+			</cfif>
+		</cfif>
+
 		<cfreturn enclosureHtml>
-			
+
 	</cffunction>
-			
+
 	<cffunction name="renderMediaPreview" returntype="string" output="false"
 			hint="Renders the media thumbnail for the admin edit post editor page">
 		<cfargument name="kendoTheme" type="string" required="yes" hint="Pass in the Kendo Theme">
@@ -484,7 +547,7 @@
 					<cfset thumnailSource = mediaUrl>
 				</cfif>
 				<!--- Render the image HTML string --->
-				<cfset thumbnailHtml = '<a class="fancybox-effects" aria-label="Thumnail Image Url" onClick="javascript:createAdminInterfaceWindow(13,' & URL.optArgs & ')"><img id="thumbnailImage" data-src="' & thumnailSource & '" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="' & thumnailSource & '"></a>'>
+				<cfset thumbnailHtml = '<a class="glightbox" aria-label="Thumnail Image Url" onClick="javascript:createAdminInterfaceWindow(13,' & URL.optArgs & ')"><img id="thumbnailImage" data-src="' & thumnailSource & '" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="' & thumnailSource & '"></a>'>
 			<!--- The media type string for video is Video - Large, Video - YouTube URL, etc. All of the video types start with 'Video' --->
 			<cfelseif left(mediaType, 5) eq 'Video'>
 				<!--- Note: this will return an iframe. --->
@@ -514,10 +577,40 @@
 			<!--- Get the HTML for this carousel. renderCarouselPreview(carouselId, interface) --->
 			<cfset thumbnailHtml = this.renderCarouselPreview(enclosureCarouselId,'postEditor')>
 		</cfif>
-			
+
+		<!---******************    Handle the Hero Cover Image  ******************--->
+		<!--- 2026-10-01: a static uploaded photo for a post with no real Image/Video/Map/Carousel - takes priority
+		over Gradient/the live animation's own card-thumbnail fallback (same "nothing else matched yet" gate), since it's a
+		deliberate real-photo override for exactly the posts that would otherwise show a CSS gradient here. See
+		Post.cfc's own comment on HeroCoverImageUrl. --->
+		<cfif thumbnailHtml eq '' and len(getPost[1]["HeroCoverImageUrl"])>
+			<cfset thumbnailHtml = this.renderEnclosureImage(mediaUrl=getPost[1]["HeroCoverImageUrl"])>
+		</cfif>
+
+		<!---******************    Handle the Hero Gradient  ******************--->
+		<!--- Only when nothing else above already produced something (Image/Video/Map/Carousel all take priority,
+		same as PageCollection's own hero render chain) - see gradientEditor.cfm/Post.cfc's HeroGradient. --->
+		<cfif thumbnailHtml eq '' and len(getPost[1]["HeroGradient"])>
+			<cfset thumbnailHtml = this.renderHeroGradientHtml(getPost[1]["HeroGradient"], getPost[1]["HeroOverlayText"], getPost[1]["HeroOverlayTextColor"], getPost[1]["HeroOverlayFont"], getPost[1]["HeroOverlayFontSize"])>
+		</cfif>
+
+		<!---******************    Handle the Hero Animation  ******************--->
+		<!--- 2026-10-01: mirrors the Gradient branch above - only when nothing else already produced something, and
+		only when an animation effect has actually been picked (mutually exclusive with HeroGradient on Post.cfc
+		- see that file's own comment). A live WebGL canvas can't boot inside this admin preview area the same
+		way it does on a post's real public page (head.cfm/tailEndScripts.cfm's page-level init script never runs
+		here), so this embeds a small self-contained iframe pointing at preview/heroAnimation.cfm instead - the
+		same "own browsing context, own JS" trick renderMapPreview() above already uses for the Azure/Bing Maps
+		SDKs. Fixed pixel size (not a responsive 100%) for the same reason renderHeroGradientHtml()'s own
+		cardMode=false case is - this sits in postDetail.cfm's <td>, which does not reliably bound a
+		percentage-sized child. 2026-10-03: renamed from preview/vanta.cfm while still dev-only/unmigrated. --->
+		<cfif thumbnailHtml eq '' and len(getPost[1]["HeroAnimationEffect"])>
+			<cfset thumbnailHtml = '<iframe data-type="animation" data-id="' & getPost[1]["PostId"] & '" src="' & application.baseUrl & '/preview/heroAnimation.cfm?postId=' & getPost[1]["PostId"] & '" width="235" height="130" style="border:0;" scrolling="no"></iframe>'>
+		</cfif>
+
 		<!--- Insert an circular image with a line to indicate that the media does not exist for this post. --->
 		<cfif renderThumbnail and thumbnailHtml eq ''>
-			<cfset thumbnailHtml = '<a class="fancybox-effects" aria-label="Thumnail Image Url" onClick="javascript:createAdminInterfaceWindow(13,' & URL.optArgs & ')"><img id="thumbnailImage" data-src="#application.baseUrl#/images/icons/noMedia.png" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="#application.baseUrl#/images/icons/noMedia.png"></a>'>
+			<cfset thumbnailHtml = '<a class="glightbox" aria-label="Thumnail Image Url" onClick="javascript:createAdminInterfaceWindow(13,' & URL.optArgs & ')"><img id="thumbnailImage" data-src="#application.baseUrl#/images/icons/noMedia.png" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="#application.baseUrl#/images/icons/noMedia.png"></a>'>
 		</cfif>
 			
 		<cfreturn thumbnailHtml>
@@ -528,7 +621,7 @@
 			hint="Renders a thumbnail">
 		<cfargument name="url" type="string" required="yes">
 	
-		<cfset thumbNailHtml = '<a class="fancybox-effects" aria-label="Image URL" href="<cfoutput>#arguments.url#</cfoutput>"><img data-src="<cfoutput>#arguments.url#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#arguments.url#</cfoutput>"></a>'>
+		<cfset thumbNailHtml = '<a class="glightbox" aria-label="Image URL" href="<cfoutput>#arguments.url#</cfoutput>"><img data-src="<cfoutput>#arguments.url#</cfoutput>" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="<cfoutput>#arguments.url#</cfoutput>"></a>'>
 		
 		<cfreturn thumbNailHtml>
 				
@@ -638,6 +731,233 @@
 			
 		<cfreturn mediaHtmlStr>
 				
+	</cffunction>
+
+	<cffunction name="getOverlayFontFaceStyle" access="public" output="false" returntype="string"
+			hint="Returns a style tag with the @font-face rule for one hero overlay font, or an empty string for a web-safe font or a font with no file. 2026-10-09: the hero editors offer every self-hosted font, but a page only loads the fonts its theme uses (includes/templates/font.cfm), so most overlay picks rendered in the default font and looked like they had reverted. Carrying the rule with the hero's own HTML covers the post page, the cached homepage card and the editor's preview iframe alike.">
+		<cfargument name="fontName" type="string" required="true">
+		<cfset var fontRows = "">
+		<cfset var fontExtension = "">
+		<cfif not len(arguments.fontName)>
+			<cfreturn "">
+		</cfif>
+		<cfset fontRows = application.blog.getFont(font=arguments.fontName)>
+		<cfif not isArray(fontRows) or not arrayLen(fontRows) or not len(fontRows[1]["FileName"])>
+			<cfreturn "">
+		</cfif>
+		<cfset fontExtension = application.serverSupportsWoff2 ? "woff2" : "woff">
+		<cfreturn '<style>@font-face { font-family: "' & arguments.fontName & '"; src: url(' & application.baseUrl & '/common/fonts/' & fontRows[1]["FileName"] & '.' & fontExtension & ') format("' & fontExtension & '"); font-display: swap; }</style>'>
+	</cffunction>
+
+	<cffunction name="renderHeroGradientHtml" access="public" output="false" returntype="string"
+			hint="Renders a Post/PageCollection's explicitly-picked HeroGradient as ready-to-insert HTML - single
+			point of truth used by renderMediaPreview()/renderEnclosure() below AND the three card-view templates
+			(renderKendoCardGrid.cfm/popularPosts.cfm/curatedHomepageContentHtml.cfm), which previously each built
+			their own copy of this HTML inline. Two genuinely different contexts need two genuinely different
+			sizing strategies, not one box forced to fit both: the admin post-detail thumbnail (postDetail.cfm)
+			sits in a <td> that does NOT reliably bound its content (a responsive width:100%/max-width/margin:auto
+			attempt measurably rendered as a literal 1200x130 box, ~150px offset from the left margin, per the
+			user's own live DevTools inspection) - renderEnclosureVideoPreview()'s own established admin-thumbnail
+			video size (235x130, the renderThumbnail=true/non-medium-card case) sidesteps that by hardcoding a
+			plain pixel size with no centering at all, so cardMode=false matches that exactly. The public card
+			grids are the opposite: their .k-card/.k-card-deck containers already reliably bound their own width
+			(confirmed live - the real fallback <img> in each of the three templates use the width:100%/height:150px/
+			object-fit:cover/.k-card-image, .k-card-scroll-image, or .k-card-media CSS classes, relying on the
+			card to do the constraining), so cardMode=true fills 100% of that already-bound card instead of
+			hardcoding 235px, and matches those same images' height:150px/padding-bottom:5px/no internal padding -
+			the earlier flat 235x130-everywhere version was visibly a 'little bit off' next to real image cards
+			for exactly this reason (20px short, missing the bottom gap before the card title, unwanted inner
+			padding real images don't have).">
+		<cfargument name="heroGradient" type="string" required="true">
+		<cfargument name="heroOverlayText" type="string" required="false" default="">
+		<cfargument name="heroOverlayTextColor" type="string" required="false" default="">
+		<cfargument name="heroOverlayFont" type="string" required="false" default="" hint="A font NAME matching a Font.Font value (see application.blog.getThemeFonts()), not a file path - 2026-10-01. Empty is fine and falls through to whatever font-family the surrounding CSS already specifies, same as every post before this existed.">
+		<cfargument name="heroOverlayFontSize" type="string" required="false" default="" hint="Pixel size, digits only (eg. '26') - 2026-10-03. Empty keeps the original fixed 16px every post before this existed already rendered at, so no pre-existing post changes size just from this argument existing.">
+		<cfargument name="cardMode" type="boolean" required="false" default="false" hint="Pass true from the three public card-grid templates, whose own .k-card container already bounds width reliably (unlike postDetail.cfm's admin <td>) - sizes to match those cards' real image class (width:100%, height:150px, padding-bottom:5px, no internal padding) instead of the admin thumbnail's fixed 235x130.">
+
+		<cfargument name="fullSize" type="boolean" required="false" default="false" hint="2026-10-09: the hero on the post's own page. Until this existed the post page used the 235x130 admin-thumbnail box below, so a gradient hero never got bigger than a thumbnail. Full width, in the same 1200x630 shape as the generated hero art, capped at the animated hero's 564px height.">
+
+		<cfset var html = ''>
+		<cfif arguments.fullSize>
+			<cfset html = '<div style="width:100%;aspect-ratio:1200/630;max-height:564px;overflow:hidden;background:' & arguments.heroGradient & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;">'>
+		<cfelseif arguments.cardMode>
+			<!--- Same box as the card images (.k-card-image / .k-card-scroll-image in blogContentCss.cfm): 3:2, at most
+			210px tall (2026-10-09 - was a fixed 150px, so gradient cards sat shorter than the picture cards beside
+			them). The 5px gap below is a margin, not padding, so the gradient doesn't paint into it. --->
+			<cfset html = '<div style="width:100%;aspect-ratio:3/2;max-height:210px;overflow:hidden;background:' & arguments.heroGradient & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;margin-bottom:5px;">'>
+		<cfelse>
+			<cfset html = '<div style="width:235px;height:130px;overflow:hidden;background:' & arguments.heroGradient & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;">'>
+		</cfif>
+		<cfif len(arguments.heroOverlayText)>
+			<!--- 2026-10-01: font-family value uses single quotes, not double - this whole <span> is itself
+			inside a double-quoted style="..." attribute, so a double-quoted font name broke out of that
+			attribute early (confirmed live: the browser silently truncated the style and turned the rest of the
+			font name into bogus extra HTML attributes on the span). Single quotes are valid CSS and don't
+			conflict with the outer double-quoted attribute. --->
+			<cfset html = html & getOverlayFontFaceStyle(arguments.heroOverlayFont) & '<span style="color:' & (len(arguments.heroOverlayTextColor) ? arguments.heroOverlayTextColor : '##ffffff') & ';font-size:' & (len(arguments.heroOverlayFontSize) ? arguments.heroOverlayFontSize : '16') & 'px;font-weight:bold;text-align:center;' & (len(arguments.heroOverlayFont) ? "font-family:'" & arguments.heroOverlayFont & "';" : '') & '">' & arguments.heroOverlayText & '</span>'>
+		</cfif>
+		<cfset html = html & '</div>'>
+		<cfreturn html>
+	</cffunction>
+
+	<cffunction name="renderPageCollectionHero" access="public" output="false" returntype="string"
+			hint="Renders a Page Collection's carousel, map, video or gradient hero for the public pages (the collection's own page and the collection cards). Same priority order as admin/loadPreview.cfm's previewId=2. Returns an empty string when the hero is a plain image (HeroImageUrl) or there is no hero at all - the calling template renders those itself, as it did before. renderEnclosure() can't be used here since it also reads Post-only fields (PostId, HeroAnimationEffect, EnclosureMapCount, etc.).">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfargument name="cardMode" type="boolean" required="false" default="false" hint="True for the collection cards, false for the full-width hero at the top of the collection's own page.">
+		<cfargument name="showSidebar" type="boolean" required="false" default="false" hint="Only used in card mode - picks the card size of the map/video thumbnails, same as the post cards.">
+		<cfset var heroData = application.blog.getPageCollectionByPageCollectionId(arguments.pageCollectionId)>
+		<cfset var heroRow = "">
+		<cfset var pageCollectionDbObj = "">
+		<cfset var heroHtml = "">
+		<cfif not arrayLen(heroData)>
+			<cfreturn "">
+		</cfif>
+		<cfset heroRow = heroData[1]>
+
+		<cfif len(heroRow["EnclosureCarouselId"])>
+			<cfset heroHtml = this.renderCarousel(heroRow["EnclosureCarouselId"], arguments.cardMode)>
+		<cfelseif len(heroRow["EnclosureMapId"])>
+			<cfif arguments.cardMode>
+				<!--- renderMapPreview(mapId, thumbnail, renderKCardMediaClass, renderMediumCard, showSidebar) - same call as popularPosts.cfm's map cards. --->
+				<cfset heroHtml = this.renderMapPreview(heroRow["EnclosureMapId"], true, true, false, arguments.showSidebar)>
+			<cfelse>
+				<cfset heroHtml = this.renderMap(kendoTheme=application.blog.getSelectedKendoTheme(), getMap=application.blog.getMapByMapId(heroRow["EnclosureMapId"]), enclosureMapIdList=heroRow["EnclosureMapId"])>
+			</cfif>
+		<cfelseif left(heroRow["MediaType"], 5) eq 'Video' and len(heroRow["MediaUrl"])>
+			<cfset heroHtml = this.renderEnclosureVideoPreview(postId="", pageCollectionId=arguments.pageCollectionId, mediaUrl=heroRow["MediaUrl"], mediaId=heroRow["MediaId"], providerVideoId=heroRow["ProviderVideoId"], posterUrl=heroRow["MediaVideoCoverUrl"], videoCaptionsUrl=heroRow["MediaVideoVttFileUrl"], renderThumbnail=arguments.cardMode, renderKCardMediaClass=arguments.cardMode, showSidebar=arguments.showSidebar)>
+		<cfelse>
+			<!--- The gradient lives on the PageCollection entity itself, not on the enclosure relationships above. --->
+			<cfset pageCollectionDbObj = entityLoadByPK("PageCollection", arguments.pageCollectionId)>
+			<cfif isObject(pageCollectionDbObj) and len(pageCollectionDbObj.getHeroGradient())>
+				<cfset heroHtml = this.renderHeroGradientHtml(heroGradient=pageCollectionDbObj.getHeroGradient(), heroOverlayText=pageCollectionDbObj.getHeroOverlayText(), heroOverlayTextColor=pageCollectionDbObj.getHeroOverlayTextColor(), cardMode=arguments.cardMode)>
+			</cfif>
+		</cfif>
+		<cfreturn heroHtml>
+	</cffunction>
+
+	<cffunction name="renderHeroAnimationHtml" access="public" output="false" returntype="string"
+			hint="Renders a Post's explicitly-picked (or postId-seeded default) animation effect as a placeholder
+			div for the page-level init script (galaxieLoader.heroAnimationEngine(), see head.cfm) to turn into a
+			live canvas - no inline <script> here, since this only ever needs to exist once per page (single
+			post, desktop, never a card/grid context - see renderEnclosure()/getHeroFallbackHtml()'s
+			isSinglePostPage gating). Fails closed to the same generated CSS/SVG art 'generated' mode uses if ever
+			called with cardMode=true (a call-site mistake, since nothing should ever pass that) - defense in
+			depth against a future caller forgetting to gate, rather than trusting every call site forever.
+			2026-10-01: optional overlay text/color/font renders as a sibling <span> inside the same wrapper div,
+			absolutely positioned and centered with a z-index above wherever VANTA.{effect}() later injects its
+			own canvas (that canvas doesn't exist yet when this HTML renders - it's created afterward by the
+			page-level init script; VANTA is the actual Vanta.js library's own global namespace, out of scope for
+			this rename) - mirrors renderHeroGradientHtml()'s span styling for visual consistency between the two
+			hero types. .entryAnimation needs position:relative for this to center correctly (see
+			blogContentCss.cfm). 2026-10-03: renamed from renderHeroVantaHtml/vantaEffect/vantaOptions/
+			.entryVanta while still dev-only/unmigrated.">
+		<cfargument name="postId" type="numeric" required="yes">
+		<cfargument name="animationEffect" type="string" required="yes">
+		<cfargument name="animationOptions" type="struct" required="no" default="#structNew()#">
+		<cfargument name="heroOverlayText" type="string" required="no" default="">
+		<cfargument name="heroOverlayTextColor" type="string" required="no" default="">
+		<cfargument name="heroOverlayFont" type="string" required="no" default="">
+		<cfargument name="heroOverlayFontSize" type="string" required="no" default="" hint="Pixel size, digits only - 2026-10-03, same empty-keeps-the-original-16px convention as renderHeroGradientHtml()'s own argument.">
+		<cfargument name="cardMode" type="boolean" required="no" default="false">
+
+		<cfset var overlaySpan = ''>
+
+		<cfif arguments.cardMode>
+			<cfreturn '<div class="entryImage"><img data-type="image" src="' & ImageObj.generateHeroArt(arguments.postId) & '" alt=""></div>'>
+		</cfif>
+
+		<cfif len(arguments.heroOverlayText)>
+			<!--- 2026-10-01: single quotes around the font name, same fix/reasoning as renderHeroGradientHtml()'s
+			identical span - see that function's own comment. --->
+			<cfset overlaySpan = getOverlayFontFaceStyle(arguments.heroOverlayFont) & '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;color:' & (len(arguments.heroOverlayTextColor) ? arguments.heroOverlayTextColor : '##ffffff') & ';font-size:' & (len(arguments.heroOverlayFontSize) ? arguments.heroOverlayFontSize : '16') & 'px;font-weight:bold;text-align:center;' & (len(arguments.heroOverlayFont) ? "font-family:'" & arguments.heroOverlayFont & "';" : '') & '">' & arguments.heroOverlayText & '</span>'>
+		</cfif>
+
+		<cfreturn '<div class="entryAnimation" id="animation-' & arguments.postId & '" data-animation-effect="' & arguments.animationEffect & '" data-animation-options="' & encodeForHtmlAttribute(serializeJson(arguments.animationOptions)) & '">' & overlaySpan & '</div>'>
+	</cffunction>
+
+	<cffunction name="getHeroFallbackHtml" access="public" output="false" returntype="struct"
+			hint="Central dispatcher for what fills the hero/thumbnail area when a post has no enclosure image, reading BlogOption.NoImageFallbackMode. Returns a struct {isHtml, content, suppressImage} rather than a plain string, because the modes are genuinely different shapes: 'generic' and 'generated' are just an image URL (content), 'pool' is either a plain image URL (HeroPoolDisplayMode='single') or a whole rendered carousel widget (isHtml=true, content is ready-to-insert HTML, HeroPoolDisplayMode='carousel'), and 'none' means the caller should render no image element at all (suppressImage=true) - distinct from 'generic' also returning empty content, where the caller is expected to fall back to its own existing noImage.jpg-style literal instead. A caller that only ever wants a URL for its own <img> tag checks isHtml first, then suppressImage, before falling back to its own default on plain empty content.">
+		<cfargument name="postId" type="numeric" required="yes">
+		<cfargument name="cardMode" type="boolean" required="no" default="false" hint="Pass true from card/grid contexts (renderKendoCardGrid.cfm, popularPosts.cfm) so 'pool' mode renders a small card-sized carousel via renderCarousel's own card flag, same as a post's own enclosure carousel already does in those templates.">
+		<cfargument name="allowHtml" type="boolean" required="no" default="true" hint="Pass false from a caller whose markup only has room for a plain image URL (eg. cardGridSection.cfm's {imageUrl} struct shape, used by the homepage's All Blogs/Featured Pages/Collections sections) - 'pool' mode is skipped entirely and falls straight to 'generated' instead of ever returning isHtml=true, since there's nowhere for a rendered carousel widget to go in that markup.">
+		<cfargument name="isSinglePostPage" type="boolean" required="no" default="false" hint="Pass true only from renderEnclosure() when its own isSinglePostPage argument is true (getPageMode() eq 'post', checked by the caller since a CFC can't see that page-scoped UDF directly) - gates 'animation' mode's live default (BlogOption.AnimationEffect) to a post's own single-post page, same reasoning as the cardMode/allowHtml gates. Card/grid callers never pass this - default false is correct for them.">
+
+		<cfset var fallbackMode = application.BlogOptionDbObj.getNoImageFallbackMode()>
+		<cfset var animationDefault = "">
+		<cfset var animationSiteEffect = application.BlogOptionDbObj.getAnimationEffect()>
+		<cfset var animationSiteOptions = application.BlogOptionDbObj.getAnimationOptions()>
+		<cfset var poolCarouselId = "">
+		<cfset var getPoolItems = "">
+		<cfset var poolDisplayMode = "">
+		<cfset var selectedIndex = 1>
+		<cfset var imageCount = 1>
+		<cfset var startIndex = 0>
+		<cfset var i = 0>
+		<cfset var selectedItemIds = "">
+		<cfset var carouselHtml = "">
+
+		<cfif fallbackMode eq "none">
+			<cfreturn {isHtml: false, content: "", suppressImage: true}>
+		</cfif>
+
+		<cfif fallbackMode eq "pool">
+			<cfset poolCarouselId = application.blog.getHeroImagePoolCarouselId()>
+			<cfif len(poolCarouselId)>
+				<cfset getPoolItems = application.blog.getCarousel(poolCarouselId)>
+			</cfif>
+			<cfif len(poolCarouselId) and arrayLen(getPoolItems)>
+				<cfset poolDisplayMode = application.BlogOptionDbObj.getHeroPoolDisplayMode()>
+				<cfif poolDisplayMode eq "single">
+					<!--- One deterministically-picked image, no carousel/Swiper machinery at all - just a plain URL,
+					so unlike 'carousel' below this works regardless of allowHtml (there's no widget to skip). --->
+					<cfset selectedIndex = (arguments.postId mod arrayLen(getPoolItems)) + 1>
+					<cfreturn {isHtml: false, content: getPoolItems[selectedIndex]["MediaUrl"], suppressImage: false}>
+				<cfelseif arguments.allowHtml>
+					<!--- Deterministic pick off arguments.postId - never random - so the same post always shows the same images and reloading the page doesn't visibly shuffle them. Walks forward from a postId-seeded start index, wrapping around, so it still works when the pool has fewer images than HeroCarouselImageCount asks for. --->
+					<cfset imageCount = min(application.BlogOptionDbObj.getHeroCarouselImageCount(), arrayLen(getPoolItems))>
+					<cfset startIndex = arguments.postId mod arrayLen(getPoolItems)>
+					<cfloop from="1" to="#imageCount#" index="i">
+						<cfset selectedItemIds = listAppend(selectedItemIds, getPoolItems[((startIndex + i - 1) mod arrayLen(getPoolItems)) + 1]["CarouselItemId"])>
+					</cfloop>
+					<cfset carouselHtml = this.renderCarousel(carouselId=poolCarouselId, card=arguments.cardMode, itemIdList=selectedItemIds)>
+					<cfreturn {isHtml: true, content: carouselHtml, suppressImage: false}>
+				</cfif>
+			</cfif>
+			<!--- No pool created yet, it has no items, or 'carousel' mode with a caller that can't render a widget (allowHtml=false) - fall through to 'generated' rather than silently showing nothing. This must run regardless of allowHtml, unlike the carousel attempt above. --->
+			<cfset fallbackMode = "generated">
+		</cfif>
+
+		<cfif fallbackMode eq "animation">
+			<!--- A live WebGL/canvas render loop is too expensive to ever show more than one at a time, so this
+			only ever renders live on a post's own single-post page - every other context (card/grid, mobile, a
+			caller that can't render a widget) falls through to 'generated' instead, same idiom the empty-pool
+			case above uses. 2026-10-03: renamed from 'vanta' while still dev-only/unmigrated. --->
+			<cfif arguments.cardMode or session.isMobile or not arguments.allowHtml or not arguments.isSinglePostPage>
+				<cfset fallbackMode = "generated">
+			<cfelse>
+				<!--- Site-wide admin-picked default (BlogOption.AnimationEffect) if one's been configured, else
+				fall back to a deterministic postId-seeded pick (Image.cfc's generateAnimationDefault) - same
+				two-tier "explicit choice, else deterministic" relationship 'pool'/'generated' already have with
+				each other, just within this one mode instead of across two modes. Validated against the current
+				supported list (not just "non-blank") so a stale saved pick from a since-dropped effect (eg.
+				TOPOLOGY, see heroAnimationEditor.cfm's header comment) falls back to the deterministic pick
+				instead of trying to render something known-broken. --->
+				<cfif len(animationSiteEffect) and listFindNoCase("WAVES,NET,RINGS,CLOUDS,BIRDS,FOG,CLOUDS2,GLOBE", animationSiteEffect)>
+					<cfset animationDefault = {effect: animationSiteEffect, options: (len(animationSiteOptions) ? deserializeJson(animationSiteOptions) : structNew())}>
+				<cfelse>
+					<cfset animationDefault = ImageObj.generateAnimationDefault(arguments.postId)>
+				</cfif>
+				<cfreturn {isHtml: true, content: this.renderHeroAnimationHtml(postId=arguments.postId, animationEffect=animationDefault.effect, animationOptions=animationDefault.options, cardMode=arguments.cardMode), suppressImage: false}>
+			</cfif>
+		</cfif>
+
+		<cfif fallbackMode eq "generated">
+			<cfreturn {isHtml: false, content: ImageObj.generateHeroArt(arguments.postId), suppressImage: false}>
+		</cfif>
+
+		<!--- 'generic' - each call site keeps its own existing noImage.jpg literal (or, for the single-post hero, its existing empty-means-nothing behavior). --->
+		<cfreturn {isHtml: false, content: "", suppressImage: false}>
+
 	</cffunction>
 					
 	<cffunction name="renderImageGalleryPreview" returntype="string" output="false"
@@ -810,8 +1130,9 @@
 	</cffunction>
 					
 	<cffunction name="renderEnclosureVideoPreview" returntype="string" output="false"
-			hint="Renders the enclosure video at the top of a post">
-		<cfargument name="postId" type="string" required="yes">
+			hint="Renders the enclosure video at the top of a post, or (via pageCollectionId) a Page Collection's hero.">
+		<cfargument name="postId" type="string" required="yes" hint="Pass '' when this is a Page Collection's hero instead - pageCollectionId is used in that case.">
+		<cfargument name="pageCollectionId" type="string" required="no" default="" hint="Set only when this video is a Page Collection's hero enclosure instead of a Post's - see galaxiePlayer.cfm, which needs one or the other to authorize the request.">
 		<cfargument name="mediaUrl" type="string" required="yes">
 		<!--- Optional args --->
 		<cfargument name="mediaId" type="string" required="no">
@@ -854,7 +1175,14 @@
 		</cfif>
 			
 		<!--- Note: we will not have an extension that we can read on an external URL --->
-		<cfset mediaHtmlStr = '<iframe title="media player" data-type="video" data-id="#arguments.postId#" src="#application.baseUrl#/galaxiePlayer.cfm?postId=' & arguments.postId & '&videoUrl=' & arguments.mediaUrl & '&thumbnail=' & renderThumbnail & '&kcard=' & kcard>
+		<cfif len(arguments.pageCollectionId)>
+			<cfset playerIdParam = 'pageCollectionId=' & arguments.pageCollectionId>
+			<cfset dataId = arguments.pageCollectionId>
+		<cfelse>
+			<cfset playerIdParam = 'postId=' & arguments.postId>
+			<cfset dataId = arguments.postId>
+		</cfif>
+		<cfset mediaHtmlStr = '<iframe title="media player" data-type="video" data-id="#dataId#" src="#application.baseUrl#/galaxiePlayer.cfm?' & playerIdParam & '&videoUrl=' & arguments.mediaUrl & '&thumbnail=' & renderThumbnail & '&kcard=' & kcard>
 		<cfif len(arguments.provider) and len(arguments.providerVideoId)>
 			<cfset mediaHtmlStr = mediaHtmlStr & '&provider=' & arguments.provider & '&providerVideoId=' & arguments.providerVideoId>
 		</cfif>
@@ -866,7 +1194,10 @@
 		</cfif>
 		<cfif renderKCardMediaClass>
 			<!--- Height is missing here and the k-card-media class is used. --->
-			<cfset mediaHtmlStr = mediaHtmlStr & '" width="' & width & '" allowfullscreen="allowfullscreen" class="' & kCardVideoClass & '" frameBorder="0" scrolling="no"></iframe>'>
+			<!--- k-card-video-embed (2026-10-09): a YouTube/Vimeo player can't be cropped to the cards' 3:2 shape, so
+			blogContentCss.cfm keeps these frames 16:9. An uploaded video fills and crops the 3:2 frame itself
+			(galaxiePlayer.cfm's kcard styles), so it lines up with the picture cards. --->
+			<cfset mediaHtmlStr = mediaHtmlStr & '" width="' & width & '" allowfullscreen="allowfullscreen" class="' & kCardVideoClass & (len(arguments.provider) and len(arguments.providerVideoId) ? ' k-card-video-embed' : '') & '" frameBorder="0" scrolling="no"></iframe>'>
 		<cfelse>
 			<cfset mediaHtmlStr = mediaHtmlStr & '" width="' & width &'" height="' & height & '" allowfullscreen="allowfullscreen" frameBorder="0" scrolling="no"></iframe>'>
 		</cfif>
@@ -903,10 +1234,13 @@
 			JOIN MediaGallery.MediaGalleryItems as MediaGalleryItem
 			JOIN MediaGalleryItem.MediaRef as Media
 			WHERE MediaGallery.MediaGalleryId = <cfqueryparam value="#arguments.mediaGalleryId#">
+			<!--- Items are saved in the order they were picked, so their ids are in that order. Without an ORDER BY, the
+			database could return them in any order. --->
+			ORDER BY MediaGalleryItem.MediaGalleryItemId
 		</cfquery>
 			
 		<!--- Create the final HTML. It should look something like this:
-		<a class="fancybox-effects" href="/blog/images/documentation/cfimage/tobyOrig.jpg" data-fancybox-group="toby" title="Original Image"><img data-src="/blog/images/documentation/cfimage/tobyOrigThumb.jpg" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="/blog/images/documentation/cfimage/tobyOrigThumb.jpg"></a>
+		<a class="glightbox" href="/blog/images/documentation/cfimage/tobyOrig.jpg" data-gallery="toby" title="Original Image"><img data-src="/blog/images/documentation/cfimage/tobyOrigThumb.jpg" alt="" class="fade thumbnail lazied shown" data-lazied="IMG" src="/blog/images/documentation/cfimage/tobyOrigThumb.jpg"></a>
 		--->	
 		<cfloop from="1" to="#arrayLen(getGallery)#" index="i">
 			<cfset galleryId = getGallery[i]["MediaGalleryId"]>
@@ -927,9 +1261,9 @@
 			</cfif>	
 			<!--- Construct our anchor tag. --->
 			<cfif generateTinyMcePreview>
-				<cfset htmlStr = htmlStr & '<a aria-label="Image Link" class="fancybox-effects" data-fancybox-group="' & galleryName & '" title="' & galleryItemTitle & '" onDblClick="javascript:' & galleryItemLink & '">'>
+				<cfset htmlStr = htmlStr & '<a aria-label="Image Link" class="glightbox" data-gallery="' & galleryName & '" title="' & galleryItemTitle & '" onDblClick="javascript:' & galleryItemLink & '">'>
 			<cfelse>
-				<cfset htmlStr = htmlStr & '<a aria-label="Image Link" class="fancybox-effects" href="' & galleryItemLink & '" data-fancybox-group="' & galleryName & '" title="' & galleryItemTitle & '">'>
+				<cfset htmlStr = htmlStr & '<a aria-label="Image Link" class="glightbox" href="' & galleryItemLink & '" data-gallery="' & galleryName & '" title="' & galleryItemTitle & '">'>
 			</cfif>
 			
 			<!--- And now construct the image --->
@@ -952,12 +1286,19 @@
 		<cfargument name="card" type="boolean" required="no" default="false">
 		<cfargument name="width" type="any" required="no" default="100%">
 		<cfargument name="height" type="any" required="no" default="">
+		<cfargument name="itemIdList" type="string" required="no" default="" hint="Optional, comma-separated CarouselItemIds - passed straight through to blog.cfc's getCarousel(). Used by the hero image pool feature to show only a deterministic subset of the shared pool carousel; every existing caller passes nothing and renders every item, unchanged.">
 			
 		<cfparam name="debug" default="false">
 		
 		<!--- Preset the return value --->
 		<cfparam name="carouselHtml" default="">
-			
+
+		<!--- A carousel in a public card grid (card mode with no explicit height - popularPosts.cfm,
+		renderKendoCardGrid.cfm, the collection cards). These get the .swiperCard sizing, no GL effect and title-only
+		text below. The admin previews (preview/carousel.cfm) also use card mode but always pass their own width and
+		height, and keep their original look. --->
+		<cfset isGridCard = arguments.card and not len(arguments.height)>
+
 		<!--- Get the theme in order to get the font properties --->
 		<cfset themeAlias = application.blog.getSelectedThemeAlias()>
 			
@@ -1003,7 +1344,7 @@
 		<cfset alternateBgColor = application.blog.getPrimaryColorsByTheme(kendoTheme:kendoTheme,setting:'alternateBgColor')>
 			
 		<!--- Get the data --->
-		<cfset getCarousel = application.blog.getCarousel(arguments.carouselId)>
+		<cfset getCarousel = application.blog.getCarousel(arguments.carouselId, arguments.itemIdList)>
 			
 		<!--- Don't proceed if there is no data --->
 		<cfif arrayLen(getCarousel)>
@@ -1021,21 +1362,107 @@
 			<cfsavecontent variable="carouselHtml">
 				<!---<cfdump var="#getCarousel#">--->
 				<cfif debug>Debug card: #card# width: <cfoutput>#width# height: #height#</cfoutput></cfif>
+				<!--- A unique id per rendered carousel, so the init script below starts only this one. ".swiper" started
+				every carousel on the page with whichever one's settings ran first (eg. a card carousel picking up a
+				full-size one's GL effect, or the other way round). The same carousel can show twice on one page.
+				Set here, before the style block, so the size rule below can be scoped to it too. --->
+				<cfset swiperElementId = "swiper" & arguments.carouselId & "_" & left(replace(createUUID(), "-", "", "all"), 8)>
 				<style>
 					/** Swiper styles **/
 					:root {
 						--swiper-pagination-color: <cfoutput>#chr(35)#</cfoutput>FFF;
 						--swiper-pagination-bullet-inactive-color: <cfoutput>#chr(35)#</cfoutput>FFF;
+						/* 8px dots, 24px apart center to center - Lighthouse's accessibility check flags clickable
+						targets closer than 24px (WCAG 2.5.8). Swiper's default gap is 4px. 2026-10-09. */
+						--swiper-pagination-bullet-horizontal-gap: 8px;
 					}
 
 					.swiper {
 						user-select: none;
 						box-sizing: border-box;
 						overflow: hidden;
-						width: <cfoutput>#width#</cfoutput>;/*was 100%*/
-						height: <cfoutput>#height#</cfoutput>;/*height should always be set, was 534px*/
 						padding: 0px 0px;
 					}
+					/* This carousel's own size, scoped to its id (2026-10-09). As a page-wide .swiper rule, the last
+					carousel on the page set the size of every carousel - a 150px card carousel lower down shrank a
+					full-size one in the post to 150px tall. */
+				<cfif not isGridCard><!--- Grid cards size themselves (.swiper.swiperCard below); an id rule would outrank that. --->
+					<cfoutput>#chr(35)##swiperElementId#</cfoutput> {
+						width: <cfoutput>#width#</cfoutput>;/*was 100%*/
+						height: <cfoutput>#height#</cfoutput>;/*height should always be set, was 534px*/
+					}
+				</cfif>
+				<cfif isGridCard>
+					<!--- Card carousels use the exact same box as the plain card images (.k-card-image in
+					blogContentCss.cfm: full width, 3:2, at most 210px tall, 5px below) so they line up with the cards
+					around them. Card mode also skips the GL effect (see the Swiper init below): GL draws each image
+					stretched to the slide's exact size, while a plain slide lets object-fit crop it like the other card
+					images. Scoped to .swiperCard since the .swiper rule above is page-wide and a full-size carousel on
+					the same page would otherwise set this one's height too. --->
+					.swiper.swiperCard {
+						width: 100%;
+						height: auto;
+						aspect-ratio: 3 / 2;
+						max-height: 210px;
+						margin-bottom: 5px;
+					}
+					.swiper.swiperCard .swiper-slide {
+						height: 100%;
+					}
+					.swiper.swiperCard .swiper-slide-image {
+						left: 0;
+						top: 0;
+						width: 100%;
+						height: 100%;
+						object-fit: cover;
+						object-position: center;
+					}
+					<!--- Card-sized slide title and body - the full-size padding (48px) and 32px title don't fit a small
+					card. The bottom padding lifts the text clear of the pagination dots, and the title (2 lines) and body
+					(5 lines) are cut off with an ellipsis so the text never runs off the top of the card. The stronger
+					shadow keeps the text readable over any image. --->
+					<!--- Absolutely positioned so it covers the slide without taking part in the normal flow - in the curated
+					homepage's cards the whole media area sits inside the card's <a>, and in-flow text inherits the link
+					underline (which can't be switched off from inside). White text: the carousel's own font color is
+					usually a mid-gray picked for the full-size carousel, which disappears on a small photo. --->
+					.swiper.swiperCard .swiper-slide-content {
+						position: absolute;
+						top: 0;
+						left: 0;
+						<!--- 38px on both sides keeps the text clear of the prev/next arrows. --->
+						padding: 8px 38px 30px 38px;
+						overflow: hidden;
+						color: #ffffff;
+					}
+					.swiper.swiperCard .swiper-slide-title,
+					.swiper.swiperCard .swiper-slide-text {
+						color: #ffffff;
+					}
+					.swiper.swiperCard .swiper-slide-title,
+					.swiper.swiperCard .swiper-slide-text {
+						display: -webkit-box;
+						-webkit-box-orient: vertical;
+						-webkit-line-clamp: 2;
+						line-clamp: 2;
+						overflow: hidden;
+						padding-left: 0;
+					}
+					.swiper.swiperCard .swiper-slide-title {
+						font-size: 16px;
+						line-height: 1.2;
+						text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.8);
+					}
+					.swiper.swiperCard .swiper-slide-text {
+						font-size: 12px;
+						line-height: 1.3;
+						-webkit-line-clamp: 5;
+						line-clamp: 5;
+						text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.9);
+					}
+					.swiper.swiperCard .swiper-slide-title + .swiper-slide-text {
+						margin-top: 3px;
+					}
+				</cfif>
 
 					.swiper-slide {
 						display: flex;
@@ -1106,7 +1533,7 @@
 					}
 				</style>
 				
-				<div class="swiper">
+				<div id="<cfoutput>#swiperElementId#</cfoutput>" class="swiper<cfif isGridCard> swiperCard</cfif>">
 					<div class="swiper-wrapper">
 						<cfloop from="1" to="#arrayLen(getCarousel)#" index="i">
 						<cfsilent>
@@ -1119,21 +1546,49 @@
 						</cfif>
 						<cfset carouselItemTitle = getCarousel[i]["CarouselItemTitle"]>
 						<cfset carouselItemBody = getCarousel[i]["CarouselItemBody"]>
+						<!--- Each slide's own title/body color, size and title font, as an inline style on that slide. The
+						<style> block above is written once per carousel from the FIRST slide's settings only (and the body
+						used the title color, the title used the blog-name font at a fixed size), so every slide looked like
+						slide 1 whatever was picked for it. Grid cards keep their own fixed card look (white, card-sized - see
+						.swiperCard), so this only applies to full-size carousels. --->
+						<cfset slideTitleStyle = "">
+						<cfset slideBodyStyle = "">
+						<cfif not isGridCard>
+							<cfif structKeyExists(getCarousel[i], "CarouselItemTitleFontColor") and len(getCarousel[i]["CarouselItemTitleFontColor"])>
+								<cfset slideTitleStyle = slideTitleStyle & "color:" & getCarousel[i]["CarouselItemTitleFontColor"] & ";">
+							</cfif>
+							<cfif structKeyExists(getCarousel[i], "Font") and len(getCarousel[i]["Font"])>
+								<cfset slideTitleStyle = slideTitleStyle & "font-family:'" & replace(getCarousel[i]["Font"], "'", "", "all") & "', '" & replace(blogNameFont, "'", "", "all") & "', sans-serif;">
+							</cfif>
+							<cfif structKeyExists(getCarousel[i], "CarouselItemTitleFontSize") and isNumeric(getCarousel[i]["CarouselItemTitleFontSize"]) and not session.isMobile>
+								<cfset slideTitleStyle = slideTitleStyle & "font-size:" & getCarousel[i]["CarouselItemTitleFontSize"] & "px;">
+							</cfif>
+							<cfif structKeyExists(getCarousel[i], "CarouselItemBodyFontColor") and len(getCarousel[i]["CarouselItemBodyFontColor"])>
+								<cfset slideBodyStyle = slideBodyStyle & "color:" & getCarousel[i]["CarouselItemBodyFontColor"] & ";">
+							<cfelseif structKeyExists(getCarousel[i], "CarouselItemTitleFontColor") and len(getCarousel[i]["CarouselItemTitleFontColor"])>
+								<cfset slideBodyStyle = slideBodyStyle & "color:" & getCarousel[i]["CarouselItemTitleFontColor"] & ";">
+							</cfif>
+							<cfif structKeyExists(getCarousel[i], "CarouselItemBodyFontSize") and isNumeric(getCarousel[i]["CarouselItemBodyFontSize"]) and not session.isMobile>
+								<cfset slideBodyStyle = slideBodyStyle & "font-size:" & getCarousel[i]["CarouselItemBodyFontSize"] & "px;">
+							</cfif>
+						</cfif>
 						</cfsilent>
 						<div class="swiper-slide">
 							
 							<img id="cid<cfoutput>#carouselId#</cfoutput>" 
-								class="swiper-slide-image swiper-gl-image"  
+								class="swiper-slide-image<cfif not isGridCard> swiper-gl-image</cfif>"
 	 							src="<cfoutput>#carouselItemMediaUrl#</cfoutput>"
-								loading="lazy">
+								<!--- Grid cards load their small thumbnails right away - without the GL effect nothing preloads the
+								next slide, so a lazy one could still be blank when autoplay slides it in. --->
+								loading="<cfif isGridCard>eager<cfelse>lazy</cfif>">
 							<!---<div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>--->
 							<div class="swiper-slide-content">
-								<div class="swiper-slide-title" data-swiper-parallax="-100">
-									<cfif not arguments.card><cfoutput>#carouselItemTitle#</cfoutput></cfif>
+								<div class="swiper-slide-title" data-swiper-parallax="-100"<cfif len(slideTitleStyle)> style="<cfoutput>#encodeForHtmlAttribute(slideTitleStyle)#</cfoutput>"</cfif>>
+									<cfif not arguments.card or isGridCard><cfoutput>#carouselItemTitle#</cfoutput></cfif>
 								</div>
 
-								<div class="swiper-slide-text" data-swiper-parallax="-200">
-									<cfif not arguments.card><cfoutput>#carouselItemBody#</cfoutput></cfif>
+								<div class="swiper-slide-text" data-swiper-parallax="-200"<cfif len(slideBodyStyle)> style="<cfoutput>#encodeForHtmlAttribute(slideBodyStyle)#</cfoutput>"</cfif>>
+									<cfif not arguments.card or isGridCard><cfoutput>#carouselItemBody#</cfoutput></cfif>
 								</div>
 							</div><!---<div class="swiper-slide-content">--->
 							<div class="swiper-button-next"></div>
@@ -1154,8 +1609,8 @@
 
 				<script>
 					try {
-						var swiper<cfoutput>#carouselId#</cfoutput> = new Swiper(".swiper", {
-							modules: [SwiperGL],
+						var swiper<cfoutput>#carouselId#</cfoutput> = new Swiper("#<cfoutput>#swiperElementId#</cfoutput>", {
+							<cfif not isGridCard>modules: [SwiperGL],</cfif>
 							threshold: 5,
 							observer: true,
 							observeParents: true,
@@ -1164,8 +1619,11 @@
 							watchSlidesProgress: true,
 							autoplay: { enabled: true },
 							grabCursor: true,
+							<!--- Cards use Swiper's plain slide effect so their images are cropped, not stretched - see .swiperCard above. --->
+							<cfif not isGridCard>
 							effect: "gl",
 							<cfif len(carouselShader)>gl: { shader: "<cfoutput>#carouselShader#</cfoutput>" },</cfif>
+							</cfif>
 							slidesPerGroupAuto: false,
 							creativeEffect: {
 							  next: { shadow: true },
@@ -1177,7 +1635,10 @@
 							  prevEl: '.swiper-button-prev',
 							},
 							pagination: {
-							  clickable: true,
+							  <!--- In a small grid card the dots are only a position indicator - the arrows navigate - and
+							  dynamic bullets shrink the outer ones to 3px, far below Lighthouse's 24px touch-target size.
+							  Not clickable there, so they aren't touch targets at all. 2026-10-09. --->
+							  clickable: <cfif isGridCard>false<cfelse>true</cfif>,
 							  dynamicBullets: true,
 							  el: ".swiper-pagination",
 							},
@@ -1824,12 +2285,15 @@
 		<cfset thumbnailFolder = expandPath("#application.baseUrl#/enclosures/thumbnails/maps")>
 		<cfif not directoryExists(thumbnailFolder)>
 			<cftry>
-				<cfdirectory action="create" directory="#thumbnailFolder#">
+				<!--- mode="755" so the web server can read it. On Linux, a folder created by the ColdFusion process could
+				otherwise come out unreadable to Apache (galaxieblog.org answered 403 Forbidden for everything in
+				thumbnails/maps, so every map preview showed as a broken image). Ignored on Windows. --->
+				<cfdirectory action="create" directory="#thumbnailFolder#" mode="755">
 				<cfcatch type="any"></cfcatch>
 			</cftry>
 		</cfif>
 
-		<cfset thumbnailFileName = "map-" & arguments.mapId & ".png">
+		<cfset thumbnailFileName = "map-" & arguments.mapId & "-r2.png">
 		<cfset thumbnailFilePath = thumbnailFolder & "/" & thumbnailFileName>
 		<cfset thumbnailUrl = application.baseUrl & "/enclosures/thumbnails/maps/" & thumbnailFileName>
 
@@ -1852,7 +2316,11 @@
 			<cfset mapProvider = mapData[1]["MapProvider"]>
 
 			<cfif mapProvider eq 'Azure Maps'>
-				<cfset staticImageRequestUrl = buildAzureMapsStaticImageUrl(data = mapData, mapType = arguments.mapType, width = arguments.width, height = arguments.height)>
+				<cfset routePoints = []>
+			<cfif arguments.mapType eq 'route' and arrayLen(mapData) gt 1>
+				<cfset routePoints = getRouteLinePoints(mapData)>
+			</cfif>
+			<cfset staticImageRequestUrl = buildAzureMapsStaticImageUrl(data = mapData, mapType = arguments.mapType, width = arguments.width, height = arguments.height, routePoints = routePoints)>
 			<cfelseif mapProvider eq 'Bing Maps'>
 				<cfset staticImageRequestUrl = buildBingMapsStaticImageUrl(data = mapData, mapType = arguments.mapType, width = arguments.width, height = arguments.height)>
 			<cfelse>
@@ -1862,6 +2330,12 @@
 			<cfhttp method="get" url="#staticImageRequestUrl#" getAsBinary="yes" path="#thumbnailFolder#" file="#thumbnailFileName#" timeout="8" throwOnError="true">
 
 			<cfif fileExists(thumbnailFilePath) and getFileInfo(thumbnailFilePath).size gt 0>
+				<!--- Same reason as the folder's mode="755" above: make sure the web server can read the new file on
+				Linux. Not supported (and not needed) on Windows, hence the try/catch. --->
+				<cftry>
+					<cfset fileSetAccessMode(thumbnailFilePath, "644")>
+					<cfcatch type="any"></cfcatch>
+				</cftry>
 				<cfreturn thumbnailUrl>
 			</cfif>
 
@@ -1881,12 +2355,68 @@
 
 	</cffunction>
 
+	<cffunction name="getRouteLinePoints" access="private" returnType="array" output="false"
+		hint="Asks Azure Maps Route Directions for the road path through a route's stops. Returns [longitude, latitude] pairs thinned to about 50 points so the static map URL stays short. Returns an empty array when the call fails, so the thumbnail falls back to straight lines between stops.">
+	<cfargument name="data" type="array" required="yes">
+
+	<cfset var routeQuery = "">
+	<cfset var routeUrl = "">
+	<cfset var routeResult = "">
+	<cfset var routeBody = "">
+	<cfset var routePoints = []>
+	<cfset var thinnedPoints = []>
+	<cfset var stopIndex = 0>
+	<cfset var sampleIndex = 0>
+	<cfset var stepSize = 0>
+	<cfset var leg = "">
+	<cfset var point = "">
+
+	<cftry>
+		<!--- Directions takes stops as longitude,latitude pairs separated by colons. --->
+		<cfloop from="1" to="#arrayLen(arguments.data)#" index="stopIndex">
+			<cfset routeQuery = listAppend(routeQuery, trim(listFirst(arguments.data[stopIndex]["GeoCoordinates"])) & "," & trim(listLast(arguments.data[stopIndex]["GeoCoordinates"])), ":")>
+		</cfloop>
+
+		<cfset routeUrl = application.azureMapsDirectionsApiUrl & "&subscription-key=" & application.azureMapsApiKey & "&query=" & routeQuery & "&routeRepresentation=polyline&travelMode=car&view=Auto">
+		<cfhttp method="get" url="#routeUrl#" result="routeResult" timeout="10" throwOnError="false">
+
+		<cfif left(routeResult.statusCode, 3) neq "200">
+			<cfreturn []>
+		</cfif>
+
+		<cfset routeBody = deserializeJSON(routeResult.fileContent)>
+		<cfloop array="#routeBody.routes[1].legs#" index="leg">
+			<cfloop array="#leg.points#" index="point">
+				<cfset arrayAppend(routePoints, [point.longitude, point.latitude])>
+			</cfloop>
+		</cfloop>
+
+		<cfif arrayLen(routePoints) gt 50>
+			<cfset stepSize = arrayLen(routePoints) / 49>
+			<cfloop from="0" to="48" index="sampleIndex">
+				<cfset arrayAppend(thinnedPoints, routePoints[int(sampleIndex * stepSize) + 1])>
+			</cfloop>
+			<cfset arrayAppend(thinnedPoints, routePoints[arrayLen(routePoints)])>
+			<cfset routePoints = thinnedPoints>
+		</cfif>
+
+		<cfreturn routePoints>
+
+		<cfcatch type="any">
+			<cfreturn []>
+		</cfcatch>
+	</cftry>
+
+</cffunction>
+
+
 	<cffunction name="buildAzureMapsStaticImageUrl" access="private" returnType="string" output="false"
-			hint="Builds an Azure Maps 'Get Map Image' (static/png) request URL for a map thumbnail. For route maps, draws a straight line between waypoints rather than fetching the actual routed polyline from the Directions API - at thumbnail size the visual difference is not detectable, and it avoids a second live API call just to render a preview image.">
+			hint="Builds an Azure Maps 'Get Map Image' (static/png) request URL for a map thumbnail. For route maps, draws the Directions road path when routePoints is supplied, and falls back to straight lines between stops otherwise.">
 		<cfargument name="data" type="array" required="yes">
 		<cfargument name="mapType" type="string" required="yes">
 		<cfargument name="width" type="numeric" required="yes">
 		<cfargument name="height" type="numeric" required="yes">
+	\t\t<cfargument name="routePoints" type="any" required="no" default="">
 
 		<!--- Render v1 (api-version=1.0, the /map/static/png path with layer/style params) was retired by Microsoft on 9/17/2026 - it started returning blank/placeholder images instead of an error. Render v2 uses a different path (/map/static, no /png suffix), a dated api-version, and tilesetId instead of layer+style. --->
 		<cfset requestUrl = "https://atlas.microsoft.com/map/static?api-version=2024-04-01&subscription-key=" & application.azureMapsApiKey & "&tilesetId=microsoft.base.road&width=" & arguments.width & "&height=" & arguments.height>
@@ -1906,8 +2436,22 @@
 			</cfloop>
 			<!--- lc/lw = line color/width for the path; co = pin color. Using the site's accent-ish orange so it's not a jarring style mismatch from the interactive version. Azure Maps' own docs show these pipe/space-delimited parameter values unencoded for readability, but a real request needs them percent-encoded - a raw space in the URL is what was causing the 400 Bad Request. --->
 			<!--- bbox is documented as mutually exclusive with width/height/center, and its allowed lon/lat span is capped per zoom level - a long route like Zion-to-Arches exceeds that cap ("bbox is too large"). Rather than fight that, center on the waypoints' midpoint and reuse the same fixed zoom=7 the interactive map already uses for every preview regardless of route length (previewZoomLevel) - matching existing convention instead of trying to auto-fit bounds. --->
-			<cfset requestUrl = requestUrl & "&center=" & ((arrayMin(lons) + arrayMax(lons)) / 2) & "," & ((arrayMin(lats) + arrayMax(lats)) / 2) & "&zoom=7">
+			<!--- Pick the zoom so the whole route fits inside the picture, instead of a fixed zoom that cuts off long routes. Web Mercator: at zoom z the picture shows 360 * width / (512 * 2^z) degrees of longitude. Latitude is stretched by 1 / cos(lat) and gets the same treatment. A 30% margin keeps the route off the edges. --->
+			<cfset routeCenterLat = (arrayMin(lats) + arrayMax(lats)) / 2>
+			<cfset routeLonSpan = max(arrayMax(lons) - arrayMin(lons), 0.0001)>
+			<cfset routeLatSpan = max((arrayMax(lats) - arrayMin(lats)) / max(cos(routeCenterLat * pi() / 180), 0.2), 0.0001)>
+			<cfset zoomForLon = log(arguments.width * 360 / (512 * routeLonSpan * 1.3)) / log(2)>
+			<cfset zoomForLat = log(arguments.height * 360 / (512 * routeLatSpan * 1.3)) / log(2)>
+			<cfset routeZoom = max(1, min(15, floor(min(zoomForLon, zoomForLat))))>
+			<cfset requestUrl = requestUrl & "&center=" & ((arrayMin(lons) + arrayMax(lons)) / 2) & "," & ((arrayMin(lats) + arrayMax(lats)) / 2) & "&zoom=" & routeZoom>
 			<!--- style and locations need a "||" separator, not "|" - pathCoords/pinCoords already start with a leading "|" before each location, so one more "|" here produces the required "||" between the style block and the location list. --->
+			<!--- Prefer the real road path from Directions. Keep the straight line between stops only as a fallback. --->
+			<cfif isArray(arguments.routePoints) and arrayLen(arguments.routePoints) gt 1>
+				<cfset pathCoords = "">
+				<cfloop array="#arguments.routePoints#" index="routePoint">
+					<cfset pathCoords = pathCoords & "|" & routePoint[1] & " " & routePoint[2]>
+				</cfloop>
+			</cfif>
 			<cfset requestUrl = requestUrl & "&path=" & URLEncodedFormat("lcFF5800|lw3" & "|" & pathCoords) & "&pins=" & URLEncodedFormat("default|coFF5800" & "|" & pinCoords)>
 		<cfelse>
 			<cfset thisLon = arguments.data[1]["Longitude"]>
@@ -2779,7 +3323,27 @@
 		<cfset emailTitle = getPost[1]["Title"]>
 		<cfset emailTitleLink = application.blog.makeLink(arguments.postId)>
 		<cfset emailDesc = getPost[1]["Description"]>
-		<cfset mediaUrl = 'https://' & application.blogDomain & '/' & getPost[1]["MediaUrl"]>
+		<!--- 2026-10-04: a post whose main enclosure was swapped to WebP via enclosureImageEditor.cfm's
+		"Swap in WebP Version" tool (replaceEnclosureWithWebp() in ProxyController.cfc) now has MediaUrl pointing
+		straight at the .webp file - fine for the live web page (every modern browser renders it), broken for
+		email, where older/desktop mail clients (older Outlook especially) don't render WebP at all and just show
+		a broken-image icon. replaceEnclosureWithWebp() deletes the original jpg/gif/png outright, so there's no
+		original left to fall back to directly - but it never touches the already-generated "classic" social-share
+		crop (same base filename, original extension, see Image.cfc's getSocialMediaDestination()/
+		createSocialMediaImages() and seoMetaTags.cfm's own webp-aware fallback chain for the same convention),
+		so that crop is a reliable universal-format substitute for email specifically. Only probed when MediaUrl is
+		actually .webp - zero extra file-exists calls for the common, non-swapped case. --->
+		<cfset emailMediaUrl = getPost[1]["MediaUrl"]>
+		<cfif len(emailMediaUrl) and right(emailMediaUrl, 5) eq ".webp">
+			<cfset emailMediaBaseName = reReplaceNoCase(getFileFromPath(emailMediaUrl), "\.webp$", "")>
+			<cfloop list="jpg,jpeg,png,gif" index="emailMediaExt">
+				<cfif fileExists(expandPath(application.baseUrl & "/enclosures/classic/" & emailMediaBaseName & "." & emailMediaExt))>
+					<cfset emailMediaUrl = "enclosures/classic/" & emailMediaBaseName & "." & emailMediaExt>
+					<cfbreak>
+				</cfif>
+			</cfloop>
+		</cfif>
+		<cfset mediaUrl = 'https://' & application.blogDomain & '/' & emailMediaUrl>
 		<cfset emailBody = this.renderBody(getPost[1]["body"], getPost[1]["mediaPath"])>
 		<cfset callToActionText = "View on Web">
 		<cfset callToActionLink = "#emailTitleLink#">

@@ -77,11 +77,11 @@
 <cfset parallaxDividerColor = "8F542F">
 	
 <!--- Background images --->
-<cfset slide02BgImage = "/images/background/gregoryAlexander/blog/yellowStoneRedMedHigh.jpg">
-<cfset slide03BgImage = "/images/background/gregoryAlexander/blog/zionValleyMedHigh.jpg">
-<cfset slide04BgImage = "/images/background/gregoryAlexander/blog/staircaseMedHigh.jpg">
-<cfset slide05BgImage = "/images/background/gregoryAlexander/blog/weepingRockFlippedLowRes.jpg">
-<cfset slide06BgImage = "/images/background/gregoryAlexander/bandonSunsetLowRes.jpg">
+<cfset slide02BgImage = "/images/background/gregoryalexander/blog/yellowStoneRedMedHigh.jpg">
+<cfset slide03BgImage = "/images/background/gregoryalexander/blog/zionValleyMedHigh.jpg">
+<cfset slide04BgImage = "/images/background/gregoryalexander/blog/staircaseMedHigh.jpg">
+<cfset slide05BgImage = "/images/background/gregoryalexander/blog/weepingRockFlippedLowRes.jpg">
+<cfset slide06BgImage = "/images/background/gregoryalexander/bandonSunsetLowRes.jpg">
 	
 <!--- Notes: this template can be reused. However, we need to keep track if the template was loaded prior to the current scene in order not to duplicate the logic. We will be setting a gsapTemplateLoaded var which will be set to true at the end of the page. --->
 <cfparam name="gsapTemplateLoaded" type="boolean" default="false">
@@ -140,16 +140,19 @@
 </style> 
 <!--- Include the css. --->
 <style>
+	<!--- 2026-10-01: scoped to the scene's own #<cfoutput>#parallaxName#</cfoutput>-mainContainer wrapper - see
+	galaxieScript.cfm's identical fix/comment for the full reasoning (these were bare, page-wide h2/h3/p
+	selectors with !important, which collided with Related Posts cards' own <h3> titles once those were added). --->
 	<cfif not session.isMobile>
-	h2  {
+	#<cfoutput>#parallaxName#</cfoutput>-mainContainer h2  {
 		font-size: <cfoutput>#h2FontSize#</cfoutput> !important;
 	}
-	
-	h3 {
+
+	#<cfoutput>#parallaxName#</cfoutput>-mainContainer h3 {
 		font-size: <cfoutput>#h3FontSize#</cfoutput> !important;
 	}
-	
-	p {
+
+	#<cfoutput>#parallaxName#</cfoutput>-mainContainer p {
 		font-size: <cfoutput>#paragraphFontSize#</cfoutput> !important;
 	}
 	</cfif>

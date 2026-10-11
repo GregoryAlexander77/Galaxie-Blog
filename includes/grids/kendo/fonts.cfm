@@ -13,6 +13,21 @@
 	<script type="text/javascript" src="#application.baseUrl#/common/libs/dayjs/dayjs.min.js"></script>
 	</cfoutput>
 	<p>All columns are sortable and searchable/filterable. Edit a checkbox and click Save on the toolbar to change it. Click a font name to view or edit its details.</p>
+<cfsilent>
+	<!--- Font count: each family has one .woff and one .woff2 (and sometimes .ttf/.otf), so count distinct base names. Web-safe fonts are rows in the Font table with no file stored, so they are added separately. --->
+	<cfset fontFileNames = directoryList(expandPath("/common/fonts"), false, "name")>
+	<cfset fontFamilies = {}>
+	<cfset fontFileCount = 0>
+	<cfloop array="#fontFileNames#" index="fontFileName">
+		<cfif reFindNoCase("\.(woff2?|ttf|otf)$", fontFileName)>
+			<cfset fontFileCount++>
+			<cfset fontFamilies[reReplaceNoCase(fontFileName, "\.(woff2?|ttf|otf)$", "", "one")] = true>
+		</cfif>
+	</cfloop>
+	<cfset familyCount = structCount(fontFamilies)>
+	<cfset webSafeFontCount = arrayLen(application.blog.getFont(webSafeFont=true))>
+</cfsilent>
+<p><strong>Fonts folder:</strong> <cfoutput>#fontFileCount#</cfoutput> font files, <cfoutput>#familyCount#</cfoutput> font families. <strong>Web-safe fonts:</strong> <cfoutput>#webSafeFontCount#</cfoutput> (no file stored). <strong>Total fonts:</strong> <cfoutput>#familyCount + webSafeFontCount#</cfoutput>.</p>
 </head>
 
 <body>

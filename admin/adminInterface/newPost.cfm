@@ -129,13 +129,51 @@
 				}
 			}).data("kendoValidator");
 		
+			<!--- Show/hide fields based on which post type is selected. All three types now hand off to their own
+			full editor after this screen (Post/Page to postDetail.cfm, Page Collection to pageCollectionDetail.cfm),
+			so all three use the same "Next" label. --->
+			function updatePostTypeFieldVisibility() {
+				var postType = $("input[name='postType']:checked").val();
+				if (postType === 'pageCollection') {
+					$('.field-dateAuthor').hide();
+					$('.field-heroImage').show();
+					$('#newPostSubmit').text('Next');
+				} else if (postType === 'page') {
+					$('.field-dateAuthor').hide();
+					$('.field-heroImage').hide();
+					$('#newPostSubmit').text('Next');
+				} else {
+					$('.field-dateAuthor').show();
+					$('.field-heroImage').hide();
+					$('#newPostSubmit').text('Next');
+				}
+				<!--- Keep the window title in sync with whichever Post Type is currently selected, same try/catch pattern used for the "Edit Page" title on postDetail.cfm. --->
+				try {
+					if (postType === 'pageCollection') {
+						$("#newPostWindow").data("kendoWindow").title("Create Page Collection");
+					} else if (postType === 'page') {
+						$("#newPostWindow").data("kendoWindow").title("Create Page");
+					} else {
+						$("#newPostWindow").data("kendoWindow").title("Create Post");
+					}
+				} catch (error) {
+					<!--- Do nothing --->
+				}
+			}
+			$("input[name='postType']").on('change', updatePostTypeFieldVisibility);
+			updatePostTypeFieldVisibility();
+
 			<!--- Invoked when the submit button is clicked. Instead of using '$("form").submit(function(event) {' and 'event.preventDefault();', we are using direct binding here to speed up the event. --->
 			var newPostSubmit = $('#newPostSubmit');
-			newPostSubmit.on('click', function(e){  
-                e.preventDefault();         
+			newPostSubmit.on('click', function(e){
+                e.preventDefault();
 				if (newPostFormValidator.validate()) {
 					<!--- submit the form. Note: when testing the ui validator, comment out the post line below. It will only validate and not actually do anything when you post. --->
-					insertNewPost();
+					if ($("input[name='postType']:checked").val() === 'pageCollection') {
+						insertNewPageCollection();
+					} else {
+						insertNewPost();
+					}
 				} else {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Required fields have not been filled out. Please correct the highlighted fields and try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
@@ -209,7 +247,61 @@
 				});
 			}//..if (JSON.parse(response.success) == true){
 		}
-			
+
+		<!--- A Page Collection is created with just its basic fields from this screen, then hands off to its own full
+		detail editor (pageCollectionDetail.cfm, window 72) - the exact same create-minimal-then-open-the-real-editor
+		pattern newPostResult() below uses for Post/Page (window 6). This is what gives the hero image full
+		image/video/map/carousel support (via that editor's own "Hero Image Editor" button, window 13) instead of
+		the plain-image-only inline widget this screen used before there was a real id to attach richer media to. --->
+		function insertNewPageCollection(){
+
+			jQuery.ajax({
+				type: 'post',
+				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=savePageCollection',
+				data: {
+					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
+					title: $("#title").val(),
+					description: $('#description').val(),
+					externalUrl: $('#externalUrl').val()
+				},
+				dataType: "json",
+				success: newPageCollectionResult,
+				error: function(ErrorMsg) {
+					console.log('Error' + ErrorMsg);
+				}
+			}).fail(function (jqXHR, textStatus, error) {
+				if (jqXHR.status === 403) {
+					createLoginWindow();
+				} else {
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while consuming the savePageCollection function", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+				}
+			});
+		};
+
+		function newPageCollectionResult(response){
+			if (JSON.parse(response.success) == true){
+				try {
+					$("#PostsWindow").data("kendoWindow").refresh();
+				} catch (error) {
+					<!--- Do nothing --->
+				}
+				try {
+					$("#configurePageCollectionsWindow").data("kendoWindow").refresh();
+				} catch (error) {
+					<!--- Do nothing - the window probably wasn't open --->
+				}
+				<!--- Open the page collection's own full detail editor. --->
+				createAdminInterfaceWindow(72, response.pageCollectionId);
+				<!--- Close this window --->
+				jQuery('#newPostWindow').kendoWindow('destroy');
+			} else {
+				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error creating the page collection", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question
+				).done(function () {
+					<!--- Do nothing --->
+				});
+			}//..if (JSON.parse(response.success) == true){
+		}
+
 	</script>
 		
 	<form id="newPost" data-role="validator">
@@ -226,24 +318,51 @@
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
+	  	  <!-- Form content --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="post">Date Posted</label>
+			<label for="postType">Post Type:</label><br/>
 			</td>
 		   </tr>
 		   <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="newDatePosted" name="newDatePosted" value="<cfoutput>#dateTimeFormat(now(), "medium")#</cfoutput>" style="width: <cfif session.isMobile>95<cfelse>45</cfif>%" />     
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection", URL.optArgs)>checked</cfif> />
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> />
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> />
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
-		  <tr>
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
-			<label for="post">Date Posted</label>
+		  <tr valign="middle" height="35">
+			<td align="right" valign="middle" width="18%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<label for="postType">Post Type</label><br/>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="newDatePosted" name="newDatePosted" value="<cfoutput>#dateTimeFormat(now(), "medium")#</cfoutput>" style="width: <cfif session.isMobile>95<cfelse>45</cfif>%" />    
+				<input type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection", URL.optArgs)>checked</cfif> /> Blog Post <input type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page <input type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection
+			</td>
+		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr valign="middle" height="35">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+			Both Blog Posts and pages are nearly identical but have several significant differences.<br/>
+			Blog Posts are dynamic and are placed in the blogs section that is ordered by the most recent date. Posts are also meant to be interactive and may have comments.
+			Page content is generally permanent, does not have comments or a visible published date, and links to the page are much more prominent and placed on the menu. Conversely, pages are not shown on the RSS feeds.<br/>
+			Use pages for universal site content or evergreen content that does not change, and use blog posts for specific content that is dynamic or that may change.<br/>
+			A page collection is different still - it isn't a page by itself, it's a themed index that links out to two or more of your existing pages, like a Portfolio or a Services section. If you just want one icon linking to one destination, create a page instead and place it directly.
 			</td>
 		  </tr>
 		</cfif>
@@ -259,14 +378,47 @@
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle" class="field-dateAuthor">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="post">Date Posted</label>
+			</td>
+		   </tr>
+		   <tr class="field-dateAuthor">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<input id="newDatePosted" name="newDatePosted" value="<cfoutput>#dateTimeFormat(now(), "medium")#</cfoutput>" style="width: <cfif session.isMobile>95<cfelse>45</cfif>%" />     
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr class="field-dateAuthor">
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+			<label for="post">Date Posted</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input id="newDatePosted" name="newDatePosted" value="<cfoutput>#dateTimeFormat(now(), "medium")#</cfoutput>" style="width: <cfif session.isMobile>95<cfelse>45</cfif>%" />    
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px" class="field-dateAuthor">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px" class="field-dateAuthor">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 	  	  <!-- Form content -->
 		<cfif session.isMobile>
-		  <tr valign="middle">
+		  <tr valign="middle" class="field-dateAuthor">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<label for="post">Author</label>
 			</td>
 		   </tr>
-		   <tr>
+		   <tr class="field-dateAuthor">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<select id="author" style="width: <cfif session.isMobile>95<cfelse>50</cfif>%"></select>
 			<!--- Inline template to add a new user. --->
@@ -275,13 +427,13 @@
 					Author not found. Do you want to add '#: instance.filterInput.val() #'?
 				</div>
 				<br />
-				<button class="k-button" onclick="createAdminInterfaceWindow(7, '#: instance.filterInput.val() #', 'addUser')">Add Author</button>
+				<button class="k-button" onclick="createAdminInterfaceWindow(7, #= kendo.htmlEncode(JSON.stringify(instance.filterInput.val())) #, 'addUser')">Add Author</button>
 			</script>   
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		  <tr valign="middle" height="35" class="field-dateAuthor">
+			<td align="right" valign="middle" width="18%" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<label for="post">Author</label>
 			</td>
 			<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -292,13 +444,13 @@
 						Author not found. Do you want to add '#: instance.filterInput.val() #'?
 					</div>
 					<br />
-					<button class="k-button" onclick="createAdminInterfaceWindow(7, '#: instance.filterInput.val() #', 'addUser')">Add Author</button>
+					<button class="k-button" onclick="createAdminInterfaceWindow(7, #= kendo.htmlEncode(JSON.stringify(instance.filterInput.val())) #, 'addUser')">Add Author</button>
 				</script>  
 			</td>
 		  </tr>
 		</cfif>
 		  <!-- Border -->
-		  <tr height="2px">
+		  <tr height="2px" class="field-dateAuthor">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
@@ -306,7 +458,7 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="2px">
+		  <tr height="2px" class="field-dateAuthor">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <!-- Form content -->
@@ -323,7 +475,7 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" valign="middle" width="18%" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<label for="post">Title</label>
 			</td>
 			<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -357,14 +509,44 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" valign="middle" width="18%" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<label for="post">Description</label>
 			</td>
 			<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%"></textarea> 
+				<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%"></textarea>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->
+		  <!--- External URL - Page Collection only, hidden for Post/Page via the field-heroImage class (name kept
+		  from when Hero Image lived on this screen too - it's now set from pageCollectionDetail.cfm's own "Change
+		  Hero Image" button after creation, along with video/map/carousel support, matching the Post enclosure
+		  editor exactly). Optional - when set, this Collection becomes a pure cross-link (its own link points here
+		  instead of an internal listing) and only needs 1 member page to go live instead of 2. --->
+		<cfif session.isMobile>
+		  <tr valign="middle" class="field-heroImage">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="externalUrl">External URL (optional - makes this a cross-link)</label>
+			</td>
+		  </tr>
+		  <tr class="field-heroImage">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input type="text" id="externalUrl" name="externalUrl" value="" placeholder="https://example.com" class="k-textbox" style="width: 95%" />
+			</td>
+		  </tr>
+		<cfelse>
+		  <tr valign="middle" height="35" class="field-heroImage">
+			<td align="right" valign="middle" width="18%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<label for="externalUrl">External URL (optional)</label>
+			</td>
+			<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="text" id="externalUrl" name="externalUrl" value="" placeholder="https://example.com" class="k-textbox" style="width: 66%" />
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px" class="field-heroImage">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfsilent>
 		  <!--- Set the class for alternating rows. --->
 		  <!---After the first row, the content class should be the current class. --->
@@ -373,49 +555,6 @@
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	  	  <!-- Form content -->
-		<cfif session.isMobile>
-		  <tr valign="middle">
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="postType">Post Type:</label><br/>
-			</td>
-		   </tr>
-		   <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" name="postType" id="blogPost" value="blogPost" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPost'>checked<cfelseif !structKeyExists(URL, "optArgs")>checked</cfif> />
-			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> />
-			</td>
-		  </tr>
-		<cfelse><!---<cfif session.isMobile>--->
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<label for="postType">Post Type</label><br/>
-			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" name="postType" id="blogPost" value="blogPost" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPost'>checked<cfelseif !structKeyExists(URL, "optArgs")>checked</cfif> /> Blog Post <input type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page
-			</td>
-		  </tr>
-		  <tr valign="middle" height="35">
-			<td></td>
-			<td>
-			Both Blog Posts and pages are nearly identical but have several significant differences.<br/>
-			Blog Posts are dynamic and are placed in the blogs section that is ordered by the most recent date. Posts are also meant to be interactive and may have comments.
-			Page content is generally permanent, does not have comments or a visible published date, and links to the page are much more prominent and placed on the menu. Conversely, pages are not shown on the RSS feeds.<br/>
-			Use pages for universal site content or evergreen content that does not change, and use blog posts for specific content that is dynamic or that may change.
-			</td>
-		  </tr>
-		</cfif>
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
-		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent>
 	  	  <!-- Form content -->
 		  <tr valign="middle">
 			<td height="25" valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>

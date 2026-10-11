@@ -157,16 +157,19 @@
 </style> 
 <!--- Include the css. --->
 <style>
+	<!--- 2026-10-01: scoped to the scene's own #<cfoutput>#parallaxName#</cfoutput>-mainContainer wrapper - see
+	galaxieScript.cfm's identical fix/comment for the full reasoning (these were bare, page-wide h2/h3/p
+	selectors with !important, which collided with Related Posts cards' own <h3> titles once those were added). --->
 	<cfif not session.isMobile>
-	h2  {
+	#<cfoutput>#parallaxName#</cfoutput>-mainContainer h2  {
 		font-size: <cfoutput>#h2FontSize#</cfoutput> !important;
 	}
-	
-	h3 {
+
+	#<cfoutput>#parallaxName#</cfoutput>-mainContainer h3 {
 		font-size: <cfoutput>#h3FontSize#</cfoutput> !important;
 	}
-	
-	p {
+
+	#<cfoutput>#parallaxName#</cfoutput>-mainContainer p {
 		font-size: <cfoutput>#paragraphFontSize#</cfoutput> !important;
 	}
 	</cfif>

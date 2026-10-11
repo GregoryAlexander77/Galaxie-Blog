@@ -189,7 +189,7 @@
 					<!--- alert(mydump(value));//"Approved" => "true" --->
 					return $.ajax({
 						type: "post",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=updateCategoryViaJsGrid",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=updateCategoryViaJsGrid",
 						<!--- Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end. --->
 						data: {
 							<!--- Note: the PostId is not in the grid, but it is within the data that is passed to the grid. Anything coming from the json string that is used to load data is available. --->
@@ -231,7 +231,7 @@
 				deleteItem: function(value, item) {
 					return $.ajax({
 						type: "post",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/proxyController.cfc?method=deleteCategoryViaJsGrid",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteCategoryViaJsGrid",
 						<!--- Pass the needed data. Here we need to see if the comment was approved, and pass the postId to update the database on the back end. --->
 						data: {
 							csrfToken: <cfoutput>'#csrfToken#'</cfoutput>,

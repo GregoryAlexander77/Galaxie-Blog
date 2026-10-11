@@ -573,8 +573,20 @@
 		
 		.entryMap {
 			height: <cfif session.isMobile>320<cfelse>564</cfif>px;
-			width: 100%; 
+			width: 100%;
 			<!--- Subtle drop shadow on the layer --->
+			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+		}
+
+		<!--- A Vanta.js canvas, like a map iframe, isn't an <img> with its own natural intrinsic size - .entryImage
+		img's height:auto would collapse it to 0, so this needs an explicit height the same way .entryMap already
+		does. The live animation itself only ever renders on desktop (see Renderer.cfc's isSinglePostPage gating -
+		session.isMobile always falls through to the generated gradient instead), so there's no mobile-height case
+		to handle here. 2026-10-03: renamed from .entryVanta while still dev-only/unmigrated. --->
+		.entryAnimation {
+			position: relative;
+			height: 564px;
+			width: 100%;
 			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 		}
 		
@@ -779,7 +791,7 @@
 		}
 
 		<!--- Title bar --->
-		.widget h2,h3.topContent {
+		.widget h2.topContent,h3.topContent {
 			font-size: 1em;
 			padding-top: 0px;
 			padding-right: 0px;
@@ -787,6 +799,25 @@
 			padding-left: 0px;
 			border-bottom: 1px solid #e2e2e2;
 			text-align: left;
+		}
+
+		<!--- A long unbroken line (a stack trace, an error message, a raw URL) in a post's own <pre><code> block was
+		spilling out past the article width instead of wrapping - there's already a similar rule further down scoped
+		to pre[class*="language-"] (Prism-classified blocks only), but it isn't reaching this page at all, and it
+		wouldn't help an intentionally-unclassed block (like a plain error transcript) anyway. Scoped directly to the
+		post content wrapper so it applies regardless of whether Prism put a language class on the block. --->
+		.postContent pre, .postContent code {
+			white-space: pre-wrap;
+			word-break: break-word;
+			overflow-wrap: break-word;
+		}
+		<!--- Same idea for pictures: one wider than the post column ran out past it - a 687px docs screenshot in a 558px
+		column on galaxieblog.org (2026-10-09). Smaller pictures keep their own size; height:auto keeps the shape.
+		:where() gives this zero specificity, so carousel slides, gallery thumbnails and any other picture with its own
+		sizing rule keep it - this only catches plain pictures. --->
+		:where(.postContent img) {
+			max-width: 100%;
+			height: auto;
 		}
 
 		<!--- mainBlog bottom bar --->
@@ -831,7 +862,7 @@
 		}
 				
 		<!--- Author name --->
-		.author-bio h2,h3.topContent {
+		.author-bio h2.topContent,h3.topContent {
 			font-size: 1em;
 			padding-top: 0px;
 			padding-right: 0px;
@@ -1007,11 +1038,16 @@
 			width: 100%;
 			height: auto;
 		<cfif not session.isMobile and not showSidebar>
-			<!--- The height of the card should be 150 pixels on desktop devices without the sidebar --->
-			height: 150px;
+			<!--- Desktop without the sidebar: a fixed 3:2 shape (the shape of the blog's own image crops) instead of the
+			old fixed 150px height, which turned into a thin strip as the cards widened on wide windows. Capped at
+			210px tall so very wide cards don't get huge images - beyond that the image is cropped, centered. --->
+			aspect-ratio: 3 / 2;
+			max-height: 210px;
+			object-position: center;
+		<cfelse>
+			object-position: 0 100%;   /*positioned top left of the content box */
 		</cfif>
 			object-fit: cover;
-			object-position: 0 100%;   /*positioned top left of the content box */
 			padding-bottom: 5px;
 		}
 		
@@ -1030,27 +1066,131 @@
 
 		.k-card-deck {
 			box-sizing: border-box;
+			<cfif not showSidebar>
+			<!--- 2026-10-03: tried two approaches before this one - justify-content:center (centers the whole
+			row as a block, which un-aligns its left edge from the search/button row above it) and a
+			calc(100% + 32px) !important width paired with the -16px/-16px bleed margins below (which worked
+			numerically on cfblogs.org but produced a small, inconsistent left-vs-right gap here, likely
+			sub-pixel rounding in how the bleed math interacts with this page's own layout). #blogContent
+			itself (this element's ancestor) already has clean, equal 20px padding on every side - confirmed
+			directly via devtools - so the simplest, most robust fix is to stop fighting bleed-margin math
+			entirely: no negative margins, no extra padding of its own, just width:100% of its already-correctly
+			-padded container. Scoped to the non-sidebar case - the sidebar/"Popular Posts" use of this same
+			class is a fixed-width horizontal scroll strip, not a full-width row, and keeps its own margins/
+			padding below untouched. --->
+			width: 100% !important;
+			margin-left: 0;
+			margin-right: 0;
+			padding-left: 0;
+			padding-right: 0;
+			<cfelse>
 			margin-left: -16px;
 			margin-right: -16px;
 			padding-left: 16px;
+			</cfif>
 			<!--- padding: 16px 16px 16px; --->
 			overflow-y: hidden;
 			overflow-x: hidden;/* used to be auto, changed to remove scrollbars */
 			<cfif showSidebar>/* We need to contstrain the height when used for the popular posts widget */
-			height: 325px;
+			min-height: 325px;
 			</cfif>
 		}
-		
+
+		<cfif not showSidebar>
+		<!--- 2026-10-03: each .k-card has an inline width:31% (cardGridSection.cfm's cardGridCardWidth, 3 cards
+		= 93%) but Kendo's own default flex:0 0 auto keeps it fixed there even once the deck-width fix above
+		gives the deck its full real width to work with - without this, the cards would still leave the
+		remaining ~7% (now correctly split since the deck itself isn't shifted, but still dead space) unused on
+		the right. flex-grow:1 lets the cards stretch to fill it instead, so the row's right edge reaches the
+		deck's true right edge, matching the search/button row on both sides. --->
+		.k-card-deck > .k-card {
+			flex-grow: 1;
+		}
+		/* A deck holding only one card (a lone card, or the last row of a grid, or both cards of a 2-card last row)
+		must not stretch; keep it at its normal 31% width. Full 3-card rows keep the stretch above. */
+		.k-card-deck > .k-card:only-child,
+		.k-card-deck > .k-card:first-child:nth-last-child(2),
+		.k-card-deck > .k-card:nth-child(2):last-child {
+			flex-grow: 0;
+		}
+		/* ...but at the exact width a stretched card in a full row ends up with - a third of the row minus the two
+		16px gaps - so a short last row lines up with the columns above it. At the plain 31% it was a little
+		narrower (2026-10-09, the homepage's Featured Collections). Only for the standard 3-across 31% cards; the
+		inline width needs !important to be overridden. */
+		.k-card-deck > .k-card[style*="31%"]:only-child,
+		.k-card-deck > .k-card[style*="31%"]:first-child:nth-last-child(2),
+		.k-card-deck > .k-card[style*="31%"]:nth-child(2):last-child {
+			width: calc((100% - 32px) / 3) !important;
+			/* Include the card's 1px border in that width, or the row ends up 2px wider per card. */
+			box-sizing: border-box;
+		}
+		</cfif>
+
+		<!--- 2026-10-03: popularPosts.cfm's own deck (Popular Posts widget, Related Blogs widget) must always get
+		the compact horizontal-scroll-strip styling above (the showSidebar-true branch), never the main post grid's
+		full-width/flex-grow styling - it's inherently a fixed-width scroll strip, not a 3-column row. The two
+		branches above key off showSidebar, a single page-wide flag (set once per request from the theme's
+		breakpoint, same value for the whole page) that has nothing to do with which kind of deck this is. On a
+		theme/page where showSidebar is false, that left this widget's deck getting the main grid's rules instead
+		of its own - with a single related/popular post, flex-grow:1 stretched that one card edge-to-edge across
+		the whole content width instead of leaving it at its normal card width. popularPosts.cfm's deck is the only
+		.k-card-deck ever wrapped in .k-card-deck-scrollwrap, so that ancestor is used here as the discriminator
+		instead of showSidebar - unconditional (no cfif), and it always wins over the rules above because 3
+		chained classes out-specifies 1-2. --->
+		<!--- 2026-10-03: was a fixed height: 325px. A card whose title/text runs long had nowhere to grow -
+		the card was stretched to the deck's fixed height by flex's default align-items:stretch, so content
+		below the fixed point (the Read More button) got pushed out of the visible card entirely instead of
+		the card just growing taller. min-height keeps every card in the row the same height in the common
+		case (flex stretch still applies) while letting the whole row grow taller together when one card
+		actually needs it. --->
+		.k-card-deck-scrollwrap .k-card-deck {
+			width: auto !important;
+			margin-left: -16px;
+			margin-right: -16px;
+			padding-left: 16px;
+			min-height: 325px;
+		}
+
+		.k-card-deck-scrollwrap .k-card-deck > .k-card {
+			flex-grow: 0;
+		}
+
 		<!--- Used for the cards in the k-card-deck scroll container when using the sidebar (for example popular posts). This class should replace the k-card-media class to get the media to fit into the small card. --->
 		.k-card-scroll-image {
 			display: block;
 			width: 100%;
 			height: auto;
-			<!--- The height of the card should always be 150 pixels --->
-			height: 150px;
+			<!--- Same shape as .k-card-image above: 3:2 (the shape of the blog's own image crops), at most 210px tall,
+			cropped from the center. Was a fixed 150px height, which turned into a thin strip on the wider cards
+			(Related Pages/Related Blogs/Popular Posts). Card carousels in this strip use the same box - see
+			Renderer.cfc's .swiperCard. --->
+			aspect-ratio: 3 / 2;
+			max-height: 210px;
 			object-fit: cover;
-			object-position: 0 100%;   /*positioned top left of the content box */
+			object-position: center;
 			padding-bottom: 5px;
+		}
+
+		<!--- Video cards put this same class on the galaxiePlayer.cfm <iframe> (Renderer.cfc's
+		renderEnclosureVideoPreview). An uploaded video now fills and crops the 3:2 box above itself (galaxiePlayer.cfm's
+		kcard styles, 2026-10-09), so it lines up with the picture cards. A YouTube or Vimeo player can't be cropped -
+		it fits the video to the frame's width - so those frames (k-card-video-embed) stay 16:9, the shape of nearly
+		every video. --->
+		iframe.k-card-scroll-image.k-card-video-embed,
+		iframe.k-card-image.k-card-video-embed {
+			aspect-ratio: 16 / 9;
+			max-height: none;
+		}
+
+		<!--- A post's Table of Contents (TinyMCE's .mce-toc, turned into a Kendo PanelBar by blogJsContent.cfm). Its
+		links were plain ~21px lines stacked with no gap, which Lighthouse's accessibility check flags as touch targets
+		too small and too close together (WCAG 2.5.8 asks for 24px). A little vertical padding makes each one at least
+		24px tall without changing the text. 2026-10-09. --->
+		.mce-toc .k-panelbar .k-group .k-link {
+			min-height: 24px;
+			padding-top: 3px;
+			padding-bottom: 3px;
+			box-sizing: border-box;
 		}
 		
 		.k-card-action {
@@ -1718,26 +1858,16 @@
 		}
 		
 		<!--- --- Fancybox --- --->
-		.fancybox-effects img {
+		.glightbox img {
 			border: 1px solid #808080; /* Gray border */
 			border-radius: 3px;  /* Rounded border */
 			padding: 5px; 
 		}
 
 		<!--- Add a hover effect (blue shadow) --->
-		.fancybox-effects img:hover {
+		.glightbox img:hover {
 		  	box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5);
 			opacity: .82;
-		}
-				
-		.fancybox-custom .fancybox-skin {
-			box-shadow: 0 0 25px #808080;/*b4b6ba*/
-			border-radius: 3px;
-		}
-		
-		.fancybox-custom .fancybox-skin {
-			box-shadow: 0 0 25px #808080;/*b4b6ba*/
-			border-radius: 3px;
 		}
 		
 		<!--- --- Kendo FX --- --->

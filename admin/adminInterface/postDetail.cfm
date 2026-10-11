@@ -88,6 +88,9 @@
 	<cfset getSelectedTags = application.blog.getTagsForPost(URL.optArgs)>
 	<cfset getRelatedPosts = application.blog.getRelatedPosts(postId=URL.optArgs)>
 	<!---Related Posts: <cfdump var="#getRelatedPosts#">--->
+	<!--- Page Collections - which Collection(s) this Page belongs to, plus every Collection that exists to populate the multi-select. Only relevant for a Page, not a Post. --->
+	<cfset getSelectedPageCollections = application.blog.getPageCollectionsForPost(URL.optArgs)>
+	<cfset getAllPageCollectionsForDropdown = application.blog.getAllPageCollections()>
 		
 	<!--- Create a list of categories --->
 	<cfset thisSelectedCategoryIdList = "">
@@ -104,12 +107,12 @@
 		label {
 			font-weight: normal;
 		}
-		
+
 		normalFontWeight {
 			font-weight: normal;
 		}
 	</style>
-		
+
 	<!---//***************************************************************************************************************
 				TinyMce Scripts
 	//****************************************************************************************************************--->
@@ -176,7 +179,16 @@
 		}
 
 		$(document).ready(function() {
-			
+
+			<!--- The window's title/height/width are set generically by createAdminInterfaceWindow() before this content even loads (it doesn't know yet whether postId is a Page or a Post), so this is the one place that actually knows - update the title here instead. --->
+			<cfif getPost[1]['IsPage']>
+			try {
+				$("#postDetailWindow").data("kendoWindow").title("Edit Page");
+			} catch (e) {
+				<!--- Do nothing --->
+			}
+			</cfif>
+
 			<!--- Set a var to determine if the post has been released. We also want to check the dates when the post is first released, but not afterward --->
 			var postReleased = <cfif getPost[1]["Released"]>true<cfelse>false</cfif>;
 			var todaysDate = new Date(); 
@@ -237,43 +249,47 @@
 				}//} else if (this.value() < todaysDate){{..
             }//..onDatePostedChange
 			
-			<!--- Kendo Dropdowns Date posted date/time picker --->
+			<!--- Kendo Dropdowns Date posted date/time picker - Pages have no Date Posted field (no #datePosted element in the DOM to match, it's hidden below), so this whole init/change setup is Post-only. --->
+			<cfif not getPost[1]['IsPage']>
 			$("#datePosted").kendoDateTimePicker({
                 componentType: "modern",
 				value: <cfif len(getPost[1]['DatePosted'])>originalPostDate<cfelse>new Date()</cfif>,
 				change: onDatePostedChange
             });
-			
+
 			<!--- Check the dates when the post date is changed. --->
 			function onDatePostedChange() {
                 <!--- Check and recommend dates depending upon the selected date --->
 				checkAndRecommendDates(this.value());
             }//..onDatePostedChange
-			
-			<!--- Also check the dates when the released button is clicked --->
+			</cfif><!---<cfif not getPost[1]['IsPage']>--->
+
+			<!--- Also check the dates when the released button is clicked - guarded since a Page has the Released checkbox but no #datePosted widget to read. --->
 			$('#released').click(function(){
-				if($(this).is(':checked')){
+				if($(this).is(':checked') && $("#datePosted").data("kendoDateTimePicker")){
 					var selectedDate = kendo.toString($("#datePosted").data("kendoDateTimePicker").value());
 					checkAndRecommendDates(selectedDate);
 				}
 			});
 			
 			<!--- --- author dropdown. --- --->
+			<!--- Pages have no author field, and no #author select in the DOM to match (its HTML is hidden below) - same reasoning as the Tags/Related Posts blocks. --->
+			<cfif not getPost[1]['IsPage']>
 			var authorDs = new kendo.data.DataSource({
 				transport: {
 					read: {
 						cache: false,
 						<!--- Note: since this template is in a different directory, we can't specify the cfc template without the full path name. --->
-						url: function() { // The cfc component which processes the query and returns a json string. 
-							return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getAuthorsForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>"; 
-						}, 
+						url: function() { // The cfc component which processes the query and returns a json string.
+							return "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getAuthorsForDropdown&csrfToken=<cfoutput>#csrfToken#</cfoutput>";
+						},
 						dataType: "json",
 						contentType: "application/json; charset=utf-8", // Note: when posting json via the request body to a coldfusion page, we must use this content type or we will get a 'IllegalArgumentException' on the ColdFusion processing page.
 						type: "GET" //Note: for large payloads coming from the server, use the get method. The post method may fail as it is less efficient.
 					}
 				} //...transport:
 			});//...var authorDs...
-			
+
 			<!--- Create the top level dropdown --->
 			var author = $("#author").kendoDropDownList({
 				<!--- cascadeFrom: "agencyRateCompanyCode", --->
@@ -299,9 +315,11 @@
 				<!--- Get the value --->
 				userId = this.value();
 			}//...function onAuthorChange(e)
+			</cfif><!---<cfif not getPost[1]['IsPage']>--->
 			
 			<!--- --- category dropdown. --- --->
-			
+			<!--- Pages only ever use Page Collections for grouping, not Categories (deliberately not both, to avoid reintroducing the tangled category-based membership the Page Collections redesign replaced) - no #postCategories select in the DOM for a Page (hidden below), so this whole block is Post-only. --->
+			<cfif not getPost[1]['IsPage']>
 			<!--- Category datasource. --->
 			var categoryDs = new kendo.data.DataSource({
 				<!--- serverFiltering: "true",// Since we are using serverFiltering, the values from the previous dropdown will be sent to the server for processing. --->
@@ -340,9 +358,11 @@
 					$("#selectedPostCategories").val(selectedCategories);
 				}
 			});//...$("#postCategories")
+			</cfif><!---<cfif not getPost[1]['IsPage']>--->
 			
 			<!--- --- tags dropdown. --- --->
-			
+			<!--- Pages have no tags, and no #postTags select in the DOM to match (its HTML is hidden below) - skip this entire block for a Page, or kendoMultiSelect() ends up binding to a jQuery selection that matches nothing, which throws downstream. --->
+			<cfif not getPost[1]['IsPage']>
 			<!--- tag datasource. --->
 			var tagDs = new kendo.data.DataSource({
 				<!--- serverFiltering: "true",// Since we are using serverFiltering, the values from the previous dropdown will be sent to the server for processing. --->
@@ -375,9 +395,24 @@
                     { TagId: "<cfoutput>#tagId#</cfoutput>", Tag: "<cfoutput>#tag#</cfoutput>" },
                 </cfloop>]
 			});//...$("#postTags")
-			
+			</cfif><!---<cfif not getPost[1]['IsPage']>--->
+
+			<!--- Which Page Collection(s) this Page belongs to - reads its options straight from the server-rendered <option> list rather than a separate datasource, since Page Collections is a short, blog-wide list already rendered into the page. Pages only, so this element may not exist on a Post. noDataTemplate offers a way to create one on the spot when none exist yet, same pattern as the Category/Tag "not found, add it?" templates above. --->
+			<cfif getPost[1]['IsPage']>
+			$("#postPageCollections").kendoMultiSelect({
+				autoBind: true,
+				filter: "contains",
+				noDataTemplate: $("#addPageCollectionNoData").html(),
+				placeholder: "Select Page Collection...",
+				value: [<cfloop array="#getSelectedPageCollections#" index="pcSel">
+					<cfoutput>"#pcSel.pageCollectionId#",</cfoutput>
+				</cfloop>]
+			});//...$("#postPageCollections")
+			</cfif>
+
 			<!--- --- related posts dropdown. --- --->
-			
+			<!--- Pages have no related-posts concept, and no #relatedPosts select in the DOM (its HTML is hidden below) - same reasoning as the Tags block above. --->
+			<cfif not getPost[1]['IsPage']>
 			<!--- Related Posts datasource. --->
 			var relatedPostsDs = new kendo.data.DataSource({
 				transport: {
@@ -390,7 +425,7 @@
 					},//...read:
 				}//...transport:
 			});//...var categoryDs...
-			
+
 			$("#relatedPosts").kendoMultiSelect({
 				autoBind: true,
 				placeholder: "Select Related Post...",
@@ -406,6 +441,7 @@
                     { PostId: "<cfoutput>#PostId#</cfoutput>", Title: "<cfoutput>#Title#</cfoutput>" },
                 </cfloop>]
 			});//...$("#relatedPosts")
+			</cfif><!---<cfif not getPost[1]['IsPage']>--->
 			
 			<!--- --- form validation --- --->
 		
@@ -576,13 +612,15 @@
 					postId: $("#postId").val(),
 					postType: $("input[type=radio][name=postType]:checked" ).val(),
 					postAlias: $("#postAlias").val(),
-					datePosted: kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'MM/dd/yyyy'),
-					timePosted: kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'hh:mm tt'),
+					<!--- Only present in the DOM for a Post - a Page has no Date Posted field to change, so fall back to its own existing date/time unchanged, same reasoning as author above. --->
+					datePosted: $("#datePosted").data("kendoDateTimePicker") ? kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'MM/dd/yyyy') : "<cfoutput>#dateFormat(getPost[1]['DatePosted'], 'mm/dd/yyyy')#</cfoutput>",
+					timePosted: $("#datePosted").data("kendoDateTimePicker") ? kendo.toString($("#datePosted").data("kendoDateTimePicker").value(), 'hh:mm tt') : "<cfoutput>#timeFormat(getPost[1]['DatePosted'], 'hh:mm tt')#</cfoutput>",
 					<!--- The next two values are hidden form fields populated by the post sort date interface --->
 					blogSortDate: $("#newBlogSortDate").val(),
 					blogSortDateChanged: $("#blogSortDateChanged").val(),
 					themeId: $("#postThemeId").val(),
-					author: $("#author").data("kendoDropDownList").value(),
+					<!--- Only present in the DOM for a Post - a Page has no author field to change, so fall back to its own existing author unchanged (blog.cfc's savePost() always looks up a Users row by this value, so it can't be sent blank). --->
+					author: $("#author").data("kendoDropDownList") ? $("#author").data("kendoDropDownList").value() : "<cfoutput>#getPost[1]['UserId']#</cfoutput>",
 					title: $("#title").val(),
 					changeTitleAndLink: $("#changeTitleAndLink").val(),
 					// Pass in the contents of the editor with all <script tags replaced with attach script
@@ -591,6 +629,8 @@
 					released: $('#released').is(':checked'), // checkbox boolean value.
 					allowComment: $('#allowComment').is(':checked'), // checkbox boolean value.
 					promote: $('#promote').is(':checked'), // checkbox boolean value.
+					<!--- Only present in the DOM for a Post, same as promote above - jQuery on a missing selector safely returns false rather than throwing. --->
+					displayOnRss: $('#displayOnRss').is(':checked'), // checkbox boolean value.
 					remove: $('#remove').is(':checked'), // checkbox boolean value.
 					redirectUrl: $("#redirectUrl").val(),
 					redirectType: $("#redirectType").val(),
@@ -598,8 +638,10 @@
 					<!--- We are storing the post categories in a hidden field in order to preserve the selected category order --->
 					postCategories: $("#selectedPostCategories").val(),
 					<!--- These multi-selects are in an array. We need to use the toString method to turn the array into comma separated values postCategories: $("#postCategories").data("kendoMultiSelect").value().toString(), --->
-					postTags: $("#postTags").data("kendoMultiSelect").value().toString(),
-					relatedPosts: $("#relatedPosts").data("kendoMultiSelect").value().toString(),
+					<!--- Only present in the DOM for a Post - a Page has neither the field nor the widget, so guard the same way pageCollectionIdList already does below. --->
+					postTags: $("#postTags").data("kendoMultiSelect") ? $("#postTags").data("kendoMultiSelect").value().toString() : "",
+					relatedPosts: $("#relatedPosts").data("kendoMultiSelect") ? $("#relatedPosts").data("kendoMultiSelect").value().toString() : "",
+				pageCollectionIdList: $("#postPageCollections").data("kendoMultiSelect") ? $("#postPageCollections").data("kendoMultiSelect").value().toString() : "",
 					<!--- The following media items are held in hidden forms. There should only be zero or one value that is sent --->
 					imageMediaId: $("#imageMediaId").val(),
 					videoMediaId: $("#videoMediaId").val(),
@@ -638,7 +680,13 @@
 					$("#PostsWindow").data("kendoWindow").refresh();
 				} catch (error) {
 					<!--- Do nothing --->
-				}			
+				}
+				<!--- Pages are a separate grid/window (id 57) from Posts - same try-block refresh, copied from the block above, so saving a Page actually refreshes the Pages grid too. --->
+				try {
+					$("#PageWindow").data("kendoWindow").refresh();
+				} catch (error) {
+					<!--- Do nothing --->
+				}
 			</cfif>
 				<!--- Close the window --->
 				jQuery('#postDetailWindow').kendoWindow('destroy');
@@ -694,7 +742,13 @@
 					$("#PostsWindow").data("kendoWindow").refresh();
 				} catch (error) {
 					<!--- Do nothing --->
-				}			
+				}
+				<!--- Pages are a separate grid/window (id 57) from Posts - same try-block refresh, copied from the block above, so deleting a Page actually refreshes the Pages grid too. --->
+				try {
+					$("#PageWindow").data("kendoWindow").refresh();
+				} catch (error) {
+					<!--- Do nothing --->
+				}
 			</cfif>
 				<!--- Close the window --->
 				jQuery('#postDetailWindow').kendoWindow('destroy');
@@ -739,19 +793,20 @@
 			<!--- Get the datasource --->
             var multiSelectDs = $("#postCategories").data("kendoMultiSelect").dataSource;
 			
-			<!--- Add the new item to the multiselects datasource --->
+			<!--- 2026-10-10: the new category was never selected. This used to add it, then wait for a "sync" event before
+			selecting it - but this list's data source only reads (it has no create transport), so it never synced and the
+			selection never ran; MultiSelect also has no select(index) like a DropDownList. Instead: clear the search text
+			that is still filtering the list (eg. "Gotcha's"), add the item, and add its id to the picker's selected values. --->
+			multiSelect.input.val("");
+			multiSelectDs.filter([]);
 			multiSelectDs.add({
 				CategoryId: categoryId,
-				Category: category 
+				Category: category
 			});
-			
-			<!--- Select the inserted value that was just added- it's in the last position in the list --->
-			multiSelectDs.one("sync", function() {
-				multiSelect.select(multiSelectDs.view().length - 1);
-			});
-			
-			<!--- Sync the the datasource --->
-			multiSelectDs.sync();
+			var selectedCategoryIds = multiSelect.value().slice();
+			selectedCategoryIds.push(categoryId);
+			multiSelect.value(selectedCategoryIds);
+			multiSelect.close();
         };
 		
 		<!--- This adds a new option to the post tags multi-select --->
@@ -762,19 +817,17 @@
 			<!--- Get the datasource --->
             var multiSelectDs = $("#postTags").data("kendoMultiSelect").dataSource;
 		
-			<!--- Add the new item to the multiselects datasource --->
+			<!--- 2026-10-10: same fix as addNewPostCategory above - the old sync-then-select never ran. --->
+			multiSelect.input.val("");
+			multiSelectDs.filter([]);
 			multiSelectDs.add({
 				TagId: tagId,
-				Tag: tag 
+				Tag: tag
 			});
-			
-			<!--- Select the inserted value that was just added- it's in the last position in the list --->
-			multiSelectDs.one("sync", function() {
-				multiSelect.select(multiSelectDs.view().length - 1);
-			});
-			
-			<!--- Sync the the datasource --->
-			multiSelectDs.sync();
+			var selectedTagIds = multiSelect.value().slice();
+			selectedTagIds.push(tagId);
+			multiSelect.value(selectedTagIds);
+			multiSelect.close();
         };
 		
 	</script>
@@ -845,6 +898,7 @@
 	  <tr height="1px">
 		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+	<cfif not getPost[1]['IsPage']>
     <cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -853,7 +907,9 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="datePosted" name="datePosted" value="<cfoutput>#dateTimeFormat(getPost[1]['DatePosted'], "medium")#</cfoutput>" style="width: 45" />   
+			<input id="datePosted" name="datePosted" value="<cfoutput>#dateTimeFormat(getPost[1]['DatePosted'], "medium")#</cfoutput>" style="width: 58%" />
+				<!--- Moved here from the Misc section at the bottom of the form, right next to the date picker where it's more visible, and sized small to fit alongside it on mobile too. --->
+				<button id="scheduleRelease" class="k-button normalFontWeight" type="button" style="width: 36%; min-width: 78px;" onClick="createAdminInterfaceWindow(69,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Schedule</button>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
@@ -865,17 +921,21 @@
 			<!--- Using a table to constrain the time picker after it changes --->
 			<table cellpadding="5" cellspacing="0" width="100%">
 				<tr>
-					<td width="45%">
+					<td width="40%">
 						<input id="datePosted" name="datePosted" value="<cfoutput>#dateTimeFormat(getPost[1]['DatePosted'], "medium")#</cfoutput>" style="width: 100%" /> 
 					</td>
-					<td width="65%">
-						<button id="sortDate" class="k-button normalFontWeight" type="button" style="width: 105px" onClick="createAdminInterfaceWindow(43,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Sort Date</button>
+					<td width="60%">
+						<!--- Moved here from the Misc section at the bottom of the form, right next to Sort Date where it's more visible. Placed first/ahead of Sort Date since it's expected to be used more often. --->
+						<button id="scheduleRelease" class="k-button normalFontWeight" type="button" style="width: 100px" onClick="createAdminInterfaceWindow(69,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Schedule</button>
+						<button id="sortDate" class="k-button normalFontWeight" type="button" style="width: 115px; margin-left: 4px;" onClick="createAdminInterfaceWindow(43,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Sort Date</button>
 					</td>
 				</tr>
 			</table>
 		</td>
 	  </tr>
 	</cfif>
+	<!--- Pages have no user-facing Date Posted / Schedule Release / Sort Date - those are tied to a publish date, which a Page does not have. --->
+	</cfif><!---<cfif not getPost[1]['IsPage']>--->
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -888,6 +948,7 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+	<cfif not getPost[1]['IsPage']>
 	  <cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -903,7 +964,7 @@
 					Author not found. Do you want to add '#: instance.filterInput.val() #'?
 				</div>
 				<br />
-				<button class="k-button" onclick="createAdminInterfaceWindow(7, '#: instance.filterInput.val() #', 'addUser')">Add Author</button>
+				<button class="k-button" onclick="createAdminInterfaceWindow(7, #= kendo.htmlEncode(JSON.stringify(instance.filterInput.val())) #, 'addUser')">Add Author</button>
 			</script> 
 		</td>
 	  </tr>
@@ -921,11 +982,13 @@
 					Author not found. Do you want to add '#: instance.filterInput.val() #'?
 				</div>
 				<br />
-				<button class="k-button" onclick="createAdminInterfaceWindow(7, '#: instance.filterInput.val() #', 'addUser')">Add Author</button>
+				<button class="k-button" onclick="createAdminInterfaceWindow(7, #= kendo.htmlEncode(JSON.stringify(instance.filterInput.val())) #, 'addUser')">Add Author</button>
 			</script>  
 		</td>
 	  </tr>
 	</cfif>
+	<!--- Pages have no user-facing Author field - the dropdown still exists in the DOM/JS for the underlying save, just hidden here. --->
+	</cfif><!---<cfif not getPost[1]['IsPage']>--->
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -1087,20 +1150,17 @@
 			<!--- Inner table --->
 			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0">
 				<tr>
-					<td width="20%">
+					<td width="25%">
 						<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Alias</button>
 					</td>
-					<td width="20%">
+					<td width="25%">
 						<button id="postHeader" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(42,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Post Header</button>
 					</td>
-					<td width="20%">
+					<td width="25%">
 						<button id="cssButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(46,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">CSS</button>
 					</td>
-					<td width="20%">
+					<td width="25%">
 						<button id="javascriptButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(47,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JavaScript</button>
-					</td>
-					<td width="20%">
-						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
 					</td>
 				</tr>
 			</table>
@@ -1155,7 +1215,7 @@
 	<cfif smallScreen><!--- i.e. mobile devices --->
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<i class="far fa-edit"></i> 
+			<i class="far fa-edit"></i>
 			<label for="post">Misc.</label>
 		</td>
 	   </tr>
@@ -1186,13 +1246,12 @@
 						<button id="setTheme" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(44,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Set Theme</button>
 					</td>
 					<td width="20%" align="left">
+						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
 					</td>
 					<td width="20%" align="left">
 					</td>
 					<td width="20%" align="left">
-						<!--- Next version:
-						<button id="scheduleRelease" class="k-button normalFontWeight" type="button" style="width: 175px">Schedule Release</button>
-						--->
+<!--- Schedule Release moved up next to the Date Posted picker, see the Date Posted row near the top of the form. --->
 					</td>
 				</tr>
 			</table>
@@ -1219,7 +1278,7 @@
 		<td align="center" class="<cfoutput>#thisContentClass#</cfoutput>" <cfif smallScreen>colspan="2"</cfif>>
 			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0" border="0">
 				<tr>
-					<td width="25%" align="left">
+					<td width="20%" align="left">
 						<cfsilent>
 							<!--- This field may not be defined (it may be null in the database) --->
 							<cfif structKeyExists(getPost[1], "Released" )>
@@ -1230,8 +1289,8 @@
 						</cfsilent>
 						<input id="released" name="released" type="checkbox" <cfif released>checked</cfif> class="normalFontWeight">
 						<label for="released">Released</label>
-					</td>					
-					<td width="25%" align="left">
+					</td>
+					<td width="20%" align="left">
 						<cfsilent>
 							<!--- This field may not be defined (it may be null in the database) --->
 							<cfif structKeyExists(getPost[1], "AllowComment" )>
@@ -1249,8 +1308,24 @@
 						<label for="allowComment">Allow Comments</label>
 					</td>
 				<cfif not getPost[1]['IsPage']>
-					<!--- You can only promote a blog post --->
-					<td width="25%" align="left">
+					<!--- RSS/Promote only apply to a blog post, not a Page. RSS is placed before Promote per feedback. --->
+					<td width="20%" align="left" <cfif smallScreen>style="display:none;"</cfif>>
+						<cfsilent>
+							<!--- This field may not be defined (it may be null in the database) --->
+							<cfif structKeyExists(getPost[1], "DisplayOnRss")>
+								<cfset displayOnRss = getPost[1]["DisplayOnRss"]>
+							<cfelse>
+								<cfset displayOnRss = true>
+							</cfif>
+						</cfsilent>
+						<!--- Hidden (not removed) on mobile, per feedback - no room there, but the checkbox still needs
+						to exist in the DOM so its current value keeps submitting unchanged; removing it outright would
+						make $('#displayOnRss').is(':checked') always read false and silently turn RSS off on every
+						save made from a phone. --->
+						<input id="displayOnRss" name="displayOnRss" type="checkbox" <cfif displayOnRss>checked</cfif> class="normalFontWeight">
+						<label for="displayOnRss">Include in RSS Feed</label>
+					</td>
+					<td width="20%" align="left">
 						<cfsilent>
 						<!--- This field may not be defined (it may be null in the database) --->
 						<cfif structKeyExists(getPost[1], "Promoted" )>
@@ -1263,7 +1338,7 @@
 						<label for="promote">Promote</label>
 					</td>
 				</cfif><!---<cfif not getPost[1]['IsPage']>--->
-					<td width="25%" align="left">
+					<td width="20%" align="left">
 						<cfsilent>
 							<!--- This field may not be defined (it may be null in the database) --->
 							<cfif structKeyExists(getPost[1], "Remove")>
@@ -1276,9 +1351,10 @@
 						<input id="remove" name="remove" type="checkbox" <cfif remove>checked</cfif> class="normalFontWeight" <cfif !postRemoved>onClick="confirmPostRemoval()"</cfif>>
 						<label for="remove">Remove</label>
 					</td>
-					<!--- Put an empty cell for pages --->
+					<!--- Put 2 empty cells for pages, since they skip both the RSS and Promote cells above. --->
 				<cfif getPost[1]['IsPage']>
-					<td width="25%" align="left"></td>
+					<td width="20%" align="left"></td>
+					<td width="20%" align="left"></td>
 				</cfif>
 				</tr>
 			</table>
@@ -1318,6 +1394,8 @@
 		</td>
 	  </tr>
 	</cfif>
+	<!--- Border + Categories together (Post only) - a Page uses Page Collections exclusively, not both, to avoid reintroducing the tangled category-based membership the redesign replaced. --->
+	<cfif not getPost[1]['IsPage']>
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -1349,8 +1427,8 @@
 					Category not found. Do you want to add new category - '#: value #' ?
 				</div>
 				<br />
-				 <button class="k-button" onclick="createAdminInterfaceWindow(12,'#: value #')" ontouchend="createAdminInterfaceWindow(12,'#: value #')">Add new item</button>
-			</script>    
+				 <button class="k-button" onclick="createAdminInterfaceWindow(12,#= kendo.htmlEncode(JSON.stringify(value)) #)" ontouchend="createAdminInterfaceWindow(12,#= kendo.htmlEncode(JSON.stringify(value)) #)">Add new item</button>
+			</script>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
@@ -1369,11 +1447,14 @@
 					Category not found. Do you want to add new category - '#: value #' ?
 				</div>
 				<br />
-				 <button class="k-button" onclick="createAdminInterfaceWindow(12,'#: value #')" ontouchend="createAdminInterfaceWindow(12,'#: value #')">Add new item</button>
-			</script> 
+				 <button class="k-button" onclick="createAdminInterfaceWindow(12,#= kendo.htmlEncode(JSON.stringify(value)) #)" ontouchend="createAdminInterfaceWindow(12,#= kendo.htmlEncode(JSON.stringify(value)) #)">Add new item</button>
+			</script>
 		</td>
 	  </tr>
 	</cfif>
+	</cfif><!---<cfif not getPost[1]['IsPage']> (Categories) ---->
+	<!--- Border + Tags together, so a Page (which has no tags) doesn't get an orphaned empty divider here. --->
+	<cfif not getPost[1]['IsPage']>
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -1386,7 +1467,7 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-		 
+
 	 <!-- Form content -->
 	<cfif smallScreen>
 	  <tr valign="middle">
@@ -1406,7 +1487,7 @@
 					Tag not found. Do you want to add new tag - '#: value #' ?
 				</div>
 				<br />
-				 <button class="k-button" onclick="createAdminInterfaceWindow(49,'#: value #')" ontouchend="createAdminInterfaceWindow(49,'#: value #')">Add new item</button>
+				 <button class="k-button" onclick="createAdminInterfaceWindow(49,#= kendo.htmlEncode(JSON.stringify(value)) #)" ontouchend="createAdminInterfaceWindow(49,#= kendo.htmlEncode(JSON.stringify(value)) #)">Add new item</button>
 			</script>    
 		</td>
 	  </tr>
@@ -1426,11 +1507,15 @@
 					Tag not found. Do you want to add new tag - '#: value #' ?
 				</div>
 				<br />
-				 <button class="k-button" onclick="createAdminInterfaceWindow(49,'#: value #')" ontouchend="createAdminInterfaceWindow(49,'#: value #')">Add new item</button>
+				 <button class="k-button" onclick="createAdminInterfaceWindow(49,#= kendo.htmlEncode(JSON.stringify(value)) #)" ontouchend="createAdminInterfaceWindow(49,#= kendo.htmlEncode(JSON.stringify(value)) #)">Add new item</button>
 			</script> 
 		</td>
 	  </tr>
 	</cfif>
+	<!--- Pages have no tags. --->
+	</cfif><!---<cfif not getPost[1]['IsPage']>--->
+	<!--- Border + Related Posts together, so a Page (which has no related-posts concept) doesn't get an orphaned empty divider here. --->
+	<cfif not getPost[1]['IsPage']>
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -1443,7 +1528,7 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-		  
+
 	  <!-- Form content -->
 	<cfif smallScreen>
 	  <tr valign="middle">
@@ -1466,6 +1551,65 @@
 		</td>
 	  </tr>	
 	</cfif>
+	<!--- Pages have no related-posts concept. --->
+	</cfif><!---<cfif not getPost[1]['IsPage']>--->
+	<!--- Border + Page Collections together (Pages only), same reasoning as the two blocks above - a Post gets neither the border nor the (empty) content here. --->
+	<cfif getPost[1]['IsPage']>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <!--- Which Page Collection(s) this Page belongs to - a Page's counterpart to a Post's Categories, the only place this membership is set (never curated from inside the Collection itself). Same noData "not found, add it?" pattern as Category/Tag - here it fires whenever none exist yet at all, not just when a search finds nothing. --->
+	<cfif smallScreen>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="postPageCollections">Page Collections</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<select id="postPageCollections" multiple="multiple" style="width: 95%">
+				<cfloop array="#getAllPageCollectionsForDropdown#" index="pcOption">
+					<option value="<cfoutput>#pcOption.pageCollectionId#</cfoutput>"><cfoutput>#pcOption.title#</cfoutput></option>
+				</cfloop>
+			</select>
+			<script id="addPageCollectionNoData" type="text/x-kendo-tmpl">
+				<div>
+					No page collections exist yet.
+				</div>
+				<br />
+				 <button class="k-button" onclick="createAdminInterfaceWindow(24,'newPageCollection')" ontouchend="createAdminInterfaceWindow(24,'newPageCollection')">Create one</button>
+			</script>
+		</td>
+	  </tr>
+	<cfelse><!---<cfif smallScreen>--->
+	  <tr valign="middle" height="35">
+		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<label for="postPageCollections">Page Collections</label>
+		</td>
+		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<select id="postPageCollections" multiple="multiple" style="width: 95%">
+				<cfloop array="#getAllPageCollectionsForDropdown#" index="pcOption">
+					<option value="<cfoutput>#pcOption.pageCollectionId#</cfoutput>"><cfoutput>#pcOption.title#</cfoutput></option>
+				</cfloop>
+			</select>
+			<script id="addPageCollectionNoData" type="text/x-kendo-tmpl">
+				<div>
+					No page collections exist yet.
+				</div>
+				<br />
+				 <button class="k-button" onclick="createAdminInterfaceWindow(24,'newPageCollection')" ontouchend="createAdminInterfaceWindow(24,'newPageCollection')">Create one</button>
+			</script>
+		</td>
+	  </tr>
+	</cfif>
+	</cfif><!---<cfif getPost[1]['IsPage']>--->
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>

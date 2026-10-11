@@ -20,8 +20,88 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 	pageId = 1;
 	pageName = "Blog"; // Blog
 	pageTypeId = 1; // Blog
-</cfscript>
 
+	// Homepage override: what shows at the site root, set via Configure Homepage. Only applies to an actual
+	// visit to the root itself (no path after index.cfm) - every other address (a post, a page, a category,
+	// a Page Collection's own URL) is completely unaffected. See doc/pageCollectionsDesign for the design.
+	urlAfterIndexCfm = trim(reReplaceNoCase(trim(cgi.path_info), '.+\.cfm/? *', ''));
+	// The regex above only strips a literal ".cfm/" prefix, which is what a front-end pretty-URL rewrite
+	// forwards. A request that reaches this file directly (path_info with no ".cfm" in it at all, e.g. hitting
+	// /index.cfm/something straight from the app server with nothing rewriting it first) leaves the leading
+	// slash untouched, which would otherwise make urlAfterIndexCfm never match a single-segment alias below.
+	urlAfterIndexCfm = reReplaceNoCase(urlAfterIndexCfm, '^/+', '');
+	if (len(urlAfterIndexCfm) eq 0 and isDefined("application.blog")) {
+		homepageSettings = application.blog.getHomepageSettings();
+		if (homepageSettings.showPages and listLen(homepageSettings.pageIdList) eq 1) {
+			// The single-page override: Pages is on and exactly one Page is selected - that Page's own full
+			// content becomes the ENTIRE homepage (site chrome still shows), ignoring whatever Collections/Blog
+			// Posts toggles say. Only when 0 or 2+ pages are selected does the additive/stacked model below apply.
+			pageId = listFirst(homepageSettings.pageIdList);
+			pageName = "FrontPage";
+			pageTypeId = 9;
+			postId = listFirst(homepageSettings.pageIdList);
+		} else if (homepageSettings.showPages or homepageSettings.showCollections or homepageSettings.showBlogPosts) {
+			// The additive/curated homepage - any independent combination of Featured Pages (2+), Featured
+			// Collections, and/or recent Blog Posts, stacked in that fixed order. pageTypeId 24 is this file's own
+			// sentinel; see the <cfelseif pageTypeId eq 24> branch below and
+			// includes/templates/curatedHomepageContentHtml.cfm, which reads the same getHomepageSettings() struct
+			// directly rather than through params/getPost.cfm (it needs several independent Post/Collection
+			// fetches on one page, not the shared single-array pipeline getmode.cfm/getPost.cfm assume).
+			pageTypeId = 24;
+		}
+		// Neither showPages, showCollections, nor showBlogPosts is on: falls through to the untouched default,
+		// pageTypeId 1 (the plain paginated main blog listing) - the same behavior a fresh/default blog always had.
+	}
+
+	// A Page Collection's own URL (e.g. /portfolio), independent of the homepage setting above. Only a
+	// single-segment path is a candidate (matching how parseses.cfm treats a single segment as a page-or-category
+	// alias) - checked only when this isn't already the root (handled above) and only when it did not already
+	// get routed to a Page Collection as the homepage.
+	// Only a LIVE page (released, not removed) wins over a Collection here. pageExists() also counts drafts and
+	// removed pages, so an old unpublished page sharing a Collection's alias used to take the URL and then show
+	// "Post Not Found" (the post itself is never displayed unless released and not removed).
+	livePageOwnsAlias = false;
+	if (len(urlAfterIndexCfm) and not find("/", urlAfterIndexCfm) and isDefined("application.blog")) {
+		livePageOwnsAlias = arrayLen(ormExecuteQuery(
+			"SELECT PostId FROM Post WHERE BlogRef = #application.BlogDbObj.getBlogId()# AND IsPage = 1 AND PostAlias = :alias AND Remove = 0 AND Released = 1",
+			{ alias = urlAfterIndexCfm }
+		)) gt 0;
+	}
+	if (len(urlAfterIndexCfm) and not find("/", urlAfterIndexCfm) and isDefined("application.blog") and not livePageOwnsAlias) {
+		// A real Page's own alias always wins over a same-named Collection alias, same precedence as
+		// parseses.cfm already gives a page over a category for a single-segment URL.
+		matchedPageCollectionId = application.blog.getPageCollectionByAlias(urlAfterIndexCfm);
+		if (matchedPageCollectionId gt 0) {
+			// A cross-link Collection (ExternalUrl set) isn't really an internal listing - redirect straight to its
+			// external destination rather than rendering its (1+) member pages as cards. See
+			// [[front-page-page-groups-design-rethink]]/PageCollection.cfc's own comment on ExternalUrl.
+			matchedPageCollectionEntity = entityLoadByPK("PageCollection", matchedPageCollectionId);
+			if (isObject(matchedPageCollectionEntity) and len(matchedPageCollectionEntity.getExternalUrl())) {
+				location(url=matchedPageCollectionEntity.getExternalUrl(), addToken=false);
+			}
+			pageTypeId = 20;
+			homepageCollectionId = matchedPageCollectionId;
+		// The fixed "browse all Page Collections" page (e.g. /blog/collections), analogous to a Category archive
+		// but for every visible Collection instead of one Category's posts. Only reached when nothing real (a Page
+		// or a specific Collection) already owns this exact alias, same real-content-always-wins precedence as above.
+		} else if (urlAfterIndexCfm eq "collections") {
+			pageTypeId = 23;
+		}
+	}
+
+	// A Page Collection renders through the exact same pipeline as everything else (Category/Tag archives,
+	// the main blog list) - real themed post cards via blogContentHtml.cfm, not a bespoke template. The only
+	// thing special about a Collection is WHICH posts end up in the getPost array: its members, in their
+	// stored SortOrder. That's handed to getPost.cfm below via params.byPostIdList (see that file and
+	// blog.cfc's getPost()'s existing postIdList argument - already used by the Related Posts widget).
+	if (pageTypeId eq 20) {
+		homepageCollectionMembers = application.blog.getPageCollectionMembers(homepageCollectionId);
+		homepageCollectionPostIdList = "";
+		for (member in homepageCollectionMembers) {
+			homepageCollectionPostIdList = listAppend(homepageCollectionPostIdList, member.postId);
+		}
+	}
+</cfscript>
 <!---
 Custom page example:
 <cfset pageId = unique number>
@@ -43,12 +123,42 @@ customPageTemplate: path allows to use a custom template using a hardcoded cfinc
 <!--- Raymond's module to inspect the URL to determine what to pass to the getPost method. Get mode also deterines the start and end row determined by what type of page this is (blog or post for example). This works in conjunction with parses.cfm above. I may rewrite this in a future version. --->
 <cfmodule template="#application.baseUrl#/tags/getmode.cfm" r_params="params"/>
 <!---<cfdump var="#params#" label="params">--->
-	
+
+<!--- A Page Collection's members, or an ad-hoc multi-page homepage selection, override whatever url.mode/getmode.cfm
+	decided (this is not a normal category/tag/day address) - hand getPost.cfm the ordered postId list instead, see
+	the cfscript block up top. --->
+<cfif pageTypeId eq 20 or pageTypeId eq 21>
+	<!--- parseses.cfm/getmode.cfm have already read this single-segment address as a page or category alias. If a
+	(draft/removed) page or a category shares the Collection's alias, their byAlias/byCat filter stayed in params
+	alongside byPostIdList, so no member matched both and the Collection showed "Post Not Found". Reset to the same
+	state a Collection with no clashing alias gets: no filters, mode "full". --->
+	<cfloop list="byAlias,byEntry,byDay,byMonth,byYear,byCat,byTag,byPosted,searchTerms" index="collectionClearParam">
+		<cfset structDelete(params, collectionClearParam)>
+	</cfloop>
+	<cfset url.mode = "full">
+	<cfset params.byPostIdList = homepageCollectionPostIdList>
+	<!--- Show every member on one page. getmode.cfm set maxEntries to the site's page size (application.maxEntries,
+	9 on galaxieblog.org), so a Collection with more members than that silently lost the extras - the 12-page
+	"Writing and Editing Posts" docs collection showed only 9 (2026-10-09). A Collection has no pager. --->
+	<cfset params.maxEntries = max(listLen(homepageCollectionPostIdList), 1)>
+	<cfset params.startrow = 1>
+</cfif>
+
+<!--- Page 2+ of the curated homepage's Blog Posts section (pageTypeId 24, see the cfelseif pageTypeId eq 24 branch
+further down) should show the same "up to 5 rows" the curated homepage's own page 1 shows, not the flat
+application.maxEntries (9, exactly 3 rows on desktop). The real column-aware row count isn't known yet here -
+showSidebar isn't set until pageSettings.cfm runs, further down - so this over-fetches to the max any column
+count could need (5 rows * 3 columns) and blogContentHtml.cfm trims it back down to the real column-aware count
+once showSidebar is known, the same way curatedHomepageContentHtml.cfm already sizes its own page 1. --->
+<cfif pageTypeId eq 24>
+	<cfset params.maxEntries = 15>
+</cfif>
+
 <!--- //******************************************************************************************************************
 			Get the post(s)
 //********************************************************************************************************************--->
-	
-<cfinclude template="#application.baseUrl#/includes/templates/getPost.cfm"> 
+
+<cfinclude template="#application.baseUrl#/includes/templates/getPost.cfm">
 <!---<cfdump var="#getPost#" label="getPost">--->
 	
 <!--- //******************************************************************************************************************
@@ -192,6 +302,35 @@ customPageTemplate: path allows to use a custom template using a hardcoded cfinc
 				<!--- Standard page --->
 				<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
 			</cfif>
+		<cfelseif pageTypeId eq 20 or pageTypeId eq 21>
+			<!--- A Page Collection (20) or an ad-hoc multi-page homepage selection (21) - see the sentinel comments
+			above. Both render through the exact same pipeline as a Category/Tag archive: getPost.cfm already
+			populated the getPost array with the right posts (in their stored/selected order) via params.byPostIdList,
+			so this is just the normal card-grid renderer, same as pageTypeId 1/9. See doc/pageCollectionsDesign for why
+			this replaced the old pageCollectionContentHtml.cfm (a single collection-level card + a plain link list) -
+			that file is kept for now, likely to be reused for a future "browse all collections" listing instead. --->
+			<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
+		<cfelseif pageTypeId eq 22 or pageTypeId eq 23>
+			<!--- pageTypeId 22: one or more Page Collections selected as the homepage (the multi-select-collections
+			feature) - one card per Collection, same as blog posts. pageTypeId 23: the fixed "browse all Page
+			Collections" page (e.g. /blog/collections) - every visible Collection, same card rendering. Neither
+			expands into a Collection's own members (that's pageTypeId 20, visiting its own URL directly). See the
+			cfscript block above and includes/templates/pageCollectionListContentHtml.cfm. --->
+			<cfinclude template="#application.baseUrl#/includes/templates/pageCollectionListContentHtml.cfm" />
+		<cfelseif pageTypeId eq 24 and (not isDefined("URL.startRow") or val(URL.startRow) lte 1)>
+			<!--- The additive/curated homepage, page 1 only - Featured Pages, Featured Collections and/or Blog Posts,
+			any independent combination, stacked in that order. Reads getHomepageSettings() directly rather than through
+			getPost.cfm's single-array params pipeline, since it needs several independent fetches on one page. --->
+			<cfinclude template="#application.baseUrl#/includes/templates/curatedHomepageContentHtml.cfm" />
+		<cfelseif pageTypeId eq 24>
+			<!--- Paging past page 1 of the curated homepage's Blog Posts section drops Featured Pages/Collections
+			entirely and falls through to the exact same plain paginated post-card rendering pageTypeId=1 uses -
+			getPost.cfm already populated the shared getPost array using the standard params/maxEntries pipeline for
+			this case (pageTypeId 24 isn't one of the special-cased ids that pipeline branches on), so this is not a
+			special case to render, just the normal listing. See curatedHomepageContentHtml.cfm's own pager, which
+			carries the "fps" (first page size) query param forward so blogContentHtml.cfm's pager can keep computing
+			correct offsets for page 3+ even though page 1 was a different size. --->
+			<cfinclude template="#application.baseUrl#/includes/templates/blogContentHtml.cfm" />
 		<cfelse>
 			<div id='contentInnerContainer' class="k-content"><!--- This must be a content container class --->
 				<cfif pageTypeId eq 2><!--- Admin pages --->
@@ -278,6 +417,8 @@ customPageTemplate: path allows to use a custom template using a hardcoded cfinc
 <cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cacheName#" scope="html" file="#application.baseUrl#/cache/footer/#cacheName#.cfm" debug="false" disabled="#disableCache#">
 	<cfinclude template="#application.baseUrl#/includes/templates/content/footer/footer.cfm" />
 </cfmodule>  
+<!--- The footer above is cached for every visitor, so its "customize this footer" hint for admins is revealed here, outside the cache. --->
+<cfif application.Udf.isLoggedIn()><script>var footerHint = document.getElementById("footerCustomizeHint"); if (footerHint) { footerHint.hidden = false; }</script></cfif>
 <cfsilent>
 	<!---//***************************************************************************************************************
 				Tail end scripts

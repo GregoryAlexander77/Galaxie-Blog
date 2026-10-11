@@ -52,7 +52,10 @@
 		</cfswitch>
 					
 		<!--- Determine if we should display popular posts --->
-		<cfif getPageMode() eq 'blog' and URL.startRow lte 1 and arrayLen(getPost) gte 9>
+		<!--- Not on a Page Collection's own page (pageTypeId 20) or a curated set of homepage Pages (21) - those list
+		Pages, not blog posts, so a "Popular Blogs" strip above them was out of place. --->
+		<cfif getPageMode() eq 'blog' and URL.startRow lte 1 and arrayLen(getPost) gte 9
+				and not (isDefined("pageTypeId") and (pageTypeId eq 20 or pageTypeId eq 21))>
 			<cfset showPopularPosts = true>
 		</cfif>
 				

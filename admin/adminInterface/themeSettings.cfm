@@ -934,7 +934,7 @@
 						Font not found. Do you want to add '#: instance.filterInput.val() #'?
 					</div>
 					<br />
-					<button class="k-button" onclick="createAdminInterfaceWindow(31, '#: instance.filterInput.val() #', 'addFont')">Add Font</button>
+					<button class="k-button" onclick="createAdminInterfaceWindow(31, #= kendo.htmlEncode(JSON.stringify(instance.filterInput.val())) #, 'addFont')">Add Font</button>
 				</script> 
 			</td>
 		  </tr>
@@ -951,7 +951,7 @@
 						Font not found. Do you want to add '#: instance.filterInput.val() #'?
 					</div>
 					<br />
-					<button class="k-button" onclick="createAdminInterfaceWindow(31, '#: instance.filterInput.val() #', 'addFont')">Add Font</button>
+					<button class="k-button" onclick="createAdminInterfaceWindow(31, #= kendo.htmlEncode(JSON.stringify(instance.filterInput.val())) #, 'addFont')">Add Font</button>
 				</script>  
 			</td>
 		  </tr>
@@ -1051,7 +1051,7 @@
 						Font not found. Do you want to add '#: instance.filterInput.val() #'?
 					</div>
 					<br />
-					<button class="k-button" onclick="createAdminInterfaceWindow(31, '#: instance.filterInput.val() #', 'addFont')">Add Font</button>
+					<button class="k-button" onclick="createAdminInterfaceWindow(31, #= kendo.htmlEncode(JSON.stringify(instance.filterInput.val())) #, 'addFont')">Add Font</button>
 				</script>  
 			</td>
 		  </tr>
@@ -1068,7 +1068,7 @@
 						Font not found. Do you want to add '#: instance.filterInput.val() #'?
 					</div>
 					<br />
-					<button class="k-button" onclick="createAdminInterfaceWindow(31, '#: instance.filterInput.val() #', 'addFont')">Add Font</button>
+					<button class="k-button" onclick="createAdminInterfaceWindow(31, #= kendo.htmlEncode(JSON.stringify(instance.filterInput.val())) #, 'addFont')">Add Font</button>
 				</script>  
 			</td>
 		  </tr>
@@ -1101,7 +1101,7 @@
 						Font not found. Do you want to add '#: instance.filterInput.val() #'?
 					</div>
 					<br />
-					<button class="k-button" onclick="createAdminInterfaceWindow(31, '#: instance.filterInput.val() #', 'addFont')">Add Font</button>
+					<button class="k-button" onclick="createAdminInterfaceWindow(31, #= kendo.htmlEncode(JSON.stringify(instance.filterInput.val())) #, 'addFont')">Add Font</button>
 				</script> 
 			</td>
 		  </tr>
@@ -1118,7 +1118,7 @@
 						Font not found. Do you want to add '#: instance.filterInput.val() #'?
 					</div>
 					<br />
-					<button class="k-button" onclick="createAdminInterfaceWindow(31, '#: instance.filterInput.val() #', 'addFont')">Add Font</button>
+					<button class="k-button" onclick="createAdminInterfaceWindow(31, #= kendo.htmlEncode(JSON.stringify(instance.filterInput.val())) #, 'addFont')">Add Font</button>
 				</script>  
 			</td>
 		  </tr>

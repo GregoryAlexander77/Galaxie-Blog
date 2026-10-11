@@ -17,9 +17,9 @@
 	//******************************************************************************************--->
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "4.66.2" />
-	<cfset versionName = "4.66.2 (Bella's Edition)" />
-	<cfset versionDate =  "September 30th 2026">
+	<cfset version = "4.8" />
+	<cfset versionName = "4.8 (Bella's Pawtrait Edition)" />
+	<cfset versionDate =  "October 11th 2026">
 
 	<!--- Require version 9 or higher as we are using ORM --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>
@@ -2673,7 +2673,7 @@
 
 	<cffunction name="flushGalaxieCache" access="public" returntype="boolean" output="true"
 			hint="Clears the scope cache. Returns a boolean value to indicate if the cache was cleared">
-		<cfargument name="type" type="string" required="true" hint="Either all, post, comment, bio, font, topMenu, sideBar, pod, or comment" />
+		<cfargument name="type" type="string" required="true" hint="Either all, post, comment, bio, font, topMenu, sideBar, pod, comment, or pageCollection" />
 		<cfargument name="postId" type="string" required="false" default="" hint="Required for a post or a comment" />
 		<cfargument name="themeId" type="string" required="false" default="" hint="Required for a font, or theme" />
 		<cfargument name="contentTemplate" type="string" required="false" default="" hint="Required when saving a content template" />
@@ -2688,9 +2688,23 @@
 		<!--- Flush all of the html cache files. This is used by the Refresh Site button (?reinit=1). These are all of the folders that galaxieCache saves html files to. Each file is rebuilt the next time it is needed. --->
 		<cfif arguments.type eq 'all'>
 
-			<cfloop list="posts,comments,bio,cards,pods,header,footer,fonts,rss" index="cacheFolder">
+			<cfloop list="posts,comments,bio,cards,pods,header,footer,fonts,rss,pageCollections" index="cacheFolder">
 				<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/' & cacheFolder, '.cfm')>
 			</cfloop>
+			<!--- Map thumbnails are saved as files, not in the cache folders above, so clear them here too. Only Azure Maps thumbnails are cleared, because they are rebuilt on the next view. Bing Maps thumbnails are left alone, since Bing no longer serves them. --->
+			<cftry>
+				<cfquery name="azureMapIds" dbtype="hql">
+					SELECT new Map (Map.MapId as MapId)
+					FROM Map as Map
+					WHERE Map.MapProviderRef.MapProvider = <cfqueryparam value="Azure Maps" cfsqltype="cf_sql_varchar">
+				</cfquery>
+				<cfloop from="1" to="#arrayLen(azureMapIds)#" index="azureIndex">
+					<cfset thumbFolder = expandPath(application.baseUrl & "/enclosures/thumbnails/maps")>
+					<cfset thumbMapId = azureMapIds[azureIndex]['MapId']>
+					<cfif directoryExists(thumbFolder)><cfdirectory action="list" directory="#thumbFolder#" filter="map-#thumbMapId#*.png" name="azureThumbs"><cfloop query="azureThumbs"><cffile action="delete" file="#thumbFolder#/#azureThumbs.name#"></cfloop></cfif>
+				</cfloop>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
 
 		<!--- Flush our cache when a post is made. This clears the files that show this post: the post itself, its comments, the rss feeds and the pods and cards that list posts. --->
 		<cfelseif arguments.type eq 'post'>
@@ -2720,6 +2734,22 @@
 			<cfset thisFileNameOrFilter = 'popularPosts'>
 			<!--- Delete the files --->
 			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the curated homepage's "All Blogs" cache too - a new/edited/deleted post changes which
+			posts (and how many total exist, which drives its pager) should show there. Missed when that cache was
+			first added - it was only ever flushed by the 'pageCollection' case above, so a plain post save/create
+			never invalidated it, leaving the homepage's "All Blogs" section and its pagination stale until the
+			24-hour timeout or an unrelated Page Collection change happened to flush it. --->
+			<cfset thisDirectory = application.baseUrl & '/cache/cards'>
+			<cfset thisFileNameOrFilter = 'curatedBlogPosts'>
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- Delete the Page Collection pages too (2026-10-09). A collection page lists its pages' titles, pictures
+			and descriptions, and only shows released ones - so releasing, editing or removing a page changes it. This
+			was only flushed by the 'pageCollection' case above, so on galaxieblog.org four docs pages released after
+			their collection page was cached never appeared on it. Whole folder, same as the 'pageCollection' case:
+			cheap to rebuild, and not worth tracking which collections this post belongs to. --->
+			<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/pageCollections','')>
 
 			<!--- Delete the post related html files in the cache folder --->
 			<cfset thisDirectory = application.baseUrl & '/cache/rss'>
@@ -2809,7 +2839,8 @@
 				<cfcase value="compositeFooter">
 					<!--- Delete the footer html files in the cache folder. The filter should catch both mobile and desktop cache files if they exist --->
 					<cfset thisDirectory = application.baseUrl & '/cache/footer'>
-					<cfset thisFileNameOrFilter = 'footerHtml=' & arguments.themeId>
+					<!--- The footer cache files are named by buildCacheKey (common/function/page.cfm): footerThemeId={themeId}[Mobile].cfm. This filter was 'footerHtml=' from before the key became theme-aware, so saving the Composite Footer never cleared the cached footer (found 2026-10-11 on gregoryalexander.com). A footer saved for all themes (no ThemeRef) shows on every theme, so clear every theme's footer. --->
+					<cfset thisFileNameOrFilter = 'footerThemeId='>
 					<!--- Delete the files --->
 					<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
 				</cfcase>
@@ -2853,7 +2884,8 @@
 		<cfelseif arguments.type eq 'footer'>
 			<!--- Delete the footer html files in the cache folder. The filter should catch both mobile and desktop cache files if they exist --->
 			<cfset thisDirectory = application.baseUrl & '/cache/footer'>
-			<cfset thisFileNameOrFilter = 'footerHtml=' & arguments.themeId>
+			<!--- See buildCacheKey: the files are footerThemeId={themeId}[Mobile].cfm (this was 'footerHtml=', which never matched). --->
+			<cfset thisFileNameOrFilter = 'footerThemeId=' & arguments.themeId>
 			<!--- Delete the files --->
 			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
 
@@ -2886,6 +2918,32 @@
 			<cfset thisFileNameOrFilter = 'topMenuThemeId=' & arguments.themeId>
 			<!--- Delete the files --->
 			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+		<cfelseif arguments.type eq 'pageCollection'>
+			<!--- Delete every Page Collection detail/listing cache file - curatedHomepageContentHtml.cfm's own
+			"pageCollectionDetail{id}" and "pageCollectionListCurated/BrowseAll" caches (pageCollectionContentHtml.cfm,
+			pageCollectionListContentHtml.cfm). Coarse on purpose (no filter, deletes the whole folder), same as
+			every other type here - Page Collection edits are rare admin actions, not worth tracking which single
+			collection changed. Called from every Page Collection mutator (save/delete/add pages/member order/hero
+			image) and from saveHomepageSettings, since Configure Homepage's own picks and toggles change which
+			Collections are featured and how many rows Blog Posts gets. --->
+			<cfset thisDirectory = application.baseUrl & '/cache/pageCollections'>
+			<cfset flushGalaxieCacheFiles(thisDirectory,'')>
+
+			<!--- The curated homepage's "All Blogs" cache (curatedHomepageContentHtml.cfm) bakes in the Blog Posts
+			row budget, which shrinks/grows based on how many Featured Pages/Collections rows are showing - so a
+			Page Collection change (or a Configure Homepage save) can change it too, not just a new post. --->
+			<cfset thisDirectory = application.baseUrl & '/cache/cards'>
+			<cfset thisFileNameOrFilter = 'curatedBlogPosts'>
+			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
+
+			<!--- 2026-10-10: the top menu lists the collections marked Show in Menu, by title and in Menu Order, so a
+			collection change can change the menu too - every theme's cached menu (desktop and mobile). --->
+			<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/header', 'topMenu')>
+
+		<cfelseif arguments.type eq 'menu'>
+			<!--- 2026-10-10: Configure Menu saved (links or labels) - every theme's cached top menu, desktop and mobile. --->
+			<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/header', 'topMenu')>
 
 		</cfif>
 
@@ -3401,6 +3459,11 @@
 		<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
 		<cfset getPost = application.blog.getPostByPostId(arguments.postId,true,false)>
 
+		<!--- Pages are never emailed to subscribers, only blog posts (2026-10-09) - see sendPostEmailToSubscribers. --->
+		<cfif not postIsBlogPost(arguments.postId)>
+			<cfset promptToEmailToSubscribers = false>
+		</cfif>
+
 		<!--- Is the post released? --->
 		<cfif not getPost[1]["Released"]>
 			<cfset promptToEmailToSubscribers = false>
@@ -3454,6 +3517,14 @@
 			<cfset response[ "futurePost" ] = true />
 		</cfif>
 			
+		<!--- Pages are never emailed, only blog posts - and unlike the checks above, byPassErrors does not skip this one
+		(2026-10-09). The scheduled-release path (releaseFuturePosts) always passes byPassErrors=true, so a page scheduled
+		for a later date was emailed to every subscriber the moment it went live. --->
+		<cfif not postIsBlogPost(arguments.postId)>
+			<cfset response[ "notBlogPost" ] = true />
+			<cfreturn serializeJson(response)>
+		</cfif>
+
 		<!--- Send the email if there are no errors. The byPassErrors can be used to send the email anyway if the post has been revised and should be sent again. --->
 
 		<cfif arguments.byPassErrors or not error>
@@ -4478,8 +4549,52 @@
 		<!--- Return the setting that was requested --->
 		<cfreturn evaluate("#arguments.setting#")>
 	</cffunction>
-					
-	<cffunction name="saveTheme" access="public" returntype="string" output="false" 
+
+	<!--- 2026-10-01: complementary/rotated-hue color helpers, for seeding the fallback CSS gradients
+	(Image.cfc's generateHeroArt()/generateAnimationDefault()) off the live Kendo theme's own accentColor instead of
+	a fixed hardcoded palette unrelated to the theme. Both go through java.awt.Color's RGBtoHSB/HSBtoRGB static
+	methods - Lucee/CF run on the JVM, so this needs no external color library, just RGB -> HSB -> rotate hue ->
+	RGB back. --->
+	<cffunction name="getComplementaryColor" access="public" returntype="string" output="false"
+			hint="Returns the complementary color (180 degrees opposite on the color wheel) of a hex color, via java.awt.Color - no external library needed on the JVM.">
+		<cfargument name="hexColor" type="string" required="true" hint="6-digit hex, no leading ##, e.g. '326891' - same convention getPrimaryColorsByTheme() already returns.">
+		<cfset var javaColor = createObject("java", "java.awt.Color")>
+		<cfset var rgb = javaColor.decode("##" & arguments.hexColor)>
+		<cfset var hsb = javaColor.RGBtoHSB(rgb.getRed(), rgb.getGreen(), rgb.getBlue(), javaCast("null", ""))>
+		<!--- CFML's mod operator truncates both operands to integers before computing - fine for whole numbers,
+		but it silently collapses every fractional hue (0.0-1.0) to 0 here, which made every rotated color come
+		out identical during live testing. int() truncation is a safe floor for a non-negative value, so
+		subtracting it is a correct floating-point-safe "mod 1". --->
+		<cfset var rotatedHue = hsb[1] + 0.5>
+		<cfset rotatedHue = rotatedHue - int(rotatedHue)>
+		<cfset var complementRgb = javaColor.HSBtoRGB(javaCast("float", rotatedHue), hsb[2], hsb[3])>
+		<cfreturn right("000000" & formatBaseN(bitAnd(complementRgb, 16777215), 16), 6)>
+	</cffunction>
+
+	<cffunction name="getRotatedThemeColors" access="public" returntype="array" output="false"
+			hint="Returns 'count' colors evenly spaced around the color wheel, starting from the theme's own accentColor (getPrimaryColorsByTheme) - same java.awt.Color HSB approach as getComplementaryColor(), generalized to any rotation step. Used to seed the fallback-gradient palette so generated art stays on-theme, keyed deterministically off postId the same way the palette it replaces already was.">
+		<cfargument name="kendoTheme" type="string" required="true">
+		<cfargument name="count" type="numeric" required="false" default="8">
+		<cfset var baseColor = getPrimaryColorsByTheme(kendoTheme=arguments.kendoTheme, setting="accentColor")>
+		<cfset var javaColor = createObject("java", "java.awt.Color")>
+		<cfset var rgb = javaColor.decode("##" & baseColor)>
+		<cfset var hsb = javaColor.RGBtoHSB(rgb.getRed(), rgb.getGreen(), rgb.getBlue(), javaCast("null", ""))>
+		<cfset var colors = []>
+		<cfset var i = 0>
+		<cfset var thisRgb = 0>
+		<cfset var rotatedHue = 0>
+		<cfloop from="0" to="#arguments.count - 1#" index="i">
+			<!--- Same floating-point-safe "mod 1" as getComplementaryColor() above - CFML's mod operator
+			truncates to integers and silently collapses every fractional hue to 0. --->
+			<cfset rotatedHue = hsb[1] + (i / arguments.count)>
+			<cfset rotatedHue = rotatedHue - int(rotatedHue)>
+			<cfset thisRgb = javaColor.HSBtoRGB(javaCast("float", rotatedHue), hsb[2], hsb[3])>
+			<cfset arrayAppend(colors, right("000000" & formatBaseN(bitAnd(thisRgb, 16777215), 16), 6))>
+		</cfloop>
+		<cfreturn colors>
+	</cffunction>
+
+	<cffunction name="saveTheme" access="public" returntype="string" output="false"
 			hint="Updates the theme database">
 		<cfargument name="themeId" type="string"  default="" required="false" hint="Either the themeId, theme, or kendoTheme is required">
 		<cfargument name="kendoThemeId" type="string" required="false" default="" >
@@ -5482,7 +5597,941 @@
 
 	</cffunction>
 		
-	<cffunction name="getCategoryList" access="public" returnType="string" output="false" 
+	<!--- //******************************************************************************************************************
+				Page Collections - a themed index linking out to two or more Pages (e.g. a Portfolio). Membership is
+				decided from the Page side (see PageCollectionMemberLookup, managed via raw SQL rather than an ORM
+				many-to-many - Post's own Categories/Tags many-to-many properties are inverse=true on both sides and
+				silently do not persist through entity setters in this codebase). See [[front-page-page-groups-design-rethink]].
+	//********************************************************************************************************************--->
+
+	<cffunction name="savePageCollection" access="public" returnType="numeric" output="false"
+			hint="Creates a new Page Collection (pageCollectionId=0) or updates an existing one's basic fields.">
+		<cfargument name="pageCollectionId" type="numeric" required="false" default="0">
+		<cfargument name="title" type="string" required="true">
+		<cfargument name="description" type="string" required="false" default="">
+		<cfargument name="heroImageUrl" type="string" required="false" hint="Omit to keep the current value - hero images are saved by savePageCollectionHeroImage, so callers that only edit other fields must not overwrite it.">
+		<cfargument name="externalUrl" type="string" required="false" default="" hint="When set, this Collection is a pure cross-link - see PageCollection.cfc's own comment on ExternalUrl.">
+		<cfargument name="menuOrder" type="string" required="false" default="" hint="Position in the top menu's collections menu. Blank keeps the current value.">
+		<cfargument name="showInMenu" type="string" required="false" default="" hint="2026-10-10: true/false - list this collection in the top menu's collections menu. Blank keeps the current value.">
+		<cfset var pc = "">
+		<cftransaction>
+			<cfif arguments.pageCollectionId eq 0>
+				<cfset pc = entityNew("PageCollection")>
+				<cfset pc.setBlogRef(application.BlogDbObj)>
+				<cfset pc.setCollectionAlias(application.blog.makeAlias(arguments.title))>
+				<cfset pc.setThemeRef(0)>
+				<cfset pc.setCreated(now())>
+			<cfelse>
+				<cfset pc = entityLoadByPK("PageCollection", arguments.pageCollectionId)>
+			</cfif>
+			<cfset pc.setTitle(arguments.title)>
+			<cfset pc.setDescription(arguments.description)>
+			<cfif isDefined("arguments.heroImageUrl")>
+				<cfset pc.setHeroImageUrl(arguments.heroImageUrl)>
+			</cfif>
+			<cfset pc.setExternalUrl(arguments.externalUrl)>
+			<cfif len(arguments.menuOrder)><cfset pc.setMenuOrder(val(arguments.menuOrder))></cfif>
+			<cfif isBoolean(arguments.showInMenu)><cfset pc.setShowInMenu(arguments.showInMenu ? true : false)></cfif>
+			<cfset EntitySave(pc)>
+		</cftransaction>
+		<cfset flushGalaxieCache('pageCollection')>
+		<cfreturn pc.getPageCollectionId()>
+	</cffunction>
+
+	<!---//************************************************************************************************
+			Top menu (2026-10-10, 4.8): the owner's own links in the Menu dropdown, the collections menu and its
+			label, and the label of the single dropdown that combines Categories and Collections on phones. Used by
+			includes/templates/content/header/navigationMenu.cfm and the admin site's Configure Menu window.
+	//**************************************************************************************************--->
+
+	<cffunction name="getMenuLinks" access="public" returnType="array" output="false"
+			hint="The blog owner's own Menu links, in order: an array of {menuLinkId, label, linkUrl, newWindow}.">
+		<cfset var links = []>
+		<cfset var rows = ormExecuteQuery("FROM MenuLink WHERE BlogRef = :blogId ORDER BY SortOrder ASC, MenuLinkId ASC", { blogId = application.BlogDbObj.getBlogId() })>
+		<cfset var row = "">
+		<cfloop array="#rows#" index="row">
+			<cfset arrayAppend(links, {
+				menuLinkId: row.getMenuLinkId(),
+				label: isNull(row.getLabel()) ? "" : row.getLabel(),
+				linkUrl: isNull(row.getLinkUrl()) ? "" : row.getLinkUrl(),
+				newWindow: (not isNull(row.getNewWindow()) and isBoolean(row.getNewWindow()) and row.getNewWindow())
+			})>
+		</cfloop>
+		<cfreturn links>
+	</cffunction>
+
+	<cffunction name="getMenuLabels" access="public" returnType="struct" output="false"
+			hint="The two top menu labels, with their defaults filled in: {collections ('Collections'), mobile ('Explore')}.">
+		<cfset var labels = { collections: "Collections", mobile: "Explore" }>
+		<!--- isNull() first: on a row from before these columns existed the getter returns null, and on Lucee assigning
+		null to a variable leaves it undefined. --->
+		<cfif not isNull(application.BlogOptionDbObj.getCollectionsMenuLabel()) and len(trim(application.BlogOptionDbObj.getCollectionsMenuLabel()))>
+			<cfset labels.collections = trim(application.BlogOptionDbObj.getCollectionsMenuLabel())>
+		</cfif>
+		<cfif not isNull(application.BlogOptionDbObj.getMobileMenuLabel()) and len(trim(application.BlogOptionDbObj.getMobileMenuLabel()))>
+			<cfset labels.mobile = trim(application.BlogOptionDbObj.getMobileMenuLabel())>
+		</cfif>
+		<cfreturn labels>
+	</cffunction>
+
+	<cffunction name="getMenuCollections" access="public" returnType="array" output="false"
+			hint="The Page Collections to list in the top menu: marked Show in Menu and live (enough member pages to have a working address), in Menu Order then title.">
+		<cfset var menuCollections = []>
+		<cfset var oneCollection = "">
+		<cfloop array="#getAllPageCollections()#" index="oneCollection">
+			<cfif oneCollection.showInMenu and oneCollection.visible>
+				<cfset arrayAppend(menuCollections, oneCollection)>
+			</cfif>
+		</cfloop>
+		<cfreturn menuCollections>
+	</cffunction>
+
+	<cffunction name="isSafeMenuLinkUrl" access="public" returnType="boolean" output="false"
+			hint="A Menu link may be a web address (http/https), an address on this site (starting with /), or an email link (mailto:). Anything else - javascript: in particular - is refused.">
+		<cfargument name="linkUrl" type="string" required="true">
+		<cfreturn reFindNoCase("^(https?://|/|mailto:)", trim(arguments.linkUrl)) eq 1>
+	</cffunction>
+
+	<cffunction name="saveMenuSettings" access="public" returnType="struct" output="false"
+			hint="Saves the Configure Menu window: replaces the owner's Menu links (in the given order) and saves the two labels. Returns {success, errorMessage}.">
+		<cfargument name="links" type="array" required="true" hint="Array of structs: {label, linkUrl, newWindow}, in display order.">
+		<cfargument name="collectionsMenuLabel" type="string" required="false" default="">
+		<cfargument name="mobileMenuLabel" type="string" required="false" default="">
+		<cfset var result = { success: false, errorMessage: "" }>
+		<cfset var oneLink = "">
+		<cfset var newLink = "">
+		<cfset var position = 0>
+		<cfset var freshBlogOption = "">
+		<!--- Check everything before changing anything. --->
+		<cfloop array="#arguments.links#" index="oneLink">
+			<cfif not structKeyExists(oneLink, "label") or not len(trim(oneLink.label)) or not structKeyExists(oneLink, "linkUrl") or not len(trim(oneLink.linkUrl))>
+				<cfset result.errorMessage = "Every link needs both a label and an address.">
+				<cfreturn result>
+			</cfif>
+			<cfif not isSafeMenuLinkUrl(oneLink.linkUrl)>
+				<cfset result.errorMessage = "The address for """ & oneLink.label & """ must start with http://, https://, / or mailto:.">
+				<cfreturn result>
+			</cfif>
+		</cfloop>
+		<cftransaction>
+			<cfset ormExecuteQuery("DELETE FROM MenuLink WHERE BlogRef = :blogId", { blogId = application.BlogDbObj.getBlogId() })>
+			<cfloop array="#arguments.links#" index="oneLink">
+				<cfset position = position + 1>
+				<cfset newLink = entityNew("MenuLink")>
+				<cfset newLink.setBlogRef(application.BlogDbObj.getBlogId())>
+				<cfset newLink.setLabel(left(trim(oneLink.label), 125))>
+				<cfset newLink.setLinkUrl(left(trim(oneLink.linkUrl), 500))>
+				<cfset newLink.setNewWindow(structKeyExists(oneLink, "newWindow") and isBoolean(oneLink.newWindow) and oneLink.newWindow)>
+				<cfset newLink.setSortOrder(position)>
+				<cfset newLink.setDate(blogNow())>
+				<cfset EntitySave(newLink)>
+			</cfloop>
+			<cfset freshBlogOption = entityLoadByPK("BlogOption", application.BlogOptionDbObj.getBlogOptionId())>
+			<cfset freshBlogOption.setCollectionsMenuLabel(left(trim(arguments.collectionsMenuLabel), 50))>
+			<cfset freshBlogOption.setMobileMenuLabel(left(trim(arguments.mobileMenuLabel), 50))>
+			<cfset EntitySave(freshBlogOption)>
+		</cftransaction>
+		<!--- Refresh the shared copy, same as saveHomepageSettings, then rebuild every cached menu. --->
+		<cfset application.BlogOptionDbObj = entityLoadByPK("BlogOption", application.BlogOptionDbObj.getBlogOptionId())>
+		<cfset flushGalaxieCache('menu')>
+		<cfset result.success = true>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="deletePageCollection" access="public" returnType="boolean" output="false"
+			hint="Deletes a Page Collection and its membership links. Member pages themselves are not affected.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfset var pc = entityLoadByPK("PageCollection", arguments.pageCollectionId)>
+		<cfif not isObject(pc)>
+			<cfreturn false>
+		</cfif>
+		<cftransaction>
+			<cfquery datasource="#application.dsn#">
+				DELETE FROM PageCollectionMemberLookup
+				WHERE PageCollectionRef = <cfqueryparam value="#arguments.pageCollectionId#" cfsqltype="cf_sql_integer">
+			</cfquery>
+			<cfset EntityDelete(pc)>
+		</cftransaction>
+		<cfset flushGalaxieCache('pageCollection')>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="getPageCollectionMemberCount" access="public" returnType="numeric" output="false"
+			hint="How many Pages currently belong to this Collection.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfset var Data = "">
+		<cfquery name="Data" datasource="#application.dsn#">
+			SELECT COUNT(*) AS MemberCount
+			FROM PageCollectionMemberLookup
+			WHERE PageCollectionRef = <cfqueryparam value="#arguments.pageCollectionId#" cfsqltype="cf_sql_integer">
+		</cfquery>
+		<cfreturn val(Data.MemberCount)>
+	</cffunction>
+
+	<cffunction name="getPageCollectionRequiredMinimum" access="public" returnType="numeric" output="false"
+			hint="How many member pages a Collection needs before it's visible/usable. Normally 2 (stops a Collection being used as a disguised single-page icon) - but only 1 for a cross-link Collection (ExternalUrl set), since that rationale doesn't apply to a deliberate external pointer.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfset var pc = entityLoadByPK("PageCollection", arguments.pageCollectionId)>
+		<cfif isObject(pc) and len(pc.getExternalUrl())>
+			<cfreturn 1>
+		</cfif>
+		<cfreturn 2>
+	</cffunction>
+
+	<cffunction name="isPageCollectionVisible" access="public" returnType="boolean" output="false"
+			hint="A Collection only gets a working URL / is selectable in Configure Homepage once it has enough members - see getPageCollectionRequiredMinimum().">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfreturn getPageCollectionMemberCount(arguments.pageCollectionId) gte getPageCollectionRequiredMinimum(arguments.pageCollectionId)>
+	</cffunction>
+
+	<cffunction name="getAllPageCollections" access="public" returnType="array" output="false"
+			hint="Every Page Collection for this blog, with member count and visibility computed, alphabetical by Title.">
+		<cfset var Data = []>
+		<cfset var result = []>
+		<cfset var i = 0>
+		<cfset var oneMemberCount = 0>
+		<cfset var oneRequiredMinimum = 2>
+		<cfset var oneNeeded = 0>
+		<!--- 2026-10-10: try with the 4.8 ShowInMenu column first. If the database doesn't have it yet (the new code was
+		uploaded before the ORM restart that adds it), run the same query without it rather than failing - this function
+		feeds the top menu on every page, so a failure here took down the whole site on gregoryalexander.com. --->
+		<cftry>
+			<cfquery name="Data" dbtype="hql">
+				SELECT new Map (
+					PageCollectionId as PageCollectionId,
+					Title as Title,
+					Description as Description,
+					HeroImageUrl as HeroImageUrl,
+					COALESCE(HeroGradient, '') as HeroGradient,
+					COALESCE(HeroOverlayText, '') as HeroOverlayText,
+					COALESCE(HeroOverlayTextColor, '') as HeroOverlayTextColor,
+					COALESCE(CollectionAlias, '') as CollectionAlias,
+					ThemeRef as ThemeRef,
+					ExternalUrl as ExternalUrl,
+					COALESCE(MenuOrder, 0) as MenuOrder,
+					<!--- CASE rather than the bare column - rows from before this column existed are NULL, and Lucee with
+					MySQL hands back true/false where Adobe ColdFusion gives 1/0. This is a plain 1 or 0 on both. --->
+					CASE WHEN ShowInMenu = 1 THEN 1 ELSE 0 END as ShowInMenu
+				)
+				FROM PageCollection
+				WHERE BlogRef = #application.BlogDbObj.getBlogId()#
+				ORDER BY COALESCE(MenuOrder, 0) ASC, Title ASC
+			</cfquery>
+			<cfcatch type="any">
+				<cfquery name="Data" dbtype="hql">
+					SELECT new Map (
+						PageCollectionId as PageCollectionId,
+						Title as Title,
+						Description as Description,
+						HeroImageUrl as HeroImageUrl,
+						COALESCE(HeroGradient, '') as HeroGradient,
+						COALESCE(HeroOverlayText, '') as HeroOverlayText,
+						COALESCE(HeroOverlayTextColor, '') as HeroOverlayTextColor,
+						COALESCE(CollectionAlias, '') as CollectionAlias,
+						ThemeRef as ThemeRef,
+						ExternalUrl as ExternalUrl,
+						COALESCE(MenuOrder, 0) as MenuOrder
+					)
+					FROM PageCollection
+					WHERE BlogRef = #application.BlogDbObj.getBlogId()#
+					ORDER BY COALESCE(MenuOrder, 0) ASC, Title ASC
+				</cfquery>
+			</cfcatch>
+		</cftry>
+		<cfloop from="1" to="#arrayLen(Data)#" index="i">
+			<cfset oneMemberCount = getPageCollectionMemberCount(Data[i]["PageCollectionId"])>
+			<cfset oneRequiredMinimum = len(Data[i]["ExternalUrl"]) ? 1 : 2>
+			<cfset oneNeeded = oneRequiredMinimum - oneMemberCount>
+			<!--- HeroGradient/HeroOverlayText/HeroOverlayTextColor are newly added columns - any pre-existing row
+			still has a true SQL NULL for them until explicitly saved once. On Lucee, a null scalar in a HQL
+			"SELECT new Map(...)" projection is left out of the resulting java.util.HashMap entirely (not present
+			with a null value). On Adobe ColdFusion, projecting a column that is NULL on every returned row throws
+			java.lang.NullPointerException: types[i] is null at query execution time (Hibernate can't infer a type
+			with no non-null sample) - the COALESCE(..., '') above avoids this on both engines, same as the
+			LEFT JOINed fields in getPageCollectionByPageCollectionId() above, just for a plain column instead of a join. --->
+			<cfset arrayAppend(result, {
+				pageCollectionId: Data[i]["PageCollectionId"],
+				title: Data[i]["Title"],
+				description: Data[i]["Description"],
+				collectionAlias: Data[i]["CollectionAlias"],
+				heroImageUrl: Data[i]["HeroImageUrl"],
+				heroGradient: structKeyExists(Data[i], "HeroGradient") ? Data[i]["HeroGradient"] : "",
+				heroOverlayText: structKeyExists(Data[i], "HeroOverlayText") ? Data[i]["HeroOverlayText"] : "",
+				heroOverlayTextColor: structKeyExists(Data[i], "HeroOverlayTextColor") ? Data[i]["HeroOverlayTextColor"] : "",
+				themeRef: Data[i]["ThemeRef"],
+				externalUrl: Data[i]["ExternalUrl"],
+				menuOrder: Data[i]["MenuOrder"],
+				showInMenu: (structKeyExists(Data[i], "ShowInMenu") and Data[i]["ShowInMenu"] eq 1),
+				memberCount: oneMemberCount,
+				requiredMinimum: oneRequiredMinimum,
+				visible: (oneMemberCount gte oneRequiredMinimum),
+				status: (oneMemberCount gte oneRequiredMinimum) ? "Live" : "Needs " & oneNeeded & " more page" & (oneNeeded neq 1 ? "s" : "")
+			})>
+		</cfloop>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="getEligiblePageCollectionsForHomepage" access="public" returnType="array" output="false"
+			hint="Every visible (2+ member) Page Collection, alphabetical - the set selectable in Configure Homepage, and shown on /collections and the Page Collections pod.">
+		<cfset var all = getAllPageCollections()>
+		<cfset var result = []>
+		<cfset var one = "">
+		<cfloop array="#all#" index="one">
+			<cfif one.visible>
+				<cfset arrayAppend(result, one)>
+			</cfif>
+		</cfloop>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="getPageCollectionsForPost" access="public" returnType="array" output="false"
+			hint="Every Page Collection a given Post/Page currently belongs to.">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfset var Data = "">
+		<cfset var result = []>
+		<cfquery name="Data" datasource="#application.dsn#">
+			SELECT pc.PageCollectionId, pc.Title
+			FROM PageCollectionMemberLookup pcm
+			INNER JOIN PageCollection pc ON pc.PageCollectionId = pcm.PageCollectionRef
+			WHERE pcm.PostRef = <cfqueryparam value="#arguments.postId#" cfsqltype="cf_sql_integer">
+		</cfquery>
+		<cfloop query="Data">
+			<cfset arrayAppend(result, {pageCollectionId: Data.PageCollectionId, title: Data.Title})>
+		</cfloop>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="setPageCollectionsForPost" access="public" returnType="boolean" output="false"
+			hint="Saves the multi-select of which Page Collection(s) a Page belongs to, from the Page editor - replaces the post's whole membership list wholesale (unlike addPagesToPageCollection, which is additive-only).">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfargument name="pageCollectionIdList" type="string" required="false" default="">
+		<cfset var previousCollections = getPageCollectionsForPost(arguments.postId)>
+		<cfset var previousCollectionIdList = "">
+		<cfset var oneOldCollection = "">
+		<cfset var oneOldCollectionId = "">
+		<cfset var oneNewCollectionId = "">
+		<cfset var maxOrderQuery = "">
+		<cfset var maxSortOrder = 0>
+		<cfloop array="#previousCollections#" index="oneOldCollection">
+			<cfset previousCollectionIdList = listAppend(previousCollectionIdList, oneOldCollection.pageCollectionId)>
+		</cfloop>
+		<cftransaction>
+			<cfquery datasource="#application.dsn#">
+				DELETE FROM PageCollectionMemberLookup
+				WHERE PostRef = <cfqueryparam value="#arguments.postId#" cfsqltype="cf_sql_integer">
+			</cfquery>
+			<cfloop list="#arguments.pageCollectionIdList#" index="oneNewCollectionId">
+				<cfquery name="maxOrderQuery" datasource="#application.dsn#">
+					SELECT MAX(SortOrder) AS MaxSortOrder FROM PageCollectionMemberLookup
+					WHERE PageCollectionRef = <cfqueryparam value="#oneNewCollectionId#" cfsqltype="cf_sql_integer">
+				</cfquery>
+				<cfset maxSortOrder = isNull(maxOrderQuery.MaxSortOrder) ? -1 : val(maxOrderQuery.MaxSortOrder)>
+				<cfquery datasource="#application.dsn#">
+					INSERT INTO PageCollectionMemberLookup (Date, PostRef, PageCollectionRef, SortOrder)
+					VALUES (
+						<cfqueryparam value="#now()#" cfsqltype="cf_sql_timestamp">,
+						<cfqueryparam value="#arguments.postId#" cfsqltype="cf_sql_integer">,
+						<cfqueryparam value="#oneNewCollectionId#" cfsqltype="cf_sql_integer">,
+						<cfqueryparam value="#maxSortOrder + 1#" cfsqltype="cf_sql_integer">
+					)
+				</cfquery>
+			</cfloop>
+		</cftransaction>
+		<!--- A collection this post just left may have dropped under the 2-page minimum. --->
+		<cfloop list="#previousCollectionIdList#" index="oneOldCollectionId">
+			<cfif not listFind(arguments.pageCollectionIdList, oneOldCollectionId)>
+				<cfset checkAndDissolveIfUnderMinimum(oneOldCollectionId)>
+			</cfif>
+		</cfloop>
+		<cfset flushGalaxieCache('pageCollection')>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="addPagesToPageCollection" access="public" returnType="boolean" output="false"
+			hint="Adds one or more Pages to a Page Collection - additive only, never touches a Page's other Collection memberships, silently skips anything already a member (safe to submit twice).">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfargument name="postIdList" type="string" required="false" default="">
+		<cfset var onePostId = "">
+		<cfset var existingCheck = "">
+		<cfset var maxOrderQuery = "">
+		<cfset var maxSortOrder = 0>
+		<cftransaction>
+			<cfloop list="#arguments.postIdList#" index="onePostId">
+				<cfquery name="existingCheck" datasource="#application.dsn#">
+					SELECT PageCollectionMemberLookupId FROM PageCollectionMemberLookup
+					WHERE PageCollectionRef = <cfqueryparam value="#arguments.pageCollectionId#" cfsqltype="cf_sql_integer">
+					AND PostRef = <cfqueryparam value="#onePostId#" cfsqltype="cf_sql_integer">
+				</cfquery>
+				<cfif existingCheck.recordCount eq 0>
+					<cfquery name="maxOrderQuery" datasource="#application.dsn#">
+						SELECT MAX(SortOrder) AS MaxSortOrder FROM PageCollectionMemberLookup
+						WHERE PageCollectionRef = <cfqueryparam value="#arguments.pageCollectionId#" cfsqltype="cf_sql_integer">
+					</cfquery>
+					<cfset maxSortOrder = isNull(maxOrderQuery.MaxSortOrder) ? -1 : val(maxOrderQuery.MaxSortOrder)>
+					<cfquery datasource="#application.dsn#">
+						INSERT INTO PageCollectionMemberLookup (Date, PostRef, PageCollectionRef, SortOrder)
+						VALUES (
+							<cfqueryparam value="#now()#" cfsqltype="cf_sql_timestamp">,
+							<cfqueryparam value="#onePostId#" cfsqltype="cf_sql_integer">,
+							<cfqueryparam value="#arguments.pageCollectionId#" cfsqltype="cf_sql_integer">,
+							<cfqueryparam value="#maxSortOrder + 1#" cfsqltype="cf_sql_integer">
+						)
+					</cfquery>
+				</cfif>
+			</cfloop>
+		</cftransaction>
+		<cfset flushGalaxieCache('pageCollection')>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="getPageCollectionMembers" access="public" returnType="array" output="false"
+			hint="A Page Collection's member Pages, in their stored display order.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfset var Data = "">
+		<cfset var result = []>
+		<cfquery name="Data" datasource="#application.dsn#">
+			SELECT p.PostId, p.Title
+			FROM PageCollectionMemberLookup pcm
+			INNER JOIN Post p ON p.PostId = pcm.PostRef
+			WHERE pcm.PageCollectionRef = <cfqueryparam value="#arguments.pageCollectionId#" cfsqltype="cf_sql_integer">
+			<!--- SortOrder alone is not a reliable sort when two or more rows share the same value (eg. several
+			members added before Save Order was ever used) - without a tie-breaker, the database is free to return
+			tied rows in a different order on each run, which looked like the member list reordering itself between
+			page loads. PageCollectionMemberLookupId is the insert order, so it keeps ties stable. --->
+			ORDER BY pcm.SortOrder ASC, pcm.PageCollectionMemberLookupId ASC
+		</cfquery>
+		<cfloop query="Data">
+			<cfset arrayAppend(result, {postId: Data.PostId, title: Data.Title})>
+		</cfloop>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="getRelatedPagesByCollection" access="public" returnType="array" output="false"
+			hint="Related Pages for a Page editor/single-page view, sourced from Page Collection membership rather than a manually-curated relation like getRelatedPosts(). A Page in more than one Collection gets the combined, deduplicated member list from ALL of them. A Page in no Collection returns an empty array (no fallback). No cap for now - a Collection is a deliberate, curated grouping, not an algorithmic match that could grow unbounded; revisit with a simple LIMIT if a real Collection ever gets unwieldy.">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfset var collections = getPageCollectionsForPost(arguments.postId)>
+		<cfset var result = []>
+		<cfset var seenPostIds = {}>
+		<cfset var oneCollection = "">
+		<cfset var members = "">
+		<cfset var oneMember = "">
+		<!--- Exclude the page itself from its own related-pages list. --->
+		<cfset seenPostIds[arguments.postId] = true>
+		<cfloop array="#collections#" index="oneCollection">
+			<cfset members = getPageCollectionMembers(oneCollection.pageCollectionId)>
+			<cfloop array="#members#" index="oneMember">
+				<cfif not structKeyExists(seenPostIds, oneMember.postId)>
+					<cfset seenPostIds[oneMember.postId] = true>
+					<cfset arrayAppend(result, {PostId: oneMember.postId})>
+				</cfif>
+			</cfloop>
+		</cfloop>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="savePageCollectionMemberOrder" access="public" returnType="boolean" output="false"
+			hint="Saves a new drag-and-drop member order, from Configure Page Collections.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfargument name="postIdOrderedList" type="string" required="true">
+		<cfset var postId = "">
+		<cfset var i = -1>
+		<cftransaction>
+			<cfloop list="#arguments.postIdOrderedList#" index="postId">
+				<cfset i = i + 1>
+				<cfquery datasource="#application.dsn#">
+					UPDATE PageCollectionMemberLookup
+					SET SortOrder = <cfqueryparam value="#i#" cfsqltype="cf_sql_integer">
+					WHERE PageCollectionRef = <cfqueryparam value="#arguments.pageCollectionId#" cfsqltype="cf_sql_integer">
+					AND PostRef = <cfqueryparam value="#postId#" cfsqltype="cf_sql_integer">
+				</cfquery>
+			</cfloop>
+		</cftransaction>
+		<cfset flushGalaxieCache('pageCollection')>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="savePageCollectionTheme" access="public" returnType="boolean" output="false"
+			hint="Sets the theme used to render a Collection's own listing/array view - independent of any member Page's own theme. themeRef=0 is the dropdown's 'Inherit' choice - resolved here, once, to whichever theme is currently the site's active one, rather than stored as a live 0 that every page render would have to re-resolve.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfargument name="themeRef" type="numeric" required="true">
+		<cfset var pc = entityLoadByPK("PageCollection", arguments.pageCollectionId)>
+		<cfset var resolvedThemeRef = arguments.themeRef>
+		<cfset var currentThemeAlias = "">
+		<cfset var currentTheme = "">
+		<cfif resolvedThemeRef eq 0>
+			<!--- Same resolution pageSettings.cfm already uses for every ordinary page render (getThemes(selectedTheme=1)
+			comes back empty whenever no Theme row happens to have its SelectedTheme flag set, which
+			getSelectedThemeAlias()'s own broader fallback chain - URL.theme/cookie/day-rotation/hardcoded default -
+			is built to cover). Using the same call here means "Inherit" really does take on whatever the site is
+			showing right now, not just whichever theme happens to be explicitly flagged. --->
+			<cfset currentThemeAlias = trim(getSelectedThemeAlias())>
+			<cfset currentTheme = getTheme(themeAlias=currentThemeAlias)>
+			<cfif arrayLen(currentTheme)>
+				<cfset resolvedThemeRef = currentTheme[1]["ThemeId"]>
+			</cfif>
+		</cfif>
+		<cftransaction>
+			<cfset pc.setThemeRef(resolvedThemeRef)>
+			<cfset EntitySave(pc)>
+		</cftransaction>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="savePageCollectionHeroImage" access="public" returnType="boolean" output="false"
+			hint="Updates just the Hero Image field on a Page Collection - used by the generic image-upload editor's pageCollectionHero branch.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfargument name="heroImageUrl" type="string" required="true">
+		<cfset var pc = entityLoadByPK("PageCollection", arguments.pageCollectionId)>
+		<cftransaction>
+			<cfset pc.setHeroImageUrl(arguments.heroImageUrl)>
+			<cfset EntitySave(pc)>
+		</cftransaction>
+		<cfset flushGalaxieCache('pageCollection')>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="savePageCollectionHeroGradient" access="public" returnType="boolean" output="false"
+			hint="Updates the Hero Gradient (+ optional overlay text/color) fields on a Page Collection - used by
+			gradientEditor.cfm's pageCollection save path. Clears HeroImageUrl so the two plain-string hero options
+			(uploaded image vs. picked gradient) can't both be set at once and fight over which one renders - see
+			admin/loadPreview.cfm's previewId=2 priority chain. Does not touch EnclosureMedia/Map/Carousel, same as
+			savePageCollectionHeroImage above - those still take priority in the render chain if present.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfargument name="heroGradient" type="string" required="true">
+		<cfargument name="heroOverlayText" type="string" required="false" default="">
+		<cfargument name="heroOverlayTextColor" type="string" required="false" default="">
+		<cfset var pc = entityLoadByPK("PageCollection", arguments.pageCollectionId)>
+		<cftransaction>
+			<cfset pc.setHeroGradient(arguments.heroGradient)>
+			<cfset pc.setHeroOverlayText(arguments.heroOverlayText)>
+			<cfset pc.setHeroOverlayTextColor(arguments.heroOverlayTextColor)>
+			<cfset pc.setHeroImageUrl("")>
+			<cfset EntitySave(pc)>
+		</cftransaction>
+		<cfset flushGalaxieCache('pageCollection')>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="savePostHeroGradient" access="public" returnType="boolean" output="false"
+			hint="Updates the Hero Gradient (+ optional overlay text/color/font) fields on a Post - used by
+			gradientEditor.cfm's TinyMCE (Post/Page enclosure editor) save path. Clears the EnclosureMedia/Map/
+			Carousel relationships (same javaCast('null','') pattern as ProxyController.cfc's
+			removeMediaEnclosure) so the gradient actually renders instead of getPost()/renderEnclosure()
+			continuing to find the old image/video/map/carousel first - same mutual-exclusivity intent as
+			savePageCollectionHeroGradient clearing HeroImageUrl, just across three relationships instead of one
+			plain field. Also clears HeroAnimationEffect/HeroAnimationOptions (see savePostHeroAnimation) so the
+			two hero overrides stay mutually exclusive in both directions. HeroOverlayText/HeroOverlayTextColor/
+			HeroOverlayFont are shared with savePostHeroAnimation (2026-10-01) - both functions SET them from
+			their own form now, whichever was saved most recently wins, same as HeroGradient vs
+			HeroAnimationEffect themselves already work. No flushGalaxieCache() call - unlike PageCollection, Posts
+			aren't run through that cache layer anywhere else in this file.">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfargument name="heroGradient" type="string" required="true">
+		<cfargument name="heroOverlayText" type="string" required="false" default="">
+		<cfargument name="heroOverlayTextColor" type="string" required="false" default="">
+		<cfargument name="heroOverlayFont" type="string" required="false" default="">
+		<cfargument name="heroOverlayFontSize" type="string" required="false" default="">
+		<cfset var post = entityLoadByPK("Post", arguments.postId)>
+		<cftransaction>
+			<cfset post.setEnclosureMedia(javaCast("null",""))>
+			<cfset post.setEnclosureMap(javaCast("null",""))>
+			<cfset post.setEnclosureCarousel(javaCast("null",""))>
+			<cfset post.setHeroGradient(arguments.heroGradient)>
+			<cfset post.setHeroOverlayText(arguments.heroOverlayText)>
+			<cfset post.setHeroOverlayTextColor(arguments.heroOverlayTextColor)>
+			<cfset post.setHeroOverlayFont(arguments.heroOverlayFont)>
+			<cfset post.setHeroOverlayFontSize(arguments.heroOverlayFontSize)>
+			<cfset post.setHeroAnimationEffect("")>
+			<cfset post.setHeroAnimationOptions("")>
+			<cfset EntitySave(post)>
+		</cftransaction>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="savePostHeroAnimation" access="public" returnType="boolean" output="false"
+			hint="Updates the Hero animation effect (+ its JSON options, + optional overlay text/color/font) fields
+			on a Post - used by heroAnimationEditor.cfm's per-post save path (window 79, 'post' context). Mirrors
+			savePostHeroGradient closely: clears the EnclosureMedia/Map/Carousel relationships for the same reason
+			(so the animation actually renders instead of renderEnclosure() continuing to find an old image/video/
+			map/carousel first), and clears HeroGradient (the CSS string itself, not shared) so the two hero
+			overrides stay mutually exclusive. 2026-10-01: HeroOverlayText/HeroOverlayTextColor/HeroOverlayFont are
+			shared with savePostHeroGradient, not animation-exclusive - this function now SETS them from its own
+			form instead of always clearing them, so the animation gets its own overlay text the same way
+			Gradient already does. No flushGalaxieCache() call, same reasoning as savePostHeroGradient - this
+			relies on blogContentHtml.cfm's +noAnimation cache-key component (not a cache flush) to keep the
+			single-post render separate from every other page mode's cached render of the same post. 2026-10-03:
+			renamed from savePostHeroVanta/vantaEffect/vantaOptions while still dev-only/unmigrated.">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfargument name="animationEffect" type="string" required="true">
+		<cfargument name="animationOptions" type="string" required="false" default="">
+		<cfargument name="heroOverlayText" type="string" required="false" default="">
+		<cfargument name="heroOverlayTextColor" type="string" required="false" default="">
+		<cfargument name="heroOverlayFont" type="string" required="false" default="">
+		<cfargument name="heroOverlayFontSize" type="string" required="false" default="">
+		<cfset var post = entityLoadByPK("Post", arguments.postId)>
+		<cftransaction>
+			<cfset post.setEnclosureMedia(javaCast("null",""))>
+			<cfset post.setEnclosureMap(javaCast("null",""))>
+			<cfset post.setEnclosureCarousel(javaCast("null",""))>
+			<cfset post.setHeroGradient("")>
+			<cfset post.setHeroOverlayText(arguments.heroOverlayText)>
+			<cfset post.setHeroOverlayTextColor(arguments.heroOverlayTextColor)>
+			<cfset post.setHeroOverlayFont(arguments.heroOverlayFont)>
+			<cfset post.setHeroOverlayFontSize(arguments.heroOverlayFontSize)>
+			<cfset post.setHeroAnimationEffect(arguments.animationEffect)>
+			<cfset post.setHeroAnimationOptions(arguments.animationOptions)>
+			<cfset EntitySave(post)>
+		</cftransaction>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="savePostHeroCoverImage" access="public" returnType="boolean" output="false"
+			hint="Updates a Post's HeroCoverImageUrl - the static uploaded photo used for cards/listings and
+			social-media share images when the post has no real Image/Video/Map/Carousel enclosure (see
+			Post.cfc's own comment on this column). Called from ProxyController.cfc's uploadImage() the moment
+			the upload itself completes - 2026-10-01. Unlike savePostHeroGradient/savePostHeroAnimation, this never
+			touches EnclosureMedia/Map/Carousel or HeroGradient/HeroAnimationEffect - the cover image is orthogonal
+			to whichever hero type is active, not mutually exclusive with any of them.">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfargument name="heroCoverImageUrl" type="string" required="true">
+		<cfset var post = entityLoadByPK("Post", arguments.postId)>
+		<cftransaction>
+			<cfset post.setHeroCoverImageUrl(arguments.heroCoverImageUrl)>
+			<cfset EntitySave(post)>
+		</cftransaction>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="saveBlogOptionAnimation" access="public" returnType="boolean" output="false"
+			hint="Updates the site-wide default animation effect (+ its JSON options) on BlogOption - used by
+			heroAnimationEditor.cfm's 'blogOption' context save path (window 79, opened from Blog Options'
+			'Configure Animation Defaults' button). Deliberately a small, single-purpose save (same reasoning as
+			savePostHeroGradient/savePostHeroAnimation) rather than routed through saveBlogOptions() - that
+			function's ProxyController.cfc wrapper takes ~30 arguments, each with its own narrow default, so
+			calling it from this small popup with only animationEffect/animationOptions supplied would silently
+			reset every other Blog Options setting (Disqus keys, entriesPerBlogPage, etc.) back to those defaults.
+			Still replicates saveBlogOptions()'s two mandatory post-save steps: re-pointing the app-scoped
+			singleton cache at a fresh copy (same bug class as saveBlogSettings()/saveBlogOptions() themselves
+			once had), and a broad cache/cards + cache/posts flush, since switching the site-wide fallback
+			mode/effect can change what every previously-cached page should be showing, same as switching
+			NoImageFallbackMode itself already requires. 2026-10-03: renamed from saveBlogOptionVanta/
+			vantaEffect/vantaOptions/setVantaEffect/setVantaOptions while still dev-only/unmigrated.">
+		<cfargument name="blogOptionId" type="numeric" required="true">
+		<cfargument name="animationEffect" type="string" required="true">
+		<cfargument name="animationOptions" type="string" required="false" default="">
+		<cfset var optionObj = entityLoadByPK("BlogOption", arguments.blogOptionId)>
+		<cftransaction>
+			<cfset optionObj.setAnimationEffect(arguments.animationEffect)>
+			<cfset optionObj.setAnimationOptions(arguments.animationOptions)>
+			<cfset optionObj.setDate(blogNow())>
+			<cfset EntitySave(optionObj)>
+		</cftransaction>
+		<cfset application.BlogOptionDbObj = EntityLoadByPk("BlogOption", arguments.blogOptionId)>
+		<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/cards', '')>
+		<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/posts', '')>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="getPagesForDropdown" access="public" returnType="array" output="false"
+			hint="Every Page (IsPage=1, not removed), alphabetical - for the Homepage/Add-Pages pickers.">
+		<cfset var Data = []>
+		<cfset var result = []>
+		<cfset var i = 0>
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				Post.PostId as PostId,
+				Post.Title as Title
+			)
+			FROM Post as Post
+			WHERE Post.IsPage = <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+			AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+			AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
+			ORDER BY Post.Title ASC
+		</cfquery>
+		<cfloop from="1" to="#arrayLen(Data)#" index="i">
+			<cfset arrayAppend(result, {postId: Data[i]["PostId"], title: Data[i]["Title"]})>
+		</cfloop>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="getPageCollectionByAlias" access="public" returnType="numeric" output="false"
+			hint="Returns the matching visible Page Collection's id for a single-segment URL alias, or 0 if none matches (including one that exists but isn't visible yet).">
+		<cfargument name="alias" type="string" required="true">
+		<cfset var Data = []>
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (PageCollectionId as PageCollectionId)
+			FROM PageCollection
+			WHERE CollectionAlias = <cfqueryparam value="#arguments.alias#" cfsqltype="cf_sql_varchar" maxlength="100">
+			AND BlogRef = #application.BlogDbObj.getBlogId()#
+		</cfquery>
+		<cfif arrayLen(Data) and isPageCollectionVisible(Data[1]["PageCollectionId"])>
+			<cfreturn Data[1]["PageCollectionId"]>
+		</cfif>
+		<cfreturn 0>
+	</cffunction>
+
+	<cffunction name="makeCollectionLink" access="public" returnType="string" output="false"
+			hint="Generates the link for a Page Collection's own URL - or, for a cross-link Collection (ExternalUrl set), that external URL directly, unmodified. Otherwise same shape as makeCategoryLink/makeTagLink - builds from instance.blogUrl (which already includes /index.cfm), only stripped via makeRewriteRuleSafeLink() when a rewrite rule is actually in place, rather than a naive baseUrl concatenation that breaks whenever no rewrite rule exists.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfset var collectionLink = "">
+		<cfset var Data = []>
+		<cfif not structKeyExists(variables, "collectionAliasCache")>
+			<cfset variables.collectionAliasCache = structNew() />
+		</cfif>
+		<cfif structKeyExists(variables.collectionAliasCache, arguments.pageCollectionId)>
+			<cfreturn variables.collectionAliasCache[arguments.pageCollectionId]>
+		</cfif>
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map ( CollectionAlias as CollectionAlias, ExternalUrl as ExternalUrl )
+			FROM PageCollection
+			WHERE 0=0
+				AND PageCollectionId = <cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.pageCollectionId#" maxlength="35">
+				AND BlogRef = #application.BlogDbObj.getBlogId()#
+		</cfquery>
+		<cfif arrayLen(Data) and len(Data[1]["ExternalUrl"])>
+			<!--- A cross-link Collection's link IS the external URL, unmodified - not run through makeRewriteRuleSafeLink, which only makes sense for this site's own internal links. --->
+			<cfset variables.collectionAliasCache[arguments.pageCollectionId] = Data[1]["ExternalUrl"]>
+			<cfreturn variables.collectionAliasCache[arguments.pageCollectionId]>
+		</cfif>
+		<cfif arrayLen(Data)>
+			<cfset collectionLink = instance.blogUrl & '/' & Data[1]["CollectionAlias"]>
+		<cfelse>
+			<cfset collectionLink = instance.blogUrl>
+		</cfif>
+		<cfset variables.collectionAliasCache[arguments.pageCollectionId] = makeRewriteRuleSafeLink(collectionLink)>
+		<cfreturn variables.collectionAliasCache[arguments.pageCollectionId]>
+	</cffunction>
+
+	<cffunction name="checkAndDissolveIfUnderMinimum" access="public" returnType="boolean" output="false"
+			hint="If a Collection has dropped under its required minimum (2 members normally, 1 for a cross-link Collection - see getPageCollectionRequiredMinimum()), dissolve it: delete the Collection (its own address just stops working, no redirect kept) and queue a one-time admin notice explaining why.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfset var pc = entityLoadByPK("PageCollection", arguments.pageCollectionId)>
+		<cfset var memberCount = 0>
+		<cfset var requiredMinimum = 2>
+		<cfset var members = "">
+		<cfset var remainingTitle = "">
+		<cfset var message = "">
+		<cfset var remainingCollectionIdList = "">
+		<cfset var oneRemainingCollectionId = "">
+		<cfif not isObject(pc)>
+			<cfreturn false>
+		</cfif>
+		<cfset requiredMinimum = getPageCollectionRequiredMinimum(arguments.pageCollectionId)>
+		<cfset memberCount = getPageCollectionMemberCount(arguments.pageCollectionId)>
+		<cfif memberCount gte requiredMinimum>
+			<cfreturn false>
+		</cfif>
+		<cfif requiredMinimum eq 2 and memberCount eq 1>
+			<!--- The "2 needed, 1 left" case has a natural fallback (the one remaining page) to point the visitor at - not
+			true for a cross-link Collection needing just 1, which has no remaining page to redirect to when it dissolves. --->
+			<cfset members = getPageCollectionMembers(arguments.pageCollectionId)>
+			<cfset remainingTitle = members[1].title>
+			<cfset message = "A page collection needs at least two pages. Since '" & pc.getTitle() & "' only had one left, it was removed, and its old address no longer works - visitors go straight to " & remainingTitle & "'s own address now.">
+		<cfelseif requiredMinimum eq 1>
+			<cfset message = "A cross-link page collection needs at least one page. Since '" & pc.getTitle() & "' had none left, it was removed.">
+		<cfelse>
+			<cfset message = "A page collection needs at least two pages. Since '" & pc.getTitle() & "' had none left, it was removed.">
+		</cfif>
+		<!--- If this dissolved Collection was featured on the homepage, drop just this id from the list rather than resetting the whole homepage - Pages and Blog Posts sections (if on) are independent and should keep running. --->
+		<cfif application.BlogOptionDbObj.getHomepageShowCollections() and listFindNoCase(application.BlogOptionDbObj.getHomepageCollectionIdList(), arguments.pageCollectionId)>
+			<cfloop list="#application.BlogOptionDbObj.getHomepageCollectionIdList()#" index="oneRemainingCollectionId">
+				<cfif oneRemainingCollectionId neq arguments.pageCollectionId>
+					<cfset remainingCollectionIdList = listAppend(remainingCollectionIdList, oneRemainingCollectionId)>
+				</cfif>
+			</cfloop>
+			<cfset saveHomepageSettings(
+				showPages = application.BlogOptionDbObj.getHomepageShowPages(),
+				pageIdList = application.BlogOptionDbObj.getHomepagePageIdList(),
+				showCollections = len(remainingCollectionIdList) gt 0,
+				collectionIdList = remainingCollectionIdList,
+				showBlogPosts = application.BlogOptionDbObj.getHomepageShowBlogPosts())>
+		</cfif>
+		<cftransaction>
+			<cfquery datasource="#application.dsn#">
+				INSERT INTO PageCollectionDissolveNotice (BlogRef, Message, Created, Dismissed)
+				VALUES (
+					<cfqueryparam value="#application.BlogDbObj.getBlogId()#" cfsqltype="cf_sql_integer">,
+					<cfqueryparam value="#message#" cfsqltype="cf_sql_nvarchar">,
+					<cfqueryparam value="#now()#" cfsqltype="cf_sql_timestamp">,
+					0
+				)
+			</cfquery>
+		</cftransaction>
+		<cfset deletePageCollection(arguments.pageCollectionId)>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="getAndDismissPendingDissolveNotices" access="public" returnType="struct" output="false"
+			hint="Called once when the admin UI loads. Returns every undismissed dissolve notice, combined into a single message (per the 'only pop up once, batched not stacked' decision), and marks them dismissed so they never show again.">
+		<cfset var q = "">
+		<cfset var messages = []>
+		<cfset var combined = "">
+		<cfquery name="q" datasource="#application.dsn#">
+			SELECT PageCollectionDissolveNoticeId, Message
+			FROM PageCollectionDissolveNotice
+			WHERE BlogRef = <cfqueryparam value="#application.BlogDbObj.getBlogId()#" cfsqltype="cf_sql_integer">
+			AND Dismissed = 0
+			ORDER BY Created
+		</cfquery>
+		<!--- Built with explicit lowercase bracket keys, not {hasNotice:...} struct-literal syntax - Lucee uppercases bare struct-literal keys (HASNOTICE/MESSAGE) when serializing to JSON for the AJAX caller in configurePageCollections.cfm, which reads response.hasNotice/response.message with case-sensitive JS property access. --->
+		<cfif q.recordCount eq 0>
+			<cfset var emptyResult = {}>
+			<cfset emptyResult["hasNotice"] = false>
+			<cfset emptyResult["message"] = "">
+			<cfreturn emptyResult>
+		</cfif>
+		<cfloop query="q">
+			<cfset arrayAppend(messages, Message)>
+		</cfloop>
+		<cfset combined = arrayToList(messages, chr(10) & chr(10))>
+		<cfquery datasource="#application.dsn#">
+			UPDATE PageCollectionDissolveNotice
+			SET Dismissed = 1
+			WHERE BlogRef = <cfqueryparam value="#application.BlogDbObj.getBlogId()#" cfsqltype="cf_sql_integer">
+			AND Dismissed = 0
+		</cfquery>
+		<cfset var result = {}>
+		<cfset result["hasNotice"] = true>
+		<cfset result["message"] = combined>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="getHomepageSettings" access="public" returnType="struct" output="false"
+			hint="For Configure Homepage: the current additive section toggles/lists, plus a plain-language description of what's live right now.">
+		<cfset var showPages = application.BlogOptionDbObj.getHomepageShowPages()>
+		<cfset var pageIdList = application.BlogOptionDbObj.getHomepagePageIdList()>
+		<cfset var showCollections = application.BlogOptionDbObj.getHomepageShowCollections()>
+		<cfset var collectionIdList = application.BlogOptionDbObj.getHomepageCollectionIdList()>
+		<cfset var showBlogPosts = application.BlogOptionDbObj.getHomepageShowBlogPosts()>
+		<cfset var post = "">
+		<cfset var pc = "">
+		<cfset var oneId = "">
+		<cfset var pageTitles = "">
+		<cfset var collectionTitles = "">
+		<cfset var textParts = []>
+		<!--- The single-page override: if this is the ONLY thing enabled and there's exactly one Page, that Page IS the
+		homepage (index.cfm handles the actual override - this just describes it in plain language too). --->
+		<cfif showPages and listLen(pageIdList) eq 1>
+			<cfset post = entityLoadByPK("Post", pageIdList)>
+			<cfreturn { showPages: showPages, pageIdList: pageIdList, showCollections: showCollections, collectionIdList: collectionIdList, showBlogPosts: showBlogPosts, currentText: isObject(post) ? "the page '" & post.getTitle() & "'" : "the latest posts" }>
+		</cfif>
+		<cfif showPages and listLen(pageIdList) gt 1>
+			<cfloop list="#pageIdList#" index="oneId">
+				<cfset post = entityLoadByPK("Post", oneId)>
+				<cfif isObject(post)>
+					<cfset pageTitles = listAppend(pageTitles, "'" & post.getTitle() & "'")>
+				</cfif>
+			</cfloop>
+			<cfif len(pageTitles)>
+				<cfset arrayAppend(textParts, listLen(pageIdList) & " featured pages (" & pageTitles & ")")>
+			</cfif>
+		</cfif>
+		<cfif showCollections and len(collectionIdList)>
+			<cfloop list="#collectionIdList#" index="oneId">
+				<cfset pc = entityLoadByPK("PageCollection", oneId)>
+				<cfif isObject(pc) and isPageCollectionVisible(oneId)>
+					<cfset collectionTitles = listAppend(collectionTitles, "'" & pc.getTitle() & "'")>
+				</cfif>
+			</cfloop>
+			<cfif len(collectionTitles)>
+				<cfset arrayAppend(textParts, listLen(collectionIdList) & " featured collections (" & collectionTitles & ")")>
+			</cfif>
+		</cfif>
+		<cfif showBlogPosts>
+			<cfset arrayAppend(textParts, "the latest blog posts")>
+		</cfif>
+		<cfreturn { showPages: showPages, pageIdList: pageIdList, showCollections: showCollections, collectionIdList: collectionIdList, showBlogPosts: showBlogPosts, currentText: arrayLen(textParts) ? arrayToList(textParts, ", then ") : "the latest posts" }>
+	</cffunction>
+
+	<cffunction name="saveHomepageSettings" access="public" returnType="boolean" output="false"
+			hint="Saves the Configure Homepage picker - three independently toggled, additive sections. Every Page Collection selected must already have 2+ members - it must already be visible to be selectable here.">
+		<cfargument name="showPages" type="boolean" required="false" default="false">
+		<cfargument name="pageIdList" type="string" required="false" default="" hint="Comma separated, ORDERED list of PostIds. Ignored (saved empty) when showPages is false.">
+		<cfargument name="showCollections" type="boolean" required="false" default="false">
+		<cfargument name="collectionIdList" type="string" required="false" default="" hint="Comma separated, ORDERED list of PageCollectionIds. Ignored (saved empty) when showCollections is false.">
+		<cfargument name="showBlogPosts" type="boolean" required="false" default="false">
+		<cfset var safePageIdList = arguments.showPages ? arguments.pageIdList : "">
+		<cfset var safeCollectionIdList = arguments.showCollections ? arguments.collectionIdList : "">
+		<cfset var oneCollectionId = "">
+		<cfif arguments.showPages and not len(safePageIdList)>
+			<!--- The picker asked to show Pages but sent nothing to show - refuse rather than silently turning the toggle into a no-op the admin wouldn't understand. --->
+			<cfreturn false>
+		</cfif>
+		<cfif arguments.showCollections>
+			<cfif not len(safeCollectionIdList)>
+				<cfreturn false>
+			</cfif>
+			<!--- Refuse the whole save if ANY selected Collection isn't visible yet (fewer than 2 members) - rather than silently dropping it, since that's not what the admin asked for. --->
+			<cfloop list="#safeCollectionIdList#" index="oneCollectionId">
+				<cfif not isPageCollectionVisible(oneCollectionId)>
+					<cfreturn false>
+				</cfif>
+			</cfloop>
+		</cfif>
+		<!--- Update via the entity's own setters + EntitySave on a freshly-loaded instance, not the long-lived application.BlogOptionDbObj directly and not raw SQL - see checkAndDissolveIfUnderMinimum's own notes on why (stale in-request reads with raw SQL, NonUniqueObjectException with the shared instance directly). --->
+		<cftransaction>
+			<cfset var freshBlogOption = entityLoadByPK("BlogOption", application.BlogOptionDbObj.getBlogOptionId())>
+			<cfset freshBlogOption.setHomepageShowPages(arguments.showPages)>
+			<cfset freshBlogOption.setHomepagePageIdList(safePageIdList)>
+			<cfset freshBlogOption.setHomepageShowCollections(arguments.showCollections)>
+			<cfset freshBlogOption.setHomepageCollectionIdList(safeCollectionIdList)>
+			<cfset freshBlogOption.setHomepageShowBlogPosts(arguments.showBlogPosts)>
+			<cfset EntitySave(freshBlogOption)>
+		</cftransaction>
+		<!--- Now that the save has committed, refresh the shared application-scoped copy so other code reading it in this same request (or before the next reinit) sees the new value. --->
+		<cfset application.BlogOptionDbObj = entityLoadByPK("BlogOption", application.BlogOptionDbObj.getBlogOptionId())>
+		<!--- Configure Homepage's toggles/picks drive curatedHomepageContentHtml.cfm's Featured Pages/Collections
+		sections, the Blog Posts row budget (so the "All Blogs" cache too), and pageCollectionListContentHtml.cfm's
+		curated branch - flush them all now rather than waiting for their 24h timeout. --->
+		<cfset flushGalaxieCache('pageCollection')>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="getPageCollectionsForGrid" access="public" returnType="array" output="false"
+			hint="Grid-shaped version of getAllPageCollections() - PascalCase Map fields (matching every other *ForGrid function's output shape, e.g. getPostsForGrid/getCategoriesForGrid) plus a computed Status column, for Configure Page Collections' Kendo/jsGrid pair.">
+		<cfset var Data = []>
+		<cfset var result = []>
+		<cfset var i = 0>
+		<cfset var oneMemberCount = 0>
+		<cfset var oneRequiredMinimum = 2>
+		<cfset var oneNeeded = 0>
+		<cfset var oneRow = {}>
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				PageCollectionId as PageCollectionId,
+				Title as Title,
+				Description as Description,
+				HeroImageUrl as HeroImageUrl,
+				ExternalUrl as ExternalUrl,
+				Created as Created
+			)
+			FROM PageCollection
+			WHERE BlogRef = #application.BlogDbObj.getBlogId()#
+			ORDER BY Title ASC
+		</cfquery>
+		<!--- Explicit bracket-notation keys, not {PascalCase: ...} struct-literal syntax - Lucee uppercases bare
+		struct-literal keys when serializing to JSON, which breaks the grids' case-sensitive JS field access
+		(same lesson as getAndDismissPendingDissolveNotices/getHomepageSettings, confirmed the hard way here via
+		a live grid showing "undefined" in every cell until this was fixed). --->
+		<cfloop from="1" to="#arrayLen(Data)#" index="i">
+			<cfset oneMemberCount = getPageCollectionMemberCount(Data[i]["PageCollectionId"])>
+			<cfset oneRequiredMinimum = len(Data[i]["ExternalUrl"]) ? 1 : 2>
+			<cfset oneNeeded = oneRequiredMinimum - oneMemberCount>
+			<cfset oneRow = {}>
+			<cfset oneRow["PageCollectionId"] = Data[i]["PageCollectionId"]>
+			<cfset oneRow["Title"] = Data[i]["Title"]>
+			<cfset oneRow["Description"] = Data[i]["Description"]>
+			<cfset oneRow["HeroImageUrl"] = Data[i]["HeroImageUrl"]>
+			<cfset oneRow["ExternalUrl"] = Data[i]["ExternalUrl"]>
+			<cfset oneRow["MemberCount"] = oneMemberCount>
+			<cfset oneRow["Status"] = (oneMemberCount gte oneRequiredMinimum) ? "Live" : "Needs " & oneNeeded & " more page" & (oneNeeded neq 1 ? "s" : "")>
+			<cfset oneRow["Created"] = Data[i]["Created"]>
+			<cfset arrayAppend(result, oneRow)>
+		</cfloop>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="getCategoryList" access="public" returnType="string" output="false"
 			hint="Returns a list of category id's or names depending upon the listType argument.">
 		<cfargument name="listType" type="string" required="true" hint="Either categoryList, categoryIdList, or categoryAliasList. This is  used in the add category admin UI">
 			
@@ -5985,9 +7034,15 @@
 			<cfloop from="1" to="#arrayLen(getCategoriesNotInList)#" index="i">
 				<cfset categoryId = getCategoriesNotInList[i]["CategoryId"]>
 				<cfif debug><cfdump var="#categoryId#"></cfif>
-				<!--- 4.66.2: this DELETE was missing a PostRef scope, so saving any post that dropped a category
-				wiped that category off every post site-wide that had ever been tagged with it, not just the
-				post being edited. --->
+				<!--- 2026-09-30: this used to delete CategoryRef = #categoryId# for every post on the entire site,
+				not just this one - the SELECT above already scopes "categories no longer on this post" to
+				PostCategoryLookup.PostRef = #thisPostId#, but the DELETE that ran per category it found was
+				missing that same PostRef condition, so saving ANY post that dropped a category (or simply never
+				resubmitted one, eg. a stale/missing option in the category multiselect's own datasource) wiped
+				that category off every post site-wide that had ever been tagged with it. Confirmed live: the
+				site's "Tech" category (a parent with several posts also directly tagged with a child category
+				like "ColdFusion and Lucee") lost every historical post except the ones saved after this bug was
+				triggered. See [[savepostcategories-global-delete-bug-2026-09-30]]. --->
 				<cfquery name="deleteExcessCategories" dbtype="hql">
 					DELETE
 					FROM
@@ -6849,9 +7904,10 @@
 			<cfloop from="1" to="#arrayLen(getTagsNotInList)#" index="i">
 				<cfset tagId = getTagsNotInList[i]["TagId"]>
 				<cfif debug><cfdump var="#tagId#"></cfif>
-				<!--- 4.66.2: sibling of the savePostCategories() fix above - this DELETE was missing the same
-				PostRef scope, so saving any post that dropped a tag wiped that tag off every post site-wide
-				that had ever been tagged with it, not just the post being edited. --->
+				<!--- 2026-09-30: sibling of the savePostCategories() bug fixed the same day (see
+				[[savepostcategories-global-delete-bug-2026-09-30]]) - this DELETE was missing the same PostRef
+				scope the SELECT above it already has, so saving any post that dropped a tag wiped that tag off
+				every post site-wide that had ever been tagged with it, not just this one. --->
 				<cfquery name="deleteExcessTags" dbtype="hql">
 					DELETE
 					FROM
@@ -8854,9 +9910,66 @@
 			
 		<!--- Return it. --->
 		<cfreturn getPost>
-			
+
 	</cffunction>
-			
+
+	<cffunction name="getPageCollectionByPageCollectionId" access="public" returntype="array" output="false"
+			hint="Same shape/field names as getPostByPostId's enclosure-related fields (MediaId, MediaUrl, MediaPath,
+			MediaType, MimeType, EnclosureMapId, EnclosureCarouselId, ProviderVideoId, MediaVideoCoverUrl,
+			MediaVideoVttFileUrl), so enclosureImageEditor.cfm and azureMap.cfm can read either a Post or a Page
+			Collection through the exact same getPost[1][...] code without branching on every field access.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				pc.PageCollectionId as PageCollectionId,
+				pc.Title as Title,
+				pc.Description as Description,
+				Enclosure.MediaId as MediaId,
+				Enclosure.MediaTitle as MediaTitle,
+				Enclosure.MediaPath as MediaPath,
+				Enclosure.MediaUrl as MediaUrl,
+				Enclosure.MediaThumbnailUrl as MediaThumbnailUrl,
+				Enclosure.MediaHeight as MediaHeight,
+				Enclosure.MediaSize as MediaSize,
+				Enclosure.MediaVideoCoverUrl as MediaVideoCoverUrl,
+				Enclosure.MediaVideoVttFileUrl as MediaVideoVttFileUrl,
+				Enclosure.ProviderVideoId as ProviderVideoId,
+				EnclosureMap.MapId as EnclosureMapId,
+				EnclosureCarousel.CarouselId as EnclosureCarouselId,
+				MediaType.MediaType as MediaType,
+				MimeType.MimeTypeId as MimeTypeId,
+				MimeType.MimeType as MimeType
+			)
+			FROM PageCollection as pc
+			LEFT JOIN pc.EnclosureMedia as Enclosure
+			LEFT JOIN Enclosure.MediaTypeRef as MediaType
+			LEFT JOIN Enclosure.MimeTypeRef as MimeType
+			LEFT JOIN pc.EnclosureMap as EnclosureMap
+			LEFT JOIN pc.EnclosureCarousel as EnclosureCarousel
+			WHERE pc.PageCollectionId = <cfqueryparam value="#arguments.pageCollectionId#" cfsqltype="cf_sql_integer">
+		</cfquery>
+
+		<!--- Every LEFT JOINed column above is a true SQL/Java null when this Page Collection has no
+		Enclosure/Map/Carousel row yet (the common case - a fresh collection). Adobe ColdFusion's
+		<cfset x = nullValue> does not create the variable "x" at all (unlike Lucee), so a caller doing
+		<cfset mediaUrl = getPost[1]["MediaUrl"]> on an untouched raw null throws "Variable MEDIAURL is undefined"
+		the moment it's read - normalize every field to '' here (empty string reads as "no value" everywhere this
+		result is consumed, e.g. len(enclosureMapId), matching Post's own convention) so this is a true drop-in
+		replacement for getPostByPostId's enclosure fields regardless of engine. --->
+		<cfset var normalizedFields = ["MediaId","MediaTitle","MediaPath","MediaUrl","MediaThumbnailUrl","MediaHeight","MediaSize","MediaVideoCoverUrl","MediaVideoVttFileUrl","ProviderVideoId","EnclosureMapId","EnclosureCarouselId","MediaType","MimeTypeId","MimeType"]>
+		<cfif arrayLen(Data)>
+			<cfloop array="#normalizedFields#" index="fieldName">
+				<cfif not structKeyExists(Data[1], fieldName) or isNull(Data[1][fieldName])>
+					<cfset Data[1][fieldName] = "">
+				</cfif>
+			</cfloop>
+		</cfif>
+
+		<cfreturn Data>
+
+	</cffunction>
+
 	<cffunction name="getDatePosted" access="public" returnType="date" output="false"
 		hint="Returns the date/time the post was posted">
 		<cfargument name="postId" type="numeric" required="true" hint="Supply the postId.">
@@ -8905,16 +10018,17 @@
 				Post.PostAlias as PostAlias,
 				Post.Title as Title,
 				Post.DatePosted as DatePosted)
-			FROM Post as Post 
+			FROM Post as Post
 			WHERE Post.Released = <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 			AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+			AND (Post.IsPage = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Post.IsPage IS NULL)
 			ORDER BY Post.DatePosted DESC
 		</cfquery>
-		
+
 		<cfreturn Data>
-			
+
 	</cffunction>
-			
+
 	<!--- Used with the pages pod --->
 	<cffunction name="getPages" access="public" returntype="array" output="false"
 		hint="Returns the pages from the post table">
@@ -9357,6 +10471,7 @@
 				Post.IsPage as IsPage,
 				Post.IsBlogPost as IsBlogPost,
 				Post.Promote as Promoted,
+				Post.DisplayOnRss as DisplayOnRss,
 				User.UserId as UserId,
 				User.FullName as FullName,
 				User.DisplayName as DisplayName,
@@ -9377,6 +10492,14 @@
 				Post.Remove as Remove,
 				Post.RedirectUrl as RedirectUrl,
 				Post.RedirectType as RedirectType,
+				COALESCE(Post.HeroGradient, '') as HeroGradient,
+				COALESCE(Post.HeroOverlayText, '') as HeroOverlayText,
+				COALESCE(Post.HeroOverlayTextColor, '') as HeroOverlayTextColor,
+				COALESCE(Post.HeroOverlayFont, '') as HeroOverlayFont,
+				COALESCE(Post.HeroOverlayFontSize, '') as HeroOverlayFontSize,
+				COALESCE(Post.HeroAnimationEffect, '') as HeroAnimationEffect,
+				COALESCE(Post.HeroAnimationOptions, '') as HeroAnimationOptions,
+				COALESCE(Post.HeroCoverImageUrl, '') as HeroCoverImageUrl,
 				Enclosure.MediaId as MediaId,
 				Enclosure.MediaTitle as MediaTitle,
 				Enclosure.MediaPath as MediaPath,
@@ -9578,6 +10701,7 @@
 						<cfset PostStruct["ThemeRef"] = "">
 					</cfif>
 					<cfset PostStruct["Promoted"] = Data[i]["Promoted"]>
+					<cfset PostStruct["DisplayOnRss"] = Data[i]["DisplayOnRss"]>
 					<cfset PostStruct["PostUuid"] = Data[i]["PostUuid"]>
 					<cfset PostStruct["PostAlias"] = Data[i]["PostAlias"]>
 					<!--- The title can't have an apostrophe --->
@@ -9603,6 +10727,54 @@
 						<cfset PostStruct["RedirectType"] = Data[i]["RedirectType"]>
 					<cfelse>
 						<cfset PostStruct["RedirectType"] = "">
+					</cfif>
+					<!--- HeroGradient/HeroOverlayText/HeroOverlayTextColor - newly added Post columns, so any
+					pre-existing row still has a true SQL NULL until saved once. Same structKeyExists() guard as
+					every other nullable field in this loop - Lucee's own HQL "SELECT new Map(...)" omits the key
+					entirely for a null scalar (see the PageCollection.HeroGradient precedent from earlier today). --->
+					<cfif structKeyExists(postRow, "HeroGradient")>
+						<cfset PostStruct["HeroGradient"] = Data[i]["HeroGradient"]>
+					<cfelse>
+						<cfset PostStruct["HeroGradient"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "HeroOverlayText")>
+						<cfset PostStruct["HeroOverlayText"] = Data[i]["HeroOverlayText"]>
+					<cfelse>
+						<cfset PostStruct["HeroOverlayText"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "HeroOverlayTextColor")>
+						<cfset PostStruct["HeroOverlayTextColor"] = Data[i]["HeroOverlayTextColor"]>
+					<cfelse>
+						<cfset PostStruct["HeroOverlayTextColor"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "HeroOverlayFont")>
+						<cfset PostStruct["HeroOverlayFont"] = Data[i]["HeroOverlayFont"]>
+					<cfelse>
+						<cfset PostStruct["HeroOverlayFont"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "HeroOverlayFontSize")>
+						<cfset PostStruct["HeroOverlayFontSize"] = Data[i]["HeroOverlayFontSize"]>
+					<cfelse>
+						<cfset PostStruct["HeroOverlayFontSize"] = "">
+					</cfif>
+					<!--- HeroAnimationEffect/HeroAnimationOptions - same newly-added-column guard as HeroGradient
+					above, same reasoning. 2026-10-03: renamed from HeroVantaEffect/HeroVantaOptions while still
+					dev-only/unmigrated. --->
+					<cfif structKeyExists(postRow, "HeroAnimationEffect")>
+						<cfset PostStruct["HeroAnimationEffect"] = Data[i]["HeroAnimationEffect"]>
+					<cfelse>
+						<cfset PostStruct["HeroAnimationEffect"] = "">
+					</cfif>
+					<cfif structKeyExists(postRow, "HeroAnimationOptions")>
+						<cfset PostStruct["HeroAnimationOptions"] = Data[i]["HeroAnimationOptions"]>
+					<cfelse>
+						<cfset PostStruct["HeroAnimationOptions"] = "">
+					</cfif>
+					<!--- HeroCoverImageUrl - same newly-added-column guard as HeroGradient/HeroAnimationEffect above. --->
+					<cfif structKeyExists(postRow, "HeroCoverImageUrl")>
+						<cfset PostStruct["HeroCoverImageUrl"] = Data[i]["HeroCoverImageUrl"]>
+					<cfelse>
+						<cfset PostStruct["HeroCoverImageUrl"] = "">
 					</cfif>
 					<!--- The post header may be null as well --->
 					<cfif structKeyExists(postRow, "PostHeader")>
@@ -9920,10 +11092,24 @@
 			</cfif>
 				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 				AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
-		</cfquery>	
-				
+		</cfquery>
+
 		<cfreturn Data[1]["PostCount"]>
-				
+
+	</cffunction>
+
+	<cffunction name="getBlogPostCount" access="public" returnType="numeric" output="false"
+			hint="Count of real (non-Page) released blog posts. getPostCount() above has no IsPage-aware filter - it counts every non-removed Post row, Pages included - so it can't be reused here. Used for the curated homepage's Blog Posts section pagination (curatedHomepageContentHtml.cfm), which needs a total that matches what its own getPost(showPages=false, showBlogPosts=true) call actually returns.">
+		<cfset var Data = []>
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (count(PostId) as PostCount)
+			FROM Post as Post
+			WHERE Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+			AND Post.Released = <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+			AND (Post.IsPage = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Post.IsPage IS NULL)
+			AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
+		</cfquery>
+		<cfreturn Data[1]["PostCount"]>
 	</cffunction>
 						
 	<cffunction name="insertNewPost" access="public" returnType="numeric" output="false"
@@ -10028,11 +11214,13 @@
 		<cfargument name="mediaId" type="string" required="false" default="">
 		<cfargument name="released" type="boolean" required="false" default="true">
 		<cfargument name="promote" type="boolean" required="false" default="false">
+		<cfargument name="displayOnRss" type="boolean" required="false" default="true">
 		<cfargument name="remove" type="boolean" required="false" default="false">
 		<cfargument name="redirectUrl" type="string" required="false" default="">
 		<cfargument name="redirectType" type="string" required="false" default="">
 		<cfargument name="postCategories" type="string" required="false" default="">
 		<cfargument name="postTags" type="string" required="false" default="">
+		<cfargument name="pageCollectionIdList" type="string" required="false" default="" hint="Which Page Collection(s) this Page belongs to - only meaningful when the post is a Page.">
 		<cfargument name="relatedPosts" type="string" required="false" default="">
 		<cfargument name="numViews" type="string" required="false" default="">
 		<cfargument name="emailSubscriber" type="boolean" required="false" default="false">
@@ -10142,7 +11330,8 @@
 			<cfset PostDbObj.setMoreBody(moreBody)>
 			<cfset PostDbObj.setReleased(released)>	
 			<cfset PostDbObj.setAllowComment(arguments.allowcomment)>
-			<cfset PostDbObj.setPromote(arguments.promote)>	
+			<cfset PostDbObj.setPromote(arguments.promote)>
+			<cfset PostDbObj.setDisplayOnRss(arguments.displayOnRss)>
 			<cfset PostDbObj.setRemove(arguments.remove)>
 			<cfset PostDbObj.setRedirectUrl(arguments.redirectUrl)>
 			<cfif len(arguments.redirectUrl) and len(arguments.redirectType)>
@@ -10209,9 +11398,17 @@
 		<cfif len(arguments.postTags)>
 			<cfset savePostTags(arguments.postId, arguments.postTags) />
 		</cfif>
-					
+
 		<!--- **********************************************************************************************
-		Save the related posts 
+		Save Page Collections membership - only meaningful for a Page, but always safe to call (an empty
+		list on a Post is just a no-op replace-all).
+		*************************************************************************************************--->
+		<cfif isPage>
+			<cfset setPageCollectionsForPost(arguments.postId, arguments.pageCollectionIdList) />
+		</cfif>
+
+		<!--- **********************************************************************************************
+		Save the related posts
 		*************************************************************************************************--->
 		<!--- Get the posts that are related to this post before the related posts are changed. The cached pages of these posts have to be cleared too (see the flush at the end of this function), and the posts that are no longer related to this post would be lost after saving. --->
 		<cfset previousRelatedPostIdList = getRelatedPostIdList(arguments.postId)>
@@ -10300,7 +11497,98 @@
 		<cfreturn PostDbObj.getPostId()>
 
 	</cffunction>
-				
+
+	<cffunction name="scheduleRelease" access="public" returnType="struct" output="false"
+			hint="Schedules a post to release itself automatically at a future date/time, from the dedicated Schedule Release admin window (scheduleRelease.cfm) rather than only as a side effect of changing Date Posted on the main post form. Deliberately leaves Released false the whole time it's pending - releaseFuturePosts() (run by the cfschedule task this creates, same as the 'Handle future posts' block above) is what actually flips Released to true at the real release moment. Keeping Released false in the meantime means this window's own reschedule/cancel UI stays usable (it treats a Released post as already live and hides the scheduling form), and the post stays reliably hidden from the public site while pending regardless of how any given front-end query happens to treat a future DatePosted.">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfargument name="releaseDateTime" type="date" required="true">
+
+		<cfset var response = { success = false, errorMessage = "" }>
+		<cfset var PostDbObj = "">
+		<cfset var serverDateTime = "">
+
+		<cfif not postExists(arguments.postId)>
+			<cfset response.errorMessage = "The post, '#arguments.postId#', does not exist.">
+			<cfreturn response>
+		</cfif>
+
+		<cfif dateCompare(arguments.releaseDateTime, blogNow()) is not 1>
+			<cfset response.errorMessage = "Pick a date and time in the future.">
+			<cfreturn response>
+		</cfif>
+
+		<cftransaction>
+			<cfset PostDbObj = entityLoad("Post", { postId = arguments.postId }, "true" )>
+			<cfset PostDbObj.setReleased(false)>
+			<cfset PostDbObj.setDatePosted(arguments.releaseDateTime)>
+			<cfset EntitySave(PostDbObj)>
+		</cftransaction>
+
+		<!--- Delete any previous task for this post before scheduling the new one, same as the savePost() "Handle future posts" block does. --->
+		<cftry>
+			<cfschedule action="delete" task="schedulePost#arguments.postId#">
+			<cfcatch type="any"><cfset error="Task can't be found"></cfcatch>
+		</cftry>
+
+		<!--- Translate the client date to the date on the server, same as the savePost() block - the server may reside in a different time zone than the blog owner. --->
+		<cfset serverDateTime = getServerDateTime(arguments.releaseDateTime)>
+
+		<cfschedule action="update"
+			task="schedulePost#arguments.postId#"
+			operation="HTTPRequest"
+			startDate="#dateFormat(serverDateTime)#"
+			startTime="#timeFormat(serverDateTime)#"
+			url="#application.blogHostUrl#/common/services/handleFuturePost.cfm?postId=#arguments.postId#"
+			interval="once">
+
+		<cfset flushGalaxieCache(type='post', postId="#arguments.postId#")>
+
+		<cfset response.success = true>
+		<cfreturn response>
+
+	</cffunction>
+
+	<cffunction name="cancelScheduledRelease" access="public" returnType="boolean" output="false"
+			hint="Deletes a post's pending cfschedule release task, from the Schedule Release admin window. Deliberately leaves the Post row itself untouched (Released stays false, DatePosted stays whatever it was set to) - only the pending task goes away, matching the window's own 'The post itself was not changed' message.">
+		<cfargument name="postId" type="numeric" required="true">
+
+		<cfset var cancelled = false>
+
+		<cftry>
+			<cfschedule action="delete" task="schedulePost#arguments.postId#">
+			<cfset cancelled = true>
+			<cfcatch type="any"><cfset cancelled = false></cfcatch>
+		</cftry>
+
+		<cfreturn cancelled>
+
+	</cffunction>
+
+	<cffunction name="getScheduledReleaseInfo" access="public" returnType="struct" output="false"
+			hint="Reads whether a post currently has a pending cfschedule release task (created by scheduleRelease() above, or by the savePost() 'Handle future posts' block), for the Schedule Release admin window to show current status instead of only working blind.">
+		<cfargument name="postId" type="numeric" required="true">
+
+		<cfset var info = { scheduled = false, startDate = "", startTime = "" }>
+		<cfset var tasks = "">
+		<cfset var getTask = "">
+
+		<cfschedule action="list" result="tasks">
+
+		<cfquery name="getTask" dbtype="query">
+			SELECT StartDate, StartTime FROM tasks
+			WHERE Task = <cfqueryparam value="schedulePost#arguments.postId#">
+		</cfquery>
+
+		<cfif getTask.recordCount>
+			<cfset info.scheduled = true>
+			<cfset info.startDate = dateFormat(getTask.startDate[1], "mmmm d, yyyy")>
+			<cfset info.startTime = timeFormat(getTask.startTime[1], "h:mm tt")>
+		</cfif>
+
+		<cfreturn info>
+
+	</cffunction>
+
 	<cffunction name="savePostHeader" access="public" returnType="numeric" output="false"
 			hint="Saves the post header.">
 		<cfargument name="postId" type="numeric" required="false">
@@ -10426,6 +11714,8 @@
 			<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
 			<!---And set the enclosureCarousel to null--->
 			<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
+			<!--- Write those null enclosure references now, while the row still exists. Otherwise the change is only flushed after the HQL delete below, and Hibernate tries to update a row that is already gone (OptimisticLockException). --->
+			<cfset ormFlush()>
 				
 			<!--- Load and delete any associated maps. We must do this from the child map object and can't perform this on the parent post object without causing constraint related errors --->
 			<cfset MapDbObj = entityLoad("Map", { PostRef = PostDbObj } )>
@@ -10459,6 +11749,32 @@
 					PostRef = #PostDbObj.getPostId()#
 			</cfquery>
 				
+			<!--- Delete the rows that reference this post and were not handled above. Each one is a foreign key to Post, so the Post delete below fails with a constraint error while any of them still exist (this is what blocked the delete on a live post with reads). The read rows of this post's comments must go before the comments do. --->
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM CommentRead
+				WHERE CommentRef IN (SELECT CommentId FROM Comment WHERE PostRef = #PostDbObj.getPostId()#)
+			</cfquery>
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM PostRead
+				WHERE PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM PostRating
+				WHERE PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM PostRssFeed
+				WHERE PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM PostSubscriber
+				WHERE PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+			<cfquery name="Data" dbtype="hql">
+				DELETE FROM PostTagLookup
+				WHERE PostRef = #PostDbObj.getPostId()#
+			</cfquery>
+
 			<!--- Delete related posts. --->
 			<cfquery name="Data" dbtype="hql">
 				DELETE FROM RelatedPost
@@ -10481,6 +11797,15 @@
 					PostRef = #PostDbObj.getPostId()#
 			</cfquery>
 					
+			<!--- Remove the post's docs/page collection memberships. PageCollectionMemberLookup is managed with raw SQL (not an ORM entity), so the HQL deletes above don't reach it. Without this, deleted pages leave orphan rows that still count toward a collection. The table may be missing on a database that has never had page collections, so a failure here is ignored. --->
+			<cftry>
+				<cfquery name="Data" datasource="#application.dsn#">
+					DELETE FROM PageCollectionMemberLookup
+					WHERE PostRef = <cfqueryparam value="#arguments.postId#" cfsqltype="cf_sql_integer">
+				</cfquery>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+
 			<!--- Finally, delete the post record --->
 			<cfquery name="Data" dbtype="hql">
 				DELETE FROM Post
@@ -11142,12 +12467,40 @@
 		<cfelse>
 			<cfset mediaId = 0>
 		</cfif>
-			
+
 		<!--- Return it --->
 		<cfreturn mediaId>
-			
+
 	</cffunction>
-		
+
+	<cffunction name="getPageCollectionEnclosureMediaIdByUrl" access="public" returnType="numeric" output="false"
+			hint="Same as getPostEnclosureMediaIdByUrl, but for a Page Collection's hero enclosure instead of a Post's.">
+		<cfargument name="pageCollectionId" type="numeric" required="true">
+		<cfargument name="mediaUrl" type="string" required="true">
+
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				Enclosure.MediaId as MediaId,
+				Enclosure.MediaUrl as MediaUrl
+			)
+			FROM PageCollection as PageCollection
+			LEFT JOIN PageCollection.EnclosureMedia as Enclosure
+			WHERE 0=0
+				AND PageCollection.PageCollectionId = <cfqueryparam value="#arguments.pageCollectionId#">
+				AND Enclosure.MediaUrl = <cfqueryparam value="#arguments.mediaUrl#">
+				AND Enclosure.MediaId <> ''
+		</cfquery>
+
+		<cfif arrayLen(Data)>
+			<cfset mediaId = Data[1]["MediaId"]>
+		<cfelse>
+			<cfset mediaId = 0>
+		</cfif>
+
+		<cfreturn mediaId>
+
+	</cffunction>
+
 	<cffunction name="getEnclosureMediaIdByPostId" access="public" returnType="numeric" output="false"
 			hint="This returns the mediaId of the post enclosure">
 		<cfargument name="postId" type="numeric" required="true">
@@ -11289,23 +12642,27 @@
 		<cfargument name="mediaWidth" type="string" default="" required="false">
 		<cfargument name="mediaSize" type="string" default="" required="false">
 		<cfargument name="providerVideoId" type="string" default="" required="false">
-		<!--- Media can be placed into either a comment or a post. --->
+		<!--- Media can be placed into either a comment or a post - or, for the same enclosure system reused on
+		a Page Collection's hero, a page collection. Mutually exclusive with postId. --->
 		<cfargument name="postId"  default="" required="false">
 		<cfargument name="commentId" default="" required="false">
-			
+		<cfargument name="pageCollectionId" default="" required="false">
+
 		<cftransaction>
-					
+
 			<!--- Load the media type and media ORM database objects. --->
 			<cfif len(arguments.mediaType)>
 				<cfset MediaTypeDbObj = entityLoad("MediaType", { MediaTypeStrId = arguments.mediaType }, "true" )>
-			</cfif> 
+			</cfif>
 			<!--- Load the mime type --->
 			<cfif len(arguments.mimeType)>
 				<cfset MimeTypeDbObj = entityLoad("MimeType", { MimeType = arguments.mimeType }, "true" )>
 			</cfif>
-			<!--- If this is an enclosure, load the post object --->
+			<!--- If this is an enclosure, load the post or page collection object --->
 			<cfif arguments.enclosure and arguments.postId neq ''>
 				<cfset PostDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
+			<cfelseif arguments.enclosure and len(arguments.pageCollectionId)>
+				<cfset PageCollectionDbObj = entityLoad("PageCollection", { PageCollectionId = arguments.pageCollectionId }, "true" )>
 			</cfif>
 
 			<!--- ************************* Save the data into the database ************************* --->
@@ -11370,13 +12727,25 @@
 				<cfset EntitySave(CommentMediaDbObj)>
 			</cfif>
 
+			<!--- Set the enclosure directly on the page collection - no junction table needed, a hero is always
+			exactly one media/map/carousel (unlike Post's PostMedia, which tracks a whole gallery per post). --->
+			<cfif len(arguments.pageCollectionId)>
+				<cfset PageCollectionDbObj = entityLoad("PageCollection", { PageCollectionId = arguments.pageCollectionId }, "true" )>
+				<cfif arguments.enclosure>
+					<cfset PageCollectionDbObj.setEnclosureMedia(MediaDbObj)>
+					<cfset PageCollectionDbObj.setEnclosureMap(javaCast("null",""))>
+					<cfset PageCollectionDbObj.setEnclosureCarousel(javaCast("null",""))>
+				</cfif>
+				<cfset EntitySave(PageCollectionDbObj)>
+			</cfif>
+
 			<!--- Save the post object if the postId was sent in --->
 			<cfif len(arguments.postId) gt 0>
 				<cfset EntitySave(PostDbObj)>
 			</cfif>
 			<!--- Save the media entity. --->
 			<cfset EntitySave(MediaDbObj)>
-			
+
 		</cftransaction>
 
 		<!--- And return the MediaId --->
@@ -11404,23 +12773,27 @@
 		<cfargument name="mediaVideoCoverUrl" type="string" default="" required="false">
 		<cfargument name="mediaVideoVttFileUrl" type="string" default="" required="false">
 		<cfargument name="providerVideoId" type="string" default="" required="false">
-		<!--- Media can be placed into either a comment or a post. --->
+		<!--- Media can be placed into either a comment or a post - or, for the same enclosure system reused on
+		a Page Collection's hero, a page collection. Mutually exclusive with postId. --->
 		<cfargument name="postId"  default="" required="false">
 		<cfargument name="commentId" default="" required="false">
-			
+		<cfargument name="pageCollectionId" default="" required="false">
+
 		<cftransaction>
-					
+
 			<!--- Load the media type and media ORM database objects if the arguments are present. --->
-			<cfif len(arguments.MediaType) gt 0> 
-				<cfset MediaTypeObj = entityLoad("MediaType", { MediaTypeStrId = arguments.mediaType }, "true" )> 
+			<cfif len(arguments.MediaType) gt 0>
+				<cfset MediaTypeObj = entityLoad("MediaType", { MediaTypeStrId = arguments.mediaType }, "true" )>
 			</cfif>
 			<!--- Load the mime type --->
-			<cfif len(arguments.mimeType) gt 0> 
+			<cfif len(arguments.mimeType) gt 0>
 				<cfset MimeTypeDbObj = entityLoad("MimeType", { MimeType = arguments.mimeType }, "true" )>
 			</cfif>
-			<!--- If this is an enclosure, load the post object --->
+			<!--- If this is an enclosure, load the post or page collection object --->
 			<cfif arguments.enclosure and arguments.postId neq ''>
 				<cfset PostDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
+			<cfelseif arguments.enclosure and len(arguments.pageCollectionId)>
+				<cfset PageCollectionDbObj = entityLoad("PageCollection", { PageCollectionId = arguments.pageCollectionId }, "true" )>
 			</cfif>
 
 			<!--- ************************* Save the data into the database ************************* --->
@@ -11481,21 +12854,32 @@
 				<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
 			</cfif>
 
+			<!--- Same enclosure handling for a page collection hero - no junction table, always exactly one. --->
+			<cfif arguments.enclosure and len(arguments.pageCollectionId)>
+				<cfset PageCollectionDbObj.setEnclosureMedia(MediaDbObj)>
+				<cfset PageCollectionDbObj.setEnclosureMap(javaCast("null",""))>
+				<cfset PageCollectionDbObj.setEnclosureCarousel(javaCast("null",""))>
+			</cfif>
+
 			<!--- Save the post object if this is an enclosure --->
 			<cfif arguments.enclosure and arguments.postId neq ''>
 				<cfset EntitySave(PostDbObj)>
 			</cfif>
+			<!--- Save the page collection object if this is an enclosure --->
+			<cfif arguments.enclosure and len(arguments.pageCollectionId)>
+				<cfset EntitySave(PageCollectionDbObj)>
+			</cfif>
 			<!--- Save the media entity. --->
 			<cfset EntitySave(MediaDbObj)>
-			
+
 		</cftransaction>
 
 		<!--- And return the MediaId --->
 		<cfreturn MediaDbObj.getMediaId()>
-	
+
 	</cffunction>
-				
-	<!---******************************************************************************************************** 
+
+	<!---********************************************************************************************************
 		Media Helpers
 	*********************************************************************************************************--->
 				
@@ -11745,7 +13129,8 @@
 	<cffunction name="saveMap" access="public" returnType="string" output="false"
 			hint="Saves a map into the database">
 		
-		<cfargument name="postId" type="string" required="true" default="" hint="Pass in the postId">
+		<cfargument name="postId" type="string" required="false" default="" hint="Pass in the postId - mutually exclusive with pageCollectionId">
+		<cfargument name="pageCollectionId" type="string" required="false" default="" hint="Pass in the pageCollectionId when this map is a Page Collection's hero enclosure instead of a Post's">
 		<cfargument name="mapId" type="string" required="false" default="" hint="Pass in the mapId if present">
 		<cfargument name="mapName" type="string" required="false" default="" hint="Not used in this version">
 		<cfargument name="provider" type="string" required="false" default="Azure Maps" hint="Pass in the provider (Bing Maps is retired on June 2025).">
@@ -11764,7 +13149,8 @@
 			<!--- Get the provider. We are using Azure Maps right now --->
 			<cfset ProviderDbObj = entityLoad("MapProvider", { MapProvider = 'Azure Maps' }, "true" )>
 			<!--- And the map type. Our default is aerial --->
-			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = arguments.mapType, MapProviderRef = ProviderDbObj }, "true" )>
+			<!--- MapType.MapProviderRef is a plain int column, not a relation, so filter on the provider's id. Passing the entity itself throws a ClassCastException. --->
+			<cfset MapTypeDbObj = entityLoad("MapType", { MapType = arguments.mapType, MapProviderRef = ProviderDbObj.getMapProviderId() }, "true" )>
 		
 			<cfif arguments.mapId neq ''>
 				<!--- Load the Map entity --->
@@ -11801,25 +13187,36 @@
 					<!--- Remove other enclosures --->
 					<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
 					<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
-						
+
 					<!--- Save it --->
 					<cfset EntitySave(PostDbObj)>
+				</cfif>
+			<cfelseif len(arguments.pageCollectionId)>
+				<!--- Same handling for a page collection hero. --->
+				<cfset PageCollectionDbObj = entityLoad("PageCollection", { PageCollectionId = arguments.pageCollectionId }, "true" )>
+				<cfset MapDbObj.setPageCollectionRef(PageCollectionDbObj)>
+				<cfif arguments.isEnclosure>
+					<cfset PageCollectionDbObj.setEnclosureMap(MapDbObj)>
+					<cfset PageCollectionDbObj.setEnclosureMedia(javaCast("null",""))>
+					<cfset PageCollectionDbObj.setEnclosureCarousel(javaCast("null",""))>
+					<cfset EntitySave(PageCollectionDbObj)>
 				</cfif>
 			</cfif>
 			<!--- Save the map. --->
 			<cfset EntitySave(MapDbObj)>
 		</cftransaction>
-		
+
 		<!--- Return the mapId --->
 		<cfreturn MapDbObj.getMapId()>
-			
+
 	</cffunction>
 			
 	<cffunction name="saveMapRoute" access="public" returnType="string" output="false"
 			hint="Saves a map into the database">
 		<cfargument name="mapId" type="string" required="false" default="" hint="Pass in the mapId if present">
 		<cfargument name="mapRouteId" type="string" required="false" default="" hint="Pass in the mapRouteId if present">
-		<cfargument name="postId" type="string" required="true" default="" hint="Pass in the postId">
+		<cfargument name="postId" type="string" required="false" default="" hint="Pass in the postId - mutually exclusive with pageCollectionId">
+		<cfargument name="pageCollectionId" type="string" required="false" default="" hint="Pass in the pageCollectionId when this map route is a Page Collection's hero enclosure instead of a Post's">
 		<cfargument name="provider" type="string" required="true" default="Azure Maps" hint="Pass in the provider">
 		<cfargument name="isEnclosure" type="boolean" required="true" default="true" hint="We need to determine if this is an enclosure in order to create the proper relationships in the database.">
 		<cfargument name="locationGeoCoordinates" type="string" required="false" default="" hint="Pass in the address, and latitude and longitude separated by a comma. The locationGeoCoordinates should be a CF list object. The data should be formatted like so: address_geoCoordinates_address1_geoCoordinates1_address2_geoCoordinates2_ etc">
@@ -11829,8 +13226,24 @@
 		<cftransaction>
 			<!--- Get the provider. We are using Azure Maps right now --->
 			<cfset ProviderDbObj = entityLoad("MapProvider", { MapProvider = 'Azure Maps' }, "true" )>
-			<!--- And the map type. Our default is satellite_road_labels (ID: 11) --->
-			<cfset MapTypeDbObj = entityLoadByPK("MapType", 11 )>
+			<!--- And the map type. This used to be a hard-coded entityLoadByPK("MapType", 11) ("our default is
+			satellite_road_labels") - but MapType ids differ between installs, and on galaxieblog.org there is no id 11, so
+			the lookup returned null and every route save failed with "variable [MAPTYPEDBOBJ] doesn't exist" (Lucee
+			drops a variable set to null). Look it up the same way saveMap() does - by the style the map was saved with
+			and the provider - then fall back to id 11, then to any type for this provider. --->
+			<cfset MapTypeDbObj = "">
+			<cfif len(arguments.mapType) and isObject(ProviderDbObj)>
+				<cfset MapTypeDbObj = entityLoad("MapType", { MapType = arguments.mapType, MapProviderRef = ProviderDbObj.getMapProviderId() }, "true" )>
+			</cfif>
+			<cfif isNull(MapTypeDbObj) or not isObject(MapTypeDbObj)>
+				<cfset MapTypeDbObj = entityLoadByPK("MapType", 11 )>
+			</cfif>
+			<cfif (isNull(MapTypeDbObj) or not isObject(MapTypeDbObj)) and isObject(ProviderDbObj)>
+				<cfset providerMapTypes = entityLoad("MapType", { MapProviderRef = ProviderDbObj.getMapProviderId() })>
+				<cfif arrayLen(providerMapTypes)>
+					<cfset MapTypeDbObj = providerMapTypes[1]>
+				</cfif>
+			</cfif>
 		
 			<cfif arguments.mapId neq ''>
 				<!--- Load the Map entity --->
@@ -11848,7 +13261,10 @@
 			</cfif> 
 			<!--- Set the values --->
 			<cfset MapDbObj.setMapProviderRef(ProviderDbObj)>
-			<cfset MapDbObj.setMapTypeRef(MapTypeDbObj)>
+			<!--- Only when a type was found above - a route still saves and draws without one. --->
+			<cfif not isNull(MapTypeDbObj) and isObject(MapTypeDbObj)>
+				<cfset MapDbObj.setMapTypeRef(MapTypeDbObj)>
+			</cfif>
 			<cfset MapDbObj.setHasMapRoutes(true)>
 
 			<!--- location is derived from the map coordinate string --->
@@ -11885,6 +13301,14 @@
 				</cftransaction>
 			</cfloop>
 
+			
+			<!--- The route changed, so drop its cached thumbnail. Renderer rebuilds it on the next view. --->
+			<cftry>
+				<cfset staleThumbnailFolder = expandPath(application.baseUrl & "/enclosures/thumbnails/maps")>
+				<cfif directoryExists(staleThumbnailFolder)><cfdirectory action="list" directory="#staleThumbnailFolder#" filter="map-#MapDbObj.getMapId()#*.png" name="staleThumbnails"><cfloop query="staleThumbnails"><cffile action="delete" file="#staleThumbnailFolder#/#staleThumbnails.name#"></cfloop></cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+
 			<!--- Finally, save the MapId into the post table. --->
 			<cfif arguments.postId neq ''>
 				<!--- Load the post entity --->
@@ -11902,16 +13326,26 @@
 					<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
 				</cfif>
 				<cfset EntitySave(PostDbObj)>
+			<cfelseif len(arguments.pageCollectionId)>
+				<!--- Same handling for a page collection hero. --->
+				<cfset PageCollectionDbObj = entityLoad("PageCollection", { PageCollectionId = arguments.pageCollectionId }, "true" )>
+				<cfset MapDbObj.setPageCollectionRef(PageCollectionDbObj)>
+				<cfif arguments.isEnclosure>
+					<cfset PageCollectionDbObj.setEnclosureMap(MapDbObj)>
+					<cfset PageCollectionDbObj.setEnclosureMedia(javaCast("null",""))>
+					<cfset PageCollectionDbObj.setEnclosureCarousel(javaCast("null",""))>
+				</cfif>
+				<cfset EntitySave(PageCollectionDbObj)>
 			</cfif>
 			<!--- Save the map. --->
 			<cfset EntitySave(MapDbObj)>
 		</cftransaction>
-		
+
 		<!--- Return the mapId --->
 		<cfreturn MapDbObj.getMapId()>
-			
+
 	</cffunction>
-						
+
 	<!---****************************************************************************************************
 		Carousel functions
 	******************************************************************************************************--->
@@ -11919,40 +13353,69 @@
 	<cffunction name="getCarousel" access="public" returnType="any" output="false"
 			hint="Returns the carousel data for a given post">
 		<cfargument name="carouselId" required="true">
+		<cfargument name="itemIdList" type="string" required="false" default="" hint="Optional, comma-separated CarouselItemIds - when non-empty, only those items are returned (in the given order isn't guaranteed by SQL, callers that care re-sort client side). Added for the hero image pool feature, which shows a deterministic subset of a shared pool carousel rather than every item in it - every existing caller passes nothing and is unaffected.">
 		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
 		<cfset var Data = "">
-				
+
 		<cfquery name="Data" dbtype="hql">
 			SELECT new Map (
-				Carousel.CarouselId as CarouselId, 
-				Carousel.CarouselName as CarouselName, 
-				Carousel.CarouselTitle as CarouselTitle, 
-				Carousel.CarouselEffect as CarouselEffect, 
+				Carousel.CarouselId as CarouselId,
+				Carousel.CarouselName as CarouselName,
+				Carousel.CarouselTitle as CarouselTitle,
+				Carousel.CarouselEffect as CarouselEffect,
 				Carousel.CarouselShader as CarouselShader,
 				CarouselItem.CarouselItemId as CarouselItemId,
-				CarouselItem.CarouselItemTitle as CarouselItemTitle, 
-				CarouselItem.CarouselItemTitleFontColor as CarouselItemTitleFontColor, 
-				CarouselItem.CarouselItemTitleFontSize as CarouselItemTitleFontSize, 
-				CarouselItem.CarouselItemBody as CarouselItemBody, 
-				CarouselItem.CarouselItemBodyFontColor as CarouselItemBodyFontColor, 
-				CarouselItem.CarouselItemBodyFontSize as CarouselItemBodyFontSize, 
+				CarouselItem.CarouselItemTitle as CarouselItemTitle,
+				CarouselItem.CarouselItemTitleFontColor as CarouselItemTitleFontColor,
+				CarouselItem.CarouselItemTitleFontSize as CarouselItemTitleFontSize,
+				CarouselItem.CarouselItemBody as CarouselItemBody,
+				CarouselItem.CarouselItemBodyFontColor as CarouselItemBodyFontColor,
+				CarouselItem.CarouselItemBodyFontSize as CarouselItemBodyFontSize,
 				CarouselItem.CarouselItemUrl as CarouselItemUrl,
 				CarouselItem.MediaRef.MediaUrl as MediaUrl,
 				CarouselItem.MediaRef.MediaThumbnailUrl as MediaThumbnailUrl,
 				Font.FontId as FontId,
 				Font.Font as Font
 			)
-			FROM 
+			FROM
 				Carousel as Carousel
 				JOIN Carousel.CarouselItems as CarouselItem
 				JOIN CarouselItem.CarouselItemTitleFontRef as Font
 			WHERE Carousel.CarouselId = <cfqueryparam value="#arguments.carouselId#" cfsqltype="cf_sql_integer">
+			<cfif len(arguments.itemIdList)>
+				AND CarouselItem.CarouselItemId IN (<cfqueryparam value="#arguments.itemIdList#" cfsqltype="cf_sql_integer" list="true">)
+			</cfif>
+			<!--- Slides are saved in the order they were picked, so their ids are in that order. Without an ORDER BY, the
+			database could return them in any order. --->
+			ORDER BY CarouselItem.CarouselItemId
 		</cfquery>
-		
+
 		<!--- Return the array. --->
 		<cfreturn Data>
-    
+
 	</cffunction>
+
+	<cffunction name="getHeroImagePoolCarouselId" access="public" returnType="string" output="false"
+			hint="The blog-wide hero image pool's CarouselId (BlogOption.HeroImagePoolCarouselRef), or '' if no pool has been created yet - the admin UI creates it lazily on first use, so a fresh blog legitimately has none.">
+		<cfset var Data = "">
+
+		<cfquery name="Data" dbtype="hql">
+			SELECT new Map (
+				BlogOption.HeroImagePoolCarouselRef.CarouselId as CarouselId
+			)
+			FROM
+				BlogOption as BlogOption
+			WHERE BlogOption.BlogOptionId = 1
+		</cfquery>
+
+		<cfif arrayLen(Data) and len(Data[1]["CarouselId"])>
+			<cfreturn Data[1]["CarouselId"]>
+		<cfelse>
+			<cfreturn "">
+		</cfif>
+
+	</cffunction>
+
 								
 	<!---******************************************************************************************************** 
 		Related posts
@@ -13314,15 +14777,30 @@
 			// Returns the RFC 822 GMT offset (eg "-0700" or "+0530") for the blog time zone, correct for
 			// whatever date is passed in - so posts published during DST get a different offset than ones
 			// published during standard time, instead of the feed always using one fixed offset.
-			function formatRSSOffset(thisDate) {
+			// A closure, not a plain nested function (2026-10-09): Lucee doesn't let a function declared inside another
+			// see that function's local (var) variables, so blogTimeZoneId was "undefined" and the whole RSS feed
+			// failed on Lucee (Adobe ColdFusion allowed it). A closure carries them with it on both engines.
+			var formatRSSOffset = function(thisDate) {
 				var offsetHours = TimeZoneObj.getTZOffset(arguments.thisDate, blogTimeZoneId);
 				var sign = (offsetHours < 0) ? "-" : "+";
 				var absOffsetMinutes = round(abs(offsetHours) * 60);
 				var oHours = int(absOffsetMinutes / 60);
 				var oMinutes = absOffsetMinutes mod 60;
 				return sign & numberFormat(oHours, "00") & numberFormat(oMinutes, "00");
-			}
+			};
 		</cfscript>
+
+		<!--- The channel header below (lastBuildDate/managingEditor/webMaster) needs the first post that will
+		actually appear in the feed, not just getPost[1] - a post can be excluded via Post.DisplayOnRss (the admin
+		checkbox in postDetail.cfm), and using the raw first row would show that excluded post's date/author in the
+		header even though it isn't in the item list below, out of sync with what readers actually see. --->
+		<cfset firstVisiblePost = "">
+		<cfloop from="1" to="#arrayLen(getPost)#" index="i">
+			<cfif not (structKeyExists(getPost[i], "DisplayOnRss") and not getPost[i]["DisplayOnRss"])>
+				<cfset firstVisiblePost = getPost[i]>
+				<cfbreak>
+			</cfif>
+		</cfloop>
 
 		<cfsavecontent variable="header">
 			<cfoutput><?xml version="1.0" encoding="utf-8"?>
@@ -13338,13 +14816,17 @@
 			<lastBuildDate>{LAST_BUILD_DATE}</lastBuildDate>
 			<generator>Galaxie Blog</generator>
 			<docs>http://blogs.law.harvard.edu/tech/rss</docs>
-			<managingEditor>#xmlFormat(instance.owneremail)# <cfif arrayLen(getPost)>(#xmlFormat(getPost[1]["FullName"])#)</cfif></managingEditor>
-			<webMaster>#xmlFormat(instance.owneremail)# <cfif arrayLen(getPost)>(#xmlFormat(getPost[1]["FullName"])#)</cfif></webMaster>
+			<managingEditor>#xmlFormat(instance.owneremail)# <cfif isStruct(firstVisiblePost)>(#xmlFormat(firstVisiblePost["FullName"])#)</cfif></managingEditor>
+			<webMaster>#xmlFormat(instance.owneremail)# <cfif isStruct(firstVisiblePost)>(#xmlFormat(firstVisiblePost["FullName"])#)</cfif></webMaster>
 			</cfoutput>
 		</cfsavecontent>
 
 		<cfsavecontent variable="items">
 		<cfloop from="1" to="#arrayLen(getPost)#" index="i">
+			<!--- Skip posts explicitly marked out of the RSS feed (Post.DisplayOnRss, admin checkbox in postDetail.cfm) - structKeyExists guards a pre-existing row from before this column existed, same defensive pattern already used for Promoted/AllowComment elsewhere in this file. --->
+			<cfif structKeyExists(getPost[i], "DisplayOnRss") and not getPost[i]["DisplayOnRss"]>
+				<cfcontinue>
+			</cfif>
 			<!--- Extract data from the post --->
 			<cfset postId = getPost[i]["PostId"]>
 			<cfset fullName = getPost[i]["FullName"]>
@@ -13404,13 +14886,139 @@
 		 	</cfloop>
 		</cfsavecontent>
 
-		<cfif arrayLen(getPost)>
-			<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(getPost[1]["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(getPost[1]["DatePosted"],"HH:mm:ss") & " " & formatRSSOffset(getPost[1]["DatePosted"])#','one')>
+		<cfif isStruct(firstVisiblePost)>
+			<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(firstVisiblePost["DatePosted"],"ddd, dd mmm yyyy") & " " & timeFormat(firstVisiblePost["DatePosted"],"HH:mm:ss") & " " & formatRSSOffset(firstVisiblePost["DatePosted"])#','one')>
+		<cfelse>
+			<!--- Every post on this page is excluded from RSS (or there are none) - fall back to now rather than leaving the literal {LAST_BUILD_DATE} placeholder in the output. --->
+			<cfset header = replace(header,'{LAST_BUILD_DATE}','#dateFormat(blogNow(),"ddd, dd mmm yyyy") & " " & timeFormat(blogNow(),"HH:mm:ss") & " " & formatRSSOffset(blogNow())#','one')>
 		</cfif>
 		<cfset rssStr = trim(header & items & "</channel></rss>")>
 
 		<cfreturn rssStr>
 
+	</cffunction>
+
+	<cffunction name="generateAtom" access="public" returnType="string" output="false"
+			hint="Generates an Atom 1.0 feed (RFC 4287) - added 2026-10-09 on request. Same posts, filters, excerpt rules and DisplayOnRss checkbox as generateRSS, so the two feeds always list the same posts; only the XML differs. Atom requires a permanent id and an updated date for the feed and every entry: posts have no last-edited date, so DatePosted is used for both published and updated.">
+		<cfargument name="mode" type="string" required="false" default="short" hint="short: a plain-text summary of each post (excerpt characters). full: the whole post as plain text, same as the RSS feed.">
+		<cfargument name="excerpt" type="numeric" required="false" default="750">
+		<cfargument name="params" type="struct" required="false" default="#structNew()#" hint="Passed to getPost, same as generateRSS. maxEntries is capped at 15.">
+		<cfargument name="additionalTitle" type="string" required="false" default="">
+		<cfargument name="selfUrl" type="string" required="false" default="" hint="The feed's own address, for the rel=self link Atom expects.">
+		<cfset var StringUtilsObj = "">
+		<cfset var TimeZoneObj = "">
+		<cfset var blogTimeZoneId = "">
+		<cfset var getPost = "">
+		<cfset var visiblePosts = []>
+		<cfset var thisPost = "">
+		<cfset var postLink = "">
+		<cfset var body = "">
+		<cfset var text = "">
+		<cfset var postDate = "">
+		<cfset var feedUpdated = "">
+		<cfset var postCategories = "">
+		<cfset var thisCategory = "">
+		<cfset var enclosureType = "">
+		<cfset var feedHostUrl = "">
+		<cfset var entries = "">
+		<cfset var feed = "">
+
+		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
+		<cfobject component="#application.timeZoneComponentPath#" name="TimeZoneObj">
+		<!--- Same DST-aware blog time zone lookup generateRSS uses. --->
+		<cfset blogTimeZoneId = TimeZoneObj.getTZByOffset(application.BlogDbObj.getBlogTimeZone())[1]>
+
+		<cfif not structKeyExists(arguments.params, "maxEntries") or arguments.params.maxEntries gt 15>
+			<cfset arguments.params.maxEntries = 15>
+		</cfif>
+		<!--- ?category= and ?tag= work on this feed too, same as rss.cfm. --->
+		<cfif structKeyExists(url, "category") and trim(url.category) neq "">
+			<cfset arguments.params.byCat = url.category>
+		</cfif>
+		<cfif structKeyExists(url, "tag") and trim(url.tag) neq "">
+			<cfset arguments.params.byTag = url.tag>
+		</cfif>
+
+		<cfinvoke component="#application.blog#" method="getPost" returnvariable="getPost">
+			<cfinvokeargument name="params" value="#arguments.params#">
+			<cfinvokeargument name="showPages" value="false">
+			<cfinvokeargument name="showBlogPosts" value="true">
+			<cfinvokeargument name="showPendingPosts" value="false">
+			<cfinvokeargument name="showRemovedPosts" value="false">
+			<cfinvokeargument name="showJsonLd" value="false">
+			<cfinvokeargument name="showPromoteAtTopOfQuery" value="false">
+		</cfinvoke>
+
+		<!--- Skip posts unchecked for the feed (Post.DisplayOnRss), same as generateRSS. --->
+		<cfloop array="#getPost#" item="thisPost">
+			<cfif not (structKeyExists(thisPost, "DisplayOnRss") and not thisPost["DisplayOnRss"])>
+				<cfset arrayAppend(visiblePosts, thisPost)>
+			</cfif>
+		</cfloop>
+
+		<cfscript>
+			// RFC 3339 date-time, which Atom requires (eg 2026-10-09T14:05:00-07:00), with the blog time zone's
+			// DST-aware offset for that particular date.
+			// A closure, not a nested function - see formatRSSOffset in generateRSS: on Lucee a nested function can't see
+			// this function's local TimeZoneObj/blogTimeZoneId.
+			var formatAtomDate = function(thisDate) {
+				var offsetHours = TimeZoneObj.getTZOffset(arguments.thisDate, blogTimeZoneId);
+				var sign = (offsetHours < 0) ? "-" : "+";
+				var absOffsetMinutes = round(abs(offsetHours) * 60);
+				return dateFormat(arguments.thisDate, "yyyy-mm-dd") & "T" & timeFormat(arguments.thisDate, "HH:mm:ss")
+					& sign & numberFormat(int(absOffsetMinutes / 60), "00") & ":" & numberFormat(absOffsetMinutes mod 60, "00");
+			};
+		</cfscript>
+
+		<cfset feedHostUrl = StringUtilsObj.trimStr(application.blogHostUrl)>
+		<cfset feedUpdated = arrayLen(visiblePosts) ? formatAtomDate(visiblePosts[1]["DatePosted"]) : formatAtomDate(blogNow())>
+
+		<cfsavecontent variable="entries">
+		<cfloop array="#visiblePosts#" item="thisPost">
+			<cfif application.serverRewriteRuleInPlace>
+				<cfset postLink = replaceNoCase(makeLink(thisPost["PostId"]), "/index.cfm", "")>
+			<cfelse>
+				<cfset postLink = makeLink(thisPost["PostId"])>
+			</cfif>
+			<cfset postDate = formatAtomDate(thisPost["DatePosted"])>
+			<cfset body = StringUtilsObj.getTextFromBody(thisPost["Body"])>
+			<!--- Same text rules as generateRSS: the post's description if it has one, otherwise an excerpt (short) or the whole post (full). --->
+			<cfif len(thisPost["Description"])>
+				<cfset text = thisPost["Description"]>
+			<cfelseif arguments.mode is "short" and len(body) gte arguments.excerpt>
+				<cfset text = left(body, arguments.excerpt) & "...">
+			<cfelse>
+				<cfset text = body & thisPost["MoreBody"]>
+			</cfif>
+			<cfset postCategories = getCategoriesByPostId(thisPost["PostId"])>
+			<cfoutput>
+	<entry>
+		<title type="text">#xmlFormat(thisPost["Title"])#</title>
+		<link rel="alternate" type="text/html" href="#xmlFormat(postLink)#"/>
+		<id>#xmlFormat(postLink)#</id>
+		<published>#postDate#</published>
+		<updated>#postDate#</updated>
+		<author><name>#xmlFormat(thisPost["FullName"])#</name></author>
+		<cfloop array="#postCategories#" item="thisCategory"><category term="#xmlFormat(thisCategory["Category"])#"/>
+		</cfloop><cfif arguments.mode is "short"><summary type="text">#xmlFormat(text)#</summary><cfelse><content type="text">#xmlFormat(text)#</content></cfif>
+		<cfif len(thisPost["MediaPath"])><cfset enclosureType = len(thisPost["MimeType"]) ? thisPost["MimeType"] : "image/jpeg"><link rel="enclosure" type="#xmlFormat(enclosureType)#"<cfif isNumeric(thisPost["MediaSize"])> length="#thisPost["MediaSize"]#"</cfif> href="#xmlFormat(feedHostUrl & '/enclosures/' & getFileFromPath(thisPost["MediaPath"]))#"/></cfif>
+	</entry></cfoutput>
+		</cfloop>
+		</cfsavecontent>
+
+		<cfsavecontent variable="feed"><cfoutput><?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+	<title type="text">#xmlFormat(instance.blogTitle)##xmlFormat(arguments.additionalTitle)#</title>
+	<subtitle type="text">#xmlFormat(instance.blogDescription)#</subtitle>
+	<link rel="alternate" type="text/html" href="#xmlFormat(feedHostUrl)#"/>
+	<cfif len(arguments.selfUrl)><link rel="self" type="application/atom+xml" href="#xmlFormat(arguments.selfUrl)#"/></cfif>
+	<id>#xmlFormat(len(arguments.selfUrl) ? arguments.selfUrl : feedHostUrl & "/atom.cfm")#</id>
+	<updated>#feedUpdated#</updated>
+	<generator uri="https://galaxieblog.org/">Galaxie Blog</generator>
+#entries#
+</feed></cfoutput></cfsavecontent>
+
+		<cfreturn trim(feed)>
 	</cffunction>
 					
 	<!---******************************************************************************************************** 
@@ -13523,8 +15131,19 @@
 				</cfif>
 			</cftransaction>
 
+			<!--- 2026-09-26: same stale-app-scope-singleton bug already found and fixed in
+			ProxyController.cfc's saveBlogSettings()/saveBlogOptions() - this function (used at install time and
+			on a version update, per the updateRecords flag above) loads and saves its own separate Blog entity
+			instance too, distinct from application.BlogDbObj. On a version update specifically, this matters:
+			without this refresh, any code checking application.BlogDbObj right after an update runs (in the same
+			request, or the same long-lived admin session before the next app reinit) would see pre-update values,
+			as if the update had silently done nothing. Only refresh when this block actually ran a save, matching
+			the same updateRecords/arrayLen(getData) gate used above. --->
 			<cfset blogId = BlogDbObj.getBlogId()>
-		</cfif>	
+			<cfif not arrayLen(getData) or updateRecords>
+				<cfset application.BlogDbObj = EntityLoadByPk("Blog", blogId)>
+			</cfif>
+		</cfif>
 		<cfif isDefined("debug") and debug>Blog Table succesfully populated.<br/></cfif>
 
 		<!--- ******************************************************************************************
@@ -13594,7 +15213,12 @@
 
 			</cftransaction>
 
+			<!--- 2026-09-26: same stale-app-scope-singleton bug fixed just above for the Blog block (see that
+			comment) - refresh application.BlogOptionDbObj too, only when this block actually ran a save. --->
 			<cfset blogOptionId = OptionDbObj.getBlogOptionId()>
+			<cfif not arrayLen(getData) or updateRecords>
+				<cfset application.BlogOptionDbObj = EntityLoadByPk("BlogOption", blogOptionId)>
+			</cfif>
 		</cfif>
 		<cfif isDefined("debug") and debug>Blog Option Table succesfully populated.<br/></cfif>
 

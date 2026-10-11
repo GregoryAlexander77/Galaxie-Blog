@@ -255,7 +255,7 @@ Import the Blog.
 	<cfset BlogDbObj.setBlogMailServerPassword(mailServerPassword)>
 	<cfset BlogDbObj.setBlogEmail(blogEmail)>
 	<cfset BlogDbObj.setBlogEmailFailToAddress(failTo)>
-	<cfset BlogDbObj.setIpBlockList(ipblocklist)>
+	<!---<cfset BlogDbObj.setIpBlockList(ipblocklist)>--->
 	<cfset BlogDbObj.setEntriesPerBlogPage(10)>
 	<cfset BlogDbObj.setBlogModerated(moderate)>
 	<cfset BlogDbObj.setUseCaptcha(usecaptcha)>
@@ -273,9 +273,15 @@ Import the Blog.
 
 	<!--- Save it. Note: updates will automatically occur on persisted objects if the object notices any change. We don't  have to use entity save after the Entity has been loaded and saved. --->
 	<cfset EntitySave(BlogDbObj)>
-	
+
 </cftransaction>
-		
+
+<!--- 2026-09-26: same stale-app-scope-singleton bug found and fixed in ProxyController.cfc's
+saveBlogSettings()/saveBlogOptions() and blog.cfc's updateDb() - this import script also loads and saves its own
+separate Blog entity instance, distinct from application.BlogDbObj. Refresh it here too so nothing later in the
+same import request (or the same long-lived session before the next app reinit) sees stale pre-import values. --->
+<cfset application.BlogDbObj = entityLoadByPK("Blog", BlogDbObj.getBlogId())>
+
 <!--- **********************************************************************************************
 The Blog UI Sttings don't  exist yet. its a new table.
 *************************************************************************************************--->
@@ -323,11 +329,15 @@ Blog Option table.
 
 	<!--- Save it. Note: updates will automatically occur on persisted objects if the object notices any change. We don't  have to use entity save after the Entity has been loaded and saved. --->
 	<cfset EntitySave(BlogOptionDbObj)>
-	
+
 </cftransaction>
-		
+
+<!--- 2026-09-26: same stale-app-scope-singleton bug fixed just above for the Blog block (see that comment) -
+refresh application.BlogOptionDbObj too. --->
+<cfset application.BlogOptionDbObj = entityLoadByPK("BlogOption", BlogOptionDbObj.getBlogOptionId())>
+
 <!--- **********************************************************************************************
-Category table. We will populate the categories from the original BlogCfc database. 
+Category table. We will populate the categories from the original BlogCfc database.
 *************************************************************************************************--->
 		
 <!---<cfquery name="reset">

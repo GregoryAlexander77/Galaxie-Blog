@@ -35,16 +35,52 @@
 	<cfset imageList = listAppend(imageList, "/images/icons/post.png")>
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
+	<cfset iconList = listAppend(iconList, 'Posts')>
+	<cfset titleList = listAppend(titleList, 'Posts')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(5);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/posts.png")>
+</cfif>
+<!--- A direct shortcut into the same 3-way New chooser (createAdminInterfaceWindow(24,...)) used by "Create Post" above,
+pre-selecting the Page radio instead of leaving the owner to land on Post and switch it manually - was parked earlier
+("don't do it now") and is being added now. --->
+<cfif listFindNoCase(currentUserCapabilityList, 'AddPost')>
+	<cfset iconList = listAppend(iconList, 'CreatePage')>
+	<cfset titleList = listAppend(titleList, 'Create Page')>
+	<!--- iconList/titleList/linkList/imageList are plain comma-delimited lists, so a literal comma inside an appended
+	value (as in a multi-argument createAdminInterfaceWindow(24,'newPage') call) silently splits into an extra list
+	item and desyncs every icon after it by one position. Use the HTML entity &#44; instead of a literal comma - the
+	browser decodes it back to a comma when parsing the href attribute, so the executed JS is unaffected. --->
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(24&##44;'newPage');")>
+	<cfset imageList = listAppend(imageList, "/images/icons/newPage.gif")>
+</cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
 	<cfset iconList = listAppend(iconList, 'Pages')>
 	<cfset titleList = listAppend(titleList, 'Pages')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(57);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/contentEditor.png")>
 </cfif>
-<cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
-	<cfset iconList = listAppend(iconList, 'Posts')>
-	<cfset titleList = listAppend(titleList, 'Posts')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(5);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/posts.png")>
+<!--- A third shortcut into the same 3-way New chooser used by "Create Post"/"Create Page" above, pre-selecting the
+Page Collection radio - completes the Create Post/Posts, Create Page/Pages, Create Page Collection/Page Collections
+grouping. Placed right after Pages, with Page Collections (moved down from its old spot near Blog Options) right
+next to it, same &#44; comma-escaping trick "Create Page" already uses. --->
+<cfif listFindNoCase(currentUserCapabilityList, 'AddPost')>
+	<cfset iconList = listAppend(iconList, 'CreatePageCollection')>
+	<cfset titleList = listAppend(titleList, 'Create Page Collection')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(24&##44;'newPageCollection');")>
+	<cfset imageList = listAppend(imageList, "/images/icons/newCollection.gif")>
+</cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'EditPost') gt 0>
+	<cfset iconList = listAppend(iconList, 'ConfigurePageCollections')>
+	<cfset titleList = listAppend(titleList, 'Page Collections')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(68);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/pageCollection.gif")>
+</cfif>
+<!--- Configure Menu (2026-10-10, 4.8): the owner's Menu links and the top menu's names. Same capability as Themes. --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditTheme')>
+	<cfset iconList = listAppend(iconList, 'ConfigureMenu')>
+	<cfset titleList = listAppend(titleList, 'Configure Menu')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(82);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/configureSite.gif")>
 </cfif>
 <!--- Don't include the comment interface with Disqus --->
 <cfif not application.includeDisqus and (listFindNoCase(currentUserCapabilityList, 'EditComment') or listFindNoCase(currentUserCapabilityList, 'EditPost'))>
@@ -91,6 +127,22 @@
 <cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(7);")>
 <cfset imageList = listAppend(imageList, "/images/icons/userProfile.gif")>
 	
+<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
+	<cfset iconList = listAppend(iconList, 'BlogSettings')>
+	<cfset titleList = listAppend(titleList, 'Blog Settings')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(39);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/serverSettings.gif")>
+</cfif>
+<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
+	<cfset iconList = listAppend(iconList, 'BlogOptions')>
+	<cfset titleList = listAppend(titleList, 'Blog Options')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(38);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/settings.gif")>
+</cfif>
+<!--- Configure Homepage - the global "what shows as homepage" toggle. Managing the underlying Page Collections
+structure itself now lives up near Create Post/Create Page (Create Page Collection/Page Collections), not here. --->
+<!--- Themes ahead of Configure Homepage - themes get reached for far more often (designing/tweaking the site), so it
+gets the earlier slot of the two. --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditTheme') gt 0>
 	<cfset iconList = listAppend(iconList, 'Themes')>
 	<cfset titleList = listAppend(titleList, 'Themes & Content')>
@@ -98,16 +150,10 @@
 	<cfset imageList = listAppend(imageList, "/images/icons/themes.png")>
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
-	<cfset iconList = listAppend(iconList, 'BlogSettings')>
-	<cfset titleList = listAppend(titleList, 'Blog Settings')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(39);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/serverSettings.gif")>
-</cfif>	
-<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
-	<cfset iconList = listAppend(iconList, 'BlogOptions')>
-	<cfset titleList = listAppend(titleList, 'Blog Options')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(38);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/settings.gif")>
+	<cfset iconList = listAppend(iconList, 'ConfigureHomepage')>
+	<cfset titleList = listAppend(titleList, 'Configure Homepage')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(70);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/configureSite.gif")>
 </cfif>
 <!--- There are occassional ORM lock issues on occassion since the logging requires capturing data for each visitor ---> 
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
@@ -678,6 +724,100 @@
 								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
 								</a>
 
+							</span>
+							</cfif>
+						</td>
+					</tr>
+					<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
+				<cfif session.isMobile>
+					<tr>
+						<td colspan="3" style="height: 20px">&nbsp;</td>
+					</tr>
+				</cfif>
+					<tr>
+						<td colspan="3">&nbsp;</td>
+					</tr>
+					<!--- Was missing entirely - iconList grew to 27 entries (BlogUpdate/RefreshSite/ReloadOrm added
+					after this table's rows were last extended) but the markup stopped at i=24 (ImportData), so
+					everything past it silently never rendered instead of erroring. --->
+					<tr>
+						<td style="text-align:center">
+							<cfset i = 25>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+							</span>
+							</cfif>
+						</td>
+						<td style="text-align:center">
+							<cfset i = 26>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+							</span>
+							</cfif>
+						</td>
+						<td style="text-align:center">
+							<cfset i = 27>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+							</span>
+							</cfif>
+						</td>
+					</tr>
+					<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
+				<cfif session.isMobile>
+					<tr>
+						<td colspan="3" style="height: 20px">&nbsp;</td>
+					</tr>
+				</cfif>
+					<tr>
+						<td colspan="3">&nbsp;</td>
+					</tr>
+					<!--- Inserting Create Page Collection near the top pushed iconList to 28 entries - Reload ORM
+					Objects (now i=28) lands alone in this new row on its own, same "add a row, don't cram it into
+					an existing one" approach as the i=25-27 row above. --->
+					<tr>
+						<td style="text-align:center">
+							<cfset i = 28>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+							</span>
+							</cfif>
+						</td>
+						<td style="text-align:center">
+							<cfset i = 29>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
+							</span>
+							</cfif>
+						</td>
+						<td style="text-align:center">
+							<cfset i = 30>
+							<cfif listLen(iconList) gte i>
+							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
+								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
+								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
+								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
+								</a>
 							</span>
 							</cfif>
 						</td>

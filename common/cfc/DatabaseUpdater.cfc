@@ -200,6 +200,52 @@
 
 	</cffunction>
 
+	<cffunction name="createTableIfMissing" access="public" returnType="void" output="false"
+			hint="Creates a table with raw SQL if it does not already exist. For a table that is managed directly with hand-written <cfquery> SQL rather than an ORM entity (see PageCollectionMemberLookup/PageCollectionDissolveNotice for the two that exist so far) - ORM's own dbcreate='update' only ever creates tables it knows about from a <cfproperty>-declared entity, so a raw-SQL table like this is otherwise never created for a fresh install or an existing install missing it. Safe to run more than once - does nothing if the table is already there.">
+		<cfargument name="tableName" type="string" required="true">
+		<cfargument name="createSqlByFlavor" type="struct" required="true" hint="Keys are DatabaseOrmTypes.cfc flavor names (sqlServer, mySql, etc. - see its own aliases struct, which already folds mariaDB into mySql) - each value is the full CREATE TABLE statement for that flavor. A flavor with no entry here is skipped (logged, not thrown), same as DatabaseOrmTypes.cfc's own leave-alone behavior for a database it doesn't recognize.">
+
+		<cfset var alreadyExists = "">
+		<cfset var databaseOrmTypesObj = "">
+		<cfset var flavorName = "">
+		<cfset var createSql = "">
+
+		<cfquery name="alreadyExists" datasource="#application.dsn#">
+			SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = <cfqueryparam value="#arguments.tableName#" cfsqltype="cf_sql_varchar" maxlength="128">
+		</cfquery>
+		<cfif alreadyExists.recordCount>
+			<cfset addToLog("The #arguments.tableName# table already exists.")>
+			<cfreturn>
+		</cfif>
+
+		<!--- Same root-vs-subfolder instantiation pattern Application.cfc's own applyDatabaseOrmTypes() uses. --->
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset databaseOrmTypesObj = createObject("component", application.baseComponentPath & ".common.cfc.DatabaseOrmTypes")>
+		<cfelse>
+			<cfset databaseOrmTypesObj = createObject("component", "common.cfc.DatabaseOrmTypes")>
+		</cfif>
+		<cfset flavorName = databaseOrmTypesObj.getFlavorName(application.databaseType)>
+
+		<cfif not len(flavorName) or not structKeyExists(arguments.createSqlByFlavor, flavorName)>
+			<cfset addToLog("Could not create the #arguments.tableName# table - no CREATE TABLE statement is defined for this database (#application.databaseType#). Create it by hand; see the pagecollectionmemberlookup-missing-table-lucee memory for the SQL Server/MySQL versions.")>
+			<cfreturn>
+		</cfif>
+
+		<!--- No preserveSingleQuotes() needed - these CREATE TABLE statements have no single-quoted literals in
+		them (no DEFAULT values, no string columns with quoted defaults), so a plain variable reference is
+		correct. preserveSingleQuotes() was tried here first and rejected by ACF with "Complex constructs are not
+		supported with function preserveSingleQuotes" the moment its argument was a struct-key lookup rather than
+		a bare variable - moot now since it isn't needed at all, but worth remembering if this function ever needs
+		to accept a CREATE TABLE with a quoted default value in the future (assign the struct lookup to its own
+		local variable first, then pass that variable - not the lookup expression itself). --->
+		<cfset createSql = arguments.createSqlByFlavor[flavorName]>
+		<cfquery datasource="#application.dsn#">
+			#createSql#
+		</cfquery>
+		<cfset addToLog("Created the #arguments.tableName# table.")>
+
+	</cffunction>
+
 	<cffunction name="seedTables" access="public" returnType="void" output="false"
 			hint="Adds the reference data that is in the /installer/dataFiles/ folder to the database. By default this only adds the records that are missing and leaves existing records (and any changes that the user made to them) alone. Only pass updateRecords as true for tables that the user can't change.">
 		<cfargument name="tables" type="string" required="true" hint="A list of tables. Any table that application.blog.updateDb() handles, ie Font, Theme, MapProvider or MapType.">

@@ -74,9 +74,6 @@ If I place the tinymce scripts here, the setContent method does not work and the
 	</cfoutput>
 </cfif>
 	
-<!--- Fancybox --->
-<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/fancyBox/v2/source/jquery.fancybox.js"></script>
-<link rel="stylesheet" href="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/fancyBox/v2/source/jquery.fancybox.css">
 <!--- 
 TinyMce styles 
 !!! This style is critical for tiny mce dialogs to work properly!!! 
@@ -121,6 +118,12 @@ TinyMce styles
 	function reloadEnclosureThumbnailPreview(postId){
 		<!--- alert('reloading thumbnail') --->
 		$("#mediaPreview").html("<p>Retrieving media....</p>").load("loadPreview.cfm?previewId=1&optArgs=" + postId);
+	}
+
+	<!--- Same pattern as reloadEnclosureThumbnailPreview() above, for a Page Collection's hero image - see
+	loadPreview.cfm's previewId=2 and pageCollectionDetail.cfm's #pcHeroPreview-<id> div. --->
+	function reloadPageCollectionHeroPreview(pageCollectionId){
+		$("#pcHeroPreview-" + pageCollectionId).html("<p>Retrieving media....</p>").load("loadPreview.cfm?previewId=2&optArgs=" + pageCollectionId);
 	}
 </script>
 
@@ -184,6 +187,8 @@ TinyMce styles
 				Post Grid
 //********************************************************************************************************************--->
 <cfcase value=5>
+	<!--- Blog Posts / Pages / Page Collections switcher (contentGridSwitcher.cfm). --->
+	<cfset currentGridWindowId = 5><cfinclude template="contentGridSwitcher.cfm">
 	
 	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
@@ -748,6 +753,8 @@ TinyMce styles
 				Page Grid
 //********************************************************************************************************************--->
 <cfcase value=57>
+	<!--- Blog Posts / Pages / Page Collections switcher (contentGridSwitcher.cfm). --->
+	<cfset currentGridWindowId = 57><cfinclude template="contentGridSwitcher.cfm">
 	
 	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
@@ -924,6 +931,137 @@ TinyMce styles
 
 	</cfif><!---<cfif application.kendoCommercial>--->
 
+</cfcase>
+
+<!--- //************************************************************************************************
+		Schedule Release (the post editor's Schedule Release button)
+//**************************************************************************************************--->
+
+<cfcase value="69">
+	<cfinclude template="../../admin/adminInterface/scheduleRelease.cfm">
+</cfcase>
+
+<cfcase value="68">
+	<!--- Blog Posts / Pages / Page Collections switcher (contentGridSwitcher.cfm). --->
+	<cfset currentGridWindowId = 68><cfinclude template="contentGridSwitcher.cfm">
+
+	<cfif application.kendoCommercial>
+		<!---//***********************************************************************************************
+						kendo grid
+		//************************************************************************************************--->
+		<cfinclude template="../grids/kendo/pageCollections.cfm">
+
+	<cfelse><!---<cfif application.kendoCommercial>--->
+		<!---//***********************************************************************************************
+						jsGrid
+		//************************************************************************************************--->
+		<cfinclude template="../grids/jsGrid/pageCollections.cfm">
+
+	</cfif><!---<cfif application.kendoCommercial>--->
+
+</cfcase>
+
+<cfcase value="70">
+	<cfinclude template="../../admin/adminInterface/configureHomepage.cfm">
+</cfcase>
+
+<cfcase value="71">
+	<cfinclude template="../../admin/adminInterface/addPagesToCollection.cfm">
+</cfcase>
+
+<cfcase value="72">
+	<cfinclude template="../../admin/adminInterface/pageCollectionDetail.cfm">
+</cfcase>
+
+<cfcase value="73">
+	<cfinclude template="../../admin/adminInterface/heroImagePool.cfm">
+</cfcase>
+
+<!--- //************************************************************************************************
+		Standalone Uppy cropping uploader - bridges TinyMCE's native "Insert/Edit Image" dialog (Upload tab) to
+		the Uppy Dashboard for a Post/Page enclosure. See includes/templates/js/tinyMce.cfm's OpenWindow listener.
+		2026-09-26: renumbered 68/69/70 -> 74/75/76 after discovering those numbers were already in use by
+		Page Collections (scheduleRelease/pageCollections grid/configureHomepage) - a same-day file sync from D:
+		master (which never had the Page Collections cases) had overwritten them. Restored above from git history
+		(CF2025 dev's own local repo) - see galaxie-blog-environment-gotchas memory for why D: master and CF2025
+		dev are NOT simply "one is newer than the other" for every file.
+//**************************************************************************************************--->
+
+<cfcase value=74>
+	<cfinclude template="../../admin/adminInterface/enclosureUppyUploadWindow.cfm">
+</cfcase>
+
+<!--- //************************************************************************************************
+		Standalone Uppy cropping uploader - same bridge as 74, for a Post/Page video cover image.
+//**************************************************************************************************--->
+
+<cfcase value=75>
+	<cfinclude template="../../admin/adminInterface/videoCoverUppyUploadWindow.cfm">
+</cfcase>
+
+<!--- //************************************************************************************************
+		Standalone Uppy cropping uploader - same bridge as 74, for imageUploader.cfm's generic theme/profile
+		image screens.
+//**************************************************************************************************--->
+
+<cfcase value=76>
+	<cfinclude template="../../admin/adminInterface/imageUploadUppyUploadWindow.cfm">
+</cfcase>
+
+<!--- //************************************************************************************************
+		Insert/Edit Gradient - Grapick + Pickr popup, for either a Page Collection's hero
+		(URL.entityType eq 'pageCollection') or a TinyMCE Insert > Gradient body-content insert.
+//**************************************************************************************************--->
+
+<cfcase value=77>
+	<cfinclude template="../../admin/adminInterface/gradientEditor.cfm">
+</cfcase>
+
+<!--- //************************************************************************************************
+		Paste Custom Gradient - plain textarea popup for pasting a raw CSS gradient() string from an
+		external tool, opened from within window 77 (see gradientEditor.cfm's Paste Custom Gradient button).
+//**************************************************************************************************--->
+
+<cfcase value=78>
+	<cfinclude template="../../admin/adminInterface/gradientPasteEditor.cfm">
+</cfcase>
+
+<!--- //************************************************************************************************
+		Choose Animation - animation effect picker popup (currently Vanta.js), for a Post's per-post hero
+		override (URL.entityType eq 'post') or the site-wide default (URL.entityType eq 'blogOption', from
+		Blog Options' "Configure Animation Defaults" button). 2026-10-03: renamed from vantaEditor.cfm
+		while still dev-only/unmigrated.
+//**************************************************************************************************--->
+
+<cfcase value=79>
+	<cfinclude template="../../admin/adminInterface/heroAnimationEditor.cfm">
+</cfcase>
+
+<!--- //************************************************************************************************
+		Hero Cover Image editor - static uploaded photo for a post whose hero is Gradient/the animation/the
+		generated fallback art, used on cards/listings and for social-media share images. URL.optArgs is
+		the postId. See heroCoverImageEditor.cfm.
+//**************************************************************************************************--->
+
+<cfcase value=80>
+	<cfinclude template="../../admin/adminInterface/heroCoverImageEditor.cfm">
+</cfcase>
+
+<!--- //************************************************************************************************
+		Same Uppy cropping bridge as 74/75/76, for the Hero Cover Image editor above.
+//**************************************************************************************************--->
+
+<cfcase value=81>
+	<cfinclude template="../../admin/adminInterface/heroCoverImageUppyUploadWindow.cfm">
+</cfcase>
+
+<!--- //************************************************************************************************
+		Configure Menu (2026-10-10, 4.8) - the owner's own Menu links and the names of the collections menu and the
+		combined phone menu. See admin/adminInterface/configureMenu.cfm.
+//**************************************************************************************************--->
+
+<cfcase value=82>
+	<cfinclude template="../../admin/adminInterface/configureMenu.cfm">
 </cfcase>
 
 </cfswitch>

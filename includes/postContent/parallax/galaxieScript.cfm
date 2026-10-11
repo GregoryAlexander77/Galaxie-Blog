@@ -139,16 +139,22 @@
 </style> 
 <!--- Include the css. --->
 <style>
+	<!--- 2026-10-01: scoped to the scene's own #<cfoutput>#parallaxName#</cfoutput>-mainContainer wrapper (the
+	same container every other rule in this file already scopes to - see the .image-wrapper/.bcg rules below) -
+	these were previously bare h2/h3/p selectors with !important, applying to every heading/paragraph on the
+	WHOLE page, not just the parallax scene's own text. That went unnoticed for years because nothing else on
+	a parallax post's page happened to use a plain h2/h3/p - until Related Posts cards were added (4.3-ish),
+	whose card titles are real <h3> elements and inherited this scene-specific 1.4em size site-wide. --->
 	<cfif not session.isMobile>
-	h2  {
+	#<cfoutput>#parallaxName#</cfoutput>-mainContainer h2  {
 		font-size: <cfoutput>#h2FontSize#</cfoutput> !important;
 	}
-	
-	h3 {
+
+	#<cfoutput>#parallaxName#</cfoutput>-mainContainer h3 {
 		font-size: <cfoutput>#h3FontSize#</cfoutput> !important;
 	}
-	
-	p {
+
+	#<cfoutput>#parallaxName#</cfoutput>-mainContainer p {
 		font-size: <cfoutput>#paragraphFontSize#</cfoutput> !important;
 	}
 	</cfif>
@@ -1509,7 +1515,7 @@
 
 			let <cfoutput>#parallaxName#</cfoutput>Scene = new ScrollMagic.Scene({
 				triggerElement: '#<cfoutput>#parallaxName#</cfoutput>-mainContainer section',
-				duration: '400%', /* In pixels. Note: this is typically set for 200 for parallax, however, that setting will extend the scene and make the content block really long. */
+				duration: '200%', /* In pixels. Note: this is typically set for 200 for parallax, however, that setting will extend the scene and make the content block really long. */
 				triggerHook: 0
 			})
 			.setTween(<cfoutput>#parallaxName#</cfoutput>Timeline)

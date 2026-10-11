@@ -595,9 +595,13 @@
 			change: onServerTimeZoneChange
 		}).data("kendoDropDownList");
 
-		<!--- Set default value by the value (this is used when the container is populated via the datasource). --->
+		<!--- Set default value by the value (this is used when the container is populated via the datasource). Use
+		the saved server time zone (application.BlogDbObj.getBlogServerTimeZone(), loaded above into
+		blogServerTimeZone) when one has actually been saved - falling back to the live server/JVM offset
+		(serverTimeZoneData.offset) only on a fresh install where nothing has been saved yet. Previously this always
+		used the live JVM offset, so a saved selection appeared to silently revert on every reload. --->
 		var serverTimeZone = $("#serverTimeZone").data("kendoDropDownList");
-		serverTimeZone.value(<cfoutput>'#serverTimeZoneData.offset#'</cfoutput>);
+		serverTimeZone.value(<cfoutput>'#(len(trim(blogServerTimeZone)) ? blogServerTimeZone : serverTimeZoneData.offset)#'</cfoutput>);
 	<cfif len(blogTimeZone)>
 		<!--- Prompt a change event to populate the hidden field --->
 		serverTimeZone.trigger("change");
@@ -737,7 +741,7 @@
 	<div style="padding: 15px;">
 		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 		  <input type="hidden" name="blogTimeZoneValue" id="blogTimeZoneValue" value="<cfoutput>#blogTimeZone#</cfoutput> ">
-		  <input type="hidden" name="serverTimeZoneValue" id="serverTimeZoneValue" value="<cfoutput>#serverTimeZoneData.offset#</cfoutput>">
+		  <input type="hidden" name="serverTimeZoneValue" id="serverTimeZoneValue" value="<cfoutput>#(len(trim(blogServerTimeZone)) ? blogServerTimeZone : serverTimeZoneData.offset)#</cfoutput>">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
 			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>

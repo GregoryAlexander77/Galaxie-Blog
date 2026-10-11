@@ -189,7 +189,7 @@
 	}
 	
 	#<cfoutput>#parallaxName#</cfoutput>-slide02 .bcg {
-		background: url("/images/background/gregoryAlexander/blog/yellowStoneRedMedHigh.jpg") no-repeat center top;
+		background: url("/images/background/gregoryalexander/blog/yellowStoneRedMedHigh.jpg") no-repeat center top;
 		background-size: cover; 
 			-webkit-background-size: cover;
 			-moz-background-size:  cover;
@@ -197,7 +197,7 @@
 	}
 
 	#<cfoutput>#parallaxName#</cfoutput>-slide03 .bcg {
-		background: url("/images/background/gregoryAlexander/blog/zionValleyMedHigh.jpg") no-repeat center center;
+		background: url("/images/background/gregoryalexander/blog/zionValleyMedHigh.jpg") no-repeat center center;
 		background-size: cover; 
 			-webkit-background-size: cover;
 			-moz-background-size:  cover;
@@ -205,7 +205,7 @@
 	}
 
 	#<cfoutput>#parallaxName#</cfoutput>-slide04 .bcg {
-		background: url("/images/background/gregoryAlexander/blog/staircaseMedHigh.jpg") no-repeat center center;
+		background: url("/images/background/gregoryalexander/blog/staircaseMedHigh.jpg") no-repeat center center;
 		background-size: cover;
 			-webkit-background-size: cover;
 			-moz-background-size:  cover;
@@ -214,7 +214,7 @@
 	}
 
 	#<cfoutput>#parallaxName#</cfoutput>-slide05 .bcg {
-		background: url("/images/background/gregoryAlexander/blog/weepingRockFlippedLowRes.jpg") no-repeat center center;
+		background: url("/images/background/gregoryalexander/blog/weepingRockFlippedLowRes.jpg") no-repeat center center;
 		background-size: cover;
 			-webkit-background-size: cover;
 			-moz-background-size:  cover;
@@ -223,7 +223,7 @@
 	}
 
 	#<cfoutput>#parallaxName#</cfoutput>-slide06 .bcg {
-		background: url("/images/background/gregoryAlexander/bandonSunsetLowRes.jpg") no-repeat center center;
+		background: url("/images/background/gregoryalexander/bandonSunsetLowRes.jpg") no-repeat center center;
 		background-size: cover;
 			-webkit-background-size: cover;
 

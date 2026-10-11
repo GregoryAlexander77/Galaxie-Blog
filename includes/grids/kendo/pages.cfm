@@ -20,12 +20,23 @@
 
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
+<script>
+	// The Post column shows a plain-text preview of the post. It used to show the first 125 characters of the raw HTML,
+	// unencoded: when that cut landed inside a tag, the broken markup swallowed the next cell and every column after it
+	// in that row moved one place left (dates under Post, views under Posted...). DOMParser reads the HTML without
+	// running scripts or loading images.
+	function postBodyPreview(body) {
+		if (!body) { return ""; }
+		var text = new DOMParser().parseFromString(removeStrBetween(body, "postData").replace(/</g, " <"), "text/html").body.textContent || "";
+		return truncateWithEllipses(text.replace(/\s+/g, " ").trim(), 125);
+	}
+</script>
 <script type="text/x-kendo-template" id="titleTemplate">
 	<a href="javascript:createAdminInterfaceWindow(6, #: PostId #);">#: Title #</a>
 </script>
 <cfif not session.isMobile>
 <script type="text/x-kendo-template" id="bodyTemplate">
-	<a href="javascript:createAdminInterfaceWindow(6, #: PostId #);">#= truncateWithEllipses(removeStrBetween(Body, "postData"), 125) #</a>
+	<a href="javascript:createAdminInterfaceWindow(6, #: PostId #);">#: postBodyPreview(Body) #</a>
 </script>
 </cfif>
 
@@ -106,12 +117,12 @@
 				field: "FullName",
 				title: "Author",
 				filterable: true,
-				width: "<cfif session.isMobile>25<cfelse>10</cfif>%"
+				width: "<cfif session.isMobile>25<cfelse>9</cfif>%"
 			}, {
 				field: "Title",
 				title: "Title",
 				filterable: true,
-				width: "<cfif session.isMobile>40<cfelse>20</cfif>%",
+				width: "<cfif session.isMobile>45<cfelse>27</cfif>%",
 				template: kendo.template($("#titleTemplate").html())
 			<cfif not session.isMobile>}, {
 				field: "Body",
@@ -135,16 +146,16 @@
 				field: "ViewsPerDay",
 				title: "Monthly Views",
 				filterable: true,
-				width: "8%"</cfif>
+				width: "7%"</cfif>
 			}, {
 				field: "Released",
 				<cfif session.isMobile>headerTemplate: '<i class="fas fa-thumbs-up"></i>',<cfelse>title: "Released",</cfif>
 				filterable: true,
-				width: "<cfif session.isMobile>15<cfelse>8</cfif>%"
+				width: "<cfif session.isMobile>15<cfelse>6</cfif>%"
 			}, {
 				command: ["destroy"],
 				title: "&nbsp;",
-				width: "<cfif session.isMobile>20<cfelse>10</cfif>%"
+				width: "<cfif session.isMobile>15<cfelse>7</cfif>%"
 			}]
 		});
 

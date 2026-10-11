@@ -150,7 +150,7 @@
 
 	/* Slide 1 is a parallax */
 	#slide02 .bcg {
-		background: url(/images/background/gregoryAlexander/blog/yellowStoneRedMedHigh.jpg) no-repeat center top;
+		background: url(/images/background/gregoryalexander/blog/yellowStoneRedMedHigh.jpg) no-repeat center top;
 		background-size: cover; 
 			-webkit-background-size: cover;
 			-moz-background-size:  cover;
@@ -158,7 +158,7 @@
 	}
 
 	#slide03 .bcg {
-		background: url(/images/background/gregoryAlexander/blog/zionValleyMedHigh.jpg) no-repeat center center;
+		background: url(/images/background/gregoryalexander/blog/zionValleyMedHigh.jpg) no-repeat center center;
 		background-size: cover; 
 			-webkit-background-size: cover;
 			-moz-background-size:  cover;
@@ -166,7 +166,7 @@
 	}
 
 	#slide04 .bcg {
-		background: url(/images/background/gregoryAlexander/blog/staircaseMedHigh.jpg) no-repeat center center;
+		background: url(/images/background/gregoryalexander/blog/staircaseMedHigh.jpg) no-repeat center center;
 		background-size: cover;
 			-webkit-background-size: cover;
 			-moz-background-size:  cover;
@@ -175,7 +175,7 @@
 	}
 
 	#slide05 .bcg {
-		background: url("/images/background/gregoryAlexander/blog/weepingRockFlippedLowRes.jpg") no-repeat center center;
+		background: url("/images/background/gregoryalexander/blog/weepingRockFlippedLowRes.jpg") no-repeat center center;
 		background-size: cover;
 			-webkit-background-size: cover;
 			-moz-background-size:  cover;
@@ -184,7 +184,7 @@
 	}
 
 	#slide06 .bcg {
-		background: url(/images/background/gregoryAlexander/bandonSunsetLowRes.jpg) no-repeat center center;
+		background: url(/images/background/gregoryalexander/bandonSunsetLowRes.jpg) no-repeat center center;
 		background-size: cover;
 			-webkit-background-size: cover;
 

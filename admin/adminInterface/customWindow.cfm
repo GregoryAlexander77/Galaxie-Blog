@@ -9,11 +9,10 @@
 	
 	<!--- Instantiate the Render.cfc. This will be used to render our directives and create video and map thumbnails --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-		
+
 	<!--- Get all custom windows for this post. --->
 	<cfset getCustomWindows = application.blog.getCustomWindowContent(URL.optArgs)>
 	<!---<cfdump var="#getCustomWindows#">--->
-		
 	<style>
 		label {
 			font-weight: normal;
@@ -209,7 +208,7 @@
 			
 			<!--- Note: this template does not have the contentWidth and mainContainerWidth inputs (they are in the theme settings). Initializing them here changed the inputs of the theme settings window when it was still in the page and caused a script error. --->
 			$(document).ready(function() {
-				
+
 				// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 				var customWindowValidater = $("#customWindowForm").kendoValidator({
 					<!--- Set up custom validation rules --->
@@ -558,7 +557,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="number" id="windowWidth" name="windowHeight" value="<cfoutput>#windowWidth#</cfoutput>" class="k-textbox" >
+				<input type="number" id="windowWidth" name="windowWidth" value="<cfoutput>#windowWidth#</cfoutput>" class="k-textbox" >
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -567,7 +566,7 @@
 				<label for="windowWidth">Window Width:</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="number" id="windowWidth" name="windowHeight" value="<cfoutput>#windowWidth#</cfoutput>" class="k-textbox" >
+				<input type="number" id="windowWidth" name="windowWidth" value="<cfoutput>#windowWidth#</cfoutput>" class="k-textbox" >
 			</td>
 		  </tr>
 		</cfif>
@@ -643,8 +642,6 @@
 		  </tr>
 		</cfif>
 		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
 		  <tr height="2px">

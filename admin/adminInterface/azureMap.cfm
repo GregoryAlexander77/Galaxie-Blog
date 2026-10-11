@@ -2,8 +2,14 @@
 	<cfset azureMapsKey = application.azureMapsApiKey>
 	<!--- Instantiate the Render.cfc. This will be used to build the HTML for the image if the MediaUrl is present in the database. --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
-	<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
-	<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
+	<!--- Same Page-Collection-vs-Post switch as enclosureImageEditor.cfm - see its comment. --->
+	<cfset isPageCollectionEnclosure = (isDefined("URL.entityType") and URL.entityType eq 'pageCollection')>
+	<cfif isPageCollectionEnclosure>
+		<cfset getPost = application.blog.getPageCollectionByPageCollectionId(URL.optArgs)>
+	<cfelse>
+		<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
+		<cfset getPost = application.blog.getPostByPostId(URL.optArgs,true,true)>
+	</cfif>
 	<!---<cfdump var="#getPost#">--->
 	<!--- Get the mapId if already present. --->
 	<cfset mapId = getPost[1]["EnclosureMapId"]>
@@ -271,7 +277,11 @@
 					provider: 'Azure Maps',
 					isEnclosure: <cfif URL.otherArgs eq 'enclosureEditor'>true<cfelse>false</cfif>,
 					mapId: $("#enclosureMapId").val(),
+					<cfif isPageCollectionEnclosure>
+					pageCollectionId: "<cfoutput>#URL.optArgs#</cfoutput>",
+					<cfelse>
 					postId: "<cfoutput>#URL.optArgs#</cfoutput>",
+					</cfif>
 					mapType: mapStyle,
 					mapZoom: Math.round(mapZoom),
 					mapAddress: $("#selectedFreeformAddress").val(),
@@ -304,7 +314,16 @@
 			<!--- Create our iframe html string --->
 			var mapIframeHtml = '<iframe data-type="map" data-id=' + mapId + ' src="<cfoutput>#application.baseUrl#</cfoutput>/preview/maps.cfm?mapId=' + mapId + '&mapType=static" width="768" height="432" allowfullscreen="allowfullscreen"></iframe>';
 			<!--- Insert the HTML string into the active editor If this is the enclosure content, replace the content. If it is a post editor, insert the content --->
-			tinymce.activeEditor.<cfif URL.otherArgs eq 'enclosureEditor'>setContent<cfelse>insertContent</cfif>(mapIframeHtml);
+			<!--- A Page Collection's hero enclosure has no TinyMCE editor - write straight into its plain preview div
+			instead (window.currentEnclosureEntityType is set by enclosureImageEditor.cfm, reset to '' everywhere else). --->
+			if (window.currentEnclosureEntityType === 'pageCollection') {
+				$('#enclosurePreview').html(mapIframeHtml);
+				<!--- Refresh the Page Collection Detail window's hero preview (and the grid) so the new map shows there, same as gradientEditor.cfm does. --->
+				try { reloadPageCollectionHeroPreview(<cfoutput>#URL.optArgs#</cfoutput>); } catch(e) {}
+				try { $("#configurePageCollectionsWindow").data("kendoWindow").refresh(); } catch(e) {}
+			} else {
+				tinymce.activeEditor.<cfif URL.otherArgs eq 'enclosureEditor'>setContent<cfelse>insertContent</cfif>(mapIframeHtml);
+			}
 			
 			<!--- Use a quick set timeout in order for the data to load. --->
 			setTimeout(function() {

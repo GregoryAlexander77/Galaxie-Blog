@@ -36,43 +36,89 @@ Note: the following logic should not be cached as each theme may return a differ
 									<li class="toggleSidebarPanelButton">
 										<a href="javascript:toggleSideBarPanel(<cfoutput>#layerNumber#</cfoutput>)" aria-label="Menu"><span class="fa fa-bars"></span></a>
 									</li>
+									<cfsilent>
+									<!--- 2026-10-10 (4.8): the owner's own Menu links, the categories that have posts, and the collections marked
+									Show in Menu - see blog.cfc's getMenuLinks/getMenuLabels/getMenuCollections and the admin site's Configure
+									Menu window. Replaces the hard-coded "Docs" menu (every collection whose alias started with "docs-") and the
+									hard-coded links between gregoryalexander.com and galaxieblog.org, which are now ordinary Menu links. --->
+									<cfset menuLinks = application.blog.getMenuLinks()>
+									<cfset menuLabels = application.blog.getMenuLabels()>
+									<cfset menuCollections = application.blog.getMenuCollections()>
+									<cfset menuCategories = []>
+									<cfloop from="1" to="#arrayLen(parentCategories)#" index="i">
+										<cftry>
+											<cfif isNumeric(parentCategories[i]["PostCount"]) and parentCategories[i]["PostCount"] gt 0>
+												<cfset arrayAppend(menuCategories, { name: parentCategories[i]["Category"], link: application.blog.makeCategoryLink(parentCategories[i]["CategoryId"]) })>
+											</cfif>
+											<cfcatch type="any"></cfcatch>
+										</cftry>
+									</cfloop>
+									</cfsilent>
 									<li>
 										Menu
 										<ul>
 											<!--- Note: the first menu option should not have spaces if you want the menu to be aligned with the blog text. --->
 											<cfif menuDivName eq 'fixedNavMenu'><li onclick="javascript:scrollToTop();"><span class="fa fa-arrow-circle-up"></span> Top</li></cfif>
 											<li><a href="<cfoutput>#application.siteUrl#</cfoutput>"><cfoutput>#application.BlogDbObj.getBlogTitle()#</cfoutput></a></li>
-											<cfif cgi.http_host contains 'galaxieblog.org'><li><a href="https://gregoryalexander.com/blog/">Gregory's Blog</a></li><cfelseif cgi.http_host contains 'gregoryalexander.com'><li><a href="https://galaxieblog.org/">Galaxie Blog Documentation</a></li></cfif>
-										<cfif len(application.parentSiteName)>
+										<cfif arrayLen(menuLinks)>
+											<cfloop array="#menuLinks#" index="menuLink">
+											<li><a href="<cfoutput>#encodeForHtmlAttribute(menuLink.linkUrl)#</cfoutput>"<cfif menuLink.newWindow> target="_blank" rel="noopener"</cfif>><cfoutput>#encodeForHtml(menuLink.label)#</cfoutput></a></li>
+											</cfloop>
+										<cfelseif len(application.parentSiteName)>
+											<!--- Until the owner saves their own Menu links, keep showing the older single "parent site" link from Blog Settings. --->
 											<li><a href="<cfoutput>#application.parentSiteLink#</cfoutput>"><cfoutput>#application.parentSiteName#</cfoutput></a></li>
 										</cfif>
 											<li><a href="javascript:createAddCommentSubscribeWindow('', 'contact', <cfoutput>#session.isMobile#</cfoutput>);">Contact</a></li>
-											<!--- or <li><a href="http://www.gregoryalexander.com/blog/?contact">Contact</a></li>--->
 											<cfif menuDivName eq 'fixedNavMenu'><li onclick="javascript:scrollToBottom();"><span class="fa fa-arrow-circle-down"></span> Bottom</li></cfif>
 										</ul>
 									</li>
+								<cfif not session.isMobile>
+									<!--- Desktop: Categories and the collections menu side by side, each hidden when it has nothing in it. --->
+									<cfif arrayLen(menuCategories)>
 									<li>
 										Categories
 										<ul>
-										<cfloop from="1" to="#arrayLen(parentCategories)#" index="i">
-											<cfsilent>
-											<cftry>
-												<!--- Extract the data --->
-												<cfset parentCategoryId = parentCategories[i]["CategoryId"]>
-												<cfset parentCategory = parentCategories[i]["Category"]>
-												<cfset parentCategoryLink = application.blog.makeCategoryLink(parentCategoryId)>
-												<cfset parentCategoryPostCount = parentCategories[i]["PostCount"]>
-												<cfcatch type="any">
-													<cfset parentCategoryId = "">
-													<cfset parentCategory = "">
-													<cfset parentCategoryLink = "">
-												</cfcatch>
-											</cftry>
-											</cfsilent>
-											<cfif isNumeric(parentCategoryPostCount) and parentCategoryPostCount gt 0><li><cfoutput><a href="#parentCategoryLink#">#parentCategory#</a></cfoutput></li></cfif>
-										</cfloop>
+											<cfloop array="#menuCategories#" index="menuCategory"><li><a href="<cfoutput>#menuCategory.link#</cfoutput>"><cfoutput>#menuCategory.name#</cfoutput></a></li></cfloop>
 										</ul>
 									</li>
+									</cfif>
+									<cfif arrayLen(menuCollections)>
+									<li>
+										<cfoutput>#encodeForHtml(menuLabels.collections)#</cfoutput>
+										<ul>
+											<cfloop array="#menuCollections#" index="menuCollection"><li><a href="<cfoutput>#application.blog.makeCollectionLink(menuCollection.pageCollectionId)#</cfoutput>"><cfoutput>#menuCollection.title#</cfoutput></a></li></cfloop>
+										</ul>
+									</li>
+									</cfif>
+								<cfelseif arrayLen(menuCategories) and arrayLen(menuCollections)>
+									<!--- Phones have less room: one dropdown with both lists, each under a heading. The headings are disabled
+									menu items so a tap on them does nothing. --->
+									<li>
+										<cfoutput>#encodeForHtml(menuLabels.mobile)#</cfoutput>
+										<ul>
+											<li class="k-state-disabled">Categories</li>
+											<cfloop array="#menuCategories#" index="menuCategory"><li><a href="<cfoutput>#menuCategory.link#</cfoutput>"><cfoutput>#menuCategory.name#</cfoutput></a></li></cfloop>
+											<li class="k-separator"></li>
+											<li class="k-state-disabled"><cfoutput>#encodeForHtml(menuLabels.collections)#</cfoutput></li>
+											<cfloop array="#menuCollections#" index="menuCollection"><li><a href="<cfoutput>#application.blog.makeCollectionLink(menuCollection.pageCollectionId)#</cfoutput>"><cfoutput>#menuCollection.title#</cfoutput></a></li></cfloop>
+										</ul>
+									</li>
+								<cfelseif arrayLen(menuCategories)>
+									<!--- Phones with only one of the two: show it on its own, under its own name. --->
+									<li>
+										Categories
+										<ul>
+											<cfloop array="#menuCategories#" index="menuCategory"><li><a href="<cfoutput>#menuCategory.link#</cfoutput>"><cfoutput>#menuCategory.name#</cfoutput></a></li></cfloop>
+										</ul>
+									</li>
+								<cfelseif arrayLen(menuCollections)>
+									<li>
+										<cfoutput>#encodeForHtml(menuLabels.collections)#</cfoutput>
+										<ul>
+											<cfloop array="#menuCollections#" index="menuCollection"><li><a href="<cfoutput>#application.blog.makeCollectionLink(menuCollection.pageCollectionId)#</cfoutput>"><cfoutput>#menuCollection.title#</cfoutput></a></li></cfloop>
+										</ul>
+									</li>
+								</cfif>
 									<li>
 										About
 										<ul>

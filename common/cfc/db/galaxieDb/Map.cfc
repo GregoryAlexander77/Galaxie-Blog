@@ -9,6 +9,8 @@
 	<cfproperty name="MapProviderRef" ormtype="int" fieldtype="many-to-one" cfc="MapProvider" fkcolumn="MapProviderRef" cascade="all" missingrowignored="true" hint="Foreign Key to the MapProvider.MapProviderId">
 	<!--- Don't cascade delete the post --->
 	<cfproperty name="PostRef" ormtype="int" fieldtype="many-to-one" cfc="Post" fkcolumn="PostRef" missingrowignored="true" hint="Foreign Key to the Post.PostId">
+	<!--- A map can instead belong to a Page Collection's hero enclosure rather than a Post - mutually exclusive with PostRef. Don't cascade delete the collection. --->
+	<cfproperty name="PageCollectionRef" ormtype="int" fieldtype="many-to-one" cfc="PageCollection" fkcolumn="PageCollectionRef" missingrowignored="true" hint="Foreign Key to the PageCollection.PageCollectionId">
 	<cfproperty name="HasMapRoutes" ormtype="boolean" default="false">
 	<cfproperty name="MapName" ormtype="string" default="" length="75">
 	<cfproperty name="MapTitle" ormtype="string" default="" length="255">

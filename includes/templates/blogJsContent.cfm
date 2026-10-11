@@ -395,7 +395,116 @@
 </cfif><!---<cfif arrayLen(getCustomWindows)>--->
 	
 	<cfif pageTypeId eq 2>
-	
+
+		// Standalone Uppy cropping uploader factory --------------------------------------------------------------
+		// Shared by all three "Insert/Edit Image > Upload" bridge windows (74 enclosure, 75 video cover, 76 generic
+		// theme/profile) - see includes/templates/js/tinyMce.cfm's OpenWindow listener and each window's own .cfm
+		// (enclosureUppyUploadWindow.cfm, videoCoverUppyUploadWindow.cfm, imageUploadUppyUploadWindow.cfm), which
+		// now just compute their own few different values and call this. config:
+		//   containerId          - id of the empty <div> the Dashboard renders into (required)
+		//   endpoint             - the uploadImage() URL, already carrying whichever mediaProcessType/entityId
+		//                          query params that screen needs (required)
+		//   windowSelector       - id of the Kendo Window to destroy once the upload completes (required)
+		//   onComplete           - called after the window closes, eg. onPostEnclosureSubmit() (required)
+		//   qualitySliderSelector - jQuery selector for a Kendo Slider widget to read a per-upload quality value
+		//                          from, if this screen has one (optional - only the enclosure editor does)
+		function createStandaloneUppyUploadWindow(config) {
+			var uppyInstance = Uppy.Core({
+				restrictions: {
+					maxNumberOfFiles: 1,
+					allowedFileTypes: ['image/*']
+				}
+			})
+
+			.use(Uppy.Dashboard, {
+				theme: '<cfoutput>#(darkTheme ? "dark" : "light")#</cfoutput>',
+				inline: true,
+				target: '#' + config.containerId,
+				height: 350,
+				proudlyDisplayPoweredByUppy: false
+			})
+
+			.use(Uppy.Webcam, { target: Uppy.Dashboard })
+
+			.use(Uppy.ImageEditor, {
+				target: Uppy.Dashboard,
+				quality: 0.8
+			})
+
+			.use(Uppy.XHRUpload, {
+				fieldName: 'file',
+				formData: true,
+				bundle: false,
+				// This is Uppy 1.x, and uploadImage() is a remote CFC method that rejects the whole request if an
+				// unrecognized form field shows up - keep this whitelist in sync with whatever setMeta() calls below.
+				metaFields: ['quality'],
+				endpoint: config.endpoint
+			});
+
+			var uppyResponse = null;
+
+			uppyInstance.on('upload', function(data) {
+				if (config.qualitySliderSelector) {
+					var qualitySliderWidget = $(config.qualitySliderSelector).data("kendoSlider");
+					if (qualitySliderWidget) {
+						uppyInstance.setMeta({ quality: qualitySliderWidget.value() });
+					}
+				}
+				$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while the image is uploaded.", icon: "k-ext-information" }));
+			});
+
+			uppyInstance.on('upload-success', function(file, response) {
+				// Hide here, not just in 'complete' below - 'complete' doesn't reliably fire for every screen this
+				// is used on (see [[enclosure-insert-image-upload-tab-uppy-bridge]]), so this is the reliable spot.
+				setTimeout(function() { kendo.ui.ExtWaitDialog.hide(); }, 500);
+				if (response.body.errorMessage) {
+					uppyResponse = null;
+					alert("Error: " + response.body.errorMessage);
+				} else {
+					uppyResponse = response.body;
+				}
+			});
+
+			uppyInstance.on('upload-error', function(file, error, response) {
+				setTimeout(function() { kendo.ui.ExtWaitDialog.hide(); }, 500);
+				$.when(kendo.ui.ExtYesNoDialog.show({
+					title: "Upload failed",
+					message: "The following error was encountered: " + error + ". Do you want to retry the upload?",
+					icon: "k-ext-warning",
+					width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>",
+					height: "215px"
+				})).done(function(response) {
+					if (response['button'] == 'Yes') {
+						uppyInstance.retryUpload(file.id);
+					}
+				});
+			});
+
+			uppyInstance.on('complete', function(result) {
+				setTimeout(function() { kendo.ui.ExtWaitDialog.hide(); }, 500);
+
+				if (!uppyResponse) { return; }
+
+				// Insert into whichever TinyMCE editor is currently active - the existing NodeChange listener in
+				// tinyMce.cfm takes it from here (clears any prior enclosure image/video, saves the new URL),
+				// exactly as it already does for TinyMCE's own native upload path. Has to happen before the
+				// dialog/window closes below, while tinymce.activeEditor still points at this editor.
+				if (typeof tinymce !== 'undefined' && tinymce.activeEditor) {
+					tinymce.activeEditor.insertContent('<img src="' + uppyResponse.location + '" alt="">');
+					try { tinymce.activeEditor.windowManager.close(); } catch(e) {}
+				}
+
+				uppyInstance.cancelAll();
+				uppyResponse = null;
+
+				// Called last since destroying the window tears down the page this script is running in.
+				try { $("#" + config.windowSelector).kendoWindow('destroy'); } catch(e) {}
+				try { config.onComplete(); } catch(e) {}
+			});
+
+			return uppyInstance;
+		}//..function createStandaloneUppyUploadWindow(config) {
+
 		// Administrative Interface window --------------------------------------------------------------------------
 		function createAdminInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) {
 			/* Note: the Id is the window, optArgs generally is the post or comment id, otherArgs typically is the name of the tinymce widget, and otherArgs 1 is generally the id of the widget in the database (ie. the mapId). The arguments were meant to be generic. */
@@ -538,7 +647,14 @@
 				var windowTitle = "Edit Alias"; 
 			} else if (Id == 24){
 				var windowName = "newPostWindow";
-				var windowTitle = "Create Post";
+				<!--- Best first guess from optArgs so the title doesn't flash "Create Post" before the window's own script runs; newPost.cfm keeps this in sync afterward as the Post Type radio changes. --->
+				if (optArgs == 'newPage') {
+					var windowTitle = "Create Page";
+				} else if (optArgs == 'newPageCollection') {
+					var windowTitle = "Create Page Collection";
+				} else {
+					var windowTitle = "Create Post";
+				}
 				var windowHeight = "<cfif session.isMobile>66%<cfelse>66%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
 			} else if (Id == 25){
@@ -756,8 +872,108 @@
 				var windowHeight = "70%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>85%</cfif>";
 				var windowTitle = "Banned Users";
+			} else if (Id == 69){
+				var windowName = "scheduleReleaseWindow";
+				var windowHeight = "45%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
+				var windowTitle = "Schedule Release";
+			} else if (Id == 68){
+				var windowName = "configurePageCollectionsWindow";
+				var windowHeight = "<cfif session.isMobile>80%<cfelse>75%</cfif>%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>85%</cfif>";
+				var windowTitle = "Page Collections";
+			} else if (Id == 70){
+				var windowName = "configureHomepageWindow";
+				var windowHeight = "55%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>50%</cfif>";
+				var windowTitle = "Configure Homepage";
+			} else if (Id == 82){
+				// Configure Menu (2026-10-10, 4.8) - see admin/adminInterface/configureMenu.cfm.
+				var windowName = "configureMenuWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>70%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>50%</cfif>";
+				var windowTitle = "Configure Menu";
+			} else if (Id == 71){
+				var windowName = "addPagesToCollectionWindow";
+				var windowHeight = "50%";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>50%</cfif>";
+				var windowTitle = "Add Pages";
+			} else if (Id == 72){
+				var windowName = "pageCollectionDetailWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>66%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>50%</cfif>";
+				var windowTitle = "Page Collection Detail";
+			} else if (Id == 73){
+				var windowName = "heroImagePoolWindow";
+				var windowHeight = "<cfif session.isMobile>85%<cfelse>70%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
+				var windowTitle = "Manage Hero Image Pool";
+			} else if (Id == 74){
+				// Standalone Uppy cropping uploader, opened from TinyMCE's own Insert/Edit Image dialog (Upload tab)
+				// for a Post/Page enclosure - see tinyMce.cfm's OpenWindow listener. optArgs is the postId.
+				// 2026-09-26: renumbered from 68 - see the comment on adminInterface.cfm's cfcase value=74.
+				var windowName = "enclosureUppyUploadWindow";
+				var windowHeight = "480px";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>550px</cfif>";
+				var windowTitle = "Upload Image";
+			} else if (Id == 75){
+				// Same bridge as 74, for a Post/Page video cover image. optArgs is the postId.
+				var windowName = "videoCoverUppyUploadWindow";
+				var windowHeight = "480px";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>550px</cfif>";
+				var windowTitle = "Upload Image";
+			} else if (Id == 76){
+				// Same bridge as 74, for imageUploader.cfm's generic theme/profile image screens. optArgs is the
+				// themeId/userId, otherArgs is the image type (eg. blogBackgroundImage, profilePicture).
+				var windowName = "imageUploadUppyUploadWindow";
+				var windowHeight = "480px";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>550px</cfif>";
+				var windowTitle = "Upload Image";
+			} else if (Id == 77){
+				// Insert/Edit Gradient (Grapick + Pickr) - optArgs is the pageCollectionId (Page Collection hero,
+				// entityType='pageCollection' flows in automatically same as the carousel/map windows do) or the
+				// postId (TinyMCE Insert > Gradient body-content insert). See gradientEditor.cfm.
+				var windowName = "gradientEditorWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>640px</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>620px</cfif>";
+				var windowTitle = "Insert/Edit Gradient";
+			} else if (Id == 78){
+				// Paste Custom Gradient - plain textarea popup opened from within window 77. See
+				// gradientPasteEditor.cfm and gradientEditor.cfm's Paste Custom Gradient button.
+				var windowName = "gradientPasteEditorWindow";
+				var windowHeight = "<cfif session.isMobile>60%<cfelse>340px</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>500px</cfif>";
+				var windowTitle = "Paste Custom Gradient";
+			} else if (Id == 79){
+				// Choose Animation (effect picker, currently Vanta.js) - optArgs is the postId (Post's per-post
+				// hero override) or the blogOptionId (site-wide default, entityType='blogOption' set explicitly
+				// by Blog Options' "Configure Animation Defaults" button before calling). See
+				// heroAnimationEditor.cfm. 2026-10-03: renamed from vantaEditor.cfm/vantaEditorWindow while
+				// still dev-only/unmigrated.
+				var windowName = "heroAnimationEditorWindow";
+				<!--- 2026-10-04: bumped from 680px - BIRDS alone now needs 3 color swatches + 7 numeric sliders
+				(the tallest of any effect), on top of the live preview canvas, overlay text/color/font/size
+				fields, and the submit row, which made 680px scroll heavily. Still well under a typical 900px+
+				desktop viewport height. --->
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>850px</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>620px</cfif>";
+				var windowTitle = "Choose Animation";
+			} else if (Id == 80){
+				// Hero Cover Image editor - optArgs is the postId. See heroCoverImageEditor.cfm (mirrors
+				// videoImageEditor.cfm/Id==18's own sizing).
+				var windowName = "heroCoverImageWindow";
+				var windowHeight = "640px";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>66%</cfif>";
+				var windowTitle = "Hero Cover Image";
+			} else if (Id == 81){
+				// Same Uppy cropping bridge as 74/75/76, for the Hero Cover Image editor. optArgs is the postId.
+				// See tinyMce.cfm's OpenWindow listener and heroCoverImageUppyUploadWindow.cfm.
+				var windowName = "heroCoverImageUppyUploadWindow";
+				var windowHeight = "480px";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>550px</cfif>";
+				var windowTitle = "Upload Image";
 			}
-			
+
 			// Remove the window if it already exists
 			if ($("#" + windowName).length > 0) {
 				$("#" + windowName).parent().remove();
@@ -778,9 +994,15 @@
 				height: windowHeight,// We must leave room if the user wants to select a bunch of categories.
 				iframe: false, // don't  use iframes unless it is content derived outside of your own site. 
 				content: {
-					url: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/adminInterface.cfm?adminInterfaceId=" + Id + "&optArgs=" + optArgs + "&otherArgs=" + otherArgs + "&otherArgs1=" + otherArgs1,
+					// window.currentEnclosureEntityType is set by enclosureImageEditor.cfm right before it opens the
+					// carousel/map creation windows (3/19/20) from the tinyMCE toolbar - those windows' own 4 argument
+					// slots are already fully used (Id/optArgs/otherArgs/otherArgs1), so this is a 5th, always-optional
+					// signal read by azureMap.cfm and the carousel window content to tell a Page Collection's hero
+					// enclosure apart from a Post's, without touching any of the other ~80 callers of this function.
+					url: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/adminInterface.cfm?adminInterfaceId=" + Id + "&optArgs=" + optArgs + "&otherArgs=" + otherArgs + "&otherArgs1=" + otherArgs1 + "&entityType=" + (window.currentEnclosureEntityType || ''),
 					cache: false
 				},// Unlike every other window above, this one was still using a relative path with no cache-busting -- the browser was happily reusing whatever it first fetched for a given adminInterfaceId (e.g. the Error Log grid), even after the server-side file changed. Now absolute (same fix already applied elsewhere in this function) plus content.cache:false so Kendo always appends a cache-busting param and refetches fresh content every time a window opens.
+			refresh: function() { galaxieGlightboxRefresh(); },
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -795,7 +1017,25 @@
 				}
 			</cfif>
 			}).data('kendoWindow').center();// Center the window.
-						  
+
+			// The standalone Uppy uploaders (74/75/76/81) must float above TinyMCE's own still-open
+			// "Insert/Edit Image" dialog and above whichever Kendo window the admin clicked last (eg. the Post
+			// Enclosure window). A fixed z-index of 100000 stopped working once Kendo's own counter climbed past
+			// it, so raise to one step above the highest visible window instead, and again on each mousedown.
+			if (Id == 74 || Id == 75 || Id == 76 || Id == 81){
+				var uploadWindow = $("#" + windowName).closest('.k-window');
+				var raiseUploadWindow = function(){
+					var topZ = 100000;
+					$('.k-window:visible, .tox-dialog-wrap:visible').each(function(){
+						var z = parseInt($(this).css('zIndex'), 10);
+						if (!isNaN(z) && z > topZ) { topZ = z; }
+					});
+					uploadWindow.css('zIndex', topZ + 10);
+				};
+				raiseUploadWindow();
+				uploadWindow.on('mousedown', raiseUploadWindow);
+			}
+
 		}//..function createAdminInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) {
 		
 		// Administrative Interface window helpers --------------------------------------------------------------------
@@ -1526,7 +1766,7 @@
 	<!--- End windows --->
 	
 	<!--- Fancybox and Kendo Panel Bar custom scripts. The panel bar is a fancy widget for the table of contents. Fancy Box is used to place expanding thumnail images that take up very little space within the blog content. Use the following example and type this into the blog entry editor (in the admin section):
-	<a class="fancybox-effects" href="/blog/doc/addThis/2addNewTool.png" data-fancybox-group="steps12" title="Add New Tool"><img src="/blog/doc/addThis/2addNewToolThumb.png" alt="" /></a>
+	<a class="glightbox" href="/blog/doc/addThis/2addNewTool.png" data-gallery="steps12" title="Add New Tool"><img src="/blog/doc/addThis/2addNewToolThumb.png" alt="" /></a>
 	I may build this functionality in with a new editor.
 	--->
 	</cfsilent>
@@ -1557,46 +1797,25 @@
   				error = "Error generating Kendo Panel for TOC";
 			}
 			
-			// FancyBox is only downloaded when the page has a gallery. See galaxieLoader in head.cfm.
-			if ($('.fancybox, .fancybox-effects, .fancybox-media').length) {
-				galaxieLoader.fancyBox(function() {
-				<!--- Load fancyBox --->
-				$('.fancybox').fancybox();
-
-				// Set fancybox custom properties (I am over-riding basic functionality).
-				$(".fancybox-effects").fancybox({
-					wrapCSS    : 'fancybox-custom', //ga
-					padding: 5,
-					openEffect : 'elastic',
-					openSpeed  : 150,
-					closeEffect : 'elastic',
-					closeSpeed  : 150,
-					closeClick : false,
-					helpers : {
-						title : {
-							 type: 'outside'
-						},
-						overlay : null
-					}
-				});
-
-				$('.fancybox-media')
-				.attr('rel', 'media-gallery')
-				.fancybox({
-					openEffect : 'none',
-					closeEffect : 'none',
-					prevEffect : 'none',
-					nextEffect : 'none',
-					arrows : false,
-					helpers : {
-						media : {},
-						buttons : {}
-					}
-				});
-				});
-			}
+			// GLightbox is only loaded when the page has a gallery, carousel, or video link. See galaxieLoader in head.cfm.
+			galaxieGlightboxRefresh();
 
 		});//..document.ready
+
+		// Creates the GLightbox viewer for every .glightbox element on the page. Call it again after new galleries are added to the page, such as an admin window opening.
+		function galaxieGlightboxRefresh() {
+			if (!$('.glightbox').length) { return; }
+			galaxieLoader.glightbox(function() {
+				if (window.galaxieGlightboxInstance) { window.galaxieGlightboxInstance.destroy(); }
+				// Items that share a data-gallery value open together as one slideshow.
+				window.galaxieGlightboxInstance = GLightbox({
+					selector: '.glightbox',
+					touchNavigation: true,
+					loop: true,
+					zoomable: true
+				});
+			});
+		}
 		
 		// Script that will allow us to expand the post containers to allow the user to see the comments.
 		function handleComments(){

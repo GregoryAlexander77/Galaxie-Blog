@@ -2,13 +2,32 @@
 		Get the posts. The posts can either be one post, or multiple posts. It is designed this way to keep the output logic the same.
 //****************************************************************************************************************--->
   
-<!--- 
+<!---
 Get the post count (getPostCount(params,showRemovedPosts, released))
 (note: this function must be placed above the getPost invocation below)
 --->
-<cfset postCount = application.blog.getPostCount(params, false, true)>
+<!--- The plain blog listing (no alias/category/tag/date/author/search filter) only ever shows blog posts - see the
+showPages=false branch further down - but getPostCount() counts every non-removed Post row, Pages included. On a
+site with many Pages that made the pager offer pages past the real end ("No Entries"), and made page 2+ of the
+curated homepage disagree with page 1's own pager (which uses getBlogPostCount()). Use the same blog-post-only
+count here. --->
+<cfset isPlainBlogListing = true>
+<cfloop list="byAlias,byEntry,byDay,byMonth,byYear,byCat,byTag,byPosted,searchTerms" index="postCountFilterKey">
+	<cfif structKeyExists(params, postCountFilterKey)>
+		<cfset isPlainBlogListing = false>
+	</cfif>
+</cfloop>
+<cfif structKeyExists(params, "byPostIdList")>
+	<!--- getPostCount() mirrors getPost()'s WHERE clause but has no postIdList argument of its own - a Page
+	Collection's member count is already known directly from the list itself, so there's no need to query for it. --->
+	<cfset postCount = listLen(params.byPostIdList)>
+<cfelseif isPlainBlogListing and pageTypeId neq 9>
+	<cfset postCount = application.blog.getBlogPostCount()>
+<cfelse>
+	<cfset postCount = application.blog.getPostCount(params, false, true)>
+</cfif>
 <!--- Allow the admin to preview if the showPendingPosts URL var is present and if we are looking at a single entry. This is needed as we don't want to accidently cache the main blog page (with multiple posts) when previewing the page --->
-<cfif ( isDefined("URL.showPendingPosts") and (url.mode eq "alias" or URL.mode eq 'entry'))>
+<cfif ( isDefined("URL.showPendingPosts") and application.Udf.isLoggedIn() and (url.mode eq "alias" or URL.mode eq 'entry' or URL.mode eq 'page' or pageTypeId eq 9))>
 	<cfset showPendingPosts = true>
 <cfelse>
 	<cfset showPendingPosts = false>
@@ -24,7 +43,7 @@ Get the post count (getPostCount(params,showRemovedPosts, released))
 <cfif pageTypeId eq 9 and isDefined("postId")>
 	<!--- Custom pages --->
 	<!--- Get the individual post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
-	<cfset getPost = application.blog.getPostByPostId(postId,true,false)>
+	<cfset getPost = application.blog.getPostByPostId(postId,(showPendingPosts or application.Udf.isLoggedIn()),false)>
 <cfelse>
 	<!--- Get the posts ( getPost(params, showPendingPosts, showRemovedPosts, showJsonLd, showPromoteAtTopOfQuery) ) 
 	<cfset getPost = application.blog.getPost(params, showPendingPosts, false, true, true)>
@@ -43,8 +62,8 @@ Get the post count (getPostCount(params,showRemovedPosts, released))
 		<cfinvokeargument name="showRemovedPosts" value="false">
 		<cfinvokeargument name="showJsonLd" value="true">
 		<cfinvokeargument name="showPromoteAtTopOfQuery" value="true">
-		<!--- Show pages and blog posts when looking at an page --->
-		<cfif URL.mode eq 'page' or url.mode eq "alias" or URL.mode eq 'entry'>
+		<!--- Show pages and blog posts when looking at an page, or a Page Collection's members / an ad-hoc multi-page homepage selection (both always Pages) --->
+		<cfif URL.mode eq 'page' or url.mode eq "alias" or URL.mode eq 'entry' or pageTypeId eq 20 or pageTypeId eq 21>
 			<cfinvokeargument name="showPages" value="true">
 			<cfinvokeargument name="showBlogPosts" value="true">
 		<cfelse>
@@ -52,7 +71,23 @@ Get the post count (getPostCount(params,showRemovedPosts, released))
 			<cfinvokeargument name="showPages" value="false">
 			<cfinvokeargument name="showBlogPosts" value="true">
 		</cfif>
+		<cfif structKeyExists(params, "byPostIdList")>
+			<cfinvokeargument name="postIdList" value="#params.byPostIdList#">
+		</cfif>
 	</cfinvoke>
+	<!--- Post.PostId IN (...) does not preserve the input list's order - reorder the returned array to match
+	the Page Collection's own stored member order (params.byPostIdList is already sorted that way). --->
+	<cfif structKeyExists(params, "byPostIdList") and arrayLen(getPost)>
+		<cfset orderedGetPost = []>
+		<cfloop list="#params.byPostIdList#" index="orderedPostId">
+			<cfloop array="#getPost#" index="unorderedPost">
+				<cfif unorderedPost["PostId"] eq orderedPostId>
+					<cfset arrayAppend(orderedGetPost, unorderedPost)>
+				</cfif>
+			</cfloop>
+		</cfloop>
+		<cfset getPost = orderedGetPost>
+	</cfif>
 </cfif>
 	
 <!--- Determine if the post was found --->

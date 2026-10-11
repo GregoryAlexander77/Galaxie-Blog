@@ -2,7 +2,14 @@
 	<cfsetting requesttimeout="60">
 
 	<!--- The name needs to be unique in order to have multiple blogs on the same server: blogs with the same name share the application scope. The name is made unique by adding a short hash of the folder that this file is in, so nothing needs to be edited when a second blog is installed. --->
-	<cfset this.name = "GalaxieBlog4_65_" & left(hash(getDirectoryFromPath(getCurrentTemplatePath())), 10) />
+	<!--- 2026-09-27: "_ormfix" suffix (bumped to _ormfix2 same day, when Post.cfc also gained new properties) is
+	the only handle CFML gives for forcing a fresh application scope (and with it, a fresh ORM SessionFactory/
+	entity mapping reload) without an admin login or OS-level service-restart rights. Reverting this string
+	reactivates the OLD, still-stale pre-2026-09-27 scope rather than "undoing" anything - it is NOT a toggle - so
+	bump the suffix (don't revert it) every time a new ORM entity property needs picking up this way.
+	See troubleshooting-stale-app-scope-tip memory - TestUtility.cfc?method=reloadOrm is the preferred tool now,
+	this file edit is only needed when not logged in to call it. --->
+	<cfset this.name = "GalaxieBlog4_65_" & left(hash(getDirectoryFromPath(getCurrentTemplatePath())), 10) & "_ormfix3" />
 	<!--- Preserve the case for database columns --->
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
@@ -19,7 +26,7 @@
 	<!--- Allows the owner to access the admin portal without the proper user credentials. --->
 	<cfset disableAuth = false>
 	<!--- Error logging is typically set in the admin UI, however, when developing you can turn it off manually --->
-	<cfset disableErrorLogging = false>
+	<cfset disableErrorLogging = true>
 
 	<!--- 7 day application timeout. Be careful when you change this to a shorter timeout otherwise the variables on the admin pages won't stick --->
 	<cfset this.applicationTimeout = createTimeSpan(7,0,0,0) />
@@ -119,10 +126,78 @@
 					
 	</cffunction> 
 		
+	<!--- One host only: send www.example.com to example.com (or the reverse - whichever the blog's own URL uses) with
+	a permanent redirect. Both host names served the site, and the session cookies are host-only, so each one had its
+	own separate login: logged in on www., the editor's Preview link (built without www.) showed an unreleased page as
+	not found, because on that host you were logged out. Also stops search engines seeing two copies of every page.
+	Only when the two names differ by a leading "www." - never for any other host (localhost, an IP, a different
+	domain) - and only for GET/HEAD, so a form post or an AJAX save is never redirected and lost.
+	Called for admin pages too (2026-10-09): the admin returned out of OnRequestStart before this ran, so it stayed on
+	the other host while its windows' AJAX GETs to ProxyController.cfc were redirected - to a host where the admin was
+	not logged in - and every window failed. Requests for a .cfc are never redirected for the same reason; the page that
+	makes them has already been sent to the right host. --->
+	<cffunction name="redirectToCanonicalHost" access="private" returntype="void" output="false">
+		<cfset var requestHostName = lCase(listFirst(cgi.http_host, ":"))>
+		<cfset var canonicalHostName = "">
+		<cfset var requestUriForRedirect = "">
+		<cfset var blogHostUrlParts = "">
+		<cfset var redirectProtocol = "">
+		<cfset var redirectPort = "">
+		<cfif not structKeyExists(application, "blogDomain") or not structKeyExists(application, "blogHostUrl")>
+			<cfreturn>
+		</cfif>
+		<cfset canonicalHostName = lCase(application.blogDomain)>
+		<cfif len(canonicalHostName) and requestHostName neq canonicalHostName
+				and (requestHostName eq "www." & canonicalHostName or "www." & requestHostName eq canonicalHostName)
+				and listFindNoCase("GET,HEAD", cgi.request_method)
+				and listLast(cgi.script_name, ".") neq "cfc">
+			<!--- The address as the visitor typed it, before any URL rewrite: IIS's URL Rewrite keeps it in
+			HTTP_X_ORIGINAL_URL, Apache in REQUEST_URI. Otherwise fall back to the script plus path info, which serves the
+			same page (eg. /index.cfm/docs-page). --->
+			<cfif structKeyExists(cgi, "http_x_original_url") and len(cgi.http_x_original_url)>
+				<cfset requestUriForRedirect = cgi.http_x_original_url>
+			<cfelseif structKeyExists(cgi, "request_uri") and len(cgi.request_uri)>
+				<cfset requestUriForRedirect = cgi.request_uri>
+			<cfelse>
+				<cfset requestUriForRedirect = cgi.script_name & cgi.path_info & (len(cgi.query_string) ? "?" & cgi.query_string : "")>
+			</cfif>
+			<!--- Some servers' REQUEST_URI leaves out the query string (eg. ?showPendingPosts) - put it back. --->
+			<cfif len(cgi.query_string) and not find("?", requestUriForRedirect)>
+				<cfset requestUriForRedirect = requestUriForRedirect & "?" & cgi.query_string>
+			</cfif>
+			<cfset blogHostUrlParts = parseUri(application.blogHostUrl)>
+			<cfset redirectProtocol = len(blogHostUrlParts.protocol) ? blogHostUrlParts.protocol : (cgi.https eq "on" ? "https" : "http")>
+			<!--- Keep a port if the blog's own URL has one (eg. a dev server on :8500). --->
+			<cfset redirectPort = len(blogHostUrlParts.port) ? ":" & blogHostUrlParts.port : "">
+			<cflocation url="#redirectProtocol#://#canonicalHostName##redirectPort##requestUriForRedirect#" statusCode="301" addToken="false">
+		</cfif>
+	</cffunction>
+
 	<cffunction name="OnRequestStart">
+
+		<!--- Suppresses the raw whitespace this function's own <cfset>/<cfif> plumbing would otherwise emit on
+		every single request (confirmed directly: hitting a plain remote-CFC method produced 1600+ blank lines
+		before the real JSON/content). Off by default only for a session that's explicitly turned it back on via
+		TestUtility.cfc's setSuppressOutput(false) - see that function's own comment for when you'd actually want
+		that (debugging one of the "debug"-gated <cfoutput> blocks further down in this same function). Reset to
+		"false" again below (line ~730ish) before the real page template renders, and again just below for admin
+		requests specifically - enablecfoutputonly is a request-wide setting, so it has to be turned back off
+		before handing off to anything that relies on plain (non-cfoutput) HTML output, or that output would be
+		silently swallowed too. --->
+		<cfset outputSuppressionEnabled = true>
+		<cfif structKeyExists(session, "outputSuppressionEnabled")>
+			<cfset outputSuppressionEnabled = session.outputSuppressionEnabled>
+		</cfif>
+		<cfsetting enablecfoutputonly="#outputSuppressionEnabled#">
 
 		<!--- Requests for templates in the /admin/ folder are handled by the admin logic (logon, session flags, etc.) instead of the site logic below. --->
 		<cfif isAdminRequest()>
+			<!--- adminRequestStart() (and everything the admin interface renders afterward) relies on plain HTML
+			output throughout, not exclusively <cfoutput>-wrapped content - reset before handing off, so none of
+			that gets silently suppressed by the setting above. --->
+			<cfsetting enablecfoutputonly="false">
+			<!--- Keep the admin on the same host as its windows AJAX calls (see redirectToCanonicalHost). --->
+			<cfset redirectToCanonicalHost()>
 			<cfset adminRequestStart()>
 			<cfreturn true>
 		</cfif>
@@ -272,6 +347,9 @@
 		<cfset application.blogHostUrl = replaceNoCase(getSiteUrl(), '/index.cfm', '')>
 		<!--- Get the domain. This is needed to append the domain to the media path when sending out images. The mediaPath contains the baseUrl which we will append the domain to to get the path to the email images. --->
 		<cfset application.blogDomain = parseUri(application.blogHostUrl).host>
+
+		<!--- One host only - see redirectToCanonicalHost() above OnRequestStart. --->
+		<cfset redirectToCanonicalHost()>
 		<!--- And get the base URL --->
 		<cfset application.baseUrl = getBaseUrl()>
 		<cfset application.baseTemplatePath = getBaseTemplatePath()>
@@ -350,7 +428,7 @@
 		<cfif len(application.baseProxyUrl) gt 0>
 			<cfset application.proxyControllerComponentPath = application.baseComponentPath & ".common.cfc.ProxyController">
 		<cfelse>
-			<cfset application.proxyControllerComponentPath = "common.cfc.proxyController">
+			<cfset application.proxyControllerComponentPath = "common.cfc.ProxyController">
 		</cfif>
 			
 		<!--- Pointer to the cfJson object. Used to read and prepare json data for our HTML5 widgets --->
@@ -435,6 +513,15 @@
 			<cfset application.databaseUpdaterComponentPath = application.baseComponentPath & ".common.cfc.DatabaseUpdater">
 		<cfelse>
 			<cfset application.databaseUpdaterComponentPath = "common.cfc.DatabaseUpdater">
+		</cfif>
+
+		<!--- Reusable dev/test diagnostics and one-off data-repair tools (theme image checks, RSS import, etc.) - see TestUtility.cfc's own header comment. Every method requires a logged-in admin with EditServerSetting.
+		Moved to common/cfc/ on 2026-09-25 (was common/utilities/ while the file was brand new and being edited every few minutes, since that folder is a whole-folder junction between CF2025/Lucee needing zero manual sync;
+		common/cfc/ is a real, separate folder per engine, so any future edit here needs a manual copy to Lucee's and D: master's copies - see reminder-move-testutility-to-common-cfc memory). --->
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset application.testUtilityComponentPath = application.baseComponentPath & ".common.cfc.TestUtility">
+		<cfelse>
+			<cfset application.testUtilityComponentPath = "common.cfc.TestUtility">
 		</cfif>
 
 		<cfif debug>
@@ -576,6 +663,12 @@
 			
 		<!--- How many posts should show up on the main blog page? --->
 		<cfset application.maxEntries = 9><!--- Used to be application.BlogOptionDbObj.getEntriesPerBlogPage() --->
+
+		<!--- Popular Blogs / Related Blogs (popularPosts.cfm) card width. false (default) matches the real post
+		cards' responsive width (session.isMobile or showSidebar ? 100% : 31%), so the widget lines up with the
+		rest of the page at any viewport. true renders the original fixed 235px narrow-card carousel look instead.
+		Hardcoded here for now rather than a BlogOption/admin setting - flip by hand to compare the two looks. --->
+		<cfset application.renderNarrowPopularPostCard = false>
 			
 		
 		<!--- Setting to determine whether to defer the scripts and css. This is a hardcoded setting. You should only change this to debug to see if the defer is working, but you should leave this at true as it provides a much better google speed score. --->
@@ -696,8 +789,10 @@
 		<!--- If the database is too old for the site to run (see the function), visitors get a 'being updated' page until the database is updated. This is done last, after every application setting has been read, as the administrative site (which the administrator is sent to) and the error handler need those settings. --->
 		<cfset databaseUpdateGate()>
 
-		<cfsetting enablecfoutputonly="false"> 
-			
+		<!--- Closing half of the pair at the top of this function - restore normal output before the real
+		(non-admin) page template takes over, which relies on plain HTML output throughout. --->
+		<cfsetting enablecfoutputonly="false">
+
 	</cffunction>
 			
 	<!---//****************************************************************************************
@@ -719,6 +814,10 @@
 		<cfset application.useCaptcha = application.BlogOptionDbObj.getUseCaptcha()>
 
 		<cfset application.serverProduct = getServerProduct()>
+		<!--- Whether THIS engine's own cfimage can read/write WebP directly - needs application.serverProduct and
+		application.cfVersion (set above/earlier in this same startup sequence), unlike serverSupportsWebP()'s
+		HTTP-based check, which doesn't. --->
+		<cfset application.imageEngineSupportsWebP = imageEngineSupportsWebP(true)>
 		<cfset majorVersion = listFirst(Server.coldFusion.productVersion)>
 		<cfset minorVersion = listGetAt(server.coldfusion.productVersion,2,",.")>
 		<cfset cfversion = majorVersion & "." & minorVersion>		
@@ -1290,7 +1389,32 @@
 		<!--- Return it. --->
 		<cfreturn webp>
 	</cffunction>
-			
+
+	<!--- Determine whether THIS CFML engine's own image library (cfimage/imageNew) can read and write WebP
+	directly - a different question from serverSupportsWebP() above, which only checks whether the web server
+	delivers an existing .webp file with the correct MIME type. Those two can disagree: a web server can have
+	the .webp MIME type configured correctly while the CFML engine underneath it still can't process WebP
+	through cfimage at all (Adobe ColdFusion 2023 and earlier), which is exactly the case this function exists
+	to tell apart. Based on engine name/version rather than an HTTP round trip - Lucee's WebP support arrived in
+	its 2.0 image extension, and every Lucee version this codebase actually runs on (6.x, 7.x) is well past
+	that, so Lucee always qualifies; ColdFusion needs 2025 or later. --->
+	<cffunction name="imageEngineSupportsWebP" access="public" returntype="boolean" output="false">
+		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to recompute this var.">
+
+		<cfif isDefined("application.imageEngineSupportsWebP") and not arguments.reset>
+			<cfreturn application.imageEngineSupportsWebP>
+		</cfif>
+
+		<cfif application.serverProduct eq "Lucee">
+			<cfset webp = true>
+		<cfelse>
+			<cfset webp = val(application.cfVersion) gte 2025>
+		</cfif>
+
+		<!--- Return it. --->
+		<cfreturn webp>
+	</cffunction>
+
 	<!--- Determine if the woff2 mime type is set up on the server. --->
 	<cffunction name="serverSupportsWoff2" access="public" returntype="boolean" output="yes">
 		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset this var.">

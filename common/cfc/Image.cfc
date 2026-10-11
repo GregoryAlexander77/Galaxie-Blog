@@ -55,6 +55,19 @@
 			<cfcase value="footerImage">
 				<cfset destination = expandPath("#application.baseUrl#/images/logo")>
 			</cfcase>
+			<!--- Page Collection hero images share the plain enclosures folder - matches the imageUrl "Standard
+			pathway" fallback in ProxyController.cfc's uploadImage, which already assumes this exact path for any
+			mediaProcessType not explicitly listed there. Without this case, destination was left undefined and
+			every pageCollectionHero upload threw immediately at the fileExists() check that follows. --->
+			<cfcase value="pageCollectionHero">
+				<cfset destination = expandPath("#application.baseUrl#/enclosures")>
+			</cfcase>
+			<!--- 2026-10-01: same plain enclosures folder as a normal enclosure image - createSocialMediaImages()'s
+			own relative-path conventions (facebook/twitter/classic/pinterest crop folders alongside this one)
+			need the cover image to live here to keep working unmodified. --->
+			<cfcase value="heroCoverImage">
+				<cfset destination = expandPath("#application.baseUrl#/enclosures")>
+			</cfcase>
 		</cfswitch>
 				
 		<!--- The following logic uses or statements --->
@@ -190,12 +203,22 @@
 			
 	<cffunction name="createSocialMediaImages" access="public" output="false" returntype="any" hint="Creates images for social media sharing.">
 		<cfargument name="imagePath" type="string" required="yes" hint="Provide the path to the image.">
-		<cfargument name="socialMediaPlatform" type="string" required="yes" hint="Provide the social media platform. The valid arguments are: facebook, twitter, instagram, linkedIn, and google. Logic will determine the best size for the image to fit the platform's image share specification.">
-		<cfargument name="socialMediaImageType" type="string" required="no" default="" hint="Unless you're trying to create Google images, this argument is optional in order to over-ride the default logic and force the type of image format that you want. If you specify this argument, it will over-ride the socialMediaPlatform argument. Logic will still be used to see if the images are valid for the large image types and substitute smaller images when necessary. Valid arguments are: facebookSharedImage, facebookLinkSquareImage, facebookLinkRectangleImage, twitterInstreamImage, twitterInstreamMinimumImage, instagramImage, instagramMinimumImage, linkedInImage, linkedInMinimumImage, google16_9Image, google4_3Image, and google1_1Image. This argument must be present when creating google images.">
-		
+		<cfargument name="socialMediaPlatform" type="string" required="yes" hint="Provide the social media platform. The valid arguments are: facebook, twitter, instagram, linkedIn, google, pinterest, and classic. Logic will determine the best size for the image to fit the platform's image share specification. 'classic' is the universal 1200x900 fallback crop, always generated - see seoMetaTags.cfm. 'pinterest' (1000x1500) is only generated when the source image clears that full threshold - there is no smaller fallback tier for it, so createSocialMediaImages() returns false and writes nothing when it doesn't qualify.">
+		<cfargument name="socialMediaImageType" type="string" required="no" default="" hint="Unless you're trying to create Google images, this argument is optional in order to over-ride the default logic and force the type of image format that you want. If you specify this argument, it will over-ride the socialMediaPlatform argument. Logic will still be used to see if the images are valid for the large image types and substitute smaller images when necessary. Valid arguments are: facebookSharedImage, facebookLinkSquareImage, facebookLinkRectangleImage, twitterInstreamImage, twitterInstreamMinimumImage, instagramImage, instagramMinimumImage, linkedInImage, linkedInMinimumImage, google16_9Image, google4_3Image, google1_1Image, pinterestImage, and classicGalaxieBlogImage. This argument must be present when creating google images.">
+		<cfargument name="quality" type="numeric" required="no" default="0.8" hint="Passed straight through to every cfimage write's own quality attribute (0.1-1.0) - both the original-format file and its webp companion. Defaults to match BlogOption's own DefaultImageQuality default, so a caller that doesn't pass this explicitly still gets sensible site-wide compression rather than CF's own unrelated default.">
+
 		<!--- Set output to true when debugging --->
 		<cfset imageDebug = false>
-			
+
+		<!--- None of this function's locals are var-scoped (pre-existing), so they persist on the CFC instance
+		between calls - ProxyController.cfc's upload flow instantiates ImageObj once and calls this function
+		repeatedly (facebook, twitter, google x3, pinterest, classic) in the same request. Every other variable here
+		gets unconditionally reassigned before use each call, but skipSocialMediaImage is only conditionally SET (in
+		the pinterestImage/qualifying-check cfcase) and never explicitly cleared - without this reset, a Pinterest
+        call that skips would leave skipSocialMediaImage=true lingering for classic (or any call after it) to
+		incorrectly bail out on too. --->
+		<cfset skipSocialMediaImage = false>
+
 		<!--- Set the arguments. These may need to be updated anually. --->
 		<!--- Facebook shared image. --->
 		<cfset facebookSharedImageWidth = 1200>
@@ -228,7 +251,19 @@
 		<cfset google4_3ImageHeight = 825>
 		<cfset google1_1ImageWidth = 630><!---I can't find the mimimum size other than having a certain number of pixels (minimum of 50K pixels) --->
 		<cfset google1_1ImageHeight = 630>
-			 
+		<!--- Pinterest pin image (2:3 portrait) - no smaller "minimum" fallback tier like the other platforms get.
+		A looser/smaller crop from a landscape source doesn't fix the actual problem (wrong shape, not too few
+		pixels) - it just makes the same bad crop at lower resolution. So this either clears the full threshold or
+		Pinterest generation is skipped for that image entirely - see the pinterest cfcase below. --->
+		<cfset pinterestImageWidth = 1000>
+		<cfset pinterestImageHeight = 1500>
+		<!--- The universal fallback/default crop - matches the "classic" 1200x900 (4:3) master image convention used
+		before the site moves to a higher-res master. Always generated (no qualifying gate, unlike Pinterest) - see
+		the classic cfcase below - since its whole purpose is to be the thing seoMetaTags.cfm falls back to when no
+		platform-specific crop exists, instead of silently serving the full uncropped original. --->
+		<cfset classicGalaxieBlogImageWidth = 1200>
+		<cfset classicGalaxieBlogImageHeight = 900>
+
 		<!--- Read the image to determine how to scale it --->
 		<cfimage 
 			action = "info"
@@ -278,6 +313,14 @@
 					<cfelse>
 						<cfset socialMediaImageType = "linkedInMinimumImage">
 					</cfif>
+				</cfcase>
+				<cfcase value="pinterest">
+					<!--- The real qualify-or-skip check happens below (socialMediaImageType switch), same place every
+					other platform's real check happens - this just names the intended type. --->
+					<cfset socialMediaImageType = "pinterestImage">
+				</cfcase>
+				<cfcase value="classic">
+					<cfset socialMediaImageType = "classicGalaxieBlogImage">
 				</cfcase>
 			</cfswitch>
 		</cfif>
@@ -387,11 +430,36 @@
 				<cfset thisImageWidth = google1_1ImageWidth>
 				<cfset thisImageHeight = google1_1ImageHeight>
 			</cfcase>
+			<!--- Pinterest - the real qualify-or-skip check. Unlike every other platform above, there is no smaller
+			fallback tier: if the source doesn't clear the full 1000x1500 threshold, we skip Pinterest for this image
+			entirely (see the skipSocialMediaImage check just below) rather than force a crop that would just be the
+			same bad shape at a lower resolution. --->
+			<cfcase value="pinterestImage">
+				<cfif imageInfo.width gte pinterestImageWidth and imageInfo.height gte pinterestImageHeight>
+					<cfset thisImageWidth = pinterestImageWidth>
+					<cfset thisImageHeight = pinterestImageHeight>
+				<cfelse>
+					<cfset skipSocialMediaImage = true>
+				</cfif>
+			</cfcase>
+			<!--- The universal default/fallback crop - always generated, no qualifying gate. If the source is smaller
+			than 1200x900 the shared landscape/portrait branch below already clamps to the source's own native size
+			(see its "imageInfo.width gte thisImageWidth" check) rather than failing, so this never needs to skip. --->
+			<cfcase value="classicGalaxieBlogImage">
+				<cfset thisImageWidth = classicGalaxieBlogImageWidth>
+				<cfset thisImageHeight = classicGalaxieBlogImageHeight>
+			</cfcase>
 		</cfswitch>
-				
-		<!--- Before we proceed, make one final check to see if the larger facebook or twitter images are really big and determine if we should crop them too. In my testing, I uploaded large images that were 4032 pixels in width and the center cropped image only got a tiny portion of the original image. Here we are checking to see if the image is twice as large as the final image that we want to crop to- if it is, we're going to pre-crop these large images too. --->
-		<cfif (thisImageWidth * 2) gte facebookSharedImageWidth>
-			<cfset preCrop = true>	
+
+		<!--- Bail out cleanly (no crop, no file written) rather than falling through to the pre-crop/crop logic below
+		with thisImageWidth/thisImageHeight still undefined, which would throw. --->
+		<cfif isDefined("skipSocialMediaImage") and skipSocialMediaImage>
+			<cfreturn false>
+		</cfif>
+
+		<!--- Before we proceed, make one final check to see if the larger facebook or twitter images are really big and determine if we should crop them too. In my testing, I uploaded large images that were 4032 pixels in width and the center cropped image only got a tiny portion of the original image. Here we are checking to see if the image is twice as large as the final image that we want to crop to- if it is, we're going to pre-crop these large images too. Excludes pinterestImage/classicGalaxieBlogImage: that check assumes a wide/landscape target (like every other case here), and would trigger it by coincidence (1000*2 >= 1200, 1200*2 >= 1200) even though both of those types' own thresholds above already guarantee enough real resolution - the plain landscape/portrait branch below (which uses the real original dimensions via getImageOrientation/centerCrop/horizontalCrop) handles both correctly without a preCrop pass. --->
+		<cfif listFindNoCase("pinterestImage,classicGalaxieBlogImage", socialMediaImageType) eq 0 and (thisImageWidth * 2) gte facebookSharedImageWidth>
+			<cfset preCrop = true>
 		</cfif>
 				
 		<cfif imageDebug><cfoutput>socialMediaImageType: #socialMediaImageType# thisImageWidth: #thisImageWidth# thisImageHeight: #thisImageHeight#</cfoutput><br/></cfif>
@@ -429,7 +497,7 @@
 					<!--- The linked in images are very narrow and wide --->
 					<cfset preCropSize = 1000>
 				<!--- Crop the larger sized images if necessary --->
-				<cfelseif socialMediaImageType eq 'facebookSharedImage' or socialMediaImageType eq 'twitterInstreamImageWidth'>
+				<cfelseif socialMediaImageType eq 'facebookSharedImage' or socialMediaImageType eq 'twitterInstreamImage'>
 					<!--- Both the facebook and twitter large images are at 1200 wide. We need to crop it at 1500 in case if it is a portrait image --->
 					<cfset preCropSize = 1500>	
 				</cfif>
@@ -451,13 +519,34 @@
 					</cfoutput>
 				</cfif>
 			
+				<!--- Ensure the destination directory exists - other Galaxie Blog installations (or a brand new
+				platform folder like pinterest/classic on this one) may not have it pre-created. --->
+				<cfset socialMediaDestinationDir = getDirectoryFromPath(getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType))>
+				<cfif not directoryExists(socialMediaDestinationDir)>
+					<cfdirectory action="create" directory="#socialMediaDestinationDir#">
+				</cfif>
+
 				<!--- Write the image --->
-				<cfimage source="#shareImage#" action="write" destination="#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#" overwrite="yes">
+				<cfimage source="#shareImage#" action="write" destination="#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#" overwrite="yes" quality="#arguments.quality#">
 				<!--- And set permissions on Linux. This should set the following permissions: owner all, group read, other read --->
 				<cfset fileSetAccessMode("#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#", "644")>
-				
+
+				<!--- Also write a webp companion, matching the master enclosure image's own jpg+webp convention.
+				Fixes seoMetaTags.cfm's fallback chain silently serving the full uncropped original whenever a
+				post's MediaUrl points to a .webp file - these crop folders never had a matching .webp file for
+				that lookup to find. --->
+				<!--- Guarded: WebP write support is Lucee (2.0 image extension+) and ColdFusion 2025+ only - a
+				CF2023-or-earlier install has no native WebP support at all and would throw here. Skip cleanly
+				rather than error and abort the rest of this function's caller-side cftry (which would otherwise
+				also skip every social platform queued up after this one in the same request). --->
+				<cfif application.imageEngineSupportsWebP>
+					<cfset webpDestination = reReplaceNoCase(getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType), "\.[^.]+$", ".webp")>
+					<cfimage source="#shareImage#" action="write" format="webp" destination="#webpDestination#" overwrite="yes" quality="#arguments.quality#">
+					<cfset fileSetAccessMode("#webpDestination#", "644")>
+				</cfif>
+
 			</cfif>
-			
+
 		<cfelse><!---<cfif precrop>--->
 			
 			<!--- Handle landscape images. --->
@@ -482,10 +571,25 @@
 				<cfset thisImage = imageNew(imagePath)>
 				<!--- Crop the image from the center (centerCrop(path, originalWidth, originalHeight, newWidth, newHeight)) --->
 				<cfset thisImage = centerCrop(imagePath, imageInfo.width, imageInfo.height, newWidth, newHeight)>
+				<!--- Ensure the destination directory exists - other Galaxie Blog installations (or a brand new
+				platform folder like pinterest/classic on this one) may not have it pre-created. --->
+				<cfset socialMediaDestinationDir = getDirectoryFromPath(getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType))>
+				<cfif not directoryExists(socialMediaDestinationDir)>
+					<cfdirectory action="create" directory="#socialMediaDestinationDir#">
+				</cfif>
 				<!--- Save the modified image to a file. --->
-				<cfimage source="#thisImage#" action="write" destination="#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#" overwrite="yes" structName="cfimageData">
+				<cfimage source="#thisImage#" action="write" destination="#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#" overwrite="yes" structName="cfimageData" quality="#arguments.quality#">
 				<!--- And set permissions on Linux. This should set the following permissions: owner all, group read, other read --->
 				<cfset fileSetAccessMode("#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#", "644")>
+				<!--- Also write a webp companion, matching the master enclosure image's own jpg+webp convention - see
+				the preCrop branch's own copy of this comment for why. --->
+				<!--- Guarded: WebP write support is Lucee (2.0 image extension+) and ColdFusion 2025+ only - see the
+				preCrop branch's own copy of this comment for why. --->
+				<cfif application.imageEngineSupportsWebP>
+					<cfset webpDestination = reReplaceNoCase(getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType), "\.[^.]+$", ".webp")>
+					<cfimage source="#thisImage#" action="write" format="webp" destination="#webpDestination#" overwrite="yes" quality="#arguments.quality#">
+					<cfset fileSetAccessMode("#webpDestination#", "644")>
+				</cfif>
 
 			<cfelse>
 				<!--- Handle portrait images --->
@@ -506,13 +610,28 @@
 				<cfset newHeight = ratioCalculator(thisImageWidth, thisImageHeight, newWidth)>
 				<!--- Crop the top and bottom of the original image from the center (horizontalCrop(path, originalHeight, newHeight, newWidth). --->
 				<cfset thisImage = horizontalCrop(imagePath, imageInfo.height, newHeight, newWidth)>
+				<!--- Ensure the destination directory exists - other Galaxie Blog installations (or a brand new
+				platform folder like pinterest/classic on this one) may not have it pre-created. --->
+				<cfset socialMediaDestinationDir = getDirectoryFromPath(getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType))>
+				<cfif not directoryExists(socialMediaDestinationDir)>
+					<cfdirectory action="create" directory="#socialMediaDestinationDir#">
+				</cfif>
 				<!--- Save the modified image to a file. --->
-				<cfimage source="#thisImage#" action="write" destination="#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#" overwrite="yes" structName="cfimageData">
+				<cfimage source="#thisImage#" action="write" destination="#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#" overwrite="yes" structName="cfimageData" quality="#arguments.quality#">
 				<!--- And set permissions on Linux. This should set the following permissions: owner all, group read, other read --->
 				<cfset fileSetAccessMode("#getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType)#", "644")>
+				<!--- Also write a webp companion, matching the master enclosure image's own jpg+webp convention - see
+				the preCrop branch's own copy of this comment for why. --->
+				<!--- Guarded: WebP write support is Lucee (2.0 image extension+) and ColdFusion 2025+ only - see the
+				preCrop branch's own copy of this comment for why. --->
+				<cfif application.imageEngineSupportsWebP>
+					<cfset webpDestination = reReplaceNoCase(getSocialMediaDestination(imagePath, arguments.socialMediaPlatform, socialMediaImageType), "\.[^.]+$", ".webp")>
+					<cfimage source="#thisImage#" action="write" format="webp" destination="#webpDestination#" overwrite="yes" quality="#arguments.quality#">
+					<cfset fileSetAccessMode("#webpDestination#", "644")>
+				</cfif>
 
 			</cfif>
-				
+
 		</cfif><!---<cfif socialMediaImageType contain 'link'>--->
 			
 		<cfreturn true>
@@ -579,9 +698,13 @@
 			</cfoutput>
 		</cfif>
 			
-		<!--- Crop the image if the new width and heighth are less than the original image. --->
-		<cfif originalWidth gt newWidth and originalHeight gt newHeight>
-			<cfset imageCrop(croppedImage, xCoordinate, yCoordinate, newWidth, newHeight)> 
+		<!--- Crop the image if the new width and height are less than or equal to the original image. Was strict "gt"
+		- silently returned nothing (leaving the caller's thisImage undefined) whenever the computed target exactly
+		matched the source's own native size, eg. a small same-aspect-ratio source clamped down to its own size
+		rather than genuinely cropped. A no-op "crop" (0,0 offset, full original dimensions) is still a valid result
+		here, not an error. --->
+		<cfif originalWidth gte newWidth and originalHeight gte newHeight>
+			<cfset imageCrop(croppedImage, xCoordinate, yCoordinate, newWidth, newHeight)>
 			<!--- And return it. --->
 			<cfreturn croppedImage>
 		</cfif>
@@ -627,5 +750,160 @@
 		<cfreturn croppedImage>
 			
 	</cffunction>
-						
+
+	<cffunction name="generateHeroArt" access="public" output="false" returntype="string"
+			hint="Deterministic per-post gradient SVG for BlogOption.NoImageFallbackMode='generated' (and as the graceful fallback for 'pool' mode when the pool carousel has no items yet). Seeded off postId alone, never the title, so the art never changes when a post is edited. Generated once and written to disk as a static .svg - every call after the first is just a fileExists() check, not a re-generation.">
+		<cfargument name="postId" type="numeric" required="yes">
+
+		<cfset var kendoTheme = application.blog.getSelectedKendoTheme()>
+		<cfset var destination = expandPath("#application.baseUrl#/images/heroArt")>
+		<!--- 2026-10-01: the theme name is part of the cache filename (not just the postId) specifically so
+		switching the site's Kendo theme naturally produces fresh on-theme art for every post instead of silently
+		keeping stale colors from whatever theme was selected the first time a post's art was generated - no
+		explicit cache-flush step needed, matching this project's "which cache file do I flush" being a
+		recurring pain point elsewhere. Old themes' files just become harmlessly orphaned on disk. --->
+		<!--- "-v2" (2026-10-09): bumped when grey-accent themes got vivid colors (see below), so art already
+		generated as a flat grey box is replaced instead of reused. Bump again whenever the art itself changes. --->
+		<cfset var filePath = destination & "/" & arguments.postId & "-" & kendoTheme & "-v2.svg">
+		<cfset var publicUrl = application.baseUrl & "/images/heroArt/" & arguments.postId & "-" & kendoTheme & "-v2.svg">
+		<cfset var svgContent = "">
+		<cfset var colorPair = "">
+		<cfset var angle = 0>
+		<cfset var baseHue = "">
+		<!--- 2026-10-01: replaces the earlier fixed 8-pair palette (hardcoded hex, unrelated to the live theme)
+		with blog.cfc's getRotatedThemeColors()/getComplementaryColor() - each post gets a different hue rotated
+		off the theme's own accentColor (java.awt.Color's RGBtoHSB/HSBtoRGB, confirmed live via
+		TestUtility.cfc's testComplementaryColors()), paired with its computed complement, so generated art now
+		actually matches whichever theme is selected instead of a generic palette. --->
+		<cfset var rotatedColors = application.blog.getRotatedThemeColors(kendoTheme=kendoTheme, count=8)>
+
+		<cfif fileExists(filePath)>
+			<cfreturn publicUrl>
+		</cfif>
+
+		<!--- mode 755/644 (2026-10-09): on Linux, Lucee runs as root and some new files came out unreadable to
+		Apache, which answered 403 Forbidden - two docs pages on galaxieblog.org showed a broken picture where this
+		art belonged. Same fix getCachedMapThumbnail (Renderer.cfc) got for map previews. Ignored on Windows. --->
+		<cfif not directoryExists(destination)>
+			<cfdirectory action="create" directory="#destination#" mode="755">
+		</cfif>
+
+		<cfset baseHue = rotatedColors[(arguments.postId mod arrayLen(rotatedColors)) + 1]>
+		<!--- 2026-10-09: a theme whose accent color is grey (Uniform's is #747474) has no hue to rotate, so every post
+		came out as a flat grey box, and so did its complement. For those themes, pick a vivid color per post
+		instead, spread around the color wheel by the golden ratio so neighboring posts don't look alike. Still
+		seeded off postId alone, so a post's art never changes when it's edited. --->
+		<cfset var javaColor = createObject("java", "java.awt.Color")>
+		<cfset var baseRgb = javaColor.decode("##" & baseHue)>
+		<cfset var baseHsb = javaColor.RGBtoHSB(baseRgb.getRed(), baseRgb.getGreen(), baseRgb.getBlue(), javaCast("null", ""))>
+		<cfset var vividHue = 0>
+		<cfif baseHsb[2] lt 0.2>
+			<cfset vividHue = arguments.postId * 0.618033988749895>
+			<cfset vividHue = vividHue - int(vividHue)>
+			<cfset baseHue = right("000000" & formatBaseN(bitAnd(javaColor.HSBtoRGB(javaCast("float", vividHue), javaCast("float", 0.6), javaCast("float", 0.75)), 16777215), 16), 6)>
+		</cfif>
+		<cfset colorPair = ["##" & baseHue, "##" & application.blog.getComplementaryColor(baseHue)]>
+		<cfset angle = (arguments.postId mod 8) * 45>
+
+		<!--- 2026-10-01: gradientTransform="rotate(angle)" on the default objectBoundingBox gradient space
+		rotates inside a 1x1 unit square *before* that square gets non-uniformly stretched to fit this rect's
+		1200x630 (~1.9:1) aspect ratio - for several of the 8 angles that stretch squashes the visible gradient
+		line almost entirely outside the box, rendering as a flat single color instead of a two-tone blend
+		(confirmed live: angle 225/270 looked flat, 315 looked correct, same SVG markup before this fix, so it
+		was the angle math, not the color choice). Fixed by computing the gradient line's actual endpoints in
+		real pixel space (gradientUnits="userSpaceOnUse") instead of rotating in a space that gets stretched
+		afterward - a line through the rect's center, long enough to clear the far corners regardless of angle. --->
+		<cfset var angleRadians = angle * 3.14159265358979 / 180>
+		<cfset var centerX = 600>
+		<cfset var centerY = 315>
+		<!--- Half the rect's diagonal (~677) rounded up, so the line's endpoints always land outside the
+		visible box no matter which angle - stop colors still read as a clean edge-to-edge blend. --->
+		<cfset var halfLineLength = 700>
+		<cfset var lineDeltaX = cos(angleRadians) * halfLineLength>
+		<cfset var lineDeltaY = sin(angleRadians) * halfLineLength>
+		<cfset var gradientX1 = centerX - lineDeltaX>
+		<cfset var gradientY1 = centerY - lineDeltaY>
+		<cfset var gradientX2 = centerX + lineDeltaX>
+		<cfset var gradientY2 = centerY + lineDeltaY>
+
+		<cfsavecontent variable="svgContent"><cfoutput><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="#gradientX1#" y1="#gradientY1#" x2="#gradientX2#" y2="#gradientY2#"><stop offset="0%" stop-color="#colorPair[1]#"/><stop offset="100%" stop-color="#colorPair[2]#"/></linearGradient></defs><rect width="1200" height="630" fill="url(##g)"/></svg></cfoutput></cfsavecontent>
+
+		<cffile action="write" file="#filePath#" output="#svgContent#" addnewline="false" mode="644">
+		<cftry>
+			<cfset fileSetAccessMode(filePath, "644")>
+			<cfcatch type="any"><!--- Not supported on every platform (eg. Windows) - the file is still usable. ---></cfcatch>
+		</cftry>
+
+		<cfreturn publicUrl>
+
+	</cffunction>
+
+	<cffunction name="generateAnimationDefault" access="public" output="false" returntype="struct"
+			hint="Deterministic per-post animation effect+color pick (currently Vanta.js) for
+			BlogOption.NoImageFallbackMode='animation', used only when a post hasn't picked its own
+			HeroAnimationEffect override and the global BlogOption.AnimationEffect default is also blank. Seeded
+			off postId alone, same reasoning as generateHeroArt - never changes on an edit. Unlike
+			generateHeroArt, there is nothing to pre-render/cache to disk: this is a live canvas, not a generated
+			image, so this only returns which effect + which options to hand to VANTA.{effect}(...) client-side -
+			see Renderer.cfc's renderHeroAnimationHtml() and head.cfm's galaxieLoader.heroAnimationEngine().
+			2026-10-03: renamed from generateVantaDefault/'vanta'/HeroVantaEffect/VantaEffect while still
+			dev-only/unmigrated.">
+		<cfargument name="postId" type="numeric" required="yes">
+
+		<!--- TOPOLOGY dropped 2026-09-30 - throws a constructor error on init regardless of Three.js revision, a
+		real upstream bug in the vanta.js library for this one effect (confirmed against multiple Three.js
+		builds; matches a multi-year history of the same class of issue in the library's own GitHub issues).
+		BIRDS/FOG/CLOUDS2/GLOBE added 2026-10-03 - see heroAnimationEditor.cfm's header comment for the same
+		verification method and GLOBE's NET-like animation caveat. --->
+		<cfset var effects = ["WAVES","NET","RINGS","CLOUDS","BIRDS","FOG","CLOUDS2","GLOBE"]>
+		<!--- One curated color (or color pair, for the two-tone effects) per palette slot - same "looks good
+		together" curation intent as generateHeroArt's palette, not random RGB values that can clash. --->
+		<cfset var palette = [
+			{color: "##4facfe", backgroundColor: "##0f2027"},
+			{color: "##43e97b", backgroundColor: "##1a2a3a"},
+			{color: "##fa709a", backgroundColor: "##2d1b3a"},
+			{color: "##30cfd0", backgroundColor: "##0b132b"},
+			{color: "##a18cd1", backgroundColor: "##1e1a33"},
+			{color: "##ff9a9e", backgroundColor: "##2b1b24"},
+			{color: "##5ee7df", backgroundColor: "##11221f"},
+			{color: "##f6d365", backgroundColor: "##2a2313"}
+		]>
+		<cfset var chosenEffect = effects[(arguments.postId mod arrayLen(effects)) + 1]>
+		<cfset var chosenColors = palette[(arguments.postId mod arrayLen(palette)) + 1]>
+		<cfset var options = {}>
+
+		<!--- 2026-10-03: real, confirmed-per-effect option shapes (verified against both the vendored
+		vanta.*.min.js source and the live vantajs.com customizer - an earlier guess here had WAVES taking a
+		backgroundColor it doesn't support at all, and CLOUDS taking sky/cloud/sun keys that don't match this
+		library's real names). WAVES only takes "color" - no background concept exists for it. RINGS takes only
+		"backgroundColor" - its own ring colors are generated internally, not a settable option. CLOUDS is a
+		7-color sky/sun scene that doesn't suit per-post palette variation the way a simple 2-tone background
+		does, so this uses Vanta's own documented defaults directly rather than trying to derive 7 colors from a
+		2-color palette slot. --->
+		<cfif chosenEffect eq "CLOUDS">
+			<cfset options = {backgroundColor: "##ffffff", skyColor: "##68b8d7", cloudColor: "##adc1de", cloudShadowColor: "##183550", sunColor: "##ff9919", sunGlareColor: "##ff6633", sunlightColor: "##ff9933"}>
+		<cfelseif chosenEffect eq "WAVES">
+			<cfset options = {color: chosenColors.color}>
+		<cfelseif chosenEffect eq "RINGS">
+			<cfset options = {backgroundColor: chosenColors.backgroundColor}>
+		<cfelseif chosenEffect eq "BIRDS">
+			<!--- colorMode intentionally omitted - never part of any saved/generated options struct, always
+			hardcoded at the render boot script level (tailEndScripts.cfm/preview/heroAnimation.cfm) instead, same
+			reasoning as heroAnimationEditor.cfm's applyEffectSpecificVantaOptions(). --->
+			<cfset options = {backgroundColor: "##07192f", color1: "##ff0000", color2: "##00d1ff"}>
+		<cfelseif chosenEffect eq "FOG">
+			<cfset options = {baseColor: "##ffebeb", highlightColor: "##ffc300", lowlightColor: "##2d00ff", midtoneColor: "##ff1f00"}>
+		<cfelseif chosenEffect eq "CLOUDS2">
+			<!--- texturePath intentionally omitted - always hardcoded to the vendored noise.png's real absolute
+			URL at the render boot script level, same reasoning as colorMode above. --->
+			<cfset options = {backgroundColor: "##000000", cloudColor: "##334d80", lightColor: "##ffffff", skyColor: "##5ca6ca"}>
+		<cfelseif chosenEffect eq "GLOBE">
+			<cfset options = {color: chosenColors.color, color2: "##ffffff", backgroundColor: chosenColors.backgroundColor}>
+		<cfelse><!--- NET --->
+			<cfset options = {color: chosenColors.color, backgroundColor: chosenColors.backgroundColor}>
+		</cfif>
+
+		<cfreturn {effect: chosenEffect, options: options}>
+	</cffunction>
+
 </cfcomponent>

@@ -90,7 +90,11 @@
 <meta property="twitter:player:height" content="#ogVideoHeight#">	
 </cfif><!---<cfif videoType neq "" and getPageMode() eq 'post'>--->
 <!-- Open graph meta tags for Facebook. See notes. -->
-<meta property="og:image" content="#facebookImageMetaTagValue#"> 
+<meta property="og:image" content="#facebookImageMetaTagValue#">
+<!-- Additional og:image for Pinterest's own 1000x1500 crop, only present when Image.cfc actually generated one for this post (see seoMetaTags.cfm) - multiple og:image tags are valid per the Open Graph spec and Pinterest evaluates all of them for a Rich Pin. -->
+<cfif len(pinterestImageMetaTagValue)>
+<meta property="og:image" content="#pinterestImageMetaTagValue#">
+</cfif>
 <meta property="og:site_name" content="#application.BlogDbObj.getBlogTitle()#" />
 <meta property="og:url" content="#canonicalUrl#" />
 <meta property="og:title" content="#titleMetaTagValue#" />
@@ -110,6 +114,7 @@
 </cfif><!---<cfif videoType neq "" and getPageMode() eq 'post'>--->
 <!--TODO <meta property="og:type" content="blog" />-->
 <link rel="alternate" type="application/rss+xml" title="RSS" href="#thisUrl#/rss.cfm?mode=full" />
+<link rel="alternate" type="application/atom+xml" title="Atom" href="#thisUrl#/atom.cfm?mode=full" />
 <cfsilent>
 <!--- We are only including the top level ld json when we are not in blog mode. The ld json will be in the body of the post.  ---->
 <cfif getPageMode() eq 'blog'>
@@ -364,10 +369,10 @@ var galaxieLoader = (function() {
 		return $.ajax({ url: url, dataType: 'script', cache: true });
 	}
 	return {
-		fancyBox: function(callback) {
-			whenReady('fancyBox', function(ready) {
-				addCss('#application.baseUrl#/common/libs/fancyBox/v2/source/jquery.fancybox.css');
-				getScript('#application.baseUrl#/common/libs/fancyBox/v2/source/jquery.fancybox.js').done(ready);
+		glightbox: function(callback) {
+			whenReady('glightbox', function(ready) {
+				addCss('#application.baseUrl#/common/libs/glightbox/css/glightbox.min.css');
+				getScript('#application.baseUrl#/common/libs/glightbox/js/glightbox.min.js').done(ready);
 			}, callback);
 		},
 		plyr: function(callback) {
@@ -390,6 +395,52 @@ var galaxieLoader = (function() {
 					});
 				});
 			}, callback);
+		},
+		<!--- Grapick + Pickr, for the Insert/Edit Gradient popup (gradientEditor.cfm) - added 2026-09-27. addCss()/
+		getScript() are private to this closure (that's the actual bug behind an earlier "addCss is not defined"
+		error - gradientEditor.cfm's own script tried calling them directly, which only ever worked in an isolated
+		test harness that happened to define its own stand-in globals of the same name, not on a real page). Every
+		caller goes through one of this object's own named methods instead, same as glightbox/plyr/prism above. --->
+		grapickPickr: function(callback) {
+			whenReady('grapickPickr', function(ready) {
+				addCss('#application.baseUrl#/common/libs/grapick/grapick.min.css');
+				addCss('#application.baseUrl#/common/libs/pickr/classic.min.css');
+				getScript('#application.baseUrl#/common/libs/grapick/grapick.min.js').done(function() {
+					getScript('#application.baseUrl#/common/libs/pickr/pickr.min.js').done(ready);
+				});
+			}, callback);
+		},
+		<!--- Vanta.js (vantajs.com), for the Choose Animation popup (heroAnimationEditor.cfm) - added 2026-09-30,
+		renamed 2026-10-03 while still dev-only/unmigrated (this method name/our own naming is generic on
+		purpose, so the rendering library can change later without another rename). Three layers, each cached
+		under its own whenReady() key so switching effects in the same popup session only ever fetches what
+		hasn't already been loaded: Pickr (shared with grapickPickr's own Pickr load, but kept as a separate
+		'pickr' key here so this method never pulls in Grapick, which heroAnimationEditor.cfm doesn't use), the
+		shared engine (Three.js for every offered effect, CLOUDS included; p5.js only for TRUNK/TOPOLOGY, which are not offered - loaded once each, not per effect),
+		then the one specific effect file itself (loaded once per distinct effect name - switching from WAVES to
+		NET the first time fetches NET's file; switching back to WAVES afterward is a no-op re-fetch like every
+		other whenReady() call in this object). Never loaded on any page except this admin popup and the one
+		single-post permalink page whose resolved hero fallback is actually 'animation' (see
+		Renderer.cfc/blogContentHtml.cfm's isSinglePostPage gating) - never on a card/grid page, never on mobile. --->
+		heroAnimationEngine: function(effect, callback) {
+			<!--- Only Vanta's TRUNK and TOPOLOGY are p5.js effects - neither is offered (TOPOLOGY was dropped). CLOUDS
+			is a Three.js effect (vanta.clouds.min.js reads THREE.Color); treating it as p5 loaded the wrong engine and
+			threw "Cannot read properties of undefined (reading 'Color')". --->
+			var usesP5 = (effect === 'TRUNK' || effect === 'TOPOLOGY');
+			var engineKey = usesP5 ? 'p5' : 'three';
+			var engineUrl = usesP5 ? '#application.baseUrl#/common/libs/p5/p5.min.js' : '#application.baseUrl#/common/libs/three/three.min.js';
+			whenReady('pickr', function(ready) {
+				addCss('#application.baseUrl#/common/libs/pickr/classic.min.css');
+				getScript('#application.baseUrl#/common/libs/pickr/pickr.min.js').done(ready);
+			}, function() {
+				whenReady(engineKey, function(ready) {
+					getScript(engineUrl).done(ready);
+				}, function() {
+					whenReady('vanta_' + effect, function(ready) {
+						getScript('#application.baseUrl#/common/libs/vanta/vanta.' + effect.toLowerCase() + '.min.js').done(ready);
+					}, callback);
+				});
+			});
 		}
 	};
 })();

@@ -113,10 +113,16 @@ Populate the blog table.
 
 	</cftransaction>
 
+	<!--- 2026-09-26: same stale-app-scope-singleton bug found and fixed in ProxyController.cfc's
+	saveBlogSettings()/saveBlogOptions() and blog.cfc's updateDb() - this installer script also loads and saves
+	its own separate Blog entity instance, distinct from application.BlogDbObj. Refresh it here too so nothing
+	later in the same install request (or the same long-lived session before the next app reinit) sees stale
+	pre-install values. --->
 	<cfset blogId = BlogDbObj.getBlogId()>
-		
+	<cfset application.BlogDbObj = EntityLoadByPk("Blog", blogId)>
+
 	<cfif isDefined("debug") and debug>Blog Table succesfully populated.<br/></cfif>
-</cfif>	
+</cfif>
 
 				
 <!--- ******************************************************************************************
@@ -182,8 +188,11 @@ Populate the blog option table.
 
 	</cftransaction>
 
+	<!--- 2026-09-26: same stale-app-scope-singleton bug fixed just above for the Blog block (see that comment) -
+	refresh application.BlogOptionDbObj too. --->
 	<cfset blogOptionId = OptionDbObj.getBlogOptionId()>
-		
+	<cfset application.BlogOptionDbObj = EntityLoadByPk("BlogOption", blogOptionId)>
+
 	<cfif isDefined("debug") and debug>Blog Option Table succesfully populated.<br/></cfif>
 </cfif>
 
