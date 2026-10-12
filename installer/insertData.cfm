@@ -934,6 +934,10 @@ Populate the User table using the form values sent in
 	<cfset securityAnswer2 = getProfileString(application.blogIniPath, "default", "securityAnswer2")>
 	<cfset securityAnswer3 = getProfileString(application.blogIniPath, "default", "securityAnswer3")>
 		
+	<!--- Never save the administrator with a blank user name or password - nobody could log in. This happened when a second, simultaneous run of this template read blog.ini.cfm while it was being rewritten (2026-10-12; Application.cfc now lets only one request run this template). --->
+	<cfif not len(trim(userName)) or not len(password)>
+		<cfthrow type="GalaxieBlog.Installer" message="The Galaxie Blog installer stopped: the user name or password from the profile step could not be read from blog.ini.cfm, so the administrator was not saved. Run the installer's profile step again.">
+	</cfif>
 	<cfset salt = generateSecretKey("AES", 256)>
 	<cfset uuid = createUUID()>
 		
@@ -1012,11 +1016,6 @@ Populate the User table using the form values sent in
 		<cfset EntitySave(UserDbObj)>
 
 	</cftransaction>
-
-	<!--- The installer's profile step keeps the password and security answers in blog.ini.cfm in plain text so that this template can read them. The user has been saved with a hashed password now, so don't leave them in the file (2026-10-12). --->
-	<cfloop list="password,securityAnswer1,securityAnswer2,securityAnswer3" index="iniKey">
-		<cfset setProfileString(application.blogIniPath, "default", iniKey, "")>
-	</cfloop>
 
 </cfif>
 
@@ -1449,6 +1448,10 @@ Populate the Page Content Template table.
 
 <!--- Mark the blog as installed in the ini file--->
 <cfset setProfileString(application.blogIniPath, "default", "installed", true)>
+<!--- The installer's profile step keeps the password and security answers in blog.ini.cfm in plain text so that this template can read them. The administrator has been saved with a hashed password and the blog is marked as installed, so don't leave them in the file (2026-10-12). --->
+<cfloop list="password,securityAnswer1,securityAnswer2,securityAnswer3" index="iniKey">
+	<cfset setProfileString(application.blogIniPath, "default", iniKey, "")>
+</cfloop>
 			
 <!--- Note: this is a copy of the blog.cfc's generateRandomString() --->
 <cffunction name="generateRandomPhrase" returntype="string" access="public" output="false">

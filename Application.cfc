@@ -402,8 +402,18 @@
 				The initial install has been completed. Trying to insert data by including the installer/insertData.cfm template<br/>
 			</cfif>
 			<!--- A brand new install starts out at the version of the files that were just installed. See the end of applicationInit(). --->
-			<cfset request.blogJustInstalled = true>
-			<cfinclude template="#getBaseUrl()#/installer/insertData.cfm">
+			<!--- Only one request may insert the starter data. The installer's last step can be followed by more than one request at nearly the same time (the browser, or other requests from the new home page), and each of them used to run insertData.cfm before the first had marked the blog as installed. Two runs at once added duplicate rows ("more than one row with the given identifier") and, after insertData.cfm started rewriting blog.ini.cfm, a second run read the file while it was being rewritten and saved the administrator with a blank user name (found in the 4.8 install test, 2026-10-12). The second request now waits here and, once the first has finished, finds the blog installed and skips the starter data. --->
+			<cflock name="galaxieBlogInsertData_#this.name#" type="exclusive" timeout="300">
+				<!--- Checked in this order: the flag set below by the request that inserted the data (in memory, so it can't be stale), then blog.ini.cfm. The ini file is read with the same path that insertData.cfm writes it with - ColdFusion caches ini files by the path used to open them, and a check through the expanded path (application.iniFile) still read installed=false after insertData.cfm had written true through application.blogIniPath. --->
+				<cfset local.installedNow = getProfileString(application.blogIniPath, "default", "installed")>
+				<cfif reinstallDb or not ((structKeyExists(application, "starterDataInserted") and application.starterDataInserted) or (isBoolean(local.installedNow) and local.installedNow))>
+					<cfset request.blogJustInstalled = true>
+					<cfinclude template="#getBaseUrl()#/installer/insertData.cfm">
+					<cfset application.starterDataInserted = true>
+				<cfelse>
+					<cfset application.installed = true>
+				</cfif>
+			</cflock>
 		</cfif>
 			
 		<!---//****************************************************************************************
@@ -652,7 +662,13 @@
 			<!--- Starting at the current version means the update scripts never run, so create the tables that only the update scripts used to create (see DatabaseUpdater.cfc's ensureRawSqlTables). --->
 			<cfset application.databaseUpdater.ensureRawSqlTables()>
 			<cfset application.blog.updateBlogVersion(application.blog.getVersion(), application.blog.getVersionName())>
-			<cfset entityReload(application.BlogDbObj)>
+			<!--- Another request may have replaced application.BlogDbObj with its own copy while this one was installing, and Hibernate can't reload an object from another request ("Transient object cannot be reloaded"). Load it again instead. --->
+			<cftry>
+				<cfset entityReload(application.BlogDbObj)>
+				<cfcatch type="any">
+					<cfset application.BlogDbObj = entityLoad("Blog", {}, "BlogId asc", {maxresults=1})[1]>
+				</cfcatch>
+			</cftry>
 			<cfset application.dbBlogVersion = application.blog.getVersion()>
 		</cfif>
 		<!--- //****************************************************************************************

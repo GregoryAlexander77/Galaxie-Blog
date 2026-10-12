@@ -252,9 +252,25 @@
 		to accept a CREATE TABLE with a quoted default value in the future (assign the struct lookup to its own
 		local variable first, then pass that variable - not the lookup expression itself). --->
 		<cfset createSql = arguments.createSqlByFlavor[flavorName]>
-		<cfquery datasource="#application.dsn#">
-			#createSql#
-		</cfquery>
+		<cftry>
+			<cfquery datasource="#application.dsn#">
+				#createSql#
+			</cfquery>
+			<cfcatch type="database">
+				<!--- Another request may have created the table between the check above and this statement (two requests finishing a new install at the same time, 2026-10-12). That is fine; anything else is a real error. --->
+				<cfset var createError = cfcatch>
+				<cftry>
+					<cfquery datasource="#application.dsn#">
+						SELECT 1 FROM #arguments.tableName# WHERE 1 = 0
+					</cfquery>
+					<cfset addToLog("The #arguments.tableName# table was created by another request.")>
+					<cfreturn>
+					<cfcatch type="database">
+						<cfthrow object="#createError#">
+					</cfcatch>
+				</cftry>
+			</cfcatch>
+		</cftry>
 		<cfset addToLog("Created the #arguments.tableName# table.")>
 
 	</cffunction>
