@@ -500,6 +500,14 @@
 				<cfelseif socialMediaImageType eq 'facebookSharedImage' or socialMediaImageType eq 'twitterInstreamImage'>
 					<!--- Both the facebook and twitter large images are at 1200 wide. We need to crop it at 1500 in case if it is a portrait image --->
 					<cfset preCropSize = 1500>	
+				<cfelse>
+					<!--- The Google types (google16_9Image, google4_3Image, google1_1Image) are pre-cropped by the "really large image" check above but had no case of their own here, so preCropSize was never set for them. This function's locals aren't var-scoped, so they silently reused whatever the previous call on the same Image object left behind (1500 from Twitter in ProxyController.cfc's upload flow). Set it explicitly - 1500 matches what they always got in practice. --->
+					<cfset preCropSize = 1500>
+				</cfif>
+				<!--- Make sure the resized image is still tall enough for the target height, otherwise centerCrop() returns nothing and no file is written (without an error). Resizing to a fixed width only works for images that aren't too wide: a 1676x900 source resized to 1500 wide is only 805 high, short of google4_3Image's 825, so the 4:3 crop was silently skipped for wide images while a 1350x900 source (1500x1000 after the resize) worked (found 2026-10-12). Widen the pre-crop just enough to cover the target height (the +1 absorbs the resize's rounding). --->
+				<cfset preCropMinimumWidth = ceiling(thisImageHeight * imageInfo.width / imageInfo.height) + 1>
+				<cfif preCropSize lt preCropMinimumWidth>
+					<cfset preCropSize = preCropMinimumWidth>
 				</cfif>
 				<!--- We are going to resize the new image to the precrop size and then crop it again. I want extra space to make sure that it fits our target size. We are putting in a blank argument for the height in order to keep the aspect ratio of the original image (ImageResize(image, width, height). If the height is blank it will resize the image proportionally) --->
 				<cfset imageResize(shareImage, preCropSize, '')>
