@@ -1399,49 +1399,26 @@ Populate the Page Content Template table.
 	<cfwddx action = "wddx2cfml" input = #QueryObj# output = "Data">
 	<!---<cfdump var="#Data#">--->
 
-	<!--- Load the blog table and get the first record (there only should be one record at this time). This will pass back an object with the value of the blogId. This is needed as the setBlogRef is a foreign key and for some odd reason ColdFusion or Hybernate must have an object passed as a reference instead of a hardcoded value. --->
-	<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
-
+	<!--- These link rows are written with plain SQL (2026-10-12). Written through ORM, only the first of the 96 rows reached the database when this section ran as part of a whole install - the rest were silently lost (but all 96 were written when this section ran on its own, so it depends on what the earlier sections leave in the Hibernate session; ormFlush() did not help). With 1 link, the site found no saved content templates (the Composite Footer, a custom menu, the pods): saving the Composite Footer appeared to work but the default footer always showed. The table is three plain columns, so SQL is simpler and certain. --->
 	<cfoutput query="Data">
-
-		<!--- Save the records into the table. --->
-		<cftransaction>
-
-			<cfif isNumeric(pageRef) and isNumeric(contentTemplateRef)>
-
-				<!--- Load the page and content template objects --->
-				<cfset PageDbObj = entityLoadByPk("Page", pageRef)>
-				<cfset ContentTemplateDbObj = entityLoadByPk("ContentTemplate", contentTemplateRef)>
-
-				<cfquery name="getData" dbtype="hql">
-					SELECT PageContentTemplateId FROM PageContentTemplate
-					WHERE PageRef = #pageRef#
-					AND ContentTemplateRef = #contentTemplateRef#
+		<cfif isNumeric(pageRef) and isNumeric(contentTemplateRef)>
+			<cfquery name="getPageContentTemplate" datasource="#application.dsn#">
+				SELECT PageContentTemplateId FROM PageContentTemplate
+				WHERE PageRef = <cfqueryparam value="#val(pageRef)#" cfsqltype="cf_sql_integer">
+				AND ContentTemplateRef = <cfqueryparam value="#val(contentTemplateRef)#" cfsqltype="cf_sql_integer">
+			</cfquery>
+			<cfif not getPageContentTemplate.recordCount>
+				<cfquery datasource="#application.dsn#">
+					INSERT INTO PageContentTemplate (PageRef, ContentTemplateRef, Date)
+					VALUES (
+						<cfqueryparam value="#val(pageRef)#" cfsqltype="cf_sql_integer">,
+						<cfqueryparam value="#val(contentTemplateRef)#" cfsqltype="cf_sql_integer">,
+						<cfqueryparam value="#now()#" cfsqltype="cf_sql_timestamp">
+					)
 				</cfquery>
-				<!---<cfdump var="#getData#">--->
-
-				<!---Load the object--->
-				<cfif arrayLen(getData) eq 0>
-					<cfset DbObj = EntityNew("PageContentTemplate")>
-				<cfelse>
-					<cfset DbObj = EntityLoadByPk("PageContentTemplate", getData[1])>
-				</cfif>
-				<!---<cfdump var="#DbObj#">--->
-
-				<!--- Set the values. --->
-				<cfset DbObj.setPageRef(PageDbObj)>
-				<cfset DbObj.setContentTemplateRef(ContentTemplateDbObj)>
-				<cfset DbObj.setDate(now())>
-				<!--- Save it --->
-				<cfset EntitySave(DbObj)>
-
 			</cfif>
-
-		</cftransaction>
-
+		</cfif>
 	</cfoutput>
-
-	<cfset pageId = DbObj.getPageContentTemplateId()>
 	<cfif isDefined("debug") and debug>Page Content Template table succesfully populated.<br/></cfif>
 </cfif>	
 <cfif isDefined("debug") and debug>Completed installation.<br/></cfif>
