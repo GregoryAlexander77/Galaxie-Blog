@@ -4,16 +4,16 @@ Galaxie Blog is intended to be the most beautiful and functional free, open-sour
 
 ## Documentation
 
-The Galaxie Blog documentation can be found on Gregory's Blog at https://www.gregoryalexander.com/blog/Galaxie-Blog. Gregory's Blog runs on the same codebase found here. Many how-to articles on Gregory's Blog discuss how we have implemented some of the logic. 
+The Galaxie Blog documentation is at https://www.galaxieblog.org. Gregory's Blog (https://www.gregoryalexander.com/blog) runs on the same codebase found here, and many of its how-to articles discuss how we have implemented some of the logic.
 
 ## Installation
 
 You must have a ColdFusion installed on a server.
-Your web server must have ColdFusion installed. Galaxie Blog has been tested on ColdFusion 2016, 2018, 2021, and 2023 (2023.0.07.330663).
+Your web server must have ColdFusion installed. Galaxie Blog 4.8 has been tested on Adobe ColdFusion 2023 and 2025, and on Lucee 7. Earlier versions were tested on ColdFusion 2016, 2018 and 2021.
 
 Theoretically, the blog may support any ColdFusion edition starting from ColdFusion 9. However, your mileage may vary.
 We have successfully tested using Apache, TomCat and IIS.
-We have not yet tested the blog on Lucee, an open-source version of Adobe ColdFusion, however, I intend on supporting Lucee in the future.
+Galaxie Blog runs on Lucee, the open-source CFML engine, as well as on Adobe ColdFusion. https://www.galaxieblog.org runs on Lucee with MariaDB.
 
 Many ISPs offer ColdFusion servers for as low as 12 dollars a month. I use Media3.net, and they have been terrific. You can find out more by searching the web for ColdFusion hosting.
 
@@ -25,7 +25,7 @@ Many ISPs offer ColdFusion servers for as low as 12 dollars a month. I use Media
 
 3. Create the database to install Galaxie Blog in.
 
-The blog uses Hibernate ORM and was designed to support the following databases; however, we have only tested the blog using SQL Server and various flavors of MySql:
+The blog uses Hibernate ORM and was designed to support the following databases; however, we have only tested the blog using SQL Server and MySQL/MariaDB:
 - Microsoft SQL Server
 - DB2
 - DB2AS400
@@ -42,9 +42,9 @@ The blog uses Hibernate ORM and was designed to support the following databases;
 - Sybase
 - SybaseAnywhere
 
-You may install Galaxie Blog using your current database. However, you need to make sure that there are no table name conflicts. We will document the database schema in later blog posts.
+Create a **new, empty** database for the blog. The installer only installs into an empty database: it checks the datasource that you enter and stops if the database already contains a Galaxie Blog, so that it can never overwrite an existing blog. Use a database name made of letters and numbers (no dots).
 
-4. Create a ColdFusion DSN for the database that you intend to install Galaxie Blog.
+4. Create a datasource for the new database in the ColdFusion (or Lucee) administrator, and make sure that it verifies. The installer asks for its name and checks that it exists and connects before going on.
 5. Enable Woff and Woff2 Font Support on the Webserver
 Galaxie Blog uses web fonts for typography and needs web font mime types set up on the web server. Most modern web servers already support these web font mime types, but you may need to set the following mime types need to be set up on some servers. If the server does not support these mime types certain textual elements will not be displayed. 
 
@@ -59,9 +59,23 @@ Galaxie Blog uses web fonts for typography and needs web font mime types set up 
 The installer is a seven-step process. Each screen may provide information and ask you to hit the next button or have multiple questions. It should not take more than five minutes to complete.
 Be sure to write down your chosen user name and password. You will need to retain this information. Galaxie Blog does not retain passwords—they are hashed using the strongest publicly available encryption process and cannot be recovered.
 - Once you are done, the installer will automatically create the database and import the needed data. The final step may take a while for the software to be installed. If there is a time-out error, refresh the browser, and the installation should continue.
+- If the blog shows *This site is not available right now* while it starts, the reason is written to the `galaxieBlogStartup.log` file in the logs folder of ColdFusion or Lucee, and is shown when you add `?startupDebug=1` to the address.
 
 7. Once installed, you should see your new blog with a 'No Entries' message on the front page. You will not see any blog posts until you make them using the administrative site; see below.
     
+## What's new in 4.8 (Bella's Pawtrait Edition)
+
+- **Page Collections and a curated home page.** Group pages into collections, show them as card grids, and choose what the home page shows (featured pages, collections, recent blog posts) with *Configure Homepage*. Related pages are shown under each page of a collection.
+- **A configurable top menu.** *Configure Menu* sets your own menu links (for example to your other sites), the name of the collections menu, and the combined menu that phones show. Collections can be shown in the menu.
+- **Hero images, gradients and animations.** Posts and collections can have a cover image, a generated gradient, or an animated (Vanta) background, with overlay text.
+- **Uploads with Uppy**, including galleries and carousels; large images are resized when they are uploaded, and WebP copies and social media sharing images are created.
+- **An Atom feed** (`/atom.cfm`) next to RSS, **scheduled releases**, canonical tags, and accessibility improvements.
+- **A neutral default footer.** Your own footer lives in *Themes, Composite Footer*.
+- **A safer installer.** It checks the datasource, will not install into a database that already holds a blog, inserts its starter data only once, and removes the password from `blog.ini.cfm` when it is done.
+- Many fixes for Lucee and for MySQL/MariaDB.
+
+Updating an existing blog? See [UPGRADING.md](UPGRADING.md).
+
 ## Acknowledgements
 
 This blog would not have been possible without Raymond Camden. Raymond developed BlogCfc, on which this platform was originally based. Raymond is a ColdFusion enthusiast who has authored thousands of ColdFusion-related posts on the Internet. Like every senior ColdFusion web developer, I have found his posts invaluable and have based many of my own ColdFusion libraries on his approach.
