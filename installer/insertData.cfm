@@ -30,6 +30,13 @@ You can also use this after a major version and changing the data in the databas
 		<cfset tablesToPopulate = 'all'>
 	</cfif>
 </cfif>
+<!--- Never fill a database that already has a blog in it (2026-10-12). Each section below updates any existing row that it finds instead of adding a new one, so running this against an existing blog's database overwrites that blog's settings, themes and users - which is what happened when a test install was pointed at the datasource of a blog that was already running on the same server. The installer checks the datasource before it gets here (installer/initial/dsnCheck.cfm); this is the last line of defence. The developer-only reinstallDb flag in Application.cfc, used to repair a partially installed database on purpose, is the only exception. --->
+<cfif tablesToPopulate eq 'all' and not (isDefined("reinstallDb") and reinstallDb)>
+	<cfset existingBlogRows = ormExecuteQuery("SELECT COUNT(*) FROM Blog", true)>
+	<cfif val(existingBlogRows) gt 0>
+		<cfthrow type="GalaxieBlog.Installer" message="The Galaxie Blog installer stopped: the database for the datasource '#application.dsn#' already contains a blog, and the installer only installs into a new, empty database. Nothing was changed. Create a new, empty database and a datasource for it, then run the installer again.">
+	</cfif>
+</cfif>
 	
 <cfset dir = application.rootDirectoryPath & "/installer/dataFiles/">
 <cfset saltAlgorithm = "AES">
@@ -437,7 +444,7 @@ Populate the Map Type table.
 		<cftransaction>
 
 			<cfquery name="getData" dbtype="hql">
-				SELECT MapTypeId FROM MapType WHERE MapType = <cfqueryparam value="#mapType#" cfsqltype="varchar">
+				SELECT MapTypeId FROM MapType WHERE MapType = <cfqueryparam value="#trim(mapType)#" cfsqltype="varchar">
 			</cfquery>
 
 			<cfif arrayLen(getData) eq 0>
@@ -449,7 +456,8 @@ Populate the Map Type table.
 			<!--- Load the MapProvider object --->
 			<cfset MapProviderObj = entityLoad("MapProvider", { MapProvider = mapProvider }, "true" )>
 			<!--- Set the values. --->
-			<cfset MapTypeDbObj.setMapType(mapType)>
+			<!--- Trimmed: getMapType.txt once had a line break in front of satellite_road_labels, so the lookup above never matched it and every install added a duplicate map type (found 2026-10-12). --->
+			<cfset MapTypeDbObj.setMapType(trim(mapType))>
 			<!--- MapProviderRef is a plain int column, not a many-to-one relation - pass the id, not the object --->
 			<cfset MapTypeDbObj.setMapProviderRef(MapProviderObj.getMapProviderId())>
 			<cfset MapTypeDbObj.setDate(now())>
@@ -1004,6 +1012,11 @@ Populate the User table using the form values sent in
 		<cfset EntitySave(UserDbObj)>
 
 	</cftransaction>
+
+	<!--- The installer's profile step keeps the password and security answers in blog.ini.cfm in plain text so that this template can read them. The user has been saved with a hashed password now, so don't leave them in the file (2026-10-12). --->
+	<cfloop list="password,securityAnswer1,securityAnswer2,securityAnswer3" index="iniKey">
+		<cfset setProfileString(application.blogIniPath, "default", iniKey, "")>
+	</cfloop>
 
 </cfif>
 

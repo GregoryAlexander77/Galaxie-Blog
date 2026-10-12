@@ -3,8 +3,9 @@
 <!--- We don't need to store anything from the extend application template --->
 <!--- Get the current form data from the ini file if possible. This is done as the user may come back to this page. --->
 <cfset dsn = getProfileString(application.iniFile, "default", "dsn")>
-<cfif !len(dsn)>
-	<cfset dsn = "GalaxieDb">
+<!--- No suggested name. This used to suggest "GalaxieDb", which is the name a Galaxie Blog already running on the same server is likely to use; keeping the suggestion installed into that blog's database on 2026-10-12. --->
+<cfif not len(dsn)>
+	<cfset dsn = "">
 </cfif>
 <!--- Set by step5SaveDatabase.cfm when the datasource could not be used. Show the name that was typed so it can be corrected. --->
 <cfset dsnError = structKeyExists(session, "dsnError") ? session.dsnError : "">

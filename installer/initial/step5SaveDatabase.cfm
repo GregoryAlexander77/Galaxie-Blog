@@ -9,17 +9,14 @@
 	<cflocation url="step4Dsn.cfm" addToken="false">
 </cfif>
 
-<!--- Make sure that the datasource exists and connects before saving it. A wrong or missing datasource used to be saved anyway, and the blog then failed after the user profile step with only a generic "This site is not available right now" page (found in the 4.8 install test, 2026-10-11). --->
-<cftry>
-	<cfquery name="dsnCheck" datasource="#trim(Form.dsn)#">
-		SELECT 1 AS DsnCheck
-	</cfquery>
-	<cfcatch type="any">
-		<cfset session.dsnError = "The datasource '#trim(Form.dsn)#' could not be used: #cfcatch.message# #cfcatch.detail# Check that a datasource with exactly this name exists in the ColdFusion or Lucee administrator, and that it verifies.">
-		<cfset session.dsnErrorValue = trim(Form.dsn)>
-		<cflocation url="step4Dsn.cfm" addToken="false">
-	</cfcatch>
-</cftry>
+<!--- Make sure that the datasource was entered, exists, connects, and is not the database of a blog that already exists, before saving it (see dsnCheck.cfm). A wrong or missing datasource used to be saved anyway, and the blog then failed after the user profile step with only a generic "This site is not available right now" page (found in the 4.8 install test, 2026-10-11) - and a datasource of a blog that was already running on the same server was used to install into, overwriting that blog's settings (2026-10-12). --->
+<cfinclude template="dsnCheck.cfm">
+<cfset dsnProblem = getInstallDsnProblem(Form.dsn)>
+<cfif len(dsnProblem)>
+	<cfset session.dsnError = dsnProblem>
+	<cfset session.dsnErrorValue = trim(Form.dsn)>
+	<cflocation url="step4Dsn.cfm" addToken="false">
+</cfif>
 <cfset structDelete(session, "dsnError")>
 <cfset structDelete(session, "dsnErrorValue")>
 

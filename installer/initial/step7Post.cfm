@@ -1,8 +1,17 @@
+<!--- Only continue with a datasource that was entered, exists, connects and is not an existing blog's database (see dsnCheck.cfm). Going straight to this page without one goes back to step 4. --->
+<cfsilent>
+<cfinclude template="dsnCheck.cfm">
+<cfset dsnProblem = getInstallDsnProblem(getProfileString(application.iniFile, "default", "dsn"))>
+<cfif len(dsnProblem)>
+	<cfset session.dsnError = dsnProblem>
+	<cflocation url="step4Dsn.cfm" addToken="false">
+</cfif>
+</cfsilent>
 <cfif structKeyExists(Form, "userName")>
 	<!--- Set session vars from the form. I am assuming that this block of logic is consumed when the user hits the back button. --->
 	<cfset session.firstName = Form.firstName>
 	<cfset session.lastName = Form.lastName>
-	<cfset sesion.profileDisplayName = Form.profileDisplayName>
+	<cfset session.profileDisplayName = Form.profileDisplayName>
 	<cfset session.email = Form.email>
 	<cfset session.website = Form.website>
 	<cfset session.userName = Form.userName>

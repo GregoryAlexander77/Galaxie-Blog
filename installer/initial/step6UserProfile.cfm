@@ -1,3 +1,12 @@
+<!--- Only continue with a datasource that was entered, exists, connects and is not an existing blog's database (see dsnCheck.cfm). Going straight to this page without one goes back to step 4. --->
+<cfsilent>
+<cfinclude template="dsnCheck.cfm">
+<cfset dsnProblem = getInstallDsnProblem(getProfileString(application.iniFile, "default", "dsn"))>
+<cfif len(dsnProblem)>
+	<cfset session.dsnError = dsnProblem>
+	<cflocation url="step4Dsn.cfm" addToken="false">
+</cfif>
+</cfsilent>
 <html lang="en-US"><head> <title>Your Profile</title>
 <cfsilent>
 <!--- We are storing the info in the session as the user may click on the back button or try again. --->
