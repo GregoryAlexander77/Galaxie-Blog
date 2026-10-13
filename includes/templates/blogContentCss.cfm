@@ -709,6 +709,16 @@
 			border-right: thin;
 		}
 		
+		<!--- 2026-10-13: until Kendo's responsive panel has set the panel up (it adds the k-rpanel class and positions it off-screen),
+		take it out of the page flow. On phones the rule above leaves it in the flow, invisible, so when the panel script ran late
+		or not at all (seen on an iPhone) its ~3,700px of hidden pods sat between the posts and the footer, and the footer looked gone.
+		Once the k-rpanel class is there this rule no longer matches, so the fly-out and the floating menu's hamburger work as before. --->
+		#sidebarPanel:not(.k-rpanel) {
+			position: absolute;
+			left: -10000px;
+			top: 0;
+		}
+
 		<!--- Place the layer where we want it and put a drop shadow on the panel when it is expanded. Note! the setSidebarPadding javascript function also sets some style properties. --->
 		#sidebarPanel.k-rpanel-expanded {
 		<cfif pageTypeId eq 1 or pageTypeId eq 8><!--- Both blogs and custom pages have rhw left margin set at 9 --->/* The sidebar panel is inside the main container and we don't want any top margin*/<cfelse><cfif session.isMobile>/* On mobile, the table height is 100px. We want to give about 5 pixels more height to allow the divider to be seen. */<cfelse>/* On desktop, the table height is 105px. We want to give about 5 pixels more height to allow the divider to be seen. */</cfif></cfif>
