@@ -122,6 +122,11 @@
 		<cfthrow message="galaxieCache: The name or cacheName attribute must be passed as a string.">
 	</cfif>
 
+	<!--- html caches keep their expiry in the server scope, which every site on the server shares. Two blogs on one server both used the name "podRssFeed", so they shared one expiry: when one blog refreshed its CfBlogs feed, the other went on serving its own old file (found 2026-10-13, after a second blog was installed next to gregoryalexander.com). The file path is unique to each site, so add it to the name. --->
+	<cfif attributes.scope eq "html" and len(attributes.file) and not find("|", attributes.name)>
+		<cfset attributes.name = attributes.name & "|" & expandPath(attributes.file)>
+	</cfif>
+
 	<!--- Scope is required and must be a valid value. --->
 	<cfif !isSimpleValue(attributes.scope) or not listFindNoCase("application,session,server,file,html",attributes.scope)>
 		<cfthrow message="galaxieCache: The scope attribute must be passed as one of: server, application, session, html or file.">
@@ -131,6 +136,8 @@
 	<cfif not isDate(attributes.timeout) and (not isNumeric(attributes.timeout) or attributes.timeout lt 0)>
 		<cfthrow message="galaxieCache: The timeout attribute must be either a date/time or a number.">
 	<cfelseif isNumeric(attributes.timeout)>
+		<!--- Remember the number of seconds: an html cache file whose expiry is no longer in memory (after the application restarted) needs it to work out its expiry from the file's own date. See the html branch below. --->
+		<cfset timeoutSeconds = attributes.timeout>
 		<!--- convert seconds to a time --->
 		<cfset attributes.timeout = dateAdd("s",attributes.timeout,now())>
 		<cfif debug>
@@ -295,10 +302,14 @@
 				  structKeyExists(scopeStruct.galaxieCache[attributes.name],"timeout")>
 				<cfset htmlIncludeTimeout = scopeStruct.galaxieCache[attributes.name].timeout>
 				<cfset indefiniteHtmlTimeout = false>
+			<cfelseif isDefined("timeoutSeconds") and fileExists(expandPath(attributes.file))>
+				<!--- The cache has a timeout, but its expiry is no longer in memory - the application restarted (appStop, a server restart or the application timing out) and the html file is still on disk. Work the expiry out from the file's own date. Treating it as never expiring left the CfBlogs feed pod (30 minutes) frozen until the next ?reinit=1 (found 2026-10-13). --->
+				<cfset htmlIncludeTimeout = dateAdd("s", timeoutSeconds, getFileInfo(expandPath(attributes.file)).lastModified)>
+				<cfset indefiniteHtmlTimeout = false>
 			<cfelse>
 				<!--- Expire it when we have flying cars --->
 				<cfset htmlIncludeTimeout = createDate(3999,1,1)>
-				<cfset indefiniteHtmlTimeout = true> 
+				<cfset indefiniteHtmlTimeout = true>
 			</cfif>
 			<!--- Determine if we should supress saving metadata for HTML files. This is done by default when there is no timeout for HTML files, but the user can change this behavior by changing the supressHtmlServerScopeWithIndefiniteTimeout attributes to false --->
 			<cfif attributes.supressHtmlServerScopeWithIndefiniteTimeout and indefiniteHtmlTimeout>
