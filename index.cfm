@@ -381,13 +381,13 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 			});//..document.ready
 		</script>
 		<!--- End Sidebar --->
-		<!--- The sidebar and its fly-out panel were just rendered above, for every page type. sideBarPanel.cfm (included further down for page types above 1) renders them again, so it must not run when this block did - otherwise the page has two #sidebar and two #sidebarPanel elements and the second set of pods stacks up below the footer. That was hidden for years because the plain blog home page is page type 1, but the 4.8 curated home page (Configure Homepage) is page type 24 (found in the 4.8 install test, 2026-10-12). --->
+		<!--- The right-hand #sidebar column was just rendered above. sideBarPanel.cfm (included further down for page types above 1) must still run - its hidden sidebarPanelState field and fly-out panel are what the floating menu's hamburger opens - but it must not render the #sidebar column a second time, or a second set of pods stacks up below the main panel (the 4.8 curated home page is page type 24, found in the 4.8 install test, 2026-10-12). --->
 		<cfset inlineSidebarRendered = true>
 	</main>
 	</td>
    </tr>
 </table>
-<cfif pageTypeId gt 1 and not isDefined("inlineSidebarRendered")>
+<cfif pageTypeId gt 1>
 	<cfsilent>	
 	<!---//***************************************************************************************************************
 			Sidebar	

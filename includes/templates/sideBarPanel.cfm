@@ -8,7 +8,8 @@
 	</cfsilent>
 	<input type="hidden" id="sidebarPanelState" name="sidebarPanelState" value="initial"/>
 	<!--- Side bar is to the right of the main panel container. It is also used as a responsive panel below when the screen size is small. We will not include it if the break point is not 0 or is equal or above 50000 --->
-	<cfif breakpoint gt 0>
+	<!--- index.cfm renders this #sidebar column itself and sets inlineSidebarRendered; rendering it again here stacked a second set of pods below the main panel (2026-10-12). The admin pages include this template without it, so they still get the column. --->
+	<cfif breakpoint gt 0 and not isDefined("inlineSidebarRendered")>
 		<div id="sidebar">
 			<!--- Suppply the sideBarType argument before loading the side bar--->
 			<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#"  materialTheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
