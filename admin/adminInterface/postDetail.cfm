@@ -44,13 +44,18 @@
 		<cfset blogSortDateIsDifferent = 1>
 	</cfif>
 		
-	<!--- Determine whether to prompt to send email. The defaul is true unless the post date is in the past. --->
-	<cfset promptToEmailToSubscribers = true>
-	<!--- Is posted less than now? --->
-	<cfif dateCompare(getPost[1]["DatePosted"], application.blog.blogNow()) is 1>
-		<cfset promptToEmailToSubscribers = false>
-	</cfif>
-		
+	<!--- Subscriber email (2026-10-12). Whether to email is now decided when Submit is clicked (verifyPostEmail below), not
+	when this window opens: the old check compared the post's date with the time the window was opened, so a post whose
+	date was still a little ahead at that moment never offered to email, however long the window then stayed open.
+	- releasedPostEmailMode: Blog Options, Subscriber Email - 'prompt' (ask) or 'auto' (send the first time it is released).
+	- a post whose date is still ahead when Submit is clicked is scheduled: savePost creates the task that releases and emails
+	  it when it goes live, so the editor only says so.
+	- blogNowAtLoad: the blog's own clock (blogNow) when this window opened. The script adds the time the window has been
+	  open, so the comparison uses the blog's time zone, not the time zone of the computer the editor runs on. --->
+	<cfset releasedPostEmailMode = application.blog.getReleasedPostEmailMode()>
+	<cfset postWasMailed = isBoolean(getPost[1]["Mailed"]) and getPost[1]["Mailed"]>
+	<cfset blogNowAtLoad = application.blog.blogNow()>
+
 	<!--- Was this already mailed? --->
 	<cfif getPost[1]["Mailed"]>
 		<!--- The user can still email the post again --->
@@ -566,29 +571,53 @@
 			}
 		}
 		
+		<!--- The blog's clock when this window opened, and when that was on this computer (see blogNowAtLoad at the top). --->
+		var postDetailBlogNowAtLoad = new Date(<cfoutput>#year(blogNowAtLoad)#, #month(blogNowAtLoad) - 1#, #day(blogNowAtLoad)#, #hour(blogNowAtLoad)#, #minute(blogNowAtLoad)#, #second(blogNowAtLoad)#</cfoutput>);
+		var postDetailOpenedAt = Date.now();
+
 		function verifyPostEmail(action){
-			<!--- Create a var to determine whether we sould prompt the user to email --->
-			var promptToEmailToSubscribers = <cfoutput>#promptToEmailToSubscribers#</cfoutput>;
-	
-			<!--- If the post is released and it is not being removed, prompt to see if we should send an email to the subscribers --->
-			if ( promptToEmailToSubscribers && $('#released').is(':checked') && !$('#remove').is(':checked') ){
-				$.when(kendo.ui.ExtYesNoDialog.show({ 
-					title: "<cfoutput>#promptEmailTitle#</cfoutput>",
-					message: "<cfoutput>#promptEmailMessage#</cfoutput>",
-					icon: "k-ext-question",
-					width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", 
-					height: "215px"
-				})
-				).done(function (response) { // If the user clicked 'yes'
-					if (response['button'] == 'Yes'){// remember that js is case sensitive.
-						postDetails('update', true);
-					} else {
-						postDetails('update', false);
-					}//..if (response['button'] == 'Yes'){
-				});//..if ($('#released').is(':checked')){
-			} else {
+			var releasedPostEmailMode = "<cfoutput>#releasedPostEmailMode#</cfoutput>";
+			var postWasMailed = <cfoutput>#postWasMailed ? "true" : "false"#</cfoutput>;
+			<!--- Nothing to email: not released, or being removed. --->
+			if ( !$('#released').is(':checked') || $('#remove').is(':checked') ){
 				postDetails('update', false);
+				return;
 			}
+			<!--- Scheduled: the post's date is still ahead of the blog's clock right now. savePost schedules the release, and the
+			subscribers are emailed when it goes live (whatever Blog Options says), so only tell the author. --->
+			var datePicker = $("#datePosted").data("kendoDateTimePicker");
+			var blogNow = new Date(postDetailBlogNowAtLoad.getTime() + (Date.now() - postDetailOpenedAt));
+			if (datePicker && datePicker.value() && datePicker.value() > blogNow){
+				$.when(kendo.ui.ExtAlertDialog.show({
+					title: "Scheduled",
+					message: "This post is scheduled for " + kendo.toString(datePicker.value(), "MMM d, yyyy h:mm tt") + ". Subscribers will be emailed when it goes live.",
+					icon: "k-ext-information",
+					width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>"
+				})).done(function () {
+					postDetails('update', false);
+				});
+				return;
+			}
+			<!--- Blog Options, Subscriber Email = send automatically: email it the first time it is saved as released, without asking. --->
+			if (releasedPostEmailMode == "auto"){
+				postDetails('update', !postWasMailed);
+				return;
+			}
+			<!--- Otherwise ask, every time a released post is saved (the title says so when it was emailed before). --->
+			$.when(kendo.ui.ExtYesNoDialog.show({
+				title: "<cfoutput>#promptEmailTitle#</cfoutput>",
+				message: "<cfoutput>#promptEmailMessage#</cfoutput>",
+				icon: "k-ext-question",
+				width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>",
+				height: "215px"
+			})
+			).done(function (response) { // If the user clicked 'yes'
+				if (response['button'] == 'Yes'){// remember that js is case sensitive.
+					postDetails('update', true);
+				} else {
+					postDetails('update', false);
+				}//..if (response['button'] == 'Yes'){
+			});
 		}
 		
 		<!--- Post method on the detail form called from the commentDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->

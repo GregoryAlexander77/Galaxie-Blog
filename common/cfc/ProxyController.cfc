@@ -3545,7 +3545,11 @@
 			<cfif arguments.released and arguments.emailSubscriber>
 				<!--- Determine if this is eligible for emailing. --->
 				<cfset promptToEmailToSubscribers = application.blog.promptToEmailToSubscribers(postId=arguments.postId)>
-				<cfif promptToEmailToSubscribers>
+				<cfif promptToEmailToSubscribers and application.blog.getReleasedPostEmailMode() eq "auto">
+					<!--- Blog Options, Subscriber Email is set to send automatically (2026-10-12): email it now instead of asking. --->
+					<cfset application.blog.sendPostEmailToSubscribers(postId=arguments.postId)>
+					<cfset response[ "emailSent" ] = true />
+				<cfelseif promptToEmailToSubscribers>
 					<!--- Send a response indicating that the client should raise a yes/no dialog and ask if the subscribers should be emeiled. --->
 					<cfset response[ "promptToEmailSubscriber" ] = true />
 				</cfif>
@@ -3614,12 +3618,16 @@
 		<cfif arguments.released and emailSubscriber>
 			<!--- Determine if this is eligible for emailing. --->
 			<cfset promptToEmailToSubscribers = application.blog.promptToEmailToSubscribers(postId=arguments.postId)>
-			<cfif promptToEmailToSubscribers>
+			<cfif promptToEmailToSubscribers and application.blog.getReleasedPostEmailMode() eq "auto">
+				<!--- Blog Options, Subscriber Email is set to send automatically (2026-10-12): email it now instead of asking. --->
+				<cfset application.blog.sendPostEmailToSubscribers(postId=arguments.postId)>
+				<cfset response[ "emailSent" ] = true />
+			<cfelseif promptToEmailToSubscribers>
 				<!--- Send a response indicating that the client should raise a yes/no dialog and ask if the subscribers should be emeiled. --->
 				<cfset response[ "promptToEmailSubscriber" ] = true />
 			</cfif>
 		</cfif>
-		
+
 		<!--- Send back the postId --->	
 		<cfset response[ "postId" ] = arguments.postId />
 		
@@ -9629,6 +9637,7 @@
 		<cfargument name="noImageFallbackMode" default="generic" required="false" hint="What shows in place of noImage.jpg for a post with no enclosure - 'generic', 'generated', 'pool', or 'none'. See Renderer.cfc's getHeroFallbackHtml().">
 		<cfargument name="heroCarouselImageCount" default="1" required="false" hint="How many pool images the carousel shows per post when noImageFallbackMode='pool' and heroPoolDisplayMode='carousel'.">
 		<cfargument name="heroPoolDisplayMode" default="carousel" required="false" hint="'carousel' or 'single' - see BlogOption.cfc's HeroPoolDisplayMode.">
+		<cfargument name="releasedPostEmailMode" default="prompt" required="false" hint="'prompt' or 'auto' - see BlogOption.cfc's ReleasedPostEmailMode (Blog Options, Subscriber Email, 2026-10-12).">
 
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -9760,6 +9769,7 @@
 				<cfset OptionDbObj.setNoImageFallbackMode(arguments.noImageFallbackMode)>
 				<cfset OptionDbObj.setHeroCarouselImageCount(val(arguments.heroCarouselImageCount))>
 				<cfset OptionDbObj.setHeroPoolDisplayMode(arguments.heroPoolDisplayMode)>
+				<cfset OptionDbObj.setReleasedPostEmailMode(arguments.releasedPostEmailMode eq "auto" ? "auto" : "prompt")>
 				<cfset OptionDbObj.setDate(application.blog.blogNow())>
 				<!--- Save it --->
 				<cfset EntitySave(OptionDbObj)>

@@ -44,6 +44,17 @@
 				<!--- On individual entry pages, the title of the page is the title of the post. --->
 				<cfset titleMetaTagValue = getPost[1]["Title"]>
 
+				<!--- 2026-10-12: the description (meta, Twitter and Open Graph) is the post's own Description when it has one.
+				Before this every post and page used the blog's description, so search results and shared links all showed the
+				same text (on gregoryalexander.com, just "Gregory's Blog"). Skipped when it is empty or still the Post entity's
+				placeholder default. A descMetaTag directive in the post header still wins (see getXmlOverride below). The value
+				goes into double-quoted content="..." attributes, so it is encoded here (encodeForHtml escapes quotes, and unlike encodeForHtmlAttribute it leaves spaces readable); the blog description above is left as it was. --->
+				<cfif structKeyExists(getPost[1], "Description") and not isNull(getPost[1]["Description"])
+					and len(trim(getPost[1]["Description"]))
+					and trim(getPost[1]["Description"]) neq "This should be set to a length of 160 in the future">
+					<cfset descriptionMetaTagValue = encodeForHtml(trim(getPost[1]["Description"]))>
+				</cfif>
+
 				<!--- Get all of the keywords that may be enclosed in the post header. --->
 				<cfif len(getPost[1]["PostHeader"])>
 					<cfset xmlKeywords = application.blog.inspectPostContentForXmlKeywords(getPost[1]["PostHeader"])>

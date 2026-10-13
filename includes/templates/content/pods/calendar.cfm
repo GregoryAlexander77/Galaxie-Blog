@@ -66,8 +66,8 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 	<cfset calendarDivName = "blogCalendarPanel">
 </cfif>
 	
-<cfset offset = application.BlogDbObj.getBlogServerTimeZoneOffset()>
-<cfset now = dateAdd("h", offset, now())>
+<!--- 2026-10-12: the blog's own clock (blogNow), which follows the blog's time zone including daylight saving time, instead of a fixed offset. --->
+<cfset now = application.blog.blogNow()>
 <cfparam name="month" default="#month(now)#">
 <cfparam name="year" default="#year(now)#">
 

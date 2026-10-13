@@ -19,6 +19,8 @@
 	<!--- Location and time zone --->
 	<cfset locale = application.BlogDbObj.getBlogLocale()>
 	<cfset blogTimeZone = application.BlogDbObj.getBlogTimeZone()>
+	<!--- The id the time zone dropdown selects. An old numeric setting (eg. -8) maps to the usual zone for it (2026-10-12). --->
+	<cfset blogTimeZoneId = application.blog.getBlogTimeZoneId()>
 	<cfset blogServerTimeZone = application.BlogDbObj.getBlogServerTimeZone()>
 	<cfset serverTimeZoneOffset =  application.BlogDbObj.getBlogServerTimeZoneOffset()>
 	<!--- Database --->
@@ -432,7 +434,7 @@
 			{"label":"(GMT-01:00) Cape Verde Is.","value":"Atlantic/Cape_Verde"},
 			{"label":"(GMT-01:00) Azores","value":"Atlantic/Azores"},
 			{"label":"(GMT+00:00) Casablanca, Monrovia, Reykjavik","value":"Africa/Casablanca"},
-			{"label":"(GMT+00:00) Greenwich Mean Time : Dublin, Edinburgh, Lisbon, London","value":"Etc/Greenwich"},
+			{"label":"(GMT+00:00) Greenwich Mean Time : Dublin, Edinburgh, Lisbon, London","value":"Europe/London"},
 			{"label":"(GMT+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna","value":"Europe/Amsterdam"},
 			{"label":"(GMT+01:00) Belgrade, Bratislava, Budapest, Ljubljana, Prague","value":"Europe/Belgrade"},
 			{"label":"(GMT+01:00) Brussels, Copenhagen, Madrid, Paris","value":"Europe/Brussels"},
@@ -576,13 +578,15 @@
 			dataTextField: "label",
 			dataValueField: "value",
 			filter: "contains",
-			dataSource: tzInts,
+			<!--- 2026-10-12: real time zone ids (tzStrings), so the blog's clock follows daylight saving time. This used tzInts,
+			bare numbers of hours that can't (see blog.cfc's getBlogTimeZoneId, which still reads an old number). --->
+			dataSource: tzStrings,
 			change: onBlogTimeZoneChange,
 		}).data("kendoDropDownList");
 
 		<!--- Set default value by the value (this is used when the container is populated via the datasource). --->
 		var blogTimeZone = $("#blogTimeZone").data("kendoDropDownList");
-		blogTimeZone.value( <cfoutput>'#blogTimeZone#'</cfoutput> );
+		blogTimeZone.value( <cfoutput>'#blogTimeZoneId#'</cfoutput> );
 		
 		<!--- Server timezone dropdown --->
 		var serverTimeZone = $("#serverTimeZone").kendoDropDownList({
@@ -610,6 +614,22 @@
 		serverTimeZone.enable(false);
 	</cfif>
 		
+		<!--- Hours from UTC right now for a time zone id (eg. America/Los_Angeles is -7 in summer, -8 in winter), or for an old
+		numeric setting. Only used to fill in the Server Time Zone Offset box, which the blog's clock no longer needs when a time
+		zone is selected (2026-10-12). --->
+		function timeZoneOffsetHoursNow(timeZone){
+			if (timeZone === undefined || timeZone === null || timeZone === "") return 0;
+			if (!isNaN(parseFloat(timeZone)) && isFinite(timeZone)) return parseFloat(timeZone);
+			try {
+				var now = new Date();
+				var inZone = new Date(now.toLocaleString("en-US", { timeZone: timeZone }));
+				var inUtc = new Date(now.toLocaleString("en-US", { timeZone: "UTC" }));
+				return (inZone - inUtc) / 3600000;
+			} catch (error) {
+				return 0;
+			}
+		}
+
 		<!--- Calculate the server offset by the blog time. --->
 		function onBlogTimeZoneChange(e){
 		<cfif !len(blogTimeZone)>
@@ -624,7 +644,8 @@
 			<!--- Get the server timezone --->
 			serverTimeZone = $("#serverTimeZoneValue").val();			
 			<!--- Calculate the offset --->
-			serverTimeZoneOffset = parseInt(blogTimeZone)-parseInt(serverTimeZone);
+			serverTimeZoneOffset = Math.round(timeZoneOffsetHoursNow(blogTimeZone) - parseFloat(serverTimeZone));
+			if (isNaN(serverTimeZoneOffset)) serverTimeZoneOffset = 0;
 			<!--- And populate the server time offset container --->
 			$("#serverTimeZoneOffset").val(serverTimeZoneOffset);
 			
@@ -640,7 +661,8 @@
 			var blogTimeZone = $("#blogTimeZone").data("kendoDropDownList");
 			blogTimeZoneValue = blogTimeZone.value();
 			<!--- Calculate the offset --->
-			serverTimeZoneOffset = parseInt(blogTimeZoneValue)-parseInt(serverTimeZone);
+			serverTimeZoneOffset = Math.round(timeZoneOffsetHoursNow(blogTimeZoneValue) - parseFloat(serverTimeZone));
+			if (isNaN(serverTimeZoneOffset)) serverTimeZoneOffset = 0;
 			<!--- And populate the server time offset container --->
 			$("#serverTimeZoneOffset").val(serverTimeZoneOffset);
 		}//...function onBlogTimeZoneChange(e)
@@ -755,8 +777,7 @@
 		  <tr height="1px">
 			  <td></td>
 			  <td align="left" valign="top" class="<cfoutput>#thisContentClass#</cfoutput>">
-			  	Your hosting provider or server may reside in a different time-zone. These settings are critical when this is the case.  If your server is in a different time-zone, you will want the post date to show the  time that you are in- not necessarilly where the server is.
-				The server time zone is automatically selected for you. However, you may change it if necessary.
+			  	Choose your own time zone, where you write and publish, which may differ from where your server is. Post dates, scheduled posts and the feeds use it, and it follows daylight saving time automatically. The blog works out the difference from the server's own clock, so the Server Time Zone and Server Time Zone Offset below are only used if no time zone is chosen here.
 			  </td>
 		  </tr>
 		  <!-- Border -->

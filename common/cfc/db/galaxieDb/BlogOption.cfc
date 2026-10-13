@@ -69,6 +69,11 @@
 	MobileMenuLabel names the single dropdown that combines Categories and Collections on phones (default "Explore"). --->
 	<cfproperty name="CollectionsMenuLabel" ormtype="string" length="50" default="">
 	<cfproperty name="MobileMenuLabel" ormtype="string" length="50" default="">
+	<!--- 2026-10-12: what happens when a blog post is saved as released (Blog Options, Subscriber Email). 'prompt' (the
+	default, also used when this is empty) asks whether to email the subscribers each time a released post is saved; 'auto'
+	emails them the first time the post is saved as released. A post scheduled for a later date is always emailed when it
+	goes live, whatever this is set to. See blog.cfc's getReleasedPostEmailMode(). --->
+	<cfproperty name="ReleasedPostEmailMode" ormtype="string" length="10" default="prompt">
 	<cfproperty name="Date" ormtype="timestamp">
 
 </cfcomponent>

@@ -104,6 +104,9 @@
 						sendEmailToSubscribers(e.response.postId);
 					}
 				});
+			} else if (e.type === "update" && e.response && e.response.emailSent) {
+				<!--- Blog Options, Subscriber Email is set to send automatically: the server already emailed it. --->
+				kendo.ui.ExtAlertDialog.show({ title: "Post Emailed", message: "This post was emailed to the subscribers.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
 			}
 		});
 

@@ -228,7 +228,10 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 									<!--- Mail it --->
 									sendEmailToSubscribers(value.PostId);
 								}//..if (response['button'] == 'Yes'){
-							});	
+							});
+						} else if (response.emailSent){
+							<!--- Blog Options, Subscriber Email is set to send automatically: the server already emailed it. --->
+							kendo.ui.ExtAlertDialog.show({ title: "Post Emailed", message: "This post was emailed to the subscribers.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
 						}
 					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {

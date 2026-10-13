@@ -3004,59 +3004,101 @@
 		Generic blog functions
 	//******************************************************************************************--->
 
-	<!--- Date and time functions. --->
+	<!--- Date and time functions.
+	2026-10-12: the blog's clock follows a real time zone, so daylight saving time is automatic. Before this, Blog Settings
+	stored the time zone as a bare number of hours (eg. -8), and blogNow() added a fixed offset between the blog and the
+	server that never changed, so the clock was an hour off for half of the year. A post released by hand then looked
+	scheduled for the future: the editor didn't offer to email the subscribers, and savePost scheduled a release for it.
+	Now Blog Settings saves a Java time zone id (eg. America/Los_Angeles); a blog that still has one of the old numbers is
+	mapped to the usual zone for it (see getBlogTimeZoneId). The difference from the server is worked out for each moment
+	from the server's own time zone (the JVM's), so the saved server time zone and offset are only used by a blog that has
+	no time zone set at all. --->
+	<cffunction name="getBlogTimeZoneId" access="public" returntype="string" output="false"
+			hint="The blog's Java time zone id (eg. America/Los_Angeles), from Blog Settings. An old numeric setting (eg. -8) is mapped to the usual daylight-saving zone for that offset - the same id the Blog Settings dropdown uses, so it shows as selected there - or else the first zone the JVM has with that offset. Returns an empty string when no time zone is set.">
+		<cfset var setting = application.BlogDbObj.getBlogTimeZone()>
+		<cfset var javaTimeZone = createObject("java", "java.util.TimeZone")>
+		<cfset var usualZoneByOffset = {
+			"-10": "Pacific/Honolulu", "-9": "US/Alaska", "-8": "America/Los_Angeles", "-7": "US/Mountain",
+			"-6": "US/Central", "-5": "US/Eastern", "-4": "Canada/Atlantic", "-3.5": "Canada/Newfoundland",
+			"-3": "America/Sao_Paulo", "0": "Europe/London", "1": "Europe/Amsterdam", "2": "Europe/Athens", "3": "Europe/Moscow",
+			"5.5": "Asia/Calcutta", "8": "Asia/Hong_Kong", "9": "Asia/Tokyo", "9.5": "Australia/Adelaide", "10": "Australia/Canberra",
+			"12": "Pacific/Auckland"
+		}>
+		<cfset var offsetKey = "">
+		<cfset var zonesWithOffset = "">
+		<cfset var zoneId = "">
+		<cfif isNull(setting) or not len(trim(setting))>
+			<cfreturn "">
+		</cfif>
+		<cfset setting = trim(setting)>
+		<!--- blogNow() calls this many times on every page, so remember the answer for each setting (it never changes). --->
+		<cfif not structKeyExists(variables, "blogTimeZoneIdCache")>
+			<cfset variables.blogTimeZoneIdCache = {}>
+		</cfif>
+		<cfif structKeyExists(variables.blogTimeZoneIdCache, setting)>
+			<cfreturn variables.blogTimeZoneIdCache[setting]>
+		</cfif>
+		<cfif not isNumeric(setting)>
+			<!--- A time zone id. getTimeZone() returns GMT for an id it doesn't know, so check that it really exists. --->
+			<cfif arrayFindNoCase(javaTimeZone.getAvailableIDs(), setting)>
+				<cfset zoneId = setting>
+			</cfif>
+		<cfelse>
+			<!--- An old numeric setting --->
+			<cfset offsetKey = toString(val(setting))>
+			<cfif structKeyExists(usualZoneByOffset, offsetKey)>
+				<cfset zoneId = usualZoneByOffset[offsetKey]>
+			<cfelse>
+				<cfset zonesWithOffset = javaTimeZone.getAvailableIDs(javacast("int", val(setting) * 3600000))>
+				<cfif arrayLen(zonesWithOffset)>
+					<cfset zoneId = zonesWithOffset[1]>
+				</cfif>
+			</cfif>
+		</cfif>
+		<cfset variables.blogTimeZoneIdCache[setting] = zoneId>
+		<cfreturn zoneId>
+	</cffunction>
+
+	<cffunction name="getServerJavaTimeZone" access="private" returntype="any" output="false"
+			hint="The java.util.TimeZone that now() and the date functions use on this server. Lucee has its own time zone setting, which can differ from the JVM's; Adobe ColdFusion uses the JVM's.">
+		<cfif structKeyExists(server, "lucee")>
+			<cfreturn getPageContext().getTimeZone()>
+		</cfif>
+		<cfreturn createObject("java", "java.util.TimeZone").getDefault()>
+	</cffunction>
+
+	<cffunction name="getBlogServerOffsetSeconds" access="private" returntype="numeric" output="false"
+			hint="Seconds to add to a server date/time to get the blog's date/time at that moment, daylight saving time included. Falls back to the fixed offset saved in Blog Settings when no blog time zone is set.">
+		<cfargument name="dateTime" type="date" required="false" default="#now()#" hint="A server date/time.">
+		<cfset var blogTimeZoneId = getBlogTimeZoneId()>
+		<cfset var javaTimeZone = createObject("java", "java.util.TimeZone")>
+		<cfset var instant = 0>
+		<cfset var savedOffset = "">
+		<cfif not len(blogTimeZoneId)>
+			<cfset savedOffset = application.BlogDbObj.getBlogServerTimeZoneOffset()>
+			<cfreturn (isNull(savedOffset) or not isNumeric(savedOffset)) ? 0 : savedOffset * 3600>
+		</cfif>
+		<cfset instant = parseDateTime(arguments.dateTime).getTime()>
+		<cfreturn (javaTimeZone.getTimeZone(blogTimeZoneId).getOffset(javacast("long", instant)) - getServerJavaTimeZone().getOffset(javacast("long", instant))) / 1000>
+	</cffunction>
+
 	<cffunction name="blogNow" access="public" returntype="date" output="false"
-			hint="Returns now() with the offset.">
-		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
-		<cfset var blogDateTime = "">
-			
-		<!--- Get the local time. MomentCfc requires the new keyword to initialize. See https://github.com/AlumnIQ/momentcfc/blob/master/readme.md for documentation. Note: this requires the time zone string to work right now and it is not used.
-		<cfset blogDateTime = new "#application.momentComponentPath#"( now() ).tz( instance.blogTimeZone ).time> --->
-		<cfset blogDateTime = dateAdd("h", instance.offset, now())>
-			
-		<cfreturn blogDateTime>
+			hint="The current date and time in the blog's time zone (Blog Settings), daylight saving time included.">
+		<cfset var serverNow = now()>
+		<cfreturn dateAdd("s", getBlogServerOffsetSeconds(serverNow), serverNow)>
 	</cffunction>
-			
+
 	<cffunction name="getBlogDateTime" access="public" returntype="date" output="false"
-			hint="Takes a date and returns what time it should be for the blog.">
+			hint="Takes a server date/time and returns what time it is for the blog at that moment.">
 		<cfargument name="dateTime" type="date" required="true" />
-			
-		<!--- Get the local time. MomentCfc requires the new keyword to initialize. See https://github.com/AlumnIQ/momentcfc/blob/master/readme.md for documentation. Note: this requires the time zone string to work right now and it is not used.
-		<cfset blogDateTime = new "#application.momentComponentPath#"( now() ).tz( instance.blogTimeZone ).time> --->
-		<cfset blogDateTime = dateAdd("h", instance.offset, arguments.dateTime)>
-			
-		<cfreturn blogDateTime>
+		<cfreturn dateAdd("s", getBlogServerOffsetSeconds(arguments.dateTime), arguments.dateTime)>
 	</cffunction>
-			
+
 	<cffunction name="getServerDateTime" access="public" returntype="date" output="false"
-			hint="Takes a date from the client and returns the date that it should be on the Server. This is used to schedule tasks on the server from the front end.">
+			hint="Takes a date/time in the blog's time zone (eg. a post's release time) and returns the server's date/time for that moment. Used to schedule tasks on the server (cfschedule runs on server time).">
 		<cfargument name="dateTime" type="date" required="true" />
-		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
-		<cfset var blogTimeZone = "">
-		<cfset var blogTimeZoneId = "">
-		<cfset var blogTimeZoneList = "">
-		<cfset var serverDateTime = "">
-		<cfset var serverTimeZoneId = "">
-		
-		<!--- Invoke the Time Zone cfc --->
-		<cfobject component="#application.timeZoneComponentPath#" name="TimeZoneObj">
-		
-		<!--- Get the time zone identifier on the server (ie America/Los_Angeles) from the TimeZone component --->
-		<cfset serverTimeZoneId = TimeZoneObj.getServerId()>
-		<!--- Get the blog time zone offset (-8) from the database and is populated by the Blog Time interface. We probably should be storing the actual identifier (America/Los_Angeles) in the database in the future to get the proper DST --->
-		<cfset blogTimeZone = application.BlogDbObj.getBlogTimeZone()>
-		<!--- Get the time zone identifier (America/Los_Angeles) by the GMT offset. This will pull up multiple options, but we just need a working identifier and will select the first one.  --->
-		<cfset blogTimeZoneList = TimeZoneObj.getTZByOffset(blogTimeZone)>
-		<!--- Get the first value in the array. We don't need this to be accurate, we just need a valid identifier to use. --->
-		<cfset blogTimeZoneId = blogTimeZoneList[1]>
-			
-		<!--- Now use the convertTZ function to convert the blog time to server time. The blog time is the time zone of the site administrator that is writing the articles. We may want to add time zones for all blog users with the edit post role in the future. 
-		convertTz(thisDate,	fromTZ, toTZ) --->
-		<cfset serverDateTime = TimeZoneObj.convertTZ(arguments.dateTime, blogTimeZoneId, serverTimeZoneId)>
-			
-		<!--- Return it. --->
-		<cfreturn serverDateTime>
-			
+		<!--- The offset at the blog time itself is close enough: it can only be wrong within the hour a clock change happens. --->
+		<cfreturn dateAdd("s", -getBlogServerOffsetSeconds(arguments.dateTime), arguments.dateTime)>
 	</cffunction>
 			
 	<!--- File and paths --->
@@ -3448,6 +3490,15 @@
 		Email functions
 	//******************************************************************************************--->
 			
+	<cffunction name="getReleasedPostEmailMode" access="public" returnType="string" output="false"
+			hint="Blog Options, Subscriber Email (2026-10-12): 'prompt' asks whether to email the subscribers each time a released blog post is saved; 'auto' emails them the first time the post is saved as released. Anything else, including an empty or NULL column on a blog that has not saved its Blog Options since this was added, is 'prompt'. A post scheduled for a later date is always emailed when it goes live (releaseFuturePosts), whatever this returns.">
+		<cfset var mode = application.BlogOptionDbObj.getReleasedPostEmailMode()>
+		<cfif not isNull(mode) and trim(mode) eq "auto">
+			<cfreturn "auto">
+		</cfif>
+		<cfreturn "prompt">
+	</cffunction>
+
 	<cffunction name="promptToEmailToSubscribers" access="public" returnType="boolean" output="false"
 			hint="Determines if the client should prompt the user to see if they want to send an email out to the subscribers. This is used to check to see when we should raise the prompt.">
 		<cfargument name="postId" type="string" required="true">
@@ -14729,8 +14780,9 @@
 		<!--- The blog time zone is stored as a raw GMT offset (eg -8), which doesn't say whether that zone observes DST.
 		Resolve it to a real IANA zone id sharing that raw offset so getTZOffset() below can give the correct offset,
 		DST or not, for any specific date (same approach already used by getServerDateTime()). --->
-		<cfset blogTimeZoneList = TimeZoneObj.getTZByOffset(blogTimeZone)>
-		<cfset blogTimeZoneId = blogTimeZoneList[1]>
+		<!--- 2026-10-12: Blog Settings now stores a time zone id; getBlogTimeZoneId() also handles the old numeric setting. With no time zone set, the post dates are server times. --->
+		<cfset blogTimeZoneId = getBlogTimeZoneId()>
+		<cfif not len(blogTimeZoneId)><cfset blogTimeZoneId = getServerJavaTimeZone().getID()></cfif>
 
 		<!--- Right now, we force this in. Useful to limit throughput of RSS feed. I may remove this later. --->
 		<cfif (structKeyExists(arguments.params,"maxEntries") and arguments.params.maxEntries gt 15) or not structKeyExists(arguments.params,"maxEntries")>
@@ -14926,7 +14978,8 @@
 		<cfobject component="#application.stringUtilsComponentPath#" name="StringUtilsObj">
 		<cfobject component="#application.timeZoneComponentPath#" name="TimeZoneObj">
 		<!--- Same DST-aware blog time zone lookup generateRSS uses. --->
-		<cfset blogTimeZoneId = TimeZoneObj.getTZByOffset(application.BlogDbObj.getBlogTimeZone())[1]>
+		<cfset blogTimeZoneId = getBlogTimeZoneId()>
+		<cfif not len(blogTimeZoneId)><cfset blogTimeZoneId = getServerJavaTimeZone().getID()></cfif>
 
 		<cfif not structKeyExists(arguments.params, "maxEntries") or arguments.params.maxEntries gt 15>
 			<cfset arguments.params.maxEntries = 15>

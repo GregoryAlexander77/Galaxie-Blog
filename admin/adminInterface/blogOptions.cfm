@@ -40,6 +40,7 @@
 	<cfset noImageFallbackMode = application.BlogOptionDbObj.getNoImageFallbackMode()>
 	<cfset heroCarouselImageCount = application.BlogOptionDbObj.getHeroCarouselImageCount()>
 	<cfset heroPoolDisplayMode = application.BlogOptionDbObj.getHeroPoolDisplayMode()>
+	<cfset releasedPostEmailMode = application.blog.getReleasedPostEmailMode()>
 		
 	<!--- The azureMapsApiKey is a new variable and it may be null. --->
 	<cfif !isDefined("azureMapsApiKey")>
@@ -676,6 +677,48 @@
 		  <!-- Border -->
 		  <tr height="2px">
 			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		</table>
+	</div>
+	</div>
+	</li>
+
+	<!---//***********************************************************************************************
+						Subscriber Email (2026-10-12)
+	//************************************************************************************************--->
+	<li>
+		Subscriber Email
+	<div class="k-content">
+	<div style="padding: 15px;">
+		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<!--- Set the colspan property for borders --->
+			<cfset thisColSpan = "2">
+		  </cfsilent>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2">
+				<p>Choose what happens when you save a blog post with Released checked. A post scheduled for a later date is always emailed to your subscribers when it goes live, whatever you choose here. Pages are never emailed.</p>
+			</td>
+		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2">
+				<label><input type="radio" name="releasedPostEmailMode" value="prompt" <cfif releasedPostEmailMode neq "auto">checked</cfif>> Ask me each time I save a released post</label><br/>
+				<label><input type="radio" name="releasedPostEmailMode" value="auto" <cfif releasedPostEmailMode eq "auto">checked</cfif>> Email my subscribers automatically the first time a post is released</label>
+			</td>
+		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		</table>
 	</div>
