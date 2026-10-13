@@ -293,7 +293,13 @@
 			</cfif>
 			</cfquery>
 				
+			<!--- 2026-10-13: a template is enabled unless it was explicitly turned off. An empty (NULL) Active, or a key the HQL map
+			left out because the value was NULL (Lucee), counts as enabled, matching the entity's default and what the installer
+			saves. Previously a NULL showed the Enable checkbox unchecked. --->
 			<cfif arrayLen(Data)>
+				<cfif not structKeyExists(Data[1], "Active") or isNull(Data[1]["Active"]) or not isBoolean(Data[1]["Active"])>
+					<cfreturn true>
+				</cfif>
 				<cfreturn Data[1]["Active"]>
 			<cfelse>
 				<cfreturn 0>
@@ -618,10 +624,12 @@
 			
 			<cfif len(arguments.contentTemplateId)>
 				<!--- Load the entity by the id --->
-				<cfset ContentTemplateDbObj = entityLoadByPk(ContentTemplate, arguments.contentTemplateId)>
+				<cfset ContentTemplateDbObj = entityLoadByPk("ContentTemplate", arguments.contentTemplateId)>
 			<cfelseif len(arguments.contentTemplate)>
-				<!--- Load the content object by the content template name --->
-				<cfset ContentTemplateDbObj = entityLoad("ContentTemplate", {ContentTemplateName=arguments.contentTemplate}, "true" )>
+				<!--- Load the content object by the content template name. 2026-10-13: the first (original) row by id, not
+				entityLoad(..., unique), which throws when the name matches more than one row (a database restored from a backup can
+				have a duplicate). The entity name in entityLoadByPk above was also missing its quotes. --->
+				<cfset ContentTemplateDbObj = ormExecuteQuery("FROM ContentTemplate WHERE ContentTemplateName = :name ORDER BY ContentTemplateId", { name = arguments.contentTemplate }, true, { maxresults = 1 })>
 			<cfelse>
 				<!--- Either the contentTemplateId or contentTemplate is required here --->
 				<cfreturn 0>

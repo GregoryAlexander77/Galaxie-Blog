@@ -1972,6 +1972,51 @@ END CATCH;
 	<cfreturn count>
 </cffunction>
 
+<!---
+	*************************************************************************************************************
+	checkContentTemplates (2026-10-13) - read-only. Lists content templates (the Themes content: navigation menu, windows, pods,
+	Composite Footer...) whose name appears on more than one ContentTemplate row, with what is attached to each row, plus the
+	Composite Footer's own row(s). Written for gregoryalexander.com, whose database was repaired from a backup on 2026-10-12:
+	the Composite Footer's Enable checkbox wouldn't stay checked, and a duplicate row is the likely reason. Run it from a
+	browser when SQL Server Management Studio isn't available. Nothing is changed.
+	Usage: /common/cfc/TestUtility.cfc?method=checkContentTemplates
+	*************************************************************************************************************
+--->
+<cffunction name="checkContentTemplates" access="remote" returntype="void" output="yes">
+	<cfset requireEditSiteAccess()>
+	<!--- Send this as an HTML page - see fixDocsLinks for why (Lucee can send a remote method's output as XML). --->
+	<cfcontent type="text/html; charset=utf-8" reset="true">
+	<cfset var duplicates = queryExecute("SELECT ContentTemplateName, COUNT(*) AS Copies FROM ContentTemplate GROUP BY ContentTemplateName HAVING COUNT(*) > 1 ORDER BY ContentTemplateName")>
+	<cfset var names = valueList(duplicates.ContentTemplateName)>
+	<cfset var rows = "">
+	<cfset var name = "">
+	<cfif not listFindNoCase(names, "compositeFooter")>
+		<cfset names = listAppend(names, "compositeFooter")>
+	</cfif>
+	<cfoutput>
+	<h2>#duplicates.recordCount# template name(s) on more than one row</h2>
+	<cfloop query="duplicates"><div>#encodeForHtml(duplicates.ContentTemplateName)#: #duplicates.Copies# rows</div></cfloop>
+	<p>Each row below shows what is attached to it: saved content (ContentOutput) and page links (PageContentTemplate). The row with the content and links is the one in use; a copy with nothing attached is safe to remove.</p>
+	</cfoutput>
+	<cfloop list="#names#" index="name">
+		<cfset rows = queryExecute("
+			SELECT ct.ContentTemplateId, ct.ContentTemplateName, CASE WHEN ct.Active = 1 THEN 1 ELSE 0 END AS Active,
+				(SELECT COUNT(*) FROM ContentOutput co WHERE co.ContentTemplateRef = ct.ContentTemplateId) AS ContentOutputRows,
+				(SELECT COUNT(*) FROM PageContentTemplate pct WHERE pct.ContentTemplateRef = ct.ContentTemplateId) AS PageLinks
+			FROM ContentTemplate ct
+			WHERE ct.ContentTemplateName = :name
+			ORDER BY ct.ContentTemplateId
+		", { name = name })>
+		<cfoutput>
+		<h3>#encodeForHtml(name)#</h3>
+		<table border="1" cellpadding="4" cellspacing="0">
+		<tr><th>ContentTemplateId</th><th>Enable (Active)</th><th>Saved content rows</th><th>Page links</th></tr>
+		<cfloop query="rows"><tr><td>#rows.ContentTemplateId#</td><td>#(rows.Active ? "checked" : "not checked")#</td><td>#rows.ContentOutputRows#</td><td>#rows.PageLinks#</td></tr></cfloop>
+		</table>
+		</cfoutput>
+	</cfloop>
+</cffunction>
+
 <cffunction name="bitIsTrue" access="private" returntype="boolean" output="false"
 		hint="True for a database bit/boolean value however the engine returns it: true/false (Lucee + MySQL), 1/0 (Adobe ColdFusion), or 'yes'/'no'. Empty or null is false.">
 	<cfargument name="value" required="false" default="">

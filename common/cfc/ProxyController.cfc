@@ -2566,7 +2566,9 @@
 				
 		<!--- Update the conent output if new content was sent in. 
 		We are going to loop through the content templates and update the data. Everything related to the content is based upon the contentTemplate name that we will loop through. Note: we will handle the calendarPod below as it does not have any code. --->
-		<cfset contentTemplates = "navigationMenu,aboutWindow,bioWindow,downloadWindow,downloadPod,subscribePod,cfblogsFeedPod,recentPostsPod,recentCommentsPod,categoriesPod,monthlyArchivesPod,compositeFooter">
+		<!--- 2026-10-13: blogPostCalendarPod added. The comment above said the calendar pod was handled below, but nothing handled it,
+		so its Enable checkbox never saved. It has no code to save, only the Enable flag, which this loop sets. --->
+		<cfset contentTemplates = "navigationMenu,aboutWindow,bioWindow,downloadWindow,downloadPod,subscribePod,cfblogsFeedPod,recentPostsPod,recentCommentsPod,categoriesPod,monthlyArchivesPod,blogPostCalendarPod,compositeFooter">
 			
 		<cfloop list="#trim(contentTemplates)#" index="i">
 			<cfset thisContentTemplateEnable = evaluate(i & 'Enable')>
@@ -2578,12 +2580,15 @@
 				<cfset thisContentTemplateEnable = false>
 			</cfif>
 
-			<!--- Load the content template ---> 
-			<cfset ContentTemplateDbObj = entityLoad("ContentTemplate", {ContentTemplateName=i}, "true" )>
-			<!--- Set the active flag --->
-			<cfset ContentTemplateDbObj.setActive(thisContentTemplateEnable)>
-			<!--- Save it --->
-			<cfset entitySave(ContentTemplateDbObj)>
+			<!--- Set the active flag (the Enable checkbox) by name. 2026-10-13: this loaded the template with entityLoad(..., unique)
+			and saved it, which throws when a name matches more than one row - and the Composite Footer is the last template in the
+			list, so its Enable checkbox was the one that never saved (gregoryalexander.com, after its database was repaired from a
+			backup on 2026-10-12). Updating by name works whether there is one row or more. --->
+			<cfquery name="setContentTemplateActive" dbtype="hql">
+				UPDATE ContentTemplate
+				SET Active = <cfqueryparam value="#thisContentTemplateEnable#" cfsqltype="cf_sql_bit">
+				WHERE ContentTemplateName = <cfqueryparam value="#i#" cfsqltype="cf_sql_varchar">
+			</cfquery>
 				
 		</cfloop>
     	
@@ -2899,10 +2904,11 @@
 							<cfinvokeargument name="revertMobile" value="true">
 						<cfelse>
 							<cfinvokeargument name="revertDesktop" value="true">
-						</cfif> 
+						</cfif>
+						<!--- Set the active flag to false. 2026-10-13: this sat after the cfif, so it overrode active=1 above and every
+						saved content template was stored as inactive; it belongs to reverting only. --->
+						<cfinvokeargument name="active" value="0">
 					</cfif>
-					<!--- Set the active flag to false --->
-					<cfinvokeargument name="active" value="0">
 				</cfinvoke>
 				
 			</cfloop><!---<cfloop list="#thisContentTemplateThemes#" index="themeId">--->
