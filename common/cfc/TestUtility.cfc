@@ -1655,6 +1655,323 @@ END CATCH;
 	</cfoutput>
 </cffunction>
 
+<!---
+	*************************************************************************************************************
+	exportDocsContent (2026-10-12) - read-only. Downloads every Page Collection and its pages, with each page's body exactly
+	as it is stored in the database, as a JSON file in the same format as common/data/docsContent.json (the file
+	importDocsContent reads), plus each page's POSTID and RELEASED. Use it:
+	  - after editing the docs on galaxieblog.org, to refresh common/data/docsContent.json so a new install's docs match
+	    the live site (do NOT run importDocsContent on galaxieblog.org afterwards - the live site is already the source);
+	  - before writing find/replace edits for applyDocsEdits, so the "find" text matches the stored HTML exactly (the
+	    rendered page differs from the stored body).
+	Pages are listed in each collection's own order (SortOrder, then title). Nothing is changed.
+	Usage: /common/cfc/TestUtility.cfc?method=exportDocsContent   (downloads docsContent-export-yyyy-mm-dd.json)
+	       add &view=true to show it in the browser instead of downloading it.
+	*************************************************************************************************************
+--->
+<cffunction name="exportDocsContent" access="remote" returntype="void" output="yes">
+	<cfargument name="view" type="boolean" required="false" default="false">
+	<cfset requireEditSiteAccess()>
+	<cfset var blogId = application.BlogDbObj.getBlogId()>
+	<cfset var collectionRows = queryExecute("SELECT PageCollectionId, Title, CollectionAlias, Description FROM PageCollection WHERE BlogRef = :blogId ORDER BY COALESCE(MenuOrder, 0), Title", { blogId = blogId })>
+	<cfset var memberRows = "">
+	<cfset var collections = []>
+	<cfset var aliasById = {}>
+	<cfset var homepageAliases = []>
+	<cfset var pages = []>
+	<cfset var post = "">
+	<cfset var body = "">
+	<cfset var description = "">
+	<cfset var settings = "">
+	<cfset var collectionId = "">
+	<cfset var pageCount = 0>
+	<cfset var json = "">
+
+	<cfloop query="collectionRows">
+		<cfset aliasById[collectionRows.PageCollectionId] = collectionRows.CollectionAlias>
+		<cfset memberRows = queryExecute("
+			SELECT pcm.PostRef
+			FROM PageCollectionMemberLookup pcm
+			INNER JOIN Post p ON p.PostId = pcm.PostRef
+			WHERE pcm.PageCollectionRef = :collectionId
+				AND (CASE WHEN p.Remove = 1 THEN 1 ELSE 0 END) = 0
+			ORDER BY COALESCE(pcm.SortOrder, 0), p.Title
+		", { collectionId = collectionRows.PageCollectionId })>
+		<cfset pages = []>
+		<cfloop query="memberRows">
+			<!--- The body comes from the entity, not the query: a long text column can come back truncated or as a CLOB
+			object from a plain query, depending on the datasource settings. --->
+			<cfset post = entityLoadByPK("Post", memberRows.PostRef)>
+			<cfif isNull(post)><cfcontinue></cfif>
+			<cfset body = post.getBody()>
+			<cfset description = post.getDescription()>
+			<cfset arrayAppend(pages, [
+				"TITLE": post.getTitle(),
+				"POSTALIAS": post.getPostAlias(),
+				"DESCRIPTION": isNull(description) ? "" : description,
+				"BODY": isNull(body) ? "" : body,
+				"POSTID": post.getPostId(),
+				"RELEASED": bitIsTrue(post.getReleased())
+			])>
+			<cfset pageCount = pageCount + 1>
+		</cfloop>
+		<cfset arrayAppend(collections, [
+			"TITLE": collectionRows.Title,
+			"ALIAS": collectionRows.CollectionAlias,
+			"DESCRIPTION": collectionRows.Description,
+			"PAGES": pages
+		])>
+	</cfloop>
+
+	<cfset settings = application.blog.getHomepageSettings()>
+	<cfloop list="#settings.collectionIdList#" index="collectionId">
+		<cfif structKeyExists(aliasById, collectionId)><cfset arrayAppend(homepageAliases, aliasById[collectionId])></cfif>
+	</cfloop>
+
+	<!--- Ordered structs ([ "key": value ] literals) keep the keys in this order and in upper case, matching docsContent.json. --->
+	<cfset json = serializeJSON([
+		"HOMEPAGECOLLECTIONALIASES": homepageAliases,
+		"HOMEPAGESHOWCOLLECTIONS": bitIsTrue(settings.showCollections),
+		"COLLECTIONS": collections,
+		"EXPORTED": dateFormat(now(), "yyyy-mm-dd") & " " & timeFormat(now(), "HH:mm") & " from " & cgi.server_name & " (" & arrayLen(collections) & " collections, " & pageCount & " pages)"
+	])>
+	<cfif not arguments.view>
+		<cfheader name="Content-Disposition" value="attachment; filename=docsContent-export-#dateFormat(now(), 'yyyy-mm-dd')#.json">
+	</cfif>
+	<cfcontent type="application/json; charset=utf-8" reset="true">
+	<cfoutput>#json#</cfoutput>
+	<cfabort>
+</cffunction>
+
+<!---
+	*************************************************************************************************************
+	applyDocsEdits (2026-10-12) - applies a list of documentation changes to the docs pages in one go, instead of opening
+	each page in the editor. The list is common/data/docsEdits.json:
+	  ALLPAGES  - find/replace pairs applied to every page and post that contains the text (eg. a link's text);
+	  PAGES     - per page (by POSTALIAS): find/replace EDITS, and an optional NEWTITLE and NEWDESCRIPTION. The address
+	              (alias) is never changed, so links to the page keep working;
+	  NEWPAGES  - pages to create, as drafts (not released), in the collection named by COLLECTIONALIAS. A page whose
+	              alias already exists is left alone, so your own changes to it are never overwritten.
+	Each FIND must match the stored HTML exactly (get it with exportDocsContent). For every edit the dry run says:
+	  will change          - the text was found once (ALLPAGES: anywhere) and will be replaced;
+	  already done         - the replacement is already in the page, so it is skipped (running this twice is safe);
+	  NOT FOUND / FOUND n TIMES - the page was edited since the list was written; nothing is changed for that edit,
+	                         the other edits still apply. Make that change by hand, or fix the list and run again.
+	Dry run by default (shows every change); add &confirm=true to save. Saving clears the page caches.
+	Usage: /common/cfc/TestUtility.cfc?method=applyDocsEdits            (dry run)
+	       /common/cfc/TestUtility.cfc?method=applyDocsEdits&confirm=true
+	*************************************************************************************************************
+--->
+<cffunction name="applyDocsEdits" access="remote" returntype="void" output="yes">
+	<cfargument name="confirm" type="boolean" required="false" default="false">
+	<cfset requireEditSiteAccess()>
+	<!--- Send this as an HTML page - see fixDocsLinks for why (Lucee can send a remote method's output as XML). --->
+	<cfcontent type="text/html; charset=utf-8" reset="true">
+	<cfset var filePath = getDirectoryFromPath(getCurrentTemplatePath()) & "../data/docsEdits.json">
+	<cfif not fileExists(filePath)>
+		<cfoutput>Missing #encodeForHtml(filePath)#</cfoutput>
+		<cfreturn>
+	</cfif>
+	<cfset var docsEditList = deserializeJSON(fileRead(filePath, "utf-8"))>
+	<cfset var blogId = application.BlogDbObj.getBlogId()>
+	<!--- Every changed post, keyed by id: the entity, its body as it is now and as it was, and what changed. Page edits and
+	ALLPAGES edits can touch the same post, so both work on this one copy and each post is saved once. --->
+	<cfset var work = {}>
+	<cfset var warnings = []>
+	<cfset var pageEntry = "">
+	<cfset var edit = "">
+	<cfset var found = "">
+	<cfset var post = "">
+	<cfset var key = "">
+	<cfset var item = "">
+	<cfset var result = "">
+	<cfset var editNumber = 0>
+	<cfset var postsChanged = 0>
+	<cfset var editsMade = 0>
+	<cfset var created = 0>
+	<cfset var newPage = "">
+	<cfset var collectionList = "">
+	<cfset var newPostId = 0>
+	<cfset var newPostObj = "">
+
+	<!--- Page edits --->
+	<cfloop array="#structKeyExists(docsEditList, 'PAGES') ? docsEditList.PAGES : []#" index="pageEntry">
+		<cfset found = ormExecuteQuery("FROM Post WHERE BlogRef = :blog AND PostAlias = :alias AND Remove = 0", { blog = application.BlogDbObj, alias = pageEntry.POSTALIAS })>
+		<cfif not arrayLen(found)>
+			<cfset arrayAppend(warnings, "/" & pageEntry.POSTALIAS & ": no page with this address - all of its edits skipped")>
+			<cfcontinue>
+		</cfif>
+		<cfset item = docsEditsWorkItem(work, found[1])>
+		<cfif structKeyExists(pageEntry, "NEWTITLE") and len(pageEntry.NEWTITLE)>
+			<cfif item.post.getTitle() eq pageEntry.NEWTITLE>
+				<cfset arrayAppend(item.changes, { status = "already done", note = "title", find = "", replace = pageEntry.NEWTITLE })>
+			<cfelse>
+				<cfset item.newTitle = pageEntry.NEWTITLE>
+				<cfset arrayAppend(item.changes, { status = "will change", note = "title", find = item.post.getTitle(), replace = pageEntry.NEWTITLE })>
+			</cfif>
+		</cfif>
+		<cfif structKeyExists(pageEntry, "NEWDESCRIPTION") and len(pageEntry.NEWDESCRIPTION)>
+			<cfif (isNull(item.post.getDescription()) ? "" : item.post.getDescription()) eq pageEntry.NEWDESCRIPTION>
+				<cfset arrayAppend(item.changes, { status = "already done", note = "description", find = "", replace = pageEntry.NEWDESCRIPTION })>
+			<cfelse>
+				<cfset item.newDescription = pageEntry.NEWDESCRIPTION>
+				<cfset arrayAppend(item.changes, { status = "will change", note = "description", find = (isNull(item.post.getDescription()) ? "" : item.post.getDescription()), replace = pageEntry.NEWDESCRIPTION })>
+			</cfif>
+		</cfif>
+		<cfset editNumber = 0>
+		<cfloop array="#pageEntry.EDITS#" index="edit">
+			<cfset editNumber = editNumber + 1>
+			<cfset result = docsEditsApplyOne(item, edit, true)>
+			<cfif result neq "will change" and result neq "already done">
+				<cfset arrayAppend(warnings, item.post.getTitle() & ", edit " & editNumber & ": " & result)>
+			</cfif>
+		</cfloop>
+	</cfloop>
+
+	<!--- Edits for every page that contains the text --->
+	<cfloop array="#structKeyExists(docsEditList, 'ALLPAGES') ? docsEditList.ALLPAGES : []#" index="edit">
+		<cfset found = ormExecuteQuery("FROM Post WHERE BlogRef = :blog AND Remove = 0 AND Body LIKE :pattern", { blog = application.BlogDbObj, pattern = "%" & edit.FIND & "%" })>
+		<cfloop array="#found#" index="post">
+			<cfset item = docsEditsWorkItem(work, post)>
+			<cfset docsEditsApplyOne(item, edit, false)>
+		</cfloop>
+	</cfloop>
+
+	<!--- Report, and save --->
+	<cfoutput><h2>#(arguments.confirm ? "Saved" : "Dry run (add &amp;confirm=true to the address to save)")#</h2></cfoutput>
+	<cfloop collection="#work#" item="key">
+		<cfset item = work[key]>
+		<cfif item.body neq item.originalBody or len(item.newTitle) or len(item.newDescription)>
+			<cfset postsChanged = postsChanged + 1>
+			<cfif arguments.confirm>
+				<cfset item.post.setBody(item.body)>
+				<cfif len(item.newTitle)><cfset item.post.setTitle(item.newTitle)></cfif>
+				<cfif len(item.newDescription)><cfset item.post.setDescription(item.newDescription)></cfif>
+				<cfset entitySave(item.post)>
+			</cfif>
+		</cfif>
+		<cfoutput><h3>#encodeForHtml(item.post.getTitle())# <small>/#encodeForHtml(item.post.getPostAlias())#</small></h3></cfoutput>
+		<cfloop array="#item.changes#" index="edit">
+			<cfif edit.status eq "will change"><cfset editsMade = editsMade + 1></cfif>
+			<cfoutput>
+			<details>
+				<summary><b>#encodeForHtml(edit.status eq "will change" and arguments.confirm ? "changed" : edit.status)#</b><cfif len(edit.note)> - #encodeForHtml(edit.note)#</cfif></summary>
+				<cfif len(edit.find)><div>Before:</div><pre style="white-space: pre-wrap;">#encodeForHtml(edit.find)#</pre></cfif>
+				<div>After:</div><pre style="white-space: pre-wrap;">#encodeForHtml(edit.replace)#</pre>
+			</details>
+			</cfoutput>
+		</cfloop>
+	</cfloop>
+
+	<!--- New pages, created as drafts --->
+	<cfloop array="#structKeyExists(docsEditList, 'NEWPAGES') ? docsEditList.NEWPAGES : []#" index="newPage">
+		<cfset found = ormExecuteQuery("FROM Post WHERE BlogRef = :blog AND PostAlias = :alias", { blog = application.BlogDbObj, alias = newPage.POSTALIAS })>
+		<cfset collectionList = ormExecuteQuery("FROM PageCollection WHERE BlogRef = :blog AND CollectionAlias = :alias", { blog = application.BlogDbObj, alias = newPage.COLLECTIONALIAS })>
+		<cfoutput><h3>New page: #encodeForHtml(newPage.TITLE)# <small>/#encodeForHtml(newPage.POSTALIAS)#</small></h3></cfoutput>
+		<cfif arrayLen(found)>
+			<cfoutput><div><b>already exists</b> - left alone</div></cfoutput>
+			<cfcontinue>
+		</cfif>
+		<cfif not arrayLen(collectionList)>
+			<cfset arrayAppend(warnings, "New page " & newPage.TITLE & ": no collection /" & newPage.COLLECTIONALIAS & " - not created")>
+			<cfcontinue>
+		</cfif>
+		<cfoutput>
+		<details>
+			<summary><b>#(arguments.confirm ? "created as a draft" : "will be created as a draft")#</b> in #encodeForHtml(collectionList[1].getTitle())#</summary>
+			<pre style="white-space: pre-wrap;">#encodeForHtml(newPage.BODY)#</pre>
+		</details>
+		</cfoutput>
+		<cfif arguments.confirm>
+			<!--- The same steps as importDocsContent: create it under its unique alias (insertNewPost returns the id of any
+			existing post with the same title, which would overwrite it), set the alias, then save the real content. --->
+			<cfset newPostId = application.blog.insertNewPost(postType = "page", author = 1, title = newPage.POSTALIAS, description = newPage.DESCRIPTION)>
+			<cfset newPostObj = entityLoadByPK("Post", newPostId)>
+			<cfset newPostObj.setPostAlias(newPage.POSTALIAS)>
+			<cfset entitySave(newPostObj)>
+			<cfset ormFlush()>
+			<cfset application.blog.savePost(
+				postId = newPostId,
+				author = 1,
+				postType = "page",
+				title = newPage.TITLE,
+				description = newPage.DESCRIPTION,
+				post = newPage.BODY,
+				released = false,
+				emailSubscriber = false,
+				pageCollectionIdList = collectionList[1].getPageCollectionId()
+			)>
+			<cfset application.blog.setPageCollectionsForPost(postId = newPostId, pageCollectionIdList = collectionList[1].getPageCollectionId())>
+		</cfif>
+		<cfset created = created + 1>
+	</cfloop>
+
+	<cfif arguments.confirm and (postsChanged or created)>
+		<cfset ormFlush()>
+		<cfset application.blog.flushGalaxieCache('all')>
+	</cfif>
+	<cfoutput>
+	<h2>#editsMade# change(s) in #postsChanged# page(s)#(created ? ", " & created & " new draft page(s)" : "")##(arguments.confirm ? " saved, caches cleared" : "")#</h2>
+	<cfif arrayLen(warnings)>
+		<h3>Not changed - needs a look (#arrayLen(warnings)#)</h3>
+		<cfloop array="#warnings#" index="item"><div>#encodeForHtml(item)#</div></cfloop>
+	<cfelse>
+		<p>Every edit matched.</p>
+	</cfif>
+	</cfoutput>
+</cffunction>
+
+<cffunction name="docsEditsWorkItem" access="private" returntype="struct" output="false"
+		hint="applyDocsEdits: the working copy for one post, created the first time the post is touched. Structs are passed by reference, so the caller's changes land in work.">
+	<cfargument name="work" type="struct" required="true">
+	<cfargument name="post" required="true">
+	<cfset var key = arguments.post.getPostId()>
+	<cfset var body = "">
+	<cfif not structKeyExists(arguments.work, key)>
+		<cfset body = arguments.post.getBody()>
+		<cfif isNull(body)><cfset body = ""></cfif>
+		<cfset arguments.work[key] = { post = arguments.post, body = body, originalBody = body, newTitle = "", newDescription = "", changes = [] }>
+	</cfif>
+	<cfreturn arguments.work[key]>
+</cffunction>
+
+<cffunction name="docsEditsApplyOne" access="private" returntype="string" output="false"
+		hint="applyDocsEdits: applies one find/replace to a working copy and records it. Returns 'will change', 'already done', or why it could not be applied. single=true needs the text exactly once; false replaces every copy.">
+	<cfargument name="item" type="struct" required="true">
+	<cfargument name="edit" type="struct" required="true">
+	<cfargument name="single" type="boolean" required="true">
+	<cfset var note = structKeyExists(arguments.edit, "NOTE") ? arguments.edit.NOTE : "">
+	<cfset var count = docsEditsCount(arguments.item.body, arguments.edit.FIND)>
+	<cfset var status = "">
+	<!--- Already done: the replacement is in the page. Checked first because an insert's replacement contains its own find
+	text, which would otherwise be found again and inserted twice on a second run. --->
+	<cfif len(arguments.edit.REPLACE) and find(arguments.edit.REPLACE, arguments.item.body) and (count eq 0 or find(arguments.edit.FIND, arguments.edit.REPLACE))>
+		<cfset status = "already done">
+	<cfelseif count eq 0>
+		<cfset status = "NOT FOUND - the page's text has changed since this edit was written">
+	<cfelseif arguments.single and count gt 1>
+		<cfset status = "FOUND " & count & " TIMES - not sure which one to change">
+	<cfelse>
+		<cfset arguments.item.body = replace(arguments.item.body, arguments.edit.FIND, arguments.edit.REPLACE, "all")>
+		<cfset status = "will change">
+	</cfif>
+	<cfset arrayAppend(arguments.item.changes, { status = status, note = note, find = arguments.edit.FIND, replace = arguments.edit.REPLACE })>
+	<cfreturn status>
+</cffunction>
+
+<cffunction name="docsEditsCount" access="private" returntype="numeric" output="false"
+		hint="How many times text appears in body (case-sensitive, literal).">
+	<cfargument name="body" type="string" required="true">
+	<cfargument name="text" type="string" required="true">
+	<cfset var count = 0>
+	<cfset var position = find(arguments.text, arguments.body)>
+	<cfloop condition="position gt 0">
+		<cfset count = count + 1>
+		<cfset position = find(arguments.text, arguments.body, position + len(arguments.text))>
+	</cfloop>
+	<cfreturn count>
+</cffunction>
+
 <cffunction name="bitIsTrue" access="private" returntype="boolean" output="false"
 		hint="True for a database bit/boolean value however the engine returns it: true/false (Lucee + MySQL), 1/0 (Adobe ColdFusion), or 'yes'/'no'. Empty or null is false.">
 	<cfargument name="value" required="false" default="">
