@@ -150,10 +150,24 @@
 			
 		<!--- Get the data between the tags --->
 		<cfset PostJSoupObj.select(arguments.tag).remove()>
-		
+
 		<!--- Return the content. --->
 		<cfreturn PostJSoupObj.html()>
-		
+
+	</cffunction>
+
+	<cffunction name="removeElementsFromFragment" access="public" output="false" returntype="string"
+			hint="Removes every element that matches a CSS selector from an HTML fragment (not a whole page) and returns the fragment. Used to leave the table of contents (.mce-toc) out of the subscriber email (2026-10-13): its links only jump to anchors on the web page.">
+		<cfargument name="html" type="string" required="yes" hint="The HTML fragment, for example a rendered post body.">
+		<cfargument name="selector" type="string" required="yes" hint="A CSS selector, for example .mce-toc">
+
+		<cfset var JSoupObj = loadJSoup()>
+		<cfset var FragmentObj = JSoupObj.parseBodyFragment(arguments.html)>
+		<!--- Keep the markup as it was written instead of re-indenting it. --->
+		<cfset FragmentObj.outputSettings().prettyPrint(false)>
+		<cfset FragmentObj.select(arguments.selector).remove()>
+		<cfreturn FragmentObj.body().html()>
+
 	</cffunction>
 			
 	<cffunction name="getLdJsonFromPost" access="public" output="false" returntype="any" hint="Returns the LD Json string that may be in a post">

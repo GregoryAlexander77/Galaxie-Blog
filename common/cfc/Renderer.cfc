@@ -3345,6 +3345,13 @@
 		</cfif>
 		<cfset mediaUrl = 'https://' & application.blogDomain & '/' & emailMediaUrl>
 		<cfset emailBody = this.renderBody(getPost[1]["body"], getPost[1]["mediaPath"])>
+		<!--- Leave the table of contents out of the email (2026-10-13). Its links jump to anchors on the web page, which do nothing in an email, and it only pushes the article down. Only parsed when the post has one. --->
+		<cfif findNoCase("mce-toc", emailBody)>
+			<cfinvoke component="#application.jsoupComponentPath#" method="removeElementsFromFragment" returnvariable="emailBody">
+				<cfinvokeargument name="html" value="#emailBody#">
+				<cfinvokeargument name="selector" value=".mce-toc">
+			</cfinvoke>
+		</cfif>
 		<cfset callToActionText = "View on Web">
 		<cfset callToActionLink = "#emailTitleLink#">
 		<cfset unSubscribeLink = "#application.blogHostUrl#/?unsubscribe&email=#arguments.email#&amp;token=#arguments.token#">
