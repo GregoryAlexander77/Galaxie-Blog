@@ -2580,10 +2580,11 @@
 				<cfset thisContentTemplateEnable = false>
 			</cfif>
 
-			<!--- Set the active flag (the Enable checkbox) by name. 2026-10-13: this loaded the template with entityLoad(..., unique)
-			and saved it, which throws when a name matches more than one row - and the Composite Footer is the last template in the
-			list, so its Enable checkbox was the one that never saved (gregoryalexander.com, after its database was repaired from a
-			backup on 2026-10-12). Updating by name works whether there is one row or more. --->
+			<!--- Set the active flag (the Enable checkbox) with an HQL UPDATE, which writes to the database at once. 2026-10-13: this
+			used entityLoad + setActive + entitySave, but this loop runs after the cftransaction above has closed and the application
+			sets ormsettings.flushAtRequestEnd = false, so nothing ever flushed those changes: no Enable checkbox on the theme screen
+			was saved (found when the Composite Footer's wouldn't stay checked on gregoryalexander.com). Updating by name also copes
+			with a template name that is on more than one row, which the unique entityLoad would have thrown on. --->
 			<cfquery name="setContentTemplateActive" dbtype="hql">
 				UPDATE ContentTemplate
 				SET Active = <cfqueryparam value="#thisContentTemplateEnable#" cfsqltype="cf_sql_bit">
