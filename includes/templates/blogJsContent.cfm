@@ -1384,8 +1384,12 @@
 				if (!validWebsite){
 					var errorMessage = errorMessage + ' Website URL is not valid.<br/>';
 				}
-				if (!validWebsite){
+				if (!validComment){
 					var errorMessage = errorMessage + ' Comment required.<br/>';
+				}
+				// The captcha is checked again on the server when the form is sent (2026-10-12).
+				if (response.validCaptcha === false){
+					var errorMessage = errorMessage + ' The text from the image did not match. Please try again.<br/>';
 				}
 				if (!errorMessage){
 					var errorMessage = errorMessage + ' ' + errorMessage + '<br/>';

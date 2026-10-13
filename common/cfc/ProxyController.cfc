@@ -390,20 +390,12 @@
 		<cfargument name="captchaHash" required="yes" hint="The hashed value of the proper answer. This must match the captcha text in order to pass true." />
 		<cfargument name="debugging" required="no" type="boolean" default="false" hint="For testing purposes, we may need to not use the session.captchValidated value to prevent a true value from being incorreclty reset." />
 			
-		<!--- Does the text that the user entered match the hashed value? --->
-		<cfif arguments.captchaText eq session.captchaText>
-			<cfset captchaPass  = true />
-			<!--- Set the captcha validated cookie to true. It will expire in one minute. --->
-			<cfcookie name="captchaValidated" expires="#dateAdd('n', 1, now())#" value="true">
-
-		<cfelse>
-			<!--- Note: the captcha will only be validated true one time as the encryption tokens get changed on true. However, the kendo validator validates quickly on blur, so there many be a true value overwritten by a false a millisecond later. We don't  want to ever change a true value to false and will use session vars to prevent this behavior. You can override this behavior by setting debugging to true. --->
-			<cfif not debugging and isDefined("cookie.captchaValidated")>
-				<cfset captchaPass  = true />
-			<cfelse>
-				<cfset captchaPass  = false />
-			</cfif>
-		</cfif>
+		<!--- Does the text that the user entered match the word in the session (the one drawn in the image)? This only helps the
+		form tell the visitor while they type; postCommentSubscribe checks the word again on the server when the form is sent.
+		2026-10-12: removed the shortcut that also answered true whenever the request carried a captchaValidated cookie - any
+		client can send that cookie. It isn't needed: the word stays the same until the comment is accepted, so checking again on
+		blur gives the same answer. --->
+		<cfset var captchaPass = structKeyExists(session, "captchaText") and len(session.captchaText) and len(trim(arguments.captchaText)) and trim(arguments.captchaText) eq session.captchaText>
 
 		<!---Return it.--->
 		<cfreturn captchaPass />
@@ -567,12 +559,28 @@
 			<cfset response[ "validComment" ] = false />
 		</cfif>
 			
-		<!--- The captcha validation has occurred on the UI. The captcha backend will validate the captcha once and regenerate a new key. It can't be done twice (that I know of anyway). --->
+		<!--- Captcha, checked here on the server (2026-10-12). It used to be checked only in the browser (validateCaptcha, while
+		typing), so anything posting straight to this method - which is what spam bots do - skipped it. The rule is the same one the
+		comment window uses to show the captcha and blogJsContent.cfm uses to send it: Use Captcha is on and nobody is signed in.
+		The word is the one getCaptchaAsJson put in the session for the image. It is used once: after a comment is accepted it is
+		removed, so the same request can't be replayed, and the next comment gets a new image when the window opens. --->
+		<cfset response[ "validCaptcha" ] = true />
+		<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
+			<cfif not structKeyExists(session, "captchaText") or not len(session.captchaText) or not len(trim(arguments.captchaText)) or trim(arguments.captchaText) neq session.captchaText>
+				<cfset valid = false>
+				<cfset response[ "validCaptcha" ] = false />
+			</cfif>
+		</cfif>
 		<cfif not isDefined("session.encryptionKey")>
 			<cfset response[ "sessionExpired" ] = true />
 		</cfif>
-		<!--- Set the valid response --->
+		<!--- Set the valid response. success follows it: an invalid request used to come back with success true, so the page said
+		the comment was posted when nothing was saved. --->
 		<cfset response[ "valid" ] = valid />
+		<cfset response[ "success" ] = valid />
+		<cfif valid and application.useCaptcha and not application.Udf.isLoggedIn()>
+			<cfset structDelete(session, "captchaText")>
+		</cfif>
 		
 		<!--- See https://www.telerik.com/blogs/extending-the-kendo-ui-validator-with-custom-rules on how we are going to get server side validation working on the client end. --->
 
