@@ -8654,8 +8654,11 @@
 		<cfset CommentDbObj.setApproved(1)>
 		<cfset CommentDbObj.setDate(blogNow())>
 
-		<!--- Save it. --->
+		<!--- Save it. 2026-10-13: flush it too - the application sets ormsettings.flushAtRequestEnd = false, and this update is not in
+		a transaction, so without the flush the approval was only kept in memory. (Nothing calls this function at the moment;
+		comments are approved elsewhere.) --->
 		<cfset EntitySave(CommentDbObj)>
+		<cfset ormFlush()>
 			
 		<!--- Send an email to the post subscribers. --->
 		<!--- Get the commentId from the entity --->

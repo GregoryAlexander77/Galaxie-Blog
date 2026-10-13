@@ -127,6 +127,11 @@
 					<cftry>
 						<!--- The scripts run here, so they can call the helper functions below. Note: the path is relative to this component. --->
 						<cfinclude template="../../installer/updates/#migration.file#">
+						<!--- 2026-10-13: write any entity changes the script made. The application sets
+						ormsettings.flushAtRequestEnd = false, so an entitySave() that updates an existing row (eg. 4.8's ShowInMenu on
+						the docs collections) is otherwise only kept in memory and lost at the end of the request; new rows are
+						inserted at once, which is why most scripts never noticed. --->
+						<cfset ormFlush()>
 						<cfset stampVersion(migration.version, "Galaxie Blog " & migration.version)>
 						<cfset result.toVersion = migration.version>
 						<cfset addToLog("Finished the #migration.version# update.")>
