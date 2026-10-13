@@ -1,3 +1,4 @@
+<!--- NOT A DUPLICATE - do not remove this include from index.cfm. index.cfm renders its own sidebar, but this template provides the hidden sidebarPanelState field and the fly-out sidebarPanel that the floating menu (shown after scrolling down) opens with toggleSideBarPanel(2). Removing the include on 2026-10-12 silently broke that hamburger. The only part that would be a duplicate in index.cfm is the #sidebar column below, which is skipped there. --->
 	<cfsilent>
 	<!--- We need to differentiate material and non-material themes to appy the right settings to the buttons --->
 	<cfif kendoTheme contains 'material'>
