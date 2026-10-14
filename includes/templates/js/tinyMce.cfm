@@ -720,10 +720,10 @@
 				<div class="galaxieWebForm" data-webform="alias">[Form: Title]</div>; common/js/webForms.js shows the real form there. --->
 				editor.ui.registry.addIcon(
 					'webForm',
-					'<svg><span data-fa-symbol="webForm" class="fontAwesomeIcon fa-regular fa-rectangle-list">&nbsp;</span></svg>'
+					'<svg><span data-fa-symbol="webForm" class="fontAwesomeIcon fa-regular fa-pen-to-square">&nbsp;</span></svg>'
 				);
 				editor.ui.registry.addButton('webForm', {
-					text: '<i class="fontAwesomeIcon fa-regular fa-rectangle-list"></i>',
+					text: '<i class="fontAwesomeIcon fa-regular fa-pen-to-square"></i>',
 					tooltip: 'Insert Form',
 					onAction: function (_) {
 						createAdminInterfaceWindow(86);
