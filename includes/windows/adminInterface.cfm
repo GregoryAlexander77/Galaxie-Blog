@@ -1097,6 +1097,17 @@ locationOptionId, 0 for a new one). See admin/adminInterface/bookings.cfm and co
 <cfcase value=89>
 	<cfinclude template="../../admin/adminInterface/locationDetail.cfm">
 </cfcase>
+<!--- Bookings (2026-10-14): 90 Booking types, 91 the booking type editor (optArgs = bookingTypeId, 0 for a new one), 92 Hours and
+days off. See common/cfc/Bookings.cfc. --->
+<cfcase value=90>
+	<cfinclude template="../../admin/adminInterface/bookingTypes.cfm">
+</cfcase>
+<cfcase value=91>
+	<cfinclude template="../../admin/adminInterface/bookingTypeDetail.cfm">
+</cfcase>
+<cfcase value=92>
+	<cfinclude template="../../admin/adminInterface/bookingHours.cfm">
+</cfcase>
 
 </cfswitch>
 

@@ -548,6 +548,13 @@
 			<cfset application.locationsComponentPath = "common.cfc.Locations">
 		</cfif>
 
+		<!--- Appointments visitors book: booking types, the owner's hours and the bookings (2026-10-14) - see Bookings.cfc. --->
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset application.bookingsComponentPath = application.baseComponentPath & ".common.cfc.Bookings">
+		<cfelse>
+			<cfset application.bookingsComponentPath = "common.cfc.Bookings">
+		</cfif>
+
 		<cfif debug>
 			<cfoutput>
 			application.baseProxyUrl: #application.baseProxyUrl#<br/>
@@ -603,6 +610,7 @@
 		<cfset application.databaseUpdater = createObject("component", application.databaseUpdaterComponentPath).init(this.rootDirectoryPath, getBlogIniPath())>
 		<cfset application.webForms = createObject("component", application.webFormsComponentPath).init()>
 		<cfset application.locations = createObject("component", application.locationsComponentPath).init()>
+		<cfset application.bookings = createObject("component", application.bookingsComponentPath).init()>
 		
 		<!---//****************************************************************************************
 				Initialize the application and set core application vars.

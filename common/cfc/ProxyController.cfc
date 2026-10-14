@@ -11017,14 +11017,235 @@
 
 		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.locationOptionId)>
 			<cftry>
-				<cfset response[ "success" ] = application.locations.deleteLocation(val(arguments.locationOptionId))>
-				<cfif not response.success>
-					<cfset response[ "errorMessage" ] = "That location no longer exists.">
+				<!--- A location a booking type still offers can't be deleted (2026-10-14): untick it there, or make it inactive. --->
+				<cfset local.usedBy = application.bookings.getTypesUsingLocation(val(arguments.locationOptionId))>
+				<cfif arrayLen(local.usedBy)>
+					<cfset response[ "errorMessage" ] = "This location is offered by " & encodeForHtml(arrayToList(local.usedBy, ", ")) & ". Untick it in those booking types first, or edit the location and untick Active to stop offering it.">
+				<cfelse>
+					<cfset response[ "success" ] = application.locations.deleteLocation(val(arguments.locationOptionId))>
+					<cfif not response.success>
+						<cfset response[ "errorMessage" ] = "That location no longer exists.">
+					<cfelse>
+						<!--- Its own hours and days off go with it. --->
+						<cfset application.bookings.deleteLocationSchedule(val(arguments.locationOptionId))>
+					</cfif>
 				</cfif>
 				<cfcatch type="any">
 					<cfset response[ "errorMessage" ] = "The location could not be deleted: " & cfcatch.message>
 				</cfcatch>
 			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<!--- ********************************************************************************************************************
+		Bookings: booking types and the owner's hours (2026-10-14), managed by application.bookings (common/cfc/Bookings.cfc) from
+		the Booking types window (90), the booking type editor (91) and Hours (92).
+	********************************************************************************************************************* --->
+
+	<cffunction name="getBookingTypesForGrid" access="remote" returnformat="json" output="false"
+			hint="The Booking types grid (window 90), Kendo or jsGrid.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="gridType" required="no" default="kendo" hint="Either kendo or jsGrid">
+		<!--- Not used for filtering (the grid filters client-side) - declared so jsGrid's field-based filter query params don't trip strict argument matching. --->
+		<cfargument name="name" required="no" default="">
+		<cfargument name="category" required="no" default="">
+		<cfargument name="locations" required="no" default="">
+		<cfargument name="status" required="no" default="">
+
+		<cfset var data = []>
+		<cfset var thisType = "">
+		<cfset var locationNames = {}>
+		<cfset var thisLocation = "">
+		<cfset var names = []>
+		<cfset var locationId = "">
+		<cfset var jsonString = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn "Invalid token"><cfelse><cfreturn serializeJSON("Invalid token")></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfloop array="#application.locations.getLocations()#" index="thisLocation">
+			<cfset locationNames[thisLocation.locationOptionId] = thisLocation.label>
+		</cfloop>
+		<cfloop array="#application.bookings.getBookingTypes()#" index="thisType">
+			<cfset names = []>
+			<cfloop array="#thisType.locationIds#" index="locationId">
+				<cfif structKeyExists(locationNames, locationId)><cfset arrayAppend(names, locationNames[locationId])></cfif>
+			</cfloop>
+			<cfset arrayAppend(data, [
+				"BookingTypeId": thisType.bookingTypeId,
+				"Name": thisType.name,
+				"Category": thisType.category,
+				"Length": thisType.durationMinutes & " min" & (thisType.bookingMode eq "group" ? " (group of " & thisType.groupSize & ")" : ""),
+				"Price": thisType.price gt 0 ? numberFormat(thisType.price, "0.00") : "Free",
+				"Locations": arrayToList(names, ", "),
+				"SortOrder": thisType.sortOrder,
+				"Status": thisType.active ? "Active" : "Not active"
+			])>
+		</cfloop>
+
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<cfif arguments.gridType eq 'jsGrid'>
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">
+			</cfif>
+		</cfinvoke>
+		<cfreturn jsonString>
+	</cffunction>
+
+	<cffunction name="saveBookingType" access="remote" returnformat="json" output="false"
+			hint="Saves a booking type from the booking type editor (window 91).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="bookingTypeJson" type="string" default="{}" required="false">
+
+		<cfset var response = { "success": false, "errorMessage": "", "bookingTypeId": 0 }>
+		<cfset var typeData = "">
+		<cfset var saveResult = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset typeData = deserializeJson(arguments.bookingTypeJson)>
+				<cfif not isStruct(typeData)><cfset typeData = {}></cfif>
+				<cfset saveResult = application.bookings.saveBookingType(typeData)>
+				<cfset response[ "success" ] = saveResult.success>
+				<cfset response[ "bookingTypeId" ] = saveResult.bookingTypeId>
+				<cfset response[ "errorMessage" ] = arrayToList(saveResult.errors, "<br/>")>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The booking type could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="deleteBookingType" access="remote" returnformat="json" output="false"
+			hint="Deletes a booking type (Booking types window 90).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="bookingTypeId" default="0" required="true">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.bookingTypeId)>
+			<cftry>
+				<cfset response[ "success" ] = application.bookings.deleteBookingType(val(arguments.bookingTypeId))>
+				<cfif not response.success>
+					<cfset response[ "errorMessage" ] = "That booking type no longer exists.">
+				</cfif>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The booking type could not be deleted: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="saveBookingHours" access="remote" returnformat="json" output="false"
+			hint="Saves the weekly hours of the general schedule or one location (Hours window 92).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="locationOptionId" default="0" required="false">
+		<cfargument name="own" default="true" required="false">
+		<cfargument name="daysJson" type="string" default="[]" required="false" hint="JSON: 7 arrays (Sunday first) of { start, end }.">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var days = "">
+		<cfset var saveResult = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset days = deserializeJson(arguments.daysJson)>
+				<cfif not isArray(days)><cfset days = []></cfif>
+				<cfloop condition="arrayLen(days) lt 7"><cfset arrayAppend(days, [])></cfloop>
+				<cfset saveResult = application.bookings.saveHours(isNumeric(arguments.locationOptionId) ? val(arguments.locationOptionId) : 0, isBoolean(arguments.own) and arguments.own, days)>
+				<cfset response[ "success" ] = saveResult.success>
+				<cfset response[ "errorMessage" ] = arrayToList(saveResult.errors, "<br/>")>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The hours could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="saveAvailabilityException" access="remote" returnformat="json" output="false"
+			hint="Adds a day off or a day with different hours (Hours window 92).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="exceptionJson" type="string" default="{}" required="false">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var exceptionData = "">
+		<cfset var saveResult = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset exceptionData = deserializeJson(arguments.exceptionJson)>
+				<cfif not isStruct(exceptionData)><cfset exceptionData = {}></cfif>
+				<cfset saveResult = application.bookings.saveException(exceptionData)>
+				<cfset response[ "success" ] = saveResult.success>
+				<cfset response[ "errorMessage" ] = arrayToList(saveResult.errors, "<br/>")>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The day could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="deleteAvailabilityException" access="remote" returnformat="json" output="false"
+			hint="Removes a day off or changed day (Hours window 92).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="availabilityExceptionId" default="0" required="true">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.availabilityExceptionId)>
+			<cfset response[ "success" ] = application.bookings.deleteException(val(arguments.availabilityExceptionId))>
 		</cfif>
 
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>

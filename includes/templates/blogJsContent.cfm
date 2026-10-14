@@ -935,6 +935,24 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
 				var windowTitle = "Location";
+			} else if (Id == 90){
+				// Booking types (2026-10-14) - see admin/adminInterface/bookingTypes.cfm.
+				var windowName = "bookingTypesWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Booking types";
+			} else if (Id == 91){
+				// The booking type editor (2026-10-14) - see admin/adminInterface/bookingTypeDetail.cfm.
+				var windowName = "bookingTypeDetailWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+				var windowTitle = "Booking type";
+			} else if (Id == 92){
+				// Hours and days off for bookings (2026-10-14) - see admin/adminInterface/bookingHours.cfm.
+				var windowName = "bookingHoursWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+				var windowTitle = "Hours";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";
