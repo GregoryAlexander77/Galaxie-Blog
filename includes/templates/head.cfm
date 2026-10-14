@@ -380,10 +380,18 @@ var galaxieLoader = (function() {
 				getScript('#application.baseUrl#/common/libs/plyr/plyr.min.js').done(ready);
 			}, callback);
 		},
-		<!--- Forms placed in posts (2026-10-13) - see common/js/webForms.js. --->
+		<!--- Forms placed in posts (2026-10-13) - see common/js/webForms.js. getScript lets the browser cache it, and unlike the
+		libraries above its name doesn't change with each version, so its address carries the file's date: a new upload is
+		fetched after the next restart (?reinit=1), which every update does. --->
+		<cfif not structKeyExists(application, "webFormsJsVersion")>
+			<cftry>
+				<cfset application.webFormsJsVersion = dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/webForms.js")).lastModified, "yyyymmddHHnnss")>
+				<cfcatch type="any"><cfset application.webFormsJsVersion = application.blog.getVersion()></cfcatch>
+			</cftry>
+		</cfif>
 		webForms: function(callback) {
 			whenReady('webForms', function(ready) {
-				getScript('#application.baseUrl#/common/js/webForms.js').done(ready);
+				getScript('#application.baseUrl#/common/js/webForms.js?v=#encodeForUrl(application.webFormsJsVersion)#').done(ready);
 			}, callback);
 		},
 		prism: function(callback) {

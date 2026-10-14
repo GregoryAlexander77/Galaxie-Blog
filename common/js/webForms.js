@@ -169,6 +169,8 @@ var galaxieWebForms = (function($) {
 					dataSource: items,
 					dataTextField: "text",
 					dataValueField: "value",
+					// Searchable, like the dropdowns in the admin site: typing narrows the list.
+					filter: "contains",
 					optionLabel: false,
 					template: function(item) {
 						var text = $("<div/>").text(item.text).html();
