@@ -14,6 +14,9 @@
 	<cfproperty name="HelpText" ormtype="string" length="500" default="">
 	<!--- The choices of a select, radio or checkboxes field, one per line. For a consent field, the text the person agrees to. --->
 	<cfproperty name="Options" ormtype="string" length="2000" default="">
+	<!--- Choice limits (2026-10-13): how many submissions may pick each choice of a select, radio or checkboxes field, as JSON,
+	eg. {"Dessert":4,"Main dish":6}. Empty (or NULL on rows from before this column) means no limits. See WebForms.cfc. --->
+	<cfproperty name="ChoiceLimits" ormtype="string" length="2000" default="">
 	<cfproperty name="SortOrder" ormtype="int" default="0" hint="Lower numbers come first.">
 	<cfproperty name="Date" ormtype="timestamp">
 

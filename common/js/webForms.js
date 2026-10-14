@@ -78,7 +78,25 @@ var galaxieWebForms = (function($) {
 	function setUpWidgets(form) {
 		if ($.fn.kendoDropDownList) {
 			form.find("select").each(function() {
-				$(this).kendoDropDownList({ optionLabel: false });
+				var select = $(this);
+				// A choice that is full (see choice limits in WebForms.cfc) comes as a disabled option, which Kendo's list doesn't
+				// know about: it is shown greyed out and can't be picked.
+				var full = select.find("option:disabled").map(function() { return this.value; }).get();
+				// The items are passed in, as Kendo (2020) leaves disabled options out when it reads them from the select.
+				var items = select.find("option").map(function() { return { text: $(this).text(), value: this.value }; }).get();
+				select.kendoDropDownList({
+					dataSource: items,
+					dataTextField: "text",
+					dataValueField: "value",
+					optionLabel: false,
+					template: function(item) {
+						var text = $("<div/>").text(item.text).html();
+						return full.indexOf(item.value) >= 0 ? '<span class="k-state-disabled">' + text + '</span>' : text;
+					},
+					select: function(e) {
+						if (e.dataItem && full.indexOf(e.dataItem.value) >= 0) { e.preventDefault(); }
+					}
+				});
 			});
 		}
 		if ($.fn.kendoDatePicker) {

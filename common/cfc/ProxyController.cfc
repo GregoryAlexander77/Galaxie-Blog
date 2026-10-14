@@ -11182,7 +11182,7 @@
 				<cfset session.webFormTokens[token] = { webFormId: webForm.webFormId, issued: now() }>
 			</cflock>
 			<cfset response[ "success" ] = true>
-			<cfset response[ "html" ] = application.webForms.renderFormHtml(webForm, showCaptcha)>
+			<cfset response[ "html" ] = application.webForms.renderFormHtml(webForm, showCaptcha, application.webForms.getChoiceCounts(webForm))>
 			<cfset response[ "token" ] = token>
 			<cfset response[ "captcha" ] = showCaptcha>
 		</cfif>
@@ -11272,15 +11272,21 @@
 			<cfcatch type="any"><cfset sent = {}></cfcatch>
 		</cftry>
 		<cfif not isStruct(sent)><cfset sent = {}></cfif>
-		<cfset checked = application.webForms.validateSubmission(webForm, sent)>
+		<!--- Checked and stored inside one lock per form, so the choice limits (WebForms.cfc) are counted and taken together: two
+		people can't both get the last spot. Forms without limits don't read the submissions, so the lock costs them nothing. --->
+		<cflock name="galaxieWebForm_#webForm.webFormId#" type="exclusive" timeout="20">
+			<cfset checked = application.webForms.validateSubmission(webForm, sent, application.webForms.getChoiceCounts(webForm))>
+			<cfif checked.valid>
+				<!--- Accepted: store it, then spend the token and the captcha word, count it, and tell the owner below. --->
+				<cfset submissionId = application.webForms.saveSubmission(webForm, checked.values, isNumeric(arguments.postId) ? val(arguments.postId) : 0)>
+			</cfif>
+		</cflock>
 		<cfif not checked.valid>
 			<cfset response[ "errors" ] = checked.errors>
 			<cfset response[ "message" ] = "Please check the highlighted fields.">
 			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 		</cfif>
 
-		<!--- Accepted: store it, spend the token and the captcha word, count it, and tell the owner. --->
-		<cfset submissionId = application.webForms.saveSubmission(webForm, checked.values, isNumeric(arguments.postId) ? val(arguments.postId) : 0)>
 		<cfset forgetWebFormToken(arguments.token)>
 		<cfif structKeyExists(session, "captchaText")><cfset structDelete(session, "captchaText")></cfif>
 		<cflock name="galaxieWebFormRateLimit" type="exclusive" timeout="10">

@@ -74,6 +74,24 @@
 			starterField("Notes", "textarea", false, "", "Dietary needs, questions or anything else we should know.")
 		]
 	})>
+	<!--- Potluck: the dish choice has limits (choice limits, below) so the table doesn't end up with ten desserts. --->
+	<cfset var potluckDishes = starterField("What are you bringing?", "radio", true, "", "Full choices can't be picked; please choose another.", "Main dish#chr(10)#Side dish#chr(10)#Salad#chr(10)#Dessert#chr(10)#Bread#chr(10)#Drinks#chr(10)#Plates/cups/utensils")>
+	<cfset potluckDishes["choiceLimits"] = [ "Main dish": 6, "Side dish": 6, "Salad": 4, "Dessert": 4, "Bread": 3, "Drinks": 4, "Plates/cups/utensils": 2 ]>
+	<cfset arrayAppend(templates, {
+		"key": "potluck", "name": "Potluck sign-up",
+		"title": "Potluck sign-up", "description": "Let us know you're coming and what you'll bring.", "buttonLabel": "Sign me up",
+		"confirmationMessage": "Thanks! See you there.", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true),
+			starterField("Email address", "email", true),
+			starterField("How many are coming?", "number", false, "", "Including yourself."),
+			potluckDishes,
+			starterField("What's the dish?", "text", false, "eg. Mom's lasagna"),
+			starterField("About how many does it serve?", "number", false),
+			starterField("Dietary notes", "checkboxes", false, "", "", "Vegetarian#chr(10)#Vegan#chr(10)#Gluten-free#chr(10)#Contains nuts#chr(10)#Contains dairy"),
+			starterField("Anything else?", "textarea", false)
+		]
+	})>
 	<cfreturn templates>
 </cffunction>
 
@@ -86,7 +104,7 @@
 	<cfargument name="helpText" type="string" required="false" default="">
 	<cfargument name="options" type="string" required="false" default="">
 	<cfreturn { "webFormFieldId": 0, "label": arguments.label, "fieldType": arguments.fieldType, "required": arguments.required,
-		"placeholder": arguments.placeholder, "helpText": arguments.helpText, "options": arguments.options }>
+		"placeholder": arguments.placeholder, "helpText": arguments.helpText, "options": arguments.options, "choiceLimits": {} }>
 </cffunction>
 
 <!--- ********************************************************************************************************************
@@ -165,6 +183,7 @@
 			options: valueOrEmpty(fieldEntity.getOptions()),
 			choices: listToArray(replace(valueOrEmpty(fieldEntity.getOptions()), chr(13), "", "all"), chr(10), false)
 		})>
+		<cfset result.fields[arrayLen(result.fields)].choiceLimits = parseChoiceLimits(valueOrEmpty(fieldEntity.getChoiceLimits()), result.fields[arrayLen(result.fields)].fieldType, result.fields[arrayLen(result.fields)].choices)>
 	</cfloop>
 	<cfreturn result>
 </cffunction>
@@ -282,6 +301,8 @@
 			<cfset fieldEntity.setPlaceholder(left(trim(structKeyExists(field, "placeholder") ? field.placeholder : ""), 255))>
 			<cfset fieldEntity.setHelpText(left(trim(structKeyExists(field, "helpText") ? field.helpText : ""), 500))>
 			<cfset fieldEntity.setOptions(left(trim(replace(structKeyExists(field, "options") ? field.options : "", chr(13), "", "all")), 2000))>
+			<!--- Choice limits: kept only for the field's current choices, as whole numbers of at least 1. --->
+			<cfset fieldEntity.setChoiceLimits(serializeChoiceLimits(structKeyExists(field, "choiceLimits") ? field.choiceLimits : {}, lCase(field.fieldType), listToArray(replace(fieldEntity.getOptions(), chr(13), "", "all"), chr(10), false)))>
 			<cfset fieldEntity.setSortOrder(position * 10)>
 			<cfset fieldEntity.setDate(now())>
 			<cfset entitySave(fieldEntity)>
@@ -326,11 +347,13 @@
 		hint="Checks what a visitor sent against the form's fields. Returns { valid, errors: { fieldName: message }, values: { fieldName: cleaned value } }. Only the form's own fields are kept; anything else that was sent is ignored.">
 	<cfargument name="webForm" type="struct" required="true" hint="As returned by getForm().">
 	<cfargument name="sent" type="struct" required="true" hint="The posted values, keyed by FieldName.">
+	<cfargument name="choiceCounts" type="struct" required="false" default="#{}#" hint="From getChoiceCounts(); when given, a choice that has reached its limit is refused.">
 	<cfset var result = { valid: true, errors: {}, values: [:] }>
 	<cfset var field = "">
 	<cfset var value = "">
 	<cfset var picked = []>
 	<cfset var choice = "">
+	<cfset var fullChoices = []>
 	<cfloop array="#arguments.webForm.fields#" index="field">
 		<cfset value = structKeyExists(arguments.sent, field.fieldName) ? arguments.sent[field.fieldName] : "">
 		<cfif not isSimpleValue(value)>
@@ -381,6 +404,21 @@
 		</cfswitch>
 		<cfif field.required and not len(value) and not structKeyExists(result.errors, field.fieldName)>
 			<cfset result.errors[field.fieldName] = field.fieldType eq "consent" ? "Please check this box to continue." : "This field is required.">
+		</cfif>
+		<!--- Choice limits: refuse a picked choice that is already full. --->
+		<cfif len(value) and not structKeyExists(result.errors, field.fieldName) and structKeyExists(field, "choiceLimits") and not structIsEmpty(field.choiceLimits)>
+			<cfset fullChoices = []>
+			<cfif field.fieldType neq "checkboxes">
+				<cfset picked = [value]>
+			</cfif>
+			<cfloop array="#picked#" index="choice">
+				<cfif choiceSpotsLeft(field, choice, arguments.choiceCounts) eq 0>
+					<cfset arrayAppend(fullChoices, choice)>
+				</cfif>
+			</cfloop>
+			<cfif arrayLen(fullChoices)>
+				<cfset result.errors[field.fieldName] = "Sorry, " & arrayToList(fullChoices, ", ") & (arrayLen(fullChoices) gt 1 ? " are" : " is") & " already full. Please choose another.">
+			</cfif>
 		</cfif>
 		<cfset result.values[field.fieldName] = left(value, 10000)>
 	</cfloop>
@@ -521,7 +559,9 @@
 		hint="The HTML of a form for a post or page. Every label and value is encoded here. Kendo classes do the styling (k-textbox, k-checkbox, k-radio, k-button); common/js/webForms.js turns the dropdowns and dates into Kendo widgets, fills in the captcha and sends the form.">
 	<cfargument name="webForm" type="struct" required="true" hint="As returned by getForm().">
 	<cfargument name="showCaptcha" type="boolean" required="false" default="false">
+	<cfargument name="choiceCounts" type="struct" required="false" default="#{}#" hint="From getChoiceCounts(): limited choices then show how many spots are left, and a full one can't be picked.">
 	<cfset var html = createObject("java", "java.lang.StringBuilder").init()>
+	<cfset var spotsLeft = -1>
 	<!--- Not named "form": FORM is a ColdFusion scope. --->
 	<cfset var webFormData = arguments.webForm>
 	<cfset var field = "">
@@ -548,7 +588,8 @@
 				<cfset choiceIndex = 0>
 				<cfloop array="#field.choices#" index="choice">
 					<cfset choiceIndex = choiceIndex + 1>
-					<cfset html.append('<div class="galaxieWebFormChoice"><input type="' & (field.fieldType eq "radio" ? "radio" : "checkbox") & '" class="' & (field.fieldType eq "radio" ? "k-radio" : "k-checkbox") & '" id="' & id & '_' & choiceIndex & '" name="' & encodeForHtmlAttribute(field.fieldName) & '" value="' & encodeForHtmlAttribute(choice) & '"> <label for="' & id & '_' & choiceIndex & '">' & encodeForHtml(choice) & '</label></div>')>
+					<cfset spotsLeft = choiceSpotsLeft(field, choice, arguments.choiceCounts)>
+					<cfset html.append('<div class="galaxieWebFormChoice"><input type="' & (field.fieldType eq "radio" ? "radio" : "checkbox") & '" class="' & (field.fieldType eq "radio" ? "k-radio" : "k-checkbox") & '" id="' & id & '_' & choiceIndex & '" name="' & encodeForHtmlAttribute(field.fieldName) & '" value="' & encodeForHtmlAttribute(choice) & '"' & (spotsLeft eq 0 ? ' disabled="disabled"' : '') & '> <label for="' & id & '_' & choiceIndex & '"' & (spotsLeft eq 0 ? ' class="k-state-disabled"' : '') & '>' & encodeForHtml(choice & choiceSpotsText(spotsLeft)) & '</label></div>')>
 				</cfloop>
 				<cfset html.append('</fieldset>')>
 			</cfcase>
@@ -565,7 +606,8 @@
 						<!--- webForms.js makes this a Kendo DropDownList. --->
 						<cfset html.append('<select id="' & id & '" name="' & encodeForHtmlAttribute(field.fieldName) & '"' & required & describedBy & '><option value="">Select...</option>')>
 						<cfloop array="#field.choices#" index="choice">
-							<cfset html.append('<option value="' & encodeForHtmlAttribute(choice) & '">' & encodeForHtml(choice) & '</option>')>
+							<cfset spotsLeft = choiceSpotsLeft(field, choice, arguments.choiceCounts)>
+							<cfset html.append('<option value="' & encodeForHtmlAttribute(choice) & '"' & (spotsLeft eq 0 ? ' disabled="disabled"' : '') & '>' & encodeForHtml(choice & choiceSpotsText(spotsLeft)) & '</option>')>
 						</cfloop>
 						<cfset html.append('</select>')>
 					</cfcase>
@@ -608,6 +650,125 @@
 <!--- ********************************************************************************************************************
 	Helpers
 ********************************************************************************************************************* --->
+
+<!--- Choice limits (2026-10-13): a select, radio or checkboxes field can cap how many submissions pick each choice, eg. at most 4
+desserts for a potluck. The limits are stored as JSON in WebFormField.ChoiceLimits. The counts come from the submissions that
+are kept, so deleting a submission frees its spot. ProxyController's submitWebForm counts and saves inside one lock per form,
+so two people can't both take the last spot. --->
+
+<cffunction name="parseChoiceLimits" access="private" returntype="struct" output="false"
+		hint="The stored limits as { choice: number }, keeping only the field's current choices and whole numbers of at least 1.">
+	<cfargument name="choiceLimitsJson" type="string" required="true">
+	<cfargument name="fieldType" type="string" required="true">
+	<cfargument name="choices" type="array" required="true">
+	<cfset var stored = {}>
+	<cfset var limits = {}>
+	<cfset var choice = "">
+	<cfif not listFindNoCase(variables.choiceTypes, arguments.fieldType) or not len(trim(arguments.choiceLimitsJson))>
+		<cfreturn limits>
+	</cfif>
+	<cftry>
+		<cfset stored = deserializeJSON(arguments.choiceLimitsJson)>
+		<cfcatch type="any"><cfreturn limits></cfcatch>
+	</cftry>
+	<cfif not isStruct(stored)>
+		<cfreturn limits>
+	</cfif>
+	<cfloop array="#arguments.choices#" index="choice">
+		<cfif structKeyExists(stored, choice) and isNumeric(stored[choice]) and int(stored[choice]) gte 1>
+			<cfset limits[choice] = int(stored[choice])>
+		</cfif>
+	</cfloop>
+	<cfreturn limits>
+</cffunction>
+
+<cffunction name="serializeChoiceLimits" access="private" returntype="string" output="false"
+		hint="The limits the editor sent, as the JSON stored in WebFormField.ChoiceLimits, or an empty string when there are none.">
+	<cfargument name="choiceLimits" required="true" hint="A struct of { choice: number }; anything else counts as no limits.">
+	<cfargument name="fieldType" type="string" required="true">
+	<cfargument name="choices" type="array" required="true">
+	<cfset var limits = [:]>
+	<cfset var choice = "">
+	<cfif not isStruct(arguments.choiceLimits) or not listFindNoCase(variables.choiceTypes, arguments.fieldType)>
+		<cfreturn "">
+	</cfif>
+	<cfloop array="#arguments.choices#" index="choice">
+		<cfif structKeyExists(arguments.choiceLimits, choice) and isNumeric(arguments.choiceLimits[choice]) and int(arguments.choiceLimits[choice]) gte 1>
+			<cfset limits[choice] = min(int(arguments.choiceLimits[choice]), 100000)>
+		</cfif>
+	</cfloop>
+	<cfreturn structIsEmpty(limits) ? "" : left(serializeJSON(limits), 2000)>
+</cffunction>
+
+<cffunction name="getChoiceCounts" access="public" returntype="struct" output="false"
+		hint="How many kept submissions picked each limited choice: { fieldName: { choice: count } }. Only fields with limits are counted, and a form without any limits returns an empty struct without reading the submissions.">
+	<cfargument name="webForm" type="struct" required="true" hint="As returned by getForm().">
+	<cfset var counts = {}>
+	<cfset var field = "">
+	<cfset var choice = "">
+	<cfset var rows = "">
+	<cfset var values = "">
+	<cfset var value = "">
+	<cfloop array="#arguments.webForm.fields#" index="field">
+		<cfif structKeyExists(field, "choiceLimits") and not structIsEmpty(field.choiceLimits)>
+			<cfset counts[field.fieldName] = {}>
+			<cfloop collection="#field.choiceLimits#" item="choice">
+				<cfset counts[field.fieldName][choice] = 0>
+			</cfloop>
+		</cfif>
+	</cfloop>
+	<cfif structIsEmpty(counts)>
+		<cfreturn counts>
+	</cfif>
+	<cfset rows = queryExecute("SELECT ValuesJson FROM WebFormSubmission WHERE WebFormRef = :id",
+		{ id = { value = arguments.webForm.webFormId, cfsqltype = "cf_sql_integer" } })>
+	<cfloop query="rows">
+		<cftry>
+			<cfset values = deserializeJSON(rows.ValuesJson)>
+			<cfcatch type="any"><cfset values = {}></cfcatch>
+		</cftry>
+		<cfif isStruct(values)>
+			<cfloop array="#arguments.webForm.fields#" index="field">
+				<cfif structKeyExists(counts, field.fieldName) and structKeyExists(values, field.fieldName) and isSimpleValue(values[field.fieldName])>
+					<!--- A checkbox group is stored as "a, b"; padding both sides finds a whole choice even when it has a comma in it. --->
+					<cfset value = ", " & values[field.fieldName] & ", ">
+					<cfloop collection="#counts[field.fieldName]#" item="choice">
+						<cfif (field.fieldType eq "checkboxes" and find(", " & choice & ", ", value)) or (field.fieldType neq "checkboxes" and values[field.fieldName] eq choice)>
+							<cfset counts[field.fieldName][choice] = counts[field.fieldName][choice] + 1>
+						</cfif>
+					</cfloop>
+				</cfif>
+			</cfloop>
+		</cfif>
+	</cfloop>
+	<cfreturn counts>
+</cffunction>
+
+<cffunction name="choiceSpotsLeft" access="public" returntype="numeric" output="false"
+		hint="How many more submissions can pick this choice, or -1 when it has no limit.">
+	<cfargument name="field" type="struct" required="true">
+	<cfargument name="choice" type="string" required="true">
+	<cfargument name="choiceCounts" type="struct" required="true" hint="From getChoiceCounts().">
+	<cfset var taken = 0>
+	<cfif not structKeyExists(arguments.field, "choiceLimits") or not structKeyExists(arguments.field.choiceLimits, arguments.choice)>
+		<cfreturn -1>
+	</cfif>
+	<cfif structKeyExists(arguments.choiceCounts, arguments.field.fieldName) and structKeyExists(arguments.choiceCounts[arguments.field.fieldName], arguments.choice)>
+		<cfset taken = arguments.choiceCounts[arguments.field.fieldName][arguments.choice]>
+	</cfif>
+	<cfreturn max(arguments.field.choiceLimits[arguments.choice] - taken, 0)>
+</cffunction>
+
+<cffunction name="choiceSpotsText" access="private" returntype="string" output="false"
+		hint="What a visitor sees after a limited choice, eg. ' (3 spots left)' or ' (full)'; empty for a choice without a limit.">
+	<cfargument name="spotsLeft" type="numeric" required="true">
+	<cfif arguments.spotsLeft lt 0>
+		<cfreturn "">
+	<cfelseif arguments.spotsLeft eq 0>
+		<cfreturn " (full)">
+	</cfif>
+	<cfreturn " (" & arguments.spotsLeft & (arguments.spotsLeft eq 1 ? " spot" : " spots") & " left)">
+</cffunction>
 
 <cffunction name="makeFieldName" access="public" returntype="string" output="false"
 		hint="A short key for a field, made from its label (eg. 'Your email address' -> 'yourEmailAddress'), unique within the form.">

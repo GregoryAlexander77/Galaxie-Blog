@@ -30,7 +30,7 @@ the submissions already received - stay matched to it when the label changes. --
 <!--- What the script below needs: the fields as saved, and the field types for the dropdown. --->
 <cfset webFormFieldsForJs = []>
 <cfloop array="#webForm.fields#" index="thisField">
-	<cfset arrayAppend(webFormFieldsForJs, { "webFormFieldId": thisField.webFormFieldId, "label": thisField.label, "fieldType": thisField.fieldType, "required": thisField.required, "placeholder": thisField.placeholder, "helpText": thisField.helpText, "options": thisField.options })>
+	<cfset arrayAppend(webFormFieldsForJs, { "webFormFieldId": thisField.webFormFieldId, "label": thisField.label, "fieldType": thisField.fieldType, "required": thisField.required, "placeholder": thisField.placeholder, "helpText": thisField.helpText, "options": thisField.options, "choiceLimits": structKeyExists(thisField, "choiceLimits") ? thisField.choiceLimits : {} })>
 </cfloop>
 
 <style>
@@ -64,6 +64,44 @@ the submissions already received - stay matched to it when the label changes. --
 			row.find(".webFormFieldOptionsWrap").toggle(isChoice || isConsent);
 			row.find(".webFormFieldOptionsLabel").text(isConsent ? "What the person agrees to:" : "Choices (one per line):");
 			row.find(".webFormFieldPlaceholderWrap").toggle(!isChoice && !isConsent && type != "date");
+			row.find(".webFormFieldLimitWrap").toggle(isChoice);
+			renderChoiceLimits(row);
+		}
+
+		<!--- Choice limits (2026-10-13): with "Limit how many people can pick each choice" checked, each choice gets a number box;
+		an empty box means no limit for that choice. The numbers typed are remembered by choice while the choices are edited. --->
+		function readChoiceLimits(row) {
+			var limits = $.extend({}, row.data("choiceLimits") || {});
+			row.find("input.webFormFieldLimit").each(function() {
+				var choice = $(this).data("choice");
+				var value = parseInt($(this).val(), 10);
+				if (value >= 1) { limits[choice] = value; } else { delete limits[choice]; }
+			});
+			row.data("choiceLimits", limits);
+			return limits;
+		}
+
+		function renderChoiceLimits(row) {
+			var box = row.find(".webFormFieldLimits");
+			var type = row.find("select.webFormFieldType").val();
+			var limits = readChoiceLimits(row);
+			box.empty();
+			if (choiceTypes.indexOf(type) < 0 || !row.find(".webFormFieldLimitOn").is(":checked")) {
+				box.hide();
+				return;
+			}
+			var choices = $.grep(row.find(".webFormFieldOptions").val().split("\n"), function(choice) { return $.trim(choice).length > 0; });
+			if (!choices.length) {
+				box.append($('<div class="k-form-hint"></div>').text("Type the choices above first."));
+			}
+			var table = $('<table cellpadding="2" cellspacing="0" border="0"></table>');
+			$.each(choices, function(i, choice) {
+				choice = $.trim(choice);
+				var input = $('<input type="number" min="1" step="1" class="k-textbox webFormFieldLimit" style="width: 90px;" placeholder="No limit">').data("choice", choice).val(limits[choice] || "");
+				input.attr("aria-label", "Limit for " + choice);
+				table.append($('<tr></tr>').append($('<td style="padding-right: 10px;"></td>').text(choice)).append($('<td></td>').append(input)));
+			});
+			box.append(table).show();
 		}
 
 		function fieldRowHtml(field) {
@@ -73,6 +111,13 @@ the submissions already received - stay matched to it when the label changes. --
 			var more = $('<div class="webFormFieldMore"></div>');
 			more.append($('<span class="webFormFieldPlaceholderWrap"><label>Placeholder (optional):</label></span>').append($('<input type="text" class="k-textbox webFormFieldPlaceholder" maxlength="255" style="width: 95%;">').val(field.placeholder || field.PLACEHOLDER || "")));
 			more.append($('<span class="webFormFieldOptionsWrap"><label class="webFormFieldOptionsLabel">Choices (one per line):</label></span>').append($('<textarea class="k-textbox webFormFieldOptions" rows="3" style="width: 95%;"></textarea>').val(field.options || field.OPTIONS || "")));
+			var choiceLimits = field.choiceLimits || field.CHOICELIMITS || {};
+			row.data("choiceLimits", $.extend({}, choiceLimits));
+			var limitWrap = $('<div class="webFormFieldLimitWrap"></div>');
+			limitWrap.append($('<label><input type="checkbox" class="k-checkbox webFormFieldLimitOn"> Limit how many people can pick each choice</label>').find("input").prop("checked", !$.isEmptyObject(choiceLimits)).end());
+			limitWrap.append('<div class="webFormFieldLimits" style="display: none;"></div>');
+			limitWrap.append('<div class="k-form-hint">Visitors see how many spots are left, and a full choice can\'t be picked. Deleting a submission frees its spot.</div>');
+			more.append(limitWrap);
 			more.append($('<label>Help text (optional):</label>')).append($('<input type="text" class="k-textbox webFormFieldHelpText" maxlength="500" style="width: 95%;">').val(field.helpText || field.HELPTEXT || ""));
 			main.append(more);
 			row.append(main);
@@ -144,6 +189,9 @@ the submissions already received - stay matched to it when the label changes. --
 		$("#webFormFieldsBody").on("click", ".webFormFieldUp", function() { var row = $(this).closest("tr"); row.prev().before(row); });
 		$("#webFormFieldsBody").on("click", ".webFormFieldDown", function() { var row = $(this).closest("tr"); row.next().after(row); });
 		$("#webFormFieldsBody").on("click", ".webFormFieldRemove", function() { $(this).closest("tr").remove(); });
+		$("#webFormFieldsBody").on("change", ".webFormFieldLimitOn", function() { renderChoiceLimits($(this).closest("tr.webFormFieldRow")); });
+		$("#webFormFieldsBody").on("input", ".webFormFieldOptions", function() { renderChoiceLimits($(this).closest("tr.webFormFieldRow")); });
+		$("#webFormFieldsBody").on("input", ".webFormFieldLimit", function() { readChoiceLimits($(this).closest("tr.webFormFieldRow")); });
 		$("#webFormFieldAdd").on("click", function() {
 			var row = fieldRowHtml({ fieldType: "text" });
 			$("#webFormFieldsBody").append(row);
@@ -167,7 +215,8 @@ the submissions already received - stay matched to it when the label changes. --
 					required: $(this).find(".webFormFieldRequired").is(":checked"),
 					placeholder: $.trim($(this).find(".webFormFieldPlaceholder").val()),
 					helpText: $.trim($(this).find(".webFormFieldHelpText").val()),
-					options: options
+					options: options,
+					choiceLimits: $(this).find(".webFormFieldLimitOn").is(":checked") ? readChoiceLimits($(this)) : {}
 				});
 			});
 			if (!problem.length && !$.trim($("#webFormTitle").val()).length) { problem = "The form needs a title."; }
