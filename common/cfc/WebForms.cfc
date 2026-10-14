@@ -457,6 +457,98 @@
 </cffunction>
 
 <!--- ********************************************************************************************************************
+	The form on the site
+********************************************************************************************************************* --->
+
+<cffunction name="renderFormHtml" access="public" returntype="string" output="false"
+		hint="The HTML of a form for a post or page. Every label and value is encoded here. Kendo classes do the styling (k-textbox, k-checkbox, k-radio, k-button); common/js/webForms.js turns the dropdowns and dates into Kendo widgets, fills in the captcha and sends the form.">
+	<cfargument name="webForm" type="struct" required="true" hint="As returned by getForm().">
+	<cfargument name="showCaptcha" type="boolean" required="false" default="false">
+	<cfset var html = createObject("java", "java.lang.StringBuilder").init()>
+	<!--- Not named "form": FORM is a ColdFusion scope. --->
+	<cfset var webFormData = arguments.webForm>
+	<cfset var field = "">
+	<cfset var id = "">
+	<cfset var choice = "">
+	<cfset var choiceIndex = 0>
+	<cfset var required = "">
+	<cfset var describedBy = "">
+	<cfset var idPrefix = "webForm" & webFormData.webFormId & "_">
+
+	<cfset html.append('<form class="galaxieWebFormForm" data-alias="' & encodeForHtmlAttribute(webFormData.alias) & '" novalidate="novalidate">')>
+	<cfif len(webFormData.description)>
+		<cfset html.append('<p class="galaxieWebFormDescription">' & replaceNoCase(encodeForHtml(webFormData.description), "&##xa;", "<br/>", "all") & '</p>')>
+	</cfif>
+	<cfloop array="#webFormData.fields#" index="field">
+		<cfset id = idPrefix & field.fieldName>
+		<cfset required = field.required ? ' required="required" aria-required="true"' : ''>
+		<cfset describedBy = ' aria-describedby="' & id & '_help ' & id & '_error"'>
+		<cfset html.append('<div class="galaxieWebFormField" data-field="' & encodeForHtmlAttribute(field.fieldName) & '" data-type="' & encodeForHtmlAttribute(field.fieldType) & '">')>
+		<cfswitch expression="#field.fieldType#">
+			<cfcase value="radio,checkboxes">
+				<!--- A group: the label is a legend, and each choice has its own label. --->
+				<cfset html.append('<fieldset class="galaxieWebFormGroup"' & describedBy & '><legend>' & encodeForHtml(field.label) & (field.required ? ' *' : '') & '</legend>')>
+				<cfset choiceIndex = 0>
+				<cfloop array="#field.choices#" index="choice">
+					<cfset choiceIndex = choiceIndex + 1>
+					<cfset html.append('<div class="galaxieWebFormChoice"><input type="' & (field.fieldType eq "radio" ? "radio" : "checkbox") & '" class="' & (field.fieldType eq "radio" ? "k-radio" : "k-checkbox") & '" id="' & id & '_' & choiceIndex & '" name="' & encodeForHtmlAttribute(field.fieldName) & '" value="' & encodeForHtmlAttribute(choice) & '"> <label for="' & id & '_' & choiceIndex & '">' & encodeForHtml(choice) & '</label></div>')>
+				</cfloop>
+				<cfset html.append('</fieldset>')>
+			</cfcase>
+			<cfcase value="consent">
+				<cfset html.append('<div class="galaxieWebFormChoice"><input type="checkbox" class="k-checkbox" id="' & id & '" name="' & encodeForHtmlAttribute(field.fieldName) & '" value="yes"' & required & describedBy & '> <label for="' & id & '">' & encodeForHtml(len(field.options) ? field.options : field.label) & (field.required ? ' *' : '') & '</label></div>')>
+			</cfcase>
+			<cfdefaultcase>
+				<cfset html.append('<label for="' & id & '">' & encodeForHtml(field.label) & (field.required ? ' *' : '') & '</label>')>
+				<cfswitch expression="#field.fieldType#">
+					<cfcase value="textarea">
+						<cfset html.append('<textarea class="k-textbox" id="' & id & '" name="' & encodeForHtmlAttribute(field.fieldName) & '" rows="5" maxlength="10000" placeholder="' & encodeForHtmlAttribute(field.placeholder) & '"' & required & describedBy & '></textarea>')>
+					</cfcase>
+					<cfcase value="select">
+						<!--- webForms.js makes this a Kendo DropDownList. --->
+						<cfset html.append('<select id="' & id & '" name="' & encodeForHtmlAttribute(field.fieldName) & '"' & required & describedBy & '><option value="">Select...</option>')>
+						<cfloop array="#field.choices#" index="choice">
+							<cfset html.append('<option value="' & encodeForHtmlAttribute(choice) & '">' & encodeForHtml(choice) & '</option>')>
+						</cfloop>
+						<cfset html.append('</select>')>
+					</cfcase>
+					<cfcase value="date">
+						<!--- webForms.js makes this a Kendo DatePicker. --->
+						<cfset html.append('<input type="text" class="galaxieWebFormDate" id="' & id & '" name="' & encodeForHtmlAttribute(field.fieldName) & '"' & required & describedBy & '>')>
+					</cfcase>
+					<cfdefaultcase>
+						<cfset html.append('<input type="' & (field.fieldType eq "email" ? "email" : (field.fieldType eq "phone" ? "tel" : (field.fieldType eq "number" ? "number" : "text"))) & '" class="k-textbox" id="' & id & '" name="' & encodeForHtmlAttribute(field.fieldName) & '" maxlength="1000" placeholder="' & encodeForHtmlAttribute(field.placeholder) & '"' & (field.fieldType eq "email" ? ' autocomplete="email"' : '') & required & describedBy & '>')>
+					</cfdefaultcase>
+				</cfswitch>
+			</cfdefaultcase>
+		</cfswitch>
+		<cfif len(field.helpText)>
+			<cfset html.append('<div class="galaxieWebFormHelp" id="' & id & '_help">' & encodeForHtml(field.helpText) & '</div>')>
+		</cfif>
+		<!--- Filled in by webForms.js when the server says this field needs a look. Kendo's own validation message classes. --->
+		<cfset html.append('<div class="galaxieWebFormError k-widget k-tooltip k-tooltip-validation k-invalid-msg" id="' & id & '_error" role="alert" hidden="hidden"></div>')>
+		<cfset html.append('</div>')>
+	</cfloop>
+
+	<!--- Spam protection: a field people never see. A bot that fills it in is told the form was sent, and nothing is kept. --->
+	<cfset html.append('<div class="galaxieWebFormHp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>')>
+
+	<cfif arguments.showCaptcha>
+		<!--- webForms.js asks the server for the image (the same captcha as the comment form). --->
+		<cfset html.append('<div class="galaxieWebFormField galaxieWebFormCaptcha" data-field="captchaText"><label for="' & idPrefix & 'captchaText">Enter the text in the image *</label><div class="galaxieWebFormCaptchaImage"></div><input type="text" class="k-textbox" id="' & idPrefix & 'captchaText" name="captchaText" autocomplete="off" required="required" aria-required="true" aria-describedby="' & idPrefix & 'captchaText_error"><div class="galaxieWebFormError k-widget k-tooltip k-tooltip-validation k-invalid-msg" id="' & idPrefix & 'captchaText_error" role="alert" hidden="hidden"></div></div>')>
+	</cfif>
+
+	<cfif webFormData.offerSubscribe>
+		<cfset html.append('<div class="galaxieWebFormField galaxieWebFormChoice"><input type="checkbox" class="k-checkbox" id="' & idPrefix & 'subscribe" name="subscribeToBlog" value="yes"> <label for="' & idPrefix & 'subscribe">Email me new posts (you''ll get an email to confirm first)</label></div>')>
+	</cfif>
+
+	<cfset html.append('<div class="galaxieWebFormActions"><button type="submit" class="k-button k-primary">' & encodeForHtml(webFormData.buttonLabel) & '</button></div>')>
+	<cfset html.append('<div class="galaxieWebFormStatus" role="status" aria-live="polite"></div>')>
+	<cfset html.append('</form>')>
+	<cfreturn html.toString()>
+</cffunction>
+
+<!--- ********************************************************************************************************************
 	Helpers
 ********************************************************************************************************************* --->
 

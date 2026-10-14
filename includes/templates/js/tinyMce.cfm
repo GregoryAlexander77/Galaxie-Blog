@@ -93,6 +93,7 @@
 	<cfparam name="includeGallery" default="false">
 	<cfparam name="includeCarousel" default="false">
 	<cfparam name="includeCustomWindow" default="false">
+	<cfparam name="includeWebForm" default="false">
 	<cfparam name="includeVideoUpload" default="false">
 	<cfparam name="includeGradient" default="false">
 	<cfparam name="includeHeroAnimation" default="false">
@@ -711,6 +712,27 @@
 					icon: 'customWindow',
 					onAction: function () {
 						createAdminInterfaceWindow(45, '<cfoutput>#URL.optArgs#</cfoutput>');
+					}
+				});
+			</cfif>			<cfif includeWebForm>
+				<!--- Forms (2026-10-13): places one of the blog's forms in the post. Opens the Insert Form window (86), which inserts
+				<div class="galaxieWebForm" data-webform="alias">[Form: Title]</div>; common/js/webForms.js shows the real form there. --->
+				editor.ui.registry.addIcon(
+					'webForm',
+					'<svg><span data-fa-symbol="webForm" class="fontAwesomeIcon fa-regular fa-rectangle-list">&nbsp;</span></svg>'
+				);
+				editor.ui.registry.addButton('webForm', {
+					text: '<i class="fontAwesomeIcon fa-regular fa-rectangle-list"></i>',
+					tooltip: 'Insert Form',
+					onAction: function (_) {
+						createAdminInterfaceWindow(86);
+					}
+				});
+				editor.ui.registry.addMenuItem('webForm', {
+					text: 'Insert Form',
+					icon: 'webForm',
+					onAction: function () {
+						createAdminInterfaceWindow(86);
 					}
 				});
 			</cfif>				

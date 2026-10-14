@@ -1081,6 +1081,11 @@ TinyMce styles
 	<cfinclude template="../../admin/adminInterface/webFormSubmissions.cfm">
 </cfcase>
 
+<!--- Insert Form (2026-10-13): opened by the post editor's Insert Form button. See admin/adminInterface/insertWebForm.cfm. --->
+<cfcase value=86>
+	<cfinclude template="../../admin/adminInterface/insertWebForm.cfm">
+</cfcase>
+
 </cfswitch>
 
 </html>

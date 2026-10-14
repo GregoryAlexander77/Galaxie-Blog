@@ -911,6 +911,12 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
 				var windowTitle = "Form Submissions";
+			} else if (Id == 86){
+				// Insert Form (2026-10-13), from the post editor's Insert Form button - see admin/adminInterface/insertWebForm.cfm.
+				var windowName = "insertWebFormWindow";
+				var windowHeight = "<cfif session.isMobile>50%<cfelse>30%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>40%</cfif>";
+				var windowTitle = "Insert Form";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

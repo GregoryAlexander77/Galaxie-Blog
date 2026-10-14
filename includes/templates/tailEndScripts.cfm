@@ -21,6 +21,15 @@
 	}
 </script>
 
+<!-- Forms placed in a post or page (2026-10-13) are only downloaded when the page has one. See common/js/webForms.js. -->
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+	if ($('.galaxieWebForm[data-webform]').length) {
+		galaxieLoader.webForms(function() {
+			galaxieWebForms.init({ baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
+		});
+	}
+</script>
+
 <!--- When the page has been loaded, fade in the menu's. --->
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">
 	// Show the topMenu

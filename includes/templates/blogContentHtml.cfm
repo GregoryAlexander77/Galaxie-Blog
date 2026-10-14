@@ -353,7 +353,8 @@
 				}</cfoutput> 
 				</script>
 				<!-- Render the article for postId <cfoutput>#postId#</cfoutput> -->
-				<article>
+				<!--- data-postid: a form placed in the post sends it with each submission (common/js/webForms.js, 2026-10-13). --->
+				<article data-postid="<cfoutput>#postId#</cfoutput>">
 					<div class="blogPost <cfif promotedPost>highlightedWidget<cfelse>widget</cfif> k-content"><!--- Highlight the post with the themes accent color if it is promoted. --->
 						<span class="innerContentContainer">
 							<h1 class="topContent">

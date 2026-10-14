@@ -380,6 +380,12 @@ var galaxieLoader = (function() {
 				getScript('#application.baseUrl#/common/libs/plyr/plyr.min.js').done(ready);
 			}, callback);
 		},
+		<!--- Forms placed in posts (2026-10-13) - see common/js/webForms.js. --->
+		webForms: function(callback) {
+			whenReady('webForms', function(ready) {
+				getScript('#application.baseUrl#/common/js/webForms.js').done(ready);
+			}, callback);
+		},
 		prism: function(callback) {
 			whenReady('prism', function(ready) {
 				addCss('#application.baseUrl#/common/libs/prism/prism.min.css');

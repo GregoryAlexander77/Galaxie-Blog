@@ -11140,6 +11140,226 @@
 		<cfcontent type="text/csv; charset=utf-8" reset="true"><cfoutput>#chr(65279)##application.webForms.getSubmissionsCsv(val(arguments.webFormId))#</cfoutput><cfabort>
 	</cffunction>
 
+	<!--- ********************************************************************************************************************
+		Forms on the site (2026-10-13) - used by visitors, so no login and no admin CSRF token. Instead:
+		- getWebFormForPage gives each visitor's page a one-time token kept in their session (session.webFormTokens);
+		- submitWebForm accepts a token only once, and only when it is at least 3 seconds old (a person takes longer than that to
+		  fill in a form, a bot usually doesn't) and at most 6 hours old;
+		- a hidden field ("website") that only bots fill in: such a submission is answered as if it worked, and nothing is kept;
+		- at most 10 submissions an hour from one IP address (application.webFormRateLimit);
+		- the blog's captcha when the form asks for it, checked here against the session's word (same rule as comments).
+		Called by common/js/webForms.js.
+	********************************************************************************************************************* --->
+
+	<cffunction name="getWebFormForPage" access="remote" returnformat="json" output="false"
+			hint="The HTML of an active form, by alias, with a one-time token for sending it.">
+		<cfargument name="alias" type="string" required="false" default="">
+
+		<cfset var response = { "success": false, "html": "", "token": "", "captcha": false, "message": "" }>
+		<cfset var webForm = application.webForms.getForm(alias = left(trim(arguments.alias), 100))>
+		<cfset var token = "">
+		<cfset var key = "">
+		<cfset var showCaptcha = false>
+
+		<cfif structIsEmpty(webForm) or not webForm.active>
+			<cfset response[ "message" ] = "This form is not available.">
+		<cfelse>
+			<cfset showCaptcha = webForm.requireCaptcha and application.useCaptcha and not application.Udf.isLoggedIn()>
+			<cfset token = lCase(replace(createUUID(), "-", "", "all"))>
+			<cflock scope="session" type="exclusive" timeout="10">
+				<cfif not structKeyExists(session, "webFormTokens") or not isStruct(session.webFormTokens)>
+					<cfset session.webFormTokens = {}>
+				</cfif>
+				<!--- Keep the session small: drop tokens older than 6 hours, and never keep more than 20. --->
+				<cfloop collection="#session.webFormTokens#" item="key">
+					<cfif dateDiff("h", session.webFormTokens[key].issued, now()) gte 6>
+						<cfset structDelete(session.webFormTokens, key)>
+					</cfif>
+				</cfloop>
+				<cfif structCount(session.webFormTokens) gte 20>
+					<cfset session.webFormTokens = {}>
+				</cfif>
+				<cfset session.webFormTokens[token] = { webFormId: webForm.webFormId, issued: now() }>
+			</cflock>
+			<cfset response[ "success" ] = true>
+			<cfset response[ "html" ] = application.webForms.renderFormHtml(webForm, showCaptcha)>
+			<cfset response[ "token" ] = token>
+			<cfset response[ "captcha" ] = showCaptcha>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="submitWebForm" access="remote" returnformat="json" output="false"
+			hint="Checks and stores what a visitor sent with a form, emails the blog owner, and starts the subscription when asked.">
+		<cfargument name="alias" type="string" required="false" default="">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfargument name="valuesJson" type="string" required="false" default="{}" hint="The fields' values, keyed by field name. A checkbox group's choices come comma separated.">
+		<cfargument name="captchaText" type="string" required="false" default="">
+		<cfargument name="website" type="string" required="false" default="" hint="The hidden field only bots fill in.">
+		<cfargument name="subscribeToBlog" type="string" required="false" default="">
+		<cfargument name="postId" required="false" default="0">
+
+		<cfset var response = { "success": false, "errors": {}, "message": "", "confirmationMessage": "", "confirmationUrl": "", "newToken": "" }>
+		<cfset var webForm = application.webForms.getForm(alias = left(trim(arguments.alias), 100))>
+		<cfset var issued = "">
+		<cfset var ip = cgi.remote_addr>
+		<cfset var recent = []>
+		<cfset var stamp = "">
+		<cfset var sent = {}>
+		<cfset var checked = "">
+		<cfset var submissionId = 0>
+		<cfset var key = "">
+
+		<cfif structIsEmpty(webForm) or not webForm.active>
+			<cfset response[ "message" ] = "This form is not available any more.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+
+		<!--- The token: issued to this visitor's session for this form, at least 3 seconds ago, used once. --->
+		<cflock scope="session" type="exclusive" timeout="10">
+			<cfif structKeyExists(session, "webFormTokens") and isStruct(session.webFormTokens) and structKeyExists(session.webFormTokens, arguments.token) and session.webFormTokens[arguments.token].webFormId eq webForm.webFormId>
+				<cfset issued = session.webFormTokens[arguments.token].issued>
+			</cfif>
+		</cflock>
+		<cfif not isDate(issued) or dateDiff("h", issued, now()) gte 6>
+			<cfset response[ "message" ] = "This page has been open for a long time, or the form was already sent. Please reload the page and try again.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfif dateDiff("s", issued, now()) lt 3>
+			<cfset response[ "message" ] = "That was very quick - please check the form and send it again.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+
+		<!--- The honeypot: answer as if it worked, keep nothing. --->
+		<cfif len(trim(arguments.website))>
+			<cfset forgetWebFormToken(arguments.token)>
+			<cfset response[ "success" ] = true>
+			<cfset response[ "confirmationMessage" ] = webForm.confirmationMessage>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+
+		<!--- At most 10 submissions an hour from one address. --->
+		<cflock name="galaxieWebFormRateLimit" type="exclusive" timeout="10">
+			<cfif not structKeyExists(application, "webFormRateLimit") or not isStruct(application.webFormRateLimit)>
+				<cfset application.webFormRateLimit = {}>
+			</cfif>
+			<cfloop collection="#application.webFormRateLimit#" item="key">
+				<cfset recent = []>
+				<cfloop array="#application.webFormRateLimit[key]#" index="stamp">
+					<cfif dateDiff("n", stamp, now()) lt 60><cfset arrayAppend(recent, stamp)></cfif>
+				</cfloop>
+				<cfif arrayLen(recent)><cfset application.webFormRateLimit[key] = recent><cfelse><cfset structDelete(application.webFormRateLimit, key)></cfif>
+			</cfloop>
+			<cfset recent = structKeyExists(application.webFormRateLimit, ip) ? application.webFormRateLimit[ip] : []>
+			<cfif arrayLen(recent) gte 10>
+				<cfset response[ "message" ] = "Too many forms have been sent from your connection in the last hour. Please try again later.">
+				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+			</cfif>
+		</cflock>
+
+		<!--- The captcha, when the form asks for it (same rule as the comment form: not for a signed-in user). --->
+		<cfif webForm.requireCaptcha and application.useCaptcha and not application.Udf.isLoggedIn()>
+			<cfif not structKeyExists(session, "captchaText") or not len(session.captchaText) or not len(trim(arguments.captchaText)) or trim(arguments.captchaText) neq session.captchaText>
+				<cfset response[ "errors" ][ "captchaText" ] = "The text from the image did not match. Please try again.">
+				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+			</cfif>
+		</cfif>
+
+		<!--- The values. --->
+		<cftry>
+			<cfset sent = deserializeJSON(arguments.valuesJson)>
+			<cfcatch type="any"><cfset sent = {}></cfcatch>
+		</cftry>
+		<cfif not isStruct(sent)><cfset sent = {}></cfif>
+		<cfset checked = application.webForms.validateSubmission(webForm, sent)>
+		<cfif not checked.valid>
+			<cfset response[ "errors" ] = checked.errors>
+			<cfset response[ "message" ] = "Please check the highlighted fields.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+
+		<!--- Accepted: store it, spend the token and the captcha word, count it, and tell the owner. --->
+		<cfset submissionId = application.webForms.saveSubmission(webForm, checked.values, isNumeric(arguments.postId) ? val(arguments.postId) : 0)>
+		<cfset forgetWebFormToken(arguments.token)>
+		<cfif structKeyExists(session, "captchaText")><cfset structDelete(session, "captchaText")></cfif>
+		<cflock name="galaxieWebFormRateLimit" type="exclusive" timeout="10">
+			<cfif not structKeyExists(application.webFormRateLimit, ip)><cfset application.webFormRateLimit[ip] = []></cfif>
+			<cfset arrayAppend(application.webFormRateLimit[ip], now())>
+		</cflock>
+		<cftry>
+			<cfset emailWebFormSubmission(webForm, checked.values)>
+			<cfcatch type="any">
+				<!--- The submission is saved; a mail problem must not make the visitor think it failed. --->
+				<cflog file="galaxieBlogErrors" type="error" text="Form #webForm.alias#: the notification email could not be sent: #cfcatch.message#">
+			</cfcatch>
+		</cftry>
+
+		<!--- "Email me new posts": the usual double opt-in subscription, with the form's email address. --->
+		<cfif webForm.offerSubscribe and len(arguments.subscribeToBlog)>
+			<cfloop array="#webForm.fields#" index="key">
+				<cfif key.fieldType eq "email" and structKeyExists(checked.values, key.fieldName) and isValid("email", checked.values[key.fieldName])>
+					<cftry>
+						<cfset subscribe(email = checked.values[key.fieldName])>
+						<cfcatch type="any">
+							<cflog file="galaxieBlogErrors" type="error" text="Form #webForm.alias#: the subscription could not be started: #cfcatch.message#">
+						</cfcatch>
+					</cftry>
+					<cfbreak>
+				</cfif>
+			</cfloop>
+		</cfif>
+
+		<cfset response[ "success" ] = true>
+		<cfset response[ "confirmationMessage" ] = webForm.confirmationMessage>
+		<cfset response[ "confirmationUrl" ] = webForm.confirmationUrl>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="forgetWebFormToken" access="private" returntype="void" output="false">
+		<cfargument name="token" type="string" required="true">
+		<cflock scope="session" type="exclusive" timeout="10">
+			<cfif structKeyExists(session, "webFormTokens") and isStruct(session.webFormTokens)>
+				<cfset structDelete(session.webFormTokens, arguments.token)>
+			</cfif>
+		</cflock>
+	</cffunction>
+
+	<cffunction name="emailWebFormSubmission" access="private" returntype="void" output="false"
+			hint="Emails a new submission to the form's notify addresses (or the blog's own address), using the blog's branded email.">
+		<cfargument name="webForm" type="struct" required="true">
+		<cfargument name="values" type="struct" required="true">
+		<cfset var recipients = len(arguments.webForm.notifyEmails) ? arguments.webForm.notifyEmails : application.BlogDbObj.getBlogEmail()>
+		<cfset var body = "">
+		<cfset var emailBody = "">
+		<cfset var field = "">
+		<cfset var recipient = "">
+		<cfsavecontent variable="body"><cfoutput>
+			<table cellpadding="5" cellspacing="5" border="0" align="left">
+				<tr><td align="right" valign="top">Sent:</td><td align="left">#dateFormat(application.blog.blogNow())# #timeFormat(application.blog.blogNow())#</td></tr>
+				<cfloop array="#arguments.webForm.fields#" index="field">
+					<tr>
+						<td align="right" valign="top">#encodeForHtml(field.label)#:</td>
+						<td align="left">#replaceNoCase(encodeForHtml(structKeyExists(arguments.values, field.fieldName) ? arguments.values[field.fieldName] : ""), "&##xa;", "<br/>", "all")#</td>
+					</tr>
+				</cfloop>
+			</table>
+		</cfoutput></cfsavecontent>
+		<cfinvoke component="#RendererObj#" method="renderEmail" returnvariable="emailBody">
+			<cfinvokeargument name="email" value="#listFirst(recipients)#">
+			<cfinvokeargument name="emailTitle" value="New: #arguments.webForm.title#">
+			<cfinvokeargument name="emailDesc" value="Sent with the form #arguments.webForm.title# on #application.BlogDbObj.getBlogTitle()#">
+			<cfinvokeargument name="emailBody" value="#body#">
+			<cfinvokeargument name="callToActionText" value="">
+			<cfinvokeargument name="callToActionLink" value="">
+		</cfinvoke>
+		<cfloop list="#recipients#" index="recipient">
+			<cfif isValid("email", trim(recipient))>
+				<cfset UtilsObj.mail(to = trim(recipient), subject = "#arguments.webForm.title# - #application.BlogDbObj.getBlogTitle()#", body = emailBody)>
+			</cfif>
+		</cfloop>
+	</cffunction>
+
 	<cffunction name="getAndDismissPendingDissolveNotices" access="remote" returnformat="json" output="false"
 			hint="Called once when the admin UI loads. Returns and dismisses any queued Page Collection dissolve notices.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
