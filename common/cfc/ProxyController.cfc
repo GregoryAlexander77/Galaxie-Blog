@@ -1673,6 +1673,7 @@
 		<!--- Use the deserialize function to get at the underlying data. --->
 		<cfset thisStruct = deserializeJson(thisStr, false)>
 
+		<cfset local.removedFromPostIds = []>
 		<cftransaction>
 			<!--- Now that we have a clean array of structures, loop thru the array and get to the underlying values that were sent in the grid. ---> 
 			<!--- Loop thru the struct. --->
@@ -1694,10 +1695,22 @@
 				<cfset CommentDbObj.setRemove(1)>
 				<!--- Save it --->
 				<cfset EntitySave(CommentDbObj)>
+				<!--- The post whose cached comments must be cleared (2026-10-14). --->
+				<cfif not isNull(CommentDbObj.getPostRef())>
+					<cfset arrayAppend(local.removedFromPostIds, CommentDbObj.getPostRef().getPostId())>
+				</cfif>
 
 			</cfloop>
 
 		</cftransaction>
+
+		<!--- Clear the cached comments of those posts (2026-10-14), or visitors kept seeing a deleted comment until the cache expired. --->
+		<cfloop array="#local.removedFromPostIds#" index="local.removedFromPostId">
+			<cftry>
+				<cfset application.blog.flushGalaxieCache(type = "comment", postId = local.removedFromPostId)>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+		</cfloop>
 								
     	<cfset jsonString = []><!--- '{"data":null}', --->
     	
@@ -1741,6 +1754,14 @@
 			<cfset EntitySave(CommentDbObj)>
 
 		</cftransaction>
+
+		<!--- Clear the post's cached comments (2026-10-14), or visitors kept seeing the deleted comment until the cache expired. --->
+		<cftry>
+			<cfif not isNull(CommentDbObj.getPostRef())>
+				<cfset application.blog.flushGalaxieCache(type = "comment", postId = CommentDbObj.getPostRef().getPostId())>
+			</cfif>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
 
 		<!--- Set the response --->
 		<cfset response = arguments.commentId>
