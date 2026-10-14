@@ -40,9 +40,6 @@ On the site, common/js/webForms.js replaces it with the real form; in a feed or 
 </script>
 
 <table align="center" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0" border="0">
-	<tr>
-		<td class="k-header" colspan="2"><b>Insert a form</b></td>
-	</tr>
 <cfif not arrayLen(insertableWebForms)>
 	<tr>
 		<td colspan="2">There are no active forms yet. Build one in the admin site under Forms, then come back to place it here.</td>
