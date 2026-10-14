@@ -8693,21 +8693,6 @@
 
 	</cffunction>
 			
-	<cffunction name="deleteComment" access="public" returnType="void" roles="admin,ReleaseEntries" output="false"
-			hint="Deletes a comment based on the comment's uuid.">
-		<cfargument name="id" type="uuid" required="true">
-			
-		<!--- Load the comment entity by the CommentUuid --->
-		<cfset CommentDbObj = entityLoad("Comment", { CommentUuid = arguments.id }, "true" )>
-		<!--- Delete this record --->
-		<cfset EntityDelete(CommentDbObj)>
-		<!--- And delete the variable to ensure that the record is deleted from ORM memory. --->
-		<cfset void = structDelete( variables, "CommentDbObj" )>
-			
-		<!--- Flush the comment cache --->
-		<cfset flushGalaxieCache(type='comment', postId='#arguments.postId#')>
-
-	</cffunction>
 
 	<cffunction name="getProperties" access="public" returnType="struct" output="false">
 		<cfreturn duplicate(instance)>
