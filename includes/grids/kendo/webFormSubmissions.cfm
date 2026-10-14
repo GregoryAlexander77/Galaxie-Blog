@@ -47,7 +47,8 @@
 						Name: { type: "string", editable: false, nullable: true },
 						Email: { type: "string", editable: false, nullable: true },
 						ValuesHtml: { type: "string", editable: false, nullable: true },
-						ValuesText: { type: "string", editable: false, nullable: true }
+						ValuesText: { type: "string", editable: false, nullable: true },
+						Hidden: { type: "boolean", editable: false, nullable: true }
 					}
 				}
 			},
@@ -82,7 +83,14 @@
 				field: "ValuesText",
 				title: "Values",
 				template: "#= ValuesHtml #"
-			}, {
+			<cfif webFormListIsPublic>}, {
+				<!--- The public sign-up list (2026-10-13): Hide leaves a submission out of it; Show puts it back. --->
+				field: "Hidden",
+				title: "Public list",
+				width: "<cfif session.isMobile>25<cfelse>11</cfif>%",
+				filterable: false,
+				template: "<button type='button' class='k-button' onclick='setWebFormSubmissionHidden(#= WebFormSubmissionId #, #= Hidden ? false : true #)'>#= Hidden ? 'Show' : 'Hide' #</button>"
+			</cfif>}, {
 				command: ["destroy"],
 				title: "&nbsp;",
 				width: "<cfif session.isMobile>25<cfelse>10</cfif>%"

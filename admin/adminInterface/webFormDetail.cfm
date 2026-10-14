@@ -17,6 +17,7 @@ the submissions already received - stay matched to it when the label changes. --
 		webFormId: 0, title: webFormStarter.title, alias: "", description: webFormStarter.description, buttonLabel: webFormStarter.buttonLabel,
 		confirmationMessage: webFormStarter.confirmationMessage, confirmationUrl: "", notifyEmails: "",
 		offerSubscribe: webFormStarter.offerSubscribe, requireCaptcha: application.useCaptcha, active: true,
+		publicList: webFormStarter.publicList, showOnMode: webFormStarter.showOnMode, showOnPosts: [],
 		fields: webFormStarter.fields
 	}>
 	<!--- A new form built from the Insert Form window (86) starts with the title typed in its search (otherArgs), whichever template is picked. --->
@@ -30,7 +31,13 @@ the submissions already received - stay matched to it when the label changes. --
 <!--- What the script below needs: the fields as saved, and the field types for the dropdown. --->
 <cfset webFormFieldsForJs = []>
 <cfloop array="#webForm.fields#" index="thisField">
-	<cfset arrayAppend(webFormFieldsForJs, { "webFormFieldId": thisField.webFormFieldId, "label": thisField.label, "fieldType": thisField.fieldType, "required": thisField.required, "placeholder": thisField.placeholder, "helpText": thisField.helpText, "options": thisField.options, "choiceLimits": structKeyExists(thisField, "choiceLimits") ? thisField.choiceLimits : {} })>
+	<cfset arrayAppend(webFormFieldsForJs, { "webFormFieldId": thisField.webFormFieldId, "label": thisField.label, "fieldType": thisField.fieldType, "required": thisField.required, "placeholder": thisField.placeholder, "helpText": thisField.helpText, "options": thisField.options, "choiceLimits": structKeyExists(thisField, "choiceLimits") ? thisField.choiceLimits : {}, "showPublic": structKeyExists(thisField, "showPublic") and thisField.showPublic })>
+</cfloop>
+<!--- On the site (2026-10-13): every post and page for "Show on", and the ones the form is on now. --->
+<cfset webFormPostChoices = application.webForms.getPostChoices()>
+<cfset webFormShowOnIds = []>
+<cfloop array="#webForm.showOnPosts#" index="thisShowOnPost">
+	<cfset arrayAppend(webFormShowOnIds, thisShowOnPost.postId)>
 </cfloop>
 
 <style>
@@ -65,8 +72,11 @@ the submissions already received - stay matched to it when the label changes. --
 			row.find(".webFormFieldOptionsLabel").text(isConsent ? "What the person agrees to:" : "Choices (one per line):");
 			row.find(".webFormFieldPlaceholderWrap").toggle(!isChoice && !isConsent && type != "date");
 			row.find(".webFormFieldLimitWrap").toggle(isChoice);
+			<!--- "Show in the public sign-up list": only with the form's privacy switch on, and never for email or phone. --->
+			row.find(".webFormFieldPublicWrap").toggle($("#webFormPublicList").is(":checked") && privateTypes.indexOf(type) < 0);
 			renderChoiceLimits(row);
 		}
+		var privateTypes = ["email", "phone"];
 
 		<!--- Choice limits (2026-10-13): with "Limit how many people can pick each choice" checked, each choice gets a number box;
 		an empty box means no limit for that choice. The numbers typed are remembered by choice while the choices are edited. --->
@@ -118,6 +128,8 @@ the submissions already received - stay matched to it when the label changes. --
 			limitWrap.append('<div class="webFormFieldLimits" style="display: none;"></div>');
 			limitWrap.append('<div class="k-form-hint">Visitors see how many spots are left, and a full choice can\'t be picked. Deleting a submission frees its spot.</div>');
 			more.append(limitWrap);
+			var showPublic = (field.showPublic === true || field.SHOWPUBLIC === true || field.showPublic === "true");
+			more.append($('<div class="webFormFieldPublicWrap"></div>').append($('<label><input type="checkbox" class="k-checkbox webFormFieldShowPublic"> Show in the public sign-up list</label>').find("input").prop("checked", showPublic).end()));
 			more.append($('<label>Help text (optional):</label>')).append($('<input type="text" class="k-textbox webFormFieldHelpText" maxlength="500" style="width: 95%;">').val(field.helpText || field.HELPTEXT || ""));
 			main.append(more);
 			row.append(main);
@@ -162,6 +174,8 @@ the submissions already received - stay matched to it when the label changes. --
 			$("#webFormButtonLabel").val(starter.buttonLabel);
 			$("#webFormConfirmationMessage").val(starter.confirmationMessage);
 			$("#webFormOfferSubscribe").prop("checked", starter.offerSubscribe === true);
+			$("#webFormPublicList").prop("checked", starter.publicList === true);
+			$("#webFormShowOnMode").data("kendoDropDownList").value(starter.showOnMode || "form");
 			$("#webFormFieldsBody select.webFormFieldType").each(function() {
 				var dropDown = $(this).data("kendoDropDownList");
 				if (dropDown) { dropDown.destroy(); }
@@ -172,6 +186,7 @@ the submissions already received - stay matched to it when the label changes. --
 				$("#webFormFieldsBody").append(starterRow);
 				initFieldRow(starterRow);
 			}
+			refreshPublicList();
 		}
 
 		$("#webFormStarter").kendoDropDownList({
@@ -185,6 +200,67 @@ the submissions already received - stay matched to it when the label changes. --
 			}
 		});
 		</cfif>
+
+		<!--- On the site (2026-10-13). "Show sign-ups publicly" is the privacy switch: off, the form's submissions stay private, the
+		per-field ticks are hidden and only "Form only" can be chosen. "Show on" lists every post and page; when the one wanted
+		doesn't exist yet, its Create Page button makes a draft page with the typed title and selects it. --->
+		var webFormShowOnMode = $("#webFormShowOnMode").kendoDropDownList({
+			dataSource: [
+				{ text: "Form only", value: "form" },
+				{ text: "Form and sign-up list", value: "formAndList" },
+				{ text: "Sign-up list only", value: "list" }
+			],
+			dataTextField: "text",
+			dataValueField: "value",
+			value: <cfoutput>#serializeJson(webForm.showOnMode)#</cfoutput>
+		}).data("kendoDropDownList");
+
+		function refreshPublicList() {
+			var isPublic = $("#webFormPublicList").is(":checked");
+			if (!isPublic) { webFormShowOnMode.value("form"); }
+			webFormShowOnMode.enable(isPublic);
+			$("#webFormPublicHint").toggle(isPublic);
+			$("#webFormFieldsBody .webFormFieldRow").each(function() { refreshFieldRow($(this)); });
+		}
+		$("#webFormPublicList").on("change", refreshPublicList);
+
+		var webFormShowOn = $("#webFormShowOn").kendoMultiSelect({
+			dataSource: <cfoutput>#serializeJson(webFormPostChoices)#</cfoutput>,
+			dataTextField: "title",
+			dataValueField: "postId",
+			value: <cfoutput>#serializeJson(webFormShowOnIds)#</cfoutput>,
+			filter: "contains",
+			placeholder: "Choose posts or pages...",
+			itemTemplate: function(post) { return $("<div/>").text(post.title).html() + (post.released ? "" : " (draft)"); },
+			noDataTemplate: $("#webFormShowOnNoData").html()
+		}).data("kendoMultiSelect");
+
+		<!--- Called by the Create Page button in the list above. --->
+		window.createPageForWebForm = function() {
+			var title = $.trim(webFormShowOn.input.val());
+			if (!title.length) { return; }
+			jQuery.ajax({
+				type: 'post',
+				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=createPageForWebForm',
+				data: { csrfToken: '<cfoutput>#csrfToken#</cfoutput>', title: title },
+				dataType: "json",
+				success: function(response) {
+					if (response && JSON.parse(response.success) == true) {
+						webFormShowOn.dataSource.add({ postId: response.postId, title: response.title, released: false });
+						webFormShowOn.value(webFormShowOn.value().concat([response.postId]));
+						webFormShowOn.input.val("");
+						webFormShowOn.close();
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Page created", message: "The draft page \"" + $("<div/>").text(response.title).html() + "\" was created and the form will show on it. Fill it in and release it under Pages. Remember to save this form.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+					} else {
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not create the page", message: (response && response.errorMessage) || "The page could not be created.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+					}
+				},
+				error: function(jqXHR) {
+					if (jqXHR.status === 403) { createLoginWindow(); }
+				}
+			});
+		};
+		refreshPublicList();
 
 		$("#webFormFieldsBody").on("click", ".webFormFieldUp", function() { var row = $(this).closest("tr"); row.prev().before(row); });
 		$("#webFormFieldsBody").on("click", ".webFormFieldDown", function() { var row = $(this).closest("tr"); row.next().after(row); });
@@ -216,7 +292,8 @@ the submissions already received - stay matched to it when the label changes. --
 					placeholder: $.trim($(this).find(".webFormFieldPlaceholder").val()),
 					helpText: $.trim($(this).find(".webFormFieldHelpText").val()),
 					options: options,
-					choiceLimits: $(this).find(".webFormFieldLimitOn").is(":checked") ? readChoiceLimits($(this)) : {}
+					choiceLimits: $(this).find(".webFormFieldLimitOn").is(":checked") ? readChoiceLimits($(this)) : {},
+					showPublic: $(this).find(".webFormFieldShowPublic").is(":checked")
 				});
 			});
 			if (!problem.length && !$.trim($("#webFormTitle").val()).length) { problem = "The form needs a title."; }
@@ -236,6 +313,9 @@ the submissions already received - stay matched to it when the label changes. --
 				offerSubscribe: $("#webFormOfferSubscribe").is(":checked"),
 				requireCaptcha: $("#webFormRequireCaptcha").is(":checked"),
 				active: $("#webFormActive").is(":checked"),
+				publicList: $("#webFormPublicList").is(":checked"),
+				showOnPostIds: $("#webFormShowOn").data("kendoMultiSelect").value(),
+				showOnMode: $("#webFormShowOnMode").data("kendoDropDownList").value(),
 				fields: fields
 			};
 
@@ -336,6 +416,29 @@ the submissions already received - stay matched to it when the label changes. --
 		<td><input type="text" id="webFormNotifyEmails" class="k-textbox" maxlength="1000" placeholder="#encodeForHtmlAttribute(application.BlogDbObj.getBlogEmail())#" value="#encodeForHtmlAttribute(webForm.notifyEmails)#" style="width: 95%;"><div class="k-form-hint">Separate several addresses with commas. Leave it empty to use the blog's own email address.</div></td>
 	</tr>
 	<tr>
+		<td class="k-header" colspan="2"><b>On the site</b></td>
+	</tr>
+	<tr>
+		<td colspan="2">
+			<label><input type="checkbox" class="k-checkbox" id="webFormPublicList"<cfif webForm.publicList> checked</cfif>> Show sign-ups publicly</label>
+			<div class="k-form-hint">Off: what people send stays private, here in the admin site. On: a sign-up list can be shown on the site with the fields you tick ("Show in the public sign-up list"), for example who is bringing what to a potluck. Email and phone fields are never shown.</div>
+		</td>
+	</tr>
+	<tr>
+		<td><label for="webFormShowOn">Show on:</label></td>
+		<td>
+			<select id="webFormShowOn" multiple="multiple" style="width: 95%;"></select>
+			<div class="k-form-hint">The posts and pages this form appears on, below their text. Type to search; if the page doesn't exist yet, you can create it here as a draft. You can also place the form anywhere in a post with the editor's Insert > Form.</div>
+		</td>
+	</tr>
+	<tr>
+		<td><label for="webFormShowOnMode">What shows there:</label></td>
+		<td>
+			<input id="webFormShowOnMode" style="width: 250px;">
+			<div class="k-form-hint" id="webFormPublicHint">The sign-up list updates as people sign up. To leave someone out of it, hide their sign-up under Submissions; it still holds its spot under any choice limits.</div>
+		</td>
+	</tr>
+	<tr>
 		<td class="k-header" colspan="2"><b>Options</b></td>
 	</tr>
 	<tr>
@@ -356,3 +459,17 @@ the submissions already received - stay matched to it when the label changes. --
 </table>
 </form>
 </cfoutput>
+
+<!--- Shown in the "Show on" list when no post or page matches what was typed: the same "not found, add it?" pattern as the
+Author dropdown on a new post. Outside cfoutput, as Kendo's #: # template marks would be read as ColdFusion's. --->
+<script id="webFormShowOnNoData" type="text/x-kendo-tmpl">
+	<div>
+		# if (instance.input && instance.input.val()) { #
+			Page not found. Do you want to create '#: instance.input.val() #'?
+		# } else { #
+			There are no posts or pages yet.
+		# } #
+	</div>
+	<br />
+	<button type="button" class="k-button" onclick="createPageForWebForm()">Create Page</button>
+</script>

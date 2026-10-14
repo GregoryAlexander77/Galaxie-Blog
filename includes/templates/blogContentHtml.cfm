@@ -467,6 +467,14 @@
 									#moreBody#
 								</cfif>
 							</cfif><!---<cfif len(morebody)>--->
+							<!--- Forms assigned to this post under "Show on" in the form editor (2026-10-13): the form, its sign-up list or both,
+							below the post's text. Only placeholders are written here, as the page is cached; common/js/webForms.js fetches them. --->
+							<cfif getPageMode() eq 'post' and structKeyExists(application, "webForms")>
+								<cfloop array="#application.webForms.getPlacementsForPost(postId)#" index="webFormPlacement">
+									<cfif webFormPlacement.showForm><div class="galaxieWebForm" data-webform="#encodeForHtmlAttribute(webFormPlacement.alias)#"></div></cfif>
+									<cfif webFormPlacement.showList><div class="galaxieWebFormList" data-webform="#encodeForHtmlAttribute(webFormPlacement.alias)#"></div></cfif>
+								</cfloop>
+							</cfif>
 							</span><!--<span class="postContent">-->
 							<cfsilent>
 							<!--- ********************************************************************************************

@@ -3354,7 +3354,7 @@
 		</cfif>
 		<!--- A form placed in the post can't be filled in from an email: link to the post instead (2026-10-13, WebForms.cfc). --->
 		<cfif structKeyExists(application, "webForms")>
-			<cfset emailBody = application.webForms.replacePlaceholders(emailBody, emailTitleLink)>
+			<cfset emailBody = application.webForms.addPlacementLinks(application.webForms.replacePlaceholders(emailBody, emailTitleLink), arguments.postId, emailTitleLink)>
 		</cfif>
 		<cfset callToActionText = "View on Web">
 		<cfset callToActionLink = "#emailTitleLink#">

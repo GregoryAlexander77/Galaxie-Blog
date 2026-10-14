@@ -166,6 +166,22 @@
 					width: (pageWidth*(<cfif session.isMobile>55<cfelse>44</cfif>/100)),
 					itemTemplate: function(value, item) { return item.ValuesHtml; }
 				},
+				<cfif webFormListIsPublic>
+				{
+					<!--- The public sign-up list (2026-10-13): Hide leaves a submission out of it; Show puts it back. --->
+					name: "Hidden",
+					title: "Public list",
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>10</cfif>/100)),
+					filtering: false,
+					sorting: false,
+					itemTemplate: function(value, item) {
+						return $('<button type="button" class="k-button"></button>').text(item.Hidden ? "Show" : "Hide").on("click", function(e) {
+							e.stopPropagation();
+							setWebFormSubmissionHidden(item.WebFormSubmissionId, !item.Hidden);
+						});
+					}
+				},
+				</cfif>
 				{
 					type: "control",
 					width: (pageWidth*(<cfif session.isMobile>15<cfelse>8</cfif>/100))

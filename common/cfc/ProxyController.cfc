@@ -10997,7 +10997,8 @@
 					"Name": thisSubmission.name,
 					"Email": thisSubmission.email,
 					"ValuesHtml": html,
-					"ValuesText": text
+					"ValuesText": text,
+					"Hidden": thisSubmission.status eq "hidden"
 				])>
 			</cfloop>
 		</cfif>
@@ -11043,6 +11044,10 @@
 					<cfset formData = {}>
 				</cfif>
 				<cfset saveResult = application.webForms.saveForm(formData)>
+				<!--- The posts the form joined or left under "Show on" have cached pages without (or with) it. --->
+				<cfif saveResult.success>
+					<cfset flushWebFormPosts(saveResult.changedPostIds)>
+				</cfif>
 				<cfset response[ "success" ] = saveResult.success>
 				<cfset response[ "webFormId" ] = saveResult.webFormId>
 				<cfset response[ "errorMessage" ] = arrayToList(saveResult.errors, "<br/>")>
@@ -11070,9 +11075,17 @@
 
 		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.webFormId)>
 			<cftry>
+				<cfset local.shownOn = application.webForms.getShowOnPosts(val(arguments.webFormId))>
 				<cfset response[ "success" ] = application.webForms.deleteForm(val(arguments.webFormId))>
 				<cfif not response.success>
 					<cfset response[ "errorMessage" ] = "That form no longer exists.">
+				<cfelse>
+					<!--- The posts it was shown on have cached pages with it. --->
+					<cfset local.shownOnIds = []>
+					<cfloop array="#local.shownOn#" index="local.shownOnPost">
+						<cfset arrayAppend(local.shownOnIds, local.shownOnPost.postId)>
+					</cfloop>
+					<cfset flushWebFormPosts(local.shownOnIds)>
 				</cfif>
 				<cfcatch type="any">
 					<cfset response[ "errorMessage" ] = "The form could not be deleted: " & cfcatch.message>
@@ -11109,6 +11122,94 @@
 		</cfif>
 
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="setWebFormSubmissionHidden" access="remote" returnformat="json" output="false"
+			hint="Hides a submission from the form's public sign-up list, or shows it again (Submissions window 85). It keeps its spot under the choice limits.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="webFormSubmissionId" default="0" required="true">
+		<cfargument name="hidden" default="true" required="false">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.webFormSubmissionId)>
+			<cftry>
+				<cfset response[ "success" ] = application.webForms.setSubmissionHidden(val(arguments.webFormSubmissionId), isBoolean(arguments.hidden) and arguments.hidden)>
+				<cfif not response.success>
+					<cfset response[ "errorMessage" ] = "That submission no longer exists.">
+				</cfif>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The submission could not be changed: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="createPageForWebForm" access="remote" returnformat="json" output="false"
+			hint="Creates a draft page with the given title from the form editor's 'Show on' list (window 84), when the page the owner wants the form on doesn't exist yet. The owner fills it in and releases it under Pages.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="title" type="string" default="" required="true">
+
+		<cfset var response = { "success": false, "errorMessage": "", "postId": 0, "title": "" }>
+		<cfset var pageTitle = left(trim(arguments.title), 125)>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<!--- Building forms needs EditServerSetting; making the page also needs the right to write posts. --->
+		<cfset secureFunction('EditServerSetting')>
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cfif not len(pageTitle)>
+				<cfset response[ "errorMessage" ] = "Type the page's title first.">
+			<cfelseif len(application.blog.getPostTitle(pageTitle))>
+				<cfset response[ "errorMessage" ] = "A post or page with that title already exists. Choose it from the list instead.">
+			<cfelse>
+				<cftry>
+					<!--- A new post is a draft (not released) until the owner releases it, so nobody sees an empty page. --->
+					<cfset response[ "postId" ] = application.blog.insertNewPost(
+						postType = "page",
+						author = application.blog.getUserIdByUserName(session.userName),
+						title = pageTitle,
+						description = pageTitle)>
+					<cfset response[ "title" ] = pageTitle>
+					<cfset response[ "success" ] = true>
+					<cfcatch type="any">
+						<cfset response[ "errorMessage" ] = "The page could not be created: " & cfcatch.message>
+					</cfcatch>
+				</cftry>
+			</cfif>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="flushWebFormPosts" access="private" returntype="void" output="false"
+			hint="Clears the cached pages of the posts a form was added to or removed from under 'Show on'.">
+		<cfargument name="postIds" type="array" required="true">
+		<cfset var postId = "">
+		<cfset var done = {}>
+		<cfloop array="#arguments.postIds#" index="postId">
+			<cfif not structKeyExists(done, postId)>
+				<cfset done[postId] = true>
+				<cftry>
+					<cfset application.blog.flushGalaxieCache(type = "post", postId = postId)>
+					<cfcatch type="any">
+						<!--- A cache that can't be cleared now is rebuilt when it expires; it mustn't fail the save. --->
+					</cfcatch>
+				</cftry>
+			</cfif>
+		</cfloop>
 	</cffunction>
 
 	<cffunction name="exportWebFormSubmissions" access="remote" returntype="void" output="true"
@@ -11185,6 +11286,21 @@
 			<cfset response[ "html" ] = application.webForms.renderFormHtml(webForm, showCaptcha, application.webForms.getChoiceCounts(webForm))>
 			<cfset response[ "token" ] = token>
 			<cfset response[ "captcha" ] = showCaptcha>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getWebFormListForPage" access="remote" returnformat="json" output="false"
+			hint="A form's public sign-up list for a post or page (common/js/webForms.js). Only for an active form whose list was made public; the form's private fields, such as email, are never in it.">
+		<cfargument name="alias" type="string" required="false" default="">
+
+		<cfset var response = { "success": false, "html": "" }>
+		<cfset var webForm = application.webForms.getForm(alias = left(trim(arguments.alias), 100))>
+
+		<cfif not structIsEmpty(webForm) and webForm.active and webForm.publicList>
+			<cfset response[ "html" ] = application.webForms.renderPublicListHtml(webForm)>
+			<cfset response[ "success" ] = true>
 		</cfif>
 
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>

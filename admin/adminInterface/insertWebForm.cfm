@@ -1,13 +1,14 @@
 <!--- Insert Form window (window 86, 2026-10-13), opened by the post editor's Insert Form button and Insert > Form menu item (includes/templates/js/tinyMce.cfm).
 Inserts a placeholder for the chosen form into the post: <div class="galaxieWebForm" data-webform="alias">[Form: Title]</div>.
-On the site, common/js/webForms.js replaces it with the real form; in a feed or an email it reads as "[Form: Title]".
+For a form whose sign-up list is public it can also insert the list, <div class="galaxieWebFormList" data-webform="alias">[Sign-up list: Title]</div>.
+On the site, common/js/webForms.js replaces them with the real form and list; in a feed or an email they become links to the post.
 The dropdown is searchable. When nothing matches, its Build Form button opens the form editor (window 84) with the typed
 text as the new form's title; saving there calls refreshInsertWebFormWindow (below), which reloads this window and selects
 the new form - the same "not found, add it?" pattern as the Author dropdown on a new post. --->
 <cfset insertableWebForms = []>
 <cfloop array="#application.webForms.getForms()#" index="thisWebForm">
 	<cfif thisWebForm.active>
-		<cfset arrayAppend(insertableWebForms, { "webFormId": thisWebForm.webFormId, "alias": thisWebForm.alias, "title": thisWebForm.title })>
+		<cfset arrayAppend(insertableWebForms, { "webFormId": thisWebForm.webFormId, "alias": thisWebForm.alias, "title": thisWebForm.title, "publicList": thisWebForm.publicList })>
 	</cfif>
 </cfloop>
 
@@ -31,8 +32,17 @@ the new form - the same "not found, add it?" pattern as the Author dropdown on a
 			dataValueField: "alias",
 			optionLabel: "Select a form...",
 			filter: "contains",
-			noDataTemplate: $("#insertWebFormNoData").html()
+			noDataTemplate: $("#insertWebFormNoData").html(),
+			change: function() { refreshInsertWhat(); }
 		}).data("kendoDropDownList");
+
+		<!--- What to insert: the sign-up list choices only for a form whose list is public (its "Show sign-ups publicly" switch). --->
+		function refreshInsertWhat() {
+			var item = insertWebFormChoice.dataItem();
+			var isPublic = !!(item && insertWebFormChoice.value() && item.publicList);
+			$("#insertWebFormWhatRow").toggle(isPublic);
+			if (!isPublic) { $("#insertWebFormWhatForm").prop("checked", true); }
+		}
 
 		// Select the form just built in the editor, if any.
 		if (window.insertWebFormSelectId) {
@@ -42,6 +52,7 @@ the new form - the same "not found, add it?" pattern as the Author dropdown on a
 				if (item.webFormId == builtId) { insertWebFormChoice.value(item.alias); }
 			});
 		}
+		refreshInsertWhat();
 
 		$("#insertWebFormSubmit").on("click", function() {
 			var item = insertWebFormChoice.dataItem();
@@ -56,7 +67,11 @@ the new form - the same "not found, add it?" pattern as the Author dropdown on a
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "No editor", message: "Open the post in the editor first.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 				return;
 			}
-			editor.insertContent('<div class="galaxieWebForm" data-webform="' + alias + '">[Form: ' + title + ']</div><p>&nbsp;</p>');
+			var what = $("input[name=insertWebFormWhat]:checked").val() || "form";
+			var html = "";
+			if (what != "list") { html += '<div class="galaxieWebForm" data-webform="' + alias + '">[Form: ' + title + ']</div>'; }
+			if (what != "form") { html += '<div class="galaxieWebFormList" data-webform="' + alias + '">[Sign-up list: ' + title + ']</div>'; }
+			editor.insertContent(html + '<p>&nbsp;</p>');
 			$('#insertWebFormWindow').kendoWindow('destroy');
 		});
 	});
@@ -79,6 +94,14 @@ the new form - the same "not found, add it?" pattern as the Author dropdown on a
 	<tr>
 		<td width="25%"><label for="insertWebFormChoice">Form:</label></td>
 		<td><input id="insertWebFormChoice" style="width: 95%;"></td>
+	</tr>
+	<tr id="insertWebFormWhatRow" style="display: none;">
+		<td>Insert:</td>
+		<td>
+			<label><input type="radio" class="k-radio" name="insertWebFormWhat" id="insertWebFormWhatForm" value="form" checked> The form</label><br/>
+			<label><input type="radio" class="k-radio" name="insertWebFormWhat" value="formAndList"> The form and its sign-up list</label><br/>
+			<label><input type="radio" class="k-radio" name="insertWebFormWhat" value="list"> The sign-up list</label>
+		</td>
 	</tr>
 	<tr>
 		<td colspan="2">

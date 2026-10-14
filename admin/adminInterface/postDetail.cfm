@@ -1050,9 +1050,24 @@
 		<label for="post">Title</label>
 		</td>
 		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="text" id="title" name="title" value="<cfoutput>#getPost[1]['Title']#</cfoutput>" class="k-textbox" style="width: 66%" onChange="javascript:checkTitle();" />   
+			<input type="text" id="title" name="title" value="<cfoutput>#getPost[1]['Title']#</cfoutput>" class="k-textbox" style="width: 66%" onChange="javascript:checkTitle();" />
 		</td>
 	  </tr>
+	</cfif>
+	<!--- Forms shown below this post's text, chosen under "Show on" in the form editor (2026-10-13), so nobody wonders where they come from. --->
+	<cfif structKeyExists(application, "webForms") and isNumeric(URL.optArgs)>
+		<cfset postWebFormPlacements = application.webForms.getPlacementsForPost(val(URL.optArgs))>
+		<cfif arrayLen(postWebFormPlacements)>
+			<cfset postWebFormNotes = []>
+			<cfloop array="#postWebFormPlacements#" index="thisPlacement">
+				<cfset arrayAppend(postWebFormNotes, encodeForHtml(thisPlacement.title) & " (" & (thisPlacement.showForm and thisPlacement.showList ? "form and sign-up list" : (thisPlacement.showList ? "sign-up list" : "form")) & ")")>
+			</cfloop>
+		  <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<div class="k-form-hint">Shows below the text: <cfoutput>#arrayToList(postWebFormNotes, ", ")#</cfoutput>. Change this under Forms.</div>
+			</td>
+		  </tr>
+		</cfif>
 	</cfif>
 		
 		<!-- Border -->

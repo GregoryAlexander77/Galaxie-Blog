@@ -14902,7 +14902,7 @@
 			<cfset description = getPost[i]["Description"]>
 			<!--- A form placed in the post can't work in a feed reader: it becomes "Fill in the form "Title" on the website" (2026-10-13, WebForms.cfc). --->
 			<cfif structKeyExists(application, "webForms")>
-				<cfset body = StringUtilsObj.getTextFromBody(application.webForms.replacePlaceholders(getPost[i]["Body"], makeLink(postId)))>
+				<cfset body = StringUtilsObj.getTextFromBody(application.webForms.addPlacementLinks(application.webForms.replacePlaceholders(getPost[i]["Body"], makeLink(postId)), postId, makeLink(postId)))>
 				<cfset moreBody = StringUtilsObj.getTextFromBody(application.webForms.replacePlaceholders(getPost[i]["MoreBody"], makeLink(postId)))>
 			<cfelse>
 				<cfset body = StringUtilsObj.getTextFromBody(getPost[i]["Body"])>
@@ -15073,7 +15073,7 @@
 			<cfset atomBody = thisPost["Body"]>
 			<cfset atomMoreBody = thisPost["MoreBody"]>
 			<cfif structKeyExists(application, "webForms")>
-				<cfset atomBody = application.webForms.replacePlaceholders(atomBody, postLink)>
+				<cfset atomBody = application.webForms.addPlacementLinks(application.webForms.replacePlaceholders(atomBody, postLink), thisPost["PostId"], postLink)>
 				<cfset atomMoreBody = application.webForms.replacePlaceholders(atomMoreBody, postLink)>
 			</cfif>
 			<cfset body = StringUtilsObj.getTextFromBody(atomBody)>

@@ -23,7 +23,7 @@
 
 <!-- Forms placed in a post or page (2026-10-13) are only downloaded when the page has one. See common/js/webForms.js. -->
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">
-	if ($('.galaxieWebForm[data-webform]').length) {
+	if ($('.galaxieWebForm[data-webform], .galaxieWebFormList[data-webform]').length) {
 		galaxieLoader.webForms(function() {
 			galaxieWebForms.init({ baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
 		});

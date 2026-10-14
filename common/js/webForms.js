@@ -32,7 +32,23 @@ var galaxieWebForms = (function($) {
 			".galaxieWebFormError[hidden] { display: none; }" +
 			".galaxieWebFormCaptchaImage img { display: block; margin-bottom: 0.5em; max-width: 100%; }" +
 			".galaxieWebFormHp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }" +
-			".galaxieWebFormStatus { margin-top: 0.75em; }"
+			".galaxieWebFormStatus { margin-top: 0.75em; }" +
+			// The public sign-up list. On a phone each row becomes a small card, with the column name before each value.
+			".galaxieWebFormList { margin: 1.5em 0; }" +
+			".galaxieWebFormListTools { margin: 0.5em 0; }" +
+			".galaxieWebFormListSearch { width: 100%; max-width: 20em; box-sizing: border-box; }" +
+			".galaxieWebFormListCount { margin-left: 0.5em; }" +
+			".galaxieWebFormListTable { width: 100%; border-collapse: collapse; }" +
+			".galaxieWebFormListTable th, .galaxieWebFormListTable td { text-align: left; padding: 0.4em 0.6em; vertical-align: top; }" +
+			".galaxieWebFormListTable tbody tr { border-top: 1px solid rgba(128,128,128,0.25); }" +
+			".galaxieWebFormListSort { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }" +
+			"@media (max-width: 600px) {" +
+				".galaxieWebFormListTable thead { display: none; }" +
+				".galaxieWebFormListTable tr { display: block; padding: 0.5em 0; }" +
+				".galaxieWebFormListTable td { display: block; padding: 0.15em 0; }" +
+				".galaxieWebFormListTable td:empty { display: none; }" +
+				".galaxieWebFormListTable td::before { content: attr(data-label) ': '; font-weight: bold; }" +
+			"}"
 		));
 	}
 
@@ -45,6 +61,71 @@ var galaxieWebForms = (function($) {
 			if (placeholder.data("galaxieWebFormLoaded")) { return; }
 			placeholder.data("galaxieWebFormLoaded", true);
 			loadForm(placeholder);
+		});
+		$(".galaxieWebFormList[data-webform]").each(function() {
+			var placeholder = $(this);
+			if (placeholder.data("galaxieWebFormLoaded")) { return; }
+			placeholder.data("galaxieWebFormLoaded", true);
+			loadList(placeholder);
+		});
+	}
+
+	// A form's public sign-up list (WebForms.cfc's renderPublicListHtml), fetched after the page loads like the form, so the
+	// cached page never shows an old list. A form whose list isn't public shows nothing.
+	function loadList(placeholder) {
+		$.ajax({
+			type: "post",
+			url: proxyUrl + "?method=getWebFormListForPage",
+			data: { alias: placeholder.attr("data-webform") },
+			dataType: "json",
+			cache: false
+		}).done(function(response) {
+			if (!response || response.success !== true || !response.html) {
+				placeholder.empty().attr("hidden", "hidden");
+				return;
+			}
+			placeholder.html(response.html).removeAttr("hidden");
+			setUpList(placeholder);
+		}).fail(function() {
+			placeholder.empty().attr("hidden", "hidden");
+		});
+	}
+
+	// Lists of the same form on this page, reloaded after someone signs up so they see their own row.
+	function reloadLists(alias) {
+		$(".galaxieWebFormList").filter(function() { return $(this).attr("data-webform") === alias; }).each(function() {
+			loadList($(this));
+		});
+	}
+
+	function setUpList(placeholder) {
+		var table = placeholder.find(".galaxieWebFormListTable");
+		var rows = table.find("tbody tr");
+		var count = placeholder.find(".galaxieWebFormListCount");
+		var total = rows.length;
+		placeholder.find(".galaxieWebFormListSearch").on("input", function() {
+			var text = $.trim($(this).val()).toLowerCase();
+			var shown = 0;
+			rows.each(function() {
+				var match = !text.length || $(this).text().toLowerCase().indexOf(text) >= 0;
+				$(this).toggle(match);
+				if (match) { shown++; }
+			});
+			count.text(text.length ? shown + " of " + total : total + (total === 1 ? " sign-up" : " sign-ups"));
+		});
+		// Click a heading to sort by it; click again to reverse. Numbers sort as numbers.
+		placeholder.find(".galaxieWebFormListSort").each(function(column) {
+			$(this).on("click", function() {
+				var ascending = $(this).attr("data-sort") !== "asc";
+				placeholder.find(".galaxieWebFormListSort").removeAttr("data-sort").closest("th").removeAttr("aria-sort");
+				$(this).attr("data-sort", ascending ? "asc" : "desc").closest("th").attr("aria-sort", ascending ? "ascending" : "descending");
+				var sorted = rows.get().sort(function(a, b) {
+					var x = $.trim($(a).children().eq(column).text()), y = $.trim($(b).children().eq(column).text());
+					var result = ($.isNumeric(x) && $.isNumeric(y)) ? x - y : x.localeCompare(y, undefined, { sensitivity: "base" });
+					return ascending ? result : -result;
+				});
+				table.find("tbody").append(sorted);
+			});
 		});
 	}
 
@@ -180,6 +261,7 @@ var galaxieWebForms = (function($) {
 			cache: false
 		}).done(function(response) {
 			if (response && response.success === true) {
+				reloadLists(form.attr("data-alias"));
 				if (response.confirmationUrl) {
 					window.location.href = response.confirmationUrl;
 					return;

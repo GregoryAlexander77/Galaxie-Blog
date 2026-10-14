@@ -25,6 +25,8 @@
 	</cfloop>
 	<!--- Field types whose Options column holds the choices, one per line. --->
 	<cfset variables.choiceTypes = "select,radio,checkboxes">
+	<!--- Field types that are never shown in a public sign-up list. --->
+	<cfset variables.privateTypes = "email,phone">
 	<cfreturn this>
 </cffunction>
 
@@ -92,7 +94,32 @@
 			starterField("Anything else?", "textarea", false)
 		]
 	})>
+	<!--- On the site: every template starts private (no public list, form only), except RSVP and Potluck, which show who's
+	coming / who's bringing what. Email and phone are never public. --->
+	<cfloop array="#templates#" index="local.starter">
+		<cfset local.starter["publicList"] = false>
+		<cfset local.starter["showOnMode"] = "form">
+		<cfif local.starter.key eq "rsvp">
+			<cfset markStarterPublic(local.starter, "Name,Will you come?,Number of guests")>
+		<cfelseif local.starter.key eq "potluck">
+			<cfset markStarterPublic(local.starter, "Name,How many are coming?,What are you bringing?,What's the dish?")>
+		</cfif>
+	</cfloop>
 	<cfreturn templates>
+</cffunction>
+
+<cffunction name="markStarterPublic" access="private" returntype="void" output="false"
+		hint="Turns on a starter template's public sign-up list (form and list on the posts it's shown on) with the fields given by label.">
+	<cfargument name="starter" type="struct" required="true">
+	<cfargument name="labels" type="string" required="true">
+	<cfset var field = "">
+	<cfset arguments.starter["publicList"] = true>
+	<cfset arguments.starter["showOnMode"] = "formAndList">
+	<cfloop array="#arguments.starter.fields#" index="field">
+		<cfif listFind(arguments.labels, field.label)>
+			<cfset field["showPublic"] = true>
+		</cfif>
+	</cfloop>
 </cffunction>
 
 <cffunction name="starterField" access="private" returntype="struct" output="false"
@@ -104,7 +131,7 @@
 	<cfargument name="helpText" type="string" required="false" default="">
 	<cfargument name="options" type="string" required="false" default="">
 	<cfreturn { "webFormFieldId": 0, "label": arguments.label, "fieldType": arguments.fieldType, "required": arguments.required,
-		"placeholder": arguments.placeholder, "helpText": arguments.helpText, "options": arguments.options, "choiceLimits": {} }>
+		"placeholder": arguments.placeholder, "helpText": arguments.helpText, "options": arguments.options, "choiceLimits": {}, "showPublic": false }>
 </cffunction>
 
 <!--- ********************************************************************************************************************
@@ -114,7 +141,8 @@
 <cffunction name="getForms" access="public" returntype="array" output="false"
 		hint="Every form of this blog, newest first, with its number of fields and submissions.">
 	<cfset var data = queryExecute("
-		SELECT f.WebFormId, f.Title, f.Alias, CASE WHEN f.Active = 1 THEN 1 ELSE 0 END AS Active, f.Created,
+		SELECT f.WebFormId, f.Title, f.Alias, CASE WHEN f.Active = 1 THEN 1 ELSE 0 END AS Active,
+			CASE WHEN f.PublicList = 1 THEN 1 ELSE 0 END AS PublicList, f.Created,
 			(SELECT COUNT(*) FROM WebFormField ff WHERE ff.WebFormRef = f.WebFormId) AS FieldCount,
 			(SELECT COUNT(*) FROM WebFormSubmission fs WHERE fs.WebFormRef = f.WebFormId) AS SubmissionCount,
 			(SELECT MAX(fs.Created) FROM WebFormSubmission fs WHERE fs.WebFormRef = f.WebFormId) AS LastSubmission
@@ -129,6 +157,7 @@
 			title: data.Title,
 			alias: data.Alias,
 			active: data.Active eq 1,
+			publicList: data.PublicList eq 1,
 			created: data.Created,
 			fieldCount: data.FieldCount,
 			submissionCount: data.SubmissionCount,
@@ -168,8 +197,16 @@
 		offerSubscribe: isTrue(formEntity.getOfferSubscribe()),
 		requireCaptcha: isTrue(formEntity.getRequireCaptcha(), true),
 		active: isTrue(formEntity.getActive(), true),
+		publicList: isTrue(formEntity.getPublicList()),
+		showOnMode: valueOrEmpty(formEntity.getShowOnMode()),
+		showOnPosts: [],
 		fields: []
 	}>
+	<!--- A list needs the privacy switch; anything else unknown (or NULL on an older row) means just the form. --->
+	<cfif not listFind("form,formAndList,list", result.showOnMode) or not result.publicList>
+		<cfset result.showOnMode = "form">
+	</cfif>
+	<cfset result.showOnPosts = getShowOnPosts(result.webFormId)>
 	<cfset fieldEntities = ormExecuteQuery("FROM WebFormField WHERE WebFormRef = :id ORDER BY SortOrder, WebFormFieldId", { id = javacast("int", result.webFormId) })>
 	<cfloop array="#fieldEntities#" index="fieldEntity">
 		<cfset arrayAppend(result.fields, {
@@ -183,6 +220,7 @@
 			options: valueOrEmpty(fieldEntity.getOptions()),
 			choices: listToArray(replace(valueOrEmpty(fieldEntity.getOptions()), chr(13), "", "all"), chr(10), false)
 		})>
+		<cfset result.fields[arrayLen(result.fields)].showPublic = isTrue(fieldEntity.getShowPublic()) and not listFindNoCase(variables.privateTypes, result.fields[arrayLen(result.fields)].fieldType)>
 		<cfset result.fields[arrayLen(result.fields)].choiceLimits = parseChoiceLimits(valueOrEmpty(fieldEntity.getChoiceLimits()), result.fields[arrayLen(result.fields)].fieldType, result.fields[arrayLen(result.fields)].choices)>
 	</cfloop>
 	<cfreturn result>
@@ -195,8 +233,14 @@
 <cffunction name="saveForm" access="public" returntype="struct" output="false"
 		hint="Creates or updates a form and replaces its fields with the ones given, in that order. Returns { success, webFormId, errors[] }.">
 	<cfargument name="formData" type="struct" required="true" hint="webFormId (0 or empty = new), title, description, buttonLabel, confirmationMessage, confirmationUrl, notifyEmails, offerSubscribe, requireCaptcha, active, fields: [ { webFormFieldId, label, fieldType, required, placeholder, helpText, options } ]">
-	<cfset var result = { success: false, webFormId: 0, errors: [] }>
+	<cfset var result = { success: false, webFormId: 0, errors: [], changedPostIds: [] }>
 	<cfset var data = arguments.formData>
+	<cfset var publicList = isTrue(structKeyExists(data, "publicList") ? data.publicList : false)>
+	<!--- Show on: only this blog's posts that exist and aren't deleted are kept. --->
+	<cfset var showOnPostIds = existingPostIds(structKeyExists(data, "showOnPostIds") and isArray(data.showOnPostIds) ? data.showOnPostIds : [])>
+	<cfset var oldPlacement = "">
+	<cfset var placement = "">
+	<cfset var placementPostId = 0>
 	<cfset var title = trim(structKeyExists(data, "title") ? data.title : "")>
 	<cfset var fields = structKeyExists(data, "fields") and isArray(data.fields) ? data.fields : []>
 	<cfset var formEntity = "">
@@ -270,6 +314,9 @@
 		<cfset formEntity.setOfferSubscribe(isTrue(structKeyExists(data, "offerSubscribe") ? data.offerSubscribe : false))>
 		<cfset formEntity.setRequireCaptcha(isTrue(structKeyExists(data, "requireCaptcha") ? data.requireCaptcha : true, true))>
 		<cfset formEntity.setActive(isTrue(structKeyExists(data, "active") ? data.active : true, true))>
+		<!--- On the site: a list can only be shown with the privacy switch on. --->
+		<cfset formEntity.setPublicList(publicList)>
+		<cfset formEntity.setShowOnMode(publicList and structKeyExists(data, "showOnMode") and listFind("formAndList,list", data.showOnMode) ? data.showOnMode : "form")>
 		<cfset formEntity.setDate(now())>
 		<cfset entitySave(formEntity)>
 
@@ -303,6 +350,7 @@
 			<cfset fieldEntity.setOptions(left(trim(replace(structKeyExists(field, "options") ? field.options : "", chr(13), "", "all")), 2000))>
 			<!--- Choice limits: kept only for the field's current choices, as whole numbers of at least 1. --->
 			<cfset fieldEntity.setChoiceLimits(serializeChoiceLimits(structKeyExists(field, "choiceLimits") ? field.choiceLimits : {}, lCase(field.fieldType), listToArray(replace(fieldEntity.getOptions(), chr(13), "", "all"), chr(10), false)))>
+			<cfset fieldEntity.setShowPublic(isTrue(structKeyExists(field, "showPublic") ? field.showPublic : false) and not listFindNoCase(variables.privateTypes, field.fieldType))>
 			<cfset fieldEntity.setSortOrder(position * 10)>
 			<cfset fieldEntity.setDate(now())>
 			<cfset entitySave(fieldEntity)>
@@ -312,6 +360,21 @@
 			<cfif not structKeyExists(keptFieldIds, oldField.getWebFormFieldId())>
 				<cfset entityDelete(oldField)>
 			</cfif>
+		</cfloop>
+
+		<!--- Show on: replace the posts this form is assigned to. The posts it leaves and joins both change, so both are returned
+		for the caller to clear from the page cache. --->
+		<cfloop array="#ormExecuteQuery('FROM WebFormPost WHERE WebFormRef = :id', { id = javacast('int', formEntity.getWebFormId()) })#" index="oldPlacement">
+			<cfset arrayAppend(result.changedPostIds, oldPlacement.getPostRef())>
+			<cfset entityDelete(oldPlacement)>
+		</cfloop>
+		<cfloop array="#showOnPostIds#" index="placementPostId">
+			<cfset placement = entityNew("WebFormPost")>
+			<cfset placement.setWebFormRef(formEntity.getWebFormId())>
+			<cfset placement.setPostRef(placementPostId)>
+			<cfset placement.setDate(now())>
+			<cfset entitySave(placement)>
+			<cfset arrayAppend(result.changedPostIds, placementPostId)>
 		</cfloop>
 	</cftransaction>
 
@@ -333,6 +396,9 @@
 		</cfquery>
 		<cfquery name="local.deleteFields" dbtype="hql">
 			DELETE FROM WebFormField WHERE WebFormRef = <cfqueryparam value="#arguments.webFormId#" cfsqltype="cf_sql_integer">
+		</cfquery>
+		<cfquery name="local.deletePlacements" dbtype="hql">
+			DELETE FROM WebFormPost WHERE WebFormRef = <cfqueryparam value="#arguments.webFormId#" cfsqltype="cf_sql_integer">
 		</cfquery>
 		<cfset entityDelete(found[1])>
 	</cftransaction>
@@ -651,6 +717,208 @@
 	Helpers
 ********************************************************************************************************************* --->
 
+<!--- ********************************************************************************************************************
+	On the site (2026-10-13): the posts a form is assigned to ("Show on"), and its public sign-up list
+********************************************************************************************************************* --->
+
+<cffunction name="existingPostIds" access="private" returntype="array" output="false"
+		hint="The ids given that are this blog's posts or pages and aren't deleted, in the order given, without repeats.">
+	<cfargument name="postIds" type="array" required="true">
+	<cfset var wanted = []>
+	<cfset var found = {}>
+	<cfset var kept = []>
+	<cfset var postId = "">
+	<cfset var rows = "">
+	<cfloop array="#arguments.postIds#" index="postId">
+		<cfif isSimpleValue(postId) and isNumeric(postId) and postId gt 0 and not arrayFind(wanted, int(postId))>
+			<cfset arrayAppend(wanted, int(postId))>
+		</cfif>
+	</cfloop>
+	<cfif not arrayLen(wanted)>
+		<cfreturn kept>
+	</cfif>
+	<cfset rows = queryExecute("SELECT PostId FROM Post WHERE PostId IN (:ids) AND BlogRef = :blogId AND (Remove IS NULL OR Remove = 0)", {
+		ids = { value = arrayToList(wanted), cfsqltype = "cf_sql_integer", list = true },
+		blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } })>
+	<cfloop query="rows">
+		<cfset found[rows.PostId] = true>
+	</cfloop>
+	<cfloop array="#wanted#" index="postId">
+		<cfif structKeyExists(found, postId)>
+			<cfset arrayAppend(kept, postId)>
+		</cfif>
+	</cfloop>
+	<cfreturn kept>
+</cffunction>
+
+<cffunction name="getPostChoices" access="public" returntype="array" output="false"
+		hint="Every post and page of this blog that isn't deleted, by title, for the form editor's 'Show on' list: [{ postId, title, released }].">
+	<cfset var posts = []>
+	<cfset var rows = queryExecute("
+		SELECT PostId, Title, Released FROM Post
+		WHERE BlogRef = :blogId AND (Remove IS NULL OR Remove = 0)
+		ORDER BY Title
+	", { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } })>
+	<cfloop query="rows">
+		<cfset arrayAppend(posts, { "postId": rows.PostId, "title": rows.Title, "released": isTrue(rows.Released) })>
+	</cfloop>
+	<cfreturn posts>
+</cffunction>
+
+<cffunction name="getShowOnPosts" access="public" returntype="array" output="false"
+		hint="The posts and pages a form is assigned to, as [{ postId, title, released }].">
+	<cfargument name="webFormId" type="numeric" required="true">
+	<cfset var posts = []>
+	<cfset var rows = queryExecute("
+		SELECT p.PostId, p.Title, p.Released
+		FROM WebFormPost wp INNER JOIN Post p ON p.PostId = wp.PostRef
+		WHERE wp.WebFormRef = :id AND p.BlogRef = :blogId AND (p.Remove IS NULL OR p.Remove = 0)
+		ORDER BY wp.WebFormPostId
+	", { id = { value = arguments.webFormId, cfsqltype = "cf_sql_integer" }, blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } })>
+	<cfloop query="rows">
+		<cfset arrayAppend(posts, { "postId": rows.PostId, "title": rows.Title, "released": isTrue(rows.Released) })>
+	</cfloop>
+	<cfreturn posts>
+</cffunction>
+
+<cffunction name="getPlacementsForPost" access="public" returntype="array" output="false"
+		hint="The active forms assigned to a post, and what each shows there: [{ alias, title, showForm, showList }]. Used below the post's text (includes/templates/blogContentHtml.cfm) and by the post editor's note.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfset var placements = []>
+	<cfset var mode = "">
+	<cfset var rows = queryExecute("
+		SELECT f.Alias, f.Title, f.ShowOnMode, f.PublicList
+		FROM WebFormPost wp INNER JOIN WebForm f ON f.WebFormId = wp.WebFormRef
+		WHERE wp.PostRef = :postId AND f.BlogRef = :blogId AND f.Active = 1
+		ORDER BY wp.WebFormPostId
+	", { postId = { value = arguments.postId, cfsqltype = "cf_sql_integer" }, blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } })>
+	<cfloop query="rows">
+		<!--- As in getForm: a list needs the privacy switch. --->
+		<cfset mode = isTrue(rows.PublicList) and listFind("formAndList,list", rows.ShowOnMode) ? rows.ShowOnMode : "form">
+		<cfset arrayAppend(placements, { alias: rows.Alias, title: rows.Title, showForm: mode neq "list", showList: mode neq "form" })>
+	</cfloop>
+	<cfreturn placements>
+</cffunction>
+
+<cffunction name="setSubmissionHidden" access="public" returntype="boolean" output="false"
+		hint="Hides a submission from the form's public sign-up list, or shows it again. A hidden submission still holds its spot under the choice limits; only deleting it frees the spot.">
+	<cfargument name="webFormSubmissionId" type="numeric" required="true">
+	<cfargument name="hidden" type="boolean" required="true">
+	<cfset var found = queryExecute("
+		SELECT s.WebFormSubmissionId FROM WebFormSubmission s INNER JOIN WebForm f ON f.WebFormId = s.WebFormRef
+		WHERE s.WebFormSubmissionId = :id AND f.BlogRef = :blogId
+	", { id = { value = arguments.webFormSubmissionId, cfsqltype = "cf_sql_integer" }, blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } })>
+	<cfif not found.recordCount>
+		<cfreturn false>
+	</cfif>
+	<cftransaction>
+		<cfquery name="local.setStatus" dbtype="hql">
+			UPDATE WebFormSubmission SET Status = <cfqueryparam value="#arguments.hidden ? 'hidden' : 'received'#" cfsqltype="cf_sql_varchar">
+			WHERE WebFormSubmissionId = <cfqueryparam value="#arguments.webFormSubmissionId#" cfsqltype="cf_sql_integer">
+		</cfquery>
+	</cftransaction>
+	<cfreturn true>
+</cffunction>
+
+<cffunction name="renderPublicListHtml" access="public" returntype="string" output="false"
+		hint="The form's public sign-up list: a summary of the limited choices, a search box and a table of the fields marked 'Show in the public list', oldest sign-up first. Hidden submissions are left out. Empty when the form's privacy switch (PublicList) is off. Every value is encoded here; common/js/webForms.js adds the searching and sorting.">
+	<cfargument name="webForm" type="struct" required="true" hint="As returned by getForm().">
+	<cfset var html = createObject("java", "java.lang.StringBuilder").init()>
+	<cfset var columns = []>
+	<cfset var field = "">
+	<cfset var choice = "">
+	<cfset var counts = "">
+	<cfset var summary = []>
+	<cfset var parts = []>
+	<cfset var rows = "">
+	<cfset var values = "">
+	<cfset var value = "">
+	<cfset var shown = 0>
+	<cfif not arguments.webForm.publicList>
+		<cfreturn "">
+	</cfif>
+	<cfloop array="#arguments.webForm.fields#" index="field">
+		<cfif field.showPublic>
+			<cfset arrayAppend(columns, field)>
+		</cfif>
+	</cfloop>
+
+	<!--- The summary: each limited choice as taken/limit, so people see what is still needed before they sign up. --->
+	<cfset counts = getChoiceCounts(arguments.webForm)>
+	<cfloop array="#arguments.webForm.fields#" index="field">
+		<cfif structKeyExists(counts, field.fieldName)>
+			<cfset parts = []>
+			<cfloop array="#field.choices#" index="choice">
+				<cfif structKeyExists(field.choiceLimits, choice)>
+					<cfset arrayAppend(parts, encodeForHtml(choice) & " " & counts[field.fieldName][choice] & "/" & field.choiceLimits[choice] & (counts[field.fieldName][choice] gte field.choiceLimits[choice] ? " (full)" : ""))>
+				</cfif>
+			</cfloop>
+			<cfset arrayAppend(summary, '<p class="galaxieWebFormListSummary"><b>' & encodeForHtml(field.label) & '</b> ' & arrayToList(parts, " &middot; ") & '</p>')>
+		</cfif>
+	</cfloop>
+	<cfset html.append(arrayToList(summary, ""))>
+
+	<cfset rows = queryExecute("
+		SELECT ValuesJson FROM WebFormSubmission
+		WHERE WebFormRef = :id AND (Status IS NULL OR Status <> 'hidden')
+		ORDER BY Created, WebFormSubmissionId
+	", { id = { value = arguments.webForm.webFormId, cfsqltype = "cf_sql_integer" } })>
+
+	<cfif not arrayLen(columns)>
+		<cfreturn html.toString()>
+	</cfif>
+	<cfif not rows.recordCount>
+		<cfset html.append('<p class="galaxieWebFormListEmpty">No one has signed up yet.</p>')>
+		<cfreturn html.toString()>
+	</cfif>
+
+	<cfset html.append('<div class="galaxieWebFormListTools"><input type="search" class="k-textbox galaxieWebFormListSearch" placeholder="Search the list" aria-label="Search the sign-up list"> <span class="galaxieWebFormListCount" aria-live="polite">' & rows.recordCount & (rows.recordCount eq 1 ? " sign-up" : " sign-ups") & '</span></div>')>
+	<cfset html.append('<table class="galaxieWebFormListTable k-content"><thead><tr>')>
+	<cfloop array="#columns#" index="field">
+		<!--- A button in each heading sorts by that column (webForms.js). --->
+		<cfset html.append('<th class="k-header" scope="col"><button type="button" class="galaxieWebFormListSort">' & encodeForHtml(field.label) & '</button></th>')>
+	</cfloop>
+	<cfset html.append('</tr></thead><tbody>')>
+	<cfloop query="rows">
+		<cfset values = {}>
+		<cftry>
+			<cfset values = deserializeJSON(rows.ValuesJson)>
+			<cfcatch type="any"><cfset values = {}></cfcatch>
+		</cftry>
+		<cfif isStruct(values)>
+			<cfset html.append('<tr>')>
+			<cfloop array="#columns#" index="field">
+				<cfset value = structKeyExists(values, field.fieldName) and isSimpleValue(values[field.fieldName]) ? values[field.fieldName] : "">
+				<cfif field.fieldType eq "consent">
+					<cfset value = len(value) ? "Yes" : "">
+				</cfif>
+				<!--- data-label: the column name, shown beside the value when the rows stack on a phone. --->
+				<cfset html.append('<td data-label="' & encodeForHtmlAttribute(field.label) & '">' & replaceNoCase(encodeForHtml(value), "&##xa;", "<br/>", "all") & '</td>')>
+			</cfloop>
+			<cfset html.append('</tr>')>
+		</cfif>
+	</cfloop>
+	<cfset html.append('</tbody></table>')>
+	<cfreturn html.toString()>
+</cffunction>
+
+<cffunction name="addPlacementLinks" access="public" returntype="string" output="false"
+		hint="Adds links for the forms assigned to a post under 'Show on' (they aren't in the post's text, so replacePlaceholders doesn't see them) to the end of the HTML, for the subscriber email and the feeds.">
+	<cfargument name="html" type="string" required="true">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfargument name="linkUrl" type="string" required="true">
+	<cfset var result = arguments.html>
+	<cfset var placement = "">
+	<cfloop array="#getPlacementsForPost(arguments.postId)#" index="placement">
+		<cfif placement.showForm>
+			<cfset result = result & '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">Fill in the form "' & encodeForHtml(placement.title) & '" on the website</a></p>'>
+		<cfelse>
+			<cfset result = result & '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">See the sign-up list "' & encodeForHtml(placement.title) & '" on the website</a></p>'>
+		</cfif>
+	</cfloop>
+	<cfreturn result>
+</cffunction>
+
 <cffunction name="replacePlaceholders" access="public" returntype="string" output="false"
 		hint="Swaps each form placed in a post (<div class='galaxieWebForm' data-webform='alias'>[Form: Title]</div>) for a link to the post, for where the form can't work: the subscriber email (Renderer.cfc) and the RSS and Atom feeds (blog.cfc, which then reduce it to its text). Returns the HTML unchanged when it has no forms.">
 	<cfargument name="html" type="string" required="true">
@@ -665,15 +933,20 @@
 	</cfif>
 	<cfloop condition="true">
 		<!--- Our own markup, written by the Insert Form window; the class may sit anywhere among the attributes. --->
-		<cfset match = reFindNoCase('<div[^>]*class="[^"]*\bgalaxieWebForm\b[^"]*"[^>]*>(.*?)</div>', result, position, true)>
+		<!--- Both kinds: the form (galaxieWebForm) and its sign-up list (galaxieWebFormList). --->
+		<cfset match = reFindNoCase('<div[^>]*class="[^"]*\bgalaxieWebForm(List)?\b[^"]*"[^>]*>(.*?)</div>', result, position, true)>
 		<cfif not match.pos[1]>
 			<cfbreak>
 		</cfif>
-		<!--- The text inside reads "[Form: Title]", already HTML encoded. The quotes around it below are plain ones, not &quot;: the
-		feeds strip the tags but not the entities, so &quot; would reach feed readers as text. --->
-		<cfset title = trim(reReplace(mid(result, match.pos[2], match.len[2]), "<[^>]*>", "", "all"))>
-		<cfset title = trim(reReplaceNoCase(title, "^\[Form:\s*(.*)\]$", "\1"))>
-		<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) ? 'Fill in the form "' & title & '" on the website' : 'Fill in the form on the website') & '</a></p>'>
+		<!--- The text inside reads "[Form: Title]" or "[Sign-up list: Title]", already HTML encoded. The quotes around it below are
+		plain ones, not &quot;: the feeds strip the tags but not the entities, so &quot; would reach feed readers as text. --->
+		<cfset title = trim(reReplace(mid(result, match.pos[3], match.len[3]), "<[^>]*>", "", "all"))>
+		<cfset title = trim(reReplaceNoCase(title, "^\[(Form|Sign-up list):\s*(.*)\]$", "\2"))>
+		<cfif match.len[2]>
+			<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) ? 'See the sign-up list "' & title & '" on the website' : 'See the sign-up list on the website') & '</a></p>'>
+		<cfelse>
+			<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) ? 'Fill in the form "' & title & '" on the website' : 'Fill in the form on the website') & '</a></p>'>
+		</cfif>
 		<cfset result = left(result, match.pos[1] - 1) & replacement & mid(result, match.pos[1] + match.len[1], len(result))>
 		<cfset position = match.pos[1] + len(replacement)>
 	</cfloop>

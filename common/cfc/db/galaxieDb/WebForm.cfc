@@ -15,6 +15,11 @@
 	<cfproperty name="OfferSubscribe" ormtype="boolean" default="false" hint="Show an 'Email me new posts' checkbox; a person who checks it is added through the usual subscriber confirmation email.">
 	<cfproperty name="RequireCaptcha" ormtype="boolean" default="true" hint="Ask for the blog's captcha. Checked on the server when the form is sent. Off for a form where accessibility matters most (an image captcha can't be read by a screen reader).">
 	<cfproperty name="Active" ormtype="boolean" default="true" hint="An inactive form is not shown in posts and does not accept submissions.">
+	<!--- On the site (2026-10-13). PublicList is the privacy switch: only when it is on can the form's sign-up list be shown, with
+	the fields marked WebFormField.ShowPublic. ShowOnMode is what appears on the posts the form is assigned to (WebFormPost):
+	form, formAndList or list; the two with a list need PublicList. NULL on rows from before these columns = off / form. --->
+	<cfproperty name="PublicList" ormtype="boolean" default="false">
+	<cfproperty name="ShowOnMode" ormtype="string" length="20" default="form">
 	<cfproperty name="Created" ormtype="timestamp">
 	<cfproperty name="Date" ormtype="timestamp">
 
