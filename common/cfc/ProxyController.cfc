@@ -11258,6 +11258,219 @@
 		<cfset response[ "locationLabel" ] = meetLocation.label>
 		<cfset response[ "detailsHtml" ] = application.locations.getDetailsHtml(meetLocation)>
 		<cfset response[ "startUtc" ] = entityLoadByPK("Booking", booked.bookingId).getStartUtc()>
+		<!--- The confirmation (or request) to the visitor and the notice to the owner. --->
+		<cfset application.bookings.sendBookingEmails(booked.bookingId, "booked")>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<!--- ********************************************************************************************************************
+		Bookings: the visitor's own booking (2026-10-14), from the "Cancel or change this booking" link in their emails
+		(?manageBooking=<token>, shown by common/js/bookings.js). The long random token is the visitor's key; nothing else about
+		them is needed, and nothing about other bookings is ever returned.
+	********************************************************************************************************************* --->
+
+	<cffunction name="getManagedBooking" access="remote" returnformat="json" output="false"
+			hint="The visitor's booking for their manage link.">
+		<cfargument name="token" type="string" required="false" default="">
+
+		<cfset var response = { "success": false }>
+		<cfset var b = application.bookings.getBooking(manageToken = left(trim(arguments.token), 64))>
+
+		<cfif not structIsEmpty(b) and not structIsEmpty(b.bookingType)>
+			<cfset response = {
+				"success": true,
+				"typeName": b.bookingType.name,
+				"alias": b.bookingType.alias,
+				"durationMinutes": b.bookingType.durationMinutes,
+				"locationOptionId": b.locationOptionId,
+				"locationLabel": structIsEmpty(b.location) ? "" : b.location.label,
+				"detailsHtml": structIsEmpty(b.location) or not listFind("confirmed,pending", b.status) ? "" : application.locations.getDetailsHtml(b.location),
+				"startUtc": b.startUtc,
+				"status": b.status,
+				"visitorTimeZone": b.visitorTimeZone,
+				"blogTimeZone": b.timeZone,
+				"partySize": b.partySize,
+				"canChange": application.bookings.canChange(b)
+			}>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="cancelManagedBooking" access="remote" returnformat="json" output="false"
+			hint="Cancels the visitor's booking from their manage link, frees the time, and emails both sides.">
+		<cfargument name="token" type="string" required="false" default="">
+
+		<cfset var response = { "success": false, "message": "" }>
+		<cfset var b = application.bookings.getBooking(manageToken = left(trim(arguments.token), 64))>
+
+		<cfif structIsEmpty(b) or not application.bookings.canChange(b)>
+			<cfset response[ "message" ] = "This booking can't be cancelled any more.">
+		<cfelse>
+			<cflock name="galaxieBookings_#application.BlogDbObj.getBlogId()#" type="exclusive" timeout="20">
+				<cfset response[ "success" ] = application.bookings.setStatus(b.bookingId, "cancelled")>
+			</cflock>
+			<cfif response.success>
+				<cfset application.bookings.sendBookingEmails(b.bookingId, "cancelledByVisitor")>
+			</cfif>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="rescheduleManagedBooking" access="remote" returnformat="json" output="false"
+			hint="Moves the visitor's booking to another free time from their manage link, and emails both sides.">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfargument name="startLocal" type="string" required="false" default="">
+
+		<cfset var response = { "success": false, "message": "", "startUtc": "" }>
+		<cfset var b = application.bookings.getBooking(manageToken = left(trim(arguments.token), 64))>
+		<cfset var moved = "">
+
+		<cfif structIsEmpty(b)>
+			<cfset response[ "message" ] = "This booking can't be changed any more.">
+		<cfelse>
+			<cflock name="galaxieBookings_#application.BlogDbObj.getBlogId()#" type="exclusive" timeout="20">
+				<cfset moved = application.bookings.rescheduleBooking(b.bookingId, left(trim(arguments.startLocal), 16))>
+			</cflock>
+			<cfset response[ "success" ] = moved.success>
+			<cfset response[ "message" ] = moved.message>
+			<cfif moved.success>
+				<cfset response[ "startUtc" ] = application.bookings.getBooking(bookingId = b.bookingId).startUtc>
+				<cfset application.bookings.sendBookingEmails(b.bookingId, "rescheduled")>
+			</cfif>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getManagedBookingSlots" access="remote" returnformat="json" output="false"
+			hint="Free times to move the visitor's booking to (their own booking's time counts as free).">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfargument name="fromDate" type="string" required="false" default="">
+		<cfargument name="toDate" type="string" required="false" default="">
+
+		<cfset var response = { "success": false, "slots": [] }>
+		<cfset var b = application.bookings.getBooking(manageToken = left(trim(arguments.token), 64))>
+
+		<cfif not structIsEmpty(b) and not structIsEmpty(b.bookingType) and application.bookings.canChange(b)>
+			<cfset response[ "slots" ] = application.bookings.getSlots(b.bookingType, b.locationOptionId, left(trim(arguments.fromDate), 10), left(trim(arguments.toDate), 10), b.bookingId)>
+			<cfset response[ "success" ] = true>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<!--- ********************************************************************************************************************
+		Bookings: the owner's list (2026-10-14) - the Bookings list (window 94) and one booking (window 95).
+	********************************************************************************************************************* --->
+
+	<cffunction name="getBookingsForGrid" access="remote" returnformat="json" output="false"
+			hint="The Bookings grid (window 94), Kendo or jsGrid: upcoming, past or all.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="gridType" required="no" default="kendo" hint="Either kendo or jsGrid">
+		<cfargument name="range" required="no" default="upcoming">
+		<!--- Not used for filtering (the grid filters client-side) - declared so jsGrid's field-based filter query params don't trip strict argument matching. --->
+		<cfargument name="when" required="no" default="">
+		<cfargument name="typeName" required="no" default="">
+		<cfargument name="clientName" required="no" default="">
+		<cfargument name="statusLabel" required="no" default="">
+
+		<cfset var data = []>
+		<cfset var thisBooking = "">
+		<cfset var statusText = { "pending": "Waiting for approval", "confirmed": "Confirmed", "cancelled": "Cancelled", "completed": "Completed", "noShow": "No-show" }>
+		<cfset var jsonString = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn "Invalid token"><cfelse><cfreturn serializeJSON("Invalid token")></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfloop array="#application.bookings.getBookingsForList(listFind('upcoming,past,all', arguments.range) ? arguments.range : 'upcoming')#" index="thisBooking">
+			<cfset arrayAppend(data, [
+				"BookingId": thisBooking.bookingId,
+				"When": thisBooking.startLocal & " - " & right(thisBooking.endLocal, 5),
+				"TypeName": thisBooking.typeName,
+				"LocationLabel": thisBooking.locationLabel,
+				"ClientName": thisBooking.name & (thisBooking.partySize gt 1 ? " (+" & (thisBooking.partySize - 1) & ")" : ""),
+				"Email": thisBooking.email,
+				"Status": thisBooking.status,
+				"StatusLabel": structKeyExists(statusText, thisBooking.status) ? statusText[thisBooking.status] : thisBooking.status
+			])>
+		</cfloop>
+
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<cfif arguments.gridType eq 'jsGrid'>
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">
+			</cfif>
+		</cfinvoke>
+		<cfreturn jsonString>
+	</cffunction>
+
+	<cffunction name="setBookingStatus" access="remote" returnformat="json" output="false"
+			hint="The owner approves, cancels, or marks a booking completed or no-show (window 95). Approving and cancelling email the visitor.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="bookingId" default="0" required="true">
+		<cfargument name="status" type="string" default="" required="true">
+		<cfargument name="message" type="string" default="" required="false" hint="An optional note to the visitor when cancelling.">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var b = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.bookingId)>
+			<cfset b = application.bookings.getBooking(bookingId = val(arguments.bookingId))>
+			<cfif structIsEmpty(b)>
+				<cfset response[ "errorMessage" ] = "That booking no longer exists.">
+			<cfelse>
+				<cflock name="galaxieBookings_#application.BlogDbObj.getBlogId()#" type="exclusive" timeout="20">
+					<cfset response[ "success" ] = application.bookings.setStatus(b.bookingId, arguments.status)>
+				</cflock>
+				<cfif response.success and arguments.status eq "confirmed" and b.status eq "pending">
+					<cfset application.bookings.sendBookingEmails(b.bookingId, "approved")>
+				<cfelseif response.success and arguments.status eq "cancelled" and listFind("confirmed,pending", b.status)>
+					<cfset application.bookings.sendBookingEmails(b.bookingId, "cancelledByOwner", left(arguments.message, 2000))>
+				</cfif>
+			</cfif>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="saveBookingNotes" access="remote" returnformat="json" output="false"
+			hint="The owner's private notes on a booking (window 95).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="bookingId" default="0" required="true">
+		<cfargument name="notes" type="string" default="" required="false">
+
+		<cfset var response = { "success": false }>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.bookingId)>
+			<cfset response[ "success" ] = application.bookings.saveNotes(val(arguments.bookingId), arguments.notes)>
+		</cfif>
 
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>

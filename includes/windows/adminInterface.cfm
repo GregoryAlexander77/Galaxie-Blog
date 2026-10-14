@@ -1112,6 +1112,13 @@ days off. See common/cfc/Bookings.cfc. --->
 <cfcase value=93>
 	<cfinclude template="../../admin/adminInterface/insertBooking.cfm">
 </cfcase>
+<!--- Bookings (2026-10-14): 94 the bookings list (optArgs = upcoming, past or all), 95 one booking (optArgs = bookingId). --->
+<cfcase value=94>
+	<cfinclude template="../../admin/adminInterface/bookingsList.cfm">
+</cfcase>
+<cfcase value=95>
+	<cfinclude template="../../admin/adminInterface/bookingDetail.cfm">
+</cfcase>
 
 </cfswitch>
 

@@ -180,7 +180,8 @@ var galaxieBookings = (function($) {
 
 	// Step 3: a calendar of the days with free times, and the times of the chosen day.
 	function showCalendar(state) {
-		var when = state.box.find(".galaxieBookingWhen");
+		// state.whenBox, state.fetchSlots and state.onPick let the visitor's own booking page reuse this to pick a new time.
+		var when = state.whenBox || state.box.find(".galaxieBookingWhen");
 		if (!when.length) { when = $('<div class="galaxieBookingWhen"></div>').appendTo(state.box); }
 		when.empty();
 		var zoneRow = $('<div class="galaxieBookingStep"></div>').append('<label>Times are shown in: </label>');
@@ -241,10 +242,10 @@ var galaxieBookings = (function($) {
 			var key = dateText(first);
 			if (state.fetched[key]) { return; }
 			state.fetched[key] = true;
-			$.ajax({
+			(state.fetchSlots ? state.fetchSlots(dateText(first), dateText(last)) : $.ajax({
 				type: "post", url: proxyUrl + "?method=getBookingSlots", dataType: "json", cache: false,
 				data: { alias: state.type.alias, locationOptionId: state.location.locationOptionId, fromDate: dateText(first), toDate: dateText(last) }
-			}).done(function(response) {
+			})).done(function(response) {
 				if (response && response.success) {
 					$.each(response.slots, function(i, slot) { state.slots[slot.local] = slot; });
 					refreshCalendar();
@@ -265,7 +266,7 @@ var galaxieBookings = (function($) {
 					times.find(".k-button").removeClass("k-primary").attr("aria-pressed", "false");
 					$(this).addClass("k-primary").attr("aria-pressed", "true");
 					state.slot = slot;
-					showDetails(state);
+					if (state.onPick) { state.onPick(slot); } else { showDetails(state); }
 				}));
 			});
 		}
@@ -430,6 +431,92 @@ var galaxieBookings = (function($) {
 		done.focus();
 	}
 
-	return { init: init };
+	// The visitor's own booking, from the "Cancel or change this booking" link in their emails (?manageBooking=<token>), in a
+	// window over whatever page the link opens. The token is their key; the server checks everything.
+	function manage(token, options) {
+		proxyUrl = ((options && options.baseUrl) || "") + "/common/cfc/ProxyController.cfc";
+		addStyles();
+		var box = $('<div class="galaxieBookingManage"></div>').appendTo("body");
+		var dialog = box.kendoWindow({ title: "Your booking", modal: true, width: Math.min(640, $(window).width() - 30), visible: false, close: function() { this.destroy(); } }).data("kendoWindow");
+		$.ajax({ type: "post", url: proxyUrl + "?method=getManagedBooking", data: { token: token }, dataType: "json", cache: false })
+			.done(function(booking) {
+				if (!booking || booking.success !== true) {
+					box.html("<p>We couldn't find this booking. The link may be incomplete - please use the link in your most recent email.</p>");
+				} else {
+					showManaged(box, token, booking);
+				}
+				dialog.center().open();
+			});
+	}
+
+	function showManaged(box, token, booking) {
+		var zone = booking.visitorTimeZone || browserTimeZone();
+		var statusText = { pending: "Waiting for approval", confirmed: "Confirmed", cancelled: "Cancelled", completed: "Completed", noShow: "Missed" };
+		box.empty();
+		box.append($("<h3></h3>").text(booking.typeName));
+		box.append($("<p></p>").html("<b>" + escapeHtml(formatWhen(booking.startUtc, zone)) + "</b> (" + escapeHtml(zone.replace(/_/g, " ")) + ")<br/>" + escapeHtml(booking.locationLabel) + "<br/>" + escapeHtml(statusText[booking.status] || booking.status)));
+		box.append(booking.detailsHtml || "");
+		var actions = $('<div class="galaxieBookingStep"></div>').appendTo(box);
+		var status = $('<div class="galaxieBookingStatus" role="status" aria-live="polite"></div>').appendTo(box);
+		if (!booking.canChange) {
+			actions.text(booking.status === "cancelled" ? "This booking is cancelled." : "This booking can't be changed any more.");
+			return;
+		}
+		$('<button type="button" class="k-button k-primary">Change the time</button>').appendTo(actions).on("click", function() {
+			actions.hide();
+			var state = {
+				box: box, whenBox: $('<div class="galaxieBookingWhen"></div>').appendTo(box), zone: zone, blogZone: booking.blogTimeZone,
+				type: { alias: booking.alias, isGroup: false }, location: { locationOptionId: booking.locationOptionId },
+				slots: {}, fetched: {}, slot: null,
+				fetchSlots: function(fromDate, toDate) {
+					return $.ajax({ type: "post", url: proxyUrl + "?method=getManagedBookingSlots", data: { token: token, fromDate: fromDate, toDate: toDate }, dataType: "json", cache: false });
+				},
+				onPick: function(slot) {
+					var confirmBox = state.whenBox.find(".galaxieBookingDetails").empty();
+					confirmBox.append($("<p></p>").html("Move to <b>" + escapeHtml(formatWhen(slot.utc, state.zone)) + "</b>?"));
+					$('<button type="button" class="k-button k-primary">Yes, move my booking</button>').appendTo(confirmBox).on("click", function() {
+						var button = $(this).prop("disabled", true);
+						$.ajax({ type: "post", url: proxyUrl + "?method=rescheduleManagedBooking", data: { token: token, startLocal: slot.local }, dataType: "json", cache: false })
+							.done(function(response) {
+								if (response && response.success) {
+									booking.startUtc = response.startUtc;
+									showManaged(box, token, booking);
+									box.find(".galaxieBookingStatus").text("Your booking was moved. We've emailed you the new time.");
+								} else {
+									button.prop("disabled", false);
+									confirmBox.append($("<p></p>").text((response && response.message) || "The booking could not be moved."));
+								}
+							});
+					});
+				}
+			};
+			showCalendar(state);
+		});
+		actions.append(" ");
+		$('<button type="button" class="k-button">Cancel this booking</button>').appendTo(actions).on("click", function() {
+			var button = $(this);
+			if (!button.data("asked")) {
+				button.data("asked", true).text("Yes, cancel it");
+				status.text("Click again to cancel your booking.");
+				return;
+			}
+			button.prop("disabled", true);
+			$.ajax({ type: "post", url: proxyUrl + "?method=cancelManagedBooking", data: { token: token }, dataType: "json", cache: false })
+				.done(function(response) {
+					if (response && response.success) {
+						booking.status = "cancelled";
+						booking.canChange = false;
+						booking.detailsHtml = "";
+						showManaged(box, token, booking);
+						box.find(".galaxieBookingStatus").text("Your booking is cancelled. We've emailed you a note.");
+					} else {
+						button.prop("disabled", false);
+						status.text((response && response.message) || "The booking could not be cancelled.");
+					}
+				});
+		});
+	}
+
+	return { init: init, manage: manage };
 
 })(jQuery);

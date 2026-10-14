@@ -1,10 +1,15 @@
 <!--- Bookings (window 87, 2026-10-14): the starting point for appointments - visitors booking a time with the blog owner (a
 consultation, a session, a lesson). Opened from the Bookings icon on the admin home page. Each part opens its own window:
-Locations (88), Booking types (90) and Hours (92); the bookings list comes with a later step of the Bookings build.
+Locations (88), Booking types (90), Hours (92) and the Bookings list (94).
 See doc/aiDraftArticles/eventsAndFormsDesign.cfm, Part 3. --->
 <cfset bookingLocationCount = arrayLen(application.locations.getLocations())>
 <cfset bookingTypeCount = arrayLen(application.bookings.getBookingTypes())>
 <cfset bookingTimeZone = application.blog.getBlogTimeZoneId()>
+<cfset bookingUpcoming = application.bookings.getBookingsForList("upcoming")>
+<cfset bookingPendingCount = 0>
+<cfloop array="#bookingUpcoming#" index="thisBooking">
+	<cfif thisBooking.status eq "pending"><cfset bookingPendingCount = bookingPendingCount + 1></cfif>
+</cfloop>
 
 <p>Let visitors book a time with you: a consultation, a session, a lesson. Set up where you meet, the kinds of bookings you offer, and when you're available.</p>
 
@@ -23,7 +28,7 @@ See doc/aiDraftArticles/eventsAndFormsDesign.cfm, Part 3. --->
 			<cfif len(bookingTimeZone)><cfoutput>Times are in your blog's time zone, #encodeForHtml(bookingTimeZone)#.</cfoutput><cfelse>Set your time zone in Blog Settings first.</cfif></td>
 	</tr>
 	<tr>
-		<td><button type="button" class="k-button" style="width: 100%;" disabled="disabled">Bookings</button></td>
-		<td>Coming next: the bookings people have made.</td>
+		<td><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(94, 'upcoming');">Bookings</button></td>
+		<td>The bookings clients have made: approve, cancel, and keep notes. <cfoutput>(#arrayLen(bookingUpcoming)# upcoming<cfif bookingPendingCount>, <b>#bookingPendingCount# waiting for your approval</b></cfif>)</cfoutput></td>
 	</tr>
 </table>

@@ -959,6 +959,18 @@
 				var windowHeight = "<cfif session.isMobile>50%<cfelse>35%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>40%</cfif>";
 				var windowTitle = "Insert Booking";
+			} else if (Id == 94){
+				// The bookings list (2026-10-14) - see admin/adminInterface/bookingsList.cfm.
+				var windowName = "bookingsListWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>80%</cfif>";
+				var windowTitle = "Bookings";
+			} else if (Id == 95){
+				// One booking (2026-10-14) - see admin/adminInterface/bookingDetail.cfm.
+				var windowName = "bookingDetailWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
+				var windowTitle = "Booking";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

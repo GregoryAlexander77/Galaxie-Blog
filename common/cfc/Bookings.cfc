@@ -207,6 +207,9 @@
 		</cfloop>
 	</cftransaction>
 
+	<cfif entity.getReminderHours() gt 0>
+		<cfset ensureReminderTask()>
+	</cfif>
 	<cfset result.success = true>
 	<cfset result.bookingTypeId = entity.getBookingTypeId()>
 	<cfreturn result>
@@ -520,6 +523,7 @@
 	<cfargument name="locationOptionId" type="numeric" required="true">
 	<cfargument name="fromDate" type="string" required="true">
 	<cfargument name="toDate" type="string" required="true">
+	<cfargument name="excludeBookingId" type="numeric" required="false" default="0" hint="A booking to leave out, so it can be moved (rescheduling).">
 	<cfset var t = arguments.bookingType>
 	<cfset var slots = []>
 	<cfset var zoneId = application.blog.getBlogTimeZoneId()>
@@ -530,7 +534,7 @@
 	<cfset var toText = arguments.toDate lt lastDate ? arguments.toDate : lastDate>
 	<cfset var weekly = getHours(arguments.locationOptionId).days>
 	<cfset var exceptions = getExceptionsBetween(fromText, toText)>
-	<cfset var booked = getActiveBookingsBetween(fromText, toText)>
+	<cfset var booked = getActiveBookingsBetween(fromText, toText, arguments.excludeBookingId)>
 	<cfset var currentDay = "">
 	<cfset var dateText = "">
 	<cfset var ranges = []>
@@ -647,15 +651,16 @@
 		hint="The bookings that take up time between two dates: confirmed, waiting for approval, or held for payment until the hold expires.">
 	<cfargument name="fromDate" type="string" required="true">
 	<cfargument name="toDate" type="string" required="true">
+	<cfargument name="excludeBookingId" type="numeric" required="false" default="0">
 	<cfset var booked = []>
 	<cfset var rows = queryExecute("
-		SELECT BookingTypeRef, LocationOptionRef, StartLocal, EndLocal, PartySize, BufferBeforeMinutes, BufferAfterMinutes, Status, HoldExpiresAt
+		SELECT BookingId, BookingTypeRef, LocationOptionRef, StartLocal, EndLocal, PartySize, BufferBeforeMinutes, BufferAfterMinutes, Status, HoldExpiresAt
 		FROM Booking
 		WHERE BlogRef = :blogId AND StartLocal >= :fromLocal AND StartLocal <= :toLocal AND Status IN ('confirmed', 'pending')
 	", { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, fromLocal = { value = arguments.fromDate & " 00:00", cfsqltype = "cf_sql_varchar" }, toLocal = { value = arguments.toDate & " 23:59", cfsqltype = "cf_sql_varchar" } })>
 	<cfloop query="rows">
 		<!--- A hold for payment that has run out no longer counts. --->
-		<cfif not (isDate(rows.HoldExpiresAt) and rows.HoldExpiresAt lt now())>
+		<cfif not (isDate(rows.HoldExpiresAt) and rows.HoldExpiresAt lt now()) and rows.BookingId neq arguments.excludeBookingId>
 			<cfset arrayAppend(booked, {
 				bookingTypeId: val(rows.BookingTypeRef),
 				locationOptionId: val(rows.LocationOptionRef),
@@ -770,10 +775,433 @@
 		<cfset entity.setDate(now())>
 		<cfset entitySave(entity)>
 	</cftransaction>
+	<cfif t.reminderHours gt 0>
+		<cfset ensureReminderTask()>
+	</cfif>
 	<cfset result.success = true>
 	<cfset result.bookingId = entity.getBookingId()>
 	<cfset result.status = entity.getStatus()>
 	<cfreturn result>
+</cffunction>
+
+<!--- ********************************************************************************************************************
+	Managing bookings (2026-10-14): reading them for the admin list and the visitor's own page, changing their status,
+	moving them, and the emails. The visitor's link ("Cancel or change this booking") is the blog's address with
+	?manageBooking=<ManageToken>; common/js/bookings.js shows their booking there.
+********************************************************************************************************************* --->
+
+<cffunction name="getBooking" access="public" returntype="struct" output="false"
+		hint="One booking of this blog, by id or by its manage token, with its type, location and intake answers. Empty struct when there is none.">
+	<cfargument name="bookingId" required="false" default="0">
+	<cfargument name="manageToken" type="string" required="false" default="">
+	<cfset var found = []>
+	<cfset var e = "">
+	<cfset var b = {}>
+	<cfset var answers = []>
+	<cfset var webForm = "">
+	<cfset var values = {}>
+	<cfset var field = "">
+	<cfset var submission = "">
+	<cfif isNumeric(arguments.bookingId) and arguments.bookingId gt 0>
+		<cfset found = ormExecuteQuery("FROM Booking WHERE BookingId = :id AND BlogRef = :blogId", { id = javacast("int", arguments.bookingId), blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
+	<cfelseif reFind("^[a-f0-9]{64}$", arguments.manageToken)>
+		<cfset found = ormExecuteQuery("FROM Booking WHERE ManageToken = :token AND BlogRef = :blogId", { token = arguments.manageToken, blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
+	</cfif>
+	<cfif not arrayLen(found)>
+		<cfreturn b>
+	</cfif>
+	<cfset e = found[1]>
+	<cfset b = {
+		bookingId: e.getBookingId(),
+		bookingTypeId: intOr(e.getBookingTypeRef(), 0),
+		locationOptionId: intOr(e.getLocationOptionRef(), 0),
+		startLocal: valueOrEmpty(e.getStartLocal()),
+		endLocal: valueOrEmpty(e.getEndLocal()),
+		timeZone: valueOrEmpty(e.getTimeZone()),
+		startUtc: valueOrEmpty(e.getStartUtc()),
+		visitorTimeZone: valueOrEmpty(e.getVisitorTimeZone()),
+		partySize: intOr(e.getPartySize(), 1),
+		name: valueOrEmpty(e.getName()),
+		email: valueOrEmpty(e.getEmail()),
+		phone: valueOrEmpty(e.getPhone()),
+		status: valueOrEmpty(e.getStatus()),
+		paymentStatus: valueOrEmpty(e.getPaymentStatus()),
+		amountTotal: isNull(e.getAmountTotal()) ? 0 : val(e.getAmountTotal()),
+		balanceDue: isNull(e.getBalanceDue()) ? 0 : val(e.getBalanceDue()),
+		manageToken: valueOrEmpty(e.getManageToken()),
+		notes: valueOrEmpty(e.getNotes()),
+		postId: intOr(e.getPostRef(), 0),
+		reminderSent: isTrue(e.getReminderSent()),
+		created: e.getCreated(),
+		bookingType: getBookingType(bookingTypeId = intOr(e.getBookingTypeRef(), 0)),
+		location: application.locations.getLocation(intOr(e.getLocationOptionRef(), 0)),
+		answers: []
+	}>
+	<!--- The intake answers, under their questions, in the form's order. --->
+	<cfif intOr(e.getWebFormSubmissionRef(), 0) gt 0 and not structIsEmpty(b.bookingType) and b.bookingType.webFormId gt 0>
+		<cfset submission = queryExecute("SELECT ValuesJson FROM WebFormSubmission WHERE WebFormSubmissionId = :id", { id = { value = e.getWebFormSubmissionRef(), cfsqltype = "cf_sql_integer" } })>
+		<cfset webForm = application.webForms.getForm(webFormId = b.bookingType.webFormId)>
+		<cfif submission.recordCount and not structIsEmpty(webForm)>
+			<cftry>
+				<cfset values = deserializeJSON(submission.ValuesJson)>
+				<cfcatch type="any"><cfset values = {}></cfcatch>
+			</cftry>
+			<cfloop array="#webForm.fields#" index="field">
+				<cfif isStruct(values) and structKeyExists(values, field.fieldName) and isSimpleValue(values[field.fieldName]) and len(values[field.fieldName])>
+					<cfset arrayAppend(b.answers, { "label": field.label, "value": values[field.fieldName] })>
+				</cfif>
+			</cfloop>
+		</cfif>
+	</cfif>
+	<cfreturn b>
+</cffunction>
+
+<cffunction name="getBookingsForList" access="public" returntype="array" output="false"
+		hint="This blog's bookings for the admin list: upcoming (from today, earliest first), past (latest first) or all.">
+	<cfargument name="range" type="string" required="false" default="upcoming">
+	<cfset var list = []>
+	<cfset var today = dateFormat(application.blog.blogNow(), "yyyy-mm-dd") & " 00:00">
+	<cfset var sql = "SELECT b.BookingId, b.StartLocal, b.EndLocal, b.Name, b.Email, b.Phone, b.PartySize, b.Status, b.AmountTotal, b.BalanceDue, t.Name AS TypeName, l.Label AS LocationLabel
+		FROM Booking b LEFT JOIN BookingType t ON t.BookingTypeId = b.BookingTypeRef LEFT JOIN LocationOption l ON l.LocationOptionId = b.LocationOptionRef
+		WHERE b.BlogRef = :blogId">
+	<cfset var rows = "">
+	<cfif arguments.range eq "past">
+		<cfset sql = sql & " AND b.StartLocal < :today ORDER BY b.StartLocal DESC">
+	<cfelseif arguments.range eq "all">
+		<cfset sql = sql & " AND (b.StartLocal >= :today OR b.StartLocal < :today) ORDER BY b.StartLocal DESC">
+	<cfelse>
+		<cfset sql = sql & " AND b.StartLocal >= :today ORDER BY b.StartLocal">
+	</cfif>
+	<cfset rows = queryExecute(sql, { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, today = { value = today, cfsqltype = "cf_sql_varchar" } })>
+	<cfloop query="rows">
+		<cfset arrayAppend(list, {
+			bookingId: rows.BookingId, startLocal: rows.StartLocal, endLocal: rows.EndLocal, name: rows.Name, email: rows.Email,
+			phone: valueOrEmpty(rows.Phone), partySize: val(rows.PartySize), status: rows.Status,
+			amountTotal: val(rows.AmountTotal), balanceDue: val(rows.BalanceDue),
+			typeName: valueOrEmpty(rows.TypeName), locationLabel: valueOrEmpty(rows.LocationLabel)
+		})>
+	</cfloop>
+	<cfreturn list>
+</cffunction>
+
+<cffunction name="setStatus" access="public" returntype="boolean" output="false"
+		hint="Changes a booking's status: confirmed (approve), cancelled, completed or noShow. A cancelled booking frees its time.">
+	<cfargument name="bookingId" type="numeric" required="true">
+	<cfargument name="status" type="string" required="true">
+	<cfset var found = ormExecuteQuery("FROM Booking WHERE BookingId = :id AND BlogRef = :blogId", { id = javacast("int", arguments.bookingId), blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
+	<cfif not arrayLen(found) or not listFind("confirmed,cancelled,completed,noShow", arguments.status)>
+		<cfreturn false>
+	</cfif>
+	<cftransaction>
+		<cfset found[1].setStatus(arguments.status)>
+		<cfset found[1].setDate(now())>
+		<cfset entitySave(found[1])>
+	</cftransaction>
+	<cfreturn true>
+</cffunction>
+
+<cffunction name="saveNotes" access="public" returntype="boolean" output="false" hint="The owner's private notes on a booking.">
+	<cfargument name="bookingId" type="numeric" required="true">
+	<cfargument name="notes" type="string" required="true">
+	<cfset var found = ormExecuteQuery("FROM Booking WHERE BookingId = :id AND BlogRef = :blogId", { id = javacast("int", arguments.bookingId), blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
+	<cfif not arrayLen(found)>
+		<cfreturn false>
+	</cfif>
+	<cftransaction>
+		<cfset found[1].setNotes(left(trim(replace(arguments.notes, chr(13), "", "all")), 2000))>
+		<cfset entitySave(found[1])>
+	</cftransaction>
+	<cfreturn true>
+</cffunction>
+
+<cffunction name="canChange" access="public" returntype="boolean" output="false"
+		hint="Whether the visitor can still cancel or move a booking: it is confirmed or waiting for approval, and hasn't started.">
+	<cfargument name="booking" type="struct" required="true">
+	<cfreturn listFind("confirmed,pending", arguments.booking.status) and arguments.booking.startLocal gt dateTimeFormat(application.blog.blogNow(), "yyyy-mm-dd HH:nn")>
+</cffunction>
+
+<cffunction name="rescheduleBooking" access="public" returntype="struct" output="false"
+		hint="Moves a booking to another free time of the same type and way to meet. The caller holds the bookings lock. Returns { success, message }.">
+	<cfargument name="bookingId" type="numeric" required="true">
+	<cfargument name="startLocal" type="string" required="true">
+	<cfset var result = { success: false, message: "" }>
+	<cfset var b = getBooking(bookingId = arguments.bookingId)>
+	<cfset var slot = "">
+	<cfset var found = "">
+	<cfset var entity = "">
+	<cfset var startMinutes = 0>
+	<cfif structIsEmpty(b) or structIsEmpty(b.bookingType) or not canChange(b)>
+		<cfset result.message = "This booking can't be changed any more.">
+		<cfreturn result>
+	</cfif>
+	<cfif not reFind("^\d{4}-\d{2}-\d{2} ([01]\d|2[0-3]):[0-5]\d$", arguments.startLocal)>
+		<cfset result.message = "Please choose a time again.">
+		<cfreturn result>
+	</cfif>
+	<cfloop array="#getSlots(b.bookingType, b.locationOptionId, left(arguments.startLocal, 10), left(arguments.startLocal, 10), b.bookingId)#" index="slot">
+		<cfif slot.local eq arguments.startLocal><cfset found = slot><cfbreak></cfif>
+	</cfloop>
+	<cfif not isStruct(found) or found.spotsLeft lt b.partySize>
+		<cfset result.message = "Sorry, that time was just taken. Please choose another.">
+		<cfreturn result>
+	</cfif>
+	<cfset startMinutes = timeToMinutes(right(arguments.startLocal, 5))>
+	<cftransaction>
+		<cfset entity = entityLoadByPK("Booking", b.bookingId)>
+		<cfset entity.setStartLocal(arguments.startLocal)>
+		<cfset entity.setEndLocal(left(arguments.startLocal, 10) & " " & minutesToTime(min(startMinutes + b.bookingType.durationMinutes, 1439)))>
+		<cfset entity.setStartUtc(found.utc)>
+		<cfset entity.setTimeZone(application.blog.getBlogTimeZoneId())>
+		<cfset entity.setReminderSent(false)>
+		<cfset entity.setDate(now())>
+		<cfset entitySave(entity)>
+	</cftransaction>
+	<cfset result.success = true>
+	<cfreturn result>
+</cffunction>
+
+<!--- ********************************************************************************************************************
+	Emails (2026-10-14). The visitor sees times in their own time zone (the one they booked in), the owner in the blog's.
+********************************************************************************************************************* --->
+
+<cffunction name="sendBookingEmails" access="public" returntype="void" output="false"
+		hint="Sends the emails for something that happened to a booking. event: booked, approved, cancelledByVisitor, cancelledByOwner, rescheduled or reminder. Mail errors are logged, never shown to the visitor.">
+	<cfargument name="bookingId" type="numeric" required="true">
+	<cfargument name="event" type="string" required="true">
+	<cfargument name="ownerMessage" type="string" required="false" default="" hint="A note from the owner to the visitor, eg. why it was cancelled.">
+	<cfset var b = getBooking(bookingId = arguments.bookingId)>
+	<cfset var ownerAddress = application.BlogDbObj.getBlogEmail()>
+	<cfset var blogTitle = application.BlogDbObj.getBlogTitle()>
+	<cfset var typeName = "">
+	<cfset var visitorSubject = "">
+	<cfset var visitorIntro = "">
+	<cfset var ownerSubject = "">
+	<cfset var ownerIntro = "">
+	<cfset var showManageLink = false>
+	<cfif structIsEmpty(b)>
+		<cfreturn>
+	</cfif>
+	<cfset typeName = structIsEmpty(b.bookingType) ? "Booking" : b.bookingType.name>
+	<cfswitch expression="#arguments.event#">
+		<cfcase value="booked">
+			<cfif b.status eq "pending">
+				<cfset visitorSubject = "Booking request received: " & typeName>
+				<cfset visitorIntro = "Thank you - your request is in, and the time is held for you. You'll get another email once it's confirmed.">
+				<cfset ownerSubject = "Booking request to approve: " & typeName & " with " & b.name>
+				<cfset ownerIntro = "A new booking is waiting for your approval. Approve or cancel it under Bookings in the admin site.">
+			<cfelse>
+				<cfset visitorSubject = "Booking confirmed: " & typeName>
+				<cfset visitorIntro = "You're booked. Here are the details.">
+				<cfset ownerSubject = "New booking: " & typeName & " with " & b.name>
+				<cfset ownerIntro = "You have a new booking.">
+			</cfif>
+			<cfset showManageLink = true>
+		</cfcase>
+		<cfcase value="approved">
+			<cfset visitorSubject = "Booking confirmed: " & typeName>
+			<cfset visitorIntro = "Good news - your booking is confirmed.">
+			<cfset showManageLink = true>
+		</cfcase>
+		<cfcase value="cancelledByVisitor">
+			<cfset visitorSubject = "Booking cancelled: " & typeName>
+			<cfset visitorIntro = "Your booking is cancelled. You're welcome to book another time.">
+			<cfset ownerSubject = "Booking cancelled: " & typeName & " with " & b.name>
+			<cfset ownerIntro = b.name & " cancelled this booking. The time is free again.">
+		</cfcase>
+		<cfcase value="cancelledByOwner">
+			<cfset visitorSubject = "Booking cancelled: " & typeName>
+			<cfset visitorIntro = "Unfortunately this booking has been cancelled.">
+		</cfcase>
+		<cfcase value="rescheduled">
+			<cfset visitorSubject = "Booking moved: " & typeName>
+			<cfset visitorIntro = "Your booking has been moved to the new time below.">
+			<cfset ownerSubject = "Booking moved: " & typeName & " with " & b.name>
+			<cfset ownerIntro = b.name & " moved this booking to the time below.">
+			<cfset showManageLink = true>
+		</cfcase>
+		<cfcase value="reminder">
+			<cfset visitorSubject = "Reminder: " & typeName>
+			<cfset visitorIntro = "A reminder of your booking.">
+			<cfset showManageLink = true>
+		</cfcase>
+		<cfdefaultcase>
+			<cfreturn>
+		</cfdefaultcase>
+	</cfswitch>
+	<!--- Each email on its own, so a problem with the visitor's address never stops the owner hearing about the booking. --->
+	<cftry>
+		<cfif len(visitorSubject) and isValid("email", b.email)>
+			<cfset sendOneEmail(b.email, visitorSubject & " - " & blogTitle, visitorSubject, visitorIntro, bookingDetailsHtml(b, false, arguments.ownerMessage), showManageLink ? getManageUrl(b) : "", false)>
+		</cfif>
+		<cfcatch type="any">
+			<cflog file="galaxieBlogErrors" type="error" text="Booking #arguments.bookingId# (#arguments.event#): the email to the visitor could not be sent: #cfcatch.message#">
+		</cfcatch>
+	</cftry>
+	<cftry>
+		<cfif len(ownerSubject) and isValid("email", ownerAddress)>
+			<cfset sendOneEmail(ownerAddress, ownerSubject, ownerSubject, ownerIntro, bookingDetailsHtml(b, true, ""), "", true)>
+		</cfif>
+		<cfcatch type="any">
+			<cflog file="galaxieBlogErrors" type="error" text="Booking #arguments.bookingId# (#arguments.event#): the email to the owner could not be sent: #cfcatch.message#">
+		</cfcatch>
+	</cftry>
+</cffunction>
+
+<cffunction name="sendOneEmail" access="private" returntype="void" output="false">
+	<cfargument name="to" type="string" required="true">
+	<cfargument name="subject" type="string" required="true">
+	<cfargument name="title" type="string" required="true">
+	<cfargument name="intro" type="string" required="true">
+	<cfargument name="detailsHtml" type="string" required="true">
+	<cfargument name="manageUrl" type="string" required="true">
+	<cfargument name="toOwner" type="boolean" required="true">
+	<cfset var renderer = createObject("component", application.rendererComponentPath)>
+	<cfset var utils = createObject("component", application.utilsComponentPath)>
+	<cfset var emailBody = renderer.renderEmail(
+		email = arguments.to,
+		emailTitle = arguments.title,
+		emailDesc = arguments.intro,
+		emailBody = arguments.detailsHtml,
+		callToActionText = len(arguments.manageUrl) ? "Cancel or change this booking" : "",
+		callToActionLink = arguments.manageUrl
+	)>
+	<!--- Not copied to the blog's CC address: a visitor's email is theirs, and the owner gets their own notice. --->
+	<cfset utils.mail(to = arguments.to, subject = arguments.subject, body = emailBody, cc = "")>
+</cffunction>
+
+<cffunction name="getManageUrl" access="public" returntype="string" output="false"
+		hint="The visitor's private link to their booking, where they can cancel or move it.">
+	<cfargument name="booking" type="struct" required="true">
+	<cfreturn application.blogHostUrl & "/?manageBooking=" & arguments.booking.manageToken>
+</cffunction>
+
+<cffunction name="bookingDetailsHtml" access="public" returntype="string" output="false"
+		hint="The details of a booking as HTML for an email or the admin: what, when, where (with the location's details for the visitor), and for the owner the client's details and answers. Every value is encoded here.">
+	<cfargument name="booking" type="struct" required="true">
+	<cfargument name="forOwner" type="boolean" required="true">
+	<cfargument name="message" type="string" required="false" default="">
+	<cfset var b = arguments.booking>
+	<cfset var zone = arguments.forOwner or not len(b.visitorTimeZone) ? b.timeZone : b.visitorTimeZone>
+	<cfset var html = "">
+	<cfset var answer = "">
+	<cfset var statusText = { "pending": "Waiting for approval", "confirmed": "Confirmed", "cancelled": "Cancelled", "completed": "Completed", "noShow": "No-show" }>
+	<cfif len(trim(arguments.message))>
+		<cfset html = html & "<p>" & encodeLines(arguments.message) & "</p>">
+	</cfif>
+	<cfset html = html & '<table cellpadding="5" cellspacing="5" border="0" align="left">'>
+	<cfset html = html & detailRow("What", structIsEmpty(b.bookingType) ? "Booking" : b.bookingType.name & " (" & b.bookingType.durationMinutes & " minutes)")>
+	<cfset html = html & detailRow("When", formatInZone(b.startUtc, zone))>
+	<cfif arguments.forOwner and len(b.visitorTimeZone) and b.visitorTimeZone neq b.timeZone>
+		<cfset html = html & detailRow("Their time", formatInZone(b.startUtc, b.visitorTimeZone))>
+	</cfif>
+	<cfset html = html & detailRow("Where", structIsEmpty(b.location) ? "" : b.location.label)>
+	<cfif b.partySize gt 1><cfset html = html & detailRow("People", b.partySize)></cfif>
+	<cfif b.amountTotal gt 0><cfset html = html & detailRow("Price", numberFormat(b.amountTotal, "0.00"))></cfif>
+	<cfset html = html & detailRow("Status", structKeyExists(statusText, b.status) ? statusText[b.status] : b.status)>
+	<cfif arguments.forOwner>
+		<cfset html = html & detailRow("Name", b.name)>
+		<cfset html = html & detailRow("Email", b.email)>
+		<cfif len(b.phone)><cfset html = html & detailRow("Phone", b.phone)></cfif>
+		<cfloop array="#b.answers#" index="answer">
+			<cfset html = html & detailRow(answer.label, answer.value)>
+		</cfloop>
+	</cfif>
+	<cfset html = html & "</table>">
+	<!--- The visitor gets the details for their way to meet: the address and a map link, the meeting link, or the phone arrangement. --->
+	<cfif not arguments.forOwner and not structIsEmpty(b.location) and listFind("confirmed,pending", b.status)>
+		<cfset html = html & '<div style="clear: both;"></div>' & application.locations.getDetailsHtml(b.location)>
+	</cfif>
+	<cfreturn html>
+</cffunction>
+
+<cffunction name="detailRow" access="private" returntype="string" output="false">
+	<cfargument name="label" type="string" required="true">
+	<cfargument name="value" type="string" required="true">
+	<cfreturn '<tr><td align="right" valign="top">' & encodeForHtml(arguments.label) & ':</td><td align="left">' & encodeLines(arguments.value) & '</td></tr>'>
+</cffunction>
+
+<cffunction name="formatInZone" access="public" returntype="string" output="false"
+		hint="A UTC instant (ISO 8601) as eg. 'Tuesday, October 20, 2026 at 10:00 AM (America/Los_Angeles)'.">
+	<cfargument name="utc" type="string" required="true">
+	<cfargument name="zoneId" type="string" required="true">
+	<cfset var formatter = "">
+	<cftry>
+		<cfset formatter = createObject("java", "java.time.format.DateTimeFormatter").ofPattern("EEEE, MMMM d, yyyy 'at' h:mm a", createObject("java", "java.util.Locale").ENGLISH)>
+		<cfreturn createObject("java", "java.time.Instant").parse(arguments.utc).atZone(createObject("java", "java.time.ZoneId").of(arguments.zoneId)).format(formatter) & " (" & replace(arguments.zoneId, "_", " ", "all") & ")">
+		<cfcatch type="any">
+			<cfreturn arguments.utc>
+		</cfcatch>
+	</cftry>
+</cffunction>
+
+<cffunction name="encodeLines" access="private" returntype="string" output="false"
+		hint="Encodes text for HTML and keeps its line breaks (Adobe ColdFusion's encodeForHtml makes a newline &##xa;, Lucee's leaves it).">
+	<cfargument name="text" type="string" required="true">
+	<cfreturn replace(replaceNoCase(encodeForHtml(replace(arguments.text, chr(13), "", "all")), "&##xa;", chr(10), "all"), chr(10), "<br/>", "all")>
+</cffunction>
+
+<!--- ********************************************************************************************************************
+	Reminders (2026-10-14): one recurring task per blog (cfschedule, like scheduled posts) calls
+	/common/services/bookingReminders.cfm every 15 minutes, which sends the reminders that are due.
+********************************************************************************************************************* --->
+
+<cffunction name="sendDueReminders" access="public" returntype="numeric" output="false"
+		hint="Emails a reminder for each confirmed booking whose reminder time (its type's ReminderHours before the start) has come and hasn't passed the start. Returns how many were sent.">
+	<cfset var sent = 0>
+	<cfset var nowInstant = createObject("java", "java.time.Instant").now()>
+	<cfset var rows = queryExecute("
+		SELECT b.BookingId, b.StartUtc, t.ReminderHours FROM Booking b INNER JOIN BookingType t ON t.BookingTypeId = b.BookingTypeRef
+		WHERE b.BlogRef = :blogId AND b.Status = 'confirmed' AND (b.ReminderSent IS NULL OR b.ReminderSent = 0) AND t.ReminderHours > 0
+	", { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } })>
+	<cfset var startInstant = "">
+	<cfset var entity = "">
+	<cfloop query="rows">
+		<cftry>
+			<cfset startInstant = createObject("java", "java.time.Instant").parse(rows.StartUtc)>
+			<cfif startInstant.isAfter(nowInstant) and not startInstant.minusSeconds(javacast("long", rows.ReminderHours * 3600)).isAfter(nowInstant)>
+				<!--- Marked first, so a slow mail server can't make the next run send it twice. --->
+				<cftransaction>
+					<cfset entity = entityLoadByPK("Booking", rows.BookingId)>
+					<cfset entity.setReminderSent(true)>
+					<cfset entitySave(entity)>
+				</cftransaction>
+				<cfset sendBookingEmails(rows.BookingId, "reminder")>
+				<cfset sent = sent + 1>
+			</cfif>
+			<cfcatch type="any">
+				<cflog file="galaxieBlogErrors" type="error" text="Booking reminder #rows.BookingId#: #cfcatch.message#">
+			</cfcatch>
+		</cftry>
+	</cfloop>
+	<cfreturn sent>
+</cffunction>
+
+<cffunction name="getReminderTaskName" access="public" returntype="string" output="false">
+	<cfreturn "galaxieBookingReminders" & application.BlogDbObj.getBlogId()>
+</cffunction>
+
+<cffunction name="ensureReminderTask" access="public" returntype="void" output="false"
+		hint="Creates the recurring reminder task if this server doesn't have it yet. Called when booking types are saved and bookings are made; costs one task listing.">
+	<cfset var tasks = "">
+	<cfset var name = getReminderTaskName()>
+	<cftry>
+		<cfschedule action="list" result="tasks">
+		<cfquery name="local.existing" dbtype="query">
+			SELECT Task FROM tasks WHERE Task = <cfqueryparam value="#name#" cfsqltype="cf_sql_varchar">
+		</cfquery>
+		<cfif not local.existing.recordCount>
+			<cfschedule action="update"
+				task="#name#"
+				operation="HTTPRequest"
+				startDate="#dateFormat(now())#"
+				startTime="#timeFormat(now())#"
+				url="#application.blogHostUrl#/common/services/bookingReminders.cfm"
+				interval="900">
+		</cfif>
+		<cfcatch type="any">
+			<cflog file="galaxieBlogErrors" type="error" text="The booking reminder task could not be created: #cfcatch.message#">
+		</cfcatch>
+	</cftry>
 </cffunction>
 
 <cffunction name="toUtc" access="public" returntype="string" output="false"

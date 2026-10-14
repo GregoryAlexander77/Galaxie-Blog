@@ -37,6 +37,15 @@
 			galaxieBookings.init({ baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
 		});
 	}
+	// A visitor's "Cancel or change this booking" link (?manageBooking=<token>) opens their booking on whatever page it lands.
+	(function() {
+		var match = /[?&]manageBooking=([a-f0-9]{64})/.exec(window.location.search);
+		if (match) {
+			galaxieLoader.bookings(function() {
+				galaxieBookings.manage(match[1], { baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
+			});
+		}
+	})();
 </script>
 
 <!--- When the page has been loaded, fade in the menu's. --->
