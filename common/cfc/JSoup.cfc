@@ -18,24 +18,6 @@
 		
 	</cffunction>
 			
-	<cffunction name="htmlUnescape" access="public" output="false" returntype="any" hint="Loads the JSoup library">
-    	<cfargument name="str" type="string" required="yes" hint="Pass in the str to unescape">
-		<!--- Init JSoup --->
-		<cfset JSoupObj = loadJSoup()>
-			
-		<cfif len(arguments.str)>
-			<!--- Parse the string and return the text --->
-			<cfset newStr = JSoupObj.parse(arguments.str).html()>
-		<cfelse>
-			<!--- Return the original post if the iframes were not found. --->
-			<cfset newStr = arguments.str>
-		</cfif>
-			
-		<!--- Return the str. --->
-		<cfreturn newStr>
-		
-	</cffunction>
-			
 	<cffunction name="loadSiteByUrl" access="public" output="false" returntype="any" hint="Load a site by the URL">
 		<cfargument name="URL" type="string" required="yes" hint="Pass in the URL">
     	

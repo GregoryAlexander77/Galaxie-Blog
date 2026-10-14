@@ -14903,10 +14903,10 @@
 			<!--- A form placed in the post can't work in a feed reader: it becomes "Fill in the form "Title" on the website" (2026-10-13, WebForms.cfc). --->
 			<cfif structKeyExists(application, "webForms")>
 				<cfset body = StringUtilsObj.getTextFromBody(application.webForms.replacePlaceholders(getPost[i]["Body"], makeLink(postId)))>
-				<cfset moreBody = application.webForms.replacePlaceholders(getPost[i]["MoreBody"], makeLink(postId))>
+				<cfset moreBody = StringUtilsObj.getTextFromBody(application.webForms.replacePlaceholders(getPost[i]["MoreBody"], makeLink(postId)))>
 			<cfelse>
 				<cfset body = StringUtilsObj.getTextFromBody(getPost[i]["Body"])>
-				<cfset moreBody = getPost[i]["MoreBody"]>
+				<cfset moreBody = StringUtilsObj.getTextFromBody(getPost[i]["MoreBody"])>
 			</cfif>
 			<cfset datePosted = getPost[i]["DatePosted"]>
 			<!--- We need to remove the 'index.cfm' string when a rewrite rule is in place. --->
@@ -14930,13 +14930,16 @@
 					<cfset thisDesc = body & morebody>
 				</cfif>
 			</cfif>
-	
+			<!--- The text still has the post's HTML entities (eg. &nbsp; from an empty paragraph), which xmlFormat would encode again, so feed readers showed "&nbsp;" (2026-10-13). --->
+			<cfset thisDesc = feedPlainText(thisDesc)>
+
 			<cfoutput>
 			<item>
 				<title>#xmlFormat(title)#</title>
 				<link>#xmlLink#</link>
 				<description>#xmlFormat(thisDesc)#</description>
 			<cfset getCategoriesArray = application.blog.getCategoriesByPostId(postId)>
+			<!--- Note: this reuses the post loop's i. Nothing below reads getPost[i], so it does no harm, but use another name if that changes. --->
 			<cfloop from="1" to="#arrayLen(getCategoriesArray)#" index="i">
 				<category>#xmlFormat(getCategoriesArray[i]["Category"])#</category>
 			</cfloop>
@@ -14965,6 +14968,19 @@
 
 		<cfreturn rssStr>
 
+	</cffunction>
+
+	<cffunction name="feedPlainText" access="private" returnType="string" output="false"
+			hint="Readies a post's text for the RSS and Atom feeds (2026-10-13): getTextFromBody removes the tags but leaves HTML entities such as &nbsp; and &amp;, which xmlFormat would then encode a second time, so feed readers showed them as text. This decodes them, and turns non-breaking spaces into plain ones. Only for the feeds: the text is xmlFormatted afterwards, so decoding is safe here; it would not be on a web page.">
+		<cfargument name="text" type="string" required="true">
+		<cfset var plainText = arguments.text>
+		<cftry>
+			<cfset plainText = decodeForHtml(plainText)>
+			<cfcatch type="any">
+				<!--- Leave the text as it was rather than break the feed. --->
+			</cfcatch>
+		</cftry>
+		<cfreturn replace(plainText, chr(160), " ", "all")>
 	</cffunction>
 
 	<cffunction name="generateAtom" access="public" returnType="string" output="false"
@@ -15067,8 +15083,10 @@
 			<cfelseif arguments.mode is "short" and len(body) gte arguments.excerpt>
 				<cfset text = left(body, arguments.excerpt) & "...">
 			<cfelse>
-				<cfset text = body & atomMoreBody>
+				<cfset text = body & StringUtilsObj.getTextFromBody(atomMoreBody)>
 			</cfif>
+			<!--- Decode the post's HTML entities before xmlFormat, as in generateRSS (2026-10-13). --->
+			<cfset text = feedPlainText(text)>
 			<cfset postCategories = getCategoriesByPostId(thisPost["PostId"])>
 			<cfoutput>
 	<entry>

@@ -93,7 +93,9 @@
 	<cfheader name="Last-Modified" value="#variables.lastModified#" />
 	<cfheader name="ETag" value="#variables.ETag#" />
 	
-	<cfcontent type="text/xml; charset=utf-8"><cfoutput>#variables.feedXML#</cfoutput>
+	<!--- Trimmed and reset (2026-10-13), as in atom.cfm: on Lucee the whitespace around generateRSS's output came first, and
+	an XML declaration that isn't at the very start makes strict feed readers reject the feed. --->
+	<cfcontent type="text/xml; charset=utf-8" reset="true"><cfoutput>#trim(variables.feedXML)#</cfoutput>
 	<cfcatch>
 		<!--- Logic is - if they filtered incorrectly, revert to default, if not, abort --->
 		<cfif cgi.query_string neq "">
