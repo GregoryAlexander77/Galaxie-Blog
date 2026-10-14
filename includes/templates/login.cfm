@@ -80,7 +80,8 @@
 	<cfif arrayLen(Data)>
 		<!--- Open up the profile --->
 		<script type="<cfoutput>#scriptTypeString#</cfoutput>">
-			createAdminInterfaceWindow(11, <cfoutput>'#Data[1]["UserName"]#'</cfoutput>, true);
+			<!--- The invite key goes along as otherArgs1 (2026-10-14), see includes/windows/adminInterface.cfm. --->
+			createAdminInterfaceWindow(11, <cfoutput>'#encodeForJavaScript(Data[1]["UserName"])#'</cfoutput>, true, <cfoutput>'#encodeForJavaScript(encodeForURL(StringUtilsObj.trimStr(URL.pkey)))#'</cfoutput>);
 		</script>
 	</cfif>
 	<cfabort>
