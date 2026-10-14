@@ -16,7 +16,7 @@
 <head><cfoutput>
 	<script type="text/javascript" src="#application.baseUrl#/common/libs/dayjs/dayjs.min.js"></script>
 	</cfoutput>
-	<p>All columns are sortable and searchable/filterable. Check/uncheck Approved and click Save on the toolbar to approve or unapprove comments (in bulk if you like). Click Edit to view the full comment and post details, or the delete icon to remove a comment.</p>
+	<p>All columns are sortable and searchable/filterable. Check/uncheck Approved and click Save on the toolbar to approve or unapprove comments (in bulk if you like). Click View to see the full comment and post details, or Delete to remove a comment right away.</p>
 </head>
 <body>
 
@@ -145,7 +145,10 @@
 			}, {
 				command: [
 					{ name: "edit", iconClass: "k-icon k-i-edit", text: "View", click: showCommentDetails },
-					"destroy"
+					<!--- Not Kendo's own "destroy": the grid is in batch mode (for approving several comments with Save), so destroy
+					only queued the delete until Save was clicked - the row vanished, but the comment came back on the next visit
+					(2026-10-14). This deletes at once. --->
+					{ name: "deleteNow", iconClass: "k-icon k-i-close", text: "Delete", click: deleteCommentNow }
 				],
 				title: "&nbsp;",
 				width: "<cfif session.isMobile>10<cfelse>155</cfif>px"
@@ -158,6 +161,38 @@
 		e.preventDefault();
 		var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
 		createAdminInterfaceWindow(2, dataItem['CommentId']);
+	}
+
+	<!--- Deletes one comment right away (after asking), and takes its row out of the grid without marking anything as
+	unsaved, so pending Approved changes still wait for Save. Uses the same endpoint as before. --->
+	function deleteCommentNow(e) {
+		e.preventDefault();
+		var grid = this;
+		var dataItem = grid.dataItem($(e.currentTarget).closest("tr"));
+		$.when(kendo.ui.ExtYesNoDialog.show({
+			title: "Delete this comment?",
+			message: "Delete the comment by " + kendo.htmlEncode(dataItem.CommenterFullName || "this visitor") + "? It is removed from the post.",
+			icon: "k-ext-warning",
+			width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>",
+			height: "215px"
+		})).done(function(response) {
+			if (response['button'] != 'Yes') { return; }
+			$.ajax({
+				type: "post",
+				url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteCommentViaKendoGrid&csrfToken=<cfoutput>#csrfToken#</cfoutput>",
+				data: { models: kendo.stringify([{ CommentId: dataItem.CommentId }]) },
+				dataType: "json",
+				cache: false
+			}).done(function() {
+				grid.dataSource.pushDestroy(dataItem);
+			}).fail(function(jqXHR, textStatus, error) {
+				if (jqXHR.status === 403) {
+					createLoginWindow();
+				} else {
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not delete the comment", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+				}
+			});
+		});
 	}
 </script>
 
