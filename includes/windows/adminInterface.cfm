@@ -16,8 +16,7 @@
 </cfif>
 <cfif not adminWindowAllowed>
 	<cfheader statuscode="403">
-	<cfcontent reset="true"><p>Please log in to use this.</p>
-	<cfabort>
+	<cfcontent reset="true"><cfabort>
 </cfif>
 <html> 
 <cfsilent>
