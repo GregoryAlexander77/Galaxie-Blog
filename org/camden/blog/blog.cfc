@@ -8609,7 +8609,8 @@
 					<cfloop from="1" to="#arrayLen(getPostSubscribers)#" index="i">
 
 						<!--- Set the recipient --->
-						<cfset emailTo = getPostSubscribers[1]["SubscriberEmail"]>
+						<!--- 2026-10-14: [i], not [1] - it sent every email to the first subscriber and none to the others. --->
+						<cfset emailTo = getPostSubscribers[i]["SubscriberEmail"]>
 
 						<!--- Render the email --->
 						<cfinvoke component="#RendererObj#" method="renderCommentEmailToPostSubscribers" returnvariable="postSubscriberEmail">
@@ -8644,56 +8645,6 @@
 		
 	</cffunction>
 				
-	<cffunction name="approveComment" access="public" returnType="void" output="false"
-			hint="Approves a comment.">
-		<cfargument name="commentid" type="uuid" required="true">
-			
-		<!--- Load the comment entity. --->
-		<cfset CommentDbObj = entityLoad("Comment", { CommentUuid = arguments.commentid }, "true" )>
-		<!--- Use the entity objects to set the data. --->
-		<cfset CommentDbObj.setApproved(1)>
-		<cfset CommentDbObj.setDate(blogNow())>
-
-		<!--- Save it. 2026-10-13: flush it too - the application sets ormsettings.flushAtRequestEnd = false, and this update is not in
-		a transaction, so without the flush the approval was only kept in memory. (Nothing calls this function at the moment;
-		comments are approved elsewhere.) --->
-		<cfset EntitySave(CommentDbObj)>
-		<cfset ormFlush()>
-			
-		<!--- Send an email to the post subscribers. --->
-		<!--- Get the commentId from the entity --->
-		<cfset commentId = arguments.commentId>
-		<!--- Get the comment. The comment table will have the postId --->
-		<cfset getComment = application.blog.getComment(commentId=commentId)>
-		<!--- Get all post subscribers --->
-		<cfset getPostSubscribers = application.blog.getSubscriber(postId=getComment[1]["PostId"], verifiedOnly=true)>
-
-		<!--- Loop through the post subscribers --->
-		<cfloop from="1" to="#arrayLen(getPostSubscribers)#" index="i">
-
-			<!--- Set the recipient --->
-			<cfset emailTo = getPostSubscribers[1]["SubscriberEmail"]>
-
-			<!--- Render the email --->
-			<cfinvoke component="#RendererObj#" method="renderCommentEmailToPostSubscribers" returnvariable="postSubscriberEmail">
-				<cfinvokeargument name="commentId" value="#commentId#">
-				<cfinvokeargument name="emailTo" value="#emailTo#">
-			</cfinvoke>
-
-			<!--- Email the rendered content to the post subscribers --->
-			<cfset UtilsObj.mail(
-				to=#emailTo#,
-				subject="Message sent via #application.BlogDbObj.getBlogTitle()#",
-				body=postSubscriberEmail)>
-
-		</cfloop>
-					
-		<!--- Refresh the Galaxie Cache comment objects --->
-		<cfset flushGalaxieCache(type='comment', postId='#arguments.postId#')>
-
-	</cffunction>
-			
-
 	<cffunction name="getProperties" access="public" returnType="struct" output="false">
 		<cfreturn duplicate(instance)>
 	</cffunction>
@@ -9271,7 +9222,8 @@
 				<cfloop from="1" to="#arrayLen(getPostSubscribers)#" index="i">
 
 					<!--- Set the recipient --->
-					<cfset emailTo = getPostSubscribers[1]["SubscriberEmail"]>
+					<!--- 2026-10-14: [i], not [1] - it sent every email to the first subscriber and none to the others. --->
+					<cfset emailTo = getPostSubscribers[i]["SubscriberEmail"]>
 
 					<!--- Render the email --->
 					<cfinvoke component="#RendererObj#" method="renderCommentEmailToPostSubscribers" returnvariable="postSubscriberEmail">
