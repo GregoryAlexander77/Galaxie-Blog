@@ -32,6 +32,63 @@
 	<cfreturn duplicate(variables.fieldTypes)>
 </cffunction>
 
+<cffunction name="getStarterTemplates" access="public" returntype="array" output="false"
+		hint="Ready-made starting points for a new form (2026-10-13), offered as 'Start from' in the form editor (admin/adminInterface/webFormDetail.cfm). Nothing is saved until the owner saves the form, and every part can be changed. The RSVP template is a plain form; the RSVP that counts guests and has cancel links comes with Events (see the design doc).">
+	<cfset var templates = []>
+	<cfset arrayAppend(templates, {
+		"key": "blank", "name": "Blank form",
+		"title": "", "description": "", "buttonLabel": "Send",
+		"confirmationMessage": "Thank you. Your form was sent.", "offerSubscribe": false,
+		"fields": []
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "contact", "name": "Contact",
+		"title": "Contact", "description": "", "buttonLabel": "Send",
+		"confirmationMessage": "Thank you for getting in touch. I'll reply as soon as I can.", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true),
+			starterField("Email address", "email", true),
+			starterField("Subject", "text", false),
+			starterField("Message", "textarea", true)
+		]
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "newsletter", "name": "Newsletter signup",
+		"title": "Newsletter signup", "description": "Sign up to get the newsletter by email.", "buttonLabel": "Sign up",
+		"confirmationMessage": "Thanks for signing up!", "offerSubscribe": false,
+		"fields": [
+			starterField("First name", "text", false),
+			starterField("Email address", "email", true),
+			starterField("Agreement", "consent", true, "", "", "I agree to receive emails, and know I can unsubscribe at any time.")
+		]
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "rsvp", "name": "RSVP",
+		"title": "RSVP", "description": "Please let us know if you can come.", "buttonLabel": "Send RSVP",
+		"confirmationMessage": "Thanks for letting us know!", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true),
+			starterField("Email address", "email", true),
+			starterField("Will you come?", "radio", true, "", "", "Yes, I'll be there#chr(10)#No, I can't make it"),
+			starterField("Number of guests", "number", false, "", "Including yourself."),
+			starterField("Notes", "textarea", false, "", "Dietary needs, questions or anything else we should know.")
+		]
+	})>
+	<cfreturn templates>
+</cffunction>
+
+<cffunction name="starterField" access="private" returntype="struct" output="false"
+		hint="One field of a starter template, in the shape the form editor uses.">
+	<cfargument name="label" type="string" required="true">
+	<cfargument name="fieldType" type="string" required="true">
+	<cfargument name="required" type="boolean" required="true">
+	<cfargument name="placeholder" type="string" required="false" default="">
+	<cfargument name="helpText" type="string" required="false" default="">
+	<cfargument name="options" type="string" required="false" default="">
+	<cfreturn { "webFormFieldId": 0, "label": arguments.label, "fieldType": arguments.fieldType, "required": arguments.required,
+		"placeholder": arguments.placeholder, "helpText": arguments.helpText, "options": arguments.options }>
+</cffunction>
+
 <!--- ********************************************************************************************************************
 	Reading
 ********************************************************************************************************************* --->

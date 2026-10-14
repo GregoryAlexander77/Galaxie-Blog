@@ -5,20 +5,25 @@ the submissions already received - stay matched to it when the label changes. --
 <cfset webFormId = val(URL.optArgs)>
 <cfset webForm = webFormId gt 0 ? application.webForms.getForm(webFormId = webFormId) : {}>
 <cfset isNewWebForm = structIsEmpty(webForm)>
+<!--- A new form starts from one of the starter templates (WebForms.cfc's getStarterTemplates): Contact until the owner picks another under "Start from". --->
+<cfset webFormStarterTemplates = isNewWebForm ? application.webForms.getStarterTemplates() : []>
+<cfset webFormTitleFromSearch = "">
 <cfif isNewWebForm>
+	<cfset webFormStarter = webFormStarterTemplates[1]>
+	<cfloop array="#webFormStarterTemplates#" index="thisStarter">
+		<cfif thisStarter.key eq "contact"><cfset webFormStarter = thisStarter></cfif>
+	</cfloop>
 	<cfset webForm = {
-		webFormId: 0, title: "", alias: "", description: "", buttonLabel: "Send",
-		confirmationMessage: "Thank you. Your form was sent.", confirmationUrl: "", notifyEmails: "",
-		offerSubscribe: false, requireCaptcha: application.useCaptcha, active: true,
-		fields: [
-			{ webFormFieldId: 0, label: "Name", fieldType: "text", required: true, placeholder: "", helpText: "", options: "" },
-			{ webFormFieldId: 0, label: "Email address", fieldType: "email", required: true, placeholder: "", helpText: "", options: "" },
-			{ webFormFieldId: 0, label: "Message", fieldType: "textarea", required: false, placeholder: "", helpText: "", options: "" }
-		]
+		webFormId: 0, title: webFormStarter.title, alias: "", description: webFormStarter.description, buttonLabel: webFormStarter.buttonLabel,
+		confirmationMessage: webFormStarter.confirmationMessage, confirmationUrl: "", notifyEmails: "",
+		offerSubscribe: webFormStarter.offerSubscribe, requireCaptcha: application.useCaptcha, active: true,
+		fields: webFormStarter.fields
 	}>
-	<!--- A new form built from the Insert Form window (86) starts with the title typed in its search (otherArgs). --->
-	<cfif structKeyExists(URL, "otherArgs") and len(trim(URL.otherArgs))>
-		<cfset webForm.title = left(trim(URL.otherArgs), 125)>
+	<!--- A new form built from the Insert Form window (86) starts with the title typed in its search (otherArgs), whichever template is picked. --->
+	<!--- createAdminInterfaceWindow sends the text "undefined" when no otherArgs is given. --->
+	<cfif structKeyExists(URL, "otherArgs") and len(trim(URL.otherArgs)) and not listFindNoCase("undefined,null", trim(URL.otherArgs))>
+		<cfset webFormTitleFromSearch = left(trim(URL.otherArgs), 125)>
+		<cfset webForm.title = webFormTitleFromSearch>
 	</cfif>
 </cfif>
 <cfset webFormFieldTypes = application.webForms.getFieldTypes()>
@@ -96,6 +101,46 @@ the submissions already received - stay matched to it when the label changes. --
 			$("#webFormFieldsBody").append(newRow);
 			initFieldRow(newRow);
 		}
+		<cfif isNewWebForm>
+		<!--- Start from: picking a template replaces the fields and the texts below them. The title changes too, unless the owner
+		typed their own (or brought one from the Insert Form search). --->
+		var webFormStarterTemplates = <cfoutput>#serializeJson(webFormStarterTemplates)#</cfoutput>;
+		var webFormTitleFromSearch = <cfoutput>#serializeJson(webFormTitleFromSearch)#</cfoutput>;
+		var webFormStarterTitles = $.map(webFormStarterTemplates, function(starter) { return starter.title; });
+
+		function applyStarterTemplate(starter) {
+			var currentTitle = $.trim($("#webFormTitle").val());
+			if (!webFormTitleFromSearch.length && (!currentTitle.length || webFormStarterTitles.indexOf(currentTitle) >= 0)) {
+				$("#webFormTitle").val(starter.title);
+			}
+			$("#webFormDescription").val(starter.description);
+			$("#webFormButtonLabel").val(starter.buttonLabel);
+			$("#webFormConfirmationMessage").val(starter.confirmationMessage);
+			$("#webFormOfferSubscribe").prop("checked", starter.offerSubscribe === true);
+			$("#webFormFieldsBody select.webFormFieldType").each(function() {
+				var dropDown = $(this).data("kendoDropDownList");
+				if (dropDown) { dropDown.destroy(); }
+			});
+			$("#webFormFieldsBody").empty();
+			for (var i = 0; i < starter.fields.length; i++) {
+				var starterRow = fieldRowHtml(starter.fields[i]);
+				$("#webFormFieldsBody").append(starterRow);
+				initFieldRow(starterRow);
+			}
+		}
+
+		$("#webFormStarter").kendoDropDownList({
+			dataSource: webFormStarterTemplates,
+			dataTextField: "name",
+			dataValueField: "key",
+			value: "contact",
+			change: function() {
+				var starter = this.dataItem();
+				if (starter) { applyStarterTemplate(starter.toJSON ? starter.toJSON() : starter); }
+			}
+		});
+		</cfif>
+
 		$("#webFormFieldsBody").on("click", ".webFormFieldUp", function() { var row = $(this).closest("tr"); row.prev().before(row); });
 		$("#webFormFieldsBody").on("click", ".webFormFieldDown", function() { var row = $(this).closest("tr"); row.next().after(row); });
 		$("#webFormFieldsBody").on("click", ".webFormFieldRemove", function() { $(this).closest("tr").remove(); });
@@ -182,6 +227,15 @@ the submissions already received - stay matched to it when the label changes. --
 	<tr>
 		<td class="k-header" colspan="2"><b><cfif isNewWebForm>New form<cfelse>#encodeForHtml(webForm.title)#</cfif></b></td>
 	</tr>
+<cfif isNewWebForm>
+	<tr>
+		<td width="25%"><label for="webFormStarter">Start from:</label></td>
+		<td>
+			<input id="webFormStarter" style="width: 220px;">
+			<div class="k-form-hint">A ready-made starting point. Change anything below before you save; picking another one replaces the fields.</div>
+		</td>
+	</tr>
+</cfif>
 	<tr>
 		<td width="25%"><label for="webFormTitle">Title:</label></td>
 		<td>
