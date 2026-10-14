@@ -892,7 +892,9 @@
 									 <cfset commentId = comments[i]["CommentId"]>
 									 <cfset commentUuid = comments[i]["CommentUuid"]>
 									 <cfset comment = comments[i]["Comment"]>
-									 <cfset commenterFullName = comments[i]["CommenterFullName"]>
+									 <!--- Visitors type the name and website, so both are encoded for the page; a website that isn't an
+									 http(s) address is left out (2026-10-14). --->
+									 <cfset commenterFullName = encodeForHtml(comments[i]["CommenterFullName"])>
 									 <!--- This column may be null in the db --->
 									 <cfif structKeyExists(comments[i],"CommenterEmail")>
 										<cfset commenterEmail = comments[i]["CommenterEmail"]>
@@ -901,7 +903,7 @@
 									 </cfif>
 									 <!--- This column may be null in the db --->
 									 <cfif structKeyExists(comments[i],"CommenterWebsite")>
-										 <cfset commenterWebsite = comments[i]["CommenterWebsite"]>
+										 <cfset commenterWebsite = reFindNoCase("^https?://[^\s""'<>]+$", trim(comments[i]["CommenterWebsite"])) ? encodeForHtmlAttribute(trim(comments[i]["CommenterWebsite"])) : "">
 									 <cfelse>
 										 <cfset commenterWebsite = "">
 									 </cfif>

@@ -357,8 +357,12 @@
 						<cfif debug>
 							Including the file<br/>
 						</cfif>
-						<!--- Simply include the file --->
-						<cfinclude template="#attributes.file#">
+						<!--- Output the saved file as text (2026-10-14). It holds finished HTML, so it is read rather than included:
+						an include would run it as a template. --->
+						<cflock name="#attributes.file#" type="readonly" timeout="30">
+							<cffile action="read" file="#expandPath(attributes.file)#" variable="cachedHtml" charset="UTF-8">
+						</cflock>
+						<cfoutput>#cachedHtml#</cfoutput>
 					</cfif><!---<cfif attributes.getCacheData>--->
 
 					<!--- Note: when using HTML files, the server may have been restarted which will wipe out the serverCache that holds the metadata for the files. We may need to recreate the cache if it does not already exist. --->

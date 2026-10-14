@@ -296,7 +296,8 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 					<cfset commentPostUuiId = getRecentComments[i]["PostUuid"]>
 					<cfset commentPostAlias = getRecentComments[i]["PostAlias"]>
 					<cfset commentPostTitle = getRecentComments[i]["PostTitle"]>
-					<cfset commenterFullName = getRecentComments[i]["CommenterFullName"]>
+					<!--- Visitors type the name, so it is encoded for the page (2026-10-14). --->
+					<cfset commenterFullName = encodeForHtml(getRecentComments[i]["CommenterFullName"])>
 					<cfset commenterEmail = getRecentComments[i]["CommenterEmail"]>
 					<cfset commentDatePosted = getRecentComments[i]["DatePosted"]>
 
