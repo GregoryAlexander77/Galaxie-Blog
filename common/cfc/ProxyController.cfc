@@ -10891,6 +10891,255 @@
 		</cfif>
 	</cffunction>
 
+	<!--- ********************************************************************************************************************
+		Forms (2026-10-13) - the admin site's Forms windows (83 the list, 84 the editor, 85 the submissions). The work is done by
+		application.webForms (common/cfc/WebForms.cfc). Forms collect visitors' personal details, so these need the same
+		capability as Blog Settings (EditServerSetting).
+	********************************************************************************************************************* --->
+
+	<cffunction name="getWebFormsForGrid" access="remote" returnformat="json" output="false"
+			hint="The Forms grid (window 83), Kendo or jsGrid - same shape convention as getPageCollectionsForGrid.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="gridType" required="no" default="kendo" hint="Either kendo or jsGrid">
+		<!--- Not used for filtering (the grid filters client-side) - declared so jsGrid's field-based filter query params don't trip strict argument matching. --->
+		<cfargument name="title" required="no" default="">
+		<cfargument name="alias" required="no" default="">
+		<cfargument name="status" required="no" default="">
+
+		<cfset var data = []>
+		<cfset var thisForm = "">
+		<cfset var jsonString = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn "Invalid token"><cfelse><cfreturn serializeJSON("Invalid token")></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfloop array="#application.webForms.getForms()#" index="thisForm">
+			<cfset arrayAppend(data, [
+				"WebFormId": thisForm.webFormId,
+				"Title": thisForm.title,
+				"Alias": thisForm.alias,
+				"FieldCount": thisForm.fieldCount,
+				"SubmissionCount": thisForm.submissionCount,
+				"LastSubmission": isDate(thisForm.lastSubmission) ? dateTimeFormat(thisForm.lastSubmission, "yyyy-mm-dd'T'HH:nn:ss") : "",
+				"Status": thisForm.active ? "Active" : "Not active"
+			])>
+		</cfloop>
+
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<cfif arguments.gridType eq 'jsGrid'>
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">
+			</cfif>
+		</cfinvoke>
+		<cfreturn jsonString>
+	</cffunction>
+
+	<cffunction name="getWebFormSubmissionsForGrid" access="remote" returnformat="json" output="false"
+			hint="The Form Submissions grid (window 85), Kendo or jsGrid. ValuesHtml holds every value under its field label, already HTML-encoded here, in the form's field order.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="gridType" required="no" default="kendo" hint="Either kendo or jsGrid">
+		<cfargument name="webFormId" required="no" default="0">
+		<cfargument name="name" required="no" default="">
+		<cfargument name="email" required="no" default="">
+		<cfargument name="valuesText" required="no" default="">
+
+		<cfset var data = []>
+		<cfset var webForm = "">
+		<cfset var labels = {}>
+		<cfset var thisField = "">
+		<cfset var thisSubmission = "">
+		<cfset var keys = []>
+		<cfset var key = "">
+		<cfset var html = "">
+		<cfset var text = "">
+		<cfset var jsonString = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn "Invalid token"><cfelse><cfreturn serializeJSON("Invalid token")></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfset webForm = isNumeric(arguments.webFormId) ? application.webForms.getForm(webFormId = val(arguments.webFormId)) : {}>
+		<cfif not structIsEmpty(webForm)>
+			<cfloop array="#webForm.fields#" index="thisField">
+				<cfset labels[thisField.fieldName] = thisField.label>
+			</cfloop>
+			<cfloop array="#application.webForms.getSubmissions(val(arguments.webFormId))#" index="thisSubmission">
+				<!--- The form's own field order first, then the keys of fields that were removed since. --->
+				<cfset keys = []>
+				<cfloop array="#webForm.fields#" index="thisField">
+					<cfif structKeyExists(thisSubmission.values, thisField.fieldName)><cfset arrayAppend(keys, thisField.fieldName)></cfif>
+				</cfloop>
+				<cfloop collection="#thisSubmission.values#" item="key">
+					<cfif not structKeyExists(labels, key)><cfset arrayAppend(keys, key)></cfif>
+				</cfloop>
+				<cfset html = "">
+				<cfset text = "">
+				<cfloop array="#keys#" index="key">
+					<cfset html = html & "<div><b>" & encodeForHtml(structKeyExists(labels, key) ? labels[key] : key) & ":</b> " & replaceNoCase(encodeForHtml(thisSubmission.values[key]), "&##xa;", "<br/>", "all") & "</div>">
+					<cfset text = text & (structKeyExists(labels, key) ? labels[key] : key) & ": " & thisSubmission.values[key] & " ">
+				</cfloop>
+				<cfset arrayAppend(data, [
+					"WebFormSubmissionId": thisSubmission.webFormSubmissionId,
+					"Sent": dateTimeFormat(thisSubmission.created, "yyyy-mm-dd'T'HH:nn:ss"),
+					"Name": thisSubmission.name,
+					"Email": thisSubmission.email,
+					"ValuesHtml": html,
+					"ValuesText": text
+				])>
+			</cfloop>
+		</cfif>
+
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<cfif arguments.gridType eq 'jsGrid'>
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">
+			</cfif>
+		</cfinvoke>
+		<cfreturn jsonString>
+	</cffunction>
+
+	<cffunction name="saveWebForm" access="remote" returnformat="json" output="false"
+			hint="Saves a form and its fields from the form editor (window 84).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="formJson" type="string" default="{}" required="false" hint="JSON: webFormId, title, description, buttonLabel, confirmationMessage, confirmationUrl, notifyEmails, offerSubscribe, requireCaptcha, active, fields[].">
+
+		<cfset var response = { "success": false, "errorMessage": "", "webFormId": 0 }>
+		<cfset var formData = "">
+		<cfset var saveResult = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset formData = deserializeJson(arguments.formJson)>
+				<cfif not isStruct(formData)>
+					<cfset formData = {}>
+				</cfif>
+				<cfset saveResult = application.webForms.saveForm(formData)>
+				<cfset response[ "success" ] = saveResult.success>
+				<cfset response[ "webFormId" ] = saveResult.webFormId>
+				<cfset response[ "errorMessage" ] = arrayToList(saveResult.errors, "<br/>")>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The form could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="deleteWebForm" access="remote" returnformat="json" output="false"
+			hint="Deletes a form, its fields and all of its submissions (Forms window 83).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="webFormId" default="0" required="true">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.webFormId)>
+			<cftry>
+				<cfset response[ "success" ] = application.webForms.deleteForm(val(arguments.webFormId))>
+				<cfif not response.success>
+					<cfset response[ "errorMessage" ] = "That form no longer exists.">
+				</cfif>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The form could not be deleted: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="deleteWebFormSubmission" access="remote" returnformat="json" output="false"
+			hint="Permanently deletes one submission (Submissions window 85).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="webFormSubmissionId" default="0" required="true">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.webFormSubmissionId)>
+			<cftry>
+				<cfset response[ "success" ] = application.webForms.deleteSubmission(val(arguments.webFormSubmissionId))>
+				<cfif not response.success>
+					<cfset response[ "errorMessage" ] = "That submission no longer exists.">
+				</cfif>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The submission could not be deleted: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="exportWebFormSubmissions" access="remote" returntype="void" output="true"
+			hint="Downloads a form's submissions as a CSV file (Submissions window 85).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="webFormId" default="0" required="true">
+
+		<cfset var webForm = "">
+		<cfset var fileName = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfheader statuscode="403">
+			<cfcontent type="text/plain" reset="true"><cfoutput>Invalid token</cfoutput><cfabort>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif not application.Udf.isLoggedIn() or not isNumeric(arguments.webFormId)>
+			<cfheader statuscode="403">
+			<cfcontent type="text/plain" reset="true"><cfoutput>Access denied</cfoutput><cfabort>
+		</cfif>
+
+		<cfset webForm = application.webForms.getForm(webFormId = val(arguments.webFormId))>
+		<cfif structIsEmpty(webForm)>
+			<cfheader statuscode="404">
+			<cfcontent type="text/plain" reset="true"><cfoutput>That form no longer exists.</cfoutput><cfabort>
+		</cfif>
+		<cfset fileName = webForm.alias & "-submissions-" & dateFormat(now(), "yyyy-mm-dd") & ".csv">
+		<cfheader name="Content-Disposition" value="attachment; filename=#fileName#">
+		<!--- The byte order mark makes Excel open the file as UTF-8, so accented characters show correctly. --->
+		<cfcontent type="text/csv; charset=utf-8" reset="true"><cfoutput>#chr(65279)##application.webForms.getSubmissionsCsv(val(arguments.webFormId))#</cfoutput><cfabort>
+	</cffunction>
+
 	<cffunction name="getAndDismissPendingDissolveNotices" access="remote" returnformat="json" output="false"
 			hint="Called once when the admin UI loads. Returns and dismisses any queued Page Collection dissolve notices.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

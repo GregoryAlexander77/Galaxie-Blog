@@ -1064,6 +1064,23 @@ TinyMce styles
 	<cfinclude template="../../admin/adminInterface/configureMenu.cfm">
 </cfcase>
 
+<!--- //************************************************************************************************
+		Forms (2026-10-13): 83 the list of forms, 84 the form editor (optArgs = webFormId, 0 for a new form), 85 a form's
+		submissions (optArgs = webFormId). See admin/adminInterface/webForms*.cfm and common/cfc/WebForms.cfc.
+//**************************************************************************************************--->
+
+<cfcase value=83>
+	<cfinclude template="../../admin/adminInterface/webForms.cfm">
+</cfcase>
+
+<cfcase value=84>
+	<cfinclude template="../../admin/adminInterface/webFormDetail.cfm">
+</cfcase>
+
+<cfcase value=85>
+	<cfinclude template="../../admin/adminInterface/webFormSubmissions.cfm">
+</cfcase>
+
 </cfswitch>
 
 </html>

@@ -893,6 +893,24 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>70%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>50%</cfif>";
 				var windowTitle = "Configure Menu";
+			} else if (Id == 83){
+				// Forms (2026-10-13) - see admin/adminInterface/webForms.cfm.
+				var windowName = "webFormsWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>70%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Forms";
+			} else if (Id == 84){
+				// Form editor (2026-10-13) - optArgs is the webFormId, 0 for a new form. See admin/adminInterface/webFormDetail.cfm.
+				var windowName = "webFormDetailWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>65%</cfif>";
+				var windowTitle = "Form";
+			} else if (Id == 85){
+				// A form's submissions (2026-10-13) - optArgs is the webFormId. See admin/adminInterface/webFormSubmissions.cfm.
+				var windowName = "webFormSubmissionsWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
+				var windowTitle = "Form Submissions";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";
