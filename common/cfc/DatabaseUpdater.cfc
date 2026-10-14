@@ -294,6 +294,61 @@
 
 	</cffunction>
 
+	<cffunction name="ensureOrmTables" access="public" returnType="void" output="false"
+			hint="Makes sure the tables of new ORM entities exist (added for Forms, 2026-10-13). ORM creates them by itself when the application restarts (dbcreate='update'), but only if the entity's long text columns were already set for this database (DatabaseOrmTypes.cfc) - otherwise, on MySQL and MariaDB, the table is silently not created. If any table is missing, this sets the column types, reloads ORM and checks again. A table that is still missing stops the update with a message, so running the update again retries it. Safe to run more than once.">
+		<cfargument name="tableNames" type="string" required="true" hint="A list of the entities' table names, eg. 'WebForm,WebFormField,WebFormSubmission'.">
+
+		<cfset var tableName = "">
+		<cfset var missing = "">
+		<cfset var databaseType = "">
+
+		<cfloop list="#arguments.tableNames#" index="tableName">
+			<cfif not tableExists(tableName)>
+				<cfset missing = listAppend(missing, tableName)>
+			</cfif>
+		</cfloop>
+		<cfif not len(missing)>
+			<cfset addToLog("The #replace(arguments.tableNames, ',', ', ', 'all')# tables already exist.")>
+			<cfreturn>
+		</cfif>
+
+		<cfset addToLog("Missing: #replace(missing, ',', ', ', 'all')#. Setting the column types for this database and reloading ORM to create them.")>
+		<cfset databaseType = getProfileString(variables.iniPath, "default", "databaseType")>
+		<cfif len(databaseType)>
+			<cfset createObject("component", replace(application.databaseUpdaterComponentPath, "DatabaseUpdater", "DatabaseOrmTypes")).apply(databaseType, variables.rootDirectory & "common/cfc/db/galaxieDb/")>
+			<!--- Application.cfc then knows the types are set for this database and does not apply them again. --->
+			<cfset application.ormTypesAppliedFor = databaseType & "|" & variables.rootDirectory>
+		</cfif>
+		<cfset ORMReload()>
+
+		<cfloop list="#missing#" index="tableName">
+			<cfif not tableExists(tableName)>
+				<cfthrow message="The #tableName# table could not be created. Make sure every file of this version was uploaded (including the common/cfc/db/galaxieDb folder), restart the blog and run the update again.">
+			</cfif>
+			<cfset addToLog("Created the #tableName# table.")>
+		</cfloop>
+
+	</cffunction>
+
+	<cffunction name="tableExists" access="private" returnType="boolean" output="false"
+			hint="Whether a table exists in the blog's own database: selecting nothing from it succeeds if it does. (INFORMATION_SCHEMA is not used, as on MySQL and MariaDB it lists the tables of every database on the server - see createTableIfMissing.)">
+		<cfargument name="tableName" type="string" required="true">
+
+		<cfif not reFind("^[A-Za-z][A-Za-z0-9_]*$", arguments.tableName)>
+			<cfreturn false>
+		</cfif>
+		<cftry>
+			<cfquery datasource="#application.dsn#">
+				SELECT 1 FROM #arguments.tableName# WHERE 1 = 0
+			</cfquery>
+			<cfreturn true>
+			<cfcatch type="database">
+				<cfreturn false>
+			</cfcatch>
+		</cftry>
+
+	</cffunction>
+
 	<cffunction name="seedTables" access="public" returnType="void" output="false"
 			hint="Adds the reference data that is in the /installer/dataFiles/ folder to the database. By default this only adds the records that are missing and leaves existing records (and any changes that the user made to them) alone. Only pass updateRecords as true for tables that the user can't change.">
 		<cfargument name="tables" type="string" required="true" hint="A list of tables. Any table that application.blog.updateDb() handles, ie Font, Theme, MapProvider or MapType.">
