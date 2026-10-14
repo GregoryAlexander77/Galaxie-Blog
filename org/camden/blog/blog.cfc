@@ -14900,8 +14900,14 @@
 			<cfset mimeType = getPost[i]["MimeType"]>
 			<cfset title = getPost[i]["Title"]>
 			<cfset description = getPost[i]["Description"]>
-			<cfset body = StringUtilsObj.getTextFromBody(getPost[i]["Body"])>
-			<cfset moreBody = getPost[i]["MoreBody"]>
+			<!--- A form placed in the post can't work in a feed reader: it becomes "Fill in the form "Title" on the website" (2026-10-13, WebForms.cfc). --->
+			<cfif structKeyExists(application, "webForms")>
+				<cfset body = StringUtilsObj.getTextFromBody(application.webForms.replacePlaceholders(getPost[i]["Body"], makeLink(postId)))>
+				<cfset moreBody = application.webForms.replacePlaceholders(getPost[i]["MoreBody"], makeLink(postId))>
+			<cfelse>
+				<cfset body = StringUtilsObj.getTextFromBody(getPost[i]["Body"])>
+				<cfset moreBody = getPost[i]["MoreBody"]>
+			</cfif>
 			<cfset datePosted = getPost[i]["DatePosted"]>
 			<!--- We need to remove the 'index.cfm' string when a rewrite rule is in place. --->
 			<cfif application.serverRewriteRuleInPlace>
@@ -14976,6 +14982,8 @@
 		<cfset var thisPost = "">
 		<cfset var postLink = "">
 		<cfset var body = "">
+		<cfset var atomBody = "">
+		<cfset var atomMoreBody = "">
 		<cfset var text = "">
 		<cfset var postDate = "">
 		<cfset var feedUpdated = "">
@@ -15045,14 +15053,21 @@
 				<cfset postLink = makeLink(thisPost["PostId"])>
 			</cfif>
 			<cfset postDate = formatAtomDate(thisPost["DatePosted"])>
-			<cfset body = StringUtilsObj.getTextFromBody(thisPost["Body"])>
+			<!--- A form placed in the post becomes "Fill in the form "Title" on the website", as in generateRSS (2026-10-13, WebForms.cfc). --->
+			<cfset atomBody = thisPost["Body"]>
+			<cfset atomMoreBody = thisPost["MoreBody"]>
+			<cfif structKeyExists(application, "webForms")>
+				<cfset atomBody = application.webForms.replacePlaceholders(atomBody, postLink)>
+				<cfset atomMoreBody = application.webForms.replacePlaceholders(atomMoreBody, postLink)>
+			</cfif>
+			<cfset body = StringUtilsObj.getTextFromBody(atomBody)>
 			<!--- Same text rules as generateRSS: the post's description if it has one, otherwise an excerpt (short) or the whole post (full). --->
 			<cfif len(thisPost["Description"])>
 				<cfset text = thisPost["Description"]>
 			<cfelseif arguments.mode is "short" and len(body) gte arguments.excerpt>
 				<cfset text = left(body, arguments.excerpt) & "...">
 			<cfelse>
-				<cfset text = body & thisPost["MoreBody"]>
+				<cfset text = body & atomMoreBody>
 			</cfif>
 			<cfset postCategories = getCategoriesByPostId(thisPost["PostId"])>
 			<cfoutput>

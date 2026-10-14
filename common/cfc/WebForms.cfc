@@ -651,6 +651,35 @@
 	Helpers
 ********************************************************************************************************************* --->
 
+<cffunction name="replacePlaceholders" access="public" returntype="string" output="false"
+		hint="Swaps each form placed in a post (<div class='galaxieWebForm' data-webform='alias'>[Form: Title]</div>) for a link to the post, for where the form can't work: the subscriber email (Renderer.cfc) and the RSS and Atom feeds (blog.cfc, which then reduce it to its text). Returns the HTML unchanged when it has no forms.">
+	<cfargument name="html" type="string" required="true">
+	<cfargument name="linkUrl" type="string" required="true" hint="The post's own address.">
+	<cfset var result = arguments.html>
+	<cfset var match = "">
+	<cfset var title = "">
+	<cfset var replacement = "">
+	<cfset var position = 1>
+	<cfif not findNoCase("galaxieWebForm", result)>
+		<cfreturn result>
+	</cfif>
+	<cfloop condition="true">
+		<!--- Our own markup, written by the Insert Form window; the class may sit anywhere among the attributes. --->
+		<cfset match = reFindNoCase('<div[^>]*class="[^"]*\bgalaxieWebForm\b[^"]*"[^>]*>(.*?)</div>', result, position, true)>
+		<cfif not match.pos[1]>
+			<cfbreak>
+		</cfif>
+		<!--- The text inside reads "[Form: Title]", already HTML encoded. The quotes around it below are plain ones, not &quot;: the
+		feeds strip the tags but not the entities, so &quot; would reach feed readers as text. --->
+		<cfset title = trim(reReplace(mid(result, match.pos[2], match.len[2]), "<[^>]*>", "", "all"))>
+		<cfset title = trim(reReplaceNoCase(title, "^\[Form:\s*(.*)\]$", "\1"))>
+		<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) ? 'Fill in the form "' & title & '" on the website' : 'Fill in the form on the website') & '</a></p>'>
+		<cfset result = left(result, match.pos[1] - 1) & replacement & mid(result, match.pos[1] + match.len[1], len(result))>
+		<cfset position = match.pos[1] + len(replacement)>
+	</cfloop>
+	<cfreturn result>
+</cffunction>
+
 <!--- Choice limits (2026-10-13): a select, radio or checkboxes field can cap how many submissions pick each choice, eg. at most 4
 desserts for a potluck. The limits are stored as JSON in WebFormField.ChoiceLimits. The counts come from the submissions that
 are kept, so deleting a submission frees its spot. ProxyController's submitWebForm counts and saves inside one lock per form,
