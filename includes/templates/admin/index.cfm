@@ -83,12 +83,12 @@ next to it, same &#44; comma-escaping trick "Create Page" already uses. --->
 	<cfset imageList = listAppend(imageList, "/images/icons/configureSite.gif")>
 </cfif>
 <!--- Forms (2026-10-13): forms the blog owner builds and places in posts. They collect visitors' personal details, so the
-same capability as Blog Settings. The icon is a placeholder until a Forms icon is made. --->
+same capability as Blog Settings. --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting')>
 	<cfset iconList = listAppend(iconList, 'Forms')>
 	<cfset titleList = listAppend(titleList, 'Forms')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(83);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/fileManager.png")>
+	<cfset imageList = listAppend(imageList, "/images/icons/forms.gif")>
 </cfif>
 <!--- Don't include the comment interface with Disqus --->
 <cfif not application.includeDisqus and (listFindNoCase(currentUserCapabilityList, 'EditComment') or listFindNoCase(currentUserCapabilityList, 'EditPost'))>
