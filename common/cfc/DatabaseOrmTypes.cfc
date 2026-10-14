@@ -14,7 +14,8 @@
 		"CustomWindowContent": ["Content"],
 		"ErrorLog": ["Stacktrace"],
 		"Post": ["JsonLd", "PostHeader", "CSS", "JavaScript", "Body", "MoreBody"],
-		"Users": ["Biography"]
+		"Users": ["Biography"],
+		"WebFormSubmission": ["ValuesJson"]
 	}>
 
 	<!--- How each database declares a long text column. --->

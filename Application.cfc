@@ -309,6 +309,9 @@
 		<!--- Reload ORM --->
 		<!--- Security: ORMReload() is expensive and briefly disrupts every in-flight request against the ORM. Only allow ?reloadOrm=1 to trigger it when an administrator is already logged in (same application.Udf.isLoggedIn() check as above), OR when we're mid-install / a developer-forced reinstall is in progress (same reinstallIni/reinstallDb/not getInstalled() bypass used for URL.init/URL.reinit above) - the installer needs to be able to force an ORM reload before any admin account exists. An anonymous request carrying the param outside of these cases is silently ignored. --->
 		<cfif isDefined("URL.reloadOrm") and ((structKeyExists(application, "Udf") and application.Udf.isLoggedIn()) or reinstallIni or reinstallDb or not getInstalled())>
+			<!--- 2026-10-13: set the long text columns for this database first (see applyDatabaseOrmTypes) - it otherwise runs only when the application starts, so a newly uploaded entity kept varchar(max) and its table was not created on MySQL/MariaDB. --->
+			<cfset structDelete(application, "ormTypesAppliedFor")>
+			<cfset applyDatabaseOrmTypes()>
 			<cfset ORMReload()>
 		</cfif>
 
@@ -531,6 +534,13 @@
 			<cfset application.testUtilityComponentPath = "common.cfc.TestUtility">
 		</cfif>
 
+		<!--- Forms the blog owner builds and places in posts (2026-10-13) - see WebForms.cfc. --->
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset application.webFormsComponentPath = application.baseComponentPath & ".common.cfc.WebForms">
+		<cfelse>
+			<cfset application.webFormsComponentPath = "common.cfc.WebForms">
+		</cfif>
+
 		<cfif debug>
 			<cfoutput>
 			application.baseProxyUrl: #application.baseProxyUrl#<br/>
@@ -584,6 +594,7 @@
 		<cfset application.Udf = createObject("component","#application.udfComponentPath#")>
 		<!--- Brings the database up to date after uploading a new version (see DatabaseUpdater.cfc). --->
 		<cfset application.databaseUpdater = createObject("component", application.databaseUpdaterComponentPath).init(this.rootDirectoryPath, getBlogIniPath())>
+		<cfset application.webForms = createObject("component", application.webFormsComponentPath).init()>
 		
 		<!---//****************************************************************************************
 				Initialize the application and set core application vars.

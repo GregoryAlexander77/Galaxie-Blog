@@ -217,6 +217,14 @@ Image.cfc's generateHeroArt()/generateAnimationDefault(). --->
 <cffunction name="reloadOrm" access="remote" returntype="string" output="false" returnformat="plain"
 		hint="Forces Hibernate to reload every ORM entity's mapping (a fresh SessionFactory) and, per this.ormSettings.dbcreate='update' in Application.cfc, run any pending ALTER TABLE for a newly added <cfproperty> - without a full server restart or OS-level service-restart rights. A plain .cfc file edit (e.g. adding a new PageCollection.cfc property) does NOT trigger this on its own - CFML happily recompiles the .cfc source on next reference, but the ORM mapping/schema it was built from stays cached until something explicitly reloads it. Before this method existed, the only options were ?reloadOrm (needs an admin login, which this same login already satisfies) or editing Application.cfc's this.name to force a whole fresh application scope (a bigger hammer - see the still-suffixed '_ormfix' comment there from 2026-09-27, which this method replaces going forward).">
 	<cfset requireEditSiteAccess()>
+	<!--- 2026-10-13: first set the long text columns of the entities for this blog's database (DatabaseOrmTypes.cfc), as
+	Application.cfc does when the application starts. That only runs once per application, so a new entity uploaded to a running
+	site kept SQL Server's varchar(max), and on MySQL/MariaDB its table was silently not created by the reload (found with
+	WebFormSubmission on the local Lucee/MariaDB blog). --->
+	<cfset var databaseType = getProfileString(application.blogIniPath, "default", "databaseType")>
+	<cfif len(databaseType)>
+		<cfset createObject("component", replace(application.databaseUpdaterComponentPath, "DatabaseUpdater", "DatabaseOrmTypes")).apply(databaseType, expandPath(application.baseUrl & "/common/cfc/db/galaxieDb/"))>
+	</cfif>
 	<cfset ORMReload()>
 	<cfreturn "ORM reloaded - new/changed entity properties and any pending schema update should now be live.">
 </cffunction>
