@@ -94,6 +94,7 @@
 	<cfparam name="includeCarousel" default="false">
 	<cfparam name="includeCustomWindow" default="false">
 	<cfparam name="includeWebForm" default="false">
+<cfparam name="includeBooking" default="false">
 	<cfparam name="includeVideoUpload" default="false">
 	<cfparam name="includeGradient" default="false">
 	<cfparam name="includeHeroAnimation" default="false">
@@ -297,7 +298,7 @@
 				file: { title: 'File', items: 'newdocument restoredraft | preview | print ' },
 				edit: { title: 'Edit', items: 'undo redo | cut copy paste | selectall | searchreplace' },
 				view: { title: 'View', items: 'code | visualaid visualchars visualblocks | spellchecker | preview fullscreen' },
-				insert: { title: 'Insert', items: 'image gradient heroAnimation link media | fancyBoxGallery carousel | customWindow webForm | map mapRouting | template codesample inserttable | charmap emoticons hr | pagebreak nonbreaking anchor toc | insertdatetime' },
+				insert: { title: 'Insert', items: 'image gradient heroAnimation link media | fancyBoxGallery carousel | customWindow webForm booking | map mapRouting | template codesample inserttable | charmap emoticons hr | pagebreak nonbreaking anchor toc | insertdatetime' },
 				format: { title: 'Format', items: 'bold italic underline strikethrough superscript subscript codeformat | formats blockformats fontformats fontsizes align lineheight | forecolor backcolor | removeformat' },
 				table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
 			},
@@ -734,6 +735,28 @@
 					icon: 'webForm',
 					onAction: function () {
 						createAdminInterfaceWindow(86);
+					}
+				});
+			</cfif>
+			<cfif includeBooking>
+				<!--- Bookings (2026-10-14): places a booking widget in the post. Opens the Insert Booking window (93), which inserts
+				<div class="galaxieBooking" data-booking="alias or *">[Booking: Name]</div>; common/js/bookings.js shows it there. --->
+				editor.ui.registry.addIcon(
+					'booking',
+					'<svg><span data-fa-symbol="booking" class="fontAwesomeIcon fa-regular fa-calendar-check">&nbsp;</span></svg>'
+				);
+				editor.ui.registry.addButton('booking', {
+					text: '<i class="fontAwesomeIcon fa-regular fa-calendar-check"></i>',
+					tooltip: 'Insert Booking',
+					onAction: function (_) {
+						createAdminInterfaceWindow(93);
+					}
+				});
+				editor.ui.registry.addMenuItem('booking', {
+					text: 'Booking',
+					icon: 'booking',
+					onAction: function () {
+						createAdminInterfaceWindow(93);
 					}
 				});
 			</cfif>				

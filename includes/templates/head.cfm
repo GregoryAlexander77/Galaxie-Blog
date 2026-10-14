@@ -394,6 +394,18 @@ var galaxieLoader = (function() {
 				getScript('#application.baseUrl#/common/js/webForms.js?v=#encodeForUrl(application.webFormsJsVersion)#').done(ready);
 			}, callback);
 		},
+		<!--- Bookings placed in posts (2026-10-14) - see common/js/bookings.js. Versioned by the file's date, like webForms above. --->
+		<cfif not structKeyExists(application, "bookingsJsVersion")>
+			<cftry>
+				<cfset application.bookingsJsVersion = dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/bookings.js")).lastModified, "yyyymmddHHnnss")>
+				<cfcatch type="any"><cfset application.bookingsJsVersion = application.blog.getVersion()></cfcatch>
+			</cftry>
+		</cfif>
+		bookings: function(callback) {
+			whenReady('bookings', function(ready) {
+				getScript('#application.baseUrl#/common/js/bookings.js?v=#encodeForUrl(application.bookingsJsVersion)#').done(ready);
+			}, callback);
+		},
 		prism: function(callback) {
 			whenReady('prism', function(ready) {
 				addCss('#application.baseUrl#/common/libs/prism/prism.min.css');

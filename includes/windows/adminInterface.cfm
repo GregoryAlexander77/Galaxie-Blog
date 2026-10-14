@@ -1108,6 +1108,10 @@ days off. See common/cfc/Bookings.cfc. --->
 <cfcase value=92>
 	<cfinclude template="../../admin/adminInterface/bookingHours.cfm">
 </cfcase>
+<!--- Insert Booking (2026-10-14): opened by the post editor's Insert Booking button. See admin/adminInterface/insertBooking.cfm. --->
+<cfcase value=93>
+	<cfinclude template="../../admin/adminInterface/insertBooking.cfm">
+</cfcase>
 
 </cfswitch>
 

@@ -11040,6 +11040,238 @@
 	</cffunction>
 
 	<!--- ********************************************************************************************************************
+		Bookings on the site (2026-10-14): the booking widget placed in a post or page (common/js/bookings.js). Public, like the
+		Forms methods: getBookingWidget hands out a one-time token kept in the visitor's session, getBookingSlots lists free times,
+		getBookingQuestions the type's intake questions, and submitBooking checks everything again (token, time, hidden field,
+		rate limit, captcha, answers) and books the time inside one lock, so two visitors can't take the same time.
+	********************************************************************************************************************* --->
+
+	<cffunction name="getBookingWidget" access="remote" returnformat="json" output="false"
+			hint="The booking types for a booking widget (one type by alias, or all of them for *), as visitors see them, with a token for sending.">
+		<cfargument name="alias" type="string" required="false" default="*">
+
+		<cfset var response = { "success": false, "types": [], "token": "", "captcha": false, "timeZone": "" }>
+		<cfset var typeAlias = trim(arguments.alias) eq "*" ? "" : left(trim(arguments.alias), 100)>
+		<cfset var token = "">
+		<cfset var key = "">
+
+		<cfset response[ "types" ] = application.bookings.getPublicTypes(typeAlias)>
+		<cfset response[ "timeZone" ] = application.blog.getBlogTimeZoneId()>
+		<cfif arrayLen(response.types) and len(response.timeZone)>
+			<cfset token = lCase(hash(createUUID() & rand("SHA1PRNG"), "SHA-256"))>
+			<cflock scope="session" type="exclusive" timeout="10">
+				<cfif not structKeyExists(session, "bookingTokens") or not isStruct(session.bookingTokens)>
+					<cfset session.bookingTokens = {}>
+				</cfif>
+				<cfloop collection="#session.bookingTokens#" item="key">
+					<cfif dateDiff("h", session.bookingTokens[key], now()) gte 6>
+						<cfset structDelete(session.bookingTokens, key)>
+					</cfif>
+				</cfloop>
+				<cfif structCount(session.bookingTokens) gte 20>
+					<cfset session.bookingTokens = {}>
+				</cfif>
+				<cfset session.bookingTokens[token] = now()>
+			</cflock>
+			<cfset response[ "token" ] = token>
+			<cfset response[ "captcha" ] = application.useCaptcha and not application.Udf.isLoggedIn()>
+			<cfset response[ "success" ] = true>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getBookingSlots" access="remote" returnformat="json" output="false"
+			hint="The free times of a booking type at a location between two dates (yyyy-mm-dd, the blog's time zone; at most about two months).">
+		<cfargument name="alias" type="string" required="false" default="">
+		<cfargument name="locationOptionId" required="false" default="0">
+		<cfargument name="fromDate" type="string" required="false" default="">
+		<cfargument name="toDate" type="string" required="false" default="">
+
+		<cfset var response = { "success": false, "slots": [] }>
+		<cfset var bookingType = application.bookings.getBookingType(alias = left(trim(arguments.alias), 100))>
+
+		<cfif not structIsEmpty(bookingType) and bookingType.active and isNumeric(arguments.locationOptionId)>
+			<cfset response[ "slots" ] = application.bookings.getSlots(bookingType, val(arguments.locationOptionId), left(trim(arguments.fromDate), 10), left(trim(arguments.toDate), 10))>
+			<cfset response[ "success" ] = true>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getBookingQuestions" access="remote" returnformat="json" output="false"
+			hint="The HTML of a booking type's intake questions (its form's fields, encoded by WebForms.cfc), or nothing when it asks none.">
+		<cfargument name="alias" type="string" required="false" default="">
+
+		<cfset var response = { "success": true, "html": "" }>
+		<cfset var bookingType = application.bookings.getBookingType(alias = left(trim(arguments.alias), 100))>
+		<cfset var webForm = "">
+
+		<cfif not structIsEmpty(bookingType) and bookingType.active and bookingType.webFormId gt 0>
+			<cfset webForm = application.webForms.getForm(webFormId = bookingType.webFormId)>
+			<cfif not structIsEmpty(webForm)>
+				<cfset response[ "html" ] = application.webForms.renderFieldsHtml(webForm.fields, "booking" & bookingType.bookingTypeId & "_", application.webForms.getChoiceCounts(webForm))>
+			</cfif>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="submitBooking" access="remote" returnformat="json" output="false"
+			hint="Books a time from the booking widget. Everything is checked again here; nothing from the browser is trusted.">
+		<cfargument name="alias" type="string" required="false" default="">
+		<cfargument name="locationOptionId" required="false" default="0">
+		<cfargument name="startLocal" type="string" required="false" default="">
+		<cfargument name="partySize" required="false" default="1">
+		<cfargument name="name" type="string" required="false" default="">
+		<cfargument name="email" type="string" required="false" default="">
+		<cfargument name="phone" type="string" required="false" default="">
+		<cfargument name="visitorTimeZone" type="string" required="false" default="">
+		<cfargument name="valuesJson" type="string" required="false" default="{}" hint="The intake answers, keyed by field name.">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfargument name="captchaText" type="string" required="false" default="">
+		<cfargument name="website" type="string" required="false" default="" hint="The hidden field only bots fill in.">
+		<cfargument name="postId" required="false" default="0">
+
+		<cfset var response = { "success": false, "errors": {}, "message": "", "status": "", "detailsHtml": "", "locationLabel": "", "startUtc": "" }>
+		<cfset var bookingType = application.bookings.getBookingType(alias = left(trim(arguments.alias), 100))>
+		<cfset var issued = "">
+		<cfset var ip = cgi.remote_addr>
+		<cfset var recent = []>
+		<cfset var stamp = "">
+		<cfset var key = "">
+		<cfset var sent = {}>
+		<cfset var intakeValues = {}>
+		<cfset var checked = "">
+		<cfset var webForm = {}>
+		<cfset var booked = "">
+		<cfset var meetLocation = "">
+
+		<cfif structIsEmpty(bookingType) or not bookingType.active>
+			<cfset response[ "message" ] = "This can't be booked any more.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+
+		<!--- The token: issued to this visitor's session by getBookingWidget, at least 3 seconds ago, used once. --->
+		<cflock scope="session" type="exclusive" timeout="10">
+			<cfif structKeyExists(session, "bookingTokens") and isStruct(session.bookingTokens) and structKeyExists(session.bookingTokens, arguments.token)>
+				<cfset issued = session.bookingTokens[arguments.token]>
+			</cfif>
+		</cflock>
+		<cfif not isDate(issued) or dateDiff("h", issued, now()) gte 6>
+			<cfset response[ "message" ] = "This page has been open for a long time, or the booking was already sent. Please reload the page and try again.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfif dateDiff("s", issued, now()) lt 3>
+			<cfset response[ "message" ] = "That was very quick - please check the details and send them again.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+
+		<!--- The hidden field: answer as if it worked, book nothing. --->
+		<cfif len(trim(arguments.website))>
+			<cfset forgetBookingToken(arguments.token)>
+			<cfset response[ "success" ] = true>
+			<cfset response[ "status" ] = "confirmed">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+
+		<!--- At most 10 sends an hour from one address, shared with Forms. --->
+		<cflock name="galaxieWebFormRateLimit" type="exclusive" timeout="10">
+			<cfif not structKeyExists(application, "webFormRateLimit") or not isStruct(application.webFormRateLimit)>
+				<cfset application.webFormRateLimit = {}>
+			</cfif>
+			<cfloop collection="#application.webFormRateLimit#" item="key">
+				<cfset recent = []>
+				<cfloop array="#application.webFormRateLimit[key]#" index="stamp">
+					<cfif dateDiff("n", stamp, now()) lt 60><cfset arrayAppend(recent, stamp)></cfif>
+				</cfloop>
+				<cfif arrayLen(recent)><cfset application.webFormRateLimit[key] = recent><cfelse><cfset structDelete(application.webFormRateLimit, key)></cfif>
+			</cfloop>
+			<cfset recent = structKeyExists(application.webFormRateLimit, ip) ? application.webFormRateLimit[ip] : []>
+			<cfif arrayLen(recent) gte 10>
+				<cfset response[ "message" ] = "Too many bookings and forms have been sent from your connection in the last hour. Please try again later.">
+				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+			</cfif>
+		</cflock>
+
+		<!--- The captcha (not for a signed-in user), as on the comment form. --->
+		<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
+			<cfif not structKeyExists(session, "captchaText") or not len(session.captchaText) or not len(trim(arguments.captchaText)) or trim(arguments.captchaText) neq session.captchaText>
+				<cfset response[ "errors" ][ "captchaText" ] = "The text from the image did not match. Please try again.">
+				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+			</cfif>
+		</cfif>
+
+		<!--- The intake answers, checked against the type's form. --->
+		<cfif bookingType.webFormId gt 0>
+			<cfset webForm = application.webForms.getForm(webFormId = bookingType.webFormId)>
+			<cfif not structIsEmpty(webForm)>
+				<cftry>
+					<cfset sent = deserializeJSON(arguments.valuesJson)>
+					<cfcatch type="any"><cfset sent = {}></cfcatch>
+				</cftry>
+				<cfif not isStruct(sent)><cfset sent = {}></cfif>
+				<cfset checked = application.webForms.validateSubmission(webForm, sent, application.webForms.getChoiceCounts(webForm))>
+				<cfif not checked.valid>
+					<cfset response[ "errors" ] = checked.errors>
+					<!--- Point out the visitor's own details too, so every problem shows at once. --->
+					<cfif not len(trim(arguments.name))><cfset response[ "errors" ][ "name" ] = "Please enter your name."></cfif>
+					<cfif not isValid("email", trim(arguments.email))><cfset response[ "errors" ][ "email" ] = "Please enter a valid email address."></cfif>
+					<cfset response[ "message" ] = "Please check the highlighted details.">
+					<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+				</cfif>
+				<cfset intakeValues = checked.values>
+			</cfif>
+		</cfif>
+
+		<!--- One lock for the whole blog's bookings: the owner is one person, so any booking can take time from any other. --->
+		<cflock name="galaxieBookings_#application.BlogDbObj.getBlogId()#" type="exclusive" timeout="20">
+			<cfset booked = application.bookings.createBooking(
+				bookingType = bookingType,
+				locationOptionId = isNumeric(arguments.locationOptionId) ? val(arguments.locationOptionId) : 0,
+				startLocal = left(trim(arguments.startLocal), 16),
+				partySize = isNumeric(arguments.partySize) ? val(arguments.partySize) : 1,
+				name = left(trim(arguments.name), 255),
+				email = left(trim(arguments.email), 255),
+				phone = left(trim(arguments.phone), 50),
+				visitorTimeZone = arguments.visitorTimeZone,
+				intakeValues = intakeValues,
+				postId = isNumeric(arguments.postId) ? val(arguments.postId) : 0
+			)>
+		</cflock>
+		<cfif not booked.success>
+			<cfset response[ "errors" ] = booked.errors>
+			<cfset response[ "message" ] = len(booked.message) ? booked.message : "Please check the highlighted details.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+
+		<!--- Booked: spend the token and the captcha word, count it, and send back what the confirmation shows. --->
+		<cfset forgetBookingToken(arguments.token)>
+		<cfif structKeyExists(session, "captchaText")><cfset structDelete(session, "captchaText")></cfif>
+		<cflock name="galaxieWebFormRateLimit" type="exclusive" timeout="10">
+			<cfif not structKeyExists(application.webFormRateLimit, ip)><cfset application.webFormRateLimit[ip] = []></cfif>
+			<cfset arrayAppend(application.webFormRateLimit[ip], now())>
+		</cflock>
+		<cfset meetLocation = application.locations.getLocation(val(arguments.locationOptionId))>
+		<cfset response[ "success" ] = true>
+		<cfset response[ "status" ] = booked.status>
+		<cfset response[ "locationLabel" ] = meetLocation.label>
+		<cfset response[ "detailsHtml" ] = application.locations.getDetailsHtml(meetLocation)>
+		<cfset response[ "startUtc" ] = entityLoadByPK("Booking", booked.bookingId).getStartUtc()>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="forgetBookingToken" access="private" returntype="void" output="false">
+		<cfargument name="token" type="string" required="true">
+		<cflock scope="session" type="exclusive" timeout="10">
+			<cfif structKeyExists(session, "bookingTokens") and isStruct(session.bookingTokens)>
+				<cfset structDelete(session.bookingTokens, arguments.token)>
+			</cfif>
+		</cflock>
+	</cffunction>
+
+	<!--- ********************************************************************************************************************
 		Bookings: booking types and the owner's hours (2026-10-14), managed by application.bookings (common/cfc/Bookings.cfc) from
 		the Booking types window (90), the booking type editor (91) and Hours (92).
 	********************************************************************************************************************* --->

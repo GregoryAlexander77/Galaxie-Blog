@@ -30,6 +30,15 @@
 	}
 </script>
 
+<!-- Bookings placed in a post or page (2026-10-14) are only downloaded when the page has one. See common/js/bookings.js. -->
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+	if ($('.galaxieBooking[data-booking]').length) {
+		galaxieLoader.bookings(function() {
+			galaxieBookings.init({ baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
+		});
+	}
+</script>
+
 <!--- When the page has been loaded, fade in the menu's. --->
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">
 	// Show the topMenu

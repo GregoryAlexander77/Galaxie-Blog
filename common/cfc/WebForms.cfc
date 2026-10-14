@@ -627,22 +627,48 @@
 	<cfargument name="showCaptcha" type="boolean" required="false" default="false">
 	<cfargument name="choiceCounts" type="struct" required="false" default="#{}#" hint="From getChoiceCounts(): limited choices then show how many spots are left, and a full one can't be picked.">
 	<cfset var html = createObject("java", "java.lang.StringBuilder").init()>
-	<cfset var spotsLeft = -1>
 	<!--- Not named "form": FORM is a ColdFusion scope. --->
 	<cfset var webFormData = arguments.webForm>
-	<cfset var field = "">
-	<cfset var id = "">
-	<cfset var choice = "">
-	<cfset var choiceIndex = 0>
-	<cfset var required = "">
-	<cfset var describedBy = "">
 	<cfset var idPrefix = "webForm" & webFormData.webFormId & "_">
 
 	<cfset html.append('<form class="galaxieWebFormForm" data-alias="' & encodeForHtmlAttribute(webFormData.alias) & '" novalidate="novalidate">')>
 	<cfif len(webFormData.description)>
 		<cfset html.append('<p class="galaxieWebFormDescription">' & encodeLines(webFormData.description) & '</p>')>
 	</cfif>
-	<cfloop array="#webFormData.fields#" index="field">
+	<cfset html.append(renderFieldsHtml(webFormData.fields, idPrefix, arguments.choiceCounts))>
+
+	<!--- Spam protection: a field people never see. A bot that fills it in is told the form was sent, and nothing is kept. --->
+	<cfset html.append('<div class="galaxieWebFormHp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>')>
+
+	<cfif arguments.showCaptcha>
+		<!--- webForms.js asks the server for the image (the same captcha as the comment form). --->
+		<cfset html.append('<div class="galaxieWebFormField galaxieWebFormCaptcha" data-field="captchaText"><label for="' & idPrefix & 'captchaText">Enter the text in the image *</label><div class="galaxieWebFormCaptchaImage"></div><input type="text" class="k-textbox" id="' & idPrefix & 'captchaText" name="captchaText" autocomplete="off" required="required" aria-required="true" aria-describedby="' & idPrefix & 'captchaText_error"><div class="galaxieWebFormError k-widget k-tooltip k-tooltip-validation k-invalid-msg" id="' & idPrefix & 'captchaText_error" role="alert" hidden="hidden"></div></div>')>
+	</cfif>
+
+	<cfif webFormData.offerSubscribe>
+		<cfset html.append('<div class="galaxieWebFormField galaxieWebFormChoice"><input type="checkbox" class="k-checkbox" id="' & idPrefix & 'subscribe" name="subscribeToBlog" value="yes"> <label for="' & idPrefix & 'subscribe">Email me new posts (you''ll get an email to confirm first)</label></div>')>
+	</cfif>
+
+	<cfset html.append('<div class="galaxieWebFormActions"><button type="submit" class="k-button k-primary">' & encodeForHtml(webFormData.buttonLabel) & '</button></div>')>
+	<cfset html.append('<div class="galaxieWebFormStatus" role="status" aria-live="polite"></div>')>
+	<cfset html.append('</form>')>
+	<cfreturn html.toString()>
+</cffunction>
+
+<cffunction name="renderFieldsHtml" access="public" returntype="string" output="false"
+		hint="The HTML of a form's fields alone (2026-10-14): each field with its label, help and error message, encoded here. Used by renderFormHtml, and by the booking widget for a booking type's intake questions (Bookings).">
+	<cfargument name="fields" type="array" required="true" hint="A form's fields, as getForm() returns them.">
+	<cfargument name="idPrefix" type="string" required="true" hint="Makes the element ids unique on the page, eg. webForm7_.">
+	<cfargument name="choiceCounts" type="struct" required="false" default="#{}#" hint="From getChoiceCounts().">
+	<cfset var html = createObject("java", "java.lang.StringBuilder").init()>
+	<cfset var field = "">
+	<cfset var id = "">
+	<cfset var choice = "">
+	<cfset var choiceIndex = 0>
+	<cfset var required = "">
+	<cfset var describedBy = "">
+	<cfset var spotsLeft = -1>
+	<cfloop array="#arguments.fields#" index="field">
 		<cfset id = idPrefix & field.fieldName>
 		<cfset required = field.required ? ' required="required" aria-required="true"' : ''>
 		<cfset describedBy = ' aria-describedby="' & id & '_help ' & id & '_error"'>
@@ -694,22 +720,6 @@
 		<cfset html.append('<div class="galaxieWebFormError k-widget k-tooltip k-tooltip-validation k-invalid-msg" id="' & id & '_error" role="alert" hidden="hidden"></div>')>
 		<cfset html.append('</div>')>
 	</cfloop>
-
-	<!--- Spam protection: a field people never see. A bot that fills it in is told the form was sent, and nothing is kept. --->
-	<cfset html.append('<div class="galaxieWebFormHp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>')>
-
-	<cfif arguments.showCaptcha>
-		<!--- webForms.js asks the server for the image (the same captcha as the comment form). --->
-		<cfset html.append('<div class="galaxieWebFormField galaxieWebFormCaptcha" data-field="captchaText"><label for="' & idPrefix & 'captchaText">Enter the text in the image *</label><div class="galaxieWebFormCaptchaImage"></div><input type="text" class="k-textbox" id="' & idPrefix & 'captchaText" name="captchaText" autocomplete="off" required="required" aria-required="true" aria-describedby="' & idPrefix & 'captchaText_error"><div class="galaxieWebFormError k-widget k-tooltip k-tooltip-validation k-invalid-msg" id="' & idPrefix & 'captchaText_error" role="alert" hidden="hidden"></div></div>')>
-	</cfif>
-
-	<cfif webFormData.offerSubscribe>
-		<cfset html.append('<div class="galaxieWebFormField galaxieWebFormChoice"><input type="checkbox" class="k-checkbox" id="' & idPrefix & 'subscribe" name="subscribeToBlog" value="yes"> <label for="' & idPrefix & 'subscribe">Email me new posts (you''ll get an email to confirm first)</label></div>')>
-	</cfif>
-
-	<cfset html.append('<div class="galaxieWebFormActions"><button type="submit" class="k-button k-primary">' & encodeForHtml(webFormData.buttonLabel) & '</button></div>')>
-	<cfset html.append('<div class="galaxieWebFormStatus" role="status" aria-live="polite"></div>')>
-	<cfset html.append('</form>')>
 	<cfreturn html.toString()>
 </cffunction>
 
@@ -928,21 +938,24 @@
 	<cfset var title = "">
 	<cfset var replacement = "">
 	<cfset var position = 1>
-	<cfif not findNoCase("galaxieWebForm", result)>
+	<cfif not findNoCase("galaxieWebForm", result) and not findNoCase("galaxieBooking", result)>
 		<cfreturn result>
 	</cfif>
 	<cfloop condition="true">
 		<!--- Our own markup, written by the Insert Form window; the class may sit anywhere among the attributes. --->
 		<!--- Both kinds: the form (galaxieWebForm) and its sign-up list (galaxieWebFormList). --->
-		<cfset match = reFindNoCase('<div[^>]*class="[^"]*\bgalaxieWebForm(List)?\b[^"]*"[^>]*>(.*?)</div>', result, position, true)>
+		<cfset match = reFindNoCase('<div[^>]*class="[^"]*\bgalaxie(WebForm|WebFormList|Booking)\b[^"]*"[^>]*>(.*?)</div>', result, position, true)>
 		<cfif not match.pos[1]>
 			<cfbreak>
 		</cfif>
 		<!--- The text inside reads "[Form: Title]" or "[Sign-up list: Title]", already HTML encoded. The quotes around it below are
 		plain ones, not &quot;: the feeds strip the tags but not the entities, so &quot; would reach feed readers as text. --->
 		<cfset title = trim(reReplace(mid(result, match.pos[3], match.len[3]), "<[^>]*>", "", "all"))>
-		<cfset title = trim(reReplaceNoCase(title, "^\[(Form|Sign-up list):\s*(.*)\]$", "\2"))>
-		<cfif match.len[2]>
+		<cfset title = trim(reReplaceNoCase(title, "^\[(Form|Sign-up list|Booking):\s*(.*)\]$", "\2"))>
+		<cfif mid(result, match.pos[2], match.len[2]) eq "Booking">
+			<!--- A booking widget (Bookings, 2026-10-14). --->
+			<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) and title neq "All bookings" ? 'Book "' & title & '" on the website' : 'Book a time on the website') & '</a></p>'>
+		<cfelseif mid(result, match.pos[2], match.len[2]) eq "WebFormList">
 			<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) ? 'See the sign-up list "' & title & '" on the website' : 'See the sign-up list on the website') & '</a></p>'>
 		<cfelse>
 			<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) ? 'Fill in the form "' & title & '" on the website' : 'Fill in the form on the website') & '</a></p>'>

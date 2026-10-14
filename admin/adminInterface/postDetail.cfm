@@ -140,12 +140,13 @@
 	<cfif smallScreen>
 		<cfset toolbarString = "undo redo | bold italic | link | image media fancyBoxGallery">
 	<cfelse>
-		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | tox | hr | link | image editimage | media | fancyBoxGallery | map mapRouting | customWindow webForm | emoticons">
+		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | tox | hr | link | image editimage | media | fancyBoxGallery | map mapRouting | customWindow webForm booking | emoticons">
 	</cfif>
 	<cfset includeGallery = true>
 	<cfset includeCustomWindow = true>
 	<!--- Forms (2026-10-13): the Insert Form button. --->
 	<cfset includeWebForm = true>
+	<cfset includeBooking = true>
 	</cfsilent>
 	<!--- Include the tinymce js template --->
 	<cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">

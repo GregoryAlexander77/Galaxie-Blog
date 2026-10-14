@@ -953,6 +953,12 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
 				var windowTitle = "Hours";
+			} else if (Id == 93){
+				// Insert Booking (2026-10-14), from the post editor's Insert Booking button - see admin/adminInterface/insertBooking.cfm.
+				var windowName = "insertBookingWindow";
+				var windowHeight = "<cfif session.isMobile>50%<cfelse>35%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>40%</cfif>";
+				var windowTitle = "Insert Booking";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

@@ -456,6 +456,357 @@
 </cffunction>
 
 <!--- ********************************************************************************************************************
+	What visitors see: the booking types, the free times, and booking one (2026-10-14)
+
+	How free times are worked out (getSlots), all in the blog's time zone, in minutes from midnight:
+	1. The day's hours: a day off (for every location, or this one) closes it; a day with different hours replaces the weekly
+	   hours (this location's change first, then one for every location); otherwise the location's own weekly hours, or the
+	   general ones.
+	2. Start times every StartIntervalMinutes from the start of each range (or back to back), where the whole booking fits.
+	3. Not sooner than MinNoticeHours from now, nor more than MaxDaysAhead days away; no more than DailyLimit of this type a day.
+	4. Not overlapping another booking - of any type, at any location, since the owner is one person - each with its gaps
+	   before and after. A group type shares its own session: the places left are GroupSize less the people already booked.
+	A place held for payment counts until its hold expires (the Stripe step).
+********************************************************************************************************************* --->
+
+<cffunction name="getPublicTypes" access="public" returntype="array" output="false"
+		hint="The active booking types (all, or the one with this alias) with their active locations, as visitors see them. Nothing private is included. Types without an active location are left out.">
+	<cfargument name="alias" type="string" required="false" default="">
+	<cfset var types = []>
+	<cfset var bookingType = "">
+	<cfset var locations = {}>
+	<cfset var thisLocation = "">
+	<cfset var locationId = "">
+	<cfset var offered = []>
+	<cfloop array="#application.locations.getLocations(activeOnly = true)#" index="thisLocation">
+		<cfset locations[thisLocation.locationOptionId] = thisLocation>
+	</cfloop>
+	<cfloop array="#getBookingTypes(activeOnly = true)#" index="bookingType">
+		<cfif not len(arguments.alias) or bookingType.alias eq arguments.alias>
+			<cfset offered = []>
+			<cfloop array="#bookingType.locationIds#" index="locationId">
+				<cfif structKeyExists(locations, locationId)>
+					<cfset arrayAppend(offered, {
+						"locationOptionId": locationId,
+						"label": locations[locationId].label,
+						"kind": locations[locationId].kind,
+						"needsPhone": locations[locationId].kind eq "phone" and locations[locationId].phoneDirection eq "weCall"
+					})>
+				</cfif>
+			</cfloop>
+			<cfif arrayLen(offered)>
+				<cfset arrayAppend(types, {
+					"alias": bookingType.alias,
+					"name": bookingType.name,
+					"category": bookingType.category,
+					"description": bookingType.description,
+					"durationMinutes": bookingType.durationMinutes,
+					"price": bookingType.price,
+					"pricingUnit": bookingType.pricingUnit,
+					"isGroup": bookingType.bookingMode eq "group",
+					"groupSize": bookingType.groupSize,
+					"locations": offered,
+					"hasQuestions": bookingType.webFormId gt 0
+				})>
+			</cfif>
+		</cfif>
+	</cfloop>
+	<cfreturn types>
+</cffunction>
+
+<cffunction name="getSlots" access="public" returntype="array" output="false"
+		hint="The times a booking type can be booked at a location between two dates (inclusive, 'yyyy-mm-dd' in the blog's time zone): [{ local: 'yyyy-mm-dd HH:mm', utc: ISO 8601, spotsLeft }], earliest first. See the notes above.">
+	<cfargument name="bookingType" type="struct" required="true" hint="As getBookingType() returns it.">
+	<cfargument name="locationOptionId" type="numeric" required="true">
+	<cfargument name="fromDate" type="string" required="true">
+	<cfargument name="toDate" type="string" required="true">
+	<cfset var t = arguments.bookingType>
+	<cfset var slots = []>
+	<cfset var zoneId = application.blog.getBlogTimeZoneId()>
+	<cfset var blogNow = application.blog.blogNow()>
+	<cfset var earliest = dateTimeFormat(dateAdd("n", t.minNoticeHours * 60, blogNow), "yyyy-mm-dd HH:nn")>
+	<cfset var lastDate = dateFormat(dateAdd("d", t.maxDaysAhead, blogNow), "yyyy-mm-dd")>
+	<cfset var fromText = arguments.fromDate>
+	<cfset var toText = arguments.toDate lt lastDate ? arguments.toDate : lastDate>
+	<cfset var weekly = getHours(arguments.locationOptionId).days>
+	<cfset var exceptions = getExceptionsBetween(fromText, toText)>
+	<cfset var booked = getActiveBookingsBetween(fromText, toText)>
+	<cfset var currentDay = "">
+	<cfset var dateText = "">
+	<cfset var ranges = []>
+	<cfset var range = "">
+	<cfset var step = t.startIntervalMinutes gt 0 ? t.startIntervalMinutes : t.durationMinutes>
+	<cfset var start = 0>
+	<cfset var finish = 0>
+	<cfset var localText = "">
+	<cfset var b = "">
+	<cfset var conflict = false>
+	<cfset var seatsTaken = 0>
+	<cfset var typeCountToday = 0>
+	<cfset var capacity = t.bookingMode eq "group" ? t.groupSize : 1>
+
+	<cfif not len(zoneId) or not isValidDate(fromText) or not isValidDate(toText) or toText lt fromText>
+		<cfreturn slots>
+	</cfif>
+	<!--- Never more than 62 days in one call. --->
+	<cfif dateDiff("d", parseDate(fromText), parseDate(toText)) gt 62>
+		<cfset toText = dateFormat(dateAdd("d", 62, parseDate(fromText)), "yyyy-mm-dd")>
+	</cfif>
+
+	<cfset currentDay = parseDate(fromText)>
+	<cfloop condition="dateFormat(currentDay, 'yyyy-mm-dd') lte toText">
+		<cfset dateText = dateFormat(currentDay, "yyyy-mm-dd")>
+		<cfset ranges = getDayRanges(dateText, dayOfWeek(currentDay), arguments.locationOptionId, weekly, exceptions)>
+		<!--- The daily limit for this type. --->
+		<cfset typeCountToday = 0>
+		<cfloop array="#booked#" index="b">
+			<cfif left(b.startLocal, 10) eq dateText and b.bookingTypeId eq t.bookingTypeId>
+				<cfset typeCountToday = typeCountToday + 1>
+			</cfif>
+		</cfloop>
+		<cfif t.dailyLimit gt 0 and typeCountToday gte t.dailyLimit>
+			<cfset ranges = []>
+		</cfif>
+		<cfloop array="#ranges#" index="range">
+			<cfset start = range.start>
+			<cfloop condition="start + t.durationMinutes lte range.end">
+				<cfset finish = start + t.durationMinutes>
+				<cfset localText = dateText & " " & minutesToTime(start)>
+				<cfif localText gte earliest>
+					<cfset conflict = false>
+					<cfset seatsTaken = 0>
+					<cfloop array="#booked#" index="b">
+						<cfif left(b.startLocal, 10) eq dateText>
+							<cfif t.bookingMode eq "group" and b.bookingTypeId eq t.bookingTypeId and b.locationOptionId eq arguments.locationOptionId and b.startMinutes eq start>
+								<!--- The same group session: share its places. --->
+								<cfset seatsTaken = seatsTaken + b.partySize>
+							<cfelseif (start - t.bufferBeforeMinutes) lt (b.endMinutes + b.bufferAfterMinutes) and (b.startMinutes - b.bufferBeforeMinutes) lt (finish + t.bufferAfterMinutes)>
+								<cfset conflict = true>
+								<cfbreak>
+							</cfif>
+						</cfif>
+					</cfloop>
+					<cfif not conflict and seatsTaken lt capacity>
+						<cfset arrayAppend(slots, { "local": localText, "utc": toUtc(dateText, start, zoneId), "spotsLeft": capacity - seatsTaken })>
+					</cfif>
+				</cfif>
+				<cfset start = start + step>
+			</cfloop>
+		</cfloop>
+		<cfset currentDay = dateAdd("d", 1, currentDay)>
+	</cfloop>
+	<cfreturn slots>
+</cffunction>
+
+<cffunction name="getDayRanges" access="private" returntype="array" output="false"
+		hint="One day's open ranges for a location, in minutes from midnight, after days off and changed hours: [{ start, end }].">
+	<cfargument name="dateText" type="string" required="true">
+	<cfargument name="dayOfWeek" type="numeric" required="true">
+	<cfargument name="locationOptionId" type="numeric" required="true">
+	<cfargument name="weekly" type="array" required="true">
+	<cfargument name="exceptions" type="array" required="true">
+	<cfset var ranges = []>
+	<cfset var e = "">
+	<cfset var forLocation = "">
+	<cfset var forAll = "">
+	<cfset var range = "">
+	<cfloop array="#arguments.exceptions#" index="e">
+		<cfif e.date eq arguments.dateText and (e.locationOptionId eq 0 or e.locationOptionId eq arguments.locationOptionId)>
+			<cfif e.closed>
+				<cfreturn []>
+			</cfif>
+			<cfif e.locationOptionId eq arguments.locationOptionId><cfset forLocation = e><cfelse><cfset forAll = e></cfif>
+		</cfif>
+	</cfloop>
+	<cfif isStruct(forLocation)>
+		<cfreturn [{ start: timeToMinutes(forLocation.start), end: timeToMinutes(forLocation.end) }]>
+	<cfelseif isStruct(forAll)>
+		<cfreturn [{ start: timeToMinutes(forAll.start), end: timeToMinutes(forAll.end) }]>
+	</cfif>
+	<cfloop array="#arguments.weekly[arguments.dayOfWeek]#" index="range">
+		<cfset arrayAppend(ranges, { start: timeToMinutes(range.start), end: timeToMinutes(range.end) })>
+	</cfloop>
+	<cfreturn ranges>
+</cffunction>
+
+<cffunction name="getExceptionsBetween" access="private" returntype="array" output="false">
+	<cfargument name="fromDate" type="string" required="true">
+	<cfargument name="toDate" type="string" required="true">
+	<cfset var exceptions = []>
+	<cfset var rows = queryExecute("
+		SELECT ExceptionDate, LocationOptionRef, Closed, StartTime, EndTime FROM AvailabilityException
+		WHERE BlogRef = :blogId AND ExceptionDate >= :fromDate AND ExceptionDate <= :toDate
+	", { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, fromDate = { value = arguments.fromDate, cfsqltype = "cf_sql_varchar" }, toDate = { value = arguments.toDate, cfsqltype = "cf_sql_varchar" } })>
+	<cfloop query="rows">
+		<cfset arrayAppend(exceptions, { date: rows.ExceptionDate, locationOptionId: val(rows.LocationOptionRef), closed: isTrue(rows.Closed, true), start: valueOrEmpty(rows.StartTime), end: valueOrEmpty(rows.EndTime) })>
+	</cfloop>
+	<cfreturn exceptions>
+</cffunction>
+
+<cffunction name="getActiveBookingsBetween" access="private" returntype="array" output="false"
+		hint="The bookings that take up time between two dates: confirmed, waiting for approval, or held for payment until the hold expires.">
+	<cfargument name="fromDate" type="string" required="true">
+	<cfargument name="toDate" type="string" required="true">
+	<cfset var booked = []>
+	<cfset var rows = queryExecute("
+		SELECT BookingTypeRef, LocationOptionRef, StartLocal, EndLocal, PartySize, BufferBeforeMinutes, BufferAfterMinutes, Status, HoldExpiresAt
+		FROM Booking
+		WHERE BlogRef = :blogId AND StartLocal >= :fromLocal AND StartLocal <= :toLocal AND Status IN ('confirmed', 'pending')
+	", { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, fromLocal = { value = arguments.fromDate & " 00:00", cfsqltype = "cf_sql_varchar" }, toLocal = { value = arguments.toDate & " 23:59", cfsqltype = "cf_sql_varchar" } })>
+	<cfloop query="rows">
+		<!--- A hold for payment that has run out no longer counts. --->
+		<cfif not (isDate(rows.HoldExpiresAt) and rows.HoldExpiresAt lt now())>
+			<cfset arrayAppend(booked, {
+				bookingTypeId: val(rows.BookingTypeRef),
+				locationOptionId: val(rows.LocationOptionRef),
+				startLocal: rows.StartLocal,
+				startMinutes: timeToMinutes(right(rows.StartLocal, 5)),
+				endMinutes: left(rows.EndLocal, 10) eq left(rows.StartLocal, 10) ? timeToMinutes(right(rows.EndLocal, 5)) : 1440,
+				partySize: max(val(rows.PartySize), 1),
+				bufferBeforeMinutes: val(rows.BufferBeforeMinutes),
+				bufferAfterMinutes: val(rows.BufferAfterMinutes)
+			})>
+		</cfif>
+	</cfloop>
+	<cfreturn booked>
+</cffunction>
+
+<cffunction name="createBooking" access="public" returntype="struct" output="false"
+		hint="Books a time, after checking it is still free. The caller holds a lock around this (ProxyController's submitBooking), so two visitors can't take the same time. Returns { success, errors: { field: message }, message, bookingId, status }.">
+	<cfargument name="bookingType" type="struct" required="true" hint="As getBookingType() returns it.">
+	<cfargument name="locationOptionId" type="numeric" required="true">
+	<cfargument name="startLocal" type="string" required="true" hint="yyyy-mm-dd HH:mm in the blog's time zone.">
+	<cfargument name="partySize" type="numeric" required="true">
+	<cfargument name="name" type="string" required="true">
+	<cfargument name="email" type="string" required="true">
+	<cfargument name="phone" type="string" required="true">
+	<cfargument name="visitorTimeZone" type="string" required="false" default="">
+	<cfargument name="intakeValues" type="struct" required="false" default="#{}#" hint="Checked answers (WebForms.validateSubmission's values), when the type asks questions.">
+	<cfargument name="postId" type="numeric" required="false" default="0">
+	<cfset var t = arguments.bookingType>
+	<cfset var result = { success: false, errors: {}, message: "", bookingId: 0, status: "" }>
+	<cfset var meetLocation = application.locations.getLocation(arguments.locationOptionId)>
+	<cfset var slots = []>
+	<cfset var slot = "">
+	<cfset var found = "">
+	<cfset var party = t.bookingMode eq "group" ? max(int(arguments.partySize), 1) : 1>
+	<cfset var startMinutes = 0>
+	<cfset var amount = 0>
+	<cfset var submissionId = 0>
+	<cfset var entity = "">
+	<cfset var zoneId = application.blog.getBlogTimeZoneId()>
+
+	<cfif not arrayFind(t.locationIds, arguments.locationOptionId) or structIsEmpty(meetLocation) or not meetLocation.active>
+		<cfset result.message = "Please choose where to meet again.">
+		<cfreturn result>
+	</cfif>
+	<cfif not reFind("^\d{4}-\d{2}-\d{2} ([01]\d|2[0-3]):[0-5]\d$", arguments.startLocal)>
+		<cfset result.message = "Please choose a time again.">
+		<cfreturn result>
+	</cfif>
+	<cfif not len(trim(arguments.name))><cfset result.errors["name"] = "Please enter your name."></cfif>
+	<cfif not isValid("email", trim(arguments.email))><cfset result.errors["email"] = "Please enter a valid email address."></cfif>
+	<cfif meetLocation.kind eq "phone" and meetLocation.phoneDirection eq "weCall" and not reFind("^[0-9+().\-\s]{5,50}$", trim(arguments.phone))>
+		<cfset result.errors["phone"] = "Please enter the number to call you on.">
+	<cfelseif len(trim(arguments.phone)) and not reFind("^[0-9+().\-\s]{5,50}$", trim(arguments.phone))>
+		<cfset result.errors["phone"] = "Please enter a phone number.">
+	</cfif>
+	<cfif t.bookingMode eq "group" and (party lt 1 or party gt t.groupSize)>
+		<cfset result.errors["partySize"] = "Please choose how many people.">
+	</cfif>
+	<cfif not structIsEmpty(result.errors)>
+		<cfreturn result>
+	</cfif>
+
+	<!--- Is the time still free, with room for everyone? --->
+	<cfset slots = getSlots(t, arguments.locationOptionId, left(arguments.startLocal, 10), left(arguments.startLocal, 10))>
+	<cfloop array="#slots#" index="slot">
+		<cfif slot.local eq arguments.startLocal><cfset found = slot><cfbreak></cfif>
+	</cfloop>
+	<cfif not isStruct(found)>
+		<cfset result.message = "Sorry, that time was just taken. Please choose another.">
+		<cfreturn result>
+	</cfif>
+	<cfif found.spotsLeft lt party>
+		<cfset result.message = "Sorry, there " & (found.spotsLeft eq 1 ? "is only 1 place" : "are only " & found.spotsLeft & " places") & " left at that time.">
+		<cfreturn result>
+	</cfif>
+
+	<cfset startMinutes = timeToMinutes(right(arguments.startLocal, 5))>
+	<cfset amount = t.price * (t.pricingUnit eq "perPerson" ? party : 1)>
+	<!--- The intake answers are kept as a submission of the type's form, so they show under Forms > Submissions too. --->
+	<cfif t.webFormId gt 0 and not structIsEmpty(arguments.intakeValues)>
+		<cfset submissionId = application.webForms.saveSubmission(application.webForms.getForm(webFormId = t.webFormId), arguments.intakeValues, arguments.postId)>
+	</cfif>
+	<cftransaction>
+		<cfset entity = entityNew("Booking")>
+		<cfset entity.setBlogRef(application.BlogDbObj.getBlogId())>
+		<cfset entity.setBookingTypeRef(t.bookingTypeId)>
+		<cfset entity.setLocationOptionRef(arguments.locationOptionId)>
+		<cfset entity.setStartLocal(arguments.startLocal)>
+		<cfset entity.setEndLocal(left(arguments.startLocal, 10) & " " & minutesToTime(min(startMinutes + t.durationMinutes, 1439)))>
+		<cfset entity.setTimeZone(zoneId)>
+		<cfset entity.setStartUtc(found.utc)>
+		<cfset entity.setVisitorTimeZone(left(reReplace(arguments.visitorTimeZone, "[^A-Za-z0-9_/+\-]", "", "all"), 64))>
+		<cfset entity.setBufferBeforeMinutes(t.bufferBeforeMinutes)>
+		<cfset entity.setBufferAfterMinutes(t.bufferAfterMinutes)>
+		<cfset entity.setPartySize(party)>
+		<cfset entity.setName(left(trim(arguments.name), 255))>
+		<cfset entity.setEmail(left(trim(arguments.email), 255))>
+		<cfset entity.setPhone(left(trim(arguments.phone), 50))>
+		<cfset entity.setWebFormSubmissionRef(submissionId)>
+		<cfset entity.setStatus(t.requiresApproval ? "pending" : "confirmed")>
+		<!--- Until payments are set up (the Stripe step), a price is owed in full and paid outside the blog. --->
+		<cfset entity.setPaymentStatus("none")>
+		<cfset entity.setPaymentChoice(amount gt 0 ? "full" : "")>
+		<cfset entity.setAmountTotal(javacast("bigdecimal", amount))>
+		<cfset entity.setAmountPaid(javacast("bigdecimal", 0))>
+		<cfset entity.setBalanceDue(javacast("bigdecimal", amount))>
+		<cfset entity.setManageToken(lCase(hash(createUUID() & rand("SHA1PRNG") & getTickCount(), "SHA-256")))>
+		<cfset entity.setNotes("")>
+		<cfset entity.setPostRef(arguments.postId)>
+		<cfset entity.setReminderSent(false)>
+		<cfset entity.setCreated(now())>
+		<cfset entity.setDate(now())>
+		<cfset entitySave(entity)>
+	</cftransaction>
+	<cfset result.success = true>
+	<cfset result.bookingId = entity.getBookingId()>
+	<cfset result.status = entity.getStatus()>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="toUtc" access="public" returntype="string" output="false"
+		hint="A wall-clock time on a date in a time zone, as an ISO 8601 UTC instant (java.time handles daylight saving; a time skipped by the clocks going forward moves to the next valid time).">
+	<cfargument name="dateText" type="string" required="true">
+	<cfargument name="minutes" type="numeric" required="true">
+	<cfargument name="zoneId" type="string" required="true">
+	<cfset var localDateTime = createObject("java", "java.time.LocalDateTime").parse(arguments.dateText & "T" & minutesToTime(arguments.minutes))>
+	<cfreturn localDateTime.atZone(createObject("java", "java.time.ZoneId").of(arguments.zoneId)).toInstant().toString()>
+</cffunction>
+
+<cffunction name="timeToMinutes" access="private" returntype="numeric" output="false">
+	<cfargument name="value" type="string" required="true" hint="HH:mm">
+	<cfif not reFind("^\d{1,2}:\d{2}$", arguments.value)><cfreturn 0></cfif>
+	<cfreturn val(listFirst(arguments.value, ":")) * 60 + val(listLast(arguments.value, ":"))>
+</cffunction>
+
+<cffunction name="minutesToTime" access="private" returntype="string" output="false">
+	<cfargument name="minutes" type="numeric" required="true">
+	<cfreturn numberFormat(int(arguments.minutes / 60), "00") & ":" & numberFormat(arguments.minutes mod 60, "00")>
+</cffunction>
+
+<cffunction name="parseDate" access="private" returntype="date" output="false" hint="'yyyy-mm-dd' as a date, without any time zone.">
+	<cfargument name="value" type="string" required="true">
+	<cfreturn createDate(val(listGetAt(arguments.value, 1, "-")), val(listGetAt(arguments.value, 2, "-")), val(listGetAt(arguments.value, 3, "-")))>
+</cffunction>
+
+<cffunction name="isValidDate" access="private" returntype="boolean" output="false">
+	<cfargument name="value" type="string" required="true">
+	<cfreturn reFind("^\d{4}-\d{2}-\d{2}$", arguments.value) and isDate(arguments.value)>
+</cffunction>
+
+<!--- ********************************************************************************************************************
 	Helpers
 ********************************************************************************************************************* --->
 
