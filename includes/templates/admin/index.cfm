@@ -90,6 +90,14 @@ same capability as Blog Settings. --->
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(83);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/forms.gif")>
 </cfif>
+<!--- Bookings (2026-10-14): appointments visitors book with the blog owner. Same capability as Forms (visitors' personal
+details). The icon is a placeholder until a Bookings icon is made. --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting')>
+	<cfset iconList = listAppend(iconList, 'Bookings')>
+	<cfset titleList = listAppend(titleList, 'Bookings')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(87);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/settings.gif")>
+</cfif>
 <!--- Don't include the comment interface with Disqus --->
 <cfif not application.includeDisqus and (listFindNoCase(currentUserCapabilityList, 'EditComment') or listFindNoCase(currentUserCapabilityList, 'EditPost'))>
 	<cfset iconList = listAppend(iconList, 'Comments')>

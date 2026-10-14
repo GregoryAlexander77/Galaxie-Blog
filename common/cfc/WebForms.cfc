@@ -640,7 +640,7 @@
 
 	<cfset html.append('<form class="galaxieWebFormForm" data-alias="' & encodeForHtmlAttribute(webFormData.alias) & '" novalidate="novalidate">')>
 	<cfif len(webFormData.description)>
-		<cfset html.append('<p class="galaxieWebFormDescription">' & replaceNoCase(encodeForHtml(webFormData.description), "&##xa;", "<br/>", "all") & '</p>')>
+		<cfset html.append('<p class="galaxieWebFormDescription">' & encodeLines(webFormData.description) & '</p>')>
 	</cfif>
 	<cfloop array="#webFormData.fields#" index="field">
 		<cfset id = idPrefix & field.fieldName>
@@ -893,7 +893,7 @@
 					<cfset value = len(value) ? "Yes" : "">
 				</cfif>
 				<!--- data-label: the column name, shown beside the value when the rows stack on a phone. --->
-				<cfset html.append('<td data-label="' & encodeForHtmlAttribute(field.label) & '">' & replaceNoCase(encodeForHtml(value), "&##xa;", "<br/>", "all") & '</td>')>
+				<cfset html.append('<td data-label="' & encodeForHtmlAttribute(field.label) & '">' & encodeLines(value) & '</td>')>
 			</cfloop>
 			<cfset html.append('</tr>')>
 		</cfif>
@@ -1070,6 +1070,12 @@ so two people can't both take the last spot. --->
 		<cfreturn " (full)">
 	</cfif>
 	<cfreturn " (" & arguments.spotsLeft & (arguments.spotsLeft eq 1 ? " spot" : " spots") & " left)">
+</cffunction>
+
+<cffunction name="encodeLines" access="private" returntype="string" output="false"
+		hint="Encodes text for HTML and keeps its line breaks as <br/>. Adobe ColdFusion's encodeForHtml turns a newline into &##xa;, Lucee's leaves it as it is (2026-10-14), so both are handled.">
+	<cfargument name="text" type="string" required="true">
+	<cfreturn replace(replaceNoCase(encodeForHtml(replace(arguments.text, chr(13), "", "all")), "&##xa;", chr(10), "all"), chr(10), "<br/>", "all")>
 </cffunction>
 
 <cffunction name="makeFieldName" access="public" returntype="string" output="false"

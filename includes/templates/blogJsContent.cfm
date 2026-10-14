@@ -917,6 +917,24 @@
 				var windowHeight = "<cfif session.isMobile>50%<cfelse>30%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>40%</cfif>";
 				var windowTitle = "Insert Form";
+			} else if (Id == 87){
+				// Bookings (2026-10-14), from the admin icon - see admin/adminInterface/bookings.cfm.
+				var windowName = "bookingsWindow";
+				var windowHeight = "<cfif session.isMobile>75%<cfelse>50%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>50%</cfif>";
+				var windowTitle = "Bookings";
+			} else if (Id == 88){
+				// Locations for bookings (2026-10-14) - see admin/adminInterface/locations.cfm.
+				var windowName = "locationsWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
+				var windowTitle = "Locations";
+			} else if (Id == 89){
+				// The location editor (2026-10-14) - see admin/adminInterface/locationDetail.cfm.
+				var windowName = "locationDetailWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
+				var windowTitle = "Location";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

@@ -1086,6 +1086,18 @@ TinyMce styles
 	<cfinclude template="../../admin/adminInterface/insertWebForm.cfm">
 </cfcase>
 
+<!--- Bookings (2026-10-14): 87 the Bookings window (from the admin icon), 88 Locations, 89 the location editor (optArgs =
+locationOptionId, 0 for a new one). See admin/adminInterface/bookings.cfm and common/cfc/Locations.cfc. --->
+<cfcase value=87>
+	<cfinclude template="../../admin/adminInterface/bookings.cfm">
+</cfcase>
+<cfcase value=88>
+	<cfinclude template="../../admin/adminInterface/locations.cfm">
+</cfcase>
+<cfcase value=89>
+	<cfinclude template="../../admin/adminInterface/locationDetail.cfm">
+</cfcase>
+
 </cfswitch>
 
 </html>

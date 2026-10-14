@@ -10913,6 +10913,124 @@
 	</cffunction>
 
 	<!--- ********************************************************************************************************************
+		Bookings: locations (2026-10-14). Where bookings happen - in person, online or phone - managed by application.locations
+		(common/cfc/Locations.cfc) from the Locations window (88) and the location editor (89). Same capability as Forms: the
+		bookings that use these hold visitors' personal details.
+	********************************************************************************************************************* --->
+
+	<cffunction name="getLocationsForGrid" access="remote" returnformat="json" output="false"
+			hint="The Locations grid (window 88), Kendo or jsGrid.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="gridType" required="no" default="kendo" hint="Either kendo or jsGrid">
+		<!--- Not used for filtering (the grid filters client-side) - declared so jsGrid's field-based filter query params don't trip strict argument matching. --->
+		<cfargument name="label" required="no" default="">
+		<cfargument name="kindLabel" required="no" default="">
+		<cfargument name="details" required="no" default="">
+		<cfargument name="status" required="no" default="">
+
+		<cfset var data = []>
+		<cfset var thisLocation = "">
+		<cfset var kindLabels = { "inPerson": "In person", "online": "Online", "phone": "Phone" }>
+		<cfset var jsonString = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn "Invalid token"><cfelse><cfreturn serializeJSON("Invalid token")></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfloop array="#application.locations.getLocations()#" index="thisLocation">
+			<cfset arrayAppend(data, [
+				"LocationOptionId": thisLocation.locationOptionId,
+				"Label": thisLocation.label,
+				"KindLabel": kindLabels[thisLocation.kind],
+				"Details": application.locations.getSummary(thisLocation),
+				"SortOrder": thisLocation.sortOrder,
+				"Status": thisLocation.active ? "Active" : "Not active"
+			])>
+		</cfloop>
+
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<cfif arguments.gridType eq 'jsGrid'>
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">
+			</cfif>
+		</cfinvoke>
+		<cfreturn jsonString>
+	</cffunction>
+
+	<cffunction name="saveLocation" access="remote" returnformat="json" output="false"
+			hint="Saves a location from the location editor (window 89).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="locationJson" type="string" default="{}" required="false" hint="JSON: locationOptionId, kind, label, venueName, address, onlineLinkMode, onlineUrl, phoneDirection, phoneNumber, instructions, active, sortOrder.">
+
+		<cfset var response = { "success": false, "errorMessage": "", "locationOptionId": 0 }>
+		<cfset var locationData = "">
+		<cfset var saveResult = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset locationData = deserializeJson(arguments.locationJson)>
+				<cfif not isStruct(locationData)>
+					<cfset locationData = {}>
+				</cfif>
+				<cfset saveResult = application.locations.saveLocation(locationData)>
+				<cfset response[ "success" ] = saveResult.success>
+				<cfset response[ "locationOptionId" ] = saveResult.locationOptionId>
+				<cfset response[ "errorMessage" ] = arrayToList(saveResult.errors, "<br/>")>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The location could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="deleteLocation" access="remote" returnformat="json" output="false"
+			hint="Deletes a location (Locations window 88).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="locationOptionId" default="0" required="true">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.locationOptionId)>
+			<cftry>
+				<cfset response[ "success" ] = application.locations.deleteLocation(val(arguments.locationOptionId))>
+				<cfif not response.success>
+					<cfset response[ "errorMessage" ] = "That location no longer exists.">
+				</cfif>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The location could not be deleted: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<!--- ********************************************************************************************************************
 		Forms (2026-10-13) - the admin site's Forms windows (83 the list, 84 the editor, 85 the submissions). The work is done by
 		application.webForms (common/cfc/WebForms.cfc). Forms collect visitors' personal details, so these need the same
 		capability as Blog Settings (EditServerSetting).
