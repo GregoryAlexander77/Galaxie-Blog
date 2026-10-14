@@ -16,6 +16,10 @@ the submissions already received - stay matched to it when the label changes. --
 			{ webFormFieldId: 0, label: "Message", fieldType: "textarea", required: false, placeholder: "", helpText: "", options: "" }
 		]
 	}>
+	<!--- A new form built from the Insert Form window (86) starts with the title typed in its search (otherArgs). --->
+	<cfif structKeyExists(URL, "otherArgs") and len(trim(URL.otherArgs))>
+		<cfset webForm.title = left(trim(URL.otherArgs), 125)>
+	</cfif>
 </cfif>
 <cfset webFormFieldTypes = application.webForms.getFieldTypes()>
 <!--- What the script below needs: the fields as saved, and the field types for the dropdown. --->
@@ -151,6 +155,7 @@ the submissions already received - stay matched to it when the label changes. --
 					kendo.ui.ExtWaitDialog.hide();
 					if (JSON.parse(response.success) == true) {
 						try { refreshWebFormsWindow(); } catch (error) {}
+						try { refreshInsertWebFormWindow(response.webFormId); } catch (error) {}
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: "The form was saved.", icon: "k-ext-information" })).done(function() {
 							$('#webFormDetailWindow').kendoWindow('destroy');
 						});

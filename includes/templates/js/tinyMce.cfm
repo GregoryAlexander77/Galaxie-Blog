@@ -291,12 +291,13 @@
 			},
 		</cfcase>
 		<cfdefaultcase>
+			<!--- Every custom toolbar button needs its menu item listed under Insert too (2026-10-13). Items an editor doesn't register, such as webForm outside the post editor, are skipped by TinyMCE. --->
 			menubar: 'file edit insert view format table ',
 			menu: {
 				file: { title: 'File', items: 'newdocument restoredraft | preview | print ' },
 				edit: { title: 'Edit', items: 'undo redo | cut copy paste | selectall | searchreplace' },
 				view: { title: 'View', items: 'code | visualaid visualchars visualblocks | spellchecker | preview fullscreen' },
-				insert: { title: 'Insert', items: 'image gradient heroAnimation link media | fancyBoxGallery carousel | customWindow | map mapRouting | template codesample inserttable | charmap emoticons hr | pagebreak nonbreaking anchor toc | insertdatetime' },
+				insert: { title: 'Insert', items: 'image gradient heroAnimation link media | fancyBoxGallery carousel | customWindow webForm | map mapRouting | template codesample inserttable | charmap emoticons hr | pagebreak nonbreaking anchor toc | insertdatetime' },
 				format: { title: 'Format', items: 'bold italic underline strikethrough superscript subscript codeformat | formats blockformats fontformats fontsizes align lineheight | forecolor backcolor | removeformat' },
 				table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
 			},
@@ -729,7 +730,7 @@
 					}
 				});
 				editor.ui.registry.addMenuItem('webForm', {
-					text: 'Insert Form',
+					text: 'Form',
 					icon: 'webForm',
 					onAction: function () {
 						createAdminInterfaceWindow(86);
