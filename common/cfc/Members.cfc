@@ -323,20 +323,31 @@
 </cffunction>
 
 <cffunction name="getAccountSignups" access="public" returntype="array" output="false"
-		hint="The member's form sign-ups, newest first (not the questions answered when booking, which belong to the booking): [{ formTitle, postTitle, postUrl, date }].">
+		hint="The member's form sign-ups, newest first (not the questions answered when booking, which belong to the booking): [{ formTitle, postTitle, postUrl, date, event }]. For an event RSVP, event is { when, people, status, canCancel, token } - the token is their own cancel link's, so My account can cancel through cancelManagedRsvp.">
 	<cfargument name="member" type="struct" required="true">
 	<cfset var rows = queryExecute("
-		SELECT s.WebFormSubmissionId, s.Created, s.PostRef, w.Title AS FormTitle, p.Title AS PostTitle
+		SELECT s.WebFormSubmissionId, s.Created, s.PostRef, s.EventRef, w.Title AS FormTitle, p.Title AS PostTitle
 		FROM WebFormSubmission s
 			INNER JOIN WebForm w ON w.WebFormId = s.WebFormRef
 			LEFT JOIN Post p ON p.PostId = s.PostRef
 		WHERE w.BlogRef = :blogId AND LOWER(s.Email) = :email
 			AND s.WebFormSubmissionId NOT IN (SELECT b.WebFormSubmissionRef FROM Booking b WHERE b.WebFormSubmissionRef > 0)
+			AND (s.Status IS NULL OR s.Status NOT IN ('held', 'expired'))
 		ORDER BY s.Created DESC",
 		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, email = { value = lCase(arguments.member.email), cfsqltype = "cf_sql_varchar" } })>
 	<cfset var list = []>
+	<cfset var rsvp = {}>
+	<cfset var eventInfo = {}>
 	<cfloop query="rows">
+		<cfset eventInfo = {}>
+		<cfif val(rows.EventRef) gt 0 and structKeyExists(application, "events")>
+			<cfset rsvp = application.events.getRsvp(submissionId = rows.WebFormSubmissionId)>
+			<cfif not structIsEmpty(rsvp) and not structIsEmpty(rsvp.ev)>
+				<cfset eventInfo = { "when": application.events.whenText(rsvp.ev), "people": rsvp.partySize, "how": structIsEmpty(rsvp.location) ? "" : rsvp.location.label, "status": rsvp.status, "canCancel": rsvp.canCancel, "token": rsvp.canCancel ? rsvp.manageToken : "", "paid": rsvp.amountPaid gt 0 ? application.payments.formatMoney(rsvp.amountPaid) : "" }>
+			</cfif>
+		</cfif>
 		<cfset arrayAppend(list, {
+			"event": eventInfo,
 			"formTitle": rows.FormTitle,
 			"postTitle": isNull(rows.PostTitle) ? "" : rows.PostTitle,
 			"postUrl": val(rows.PostRef) gt 0 and len(rows.PostTitle) ? application.blog.getPostUrlByPostId(rows.PostRef) : "",

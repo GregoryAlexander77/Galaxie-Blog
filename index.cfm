@@ -86,6 +86,10 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 		// or a specific Collection) already owns this exact alias, same real-content-always-wins precedence as above.
 		} else if (urlAfterIndexCfm eq "collections") {
 			pageTypeId = 23;
+		// The Events page (2026-10-15, e.g. /blog/events): upcoming and past events, a month calendar and the calendar feed.
+		// Same precedence: a real Page or Collection called "events" wins.
+		} else if (urlAfterIndexCfm eq "events" and structKeyExists(application, "events")) {
+			pageTypeId = 25;
 		}
 	}
 
@@ -317,6 +321,9 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 			expands into a Collection's own members (that's pageTypeId 20, visiting its own URL directly). See the
 			cfscript block above and includes/templates/pageCollectionListContentHtml.cfm. --->
 			<cfinclude template="#application.baseUrl#/includes/templates/pageCollectionListContentHtml.cfm" />
+		<cfelseif pageTypeId eq 25>
+			<!--- The Events page (/events) - see the cfscript block above and includes/templates/eventListContentHtml.cfm. --->
+			<cfinclude template="#application.baseUrl#/includes/templates/eventListContentHtml.cfm" />
 		<cfelseif pageTypeId eq 24 and (not isDefined("URL.startRow") or val(URL.startRow) lte 1)>
 			<!--- The additive/curated homepage, page 1 only - Featured Pages, Featured Collections and/or Blog Posts,
 			any independent combination, stacked in that order. Reads getHomepageSettings() directly rather than through

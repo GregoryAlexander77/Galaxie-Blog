@@ -79,6 +79,38 @@
 				</cfif>
 				<cfsilent>
 					<!--- *******************************************************************************************************
+						Upcoming Events (2026-10-15): the next few events (common/cfc/Events.cfc renderPodHtml). Shown only when there
+						are upcoming events; Themes can switch it off (content template upcomingEventsPod, added by ensurePodTemplate).
+						Cached for an hour, so finished events drop off, and cleared when an event changes (Events.cfc flushListings).
+					**********************************************************************************************************--->
+					<cfset isActive = false>
+					<cfif structKeyExists(application, "events")>
+						<cfset application.events.ensurePodTemplate()>
+						<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
+							<cfinvokeargument name="contentTemplate" value="upcomingEventsPod">
+						</cfinvoke>
+					</cfif>
+					<cfset cacheName = "upcomingEventsPod" & (session.isMobile ? "Mobile" : "")>
+				</cfsilent>
+				<cfif isActive>
+					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cacheName#" scope="html" file="#application.baseUrl#/cache/events/#cacheName#.cfm" timeout="#(60*60)#" disabled="#application.disableCache#">
+					<cfset upcomingEventsPodHtml = "">
+					<cftry>
+						<cfset upcomingEventsPodHtml = application.events.renderPodHtml()>
+						<cfcatch type="any"></cfcatch>
+					</cftry>
+					<cfif len(upcomingEventsPodHtml)>
+					<div class="widget k-content flexItem">
+						<span class="innerContentContainer">
+							<h3 class="topContent"><i class="fas fa-calendar-alt"></i> Upcoming Events</h3>
+							<cfinclude template="upcomingEvents.cfm">
+						</span>
+					</div>
+					</cfif>
+					</cfmodule>
+				</cfif>
+				<cfsilent>
+					<!--- *******************************************************************************************************
 						CFBlogs.org Feed 
 					**********************************************************************************************************--->
 					<!--- Is the template active? --->

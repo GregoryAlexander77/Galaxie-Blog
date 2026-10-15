@@ -76,6 +76,18 @@
 			starterField("Notes", "textarea", false, "", "Dietary needs, questions or anything else we should know.")
 		]
 	})>
+	<!--- Event sign-up (2026-10-15): for an event's RSVP (the Event window). The event card itself asks how many people are coming
+	and how they'll attend, so this form only needs who they are. --->
+	<cfset arrayAppend(templates, {
+		"key": "eventSignup", "name": "Event sign-up",
+		"title": "Sign up", "description": "", "buttonLabel": "Sign me up",
+		"confirmationMessage": "You have a place. See you there!", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true),
+			starterField("Email address", "email", true, "", "Your confirmation and a link to cancel are sent here."),
+			starterField("Notes", "textarea", false, "", "Dietary needs, access needs or questions.")
+		]
+	})>
 	<!--- Potluck: the dish choice has limits (choice limits, below) so the table doesn't end up with ten desserts. --->
 	<cfset var potluckDishes = starterField("What are you bringing?", "radio", true, "", "Full choices can't be picked; please choose another.", "Main dish#chr(10)#Side dish#chr(10)#Salad#chr(10)#Dessert#chr(10)#Bread#chr(10)#Drinks#chr(10)#Plates/cups/utensils")>
 	<cfset potluckDishes["choiceLimits"] = [ "Main dish": 6, "Side dish": 6, "Salad": 4, "Dessert": 4, "Bread": 3, "Drinks": 4, "Plates/cups/utensils": 2 ]>
@@ -497,6 +509,7 @@
 	<cfargument name="webForm" type="struct" required="true">
 	<cfargument name="values" type="struct" required="true">
 	<cfargument name="postId" required="false" default="0">
+	<cfargument name="rsvp" type="struct" required="false" default="#{}#" hint="For an event RSVP (Events.cfc): { eventId, partySize, locationOptionId, amountTotal }. It is then saved as confirmed, with a token for its cancel link - or, when amountTotal is more than 0, held while the person pays (the payment webhook confirms it).">
 	<cfset var submission = "">
 	<cfset var field = "">
 	<cfset var email = "">
@@ -516,8 +529,29 @@
 		<cfset submission.setEmail(left(email, 255))>
 		<cfset submission.setName(left(name, 255))>
 		<cfset submission.setValuesJson(serializeJSON(arguments.values))>
-		<cfset submission.setStatus("received")>
-		<cfset submission.setManageToken("")>
+		<cfif structKeyExists(arguments.rsvp, "eventId") and structKeyExists(arguments.rsvp, "amountTotal") and val(arguments.rsvp.amountTotal) gt 0>
+			<cfset submission.setStatus("held")>
+			<cfset submission.setPaymentStatus("pending")>
+			<cfset submission.setAmountTotal(javacast("bigdecimal", val(arguments.rsvp.amountTotal)))>
+			<cfset submission.setHoldExpiresAt(dateAdd("n", application.events.getHoldMinutes(), now()))>
+		<cfelseif structKeyExists(arguments.rsvp, "eventId")>
+			<cfset submission.setStatus("confirmed")>
+			<cfset submission.setPaymentStatus("none")>
+		<cfelse>
+			<cfset submission.setPaymentStatus("none")>
+		</cfif>
+		<cfif structKeyExists(arguments.rsvp, "eventId")>
+			<cfset submission.setManageToken(lCase(hash(createUUID() & rand("SHA1PRNG") & getTickCount(), "SHA-256")))>
+			<cfset submission.setEventRef(javacast("int", arguments.rsvp.eventId))>
+			<cfset submission.setPartySize(javacast("int", arguments.rsvp.partySize))>
+			<cfset submission.setLocationOptionRef(javacast("int", arguments.rsvp.locationOptionId))>
+		<cfelse>
+			<cfset submission.setStatus("received")>
+			<cfset submission.setManageToken("")>
+			<cfset submission.setEventRef(javacast("int", 0))>
+			<cfset submission.setPartySize(javacast("int", 1))>
+			<cfset submission.setLocationOptionRef(javacast("int", 0))>
+		</cfif>
 		<cfset submission.setCreated(now())>
 		<cfset submission.setDate(now())>
 		<cfset entitySave(submission)>
@@ -626,6 +660,7 @@
 	<cfargument name="webForm" type="struct" required="true" hint="As returned by getForm().">
 	<cfargument name="showCaptcha" type="boolean" required="false" default="false">
 	<cfargument name="choiceCounts" type="struct" required="false" default="#{}#" hint="From getChoiceCounts(): limited choices then show how many spots are left, and a full one can't be picked.">
+	<cfargument name="extraHtml" type="string" required="false" default="" hint="Already encoded HTML shown after the form's own fields, eg. an event RSVP's 'How many people?' (Events.cfc renderRsvpExtrasHtml).">
 	<cfset var html = createObject("java", "java.lang.StringBuilder").init()>
 	<!--- Not named "form": FORM is a ColdFusion scope. --->
 	<cfset var webFormData = arguments.webForm>
@@ -636,6 +671,7 @@
 		<cfset html.append('<p class="galaxieWebFormDescription">' & encodeLines(webFormData.description) & '</p>')>
 	</cfif>
 	<cfset html.append(renderFieldsHtml(webFormData.fields, idPrefix, arguments.choiceCounts))>
+	<cfset html.append(arguments.extraHtml)>
 
 	<!--- Spam protection: a field people never see. A bot that fills it in is told the form was sent, and nothing is kept. --->
 	<cfset html.append('<div class="galaxieWebFormHp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>')>
@@ -872,7 +908,7 @@
 
 	<cfset rows = queryExecute("
 		SELECT ValuesJson FROM WebFormSubmission
-		WHERE WebFormRef = :id AND (Status IS NULL OR Status <> 'hidden')
+		WHERE WebFormRef = :id AND (Status IS NULL OR Status NOT IN ('hidden', 'cancelled'))
 		ORDER BY Created, WebFormSubmissionId
 	", { id = { value = arguments.webForm.webFormId, cfsqltype = "cf_sql_integer" } })>
 
@@ -1037,7 +1073,7 @@ so two people can't both take the last spot. --->
 	<cfif structIsEmpty(counts)>
 		<cfreturn counts>
 	</cfif>
-	<cfset rows = queryExecute("SELECT ValuesJson FROM WebFormSubmission WHERE WebFormRef = :id",
+	<cfset rows = queryExecute("SELECT ValuesJson FROM WebFormSubmission WHERE WebFormRef = :id AND (Status IS NULL OR Status <> 'cancelled')",
 		{ id = { value = arguments.webForm.webFormId, cfsqltype = "cf_sql_integer" } })>
 	<cfloop query="rows">
 		<cftry>

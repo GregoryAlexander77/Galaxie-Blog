@@ -1151,6 +1151,18 @@ days off. See common/cfc/Bookings.cfc. --->
 <cfcase value=98>
 	<cfinclude template="../../admin/adminInterface/memberDetail.cfm">
 </cfcase>
+<!--- Events (2026-10-15): 99 the event on a post. --->
+<cfcase value=99>
+	<cfinclude template="../../admin/adminInterface/eventDetail.cfm">
+</cfcase>
+<!--- 100 an event's sign-ups (RSVPs). --->
+<cfcase value=100>
+	<cfinclude template="../../admin/adminInterface/eventRsvps.cfm">
+</cfcase>
+<!--- 101 every event (the Events icon). --->
+<cfcase value=101>
+	<cfinclude template="../../admin/adminInterface/events.cfm">
+</cfcase>
 
 </cfswitch>
 

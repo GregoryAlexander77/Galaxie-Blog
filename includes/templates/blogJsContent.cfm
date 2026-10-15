@@ -989,6 +989,24 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>65%</cfif>";
 				var windowTitle = "Member";
+			} else if (Id == 99){
+				// An event on a post (2026-10-15) - see admin/adminInterface/eventDetail.cfm.
+				var windowName = "eventDetailWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+				var windowTitle = "Event";
+			} else if (Id == 100){
+				// An event's sign-ups (2026-10-15) - see admin/adminInterface/eventRsvps.cfm.
+				var windowName = "eventRsvpsWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
+				var windowTitle = "Event sign-ups";
+			} else if (Id == 101){
+				// Every event (2026-10-15) - see admin/adminInterface/events.cfm.
+				var windowName = "eventsWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
+				var windowTitle = "Events";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

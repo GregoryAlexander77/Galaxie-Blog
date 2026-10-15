@@ -28,6 +28,25 @@
 			galaxieWebForms.init({ baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
 		});
 	}
+	// The cancel link in an event RSVP confirmation (?manageRsvp=<token>, 2026-10-15) opens the sign-up on whatever page it lands.
+	// Back from Stripe for a paid event: ?rsvpCheckout=<session> after paying, ?rsvpCancelled=<token> after going back.
+	(function() {
+		var paid = /[?&]rsvpCheckout=(cs_[A-Za-z0-9_]+)/.exec(window.location.search);
+		var cancelled = /[?&]rsvpCancelled=([a-f0-9]{64})/.exec(window.location.search);
+		if (paid || cancelled) {
+			galaxieLoader.webForms(function() {
+				galaxieWebForms.rsvpCheckoutReturn({ session: paid ? paid[1] : "", cancelled: cancelled ? cancelled[1] : "" }, { baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
+			});
+		}
+	})();
+	(function() {
+		var match = /[?&]manageRsvp=([a-f0-9]{64})/.exec(window.location.search);
+		if (match) {
+			galaxieLoader.webForms(function() {
+				galaxieWebForms.manageRsvp(match[1], { baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
+			});
+		}
+	})();
 </script>
 
 <!--- Member accounts (2026-10-15): "Sign in" in the menu, and the page an emailed sign-in link opens. Only when the owner has turned them on in Blog Options. See common/js/members.js. --->

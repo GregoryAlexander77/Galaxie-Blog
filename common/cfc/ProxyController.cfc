@@ -2303,6 +2303,7 @@
 		<cfargument name="categoriesPodEnable" default="true">
 		<cfargument name="monthlyArchivesPodEnable" default="true"> 
 		<cfargument name="blogPostCalendarPodEnable" default="true">
+		<cfargument name="upcomingEventsPodEnable" default="true">
 		<cfargument name="compositeFooterEnable" default="true">
 		<!--- Tail end scripts --->
 		<cfargument name="customFooterHtmlCode" default="">
@@ -2589,7 +2590,7 @@
 		We are going to loop through the content templates and update the data. Everything related to the content is based upon the contentTemplate name that we will loop through. Note: we will handle the calendarPod below as it does not have any code. --->
 		<!--- 2026-10-13: blogPostCalendarPod added. The comment above said the calendar pod was handled below, but nothing handled it,
 		so its Enable checkbox never saved. It has no code to save, only the Enable flag, which this loop sets. --->
-		<cfset contentTemplates = "navigationMenu,aboutWindow,bioWindow,downloadWindow,downloadPod,subscribePod,cfblogsFeedPod,recentPostsPod,recentCommentsPod,categoriesPod,monthlyArchivesPod,blogPostCalendarPod,compositeFooter">
+		<cfset contentTemplates = "navigationMenu,aboutWindow,bioWindow,downloadWindow,downloadPod,subscribePod,cfblogsFeedPod,recentPostsPod,recentCommentsPod,categoriesPod,monthlyArchivesPod,blogPostCalendarPod,upcomingEventsPod,compositeFooter">
 			
 		<cfloop list="#trim(contentTemplates)#" index="i">
 			<cfset thisContentTemplateEnable = evaluate(i & 'Enable')>
@@ -11055,6 +11056,9 @@
 				<cfset local.usedBy = application.bookings.getTypesUsingLocation(val(arguments.locationOptionId))>
 				<cfif arrayLen(local.usedBy)>
 					<cfset response[ "errorMessage" ] = "This location is offered by " & encodeForHtml(arrayToList(local.usedBy, ", ")) & ". Untick it in those booking types first, or edit the location and untick Active to stop offering it.">
+				<!--- ...or an event (2026-10-15). --->
+				<cfelseif application.events.isLocationUsed(val(arguments.locationOptionId))>
+					<cfset response[ "errorMessage" ] = "An event uses this location. Choose another location in that event first, or edit the location and untick Active to stop offering it.">
 				<cfelse>
 					<cfset response[ "success" ] = application.locations.deleteLocation(val(arguments.locationOptionId))>
 					<cfif not response.success>
@@ -11583,6 +11587,300 @@
 			<cfreturn false>
 		</cfif>
 		<cfreturn true>
+	</cffunction>
+
+	
+	<!--- ****************************************************************************************************************
+		Events (2026-10-15): a post with event details. See common/cfc/Events.cfc and admin/adminInterface/eventDetail.cfm.
+	***************************************************************************************************************** --->
+
+	<cffunction name="saveEvent" access="remote" returnformat="json" output="false" hint="Adds or updates the event on a post (admin).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" required="false" default="0">
+		<cfargument name="startDate" type="string" required="false" default="">
+		<cfargument name="startTime" type="string" required="false" default="">
+		<cfargument name="endDate" type="string" required="false" default="">
+		<cfargument name="endTime" type="string" required="false" default="">
+		<cfargument name="allDay" required="false" default="false">
+		<cfargument name="timeZone" type="string" required="false" default="">
+		<cfargument name="locationIds" type="string" required="false" default="">
+		<cfargument name="status" type="string" required="false" default="scheduled">
+		<cfargument name="organizerName" type="string" required="false" default="">
+		<cfargument name="organizerUrl" type="string" required="false" default="">
+		<cfargument name="cost" type="string" required="false" default="">
+		<cfargument name="ticketUrl" type="string" required="false" default="">
+		<cfargument name="webFormId" required="false" default="0" hint="The RSVP form (0 = no RSVP).">
+		<cfargument name="capacity" type="string" required="false" default="">
+		<cfargument name="askPartySize" required="false" default="false">
+		<cfargument name="maxPartySize" type="string" required="false" default="1">
+		<cfargument name="rsvpClosesDate" type="string" required="false" default="">
+		<cfargument name="rsvpClosesTime" type="string" required="false" default="">
+		<cfargument name="price" type="string" required="false" default="" hint="Per person; empty or 0 = free.">
+		<cfargument name="refundHours" type="string" required="false" default="24">
+		<cfset var result = {}>
+		<cfset var response = { "success": false, "errors": [] }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId)>
+			<cfset result = application.events.saveEvent(val(arguments.postId), {
+				startDate: arguments.startDate, startTime: arguments.startTime, endDate: arguments.endDate, endTime: arguments.endTime,
+				allDay: isBoolean(arguments.allDay) and arguments.allDay, timeZone: arguments.timeZone, locationIds: arguments.locationIds,
+				status: arguments.status, organizerName: arguments.organizerName, organizerUrl: arguments.organizerUrl,
+				cost: arguments.cost, ticketUrl: arguments.ticketUrl,
+				webFormId: arguments.webFormId, capacity: arguments.capacity, askPartySize: isBoolean(arguments.askPartySize) and arguments.askPartySize,
+				maxPartySize: arguments.maxPartySize, rsvpClosesDate: arguments.rsvpClosesDate, rsvpClosesTime: arguments.rsvpClosesTime,
+				price: arguments.price, refundHours: arguments.refundHours
+			})>
+			<cfset response = { "success": result.success, "errors": result.errors, "signupsLeft": 0 }>
+			<!--- A cancelled event that still has people signed up: the window offers Cancel all and refund. --->
+			<cfif result.success and arguments.status eq "cancelled">
+				<cfset response[ "signupsLeft" ] = application.events.getRsvpState(application.events.getEvent(val(arguments.postId))).taken>
+			</cfif>
+			<!--- The post shows the event, so its cached page has to be made again. --->
+			<cfif result.success>
+				<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
+				<!--- And the Upcoming Events pod and the Events page. --->
+				<cfset application.events.flushListings()>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="deleteEvent" access="remote" returnformat="json" output="false" hint="Takes the event off a post (admin).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" required="false" default="0">
+		<cfset var response = { "success": false }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId)>
+			<cfset response[ "success" ] = application.events.deleteEvent(val(arguments.postId))>
+			<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
+			<cfset application.events.flushListings()>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<!--- ***************************************************************************************************************
+		Event RSVPs (2026-10-15). Signing up goes through submitWebForm (with eventPostId). The cancel link in the confirmation
+		email (?manageRsvp=<ManageToken>, common/js/webForms.js) uses getManagedRsvp and cancelManagedRsvp - the token is the
+		key, so no login. The owner's list is window 100 (admin/adminInterface/eventRsvps.cfm).
+	***************************************************************************************************************** --->
+
+	<cffunction name="getRsvpCheckoutResult" access="remote" returnformat="json" output="false"
+			hint="When someone comes back from Stripe's payment page for an event (2026-10-15): whether the payment webhook has confirmed their place yet. Read only; the webhook is what confirms.">
+		<cfargument name="sessionId" type="string" required="false" default="">
+		<cfset var response = { "success": false, "paid": false, "title": "", "when": "", "partySize": 0, "how": "" }>
+		<cfset var payment = application.payments.getPaymentBySession(trim(arguments.sessionId))>
+		<cfset var rsvp = {}>
+		<cfif not structIsEmpty(payment) and payment.submissionId gt 0>
+			<cfset rsvp = application.events.getRsvp(submissionId = payment.submissionId)>
+		</cfif>
+		<cfif not structIsEmpty(rsvp) and not structIsEmpty(rsvp.ev)>
+			<cfset response = {
+				"success": true,
+				"paid": rsvp.status eq "confirmed" and listFind("paid,partlyRefunded,refunded", payment.status) gt 0,
+				"title": rsvp.title,
+				"when": application.events.whenText(rsvp.ev),
+				"partySize": rsvp.partySize,
+				"how": structIsEmpty(rsvp.location) ? "" : rsvp.location.label
+			}>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="cancelRsvpCheckout" access="remote" returnformat="json" output="false"
+			hint="They came back from Stripe without paying: closes the payment page and frees the held places at once.">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfset var response = { "success": false }>
+		<cfset var rsvp = application.events.getRsvp(token = trim(arguments.token))>
+		<cfset var sessionId = "">
+		<cfif not structIsEmpty(rsvp) and rsvp.status eq "held">
+			<cfset sessionId = application.payments.getOpenSessionForRsvp(rsvp.submissionId)>
+			<cfif len(sessionId)>
+				<cfset application.payments.expireCheckout(sessionId)>
+				<cfset application.payments.setPaymentStatus(sessionId, "cancelled")>
+			</cfif>
+			<cfset application.events.expireHeldRsvp(rsvp.submissionId)>
+			<cfset response[ "success" ] = true>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getManagedRsvp" access="remote" returnformat="json" output="false" hint="A sign-up, by the token in its cancel link.">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfset var response = { "success": false }>
+		<cfset var rsvp = application.events.getRsvp(token = trim(arguments.token))>
+		<cfif not structIsEmpty(rsvp) and not structIsEmpty(rsvp.ev)>
+			<cfset response = {
+				"success": true,
+				"title": rsvp.title,
+				"postUrl": rsvp.postUrl,
+				"when": application.events.whenText(rsvp.ev),
+				"partySize": rsvp.partySize,
+				"how": structIsEmpty(rsvp.location) ? "" : rsvp.location.label,
+				"status": rsvp.status,
+				"canCancel": rsvp.canCancel,
+				"paid": rsvp.amountPaid gt 0 ? application.payments.formatMoney(rsvp.amountPaid) : "",
+				"refundNote": rsvp.amountPaid gt 0 and rsvp.canCancel ? (rsvp.refundOnCancel gt 0 ? "If you cancel now, " & application.payments.formatMoney(rsvp.refundOnCancel) & " is refunded to your card." : "It's too close to the start for a refund, so cancelling now doesn't refund your payment.") : ""
+			}>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="cancelManagedRsvp" access="remote" returnformat="json" output="false" hint="Cancels a sign-up from its cancel link, frees its places and tells the owner.">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfset var response = { "success": false, "message": "" }>
+		<cfset var rsvp = {}>
+		<cfset var refunded = 0>
+		<cfset var refund = {}>
+		<cfif cgi.request_method neq "POST">
+			<cfset response[ "message" ] = "Please use the button to cancel.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset rsvp = application.events.getRsvp(token = trim(arguments.token))>
+		<cfif structIsEmpty(rsvp)>
+			<cfset response[ "message" ] = "We couldn't find this sign-up.">
+		<cfelseif rsvp.status eq "cancelled">
+			<cfset response[ "success" ] = true>
+		<cfelseif not rsvp.canCancel>
+			<cfset response[ "message" ] = "The event has started, so this can't be cancelled any more.">
+		<cfelse>
+			<!--- Inside the event form's lock, like signing up, so the freed places are counted correctly. --->
+			<cflock name="galaxieWebForm_#rsvp.ev.webFormId#" type="exclusive" timeout="20">
+				<cfset application.events.cancelRsvp(rsvp.submissionId)>
+			</cflock>
+			<!--- Paid: refunded when it's early enough (the event's refund hours). A refund problem is logged; the place is still cancelled. --->
+			<cfif rsvp.refundOnCancel gt 0>
+				<cfset refund = application.payments.refundRsvp(rsvp.submissionId, rsvp.refundOnCancel)>
+				<cfset refunded = refund.refunded>
+				<cfif refunded gt 0><cfset application.events.refreshRsvpPaymentStatus(rsvp.submissionId)></cfif>
+			</cfif>
+			<cfset application.events.sendRsvpEmails(rsvp, "cancelledByPerson", refunded)>
+			<cfset response[ "success" ] = true>
+			<cfset response[ "refunded" ] = refunded gt 0 ? application.payments.formatMoney(refunded) : "">
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="adminCancelRsvp" access="remote" returnformat="json" output="false" hint="The owner cancels a sign-up (window 100); the person is told by email.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="submissionId" required="false" default="0">
+		<cfargument name="refund" required="false" default="true" hint="Refund what they paid online (an organizer cancelling normally does).">
+		<cfset var response = { "success": false, "refunded": 0 }>
+		<cfset var rsvp = {}>
+		<cfset var refunded = 0>
+		<cfset var refundResult = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.submissionId)>
+			<cfset rsvp = application.events.getRsvp(submissionId = val(arguments.submissionId))>
+			<cfif not structIsEmpty(rsvp) and rsvp.status eq "confirmed">
+				<cflock name="galaxieWebForm_#rsvp.ev.webFormId#" type="exclusive" timeout="20">
+					<cfset response[ "success" ] = application.events.cancelRsvp(rsvp.submissionId)>
+				</cflock>
+				<cfif response.success and rsvp.amountPaid gt 0 and isBoolean(arguments.refund) and arguments.refund>
+					<cfset refundResult = application.payments.refundRsvp(rsvp.submissionId)>
+					<cfset refunded = refundResult.refunded>
+					<cfset response[ "refunded" ] = refunded>
+					<cfif refunded gt 0><cfset application.events.refreshRsvpPaymentStatus(rsvp.submissionId)></cfif>
+				</cfif>
+				<cfif response.success><cfset application.events.sendRsvpEmails(rsvp, "cancelledByOwner", refunded)></cfif>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="adminCancelAllRsvps" access="remote" returnformat="json" output="false"
+			hint="Cancel all and refund (window 100 and the Event window, 2026-10-15): cancels every confirmed sign-up of an event, refunds what each paid online in full, and emails each person; sign-ups still on the payment page are closed too. Returns { success, cancelled, refunded (formatted), refundProblems }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" required="false" default="0">
+		<cfset var response = { "success": false, "cancelled": 0, "refunded": "", "refundProblems": 0 }>
+		<cfset var ev = {}>
+		<cfset var item = {}>
+		<cfset var rsvp = {}>
+		<cfset var refundResult = {}>
+		<cfset var refundedTotal = 0>
+		<cfset var refundedOne = 0>
+		<cfset var sessionId = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId)>
+			<!--- Each refund is a call to Stripe, so a big event takes a while. --->
+			<cfsetting requesttimeout="600">
+			<cfset ev = application.events.getEvent(val(arguments.postId))>
+			<cfif not structIsEmpty(ev)>
+				<cfloop array="#application.events.getRsvps(ev.eventId)#" index="item">
+					<cfif item.status eq "confirmed">
+						<cfset rsvp = application.events.getRsvp(submissionId = item.submissionId)>
+						<cfset refundedOne = 0>
+						<cflock name="galaxieWebForm_#ev.webFormId#" type="exclusive" timeout="20">
+							<cfset application.events.cancelRsvp(item.submissionId)>
+						</cflock>
+						<cfif rsvp.amountPaid gt 0>
+							<cfset refundResult = application.payments.refundRsvp(item.submissionId)>
+							<cfset refundedOne = refundResult.refunded>
+							<cfif refundedOne gt 0>
+								<cfset application.events.refreshRsvpPaymentStatus(item.submissionId)>
+							<cfelseif application.payments.getRsvpPaymentTotals(item.submissionId).refundable gt 0>
+								<!--- Cancelled anyway; the owner can refund this one in Stripe. Logged by Payments.cfc. --->
+								<cfset response[ "refundProblems" ]++>
+							</cfif>
+						</cfif>
+						<cfset refundedTotal = refundedTotal + refundedOne>
+						<cfset application.events.sendRsvpEmails(rsvp, ev.status eq "cancelled" ? "eventCancelled" : "cancelledByOwner", refundedOne)>
+						<cfset response[ "cancelled" ]++>
+					<cfelseif item.status eq "held" and item.paying>
+						<!--- On the payment page right now: close it, so nobody pays for a place that's gone. --->
+						<cfset sessionId = application.payments.getOpenSessionForRsvp(item.submissionId)>
+						<cfif len(sessionId)>
+							<cfset application.payments.expireCheckout(sessionId)>
+							<cfset application.payments.setPaymentStatus(sessionId, "cancelled")>
+						</cfif>
+						<cfset application.events.expireHeldRsvp(item.submissionId)>
+					</cfif>
+				</cfloop>
+				<cfset response[ "success" ] = true>
+				<cfset response[ "refunded" ] = refundedTotal gt 0 ? application.payments.formatMoney(refundedTotal) : "">
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="exportEventRsvps" access="remote" returntype="void" output="true" hint="Downloads an event's sign-ups as a CSV file (window 100).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" default="0" required="true">
+		<cfset var ev = {}>
+		<cfset var fileName = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfheader statuscode="403">
+			<cfcontent type="text/plain" reset="true"><cfoutput>Invalid token</cfoutput><cfabort>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif not application.Udf.isLoggedIn() or not isValid("integer", arguments.postId)>
+			<cfheader statuscode="403">
+			<cfcontent type="text/plain" reset="true"><cfoutput>Access denied</cfoutput><cfabort>
+		</cfif>
+		<cfset ev = application.events.getEvent(val(arguments.postId))>
+		<cfif structIsEmpty(ev)>
+			<cfheader statuscode="404">
+			<cfcontent type="text/plain" reset="true"><cfoutput>That event no longer exists.</cfoutput><cfabort>
+		</cfif>
+		<cfset fileName = "event-" & val(arguments.postId) & "-signups-" & dateFormat(now(), "yyyy-mm-dd") & ".csv">
+		<cfheader name="Content-Disposition" value="attachment; filename=#fileName#">
+		<!--- The byte order mark makes Excel open the file as UTF-8. --->
+		<cfcontent type="text/csv; charset=utf-8" reset="true"><cfoutput>#chr(65279)##application.events.getRsvpsCsv(ev)#</cfoutput><cfabort>
 	</cffunction>
 
 	<cffunction name="memberForBrowser" access="private" returntype="struct" output="false" hint="The member fields the visitor's own browser may see, with lower-case keys.">
@@ -12548,18 +12846,40 @@
 	********************************************************************************************************************* --->
 
 	<cffunction name="getWebFormForPage" access="remote" returnformat="json" output="false"
-			hint="The HTML of an active form, by alias, with a one-time token for sending it.">
+			hint="The HTML of an active form, by alias, with a one-time token for sending it. For an event's RSVP (eventPostId), the form also asks how many people and how they'll attend, with the places left above it - or, when sign-ups aren't open, only says why (closed: true).">
 		<cfargument name="alias" type="string" required="false" default="">
+		<cfargument name="eventPostId" required="false" default="0">
 
-		<cfset var response = { "success": false, "html": "", "token": "", "captcha": false, "message": "" }>
+		<cfset var response = { "success": false, "html": "", "token": "", "captcha": false, "message": "", "closed": false, "placesText": "", "priceText": "" }>
+		<cfset var rsvpEvent = {}>
+		<cfset var rsvpState = {}>
+		<cfset var extraHtml = "">
 		<cfset var webForm = application.webForms.getForm(alias = left(trim(arguments.alias), 100))>
 		<cfset var token = "">
 		<cfset var key = "">
 		<cfset var showCaptcha = false>
 
+		<!--- An RSVP: the event has to use this form. --->
+		<cfif isValid("integer", arguments.eventPostId) and arguments.eventPostId gt 0 and not structIsEmpty(webForm)>
+			<cfset rsvpEvent = application.events.getEvent(val(arguments.eventPostId))>
+			<cfif structIsEmpty(rsvpEvent) or rsvpEvent.webFormId neq webForm.webFormId>
+				<cfset webForm = {}>
+			<cfelse>
+				<cfset rsvpState = application.events.getRsvpState(rsvpEvent)>
+				<cfset response[ "placesText" ] = application.events.placesText(rsvpState)>
+				<cfset response[ "priceText" ] = rsvpState.priceText>
+			</cfif>
+		</cfif>
 		<cfif structIsEmpty(webForm) or not webForm.active>
 			<cfset response[ "message" ] = "This form is not available.">
+		<cfelseif not structIsEmpty(rsvpState) and not rsvpState.open>
+			<cfset response[ "success" ] = true>
+			<cfset response[ "closed" ] = true>
+			<cfset response[ "message" ] = rsvpState.message>
 		<cfelse>
+			<cfif not structIsEmpty(rsvpState)>
+				<cfset extraHtml = application.events.renderRsvpExtrasHtml(rsvpEvent, rsvpState, "webForm" & webForm.webFormId & "_")>
+			</cfif>
 			<cfset showCaptcha = webForm.requireCaptcha and captchaRequired()>
 			<cfset token = lCase(replace(createUUID(), "-", "", "all"))>
 			<cflock scope="session" type="exclusive" timeout="10">
@@ -12578,7 +12898,7 @@
 				<cfset session.webFormTokens[token] = { webFormId: webForm.webFormId, issued: now() }>
 			</cflock>
 			<cfset response[ "success" ] = true>
-			<cfset response[ "html" ] = application.webForms.renderFormHtml(webForm, showCaptcha, application.webForms.getChoiceCounts(webForm))>
+			<cfset response[ "html" ] = application.webForms.renderFormHtml(webForm, showCaptcha, application.webForms.getChoiceCounts(webForm), extraHtml)>
 			<cfset response[ "token" ] = token>
 			<cfset response[ "captcha" ] = showCaptcha>
 		</cfif>
@@ -12610,8 +12930,19 @@
 		<cfargument name="website" type="string" required="false" default="" hint="The hidden field only bots fill in.">
 		<cfargument name="subscribeToBlog" type="string" required="false" default="">
 		<cfargument name="postId" required="false" default="0">
+		<cfargument name="eventPostId" required="false" default="0" hint="An event RSVP (Events.cfc): the event's post.">
+		<cfargument name="rsvpPartySize" required="false" default="1">
+		<cfargument name="rsvpLocation" required="false" default="0">
 
-		<cfset var response = { "success": false, "errors": {}, "message": "", "confirmationMessage": "", "confirmationUrl": "", "newToken": "" }>
+		<cfset var response = { "success": false, "errors": {}, "message": "", "confirmationMessage": "", "confirmationUrl": "", "newToken": "", "placesText": "", "checkoutUrl": "" }>
+		<cfset var rsvpAmount = 0>
+		<cfset var checkout = {}>
+		<cfset var backTo = "">
+		<cfset var rsvpEvent = {}>
+		<cfset var rsvpChecked = {}>
+		<cfset var rsvpEmail = "">
+		<cfset var rsvp = {}>
+		<cfset var extraRows = []>
 		<cfset var webForm = application.webForms.getForm(alias = left(trim(arguments.alias), 100))>
 		<cfset var issued = "">
 		<cfset var ip = cgi.remote_addr>
@@ -12625,6 +12956,14 @@
 		<cfif structIsEmpty(webForm) or not webForm.active>
 			<cfset response[ "message" ] = "This form is not available any more.">
 			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<!--- An RSVP: the event has to use this form. --->
+		<cfif isValid("integer", arguments.eventPostId) and arguments.eventPostId gt 0>
+			<cfset rsvpEvent = application.events.getEvent(val(arguments.eventPostId))>
+			<cfif structIsEmpty(rsvpEvent) or rsvpEvent.webFormId neq webForm.webFormId>
+				<cfset response[ "message" ] = "Sign-ups for this event are not available any more.">
+				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+			</cfif>
 		</cfif>
 
 		<!--- The token: issued to this visitor's session for this form, at least 3 seconds ago, used once. --->
@@ -12687,14 +13026,34 @@
 		people can't both get the last spot. Forms without limits don't read the submissions, so the lock costs them nothing. --->
 		<cflock name="galaxieWebForm_#webForm.webFormId#" type="exclusive" timeout="20">
 			<cfset checked = application.webForms.validateSubmission(webForm, sent, application.webForms.getChoiceCounts(webForm))>
-			<cfif checked.valid>
+			<!--- An RSVP: the person's email is needed (confirmation, cancel link, duplicates), then open, party size, how they'll attend and the places left are checked here, inside the lock, right before saving. --->
+			<cfif not structIsEmpty(rsvpEvent)>
+				<cfloop array="#webForm.fields#" index="key">
+					<cfif key.fieldType eq "email">
+						<cfset rsvpEmail = structKeyExists(checked.values, key.fieldName) ? checked.values[key.fieldName] : "">
+						<cfif not isValid("email", rsvpEmail) and not structKeyExists(checked.errors, key.fieldName)>
+							<cfset checked.errors[key.fieldName] = "Please enter your email address, so we can confirm your place.">
+						</cfif>
+						<cfbreak>
+					</cfif>
+				</cfloop>
+				<cfset rsvpChecked = application.events.checkRsvp(rsvpEvent, rsvpEmail, arguments.rsvpPartySize, arguments.rsvpLocation)>
+				<cfset structAppend(checked.errors, rsvpChecked.errors, false)>
+				<cfset checked.valid = structIsEmpty(checked.errors) and rsvpChecked.valid>
+			</cfif>
+			<cfif checked.valid and not structIsEmpty(rsvpEvent)>
+				<!--- A paid event (2026-10-15): the places are held while they pay; see Events.cfc. --->
+				<cfset rsvpAmount = rsvpEvent.price gt 0 ? round(rsvpEvent.price * rsvpChecked.partySize * 100) / 100 : 0>
+				<cfset submissionId = application.webForms.saveSubmission(webForm, checked.values, val(arguments.eventPostId), { eventId: rsvpEvent.eventId, partySize: rsvpChecked.partySize, locationOptionId: rsvpChecked.locationOptionId, amountTotal: rsvpAmount })>
+			<cfelseif checked.valid>
 				<!--- Accepted: store it, then spend the token and the captcha word, count it, and tell the owner below. --->
 				<cfset submissionId = application.webForms.saveSubmission(webForm, checked.values, isNumeric(arguments.postId) ? val(arguments.postId) : 0)>
 			</cfif>
 		</cflock>
 		<cfif not checked.valid>
 			<cfset response[ "errors" ] = checked.errors>
-			<cfset response[ "message" ] = "Please check the highlighted fields.">
+			<cfset response[ "message" ] = structIsEmpty(checked.errors) and not structIsEmpty(rsvpChecked) and len(rsvpChecked.message) ? rsvpChecked.message : "Please check the highlighted fields.">
+			<cfif not structIsEmpty(rsvpEvent)><cfset response[ "placesText" ] = application.events.placesText(application.events.getRsvpState(rsvpEvent))></cfif>
 			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 		</cfif>
 
@@ -12704,8 +13063,44 @@
 			<cfif not structKeyExists(application.webFormRateLimit, ip)><cfset application.webFormRateLimit[ip] = []></cfif>
 			<cfset arrayAppend(application.webFormRateLimit[ip], now())>
 		</cflock>
+		<!--- A paid RSVP: off to Stripe's payment page. Nothing is confirmed or emailed until the verified payment webhook
+		(common/services/stripeWebhook.cfm) arrives; the form's own notification waits for it too. --->
+		<cfif not structIsEmpty(rsvpEvent) and rsvpAmount gt 0>
+			<cfset rsvp = application.events.getRsvp(submissionId = submissionId)>
+			<cfset backTo = listFirst(rsvp.postUrl, "?##")>
+			<cfset checkout = application.payments.createRsvpCheckout(
+				submissionId = submissionId,
+				itemName = rsvp.title & (rsvp.partySize gt 1 ? " (" & rsvp.partySize & " people)" : ""),
+				itemDescription = application.events.whenText(rsvpEvent),
+				amount = rsvpAmount,
+				currencyCode = application.payments.getCurrency(),
+				email = rsvp.email,
+				successUrl = backTo & "?rsvpCheckout={CHECKOUT_SESSION_ID}",
+				cancelUrl = backTo & "?rsvpCancelled=" & rsvp.manageToken
+			)>
+			<cfif not checkout.success>
+				<cfset application.events.expireHeldRsvp(submissionId)>
+				<cfset response[ "message" ] = checkout.message>
+				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+			</cfif>
+			<cfset response[ "success" ] = true>
+			<cfset response[ "checkoutUrl" ] = checkout.url>
+			<cfset response[ "confirmationMessage" ] = "Taking you to the secure payment page...">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+
+		<!--- An RSVP: the person's confirmation, with the event, how they'll attend, the calendar file and the cancel link. --->
+		<cfif not structIsEmpty(rsvpEvent)>
+			<cfset rsvp = application.events.getRsvp(submissionId = submissionId)>
+			<cfif not structIsEmpty(rsvp)>
+				<cfset application.events.sendRsvpEmails(rsvp, "confirmed")>
+				<cfset extraRows = [ { label: "Event", value: rsvp.title }, { label: "People", value: rsvp.partySize } ]>
+				<cfif not structIsEmpty(rsvp.location)><cfset arrayAppend(extraRows, { label: "How", value: rsvp.location.label })></cfif>
+				<cfset arrayAppend(extraRows, { label: "Places taken", value: application.events.getPlacesTaken(rsvpEvent.eventId) & (rsvpEvent.capacity gt 0 ? " of " & rsvpEvent.capacity : "") })>
+			</cfif>
+		</cfif>
 		<cftry>
-			<cfset emailWebFormSubmission(webForm, checked.values)>
+			<cfset emailWebFormSubmission(webForm, checked.values, extraRows)>
 			<cfcatch type="any">
 				<!--- The submission is saved; a mail problem must not make the visitor think it failed. --->
 				<cflog file="galaxieBlogErrors" type="error" text="Form #webForm.alias#: the notification email could not be sent: #cfcatch.message#">
@@ -12730,6 +13125,11 @@
 		<cfset response[ "success" ] = true>
 		<cfset response[ "confirmationMessage" ] = webForm.confirmationMessage>
 		<cfset response[ "confirmationUrl" ] = webForm.confirmationUrl>
+		<cfif not structIsEmpty(rsvp)>
+			<!--- An RSVP stays on the event page and says so plainly. --->
+			<cfset response[ "confirmationUrl" ] = "">
+			<cfset response[ "confirmationMessage" ] = "You have a place" & (rsvp.partySize gt 1 ? " for " & rsvp.partySize & " people" : "") & ". We've emailed you a confirmation with a calendar file and a link to cancel if your plans change.">
+		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
@@ -12746,6 +13146,7 @@
 			hint="Emails a new submission to the form's notify addresses (or the blog's own address), using the blog's branded email.">
 		<cfargument name="webForm" type="struct" required="true">
 		<cfargument name="values" type="struct" required="true">
+		<cfargument name="extraRows" type="array" required="false" default="#[]#" hint="More [{ label, value }] rows, eg. an RSVP's event and number of people.">
 		<cfset var recipients = len(arguments.webForm.notifyEmails) ? arguments.webForm.notifyEmails : application.BlogDbObj.getBlogEmail()>
 		<cfset var body = "">
 		<cfset var emailBody = "">
@@ -12759,6 +13160,9 @@
 						<td align="right" valign="top">#encodeForHtml(field.label)#:</td>
 						<td align="left">#replaceNoCase(encodeForHtml(structKeyExists(arguments.values, field.fieldName) ? arguments.values[field.fieldName] : ""), "&##xa;", "<br/>", "all")#</td>
 					</tr>
+				</cfloop>
+				<cfloop array="#arguments.extraRows#" index="field">
+					<tr><td align="right" valign="top">#encodeForHtml(field.label)#:</td><td align="left">#encodeForHtml(field.value)#</td></tr>
 				</cfloop>
 			</table>
 		</cfoutput></cfsavecontent>

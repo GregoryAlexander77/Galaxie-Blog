@@ -7,6 +7,10 @@
 	- asks the server for the form (ProxyController.cfc's getWebFormForPage), which also hands out a one-time token;
 	- turns its dropdowns and dates into Kendo widgets, and shows the captcha when the form uses it;
 	- sends it (submitWebForm) and shows the confirmation, or the problems next to the fields.
+	An event's RSVP (2026-10-15) is the same form inside the event card, with data-event-post="<postId>": the server adds "How
+	many people?" and "How will you attend?", says how many places are left, or answers only why sign-ups are closed. The cancel
+	link in the confirmation email (?manageRsvp=<token>) opens manageRsvp() on whatever page it lands. A paid event sends the
+	person to Stripe's payment page; coming back (?rsvpCheckout=<session> or ?rsvpCancelled=<token>) opens rsvpCheckoutReturn().
 	The form is fetched after the page has loaded, because the page itself is cached and served the same to every visitor.
 	The server checks everything again; nothing here is relied on for safety.
 */
@@ -33,6 +37,7 @@ var galaxieWebForms = (function($) {
 			".galaxieWebFormCaptchaImage img { display: block; margin-bottom: 0.5em; max-width: 100%; }" +
 			".galaxieWebFormHp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }" +
 			".galaxieWebFormStatus { margin-top: 0.75em; }" +
+			".galaxieEventPlaces, .galaxieEventPrice { margin: 0 0 0.75em 0; }" +
 			// The public sign-up list. On a phone each row becomes a small card, with the column name before each value.
 			".galaxieWebFormList { margin: 1.5em 0; }" +
 			".galaxieWebFormListTools { margin: 0.5em 0; }" +
@@ -133,7 +138,7 @@ var galaxieWebForms = (function($) {
 		$.ajax({
 			type: "post",
 			url: proxyUrl + "?method=getWebFormForPage",
-			data: { alias: placeholder.attr("data-webform") },
+			data: { alias: placeholder.attr("data-webform"), eventPostId: placeholder.attr("data-event-post") || 0 },
 			dataType: "json",
 			cache: false
 		}).done(function(response) {
@@ -142,7 +147,19 @@ var galaxieWebForms = (function($) {
 				placeholder.empty().attr("hidden", "hidden");
 				return;
 			}
+			// An event whose sign-ups aren't open: only why (full, closed, postponed).
+			if (response.closed === true) {
+				placeholder.empty().removeAttr("hidden").append($('<p class="galaxieEventRsvpClosed"></p>').append($("<strong></strong>").text(response.message || "Sign-ups are closed.")));
+				return;
+			}
 			placeholder.html(response.html).removeAttr("hidden");
+			if (response.placesText) {
+				placeholder.prepend($('<p class="galaxieEventPlaces"></p>').text(response.placesText));
+			}
+			// A paid event: the price and the refund rule, above the form.
+			if (response.priceText) {
+				placeholder.prepend($('<p class="galaxieEventPrice"></p>').text(response.priceText));
+			}
 			var form = placeholder.find("form.galaxieWebFormForm");
 			form.data("token", response.token);
 			setUpWidgets(form);
@@ -257,23 +274,37 @@ var galaxieWebForms = (function($) {
 				captchaText: $.trim(form.find("input[name='captchaText']").val() || ""),
 				website: form.find("input[name='website']").val(),
 				subscribeToBlog: form.find("input[name='subscribeToBlog']").is(":checked") ? "yes" : "",
-				postId: placeholder.closest("[data-postid]").attr("data-postid") || 0
+				postId: placeholder.closest("[data-postid]").attr("data-postid") || 0,
+				// An event RSVP's own questions.
+				eventPostId: placeholder.attr("data-event-post") || 0,
+				rsvpPartySize: form.find("select[name='rsvpPartySize']").val() || 1,
+				rsvpLocation: form.find("input[name='rsvpLocation']:checked").val() || 0
 			},
 			dataType: "json",
 			cache: false
 		}).done(function(response) {
 			if (response && response.success === true) {
+				// A paid event: on to Stripe's payment page; the place is confirmed when the payment arrives.
+				if (response.checkoutUrl) {
+					form.find(".galaxieWebFormStatus").text(response.confirmationMessage || "Taking you to the payment page...");
+					window.location.href = response.checkoutUrl;
+					return;
+				}
 				reloadLists(form.attr("data-alias"));
 				if (response.confirmationUrl) {
 					window.location.href = response.confirmationUrl;
 					return;
 				}
 				var confirmation = $('<p class="galaxieWebFormConfirmation" role="status" tabindex="-1"></p>').text(response.confirmationMessage || "Thank you. Your form was sent.");
+				placeholder.find(".galaxieEventPlaces").remove();
 				form.replaceWith(confirmation);
 				confirmation.focus();
 				return;
 			}
 			button.prop("disabled", false);
+			if (response && response.placesText) {
+				placeholder.find(".galaxieEventPlaces").text(response.placesText);
+			}
 			showProblems(form, response && response.errors, response && response.message);
 			// A wrong captcha word gets a new image to try again with.
 			if (response && response.errors && response.errors.captchaText) {
@@ -286,6 +317,103 @@ var galaxieWebForms = (function($) {
 		});
 	}
 
-	return { init: init };
+	// The cancel link in an RSVP confirmation email: shows the sign-up and a button to cancel it, in a window over the page.
+	function manageRsvp(token, options) {
+		baseUrl = (options && options.baseUrl) || baseUrl;
+		proxyUrl = baseUrl + "/common/cfc/ProxyController.cfc";
+		var box = $('<div class="galaxieRsvpManage"></div>').appendTo("body");
+		var dialog = box.kendoWindow({ title: "Your place", modal: true, width: Math.min(560, $(window).width() - 30), visible: false, close: function() { this.destroy(); } }).data("kendoWindow");
+		$.ajax({ type: "post", url: proxyUrl + "?method=getManagedRsvp", data: { token: token }, dataType: "json", cache: false })
+			.done(function(rsvp) {
+				if (!rsvp || rsvp.success !== true) {
+					box.append($("<p></p>").text("We couldn't find this sign-up. The link may be incomplete - please use the link in your confirmation email."));
+				} else {
+					box.append($("<h4></h4>").append($("<a></a>").attr("href", rsvp.postUrl).text(rsvp.title)));
+					var details = $("<p></p>").appendTo(box);
+					details.append($("<b></b>").text(rsvp.when));
+					details.append("<br/>").append(document.createTextNode(rsvp.partySize > 1 ? rsvp.partySize + " people" : "1 person"));
+					if (rsvp.how) { details.append("<br/>").append(document.createTextNode(rsvp.how)); }
+					if (rsvp.paid) { details.append("<br/>").append(document.createTextNode("Paid: " + rsvp.paid)); }
+					var status = $('<p role="status" aria-live="polite"></p>').appendTo(box);
+					if (rsvp.status === "cancelled") {
+						status.text("This place is cancelled.");
+					} else if (!rsvp.canCancel) {
+						status.text("The event has started, so this can't be cancelled any more.");
+					} else {
+						status.text("Can't come after all? Cancelling frees your place for someone else." + (rsvp.refundNote ? " " + rsvp.refundNote : ""));
+						$('<button type="button" class="k-button k-primary">Cancel my place</button>').appendTo(box).on("click", function() {
+							var button = $(this).prop("disabled", true);
+							$.ajax({ type: "post", url: proxyUrl + "?method=cancelManagedRsvp", data: { token: token }, dataType: "json", cache: false })
+								.done(function(response) {
+									if (response && response.success === true) {
+										button.remove();
+										status.text("Your place is cancelled. We've emailed you to confirm." + (response.refunded ? " Refunded: " + response.refunded + "." : ""));
+									} else {
+										button.prop("disabled", false);
+										status.text((response && response.message) || "Your place could not be cancelled. Please try again.");
+									}
+								})
+								.fail(function() {
+									button.prop("disabled", false);
+									status.text("Your place could not be cancelled. Please try again in a moment.");
+								});
+						});
+					}
+				}
+				dialog.center().open();
+			});
+	}
+
+	// The event sign-up forms on the page, fetched again (the places left change when a place is released or paid for).
+	function reloadEventForms() {
+		$(".galaxieWebForm[data-event-post]").each(function() { loadForm($(this)); });
+	}
+
+	// Back from Stripe's payment page for a paid event. The verified webhook confirms the place; this only waits for it.
+	function rsvpCheckoutReturn(params, options) {
+		baseUrl = (options && options.baseUrl) || baseUrl;
+		proxyUrl = baseUrl + "/common/cfc/ProxyController.cfc";
+		if (window.history && window.history.replaceState) {
+			window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+		}
+		var box = $('<div class="galaxieRsvpManage" role="status" aria-live="polite"></div>').appendTo("body");
+		var dialog = box.kendoWindow({ title: "Your place", modal: true, width: Math.min(560, $(window).width() - 30), visible: false, close: function() { this.destroy(); } }).data("kendoWindow");
+		if (params.cancelled) {
+			$.ajax({ type: "post", url: proxyUrl + "?method=cancelRsvpCheckout", data: { token: params.cancelled }, dataType: "json", cache: false })
+				.always(function() {
+					reloadEventForms();
+					box.empty().append($("<h4></h4>").text("Payment cancelled")).append($("<p></p>").text("You weren't signed up and nothing was charged, so the places are free again. You're welcome to sign up whenever you're ready."));
+					dialog.center().open();
+				});
+			return;
+		}
+		box.append($("<p></p>").text("Checking your payment..."));
+		dialog.center().open();
+		var tries = 0;
+		(function check() {
+			tries++;
+			$.ajax({ type: "post", url: proxyUrl + "?method=getRsvpCheckoutResult", data: { sessionId: params.session }, dataType: "json", cache: false })
+				.done(function(result) {
+					if (result && result.success && result.paid) {
+						box.empty();
+						box.append($("<h4></h4>").text("You have a place"));
+						var details = $("<p></p>").appendTo(box);
+						details.append($("<b></b>").text(result.title)).append("<br/>").append(document.createTextNode(result.when));
+						details.append("<br/>").append(document.createTextNode(result.partySize > 1 ? result.partySize + " people" : "1 person"));
+						if (result.how) { details.append("<br/>").append(document.createTextNode(result.how)); }
+						box.append($("<p></p>").text("Thank you - your payment went through. A confirmation with a calendar file and a link to cancel is on its way by email."));
+						reloadEventForms();
+						dialog.center();
+					} else if (tries < 10) {
+						setTimeout(check, 2000);
+					} else {
+						box.empty().append($("<h4></h4>").text("Thank you")).append($("<p></p>").text("Your payment is being confirmed. Your confirmation email is on its way; if it hasn't arrived in a few minutes, please check your spam folder."));
+						dialog.center();
+					}
+				});
+		})();
+	}
+
+	return { init: init, manageRsvp: manageRsvp, rsvpCheckoutReturn: rsvpCheckoutReturn };
 
 })(jQuery);

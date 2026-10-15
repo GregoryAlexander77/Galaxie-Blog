@@ -439,6 +439,24 @@ var galaxieMembers = (function($) {
 				item.append(s.postUrl ? $("<a></a>").attr("href", s.postUrl).text(s.postTitle) : $("<span></span>").text(s.postTitle));
 			}
 			item.append($('<div class="galaxieMemberFacts"></div>').text(s.date));
+			// An event sign-up (2026-10-15): when, how many, and a way to cancel until the event starts.
+			if (s.event && s.event.when) {
+				var facts = s.event.when + ". " + (s.event.people > 1 ? s.event.people + " people" : "1 person") + (s.event.how ? ", " + s.event.how : "") + (s.event.paid ? ". Paid " + s.event.paid : "") + (s.event.status === "cancelled" ? ". Cancelled." : ".");
+				item.append($('<div class="galaxieMemberFacts"></div>').text(facts));
+				if (s.event.canCancel && s.event.token) {
+					var status = $('<div class="galaxieMemberFacts" role="status" aria-live="polite"></div>');
+					$('<button type="button" class="k-button">Cancel my place</button>').appendTo(item).on("click", function() {
+						var button = $(this).prop("disabled", true);
+						$.ajax({ type: "post", url: proxyUrl + "?method=cancelManagedRsvp", data: { token: s.event.token }, dataType: "json", cache: false })
+							.done(function(response) {
+								if (response && response.success === true) { button.remove(); status.text("Your place is cancelled."); }
+								else { button.prop("disabled", false); status.text((response && response.message) || "Your place could not be cancelled."); }
+							})
+							.fail(function() { button.prop("disabled", false); status.text("Your place could not be cancelled. Please try again."); });
+					});
+					item.append(status);
+				}
+			}
 			box.append(item);
 		});
 	}

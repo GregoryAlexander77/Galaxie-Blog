@@ -2696,7 +2696,7 @@
 		<!--- Flush all of the html cache files. This is used by the Refresh Site button (?reinit=1). These are all of the folders that galaxieCache saves html files to. Each file is rebuilt the next time it is needed. --->
 		<cfif arguments.type eq 'all'>
 
-			<cfloop list="posts,comments,bio,cards,pods,header,footer,fonts,rss,pageCollections" index="cacheFolder">
+			<cfloop list="posts,comments,bio,cards,pods,header,footer,fonts,rss,pageCollections,events" index="cacheFolder">
 				<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/' & cacheFolder, '.cfm')>
 			</cfloop>
 			<!--- Map thumbnails are saved as files, not in the cache folders above, so clear them here too. Only Azure Maps thumbnails are cleared, because they are rebuilt on the next view. Bing Maps thumbnails are left alone, since Bing no longer serves them. --->

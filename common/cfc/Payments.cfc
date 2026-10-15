@@ -255,6 +255,35 @@
 	<cfargument name="purpose" type="string" required="true" hint="full or deposit">
 	<cfargument name="itemName" type="string" required="true">
 	<cfargument name="itemDescription" type="string" required="false" default="">
+	<cfargument name="amount" required="true">
+	<cfargument name="currencyCode" type="string" required="true">
+	<cfargument name="email" type="string" required="false" default="">
+	<cfargument name="successUrl" type="string" required="true">
+	<cfargument name="cancelUrl" type="string" required="true">
+	<cfargument name="expiresInMinutes" type="numeric" required="false" default="31">
+	<cfreturn createCheckout(argumentCollection = arguments, refKind = "booking", refId = arguments.bookingId)>
+</cffunction>
+
+<cffunction name="createRsvpCheckout" access="public" returntype="struct" output="false"
+		hint="Starts a Stripe Checkout Session for a paid event sign-up (a WebFormSubmission, 2026-10-15) and records it as a pending Payment. Returns { success, url, sessionId, message }.">
+	<cfargument name="submissionId" type="numeric" required="true">
+	<cfargument name="itemName" type="string" required="true">
+	<cfargument name="itemDescription" type="string" required="false" default="">
+	<cfargument name="amount" required="true">
+	<cfargument name="currencyCode" type="string" required="true">
+	<cfargument name="email" type="string" required="false" default="">
+	<cfargument name="successUrl" type="string" required="true">
+	<cfargument name="cancelUrl" type="string" required="true">
+	<cfreturn createCheckout(argumentCollection = arguments, refKind = "rsvp", refId = arguments.submissionId, purpose = "full")>
+</cffunction>
+
+<cffunction name="createCheckout" access="private" returntype="struct" output="false"
+		hint="A Stripe Checkout Session for a booking or a sign-up, recorded as a pending Payment. Returns { success, url, sessionId, message }.">
+	<cfargument name="refKind" type="string" required="true" hint="booking or rsvp">
+	<cfargument name="refId" type="numeric" required="true" hint="The BookingId or the WebFormSubmissionId.">
+	<cfargument name="purpose" type="string" required="true" hint="full or deposit">
+	<cfargument name="itemName" type="string" required="true">
+	<cfargument name="itemDescription" type="string" required="false" default="">
 	<cfargument name="amount" required="true" hint="Before tax, in the currency's normal units.">
 	<cfargument name="currencyCode" type="string" required="true">
 	<cfargument name="email" type="string" required="false" default="">
@@ -273,7 +302,7 @@
 		<cfreturn result>
 	</cfif>
 	<cfset arrayAppend(fields, ["mode", "payment"])>
-	<cfset arrayAppend(fields, ["client_reference_id", "booking-" & arguments.bookingId])>
+	<cfset arrayAppend(fields, ["client_reference_id", arguments.refKind & "-" & arguments.refId])>
 	<cfif isValid("email", arguments.email)><cfset arrayAppend(fields, ["customer_email", arguments.email])></cfif>
 	<cfset arrayAppend(fields, ["success_url", arguments.successUrl])>
 	<cfset arrayAppend(fields, ["cancel_url", arguments.cancelUrl])>
@@ -283,9 +312,9 @@
 	<!--- Which payment methods are offered is set in the owner's Stripe dashboard (Settings > Payment methods); Stripe no longer
 	accepts payment_method_types here. Methods that take days to clear (bank debits) are best turned off there: a booking is only
 	held for a short time. --->
-	<cfset arrayAppend(fields, ["metadata[bookingId]", arguments.bookingId])>
+	<cfset arrayAppend(fields, ["metadata[#arguments.refKind eq 'booking' ? 'bookingId' : 'signupId'#]", arguments.refId])>
 	<cfset arrayAppend(fields, ["metadata[purpose]", arguments.purpose])>
-	<cfset arrayAppend(fields, ["payment_intent_data[metadata][bookingId]", arguments.bookingId])>
+	<cfset arrayAppend(fields, ["payment_intent_data[metadata][#arguments.refKind eq 'booking' ? 'bookingId' : 'signupId'#]", arguments.refId])>
 	<cfset arrayAppend(fields, ["line_items[0][quantity]", "1"])>
 	<cfset arrayAppend(fields, ["line_items[0][price_data][currency]", lCase(arguments.currencyCode)])>
 	<cfset arrayAppend(fields, ["line_items[0][price_data][unit_amount]", toMinorUnits(arguments.amount, arguments.currencyCode)])>
@@ -299,17 +328,17 @@
 		<cfset arrayAppend(fields, ["line_items[1][price_data][unit_amount]", toMinorUnits(tax.amount, arguments.currencyCode)])>
 		<cfset arrayAppend(fields, ["line_items[1][price_data][product_data][name]", tax.label])>
 	</cfif>
-	<cfset answer = stripeRequest("POST", "/v1/checkout/sessions", fields, "booking-" & arguments.bookingId & "-" & arguments.purpose & "-" & hash(createUUID()))>
+	<cfset answer = stripeRequest("POST", "/v1/checkout/sessions", fields, arguments.refKind & "-" & arguments.refId & "-" & arguments.purpose & "-" & hash(createUUID()))>
 	<cfif not answer.success or not structKeyExists(answer.data, "id") or not structKeyExists(answer.data, "url")>
 		<cfset result.message = "The payment page couldn't be opened. Please try again in a moment.">
-		<cflog file="galaxieBlogErrors" type="error" text="Booking #arguments.bookingId#: Stripe checkout failed (#answer.status#): #answer.message#">
+		<cflog file="galaxieBlogErrors" type="error" text="#arguments.refKind eq 'booking' ? 'Booking' : 'Event sign-up'# #arguments.refId#: Stripe checkout failed (#answer.status#): #answer.message#">
 		<cfreturn result>
 	</cfif>
 	<cftransaction>
 		<cfset entity = entityNew("Payment")>
 		<cfset entity.setBlogRef(javacast("int", application.BlogDbObj.getBlogId()))>
-		<cfset entity.setBookingRef(javacast("int", arguments.bookingId))>
-		<cfset entity.setWebFormSubmissionRef(javacast("int", 0))>
+		<cfset entity.setBookingRef(javacast("int", arguments.refKind eq "booking" ? arguments.refId : 0))>
+		<cfset entity.setWebFormSubmissionRef(javacast("int", arguments.refKind eq "rsvp" ? arguments.refId : 0))>
 		<cfset entity.setProvider("stripe")>
 		<cfset entity.setProviderSessionId(answer.data.id)>
 		<cfset entity.setProviderPaymentId("")>
@@ -343,7 +372,7 @@
 </cffunction>
 
 <cffunction name="getPaymentBySession" access="public" returntype="struct" output="false"
-		hint="A recorded payment by its Checkout Session id: { paymentId, bookingId, purpose, amount, taxAmount, amountPaid, currency, status, testMode }, or an empty struct.">
+		hint="A recorded payment by its Checkout Session id: { paymentId, bookingId, submissionId (an event sign-up), purpose, amount, taxAmount, amountPaid, currency, status, testMode }, or an empty struct.">
 	<cfargument name="sessionId" type="string" required="true">
 	<cfset var found = []>
 	<cfif reFind("^cs_[A-Za-z0-9_]+$", arguments.sessionId)>
@@ -355,6 +384,7 @@
 	<cfreturn {
 		paymentId: found[1].getPaymentId(),
 		bookingId: val(valueOrEmpty(found[1].getBookingRef())),
+		submissionId: val(valueOrEmpty(found[1].getWebFormSubmissionRef())),
 		purpose: valueOrEmpty(found[1].getPurpose()),
 		amount: val(valueOrEmpty(found[1].getAmount())),
 		taxAmount: val(valueOrEmpty(found[1].getTaxAmount())),
@@ -368,9 +398,20 @@
 <cffunction name="getPaymentsForBooking" access="public" returntype="array" output="false"
 		hint="A booking's payments that went through, newest first: [{ paymentId, sessionId, paymentIntentId, purpose, amountPaid, refunded, status, currency }].">
 	<cfargument name="bookingId" type="numeric" required="true">
+	<cfreturn paymentsFor("BookingRef", arguments.bookingId)>
+</cffunction>
+
+<cffunction name="getPaymentsForRsvp" access="public" returntype="array" output="false" hint="An event sign-up's payments that went through (2026-10-15), as getPaymentsForBooking.">
+	<cfargument name="submissionId" type="numeric" required="true">
+	<cfreturn paymentsFor("WebFormSubmissionRef", arguments.submissionId)>
+</cffunction>
+
+<cffunction name="paymentsFor" access="private" returntype="array" output="false">
+	<cfargument name="column" type="string" required="true" hint="BookingRef or WebFormSubmissionRef">
+	<cfargument name="id" type="numeric" required="true">
 	<cfset var payments = []>
 	<cfset var e = "">
-	<cfset var found = ormExecuteQuery("FROM Payment WHERE BookingRef = :bookingId AND BlogRef = :blogId AND Status IN ('paid', 'partlyRefunded', 'refunded') ORDER BY PaymentId DESC", { bookingId = javacast("int", arguments.bookingId), blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
+	<cfset var found = ormExecuteQuery("FROM Payment WHERE #arguments.column eq 'BookingRef' ? 'BookingRef' : 'WebFormSubmissionRef'# = :refId AND BlogRef = :blogId AND Status IN ('paid', 'partlyRefunded', 'refunded') ORDER BY PaymentId DESC", { refId = javacast("int", arguments.id), blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
 	<cfloop array="#found#" index="e">
 		<cfset arrayAppend(payments, {
 			paymentId: e.getPaymentId(),
@@ -389,9 +430,19 @@
 <cffunction name="getPaymentTotals" access="public" returntype="struct" output="false"
 		hint="What a booking's payments add up to: { paid, refunded, refundable }.">
 	<cfargument name="bookingId" type="numeric" required="true">
+	<cfreturn totalsOf(getPaymentsForBooking(arguments.bookingId))>
+</cffunction>
+
+<cffunction name="getRsvpPaymentTotals" access="public" returntype="struct" output="false" hint="What an event sign-up's payments add up to: { paid, refunded, refundable }.">
+	<cfargument name="submissionId" type="numeric" required="true">
+	<cfreturn totalsOf(getPaymentsForRsvp(arguments.submissionId))>
+</cffunction>
+
+<cffunction name="totalsOf" access="private" returntype="struct" output="false">
+	<cfargument name="payments" type="array" required="true">
 	<cfset var totals = { paid: 0, refunded: 0, refundable: 0 }>
 	<cfset var payment = "">
-	<cfloop array="#getPaymentsForBooking(arguments.bookingId)#" index="payment">
+	<cfloop array="#arguments.payments#" index="payment">
 		<cfset totals.paid = totals.paid + payment.amountPaid>
 		<cfset totals.refunded = totals.refunded + payment.refunded>
 	</cfloop>
@@ -403,8 +454,22 @@
 		hint="Refunds a booking's online payments through Stripe, newest first: all of it, or up to amount. Returns { success, refunded, message }.">
 	<cfargument name="bookingId" type="numeric" required="true">
 	<cfargument name="amount" required="false" default="0" hint="0 = everything that can still be refunded.">
+	<cfreturn refundPayments(getPaymentsForBooking(arguments.bookingId), "bookingId", arguments.bookingId, arguments.amount)>
+</cffunction>
+
+<cffunction name="refundRsvp" access="public" returntype="struct" output="false" hint="Refunds an event sign-up's online payments (2026-10-15), as refundBooking.">
+	<cfargument name="submissionId" type="numeric" required="true">
+	<cfargument name="amount" required="false" default="0" hint="0 = everything that can still be refunded.">
+	<cfreturn refundPayments(getPaymentsForRsvp(arguments.submissionId), "signupId", arguments.submissionId, arguments.amount)>
+</cffunction>
+
+<cffunction name="refundPayments" access="private" returntype="struct" output="false">
+	<cfargument name="payments" type="array" required="true">
+	<cfargument name="metaKey" type="string" required="true" hint="bookingId or signupId, for the refund's metadata and the log.">
+	<cfargument name="refId" type="numeric" required="true">
+	<cfargument name="amount" required="false" default="0">
 	<cfset var result = { success: false, refunded: 0, message: "" }>
-	<cfset var totals = getPaymentTotals(arguments.bookingId)>
+	<cfset var totals = totalsOf(arguments.payments)>
 	<cfset var remaining = val(arguments.amount) gt 0 ? min(val(arguments.amount), totals.refundable) : totals.refundable>
 	<cfset var payment = "">
 	<cfset var part = 0>
@@ -413,18 +478,18 @@
 		<cfset result.message = "There's nothing left to refund.">
 		<cfreturn result>
 	</cfif>
-	<cfloop array="#getPaymentsForBooking(arguments.bookingId)#" index="payment">
+	<cfloop array="#arguments.payments#" index="payment">
 		<cfif remaining lte 0><cfbreak></cfif>
 		<cfset part = min(remaining, round((payment.amountPaid - payment.refunded) * 100) / 100)>
 		<cfif part gt 0 and len(payment.paymentIntentId)>
 			<cfset answer = stripeRequest("POST", "/v1/refunds", [
 				["payment_intent", payment.paymentIntentId],
 				["amount", toMinorUnits(part, payment.currency)],
-				["metadata[bookingId]", arguments.bookingId]
+				["metadata[#arguments.metaKey#]", arguments.refId]
 			], "refund-" & payment.paymentId & "-" & toMinorUnits(payment.refunded + part, payment.currency))>
 			<cfif not answer.success>
 				<cfset result.message = "Stripe didn't make the refund: " & answer.message>
-				<cflog file="galaxieBlogErrors" type="error" text="Booking #arguments.bookingId#: refund failed (#answer.status#): #answer.message#">
+				<cflog file="galaxieBlogErrors" type="error" text="#arguments.metaKey# #arguments.refId#: refund failed (#answer.status#): #answer.message#">
 				<cfbreak>
 			</cfif>
 			<cfset recordRefund(payment.paymentId, payment.refunded + part)>
@@ -446,6 +511,21 @@
 	</cfif>
 	<cfset recordRefund(found[1].getPaymentId(), max(val(arguments.amountRefunded), val(valueOrEmpty(found[1].getRefundedAmount()))))>
 	<cfreturn val(valueOrEmpty(found[1].getBookingRef()))>
+</cffunction>
+
+<cffunction name="getRefsByPaymentIntent" access="public" returntype="struct" output="false" hint="What a Stripe payment was for: { bookingId, submissionId } (0 when not this blog's).">
+	<cfargument name="paymentIntentId" type="string" required="true">
+	<cfset var found = ormExecuteQuery("FROM Payment WHERE ProviderPaymentId = :pi AND BlogRef = :blogId", { pi = arguments.paymentIntentId, blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
+	<cfif not arrayLen(found)>
+		<cfreturn { bookingId: 0, submissionId: 0 }>
+	</cfif>
+	<cfreturn { bookingId: val(valueOrEmpty(found[1].getBookingRef())), submissionId: val(valueOrEmpty(found[1].getWebFormSubmissionRef())) }>
+</cffunction>
+
+<cffunction name="getOpenSessionForRsvp" access="public" returntype="string" output="false" hint="The Checkout Session id of a sign-up's payment that is still open (pending), or an empty string.">
+	<cfargument name="submissionId" type="numeric" required="true">
+	<cfset var found = ormExecuteQuery("FROM Payment WHERE WebFormSubmissionRef = :refId AND Status = :status AND BlogRef = :blogId ORDER BY PaymentId DESC", { refId = javacast("int", arguments.submissionId), status = "pending", blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
+	<cfreturn arrayLen(found) ? found[1].getProviderSessionId() : "">
 </cffunction>
 
 <cffunction name="recordRefund" access="private" returntype="void" output="false">

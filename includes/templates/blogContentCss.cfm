@@ -1004,6 +1004,37 @@
 			border-top: 1px solid #ddd;
 		}
 
+		<!--- The event card at the top of an event post (2026-10-15, common/cfc/Events.cfc renderCard): a date block on the left, the details on the right. Colours come from the theme (k-content, k-header). --->
+		.galaxieEventCard { display: flex; gap: 14px; align-items: flex-start; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin: 0 0 16px 0; }
+		.galaxieEventDate { flex: 0 0 64px; text-align: center; border-radius: 6px; padding: 6px 0; line-height: 1.1; }
+		.galaxieEventMonth { display: block; font-size: 0.8em; letter-spacing: 1px; }
+		.galaxieEventDay { display: block; font-size: 1.8em; font-weight: bold; }
+		.galaxieEventBody { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+		.galaxieEventBody p { margin: 0 0 6px 0; }
+		.galaxieEventPlace { margin: 0 0 4px 0; }
+		.galaxieEventButtons { margin-top: 10px !important; }
+		.galaxieEventButtons .k-button { margin: 0 6px 6px 0; }
+		.galaxieEventIsOver .galaxieEventCalendarButton { display: none; }
+		<!--- The Upcoming Events pod and the Events page (2026-10-15, Events.cfc renderPodHtml / renderEventsPageHtml). --->
+		.galaxieEventPodList { list-style: none; margin: 0; padding: 0; }
+		.galaxieEventPodItem { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px 0; }
+		.galaxieEventPodItem .galaxieEventDate { flex: 0 0 44px; padding: 3px 0; }
+		.galaxieEventPodItem .galaxieEventDay { font-size: 1.3em; }
+		.galaxieEventPodText { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+		.galaxieEventPodWhen { font-size: 0.9em; }
+		.galaxieEventPodLinks { margin: 4px 0 0 0; }
+		.galaxieEventsCalendar { margin: 0 0 16px 0; max-width: 340px; }
+		.galaxieEventsCalendar.k-calendar { width: 100%; }
+		.galaxieEventsDayMark { font-weight: bold; text-decoration: underline; }
+		.galaxieEventsItemTitle { margin: 0 0 6px 0; }
+		.galaxieEventsItem.galaxieEventIsOver { opacity: 0.8; }
+		.galaxieEventsPicked { outline: 3px solid currentColor; }
+		@media (max-width: 600px) {
+			.galaxieEventCard { gap: 10px; padding: 10px; }
+			.galaxieEventDate { flex-basis: 46px; }
+			.galaxieEventDay { font-size: 1.4em; }
+		}
+
 		<!--- Admin windows (2026-10-15): one look for every form table with the adminBlocks class. Blocks alternate k-content /
 		k-alt (HtmlUtils.cfc getKendoClass); a blockSpacer row in the old colour, then one with the 'border' line in the new colour,
 		divides blocks; a thin 'border' row divides rows inside a block. Long descriptions get their own row at the top of a block;

@@ -3356,6 +3356,10 @@
 		<cfif structKeyExists(application, "webForms")>
 			<cfset emailBody = application.webForms.addPlacementLinks(application.webForms.replacePlaceholders(emailBody, emailTitleLink), arguments.postId, emailTitleLink)>
 		</cfif>
+		<!--- A post that is an event (2026-10-15): when, where and links to sign up or add it to a calendar, above the article. --->
+		<cfif structKeyExists(application, "events")>
+			<cfset emailBody = application.events.renderEmailSummary(arguments.postId, emailTitle, emailTitleLink) & emailBody>
+		</cfif>
 		<cfset callToActionText = "View on Web">
 		<cfset callToActionLink = "#emailTitleLink#">
 		<cfset unSubscribeLink = "#application.blogHostUrl#/?unsubscribe&email=#arguments.email#&amp;token=#arguments.token#">

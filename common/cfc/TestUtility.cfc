@@ -229,6 +229,62 @@ Image.cfc's generateHeroArt()/generateAnimationDefault(). --->
 	<cfreturn "ORM reloaded - new/changed entity properties and any pending schema update should now be live.">
 </cffunction>
 
+<cffunction name="simulateStripeCheckoutPaid" access="remote" returntype="string" output="false" returnformat="plain"
+		hint="Local testing of paid bookings and event sign-ups (2026-10-15) without typing a card on Stripe's page, and without the Stripe CLI forwarding webhooks. TEST MODE ONLY. For a checkout this blog started (a pending Payment with that Checkout Session id): makes a real test-mode payment with Stripe's published test card token pm_card_visa (so refunds can be tested for real afterwards), then sends this blog's own webhook (common/services/stripeWebhook.cfm) a checkout.session.completed message for the session, signed with the saved webhook signing secret exactly as Stripe signs it. The Checkout Session itself stays unpaid at Stripe and simply expires. eg. TestUtility.cfc?method=simulateStripeCheckoutPaid&sessionId=cs_test_...">
+	<cfargument name="sessionId" type="string" required="true">
+	<cfset requireEditSiteAccess()>
+	<cfset var keys = application.payments.getStripeKeys()>
+	<cfset var payment = application.payments.getPaymentBySession(trim(arguments.sessionId))>
+	<cfset var total = 0>
+	<cfset var minor = "">
+	<cfset var intent = "">
+	<cfset var intentData = {}>
+	<cfset var payload = "">
+	<cfset var stamp = "">
+	<cfset var mac = "">
+	<cfset var signature = "">
+	<cfset var delivery = "">
+	<cfif not keys.testMode or not reFind("^sk_test_", keys.secretKey)>
+		<cfreturn "Refused: this only works in Stripe test mode with a test secret key.">
+	</cfif>
+	<cfif structIsEmpty(payment)>
+		<cfreturn "No payment of this blog has that Checkout Session id.">
+	</cfif>
+	<cfif payment.status neq "pending">
+		<cfreturn "That payment is already #payment.status#.">
+	</cfif>
+	<cfset total = payment.amount + payment.taxAmount>
+	<cfset minor = application.payments.toMinorUnits(total, payment.currency)>
+	<!--- A real test-mode payment, so its PaymentIntent can be refunded later. --->
+	<cfhttp method="post" url="https://api.stripe.com/v1/payment_intents" result="intent" timeout="30">
+		<cfhttpparam type="header" name="Authorization" value="Bearer #keys.secretKey#">
+		<cfhttpparam type="formfield" name="amount" value="#minor#">
+		<cfhttpparam type="formfield" name="currency" value="#lCase(payment.currency)#">
+		<cfhttpparam type="formfield" name="payment_method" value="pm_card_visa">
+		<cfhttpparam type="formfield" name="confirm" value="true">
+		<cfhttpparam type="formfield" name="automatic_payment_methods[enabled]" value="true">
+		<cfhttpparam type="formfield" name="automatic_payment_methods[allow_redirects]" value="never">
+		<cfhttpparam type="formfield" name="description" value="Galaxie Blog local test for #arguments.sessionId#">
+	</cfhttp>
+	<cfif not isJSON(intent.fileContent)>
+		<cfreturn "Stripe didn't answer: #intent.statusCode#">
+	</cfif>
+	<cfset intentData = deserializeJSON(intent.fileContent)>
+	<cfif not structKeyExists(intentData, "id") or not structKeyExists(intentData, "status") or intentData.status neq "succeeded">
+		<cfreturn "The test payment didn't go through: #intent.fileContent#">
+	</cfif>
+	<!--- The webhook message, signed the way Stripe signs it: HMAC-SHA256 of "<timestamp>.<payload>" with the signing secret. --->
+	<cfset stamp = int(createObject("java", "java.lang.System").currentTimeMillis() / 1000)>
+	<cfset payload = '{"id":"evt_local_' & lCase(hash(createUUID(), "MD5")) & '","object":"event","type":"checkout.session.completed","livemode":false,"data":{"object":{"id":"' & arguments.sessionId & '","object":"checkout.session","payment_status":"paid","amount_total":' & minor & ',"currency":"' & lCase(payment.currency) & '","payment_intent":"' & intentData.id & '"}}}'>
+	<cfset signature = lCase(hmac(stamp & "." & payload, keys.webhookSecret, "HmacSHA256", "utf-8"))>
+	<cfhttp method="post" url="#application.payments.getWebhookUrl()#" result="delivery" timeout="60">
+		<cfhttpparam type="header" name="Stripe-Signature" value="t=#stamp#,v1=#signature#">
+		<cfhttpparam type="header" name="Content-Type" value="application/json">
+		<cfhttpparam type="body" value="#payload#">
+	</cfhttp>
+	<cfreturn "Test payment #intentData.id# (#application.payments.formatMoney(total, payment.currency)#); webhook answered #delivery.statusCode#: #left(trim(delivery.fileContent), 200)#">
+</cffunction>
+
 <cffunction name="checkAndFixNullColumns" access="remote" returntype="void" output="yes"
 		hint="Checks every row of a given ORM entity for a NULL value in one or more properties and optionally backfills to a type-appropriate default (false for boolean, 0 for numeric, '' otherwise). The recurring gap this generalizes: a <cfproperty default='...'> added to an already-populated entity only applies that default to NEW rows created in code - dbcreate='update' creates the column, but every pre-existing row keeps a true SQL NULL until saved once. That NULL then trips things downstream (a HQL 'SELECT new Map(...)' silently omits the key on Lucee - see checkAndFixMissingBlogRef's own BlogRef case, PageCollection.HeroGradient/HeroOverlayText/HeroOverlayTextColor from 2026-09-27, and BlogOption.HomepageShowPages/HomepageShowCollections/HomepageShowBlogPosts from the 2026-09-28 galaxieblog.org deploy - that last case is exactly why this function now picks a type-aware default instead of always using '': blindly setting a boolean property to '' silently failed to actually clear the NULL, since Hibernate can't coerce an empty string into a boolean). Defaults to a dry run - pass confirm=true to actually persist (calls ormFlush()).">
 	<cfargument name="entityName" type="string" required="true" hint="e.g. 'PageCollection'.">

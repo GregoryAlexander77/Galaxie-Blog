@@ -1278,6 +1278,7 @@
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
 			<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Change Alias</button>
+			<button id="postEvent" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(99,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Event</button>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
@@ -1304,6 +1305,8 @@
 						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
 					</td>
 					<td width="20%" align="left">
+						<!--- Turns the post into an event (2026-10-15) - see admin/adminInterface/eventDetail.cfm. --->
+						<button id="postEvent" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(99,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Event</button>
 					</td>
 					<td width="20%" align="left">
 <!--- Schedule Release moved up next to the Date Posted picker, see the Date Posted row near the top of the form. --->

@@ -98,6 +98,13 @@ details). --->
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(87);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/bookings.gif")>
 </cfif>
+<!--- Events (2026-10-15): posts that are events, and who signed up. Made from a post, so the same capability as editing posts. --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditPost')>
+	<cfset iconList = listAppend(iconList, 'Events')>
+	<cfset titleList = listAppend(titleList, 'Events')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(101);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/event.gif")>
+</cfif>
 <!--- Don't include the comment interface with Disqus --->
 <cfif not application.includeDisqus and (listFindNoCase(currentUserCapabilityList, 'EditComment') or listFindNoCase(currentUserCapabilityList, 'EditPost'))>
 	<cfset iconList = listAppend(iconList, 'Comments')>

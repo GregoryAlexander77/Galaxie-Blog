@@ -4130,6 +4130,84 @@
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
+		<cfsilent>
+			<!---//***********************************************************************************************
+								Upcoming Events Pod (2026-10-15)
+			//************************************************************************************************--->
+
+
+			<!--- This logic is easily reproducable with a small number of variables. Set them here. --->
+			<cfset contentTemplateStr = "upcomingEventsPod">
+			<cfset contentTemplateLabel = "Upcoming Events Pod">
+			<cfset entityId = "ThemeId">
+			<cfset entityName = "ThemeName">
+			<cfset useEnableButton = true>
+			<!--- You need to enter the description manually --->
+				
+			<!--- Is the template active? This determines if the enabled checkbox is checked --->
+			<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="contentTemplateIsActive">
+				<cfinvokeargument name="contentTemplate" value="#contentTemplateStr#">
+			</cfinvoke>
+
+		  	<!--- Set the class for alternating rows. --->
+		  	<!---After the first row, the content class should be the current class. --->
+		  	<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent> 
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Upcoming Events Pod</h4></td>
+		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+				The upcoming events pod lists your next few events, with a link to the Events page. It only shows when an event is coming up. Events are made from a post: open the post and click Event. You can't edit this pod's code, however, you may disable it if you don't want it shown. 
+			</td>
+		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		 <cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+			</td>
+		  </tr>
+		</cfif><!---<cfif session.isMobile>--->	
+		</cfif><!---<cfif useEnableButton>--->
 		  <!-- Border -->
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>

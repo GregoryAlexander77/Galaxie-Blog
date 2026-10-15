@@ -258,6 +258,20 @@
 
 				<!--- Get the categories for this post. --->
 				<cfset getCategories = application.blog.getCategoriesByPostId(getPost[i]["PostId"])>
+				<!--- Parent categories first (2026-10-15), so the breadcrumb and its structured data read eg. Tech > Uppy instead of
+				Uppy > Tech, and getCategories[1] below really is the top level; categories on the same level keep their order. A
+				simple insertion sort on CategorySubLevel, which is stable (arraySort isn't guaranteed to be). Its own loop
+				variables, as i is this post loop's counter. --->
+				<cfloop from="2" to="#arrayLen(getCategories)#" index="categorySortIndex">
+					<cfset categorySortItem = getCategories[categorySortIndex]>
+					<cfset categorySortLevel = structKeyExists(categorySortItem, "CategorySubLevel") ? val(categorySortItem["CategorySubLevel"]) : 0>
+					<cfset categorySortPosition = categorySortIndex - 1>
+					<cfloop condition="categorySortPosition gte 1 and (structKeyExists(getCategories[categorySortPosition], 'CategorySubLevel') ? val(getCategories[categorySortPosition]['CategorySubLevel']) : 0) gt categorySortLevel">
+						<cfset getCategories[categorySortPosition + 1] = getCategories[categorySortPosition]>
+						<cfset categorySortPosition = categorySortPosition - 1>
+					</cfloop>
+					<cfset getCategories[categorySortPosition + 1] = categorySortItem>
+				</cfloop>
 				<!--- Get the top level category in the hiearchy --->
 				<cfif arrayLen(getCategories)>
 					<cfset parentCategory = getCategories[1]["Category"]>
@@ -321,37 +335,34 @@
 			<cfif len(loadMapScript)><!-- Load the javascript to handle multiple maps on one page -->
 				#loadMapScript#
 			</cfif>
-				<!--- Breadcrumb LD-Json --->
-				<script type="application/ld+json"><cfoutput>
-				{
-				  "@context": "https://schema.org",
-				  "@type": "BreadcrumbList",
-				  "itemListElement": [{
-					"@type": "ListItem",
-					"position": 1,
-					"name": "#parentLabel#",
-					"item": "#parentLink#"
-				  },{<cfif parentSite and !isPageMode()>
-					"@type": "ListItem",
-					"position": 2,
-					"name": "Blog",
-					"item": "#application.blogHostUrl#"
-				  },{</cfif>
-				<cfloop from="1" to="#arrayLen(getCategories)#" index="i">
-					<cfsilent>
-					<cfset category = getCategories[i]["Category"]>
-					<cfset categoryId = getCategories[i]["CategoryId"]>
-					<cfset categoryLevel = getCategories[i]["CategorySubLevel"]>
-					<cfset categoryLink = application.blog.makeCategoryLink(categoryId)>
-					</cfsilent>
-					"@type": "ListItem",
-					"position": #round(categoryLevel+parentLoopIndex)#,
-					"name": "#category#",
-					"item": "#categoryLink#"
-				<cfif i lt arrayLen(getCategories)> },{</cfif>
-				</cfloop>}]
-				}</cfoutput> 
-				</script>
+				<!--- Breadcrumb LD-Json. 2026-10-15: built from a list and escaped, instead of written by hand. The hand-written version
+				always printed "},{" after the first item, so a post or page without categories (most pages) ended with an empty {}
+				in itemListElement - Google Search Console: "Invalid object type for field itemListElement". Names weren't escaped
+				either (a quote in a category name broke the JSON) and positions could skip or repeat. It now follows the visible
+				breadcrumb below: home, the page's collections (a page) or Blog (a post, when there is a parent site), the
+				categories, then this post or page. --->
+				<cfsilent>
+				<cfset crumbList = [ { name: parentLabel, url: parentLink } ]>
+				<cfif isPageMode()>
+					<cfloop array="#application.blog.getPageCollectionsForPost(postId)#" index="crumbCollection">
+						<cfset arrayAppend(crumbList, { name: crumbCollection.title, url: application.blog.makeCollectionLink(crumbCollection.pageCollectionId) })>
+					</cfloop>
+				<cfelseif parentSite>
+					<cfset arrayAppend(crumbList, { name: "Blog", url: application.blogHostUrl })>
+				</cfif>
+				<cfloop from="1" to="#arrayLen(getCategories)#" index="crumbIndex">
+					<cfset arrayAppend(crumbList, { name: getCategories[crumbIndex]["Category"], url: application.blog.makeCategoryLink(getCategories[crumbIndex]["CategoryId"]) })>
+				</cfloop>
+				<cfset arrayAppend(crumbList, { name: title, url: postLink })>
+				<cfset crumbJson = "">
+				<cfloop from="1" to="#arrayLen(crumbList)#" index="crumbIndex">
+					<!--- JSON strings by hand: serializeJSON would turn a name such as "2024" into a number on Adobe ColdFusion. --->
+					<cfset crumbName = replace(replace(replace(reReplace(crumbList[crumbIndex].name, "[\x00-\x1F]", " ", "all"), "\", "\\", "all"), '"', '\"', "all"), "</", "<\/", "all")>
+					<cfset crumbUrl = replace(replace(replace(reReplace(crumbList[crumbIndex].url, "[\x00-\x1F]", "", "all"), "\", "\\", "all"), '"', '\"', "all"), "</", "<\/", "all")>
+					<cfset crumbJson = crumbJson & (crumbIndex gt 1 ? "," : "") & '{"@type":"ListItem","position":' & crumbIndex & ',"name":"' & crumbName & '","item":"' & crumbUrl & '"}'>
+				</cfloop>
+				</cfsilent>
+				<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[#crumbJson#]}</script>
 				<!-- Render the article for postId <cfoutput>#postId#</cfoutput> -->
 				<!--- data-postid: a form placed in the post sends it with each submission (common/js/webForms.js, 2026-10-13). --->
 				<article data-postid="<cfoutput>#postId#</cfoutput>">
@@ -453,6 +464,8 @@
 											Render the post. 
 								**********************************************************************************************--->
 								</cfsilent>
+								<!--- The event card (2026-10-15), when the post is an event: date, where, Add to calendar (common/cfc/Events.cfc renderCard). --->
+								<cfif getPageMode() eq 'post' and structKeyExists(application, "events")>#application.events.renderCard(postId, title, postLink)#</cfif>
 								#post#	
 								<!--- If the more tag exists and we are not looking at a page, summarize the content (done when we set the postContent in logic above) and render a button to get to the full post. --->
 							<cfif len(morebody)>
@@ -1094,7 +1107,7 @@
 				<cfelse><!---<cfif arrayLen(getVisitorDbObj)>--->
 				<!--- The anonymous visitor may not have a stored user agent yet (for example on a new local install), so only show the browser when one exists. --->
 				<cfset currentVisitorUserAgent = "">
-				<cfif isObject(AnonymousUserDbObj) and isObject(AnonymousUserDbObj.getHttpUserAgentRef())>
+				<cfif isDefined("AnonymousUserDbObj") and isObject(AnonymousUserDbObj) and isObject(AnonymousUserDbObj.getHttpUserAgentRef())>
 					<cfset currentVisitorUserAgent = AnonymousUserDbObj.getHttpUserAgentRef().getHttpUserAgent()>
 				</cfif>
 				<cfif len(currentVisitorUserAgent)>

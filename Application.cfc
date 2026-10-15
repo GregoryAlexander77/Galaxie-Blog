@@ -567,6 +567,12 @@
 		<cfelse>
 			<cfset application.membersComponentPath = "common.cfc.Members">
 		</cfif>
+		<!--- Events: a post with event details, its card, calendar links and RSVP (2026-10-15) - see Events.cfc. --->
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset application.eventsComponentPath = application.baseComponentPath & ".common.cfc.Events">
+		<cfelse>
+			<cfset application.eventsComponentPath = "common.cfc.Events">
+		</cfif>
 
 		<cfif debug>
 			<cfoutput>
@@ -626,6 +632,7 @@
 		<cfset application.bookings = createObject("component", application.bookingsComponentPath).init()>
 		<cfset application.payments = createObject("component", application.paymentsComponentPath).init()>
 		<cfset application.members = createObject("component", application.membersComponentPath).init()>
+		<cfset application.events = createObject("component", application.eventsComponentPath).init()>
 		
 		<!---//****************************************************************************************
 				Initialize the application and set core application vars.
