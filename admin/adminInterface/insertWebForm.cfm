@@ -40,7 +40,7 @@ the new form - the same "not found, add it?" pattern as the Author dropdown on a
 		function refreshInsertWhat() {
 			var item = insertWebFormChoice.dataItem();
 			var isPublic = !!(item && insertWebFormChoice.value() && item.publicList);
-			$("#insertWebFormWhatRow").toggle(isPublic);
+			$(".insertWebFormWhatRow").toggle(isPublic);
 			if (!isPublic) { $("#insertWebFormWhatForm").prop("checked", true); }
 		}
 
@@ -90,25 +90,31 @@ the new form - the same "not found, add it?" pattern as the Author dropdown on a
 	<button class="k-button" onclick="createAdminInterfaceWindow(84, 0, #= kendo.htmlEncode(JSON.stringify(encodeURIComponent(instance.filterInput ? instance.filterInput.val() : ''))) #)">Build Form</button>
 </script>
 
-<table align="center" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0" border="0">
+<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
+<cfoutput>
+<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+	<colgroup><col style="width: 20%"><col></colgroup>
+	<tr><td colspan="2" class="#blockClass#">Type to search your forms, or build a new one from the list. The post shows "[Form: title]" while you edit it; visitors see the form itself. Move or delete it like any other paragraph.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td width="25%"><label for="insertWebFormChoice">Form:</label></td>
-		<td><input id="insertWebFormChoice" style="width: 95%;"></td>
+		<td class="#blockClass#" align="right"><label for="insertWebFormChoice">Form:</label></td>
+		<td class="#blockClass#"><input id="insertWebFormChoice" style="width: 95%;"></td>
 	</tr>
-	<tr id="insertWebFormWhatRow" style="display: none;">
-		<td>Insert:</td>
-		<td>
+	<tr class="blockSpacer insertWebFormWhatRow" style="display: none;"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr class="insertWebFormWhatRow"><td colspan="2" class="#blockClass#">This form shows its sign-ups publicly, so you can place the list too.</td></tr>
+	<tr class="blockSpacer insertWebFormWhatRow"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr id="insertWebFormWhatRow" class="insertWebFormWhatRow" style="display: none;">
+		<td class="#blockClass#" align="right">Insert:</td>
+		<td class="#blockClass#">
 			<label><input type="radio" class="k-radio" name="insertWebFormWhat" id="insertWebFormWhatForm" value="form" checked> The form</label><br/>
 			<label><input type="radio" class="k-radio" name="insertWebFormWhat" value="formAndList"> The form and its sign-up list</label><br/>
-			<label><input type="radio" class="k-radio" name="insertWebFormWhat" value="list"> The sign-up list</label>
+			<label><input type="radio" class="k-radio" name="insertWebFormWhat" value="list"> The sign-up list</label>			
 		</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2">
-			<div class="k-form-hint">Type to search your forms, or build a new one from the list. The post shows "[Form: title]" while you edit it; visitors see the form itself. Move or delete it like any other paragraph.</div>
-		</td>
-	</tr>
-	<tr>
-		<td colspan="2" align="right"><button id="insertWebFormSubmit" type="button" class="k-button k-primary">Insert</button></td>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><button id="insertWebFormSubmit" type="button" class="k-button k-primary">Insert</button></td>
 	</tr>
 </table>
+</cfoutput>

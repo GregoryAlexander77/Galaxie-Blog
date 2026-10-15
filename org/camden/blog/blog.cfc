@@ -9070,6 +9070,10 @@
 			WHERE 0=0
 				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 				AND Comment.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+				<!--- Released posts only, and no spam or hidden comments (2026-10-14). --->
+				AND Post.Released = <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+				AND Comment.Spam <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+				AND Comment.Hide <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 			<!---<cfif instance.moderate>
 				AND Comment.Moderated = <cfqueryparam value="1" cfsqltype="cf_sql_integer">
 			</cfif>--->

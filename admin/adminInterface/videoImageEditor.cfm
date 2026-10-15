@@ -85,8 +85,8 @@
 		  </tr>
 		  <!-- Form content -->
 		  <tr valign="middle" height="30px">
-			<td align="right" width="25%">Video Cover Image</td>
-			<td align="left" width="75%" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">Video Cover Image</td>
+			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- TinyMce container --->
 				<div style="position: relative;">
 					<textarea id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>"></textarea>
@@ -103,7 +103,7 @@
 		  </tr>
 		  <!-- Form content -->
 		  <tr valign="middle" height="30px">
-			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<button id="videoCoverSubmit" name="videoCoverSubmit" class="k-button k-primary" type="button" onClick="onVideoImageCoverSubmit();">Submit</button>
 			</td>

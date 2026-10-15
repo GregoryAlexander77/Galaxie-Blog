@@ -78,7 +78,8 @@ var galaxieBookings = (function($) {
 	function dateText(date) { return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()); }
 	function formatPrice(type) {
 		if (!type.price || Number(type.price) <= 0) { return "Free"; }
-		return Number(type.price).toFixed(2) + (type.isGroup && type.pricingUnit === "perPerson" ? " per person" : "");
+		// priceText is formatted on the server in the blog's currency (Blog Settings > Payments), eg. $99.00.
+		return (type.priceText || Number(type.price).toFixed(2)) + (type.isGroup && type.pricingUnit === "perPerson" ? " per person" : "") + (type.paymentNote ? " · " + type.paymentNote : "");
 	}
 	function formatLength(minutes) {
 		minutes = Number(minutes);
@@ -318,7 +319,7 @@ var galaxieBookings = (function($) {
 			form.append(captcha);
 			loadCaptcha(form);
 		}
-		form.append($('<button type="submit" class="k-button k-primary"></button>').text(state.type.price > 0 ? "Book" : "Book now"));
+		form.append($('<button type="submit" class="k-button k-primary"></button>').text(state.type.paysOnline ? "Continue to payment" : (state.type.price > 0 ? "Book" : "Book now")));
 		form.append('<div class="galaxieBookingStatus" role="status" aria-live="polite"></div>');
 		form.on("submit", function(e) { e.preventDefault(); send(state, form); });
 		form.find("input[name=name]").focus();
@@ -385,9 +386,16 @@ var galaxieBookings = (function($) {
 				token: state.token,
 				captchaText: $.trim(form.find("input[name=captchaText]").val() || ""),
 				website: form.find("input[name=website]").val(),
-				postId: state.box.closest("[data-postid]").attr("data-postid") || 0
+				postId: state.box.closest("[data-postid]").attr("data-postid") || 0,
+				returnUrl: window.location.href.split("#")[0].split("?")[0]
 			}
 		}).done(function(response) {
+			// Paid online (2026-10-15): on to Stripe's payment page; the time is held meanwhile.
+			if (response && response.success === true && response.checkoutUrl) {
+				form.find(".galaxieBookingStatus").text("Taking you to the secure payment page...");
+				window.location.href = response.checkoutUrl;
+				return;
+			}
 			if (response && response.success === true) {
 				showConfirmation(state, response);
 				return;
@@ -497,7 +505,7 @@ var galaxieBookings = (function($) {
 			var button = $(this);
 			if (!button.data("asked")) {
 				button.data("asked", true).text("Yes, cancel it");
-				status.text("Click again to cancel your booking.");
+				status.text("Click again to cancel your booking." + (booking.refundNote ? " " + booking.refundNote : ""));
 				return;
 			}
 			button.prop("disabled", true);
@@ -508,7 +516,7 @@ var galaxieBookings = (function($) {
 						booking.canChange = false;
 						booking.detailsHtml = "";
 						showManaged(box, token, booking);
-						box.find(".galaxieBookingStatus").text("Your booking is cancelled. We've emailed you a note.");
+						box.find(".galaxieBookingStatus").text("Your booking is cancelled. " + (response.message ? response.message + " " : "") + "We've emailed you a note.");
 					} else {
 						button.prop("disabled", false);
 						status.text((response && response.message) || "The booking could not be cancelled.");
@@ -517,6 +525,88 @@ var galaxieBookings = (function($) {
 		});
 	}
 
-	return { init: init, manage: manage };
+	// Back from Stripe's payment page (2026-10-15). ?bookingCheckout=<session> after paying: the payment webhook confirms the
+	// booking, usually within seconds, so this waits a little for it. ?bookingCancelled=<token> when they went back without
+	// paying: the held time is released at once.
+	function checkoutReturn(params, options) {
+		proxyUrl = ((options && options.baseUrl) || "") + "/common/cfc/ProxyController.cfc";
+		addStyles();
+		if (window.history && window.history.replaceState) {
+			window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+		}
+		var box = $('<div class="galaxieBookingManage" role="status" aria-live="polite"></div>').appendTo("body");
+		var dialog = box.kendoWindow({ title: "Your booking", modal: true, width: Math.min(560, $(window).width() - 30), visible: false, close: function() { this.destroy(); } }).data("kendoWindow");
+		if (params.cancelled) {
+			$.ajax({ type: "post", url: proxyUrl + "?method=cancelBookingCheckout", data: { token: params.cancelled }, dataType: "json", cache: false })
+				.always(function() {
+					box.html("<h3>Payment cancelled</h3><p>The time wasn't booked, so it's free again. You're welcome to choose a time whenever you're ready.</p>");
+					dialog.center().open();
+				});
+			return;
+		}
+		box.html("<p>Checking your payment...</p>");
+		dialog.center().open();
+		var tries = 0;
+		(function check() {
+			tries++;
+			$.ajax({ type: "post", url: proxyUrl + "?method=getBookingCheckoutResult", data: { sessionId: params.session }, dataType: "json", cache: false })
+				.done(function(result) {
+					if (result && result.success && result.paid) {
+						var zone = browserTimeZone();
+						box.empty();
+						if (result.purpose === "balance") {
+							box.append($("<h3></h3>").text("Thank you - you're paid in full"));
+							box.append($("<p></p>").html("<b>" + escapeHtml(result.typeName) + "</b><br/>" + escapeHtml(formatWhen(result.startUtc, zone)) + " (" + escapeHtml(zone.replace(/_/g, " ")) + ")"));
+							box.append($("<p></p>").text("A receipt is on its way by email."));
+							dialog.center();
+							return;
+						}
+						box.append($("<h3></h3>").text(result.status === "pending" ? "Thank you - your request is in" : "You're booked"));
+						box.append($("<p></p>").html("<b>" + escapeHtml(result.typeName) + "</b><br/>" + escapeHtml(formatWhen(result.startUtc, zone)) + " (" + escapeHtml(zone.replace(/_/g, " ")) + ")"));
+						if (result.status === "pending") {
+							box.append($("<p></p>").text("Your payment went through and the time is held for you. You'll hear back once it's confirmed."));
+						}
+						box.append($("<p></p>").text(result.locationLabel));
+						box.append(result.detailsHtml || "");
+						box.append($("<p></p>").text("A confirmation email is on its way."));
+						dialog.center();
+					} else if (tries < 10) {
+						setTimeout(check, 2000);
+					} else {
+						box.html("<h3>Thank you</h3><p>Your payment is being confirmed. Your confirmation email is on its way; if it hasn't arrived in a few minutes, please check your spam folder.</p>");
+						dialog.center();
+					}
+				})
+				.fail(function() {
+					box.html("<h3>Thank you</h3><p>Your confirmation email is on its way.</p>");
+				});
+		})();
+	}
+
+	// The "Pay the rest online" link in a client's email (?payBalance=<token>, 2026-10-15): straight on to Stripe's payment page.
+	function payBalance(token, options) {
+		proxyUrl = ((options && options.baseUrl) || "") + "/common/cfc/ProxyController.cfc";
+		addStyles();
+		if (window.history && window.history.replaceState) {
+			window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+		}
+		var box = $('<div class="galaxieBookingManage" role="status" aria-live="polite"><p>Taking you to the secure payment page...</p></div>').appendTo("body");
+		var dialog = box.kendoWindow({ title: "Your booking", modal: true, width: Math.min(560, $(window).width() - 30), visible: false, close: function() { this.destroy(); } }).data("kendoWindow");
+		dialog.center().open();
+		$.ajax({ type: "post", url: proxyUrl + "?method=startBalanceCheckout", data: { token: token }, dataType: "json", cache: false })
+			.done(function(response) {
+				if (response && response.success && response.checkoutUrl) {
+					window.location.href = response.checkoutUrl;
+					return;
+				}
+				box.html($("<p></p>").text((response && response.message) || "The payment page couldn't be opened. Please try again in a moment."));
+				dialog.center();
+			})
+			.fail(function() {
+				box.html("<p>The payment page couldn't be opened. Please try again in a moment.</p>");
+			});
+	}
+
+	return { init: init, manage: manage, checkoutReturn: checkoutReturn, payBalance: payBalance };
 
 })(jQuery);

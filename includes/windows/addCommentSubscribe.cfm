@@ -251,7 +251,8 @@ This section has been completely redesigned by Gregory --->
 			check: function(element) {
 				
 				<!--- Note: the validator will fire off a new request 3 times a second, and we need to make sure that we are not hitting the server with stale data every time. We are going to see if the value has changed before firing off a new request to the server. Compare the input value to the value that was stored in sessionStorage. If the data has changed, and there has been fewer than 5 validation attempts that have failed, hit the server. --->
-				if (element.val() != getCapthchaValidatedValue() || getCaptchaValidatedAttempts() <= 5){
+				<!--- Only a new word is sent to the server (2026-10-14). Re-sending the same wrong word, several times a second, counted as new attempts and swapped the image almost at once. --->
+				if (element.val() != getCapthchaValidatedValue()){
 					<!--- Post to the server side method that will validate the captcha text. --->
 					$.ajax({
 						url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=validateCaptcha",
@@ -523,13 +524,13 @@ This section has been completely redesigned by Gregory --->
 		<!-- Checkboxes -->
 		<tr class="k-content">
 			<td>
-				<input type="checkbox" id="rememberMe" name="rememberMe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(rememberMe) and rememberMe)>checked="checked"</cfif> /> <label for="rememberMe">Remember me</label>
+				<input class="k-checkbox" type="checkbox" id="rememberMe" name="rememberMe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(rememberMe) and rememberMe)>checked="checked"</cfif> /> <label for="rememberMe">Remember me</label>
 			</td>
 		</tr>
 	<cfif URL.uiElement neq 'contact'>
 		<tr class="k-content">
 			<td>
-				<input type="checkbox" id="subscribe" name="subscribe" aria-label="Subscribe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(subscribe) and subscribe)>checked="checked"</cfif> /> <label for="subscribe">Subscribe</label> 
+				<input class="k-checkbox" type="checkbox" id="subscribe" name="subscribe" aria-label="Subscribe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(subscribe) and subscribe)>checked="checked"</cfif> /> <label for="subscribe">Subscribe</label> 
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'contact'>--->
@@ -579,7 +580,7 @@ This section has been completely redesigned by Gregory --->
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->
 		<tr height="35px" class="k-content">
-			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>px">
+			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>">
 				<label for="commenterEmail">Email:</label>
 			</td>
 			<td width="5px"></td>
@@ -597,6 +598,7 @@ This section has been completely redesigned by Gregory --->
 			<td align="left">
 				<!---Note: URL is HTML5 validated if the type is URL.--->
 				<input type="url" id="commenterWebSite" name="commenterWebSite" value="#commenterWebsite#" class="k-textbox" style="width: <cfoutput>#textInputWidth#</cfoutput>;" />
+				<div class="k-form-hint">Optional</div>
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->
@@ -676,18 +678,19 @@ This section has been completely redesigned by Gregory --->
 			<td colspan="3" height="5px"></td>
 		</tr>
 		<tr height="35px" class="k-content">
-			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>"></td>
+			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>"><label for="rememberMe">Remember me:</label></td>
 			<td></td>
 			<td>
-				<input type="checkbox" id="rememberMe" name="rememberMe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(rememberMe) and rememberMe)>checked="checked"</cfif> /> <label for="rememberMe">Remember me</label>
+				<input class="k-checkbox" type="checkbox" id="rememberMe" name="rememberMe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(rememberMe) and rememberMe)>checked="checked"</cfif> />
+				<div class="k-form-hint">Fills in your details next time.</div>
 			</td>
 		</tr>
 	<cfif URL.uiElement neq 'contact'>
 		<tr  height="35px" class="k-content">
-			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>"></td>
+			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>"><label for="subscribe">Subscribe:</label></td>
 			<td></td>
 			<td>
-				<input type="checkbox" id="subscribe" name="subscribe" aria-label="Subscribe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(subscribe) and subscribe)>checked="checked"</cfif> /> <label for="subscribe">Subscribe</label>
+				<input class="k-checkbox" type="checkbox" id="subscribe" name="subscribe" aria-label="Subscribe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(subscribe) and subscribe)>checked="checked"</cfif> />
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'contact'>--->

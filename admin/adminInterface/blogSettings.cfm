@@ -35,6 +35,7 @@
 	<!--- Mail server settings. --->
 	<cfset mailServer = application.BlogDbObj.getBlogMailServer()>
 	<cfset mailusername = application.BlogDbObj.getBlogMailServerUserName()>
+	<!--- The password fields start empty (2026-10-14); saveBlogSettings keeps the saved password when a field is left blank. --->
 	<cfset mailpassword = application.BlogDbObj.getBlogMailServerPassword()>
 	<cfset failTo = application.BlogDbObj.getBlogEmailFailToAddress()>
 	<cfset blogEmail = application.BlogDbObj.getBlogEmail()>
@@ -68,6 +69,9 @@
 			box-shadow: none !important;
 			background-image: none !important;
 		}
+		<!--- Admin window look (2026-10-15): the reset above also removes the thin line of the 'border' rows that divide the
+		settings in the tables below (td.border.k-content); put it back. --->
+		#blogSettingsPanelBar td.border { border-top: 1px solid #ddd !important; }
 	</style>
 		
 	<script>
@@ -111,7 +115,22 @@
 					
 				} else {
 
-					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
+					<!--- 2026-10-14: a missing field is often inside a section that is closed, so nothing looked highlighted. Open
+					each section that holds one, name the fields in the message, and go to the first. --->
+					var invalidFields = $("#settingsForm").find(".k-invalid");
+					var panelBar = $("#blogSettingsPanelBar").data("kendoPanelBar");
+					var fieldNames = [];
+					invalidFields.each(function(){
+						var section = $(this).closest("#blogSettingsPanelBar > li");
+						if (panelBar && section.length && !section.hasClass("k-state-active") && !section.hasClass("k-expanded")) { panelBar.expand(section); }
+						var labelText = $.trim($('label[for="' + this.id + '"]').first().text()).replace(/:$/, "");
+						var name = labelText || this.name;
+						if (name && $.inArray(name, fieldNames) == -1) { fieldNames.push(name); }
+					});
+					setTimeout(function(){
+						if (invalidFields.length) { invalidFields[0].scrollIntoView({ block: "center" }); invalidFields.first().focus(); }
+					}, 400);
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "There are errors", message: "Please correct the highlighted fields and try again" + (fieldNames.length ? ": " + $("<div>").text(fieldNames.join(", ")).html() : "") + ".", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question
 						).done(function () {
 						<!--- Do nothing --->
 					});
@@ -165,6 +184,8 @@
 	<form id="settingsForm" action="#" method="post" data-role="validator">
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>">
 	<input type="hidden" name="blogId" id="blogId" value="<cfoutput>#blogId#</cfoutput>">
+	<!--- The same side padding as the panel sections below, so every label column lines up. --->
+	<div style="padding: 0 15px;">
 	<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 	  <cfsilent>
 		<!---The first content class in the table should be empty. --->
@@ -243,11 +264,11 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:20%">
 			<label for="blogDescription">Blog Description:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="textbox" name="blogDescription" id="blogDescription" value="<cfoutput>#blogDescription#</cfoutput>" class="k-textbox" style="width:75%" required>
+			<input type="textbox" name="blogDescription" id="blogDescription" value="<cfoutput>#blogDescription#</cfoutput>" class="k-textbox" style="width:95%" required>
 		</td>
 	  </tr>
 	</cfif>	  
@@ -286,10 +307,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:20%">
 			<label for="blogUrl">Blog URL:</label></td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="text" name="blogUrl" id="blogUrl" value="<cfoutput>#blogUrl#</cfoutput>" class="k-textbox" style="width:75%" required>
+			<input type="text" name="blogUrl" id="blogUrl" value="<cfoutput>#blogUrl#</cfoutput>" class="k-textbox" style="width:95%" required>
 		</td>
 	  </tr>
 	</cfif>	
@@ -323,16 +344,16 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="checkbox" name="isProd" id="isProd" value="1" <cfif isProd>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="isProd" id="isProd" value="1" <cfif isProd>checked</cfif>>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:20%">
 			<label for="isProd">Is Production:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" name="isProd" id="isProd" value="1" <cfif isProd>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="isProd" id="isProd" value="1" <cfif isProd>checked</cfif>>
 		</td>
 	  </tr>
 	</cfif>	 
@@ -372,7 +393,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:20%">
 			<label for="blogMetaKeywords">SEO Meta Keywords:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -386,6 +407,7 @@
 	  </tr>
 	  
 	</table>
+	</div>
 	<br/>
 		
 	<!---//***********************************************************************************************
@@ -689,7 +711,7 @@
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -737,12 +759,18 @@
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>---> 
+		  <tr>
+		  	<td colspan="2" class="">eg. https://www.example.com</td>
+		  </tr>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  </tr>
 		  <tr valign="middle" height="30px">
-			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="parentSiteLink">Parent Site Link</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" name="parentSiteLink" id="parentSiteLink" value="<cfoutput>#parentSiteLink#</cfoutput>" class="k-textbox" style="width: 50%">
+				<input type="text" name="parentSiteLink" id="parentSiteLink" value="<cfoutput>#parentSiteLink#</cfoutput>" class="k-textbox" style="width: 95%">
 			</td>
 		  </tr>
 		</cfif>
@@ -775,22 +803,21 @@
 			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr height="1px">
-			  <td></td>
-			  <td align="left" valign="top" class="<cfoutput>#thisContentClass#</cfoutput>">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
 			  	Choose your own time zone, where you write and publish, which may differ from where your server is. Post dates, scheduled posts and the feeds use it, and it follows daylight saving time automatically. The blog works out the difference from the server's own clock, so the Server Time Zone and Server Time Zone Offset below are only used if no time zone is chosen here.
 			  </td>
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td align="right">Current Blog Time:</td>
-			<td><cfoutput>#dateTimeFormat(application.blog.blogNow(), "medium")#</cfoutput> (Refresh the window to get the current time)</td>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">Current Blog Time:</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>"><cfoutput>#dateTimeFormat(application.blog.blogNow(), "medium")#</cfoutput><span class="k-form-hint">Refresh the window to get the current time.</span></td>
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -822,6 +849,9 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -834,6 +864,12 @@
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>---> 
+		  <tr>
+		  	<td colspan="2" class="">Only used when no time zone is chosen above.</td>
+		  </tr>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="serverTimeZone">Server Time Zone:</label>
@@ -854,7 +890,7 @@
 		  </cfsilent>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -868,6 +904,12 @@
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>---> 
+		  <tr>
+		  	<td colspan="2" class="">Hours between your time zone and the server's.</td>
+		  </tr>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="serverTimeZoneOffset">Server Time Zone Offset:</label>
@@ -909,7 +951,7 @@
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -923,6 +965,12 @@
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+		  	<td colspan="2" class="">The data source name set up in the ColdFusion or Lucee administrator.</td>
+		  </tr>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="dsn">Database DSN:</label>
@@ -941,6 +989,9 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -958,7 +1009,7 @@
 				<label for="dsnUserName">DSN User Name:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" name="dsnUserName" id="dsnUserName" value="<cfoutput>#blogDsnUserName#</cfoutput>" class="k-textbox" style="width: 50%" />
+				<input type="text" name="dsnUserName" id="dsnUserName" value="<cfoutput>#blogDsnUserName#</cfoutput>" class="k-textbox" style="width: 50%" /><span class="k-form-hint">Optional</span>
 			</td>
 		  </tr>
 		</cfif>	  
@@ -971,6 +1022,9 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -979,7 +1033,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="password" name="dsnPassword" id="dsnPassword" autocomplete="new-password" value="<cfoutput>#encodeForHTMLAttribute(blogDsnPassword)#</cfoutput>" class="k-textbox" style="width: 95%" />
+				<input type="password" name="dsnPassword" id="dsnPassword" autocomplete="new-password" value="" placeholder="<cfif len(blogDsnPassword)>Saved - leave blank to keep it</cfif>" class="k-textbox" style="width: 95%" />
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -988,7 +1042,7 @@
 				<label for="dsnPassword">DSN Password:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="password" name="dsnPassword" id="dsnPassword" autocomplete="new-password" value="<cfoutput>#encodeForHTMLAttribute(blogDsnPassword)#</cfoutput>" class="k-textbox" style="width: 50%" />
+				<input type="password" name="dsnPassword" id="dsnPassword" autocomplete="new-password" value="" placeholder="<cfif len(blogDsnPassword)>Saved - leave blank to keep it</cfif>" class="k-textbox" style="width: 50%" /><span class="k-form-hint">Optional</span>
 			</td>
 		  </tr>
 		</cfif>
@@ -1037,7 +1091,7 @@
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1056,7 +1110,7 @@
 				<label for="mailServer">Mail Server:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="textbox" name="mailServer" id="mailServer" value="<cfoutput>#mailServer#</cfoutput>" class="k-textbox" style="width: 50%" required />
+				<input type="textbox" name="mailServer" id="mailServer" value="<cfoutput>#mailServer#</cfoutput>" class="k-textbox" style="width: 50%" required /><span class="k-form-hint">eg. smtp.example.com</span>
 			</td>
 		  </tr>
 		</cfif>
@@ -1069,6 +1123,9 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -1100,7 +1157,7 @@
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1110,7 +1167,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="password" name="mailPassword" id="mailPassword" autocomplete="new-password" value="<cfoutput>#encodeForHTMLAttribute(mailPassword)#</cfoutput>" class="k-textbox" style="width: 95%" required />
+				<input type="password" name="mailPassword" id="mailPassword" autocomplete="new-password" value="" placeholder="<cfif len(mailPassword)>Saved - leave blank to keep it</cfif>" class="k-textbox" style="width: 95%" />
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -1119,7 +1176,7 @@
 				<label for="mailPassword">Mail Password:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="password" name="mailPassword" id="mailPassword" autocomplete="new-password" value="<cfoutput>#encodeForHTMLAttribute(mailPassword)#</cfoutput>" class="k-textbox" style="width: 50%" required /> 
+				<input type="password" name="mailPassword" id="mailPassword" autocomplete="new-password" value="" placeholder="<cfif len(mailPassword)>Saved - leave blank to keep it</cfif>" class="k-textbox" style="width: 50%" /> 
 			</td>
 		  </tr>
 		</cfif>	  
@@ -1132,6 +1189,9 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -1144,6 +1204,12 @@
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+		  	<td colspan="2" class="">Undeliverable mail is reported to this address.</td>
+		  </tr>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="failTo">Mail Failto Address:</label>
@@ -1162,6 +1228,9 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -1174,6 +1243,12 @@
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+		  	<td colspan="2" class="">Where the blog sends you notices, eg. new comments.</td>
+		  </tr>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="blogEmail">Blog Email Address:</label>
@@ -1193,12 +1268,15 @@
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
 			  	You may carbon copy all blog email to another email address. This field is optional.
 			  </td>
+		  </tr>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1214,10 +1292,10 @@
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
-				<label for="mailPassword">CC Email Address:</label>
+				<label for="ccEmailAddress">CC Email Address:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="email" name="ccEmailAddress" id="ccEmailAddress" value="<cfoutput>#ccEmailAddress#</cfoutput>" class="k-textbox" style="width: 50%" /> 
+				<input type="email" name="ccEmailAddress" id="ccEmailAddress" value="<cfoutput>#ccEmailAddress#</cfoutput>" class="k-textbox" style="width: 50%" /> <span class="k-form-hint">Optional</span>
 			</td>
 		  </tr>
 		</cfif>	 

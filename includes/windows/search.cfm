@@ -147,38 +147,38 @@
 </script>
 
 <form id="search" name="search" action="#" method="post">
-<table align="center" class="k-content" width="100%" cellpadding="3" cellspacing="0">
+<table align="center" class="k-content adminBlocks" width="100%" cellpadding="3" cellspacing="0" style="table-layout: fixed">
+	<colgroup><col style="width: 20%"><col></colgroup>
 	<input type="hidden" id="startRow" name="startRow" value="0"/>
 	<tr height="30px">
-		<td align="right" width="30%"><label for="siteSearchField">Search Term:</label></td>
-		<td align="left"  width="*">
+		<td align="right" class="k-content"><label for="siteSearchField">Search Term:</label></td>
+		<td align="left" class="k-content">
 			<input id="siteSearchField" name="siteSearchField" class="k-textbox" style="width:<cfif session.isMobile>80%<cfelse>75%;</cfif>" required data-required-msg="Enter search term."/>
 		</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border k-content"></td></tr>
+	<tr>
+		<td colspan="2" class="k-content">You can pick more than one.</td>
+	</tr>
+	<tr height="2px">
+		<td align="left" valign="top" colspan="2" class="border k-content"></td>
+	</tr>
 	<tr height="30%">
-		<td align="right">Category:</td>
-		<td align="left">
+		<td align="right" class="k-content"><label for="category">Category:</label></td>
+		<td align="left" class="k-content">
 		<select id="category" name="category" multiple="multiple" style="width:85%;" data-placeholder="Select categories...">
 			<option value="all" <cfif form.category is "">selected="selected"</cfif>>all categories</option>
 			<!--- Loop through the array --->
 			<cfloop from="1" to="#arrayLen(getCategories)#" index="i"><cfoutput>
 			<option value="#getCategories[i]['CategoryId']#" <cfif form.category is getCategories[i]['CategoryId']>selected="selected"</cfif>>#getCategories[i]["Category"]#</option>
 			</cfoutput></cfloop>
-		</select>
+		</select>		
 		</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border k-content"></td></tr>
 	<tr>
-		<td class="border" colspan="2"></td>
-	</tr>
-	<tr>
-		<td></td>
-		<td><input type="button" id="searchSubmit" name="searchSubmit" value="Search" class="k-button k-primary" style="width: <cfif session.isMobile>115px<cfelse>85px</cfif>" /></td>
-	</tr>
-	<tr>
-		<td class="border" colspan="2"></td>
-	</tr>
-	<tr>
-		<td colspan="2" style="font-size: 14px; color: grey">Note: you may select multiple categories.</td>
+		<td class="k-content"></td>
+		<td class="k-content"><input type="button" id="searchSubmit" name="searchSubmit" value="Search" class="k-button k-primary" style="width: <cfif session.isMobile>115px<cfelse>85px</cfif>" /></td>
 	</tr>
 </table>
 </form>

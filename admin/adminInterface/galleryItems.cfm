@@ -42,7 +42,7 @@
 	<table align="left" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0">
 	<cfif not arrayLen(getMediaUrl)>
 		<tr>
-			<td class="k-header">
+			<td class="k-content">
 			<cfoutput>There are no recent uploads.</cfoutput>
 			</td>
 		</tr>
@@ -115,20 +115,16 @@
 		<cfelse>
 			<td align="left" valign="top" class="border">
 		</cfif>
-				<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="2">
+				<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="0">
 					<tr>
-						<td><label for="mediaItemTitle<cfoutput>#i#</cfoutput>">Title:</label></td>
-					</tr>
-					<tr>
+						<td align="right" style="width: 20%"><label for="mediaItemTitle<cfoutput>#i#</cfoutput>">Title:</label></td>
 						<td>
 							<input type="text" name="mediaItemTitle<cfoutput>#i#</cfoutput>" id="mediaItemTitle<cfoutput>#i#</cfoutput>" value="" class="k-textbox" required style="width: 100%;">
 						</td>
 					</tr>
 					<tr>
-						<td class="border k-alt"><label for="mediaItemUrl<cfoutput>#i#</cfoutput>">URL Link:</label></td>
-					</tr>
-					<tr>
-						<td class="k-alt"><input type="text" name="mediaItemUrl<cfoutput>#i#</cfoutput>" id="mediaItemUrl<cfoutput>#i#</cfoutput>" value="<cfoutput>#mediaUrl#</cfoutput>" class="k-textbox" style="width: 100%;"></td>
+						<td align="right" class="border k-alt" style="width: 20%"><label for="mediaItemUrl<cfoutput>#i#</cfoutput>">URL Link:</label></td>
+						<td class="border k-alt"><input type="text" name="mediaItemUrl<cfoutput>#i#</cfoutput>" id="mediaItemUrl<cfoutput>#i#</cfoutput>" value="<cfoutput>#mediaUrl#</cfoutput>" class="k-textbox" style="width: 100%;"></td>
 					</tr>
 				</table>
 			</td>

@@ -383,27 +383,36 @@ var galaxieLoader = (function() {
 		<!--- Forms placed in posts (2026-10-13) - see common/js/webForms.js. getScript lets the browser cache it, and unlike the
 		libraries above its name doesn't change with each version, so its address carries the file's date: a new upload is
 		fetched after the next restart (?reinit=1), which every update does. --->
-		<cfif not structKeyExists(application, "webFormsJsVersion")>
-			<cftry>
-				<cfset application.webFormsJsVersion = dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/webForms.js")).lastModified, "yyyymmddHHnnss")>
-				<cfcatch type="any"><cfset application.webFormsJsVersion = application.blog.getVersion()></cfcatch>
-			</cftry>
-		</cfif>
+		<!--- Read each time (2026-10-15): reading it once per application start kept serving an old copy after an upload. --->
+		<cftry>
+			<cfset application.webFormsJsVersion = dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/webForms.js")).lastModified, "yyyymmddHHnnss")>
+			<cfcatch type="any"><cfset application.webFormsJsVersion = application.blog.getVersion()></cfcatch>
+		</cftry>
 		webForms: function(callback) {
 			whenReady('webForms', function(ready) {
-				getScript('#application.baseUrl#/common/js/webForms.js?v=#encodeForUrl(application.webFormsJsVersion)#').done(ready);
+				getScript('#application.baseUrl#/common/js/webForms.js?v=#encodeForUrl(application.webFormsJsVersion)#').done(function() {
+					galaxieLoader.kendoDropDownList(ready);
+				});
+			}, callback);
+		},
+		<!--- The Kendo DropDownList (2026-10-15). Visitors get a small Kendo bundle without it (kendo.galaxie.public.min.js); forms
+		and bookings use it, so it is fetched (22 KB) the first time one of them needs it. --->
+		kendoDropDownList: function(callback) {
+			whenReady('kendoDropDownList', function(ready) {
+				if (window.kendo && kendo.ui && kendo.ui.DropDownList) { ready(); return; }
+				getScript('#application.baseUrl#/common/libs/kendoCore/js/kendo.dropdownlist.min.js').done(ready);
 			}, callback);
 		},
 		<!--- Bookings placed in posts (2026-10-14) - see common/js/bookings.js. Versioned by the file's date, like webForms above. --->
-		<cfif not structKeyExists(application, "bookingsJsVersion")>
-			<cftry>
-				<cfset application.bookingsJsVersion = dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/bookings.js")).lastModified, "yyyymmddHHnnss")>
-				<cfcatch type="any"><cfset application.bookingsJsVersion = application.blog.getVersion()></cfcatch>
-			</cftry>
-		</cfif>
+		<cftry>
+			<cfset application.bookingsJsVersion = dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/bookings.js")).lastModified, "yyyymmddHHnnss")>
+			<cfcatch type="any"><cfset application.bookingsJsVersion = application.blog.getVersion()></cfcatch>
+		</cftry>
 		bookings: function(callback) {
 			whenReady('bookings', function(ready) {
-				getScript('#application.baseUrl#/common/js/bookings.js?v=#encodeForUrl(application.bookingsJsVersion)#').done(ready);
+				getScript('#application.baseUrl#/common/js/bookings.js?v=#encodeForUrl(application.bookingsJsVersion)#').done(function() {
+					galaxieLoader.kendoDropDownList(ready);
+				});
 			}, callback);
 		},
 		prism: function(callback) {

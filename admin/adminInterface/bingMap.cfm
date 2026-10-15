@@ -177,7 +177,7 @@
 					<td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 				</tr>
 				<tr>
-					<td colspan="2"> 
+					<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 						<p>Type in a location or address in the location form to drop a pin. An autosuggest will appear below the location input to help you select the proper location.</p>
 
 						<p>You can also use the map controls to the right to customize the map type (road, arial, etc) and set the zoom. If you want a different location pin, indicate the path to the image in the field below.</p> 
@@ -210,11 +210,11 @@
 			  </tr>
 			<cfelse><!---<cfif session.isMobile>--->
 				<tr>
-					<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+					<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 						<label for="searchBox">Location</label>
 					</td>
 					<td class="<cfoutput>#thisContentClass#</cfoutput>">
-						<input id="searchBox" name="searchBox" value="<cfoutput>#location#</cfoutput>" class="k-textbox" style="width: 85%" />
+						<input id="searchBox" name="searchBox" value="<cfoutput>#location#</cfoutput>" class="k-textbox" style="width: 95%" />
 					</td>
 				</tr>
 			</cfif>
@@ -250,15 +250,22 @@
 			   <tr>
 				<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 					<input id="customMarker" name="customMarker" value="<cfoutput>#customMarkerUrl#</cfoutput>" class="k-textbox" style="width: 95%" onClick="createAdminInterfaceWindow(21,<cfoutput>#URL.optArgs#</cfoutput>)" />  
+					<div class="k-form-hint">Optional: click to choose your own pin image.</div>
 				</td>
 			  </tr>
 			<cfelse><!---<cfif session.isMobile>--->
+				<tr>
+					<td colspan="2" class="">Optional: click to choose your own pin image.</td>
+				</tr>
+				<tr height="2px">
+					<td align="left" valign="top" colspan="2" class="border "></td>
+				</tr>
 				<tr valign="middle">
-				  <td align="right" valign="middle" width="30%" class="<cfoutput>#thisContentClass#</cfoutput>">
+				  <td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 					<label for="customMarker">Pin URL</label>
 				  </td>
-				  <td align="left" width="70%" class="<cfoutput>#thisContentClass#</cfoutput>">
-					<input id="customMarker" name="customMarker" value="<cfoutput>#customMarkerUrl#</cfoutput>" class="k-textbox" style="width: 85%" onClick="createAdminInterfaceWindow(21,<cfoutput>#URL.optArgs#</cfoutput>)" />  
+				  <td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+					<input id="customMarker" name="customMarker" value="<cfoutput>#customMarkerUrl#</cfoutput>" class="k-textbox" style="width: 95%" onClick="createAdminInterfaceWindow(21,<cfoutput>#URL.optArgs#</cfoutput>)" />					
 				  </td>
 				</tr>
 			</cfif>
@@ -278,21 +285,23 @@
 			<cfif session.isMobile>
 			  <tr valign="middle">
 				<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-					<label for="post">Outline Location</label>
+					<label for="outlineLocation">Outline Location</label>
 				</td>
 			   </tr>
 			   <tr>
 				<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-					<input type="checkbox" id="outlineLocation" name="outlineLocation" <cfif outlineMap>checked</cfif>/> 
+					<input class="k-checkbox" type="checkbox" id="outlineLocation" name="outlineLocation" <cfif outlineMap>checked</cfif>/> 
+					<div class="k-form-hint">Highlights a city, state or region.</div>
 				</td>
 			  </tr>
 			<cfelse><!---<cfif session.isMobile>--->
 				<tr valign="middle">
-				  <td align="right" valign="middle" width="30%" class="<cfoutput>#thisContentClass#</cfoutput>">
-					<label for="post">Outline Location</label>
+				  <td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+					<label for="outlineLocation">Outline Location</label>
 				  </td>
-				  <td align="left" width="70%" class="<cfoutput>#thisContentClass#</cfoutput>">
-					<input type="checkbox" id="outlineLocation" name="outlineLocation" <cfif outlineMap>checked</cfif>/> 
+				  <td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+					<input class="k-checkbox" type="checkbox" id="outlineLocation" name="outlineLocation" <cfif outlineMap>checked</cfif>/> 
+					<span class="k-form-hint">Highlights a city, state or region.</span>
 				  </td>
 				</tr>
 			</cfif>
@@ -309,7 +318,7 @@
 				  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 				</tr>
 				<tr valign="middle">
-				  <td colspan="2">
+				  <td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
 					<button id="createMap" class="k-button k-primary" type="button" onclick="saveMap()">Submit</button>
 				  </td>
 				</tr>   

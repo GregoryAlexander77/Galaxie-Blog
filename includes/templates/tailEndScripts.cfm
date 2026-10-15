@@ -37,6 +37,23 @@
 			galaxieBookings.init({ baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
 		});
 	}
+	// Back from Stripe's payment page (2026-10-15): ?bookingCheckout=<session> after paying, ?bookingCancelled=<token> after going back.
+	(function() {
+		var paid = /[?&]bookingCheckout=(cs_[A-Za-z0-9_]+)/.exec(window.location.search);
+		var cancelled = /[?&]bookingCancelled=([a-f0-9]{64})/.exec(window.location.search);
+		var balance = /[?&]payBalance=([a-f0-9]{64})/.exec(window.location.search);
+		if (balance) {
+			galaxieLoader.bookings(function() {
+				galaxieBookings.payBalance(balance[1], { baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
+			});
+			return;
+		}
+		if (paid || cancelled) {
+			galaxieLoader.bookings(function() {
+				galaxieBookings.checkoutReturn({ session: paid ? paid[1] : "", cancelled: cancelled ? cancelled[1] : "" }, { baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
+			});
+		}
+	})();
 	// A visitor's "Cancel or change this booking" link (?manageBooking=<token>) opens their booking on whatever page it lands.
 	(function() {
 		var match = /[?&]manageBooking=([a-f0-9]{64})/.exec(window.location.search);

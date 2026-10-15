@@ -12,7 +12,17 @@ This is used to send future emails out using a scheduled task when the user save
 	WHERE Task = <cfqueryparam value="schedulePost#URL.postId#">
 </cfquery>
 
-<cfif getTask.recordcount>
+<!--- Only a post whose release time has come, and that isn't released yet (2026-10-14). --->
+<cfset futurePostIsDue = false>
+<cfif getTask.recordcount and isNumeric(URL.postId)>
+	<cfset futurePost = entityLoadByPK("Post", val(URL.postId))>
+	<cfif not isNull(futurePost) and not (isBoolean(futurePost.getReleased()) and futurePost.getReleased()) and not isNull(futurePost.getDatePosted())
+		and dateCompare(futurePost.getDatePosted(), dateAdd("n", 2, application.blog.blogNow())) lte 0>
+		<cfset futurePostIsDue = true>
+	</cfif>
+</cfif>
+
+<cfif futurePostIsDue>
 	<!--- Email and release the post --->
 	<cfinvoke component="#application.blog#" method="releaseFuturePosts" returnvariable="emailSent">
 		<cfinvokeargument name="postId" value="#URL.postId#">

@@ -158,7 +158,7 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="<cfoutput>#selectorName#</cfoutput>">WebVTT Captions</label>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -180,7 +180,7 @@
 		  </tr>
 		  <!-- Form content -->
 		  <tr valign="middle" height="30px">
-			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<button id="webVttSubmit" name="webVttSubmit" class="k-button k-primary" type="button">Submit</button>
 			</td>

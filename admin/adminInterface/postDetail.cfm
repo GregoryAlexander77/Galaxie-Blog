@@ -864,7 +864,8 @@
 		
 	</script>
 		
-	<form id="postDetails" data-role="validator">
+	<!--- Admin layout (2026-10-15): every other admin window uses a 20% label column; the post editor keeps 10% on purpose, so TinyMCE stays wide. --->
+<form id="postDetails" data-role="validator">
 	<input type="hidden" name="postId" id="postId" value="<cfoutput>#getPost[1]['PostId']#</cfoutput>" />
 	<!--- Pass the current alias --->
 	<input type="hidden" name="postAlias" id="postAlias" value="<cfoutput>#getPost[1]['PostAlias']#</cfoutput>" />
@@ -946,7 +947,7 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr>
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%"> 
 			<label for="datePosted">Date Posted</label>
 		</td>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -1003,10 +1004,10 @@
 	<cfelse><!---<cfif smallScreen>--->
 	  <!-- Form content -->
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 		<label for="post">Author</label>
 		</td>
-		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<select id="author" style="width: 50%"></select>
 			<!--- Inline template to add a new user. --->
 			<script id="addUser" type="text/x-kendo-tmpl">
@@ -1047,10 +1048,10 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 		<label for="post">Title</label>
 		</td>
-		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input type="text" id="title" name="title" value="<cfoutput>#getPost[1]['Title']#</cfoutput>" class="k-textbox" style="width: 66%" onChange="javascript:checkTitle();" />
 		</td>
 	  </tr>
@@ -1092,16 +1093,16 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage']>checked</cfif> /> Blog Post <input type="radio" name="postType" value="page" <cfif getPost[1]['IsPage']>checked</cfif>/> Page
+			<input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage']>checked</cfif> /> Blog Post <input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage']>checked</cfif>/> Page
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 		<label for="postType">Post Type</label>
 		</td>
-		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage']>checked</cfif> /> Blog Post &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="radio" name="postType" value="page" <cfif getPost[1]['IsPage']>checked</cfif>/> Page 
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage']>checked</cfif> /> Blog Post &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage']>checked</cfif>/> Page 
 		</td>
 	  </tr>
 	</cfif>  
@@ -1132,10 +1133,10 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	   <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 			<label>Enclosure</label>
 		</td>
-		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- Debugging
 			<cfset mapThumbnail = RendererObj.renderMapPreview(11, true)>
 			<cfoutput>#mapThumbnail#</cfoutput>
@@ -1150,14 +1151,21 @@
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Enclosure Editor</button>
+			<div class="k-form-hint">The image or media shown at the top of the post.</div>
 		</td>
 	  </tr>
 	<cfelse>
+	  <tr>
+	  	<td colspan="2" class="">The image or media shown at the top of the post.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 		</td>
-		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Enclosure Editor</button>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Enclosure Editor</button>			
 		</td>
 	  </tr>
 	</cfif>
@@ -1189,7 +1197,7 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 			<i class="far fa-edit"></i> 
 			<label for="post">CSS and Scripts</label>
 		</td>
@@ -1234,11 +1242,11 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr>
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"><div id="dynamicGalleryLabel"></div></td>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%"><div id="dynamicGalleryLabel"></div></td>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>"><div id="dynamicGalleryInputFields" name="dynamicGalleryInputFields"></div></td>
 	  </tr>
 	  <tr valign="middle">
-		<td align="right" valign="middle" height="35" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" height="35" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 		<label for="<cfoutput>#selectorName#</cfoutput>">Post</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>"> 
@@ -1274,7 +1282,7 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 			<i class="far fa-edit"></i> 
 			<label for="post">Misc.</label>
 		</td>
@@ -1320,7 +1328,7 @@
 	  <!-- Form content -->
 	  <tr>
 	  <cfif not smallScreen>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%"></td>
 	  </cfif>
 		<td align="center" class="<cfoutput>#thisContentClass#</cfoutput>" <cfif smallScreen>colspan="2"</cfif>>
 			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0" border="0">
@@ -1334,7 +1342,7 @@
 								<cfset released = 0>
 							</cfif>
 						</cfsilent>
-						<input id="released" name="released" type="checkbox" <cfif released>checked</cfif> class="normalFontWeight">
+						<input class="k-checkbox" id="released" name="released" type="checkbox" <cfif released>checked</cfif> class="normalFontWeight">
 						<label for="released">Released</label>
 					</td>
 					<td width="20%" align="left">
@@ -1351,7 +1359,7 @@
 								</cfif>
 							</cfif>
 						</cfsilent>
-						<input id="allowComment" name="allowComment" type="checkbox" <cfif allowComment>checked</cfif> class="normalFontWeight">
+						<input class="k-checkbox" id="allowComment" name="allowComment" type="checkbox" <cfif allowComment>checked</cfif> class="normalFontWeight">
 						<label for="allowComment">Allow Comments</label>
 					</td>
 				<cfif not getPost[1]['IsPage']>
@@ -1369,7 +1377,7 @@
 						to exist in the DOM so its current value keeps submitting unchanged; removing it outright would
 						make $('#displayOnRss').is(':checked') always read false and silently turn RSS off on every
 						save made from a phone. --->
-						<input id="displayOnRss" name="displayOnRss" type="checkbox" <cfif displayOnRss>checked</cfif> class="normalFontWeight">
+						<input class="k-checkbox" id="displayOnRss" name="displayOnRss" type="checkbox" <cfif displayOnRss>checked</cfif> class="normalFontWeight">
 						<label for="displayOnRss">Include in RSS Feed</label>
 					</td>
 					<td width="20%" align="left">
@@ -1381,7 +1389,7 @@
 							<cfset promote = 0>
 						</cfif>
 						</cfsilent>
-						<input id="promote" name="promote" type="checkbox" <cfif promote>checked</cfif> class="normalFontWeight">
+						<input class="k-checkbox" id="promote" name="promote" type="checkbox" <cfif promote>checked</cfif> class="normalFontWeight">
 						<label for="promote">Promote</label>
 					</td>
 				</cfif><!---<cfif not getPost[1]['IsPage']>--->
@@ -1395,7 +1403,7 @@
 							</cfif>
 						</cfsilent>
 						<!--- Use the onclick event to confirm the removal if the post has not already been removed --->
-						<input id="remove" name="remove" type="checkbox" <cfif remove>checked</cfif> class="normalFontWeight" <cfif !postRemoved>onClick="confirmPostRemoval()"</cfif>>
+						<input class="k-checkbox" id="remove" name="remove" type="checkbox" <cfif remove>checked</cfif> class="normalFontWeight" <cfif !postRemoved>onClick="confirmPostRemoval()"</cfif>>
 						<label for="remove">Remove</label>
 					</td>
 					<!--- Put 2 empty cells for pages, since they skip both the RSS and Promote cells above. --->
@@ -1428,16 +1436,23 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width:95%"><cfoutput>#getPost[1]['Description']#</cfoutput></textarea>   
+			<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width:95%"><cfoutput>#getPost[1]['Description']#</cfoutput></textarea>
+			<div class="k-form-hint">A short summary for search engines and social media.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
+	  <tr>
+	  	<td colspan="2" class="">A short summary for search engines and social media.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 			<label for="description">Description</label>
 		</td>
-		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: 66%"><cfoutput>#getPost[1]['Description']#</cfoutput></textarea> 
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: 66%"><cfoutput>#getPost[1]['Description']#</cfoutput></textarea>			
 		</td>
 	  </tr>
 	</cfif>
@@ -1480,10 +1495,10 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 			<label for="postCategories">Categories</label>
 		</td>
-		<td align="left" width="90% class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- Inline template to add a new category. --->
 			<select id="postCategories" style="width: 95%"></select>
 			<!--- Inline template to add a new category. Note: the noData templates are different depending upon the widget.--->
@@ -1540,10 +1555,10 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 			<label for="postTags">Tags</label>
 		</td>
-		<td align="left" width="90% class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- Inline template to add a new tag. --->
 			<select id="postTags" style="width: 95%"></select>
 			<!--- Inline template to add a new tag. Note: the noData templates are different depending upon the widget.--->
@@ -1590,10 +1605,10 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 			<label for="relatedPosts">Related Posts</label>
 		</td>
-		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<select id="relatedPosts" style="width: 100%; font-weight: 300;"></select> 
 		</td>
 	  </tr>	
@@ -1637,10 +1652,10 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 			<label for="postPageCollections">Page Collections</label>
 		</td>
-		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<select id="postPageCollections" multiple="multiple" style="width: 95%">
 				<cfloop array="#getAllPageCollectionsForDropdown#" index="pcOption">
 					<option value="<cfoutput>#pcOption.pageCollectionId#</cfoutput>"><cfoutput>#pcOption.title#</cfoutput></option>
@@ -1671,7 +1686,7 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle">
-		<td height="25" valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td height="25" valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">&nbsp;</td>
 		<td height="25" valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="postDetailSubmit" name="postDetailSubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>

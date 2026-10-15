@@ -1004,6 +1004,25 @@
 			border-top: 1px solid #ddd;
 		}
 
+		<!--- Admin windows (2026-10-15): one look for every form table with the adminBlocks class. Blocks alternate k-content /
+		k-alt (HtmlUtils.cfc getKendoClass); a blockSpacer row in the old colour, then one with the 'border' line in the new colour,
+		divides blocks; a thin 'border' row divides rows inside a block. Long descriptions get their own row at the top of a block;
+		short hints (k-form-hint) sit under their field. Section titles are h4.adminBlockHeading. --->
+		table.adminBlocks > tbody > tr > td { padding: 5px 10px; }
+		table.adminBlocks > tbody > tr > td:first-child:not([colspan]) { width: 20%; }
+		<!--- Room between a right-aligned label and its field, in every admin form table. --->
+		table.k-content > tbody > tr > td[align="right"]:not([colspan]) { padding-right: 7px !important; }
+		table.adminBlocks > tbody > tr.blockSpacer > td { height: 4px; padding: 0; line-height: 0; font-size: 0; }
+		table.adminBlocks td.border { border-top: 1px solid #ddd !important; }
+		h4.adminBlockHeading { margin: 4px 0; }
+		table.adminBlocks .k-form-hint, table.k-content .k-form-hint { display: block; font-size: inherit; margin-top: 4px; }
+		<!--- A short hint beside a small field stays on its line; anything longer gets its own row above the field. --->
+		table.adminBlocks span.k-form-hint, table.k-content span.k-form-hint { display: inline; margin: 0 0 0 8px; }
+	<cfif session.isMobile>
+		table.adminBlocks > tbody > tr > td { display: block; width: auto !important; text-align: left !important; }
+		table.adminBlocks > tbody > tr.blockSpacer > td { display: table-cell; }
+	</cfif>
+
 		<!--- Divider styles to get around IE's goofyness. IE 8+ will not render elemetns that are larger than the default font size, so I am setting the font property to 0. Stupid.... --->
 		.rowDivider{
 			font-size: 0px;

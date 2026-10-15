@@ -68,20 +68,20 @@
    </tr>
    <tr>
 	<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-		<input type="radio" name="banMode" id="banModeIp" value="ip" checked="checked"> <label for="banModeIp">IP Address</label>
+		<input class="k-radio" type="radio" name="banMode" id="banModeIp" value="ip" checked="checked"> <label for="banModeIp">IP Address</label>
 		&nbsp;&nbsp;
-		<input type="radio" name="banMode" id="banModeUserAgent" value="userAgent"> <label for="banModeUserAgent">User Agent</label>
+		<input class="k-radio" type="radio" name="banMode" id="banModeUserAgent" value="userAgent"> <label for="banModeUserAgent">User Agent</label>
 	</td>
   </tr>
 <cfelse><!---<cfif session.isMobile>--->
   <tr valign="middle" height="30px">
-	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 		<label>Ban By:</label>
 	</td>
 	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-		<input type="radio" name="banMode" id="banModeIp" value="ip" checked="checked"> <label for="banModeIp">IP Address</label>
+		<input class="k-radio" type="radio" name="banMode" id="banModeIp" value="ip" checked="checked"> <label for="banModeIp">IP Address</label>
 		&nbsp;&nbsp;
-		<input type="radio" name="banMode" id="banModeUserAgent" value="userAgent"> <label for="banModeUserAgent">User Agent</label>
+		<input class="k-radio" type="radio" name="banMode" id="banModeUserAgent" value="userAgent"> <label for="banModeUserAgent">User Agent</label>
 	</td>
   </tr>
 </cfif>
@@ -110,7 +110,7 @@
   </tr>
 <cfelse><!---<cfif session.isMobile>--->
   <tr valign="middle" height="30px">
-	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 		<label for="banValueInput" id="banValueLabel">IP Address:</label>
 	</td>
 	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -127,6 +127,9 @@
   <!---After the first row, the content class should be the current class. --->
   <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
   </cfsilent>
+  <tr height="2px">
+	  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+  </tr>
 <cfif session.isMobile>
   <tr valign="middle">
 	<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -136,11 +139,18 @@
    <tr>
 	<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 		<input type="textbox" id="note" name="note" value="" class="k-textbox" style="width: 100%">
+		<div class="k-form-hint">Optional, eg. why it was banned.</div>
 	</td>
   </tr>
 <cfelse><!---<cfif session.isMobile>--->
+  <tr>
+  	<td colspan="2" class="">Optional, eg. why it was banned.</td>
+  </tr>
+  <tr height="2px">
+  	<td align="left" valign="top" colspan="2" class="border "></td>
+  </tr>
   <tr valign="middle" height="30px">
-	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 		<label for="note">Reason / Notes:</label>
 	</td>
 	<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -160,12 +170,9 @@
   <tr height="2px">
 	  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
   </tr>
-  <tr height="2px">
-	  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-  </tr>
   <!-- Form content -->
   <tr valign="middle" height="30px">
-	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"></td>
 	<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 		<button id="banVisitorsSubmit" name="banVisitorsSubmit" class="k-button k-primary" type="button">Ban</button>
 		<button id="banVisitorsUnbanSubmit" name="banVisitorsUnbanSubmit" class="k-button k-alt" type="button">Unban</button>

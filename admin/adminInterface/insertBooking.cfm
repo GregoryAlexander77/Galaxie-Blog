@@ -32,23 +32,24 @@ to the post. --->
 	});
 </script>
 
-<table align="center" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0" border="0">
+<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
+<cfoutput>
+<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+	<colgroup><col style="width: 20%"><col></colgroup>
 <cfif arrayLen(insertableBookingTypes) eq 1>
-	<tr>
-		<td colspan="2">There are no active booking types yet. Set them up under Bookings in the admin site, then come back to place them here.</td>
-	</tr>
+	<tr><td colspan="2" class="#blockClass#">There are no active booking types yet. Set them up under Bookings in the admin site, then come back to place them here.</td></tr>
 <cfelse>
+	<tr><td colspan="2" class="#blockClass#">"All bookings" lists every booking type under its category, and clients pick one. Or choose one type for a page about it. The post shows "[Booking: name]" while you edit it; visitors see the booking calendar.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td width="25%"><label for="insertBookingChoice">Booking:</label></td>
-		<td><input id="insertBookingChoice" style="width: 95%;"></td>
+		<td class="#blockClass#" align="right"><label for="insertBookingChoice">Booking:</label></td>
+		<td class="#blockClass#"><input id="insertBookingChoice" style="width: 95%;"></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2">
-			<div class="k-form-hint">"All bookings" lists every booking type under its category, and clients pick one. Or choose one type for a page about it. The post shows "[Booking: name]" while you edit it; visitors see the booking calendar.</div>
-		</td>
-	</tr>
-	<tr>
-		<td colspan="2" align="right"><button id="insertBookingSubmit" type="button" class="k-button k-primary">Insert</button></td>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><button id="insertBookingSubmit" type="button" class="k-button k-primary">Insert</button></td>
 	</tr>
 </cfif>
 </table>
+</cfoutput>

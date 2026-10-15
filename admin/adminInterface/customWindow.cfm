@@ -67,13 +67,12 @@
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-		  <tr>
 		  <tr valign="middle">
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 7%"> 
-				<input type="radio" id="customWindowId" name="customWindowId" value="0">
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 7%">
+				<input class="k-radio" type="radio" id="customWindowChoice0" name="customWindowId" value="0">
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<label for="buttonLabel">Create New Custom Window</label>
+				<label for="customWindowChoice0">Create New Custom Window</label>
 			</td>
 		  </tr>
 		  <!-- Border -->
@@ -93,13 +92,12 @@
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-		  <tr>
 		  <tr valign="middle">
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 7%"> 
-				<input type="radio" id="customWindowId" name="customWindowId" value="<cfoutput>#customWindowId#</cfoutput>">
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 7%">
+				<input class="k-radio" type="radio" id="customWindowChoice<cfoutput>#customWindowId#</cfoutput>" name="customWindowId" value="<cfoutput>#customWindowId#</cfoutput>">
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<label for="buttonLabel"><cfoutput>#title#</cfoutput></label>
+				<label for="customWindowChoice<cfoutput>#customWindowId#</cfoutput>"><cfoutput>#title#</cfoutput></label>
 			</td>
 		  </tr>
 		  <!-- Border -->
@@ -387,11 +385,16 @@
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-		  <tr>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<tr valign="middle" height="30px">
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 				The button label is the string that will show on the button that is automatically inserted.
 			</td>
+		  </tr>
+		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -405,7 +408,8 @@
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 25%"> 
+		  <tr valign="middle" height="30px">
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="buttonLabel">Button Label:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -447,7 +451,7 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:20%">
+			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="windoTitle">Window Title</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:80%">
@@ -483,16 +487,16 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="radio" id="unitMeasurement" name="unitMeasurement" value="px" <cfif userMeasurement eq 'px'>checked</cfif>> Pixels <input type="radio" id="unitMeasurement" name="unitMeasurement" value="%" <cfif userMeasurement eq '%'>checked</cfif>> Percent
+				<input class="k-radio" type="radio" id="unitMeasurement" name="unitMeasurement" value="px" <cfif userMeasurement eq 'px'>checked</cfif>> Pixels <input class="k-radio" type="radio" id="unitMeasurement" name="unitMeasurement" value="%" <cfif userMeasurement eq '%'>checked</cfif>> Percent
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="unitMeasurement">Unit Measurement:</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" id="unitMeasurement" name="unitMeasurement" value="px" <cfif userMeasurement eq 'px'>checked</cfif>> Pixels <input type="radio" id="unitMeasurement" name="unitMeasurement" value="%" <cfif userMeasurement eq '%'>checked</cfif>> Percent
+				<input class="k-radio" type="radio" id="unitMeasurement" name="unitMeasurement" value="px" <cfif userMeasurement eq 'px'>checked</cfif>> Pixels <input class="k-radio" type="radio" id="unitMeasurement" name="unitMeasurement" value="%" <cfif userMeasurement eq '%'>checked</cfif>> Percent
 			</td>
 		  </tr>
 		</cfif>
@@ -525,15 +529,17 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<input type="number" id="windowHeight" name="windowHeight" value="<cfoutput>#windowHeight#</cfoutput>" class="k-textbox" >
+				<div class="k-form-hint">In the unit chosen above.</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="windowHeight">Window Height:</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input type="number" id="windowHeight" name="windowHeight" value="<cfoutput>#windowHeight#</cfoutput>" class="k-textbox" >
+				<span class="k-form-hint">In the unit chosen above.</span>
 			</td>
 		  </tr>
 		</cfif>
@@ -558,15 +564,17 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<input type="number" id="windowWidth" name="windowWidth" value="<cfoutput>#windowWidth#</cfoutput>" class="k-textbox" >
+				<div class="k-form-hint">In the unit chosen above.</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="windowWidth">Window Width:</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input type="number" id="windowWidth" name="windowWidth" value="<cfoutput>#windowWidth#</cfoutput>" class="k-textbox" >
+				<span class="k-form-hint">In the unit chosen above.</span>
 			</td>
 		  </tr>
 		</cfif>
@@ -599,15 +607,22 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<input type="text" name="cfincludePath" id="cfincludePath" value="<cfoutput>#cfincludePath#</cfoutput>" class="k-textbox" style="width: 95%" onClick="setActiveContentField('cfincludePath');" />
+				<div class="k-form-hint">Leave empty to use the content editor instead.</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+		  	<td colspan="2" class="">Leave empty to use the content editor instead.</td>
+		  </tr>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  </tr>
 		  <tr valign="middle" height="30px">
-			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="cfincludePath">Cfinclude Path:</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" name="cfincludePath" id="cfincludePath" value="<cfoutput>#cfincludePath#</cfoutput>" class="k-textbox" style="width: 95%" onClick="setActiveContentField('cfincludePath');" />
+				<input type="text" name="cfincludePath" id="cfincludePath" value="<cfoutput>#cfincludePath#</cfoutput>" class="k-textbox" style="width: 95%" onClick="setActiveContentField('cfincludePath');" />				
 			</td>
 		  </tr>
 		</cfif>
@@ -620,6 +635,9 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="bottom" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -633,7 +651,7 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="windowContent">Content:</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -641,6 +659,10 @@
 			</td>
 		  </tr>
 		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
@@ -663,16 +685,16 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" name="active" id="active" checked>
+				<input class="k-checkbox" type="checkbox" name="active" id="active" checked>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:20%">
+			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="active">Active</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:80%">
-				<input type="checkbox" name="active" id="active" checked>
+				<input class="k-checkbox" type="checkbox" name="active" id="active" checked>
 			</td>
 		  </tr>
 		</cfif>
@@ -691,7 +713,7 @@
 		  </tr>
 		  <!-- Form content -->
 		  <tr valign="middle" height="30px">
-			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- The onPostThemeSubmit changes a dropdown in the post detail page. It does not trigger the saving of the theme. The save function is invoked using on onPostThemeSubmit js function --->
 				<button id="customWindowSubmit" name="customWindowSubmit" class="k-button k-primary" type="button">Submit</button>

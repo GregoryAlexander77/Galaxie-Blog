@@ -555,6 +555,13 @@
 			<cfset application.bookingsComponentPath = "common.cfc.Bookings">
 		</cfif>
 
+		<!--- The blog's payment settings and money formatting: currency, tax, Stripe keys (2026-10-14) - see Payments.cfc. --->
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset application.paymentsComponentPath = application.baseComponentPath & ".common.cfc.Payments">
+		<cfelse>
+			<cfset application.paymentsComponentPath = "common.cfc.Payments">
+		</cfif>
+
 		<cfif debug>
 			<cfoutput>
 			application.baseProxyUrl: #application.baseProxyUrl#<br/>
@@ -611,6 +618,7 @@
 		<cfset application.webForms = createObject("component", application.webFormsComponentPath).init()>
 		<cfset application.locations = createObject("component", application.locationsComponentPath).init()>
 		<cfset application.bookings = createObject("component", application.bookingsComponentPath).init()>
+		<cfset application.payments = createObject("component", application.paymentsComponentPath).init()>
 		
 		<!---//****************************************************************************************
 				Initialize the application and set core application vars.

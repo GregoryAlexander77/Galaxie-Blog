@@ -78,11 +78,18 @@
 				<option value="0">None Selected</option>
 				<cfloop from="1" to="#arrayLen(themeNames)#" index="i"><cfoutput><option value="#themeNames[i]['ThemeId']#" <cfif postThemeId eq themeNames[i]['ThemeId']>selected</cfif>>#themeNames[i]['ThemeName']#</option></cfoutput></cfloop>
 			</select>
+			<div class="k-form-hint">None Selected = the blog's normal theme.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">None Selected = the blog's normal theme.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="setPostTheme">Set Post Theme</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -106,8 +113,14 @@
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Form content -->
+	  <tr>
+	  	<td colspan="2" class="">The theme is saved when you save the post.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- The onPostThemeSubmit changes a dropdown in the post detail page. It does not trigger the saving of the theme. The save function is invoked using on onPostThemeSubmit js function --->
 			<button id="postThemeSubmit" name="postThemeSubmit" class="k-button k-primary" type="button" onClick="onPostThemeSubmit()">Submit</button>

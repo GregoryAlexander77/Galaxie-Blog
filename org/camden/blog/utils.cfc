@@ -43,6 +43,10 @@
 		<cfargument name="mailPassword" type="string" required="false" default="#application.BlogDbObj.getBlogMailServerPassword()#">
 		<cfargument name="failTo" type="string" required="false" default="#application.BlogDbObj.getBlogEmailFailToAddress()#">
 		<cfargument name="type" type="string" required="false" default="html">
+		<!--- An optional attached file made from text, eg. a calendar (.ics) invite (2026-10-15). --->
+		<cfargument name="attachmentName" type="string" required="false" default="">
+		<cfargument name="attachmentContent" type="string" required="false" default="">
+		<cfargument name="attachmentType" type="string" required="false" default="text/plain">
 			
 		<!--- Detemine if the blog email address is set up --->
 		<cfif application.BlogDbObj.getBlogEmail() eq ''>
@@ -57,7 +61,7 @@
 				bcc="#arguments.bcc#" 
 				subject="#arguments.subject#" 
 				type="#arguments.type#" 
-				failto="#arguments.failto#">#arguments.body#</cfmail>
+				failto="#arguments.failto#">#arguments.body#<cfif len(arguments.attachmentContent)><cfmailparam file="#arguments.attachmentName#" content="#arguments.attachmentContent#" type="#arguments.attachmentType#"></cfif></cfmail>
 		<cfelse>
 			<cfmail to="#arguments.to#" 
 				from="#arguments.from#" 
@@ -68,7 +72,7 @@
 				server="#arguments.mailserver#" 
 				username="#arguments.mailusername#" 
 				password="#arguments.mailpassword#" 
-				failto="#arguments.failto#">#arguments.body#</cfmail>
+				failto="#arguments.failto#">#arguments.body#<cfif len(arguments.attachmentContent)><cfmailparam file="#arguments.attachmentName#" content="#arguments.attachmentContent#" type="#arguments.attachmentType#"></cfif></cfmail>
 		</cfif>
 	
 	</cffunction>

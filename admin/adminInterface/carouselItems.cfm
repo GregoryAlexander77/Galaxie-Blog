@@ -50,7 +50,7 @@
 	<input type="hidden" name="numGalleries" id="numGalleries" value="1">
 	<table align="left" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0">
 		<tr>
-			<td><label for="carouselEffect">Effect:</label></td>
+			<td align="right" style="width: 20%"><label for="effect">Effect:</label></td>
 			<td>
 				<script>
 					$("#effect").kendoDropDownList({ });
@@ -71,11 +71,12 @@
 					<option value="material">material</option>
 					<option value="creative">creative</option>
 				</select>
+				<span class="k-form-hint">How one picture changes to the next.</span>
 			</td>
 		</tr>
 		<tr>
-			<td class="border k-alt"><label for="shader">Carousel Shader:</label></td>
-			<td class="k-alt">
+			<td align="right" class="border k-alt" style="width: 20%"><label for="shader">Carousel Shader:</label></td>
+			<td class="border k-alt">
 				<script>
 					$("#shader").kendoDropDownList({
 					});
@@ -101,11 +102,12 @@
 					<option value="wave x">wave x</option>
 					<option value="wind">wind</option>
 				</select>
+				<span class="k-form-hint">Only used by the GL effect.</span>
 			</td>
 		</tr>
 		<tr>
-			<td class="border"><label for="carouselFontDropdown">Carousel Font:</label></td>
-			<td>
+			<td align="right" class="border" style="width: 20%"><label for="carouselFontDropdown">Carousel Font:</label></td>
+			<td class="border">
 				<script>
 					<!--- --- font dropdowns. --- --->
 					var fontDs = new kendo.data.DataSource({
@@ -122,8 +124,6 @@
 							}
 						} //...transport:
 					});//...var fontDs...
-
-
 					<!--- Create the blog namedropdown --->
 					var carouselFontDropdown = $("#carouselFontDropdown").kendoDropDownList({
 						optionLabel: "Select...",
@@ -135,12 +135,12 @@
 						noDataTemplate: $("#addFont").html(),
 						filter: "contains",
 						dataSource: fontDs,
-					}).data("kendoDropDownList");
-					
+					}).data("kendoDropDownList");					
 					var dropdownlist = $("#carouselFontDropdown").data("kendoDropDownList");
 					dropdownlist.value("<cfoutput>#fontId#</cfoutput>");
 				</script>
 				<select id="carouselFontDropdown" name="carouselFontDropdown" style="width: 50%"></select>
+				<span class="k-form-hint">For the titles and text over the pictures.</span>
 			</td>
 		</tr>
 	
@@ -160,7 +160,7 @@
 		<!--- Pass along the imageUrl's in a hidden form  --->
 		<input type="hidden" name="mediaUrl<cfoutput>#i#</cfoutput>" id="mediaUrl<cfoutput>#i#</cfoutput>" value="<cfoutput>#mediaUrl#</cfoutput>">
 		<input type="hidden" name="mediaItemUrl<cfoutput>#i#</cfoutput>" id="mediaItemUrl<cfoutput>#i#</cfoutput>" value="<cfoutput>#mediaUrl#</cfoutput>">
-		<tr class="#iif(i MOD 2,DE('k-content'),DE('k-alt'))#" height="50px;">
+		<tr class="<cfoutput>#iif(i MOD 2,DE('k-content'),DE('k-alt'))#</cfoutput>" height="50px;">
 	<cfsilent>		
 	<!--- //************************************************************************************************
 			Mobile Carousel Items
@@ -217,31 +217,24 @@
 		<cfelse>
 			<td align="left" valign="top" class="border">
 		</cfif>
-				<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="2">
+				<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="0">
 					<tr>
-						<td><label for="carouselTitle<cfoutput>#i#</cfoutput>">Carousel Title:</label></td>
-					</tr>
-					<tr>
+						<td align="right" style="width: 20%"><label for="carouselTitle<cfoutput>#i#</cfoutput>">Carousel Title:</label></td>
 						<td>
 							<textarea name="carouselTitle<cfoutput>#i#</cfoutput>" id="carouselTitle<cfoutput>#i#</cfoutput>" value="" class="k-textbox" style="width: 100%;"></textarea>
 						</td>
 					</tr>
 					<tr>
-						<td class="border k-alt"><label for="carouselBody<cfoutput>#i#</cfoutput>">Carousel Body:</label></td>
-					</tr>
-					<tr>
-						<td class="k-alt">
+						<td align="right" class="border k-alt" style="width: 20%"><label for="carouselBody<cfoutput>#i#</cfoutput>">Carousel Body:</label></td>
+						<td class="border k-alt">
 							<textarea name="carouselBody<cfoutput>#i#</cfoutput>" id="carouselBody<cfoutput>#i#</cfoutput>" value="" class="k-textbox" style="width: 100%;"></textarea>
 						</td>
 					</tr>
 					<tr>
-						<td>
-							<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="0">
-								<tr>
-									<td style="width: 15%">
-										<label for="carouselFontColor<cfoutput>#i#</cfoutput>">Font Color:</label>
-									</td>
-									<td>
+						<td align="right" class="border" style="width: 20%">
+							<label for="carouselFontColor<cfoutput>#i#</cfoutput>">Font Color:</label>
+						</td>
+						<td class="border">
 										<script>
 											 $("#carouselFontColor<cfoutput>#i#</cfoutput>").kendoColorPicker({
 												input: false,
@@ -253,10 +246,6 @@
 										</script>
 										<input id="carouselFontColor<cfoutput>#i#</cfoutput>" name="carouselFontColor<cfoutput>#i#</cfoutput>">
 									</td>
-								</tr>
-							</table>
-						 
-						</td>
 					</tr>
 				</table>
 			</td>

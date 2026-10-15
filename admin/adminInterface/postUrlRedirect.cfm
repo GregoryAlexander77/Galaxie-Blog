@@ -67,7 +67,7 @@
 	  <tr>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
 			<p>You can redirect this post to a new URL.</p> 
-			<p>If your post is already indexed by a search engine, an HTTP Status code will be sent along with the redirect to let the search engines know that the URL has changed. This will let the search engines know that there is a new URL and you should not be penalized for the URL change. Be sure not to permenently delete the post if there is a redirect otherwise this redirect will disappear.</p>
+			<p>If your post is already indexed by a search engine, an HTTP Status code will be sent along with the redirect to let the search engines know that the URL has changed. This will let the search engines know that there is a new URL and you should not be penalized for the URL change. Be sure not to permanently delete the post if there is a redirect otherwise this redirect will disappear.</p>
 		</td>
 	  </tr>
 	  <!-- Border -->
@@ -94,16 +94,23 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="postRedirectUrl" name="postRedirectUrl" type="url" value="<cfoutput>#redirectUrl#</cfoutput>" required validationMessage="URL is required" class="k-textbox" style="width: 90%" /> 
+			<input id="postRedirectUrl" name="postRedirectUrl" type="url" value="<cfoutput>#redirectUrl#</cfoutput>" required validationMessage="URL is required" class="k-textbox" style="width: 95%" />
+			<div class="k-form-hint">The full address, starting with https://</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">The full address, starting with https://</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr height="30px">
-		<td align="right" width="15%" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 			<label for="postRedirectUrl">Redirect URL</label>
 		</td>
-		<td width="85%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="postRedirectUrl" name="postRedirectUrl" type="url" value="<cfoutput>#redirectUrl#</cfoutput>" required validationMessage="URL is required" class="k-textbox" style="width: 75%" /> 
+		<td class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input id="postRedirectUrl" name="postRedirectUrl" type="url" value="<cfoutput>#redirectUrl#</cfoutput>" required validationMessage="URL is required" class="k-textbox" style="width: 95%" />			
 		</td>
 	  </tr>
 	</cfif><!---<cfif session.isMobile>--->
@@ -129,20 +136,27 @@
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<select id="postRedirectTypeDropdown" name="postRedirectTypeDropdown">
-				<option value="301" <cfif redirectType eq '301'>checked</cfif>>Permanent</option>
-				<option value="302" <cfif redirectType eq '301'>checked</cfif>>Temporary</option>
+				<option value="301"<cfif redirectType eq '301'> selected</cfif>>Permanent</option>
+				<option value="302"<cfif redirectType eq '302'> selected</cfif>>Temporary</option>
 			</select>
+			<div class="k-form-hint">Permanent if the post has moved for good.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">Permanent if the post has moved for good.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="postRedirectTypeDropdown">Redirect Type</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<select id="postRedirectTypeDropdown" name="postRedirectTypeDropdown">
-				<option value="301">Permanent</option>
-				<option value="302">Temporary</option>
+				<option value="301"<cfif redirectType eq '301'> selected</cfif>>Permanent</option>
+				<option value="302"<cfif redirectType eq '302'> selected</cfif>>Temporary</option>
 			</select>
 		</td>
 	  </tr>
@@ -160,8 +174,14 @@
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Form content -->
+	  <tr>
+	  	<td colspan="2" class="">The redirect is saved when you save the post.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- The postRedirectSubmit changes a dropdown in the post detail page.onPost --->
 			<button id="postRedirectSubmit" name="postRedirectSubmit" class="k-button k-primary" type="button">Submit</button>

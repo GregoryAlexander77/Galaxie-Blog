@@ -73,6 +73,9 @@
 			<p>If you are writing your own display oriented code click on the use font button to load the font automatically. However, be aware that loading too many fonts will slow the page down as they consume resources to load.</p>
 		</td>
 	  </tr>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	<cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -130,7 +133,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="fontWeight">Font Weight:</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -169,16 +172,16 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="checkbox" name="italic" id="italic" value="1" <cfif italic>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="italic" id="italic" value="1" <cfif italic>checked</cfif>>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="italic">Italic?</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" name="italic" id="italic" value="1" <cfif italic>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="italic" id="italic" value="1" <cfif italic>checked</cfif>>
 		</td>
 	  </tr>
 	</cfif>
@@ -204,15 +207,23 @@
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<input type="text" name="fontType" id="fontType" value="<cfoutput>#fontType#</cfoutput>" class="k-textbox" style="width: 95%">
+			<div class="k-form-hint">The fallback family, eg. sans-serif or serif.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">The fallback family, eg. sans-serif or serif.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="fontType">Font Type:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input type="text" name="fontType" id="fontType" value="<cfoutput>#fontType#</cfoutput>" class="k-textbox" style="width: 66%">
+		</td>
 	  </tr>
 	</cfif>
 	  <!-- Border -->
@@ -237,15 +248,23 @@
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<input type="text" name="fileName" id="fileName" value="<cfoutput>#fileName#</cfoutput>" class="k-textbox" style="width: 95%">
+			<div class="k-form-hint">Without the extension. Font files are kept in common/fonts.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">Without the extension. Font files are kept in common/fonts.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="fileName">File Name:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="text" name="fileName" id="fileName" value="<cfoutput>#fileName#</cfoutput>" class="k-textbox" style="width: 66%">
+			<input type="text" name="fileName" id="fileName" value="<cfoutput>#fileName#</cfoutput>" class="k-textbox" style="width: 66%">			
+		</td>
 	  </tr>
 	</cfif>
 	  <!-- Border -->
@@ -261,32 +280,61 @@
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Form content -->
+	  <!--- One row per checkbox: the label on the left, the checkbox on the right, like the other fields. --->
+	  <tr>
+	  	<td colspan="2" class="">Already on most computers, so nothing needs to load.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		  <cfif not session.isMobile><td></td></cfif>
-		  <td align="left" <cfif session.isMobile>colspan="2"</cfif>>
-			<!--- Inner table --->
-			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="4" cellspacing="0">
-				<tr>
-					<td width="25%" align="left">
-						<label for="webSafeFont">Web Safe Font?</label>
-						<input type="checkbox" name="webSafeFont" id="webSafeFont" value="1" <cfif WebSafeFont>checked</cfif>>
-					</td>
-					<td width="25%" align="left">
-						<label for="selfHosted">Self Hosted?</label>
-						<input type="checkbox" name="selfHosted" id="selfHosted" value="1" <cfif selfHosted>checked</cfif>>
-					</td>
-					<td width="25%" align="left">
-						<label for="googleFont">Google Font?</label>
-						<input type="checkbox" name="googleFont" id="googleFont" value="1" <cfif selfHosted>checked</cfif>>
-					</td>
-					<td width="25%" align="left">
-						<label for="useFont">Use Font?</label>
-						<input type="checkbox" name="useFont" id="useFont" value="1" <cfif useFont>checked</cfif>>
-					</td>
-				</tr>
-			</table>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+			<label for="webSafeFont">Web Safe Font?</label>
 		</td>
-
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input class="k-checkbox" type="checkbox" name="webSafeFont" id="webSafeFont" value="1" <cfif WebSafeFont>checked</cfif>>			
+		</td>
+	  </tr>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr valign="middle" height="30px">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+			<label for="selfHosted">Self Hosted?</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input class="k-checkbox" type="checkbox" name="selfHosted" id="selfHosted" value="1" <cfif selfHosted>checked</cfif>>
+			<span class="k-form-hint">The font file is on this server.</span>
+		</td>
+	  </tr>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr valign="middle" height="30px">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+			<label for="googleFont">Google Font?</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input class="k-checkbox" type="checkbox" name="googleFont" id="googleFont" value="1" <cfif isBoolean(googleFont) and googleFont>checked</cfif>>
+			<span class="k-form-hint">Loaded from Google Fonts.</span>
+		</td>
+	  </tr>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr>
+	  	<td colspan="2" class="">Loads it on every page, for your own code. Each extra font slows pages a little.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
+	  <tr valign="middle" height="30px">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+			<label for="useFont">Use Font?</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input class="k-checkbox" type="checkbox" name="useFont" id="useFont" value="1" <cfif useFont>checked</cfif>>			
+		</td>
 	  </tr>
 	  <!-- Border -->
 	  <tr height="2px">
@@ -302,7 +350,7 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"></td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="fontDetailSubmit" name="fontDetailSubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>

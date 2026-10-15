@@ -211,7 +211,7 @@
 	<input type="hidden" name="mediaType" id="mediaType" value="image" />
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>">
 	<input type="hidden" name="themeId" id="themeId" value="<cfoutput>#URL.optArgs#</cfoutput>">
-	<input type="hidden" name="contentTemplateName" id="themeId" value="<cfoutput>#URL.otherArgs#</cfoutput>">
+	<input type="hidden" name="contentTemplateName" id="contentTemplateName" value="<cfoutput>#URL.otherArgs#</cfoutput>">
 	
 	<!--- The external image url will only be present if the user entered a url from an external source. We need to capture this as we don't have any native tinymce method to indicate that an external image was selected and we need to upload it and save it to the datbase. --->
 	<input type="hidden" name="externalImageUrl" id="externalImageUrl" value="" />
@@ -227,7 +227,7 @@
 	  </tr>
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
-			<cfoutput><b>#label#</b></cfoutput><br/>
+			<cfoutput><h4 class="adminBlockHeading">#label#</h4></cfoutput>
 			<cfswitch expression="#URL.otherArgs#">
 				
 				<cfcase value="compositeHeaderDesktop">
@@ -269,15 +269,15 @@
 			</div>  
 		</td>
 	  </tr>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
 	  <!--- After the first row, the content class should be the current class. --->
 	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 	  </cfsilent>
-	  <!-- Border -->
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
@@ -324,6 +324,7 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<select id="contentTemplateThemes" name="contentTemplateThemes" data-placeholder="You may select one or more themes..."></select>
+				<div class="k-form-hint">The themes that use this content.</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -333,33 +334,40 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<select id="contentTemplateThemes" name="contentTemplateThemes" data-placeholder="You may select one or more themes..."></select>
+				<span class="k-form-hint">The themes that use this content.</span>
 			</td>
 		  </tr>
-		</cfif>	
+		</cfif>
 	  <!-- Border -->
 	  <tr height="2px">
-		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-			
+
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
 	  <!--- After the first row, the content class should be the current class. --->
 	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 	  </cfsilent>
-	  <!-- Border -->
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Form content -->
+	  <tr>
+	  	<td colspan="2" class="">Saves the same content for both the desktop and the mobile version.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">Apply to Mobile and Desktop</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><label for="applyAcrossDevices">Apply to Mobile and Desktop:</label></td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" name="applyAcrossDevices" id="applyAcrossDevices" value="0">
+			<input class="k-checkbox" type="checkbox" name="applyAcrossDevices" id="applyAcrossDevices" value="0">			
 		</td>
-	  </tr>  
+	  </tr>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
 	  <!---After the first row, the content class should be the current class. --->
@@ -370,7 +378,7 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="saveContentSubmitButton" name="saveContentSubmitButton" class="k-button k-primary" type="button">Submit</button>
 			&nbsp;

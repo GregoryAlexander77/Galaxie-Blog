@@ -145,7 +145,7 @@
 	  </tr>
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
-			The alias field is used when creating SES (Search Engine Safe) URLs. If wish to change the alias, do not use any non-alphanumeric characters or spaces in the alias- spaces should be replaced with dashes.
+			The alias field is used when creating SES (Search Engine Safe) URLs. If you wish to change the alias, do not use any non-alphanumeric characters or spaces in the alias- spaces should be replaced with dashes.
 		</td>
 	  </tr>
 	  <!-- Border -->
@@ -173,12 +173,18 @@
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">Letters, numbers and dashes, eg. my-first-post</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="postAliasInput">Post Alias</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="postAliasInput" name="postAliasInput" type="text" value="<cfoutput>#getPost[1]['PostAlias']#</cfoutput>" required validationMessage="postAlias is required" class="k-textbox" style="width: 66%" />  
+			<input id="postAliasInput" name="postAliasInput" type="text" value="<cfoutput>#getPost[1]['PostAlias']#</cfoutput>" required validationMessage="postAlias is required" class="k-textbox" style="width: 95%" />			
 		</td>
 	  </tr>
 	</cfif>
@@ -196,7 +202,7 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="postAliasSubmit" name="postAliasSubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>

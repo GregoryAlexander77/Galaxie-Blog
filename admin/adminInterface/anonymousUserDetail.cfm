@@ -133,7 +133,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="ipAddress">IP Address:</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -168,7 +168,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="httpUserAgent">User Agent</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -185,7 +185,9 @@
 	  <!---After the first row, the content class should be the current class. --->
 	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 	  </cfsilent>
-		  
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	<cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -199,7 +201,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="uaBrowser">Browser</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -216,6 +218,9 @@
 	  <!---After the first row, the content class should be the current class. --->
 	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	<cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -229,7 +234,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="uaIsBot">Is Bot?</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -265,11 +270,12 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="hitCount">Hit Count:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<cfoutput>#hitCount#</cfoutput>
+		</td>
 	  </tr>
 	</cfif>
 		
@@ -290,18 +296,18 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="checkbox" id="banIp" name="banIp" value="1" <cfif not len(ipAddress)>disabled="disabled"</cfif> <cfif ipBanned>checked="checked"</cfif>>
-			<cfif not len(ipAddress)><small>No IP address logged for this visitor.</small></cfif>
+			<input class="k-checkbox" type="checkbox" id="banIp" name="banIp" value="1" <cfif not len(ipAddress)>disabled="disabled"</cfif> <cfif ipBanned>checked="checked"</cfif>>
+			<cfif not len(ipAddress)><div class="k-form-hint">No IP address logged for this visitor.</div><cfelse><div class="k-form-hint">Blocks every visit from this IP address.</div></cfif>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="banIp">Ban IP Address?</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" id="banIp" name="banIp" value="1" <cfif not len(ipAddress)>disabled="disabled"</cfif> <cfif ipBanned>checked="checked"</cfif>>
-			<cfif not len(ipAddress)><small>No IP address logged for this visitor.</small></cfif>
+			<input class="k-checkbox" type="checkbox" id="banIp" name="banIp" value="1" <cfif not len(ipAddress)>disabled="disabled"</cfif> <cfif ipBanned>checked="checked"</cfif>>
+			<cfif not len(ipAddress)><span class="k-form-hint">No IP address logged for this visitor.</span><cfelse><span class="k-form-hint">Blocks every visit from this IP address.</span></cfif>
 		</td>
 	  </tr>
 	</cfif>
@@ -326,18 +332,18 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="checkbox" id="banUserAgent" name="banUserAgent" value="1" <cfif not len(userAgent)>disabled="disabled"</cfif> <cfif userAgentBanned>checked="checked"</cfif>>
-			<cfif not len(userAgent)><small>No User-Agent logged for this visitor.</small></cfif>
+			<input class="k-checkbox" type="checkbox" id="banUserAgent" name="banUserAgent" value="1" <cfif not len(userAgent)>disabled="disabled"</cfif> <cfif userAgentBanned>checked="checked"</cfif>>
+			<cfif not len(userAgent)><div class="k-form-hint">No User-Agent logged for this visitor.</div><cfelse><div class="k-form-hint">Blocks every visit with this exact User-Agent.</div></cfif>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="banUserAgent">Ban User Agent?</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" id="banUserAgent" name="banUserAgent" value="1" <cfif not len(userAgent)>disabled="disabled"</cfif> <cfif userAgentBanned>checked="checked"</cfif>>
-			<cfif not len(userAgent)><small>No User-Agent logged for this visitor.</small></cfif>
+			<input class="k-checkbox" type="checkbox" id="banUserAgent" name="banUserAgent" value="1" <cfif not len(userAgent)>disabled="disabled"</cfif> <cfif userAgentBanned>checked="checked"</cfif>>
+			<cfif not len(userAgent)><span class="k-form-hint">No User-Agent logged for this visitor.</span><cfelse><span class="k-form-hint">Blocks every visit with this exact User-Agent.</span></cfif>
 		</td>
 	  </tr>
 	</cfif>
@@ -365,15 +371,23 @@
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<input type="textbox" id="note" name="note" value="<cfoutput>#Note#</cfoutput>" class="k-textbox" style="width: 50%">
+			<div class="k-form-hint">Optional. Saved with a new ban, eg. the reason.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">Optional. Saved with a new ban, eg. the reason.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="note">Notes:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="textbox" id="note" name="note" value="<cfoutput>#Note#</cfoutput>" class="k-textbox" style="width: 50%">
+			<input type="textbox" id="note" name="note" value="<cfoutput>#Note#</cfoutput>" class="k-textbox" style="width: 50%">			
+		</td>
 	  </tr>
 	</cfif>
 	  <!-- Border -->
@@ -409,7 +423,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<cfoutput>
@@ -424,6 +438,7 @@
 				<button id="subscribedPages" name="subscribedPages" class="k-button k-alt" type="button" onClick="javascript:createAdminInterfaceWindow(26,#ipAddressId#)">Subscribed Pages</button>
 			</cfif>
 			</cfoutput>
+		</td>
 	  </tr>
 	</cfif>
 	  <!-- Border -->
@@ -438,12 +453,9 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"></td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="errorDetailSubmit" name="errorDetailSubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>

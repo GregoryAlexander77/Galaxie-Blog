@@ -1,3 +1,8 @@
+<!--- Admin tool: only for a logged-in user who can change server settings (2026-10-14). --->
+<cfif not (application.Udf.isLoggedIn() and structKeyExists(session, "capabilityList") and listFindNoCase(session.capabilityList, "EditServerSetting"))>
+	<cfheader statuscode="404">
+	<cfcontent reset="true"><cfabort>
+</cfif>
 <cfset ORMReload()>
 	
 <!---SELECT * FROM BLOG

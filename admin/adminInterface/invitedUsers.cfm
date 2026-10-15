@@ -215,10 +215,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr height="30px">
-			<td align="right" width="15%" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="profileFirstName">First Name</label>
 			</td>
-			<td width="85%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input id="profileFirstName" name="profileFirstName" type="text" value="<cfoutput>#firstName#</cfoutput>" required validationMessage="First Name is required" class="k-textbox" style="width: 40%" />    
 			</td>
 		  </tr>
@@ -249,10 +249,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="profileLastName">Last Name</label>
 			</td>
-			<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input id="profileLastName" name="profileLastName" type="text" value="<cfoutput>#lastName#</cfoutput>" required validationMessage="Last Name is required" class="k-textbox" style="width: 40%" /> 
 			</td>
 		  </tr>
@@ -278,16 +278,18 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input id="profileDisplayName" name="profileDisplayName" type="text" value="<cfoutput>#displayName#</cfoutput>" required validationMessage="Public Display Name is required" class="k-textbox" style="width: 95%" /> 
+				<input id="profileDisplayName" name="profileDisplayName" type="text" value="<cfoutput>#displayName#</cfoutput>" required validationMessage="Public Display Name is required" class="k-textbox" style="width: 95%" />
+				<div class="k-form-hint">Shown with your posts.</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td align="right" valign="middle" width="20%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="profileDisplayName">Public Display Name</label>
 			</td>
-			<td align="left" width="80%" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input id="profileDisplayName" name="profileDisplayName" type="text" value="<cfoutput>#displayName#</cfoutput>" required validationMessage="Public Display Name is required" class="k-textbox" style="width: 40%" /> 
+			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input id="profileDisplayName" name="profileDisplayName" type="text" value="<cfoutput>#displayName#</cfoutput>" required validationMessage="Public Display Name is required" class="k-textbox" style="width: 40%" />
+				<span class="k-form-hint">Shown with your posts.</span>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->
@@ -308,7 +310,6 @@
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<label for="profileEmail">Email</label>
 			</td>
-			</td>
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -318,7 +319,7 @@
 		<cfelse><!---<cfif session.isMobile>--->
 		  <!-- Form content -->
 		  <tr valign="middle" height="30px">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="profileEmail">Email</label>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -347,16 +348,18 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="url" id="profileWebSite" name="profileWebSite" value="<cfoutput>#webSite#</cfoutput>" class="k-textbox" style="width: 95%" /> 
+				<input type="url" id="profileWebSite" name="profileWebSite" value="<cfoutput>#webSite#</cfoutput>" class="k-textbox" style="width: 95%" />
+				<div class="k-form-hint">Optional</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr height="30px">
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="profileWebSite">Website</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="url" id="profileWebSite" name="profileWebSite" value="<cfoutput>#webSite#</cfoutput>" class="k-textbox" style="width: 65%" />    
+				<input type="url" id="profileWebSite" name="profileWebSite" value="<cfoutput>#webSite#</cfoutput>" class="k-textbox" style="width: 65%" />
+				<span class="k-form-hint">Optional</span>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->
@@ -382,19 +385,21 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- Hidden input to determine if the password is being changed. This is used to pop up a confirm password interface when the password is being changed --->
-				<input type="text" name="updatePassword" id="updatePassword" value="0"/>
-				<input type="password" id="profilePassword" name="profilePassword" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 95%" onClick="showPasswordNote()"/> 
+				<input type="hidden" name="updatePassword" id="updatePassword" value="0"/>
+				<input type="password" id="profilePassword" name="profilePassword" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 95%"/>
+				<div class="k-form-hint">At least 6 characters.</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="30px">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 				<label for="profilePassword">Password</label>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- Hidden input to determine if the password is being changed. This is used to pop up a confirm password interface when the password is being changed --->
-				<input type="text" name="updatePassword" id="updatePassword" value="0"/>
-				<input type="password" id="profilePassword" name="profilePassword" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 33%" onClick="showPasswordNote()/> 
+				<input type="hidden" name="updatePassword" id="updatePassword" value="0"/>
+				<input type="password" id="profilePassword" name="profilePassword" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 33%" />
+				<span class="k-form-hint">At least 6 characters.</span>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->
@@ -411,124 +416,119 @@
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		
-		  <tr height="2px">
-			  <td align="center" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>">Security Questions</td>
+		  <!--- Security questions (2026-10-15: were a nested table under a centred title bar; now rows of this table so the labels line up). --->
+		  <tr>
+			  <td align="left" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"><h4 class="adminBlockHeading">Security Questions</h4></td>
 		  </tr>
-		  <!--- New table for security questions. --->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
-				  
-				  <table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0" border="0">
-				  	  <!-- Border -->
-					  <tr height="2px">
-						  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-					  </tr>
-					  <cfsilent>
-					  <!--- Set the class for alternating rows. --->
-					  <!---After the first row, the content class should be the current class. --->
-					  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-					  </cfsilent>
-					  <tr height="2px">
-						  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-					  </tr>
-					  <!-- Form content -->
-					<cfif session.isMobile>
-					  <tr valign="middle">
-						<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-							<label for="securityAnswer1">What is the name of your favorite pet?</label
-						</td>
-					   </tr>
-					   <tr>
-						<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-							<input type="text" id="securityAnswer1" name="securityAnswer1" value="<cfoutput>#securityAnswer1#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite pet is required" style="width:95%" />
-						</td>
-					  </tr>
-					<cfelse><!---<cfif session.isMobile>--->
-					  <tr valign="middle">
-						<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="60%">
-							<label for="securityAnswer1">What is the name of your favorite pet?</label>
-						</td>
-						<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px">
-							<input type="text" id="securityAnswer1" name="securityAnswer1" value="<cfoutput>#securityAnswer1#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite pet is required" style="width:66%" /> 
-						</td>
-					  </tr>
-					</cfif><!---<cfif session.isMobile>--->
-					  <!-- Border -->
-					  <tr height="2px">
-						  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-					  </tr>
-					  <cfsilent>
-					  <!--- Set the class for alternating rows. --->
-					  <!---After the first row, the content class should be the current class. --->
-					  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-					  </cfsilent>
-					  <tr height="2px">
-						  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-					  </tr>
-					  <!-- Form content -->
-					<cfif session.isMobile>
-					  <tr valign="middle">
-						<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-							<label for="securityAnswer2">What is the name of your favorite childhood friend?</label>
-						</td>
-					   </tr>
-					   <tr>
-						<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-							<input id="securityAnswer2" name="securityAnswer2" type="text" value="<cfoutput>#securityAnswer2#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite friend is required" style="width: 95%"/> 
-						</td>
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <!-- Form content -->
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="securityAnswer1">What is the name of your favorite pet?</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input type="text" id="securityAnswer1" name="securityAnswer1" value="<cfoutput>#securityAnswer1#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite pet is required" style="width:95%" />
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr valign="middle">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+				<label for="securityAnswer1">What is the name of your favorite pet?</label>
+			</td>
+			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px">
+				<input type="text" id="securityAnswer1" name="securityAnswer1" value="<cfoutput>#securityAnswer1#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite pet is required" style="width:66%" /> 
+			</td>
+		  </tr>
+		</cfif><!---<cfif session.isMobile>--->
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <!-- Form content -->
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="securityAnswer2">What is the name of your favorite childhood friend?</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input id="securityAnswer2" name="securityAnswer2" type="text" value="<cfoutput>#securityAnswer2#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite friend is required" style="width: 95%"/> 
+			</td>
 
-					  </tr>
-					<cfelse><!---<cfif session.isMobile>--->
-					  <tr valign="middle" height="30px">
-						<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px">
-							<label for="securityAnswer2">What is the name of your favorite childhood friend?</label>
-						</td>
-						<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-							<input id="securityAnswer2" name="securityAnswer2" type="text" value="<cfoutput>#securityAnswer2#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite friend is required" style="width: 66%"/> 
-						</td>
-					  </tr>
-					</cfif><!---<cfif session.isMobile>--->
-					  <!-- Border -->
-					  <tr height="2px">
-						  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-					  </tr>
-					  <cfsilent>
-					  <!--- Set the class for alternating rows. --->
-					  <!---After the first row, the content class should be the current class. --->
-					  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-					  </cfsilent>
-					  <tr height="2px">
-						  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-					  </tr>
-					  <!-- Form content -->
-					<cfif session.isMobile>
-					  <tr valign="middle">
-						<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-							<label for="securityAnswer3">What is your favorite place?</label>
-						</td>
-					   </tr>
-					   <tr>
-						<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-							<input id="securityAnswer3" name="securityAnswer3" type="text" value="<cfoutput>#securityAnswer3#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite place is required" class="k-texbox" style="width: 95%" />  
-						</td>
-					  </tr>
-					<cfelse><!---<cfif session.isMobile>--->
-					  <tr valign="middle" height="30px">
-						<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px">
-							<label for="securityAnswer3">What is your favorite place?</label>
-						</td>
-						<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-							<input id="securityAnswer3" name="securityAnswer3" type="text" value="<cfoutput>#securityAnswer3#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite place is required" class="k-texbox" style="width: 66%" /> 
-						</td>
-					  </tr>
-					</cfif><!---<cfif session.isMobile>--->
-					</table>
-			  </td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr valign="middle" height="30px">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px" style="width: 20%">
+				<label for="securityAnswer2">What is the name of your favorite childhood friend?</label>
+			</td>
+			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input id="securityAnswer2" name="securityAnswer2" type="text" value="<cfoutput>#securityAnswer2#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite friend is required" style="width: 66%"/> 
+			</td>
+		  </tr>
+		</cfif><!---<cfif session.isMobile>--->
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <!---After the first row, the content class should be the current class. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <!-- Form content -->
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="securityAnswer3">What is your favorite place?</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input id="securityAnswer3" name="securityAnswer3" type="text" value="<cfoutput>#securityAnswer3#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite place is required" class="k-texbox" style="width: 95%" />  
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr valign="middle" height="30px">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px" style="width: 20%">
+				<label for="securityAnswer3">What is your favorite place?</label>
+			</td>
+			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input id="securityAnswer3" name="securityAnswer3" type="text" value="<cfoutput>#securityAnswer3#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite place is required" class="k-texbox" style="width: 66%" /> 
+			</td>
+		  </tr>
+		</cfif><!---<cfif session.isMobile>--->
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 			
 		  <!-- Submit -->
 		  <tr valign="middle" height="30px">
-			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<button id="userProfileSubmit" name="userProfileSubmit" class="k-button k-primary" type="button">Submit</button>
 			</td>

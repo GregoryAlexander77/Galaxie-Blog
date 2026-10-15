@@ -31,6 +31,8 @@
 	<cfproperty name="AmountTotal" ormtype="big_decimal" precision="10" scale="2" default="0">
 	<cfproperty name="AmountPaid" ormtype="big_decimal" precision="10" scale="2" default="0">
 	<cfproperty name="BalanceDue" ormtype="big_decimal" precision="10" scale="2" default="0">
+	<!--- The blog's currency when the booking was made (ISO 4217, eg. USD) - see Payments.cfc. Empty on bookings from before it existed. --->
+	<cfproperty name="Currency" ormtype="string" length="3" default="">
 	<!--- A place held while paying expires at this time (the Stripe step). --->
 	<cfproperty name="HoldExpiresAt" ormtype="timestamp">
 	<!--- Long random token for the visitor's cancel and reschedule links (the emails step). --->

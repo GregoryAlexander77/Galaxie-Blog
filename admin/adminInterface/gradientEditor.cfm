@@ -200,7 +200,7 @@ just store a name. --->
 		<td>
 			<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="0">
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="gradientStopColorSwatch">Stop Color:</label>
 					</td>
 					<td colspan="3">
@@ -208,7 +208,7 @@ just store a name. --->
 					</td>
 				</tr>
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="gradientType">Type:</label>
 					</td>
 					<td style="width: 25%">
@@ -217,7 +217,7 @@ just store a name. --->
 							<option value="radial">Radial</option>
 						</select>
 					</td>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="gradientAngle">Angle:</label>
 					</td>
 					<td style="width: 25%">
@@ -225,7 +225,7 @@ just store a name. --->
 					</td>
 				</tr>
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="gradientOverlayTextColor">Text Color:</label>
 					</td>
 					<td colspan="3">
@@ -245,7 +245,7 @@ just store a name. --->
 				has no HeroOverlayFont column (see the load block above). --->
 				<cfif not isPageCollectionEnclosure>
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="gradientOverlayFont">Text Font:</label>
 					</td>
 					<td colspan="3">
@@ -256,7 +256,7 @@ just store a name. --->
 				Speed slider already uses - no Kendo widget needed (or available - kendoTextBox isn't part of
 				Kendo Core, confirmed earlier tonight). --->
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="gradientOverlayFontSize">Text Size:</label>
 					</td>
 					<td colspan="3">

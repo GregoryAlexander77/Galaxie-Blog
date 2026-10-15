@@ -326,43 +326,31 @@
 			</td>
 		   </tr>
 		   <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection", URL.optArgs)>checked</cfif> />
-			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> />
-			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> />
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection", URL.optArgs)>checked</cfif> /> Blog Post<br/>
+				<input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page<br/>
+				<input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="18%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<label for="postType">Post Type</label><br/>
-			</td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection", URL.optArgs)>checked</cfif> /> Blog Post <input type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page <input type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection
-			</td>
-		  </tr>
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <cfsilent>
-		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent>
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr valign="middle" height="35">
-			<td class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			Both Blog Posts and pages are nearly identical but have several significant differences.<br/>
 			Blog Posts are dynamic and are placed in the blogs section that is ordered by the most recent date. Posts are also meant to be interactive and may have comments.
 			Page content is generally permanent, does not have comments or a visible published date, and links to the page are much more prominent and placed on the menu. Conversely, pages are not shown on the RSS feeds.<br/>
 			Use pages for universal site content or evergreen content that does not change, and use blog posts for specific content that is dynamic or that may change.<br/>
 			A page collection is different still - it isn't a page by itself, it's a themed index that links out to two or more of your existing pages, like a Portfolio or a Services section. If you just want one icon linking to one destination, create a page instead and place it directly.
+			</td>
+		  </tr>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr valign="middle" height="35">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+			<label for="postType">Post Type</label><br/>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection", URL.optArgs)>checked</cfif> /> Blog Post <input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page <input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection
 			</td>
 		  </tr>
 		</cfif>
@@ -391,7 +379,7 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr class="field-dateAuthor">
-			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 			<label for="post">Date Posted</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -433,10 +421,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="35" class="field-dateAuthor">
-			<td align="right" valign="middle" width="18%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="post">Author</label>
 			</td>
-			<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<select id="author" style="width: <cfif session.isMobile>95<cfelse>50</cfif>%"></select>
 				<!--- Inline template to add a new user. --->
 				<script id="addUser" type="text/x-kendo-tmpl">
@@ -475,10 +463,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="18%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="post">Title</label>
 			</td>
-			<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input type="text" id="title" name="title" value="" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%" />
 			</td>
 		  </tr>
@@ -504,16 +492,23 @@
 		  </tr>
 		  <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%"></textarea> 
+				<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%"></textarea>
+				<div class="k-form-hint">A short summary for search engines and social media.</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+		  	<td colspan="2" class="">A short summary for search engines and social media.</td>
+		  </tr>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  </tr>
 		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="18%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="post">Description</label>
 			</td>
-			<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%"></textarea>
+			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%"></textarea>				
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->
@@ -522,6 +517,9 @@
 		  Hero Image" button after creation, along with video/map/carousel support, matching the Post enclosure
 		  editor exactly). Optional - when set, this Collection becomes a pure cross-link (its own link points here
 		  instead of an internal listing) and only needs 1 member page to go live instead of 2. --->
+		  <tr height="2px" class="field-heroImage">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle" class="field-heroImage">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -531,15 +529,22 @@
 		  <tr class="field-heroImage">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<input type="text" id="externalUrl" name="externalUrl" value="" placeholder="https://example.com" class="k-textbox" style="width: 95%" />
+				<div class="k-form-hint">Leave blank for a normal collection.</div>
 			</td>
 		  </tr>
 		<cfelse>
+		  <tr class="field-heroImage">
+		  	<td colspan="2" class="">Makes this collection a cross-link to another site. Leave blank for a normal collection.</td>
+		  </tr>
+		  <tr height="2px" class="field-heroImage">
+		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  </tr>
 		  <tr valign="middle" height="35" class="field-heroImage">
-			<td align="right" valign="middle" width="18%" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="externalUrl">External URL (optional)</label>
 			</td>
-			<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="text" id="externalUrl" name="externalUrl" value="" placeholder="https://example.com" class="k-textbox" style="width: 66%" />
+			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<input type="text" id="externalUrl" name="externalUrl" value="" placeholder="https://example.com" class="k-textbox" style="width: 95%" />				
 			</td>
 		  </tr>
 		</cfif>
@@ -557,7 +562,7 @@
 		  </tr>
 	  	  <!-- Form content -->
 		  <tr valign="middle">
-			<td height="25" valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+			<td height="25" valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 			<td height="25" valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<button id="newPostSubmit" name="newPostSubmit" class="k-button k-primary" type="button">Next</button>
 			</td>

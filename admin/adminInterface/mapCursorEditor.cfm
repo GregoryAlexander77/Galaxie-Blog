@@ -98,8 +98,8 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		  <td align="right"><cfoutput><label>#Label#</label></cfoutput></td>
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><cfoutput><label>#Label#</label></cfoutput></td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- TinyMce container --->
 			<div style="position: relative;">
 				<textarea id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>"></textarea>
@@ -117,7 +117,7 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="imageSubmit" name="imageSubmit" class="k-button k-primary" type="button" onClick="onImageSubmit();">Submit</button>
 		</td>

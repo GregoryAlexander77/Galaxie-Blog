@@ -154,12 +154,16 @@
     <div class="directionsContainer">
 		
 		<input type="hidden" id="enclosureMapId" name="enclosureMapId" value="<cfoutput>#getPost[1]['EnclosureMapId']#</cfoutput>">
+		<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
 		<table align="center" class="k-content" width="95%" cellpadding="5" cellspacing="0">
 			<tr>
-				<td>Create a route by searching in addresses between two or more points. You can add up to 15 waypoints. When complete, click on the button below to continue.</td>
+				<td class="<cfoutput>#thisContentClass#</cfoutput>">Create a route by searching in addresses between two or more points. You can add up to 15 waypoints. When complete, click on the button below to continue.</td>
+			</tr>
+			<tr height="2px">
+				<td class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 			</tr>
 			<tr>
-				<td>
+				<td class="<cfoutput>#thisContentClass#</cfoutput>">
 					<button id="createRoute" class="k-button k-primary" type="button" onclick="getWaypoints()">Complete</button>
 				</td>
 			</tr>

@@ -89,7 +89,7 @@ java.util.HashMap, where dot notation is unreliable (see the case-sensitivity ar
 				data: {
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					pageCollectionId: <cfoutput>#pageCollectionId#</cfoutput>,
-					title: '<cfoutput>#jsStringFormat(thisCollection.title)#</cfoutput>',
+					title: '<cfoutput>#isStruct(thisCollection) ? jsStringFormat(thisCollection.title) : ''#</cfoutput>',
 					description: '<cfoutput>#jsStringFormat(thisCollection.description)#</cfoutput>',
 					<!--- heroImageUrl deliberately NOT sent: this value was baked in when the window opened, so after
 					uploading a new hero in the Hero Image Editor (which saves it itself and only reloads the preview
@@ -171,38 +171,36 @@ java.util.HashMap, where dot notation is unreliable (see the case-sensitivity ar
 	</div>
 <cfelse>
 	<cfsilent>
-		<!--- Alternating k-content/k-alt row backgrounds, same pattern used throughout the rest of the admin
-		(e.g. newPost.cfm) - HtmlUtilsObj is already instantiated once in adminInterface.cfm's shared outer scope. --->
-		<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+		<!--- Alternating k-content/k-alt blocks, the shared adminBlocks look (blogContentCss.cfm) used by the other
+		admin windows - HtmlUtilsObj is already instantiated once in adminInterface.cfm's shared outer scope. --->
+		<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 	</cfsilent>
-	<table align="center" class="k-content tableBorder" width="100%" cellpadding="8" cellspacing="0">
+	<cfoutput>
+	<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+		<colgroup><col style="width: 20%"><col></colgroup>
 		<tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<h2 style="margin-top: 0; margin-bottom: 0;"><cfoutput>#thisCollection.title# Collection</cfoutput></h2>
-			</td>
+			<td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">#thisCollection.title# Collection</h4></td>
 		</tr>
-		<!-- Border -->
-		<tr height="2px">
-			<td align="left" valign="top" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		</tr>
-		<cfsilent><cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)></cfsilent>
-		<tr height="2px">
-			<td align="left" valign="top" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		</tr>
+
+		<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		<tr><td colspan="2" class="#blockClass#">Also used as this collection's icon. The editor saves it by itself.</td></tr>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		<tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<label><b>Hero Image</b> (doubles as this collection's icon):</label><br>
-				<div class="entryImage pcHeroPreview" id="pcHeroPreview-<cfoutput>#pageCollectionId#</cfoutput>">
+			<td class="#blockClass#" align="right" valign="top">Hero Image:</td>
+			<td class="#blockClass#">
+				<div class="entryImage pcHeroPreview" id="pcHeroPreview-#pageCollectionId#">
 					<cfif len(heroEnclosureCarouselId)>
-						<cfoutput>#RendererObj.renderCarouselPreview(heroEnclosureCarouselId, 'postEditor')#</cfoutput>
+						#RendererObj.renderCarouselPreview(heroEnclosureCarouselId, 'postEditor')#
 					<cfelseif len(heroEnclosureMapId)>
-						<cfoutput>#RendererObj.renderMapPreview(heroEnclosureMapId, false)#</cfoutput>
+						#RendererObj.renderMapPreview(heroEnclosureMapId, false)#
 					<cfelseif left(heroEnclosureMediaType, 5) eq 'Video' and len(heroEnclosureMediaUrl)>
-						<cfoutput>#RendererObj.renderEnclosureVideoPreview(postId="", pageCollectionId=pageCollectionId, mediaUrl=heroEnclosureMediaUrl, mediaId=heroEnclosureData[1]["MediaId"], providerVideoId=heroEnclosureData[1]["ProviderVideoId"], posterUrl=heroEnclosureData[1]["MediaVideoCoverUrl"], videoCaptionsUrl=heroEnclosureData[1]["MediaVideoVttFileUrl"], renderThumbnail=true)#</cfoutput>
+						#RendererObj.renderEnclosureVideoPreview(postId="", pageCollectionId=pageCollectionId, mediaUrl=heroEnclosureMediaUrl, mediaId=heroEnclosureData[1]["MediaId"], providerVideoId=heroEnclosureData[1]["ProviderVideoId"], posterUrl=heroEnclosureData[1]["MediaVideoCoverUrl"], videoCaptionsUrl=heroEnclosureData[1]["MediaVideoVttFileUrl"], renderThumbnail=true)#
 					<cfelseif len(thisCollection.heroGradient)>
-						<div style="width:100%;height:100%;min-height:150px;background:<cfoutput>#thisCollection.heroGradient#</cfoutput>;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;">
+						<div style="width:100%;height:100%;min-height:150px;background:#thisCollection.heroGradient#;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;">
 							<cfif len(thisCollection.heroOverlayText)>
-								<span style="color:<cfoutput>#(len(thisCollection.heroOverlayTextColor) ? thisCollection.heroOverlayTextColor : '##ffffff')#</cfoutput>;font-size:20px;font-weight:bold;text-align:center;"><cfoutput>#thisCollection.heroOverlayText#</cfoutput></span>
+								<span style="color:#(len(thisCollection.heroOverlayTextColor) ? thisCollection.heroOverlayTextColor : '##ffffff')#;font-size:20px;font-weight:bold;text-align:center;">#thisCollection.heroOverlayText#</span>
 							</cfif>
 						</div>
 					<cfelseif len(thisCollection.heroImageUrl)>
@@ -211,102 +209,114 @@ java.util.HashMap, where dot notation is unreliable (see the case-sensitivity ar
 						reuses the exact same URL. Without a query string, the browser shows its cached copy of the
 						old file and the new hero image never appears to update, even though the server-side file and
 						HeroImageUrl are both correct. --->
-						<img src="<cfoutput>#thisCollection.heroImageUrl#?v=#getTickCount()#</cfoutput>" alt="">
+						<img src="#thisCollection.heroImageUrl#?v=#getTickCount()#" alt="">
 					<cfelse>
-						<img src="<cfoutput>#application.baseUrl#</cfoutput>/images/icons/noMedia.png" alt="">
+						<img src="#application.baseUrl#/images/icons/noMedia.png" alt="">
 					</cfif>
 				</div>
-				<button id="pcHeroImage-<cfoutput>#pageCollectionId#</cfoutput>" class="k-button normalFontWeight" type="button" onclick="javascript:createAdminInterfaceWindow(13,<cfoutput>#pageCollectionId#</cfoutput>,'pageCollection');">Hero Image Editor</button>
+				<button id="pcHeroImage-#pageCollectionId#" class="k-button normalFontWeight" type="button" onclick="javascript:createAdminInterfaceWindow(13,#pageCollectionId#,'pageCollection');">Hero Image Editor</button>				
 			</td>
 		</tr>
-		<!-- Border -->
-		<tr height="2px">
-			<td align="left" valign="top" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		</tr>
-		<cfsilent><cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)></cfsilent>
-		<tr height="2px">
-			<td align="left" valign="top" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		</tr>
+
+		<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		<tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<label for="pcExternalUrl-<cfoutput>#pageCollectionId#</cfoutput>">External URL (makes this a cross-link instead of an internal listing - e.g. linking out to a companion site):</label><br>
-				<input type="text" id="pcExternalUrl-<cfoutput>#pageCollectionId#</cfoutput>" value="<cfoutput>#thisCollection.externalUrl#</cfoutput>" placeholder="https://example.com" class="k-textbox" style="width: 320px; margin: 4px 0;">
-				<br><label><input type="checkbox" id="pcShowInMenu-<cfoutput>#pageCollectionId#</cfoutput>" <cfif thisCollection.showInMenu>checked</cfif>> Show in the top menu</label>
-				<div class="k-form-hint">Lists this collection in the top menu's collections menu (its name is set in Configure Menu). It appears once the collection is live.</div>
-				<label for="pcMenuOrder-<cfoutput>#pageCollectionId#</cfoutput>">Menu order (lower numbers appear first):</label><br><input type="number" id="pcMenuOrder-<cfoutput>#pageCollectionId#</cfoutput>" value="<cfoutput>#thisCollection.menuOrder#</cfoutput>" class="k-textbox" style="width: 120px; margin: 4px 0;">
-				<p><cfif len(thisCollection.externalUrl)>This collection's link points here instead of its own internal page, and only needs 1 member page to go live (not 2).<cfelse>Leave blank for a normal collection (needs 2+ member pages, links to its own internal listing).</cfif></p>
-			</td>
+			<td colspan="2" class="#blockClass#">Optional: an External URL makes this a cross-link instead of an internal listing - e.g. linking out to a companion site. <cfif len(thisCollection.externalUrl)>This collection's link points here instead of its own internal page, and only needs 1 member page to go live (not 2).<cfelse>Leave blank for a normal collection (needs 2+ member pages, links to its own internal listing).</cfif></td>
 		</tr>
-		<!-- Border -->
-		<tr height="2px">
-			<td align="left" valign="top" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		<tr>
+			<td class="#blockClass#" align="right"><label for="pcExternalUrl-#pageCollectionId#">External URL:</label></td>
+			<td class="#blockClass#"><input type="text" id="pcExternalUrl-#pageCollectionId#" value="#thisCollection.externalUrl#" placeholder="https://example.com" class="k-textbox" style="width: 95%;"></td>
 		</tr>
-		<cfsilent><cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)></cfsilent>
-		<tr height="2px">
-			<td align="left" valign="top" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		<tr>
+			<td colspan="2" class="#blockClass#">Lists this collection in the top menu's collections menu (its name is set in Configure Menu). It appears once the collection is live.</td>
 		</tr>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		<tr>
+			<td class="#blockClass#" align="right"><label for="pcShowInMenu-#pageCollectionId#">Show in Menu:</label></td>
+			<td class="#blockClass#"><input class="k-checkbox" type="checkbox" id="pcShowInMenu-#pageCollectionId#" <cfif thisCollection.showInMenu>checked</cfif>></td>
+		</tr>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		<tr>
+			<td class="#blockClass#" align="right"><label for="pcMenuOrder-#pageCollectionId#">Menu Order:</label></td>
+			<td class="#blockClass#"><input type="number" id="pcMenuOrder-#pageCollectionId#" value="#thisCollection.menuOrder#" class="k-textbox" style="width: 120px;"><span class="k-form-hint">Lower numbers appear first.</span></td>
+		</tr>
+
+		<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		<cfif arrayLen(pcMembers)>
+			<tr><td colspan="2" class="#blockClass#">For this collection's own listing page. Saved as soon as you pick one.</td></tr>
+			<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 			<tr>
-				<td class="<cfoutput>#thisContentClass#</cfoutput>">
-					<label for="pcTheme-<cfoutput>#pageCollectionId#</cfoutput>">Theme (for this collection's own listing view):</label><br>
-					<select id="pcTheme-<cfoutput>#pageCollectionId#</cfoutput>" style="width: 220px; margin: 4px 0 10px;">
+				<td class="#blockClass#" align="right"><label for="pcTheme-#pageCollectionId#">Theme:</label></td>
+				<td class="#blockClass#">
+					<select id="pcTheme-#pageCollectionId#" style="width: 220px;">
 						<!--- Inherit (ThemeRef=0, same sentinel savePageCollectionTheme's val() already coerces a blank
 						choice to) is the default for every collection - it follows whatever theme is currently active
 						for the site, rather than locking the collection to one theme that has to be kept in sync by
 						hand if the site's theme changes later. --->
 						<option value="0" <cfif val(thisCollection.themeRef) eq 0>selected</cfif>>Inherit (site's current theme)</option>
 						<cfloop from="1" to="#arrayLen(themeNames)#" index="i">
-							<option value="<cfoutput>#themeNames[i]['ThemeId']#</cfoutput>" <cfif thisCollection.themeRef eq themeNames[i]['ThemeId']>selected</cfif>><cfoutput>#themeNames[i]['ThemeName']#</cfoutput></option>
+							<option value="#themeNames[i]['ThemeId']#" <cfif thisCollection.themeRef eq themeNames[i]['ThemeId']>selected</cfif>>#themeNames[i]['ThemeName']#</option>
 						</cfloop>
-					</select><br>
-
-					<label>Members (drag to reorder):</label>
-					<ul class="pcMembers k-content" id="pcMembers-<cfoutput>#pageCollectionId#</cfoutput>">
+					</select>					
+				</td>
+			</tr>
+			<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+			<tr><td colspan="2" class="#blockClass#">Drag to reorder, then click Save Order.</td></tr>
+			<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+			<tr>
+				<td class="#blockClass#" align="right" valign="top">Members:</td>
+				<td class="#blockClass#">
+					<ul class="pcMembers k-content" id="pcMembers-#pageCollectionId#">
 						<cfloop array="#pcMembers#" index="m">
-							<li data-postid="<cfoutput>#m.postId#</cfoutput>"><span class="pcMemberTitle">&#9776; <cfoutput>#m.title#</cfoutput></span><button type="button" class="k-button pcGoMember">Go</button></li>
+							<li data-postid="#m.postId#"><span class="pcMemberTitle">&##9776; #m.title#</span><button type="button" class="k-button pcGoMember">Go</button></li>
 						</cfloop>
-					</ul>
+					</ul>					
 					<div class="pcButtonRow">
-						<button id="pcSaveOrder-<cfoutput>#pageCollectionId#</cfoutput>" class="k-button normalFontWeight" type="button">Save Order</button>
-						<button id="pcAddPages-<cfoutput>#pageCollectionId#</cfoutput>" class="k-button normalFontWeight" type="button">Add Pages</button>
+						<button id="pcSaveOrder-#pageCollectionId#" class="k-button normalFontWeight" type="button">Save Order</button>
+						<button id="pcAddPages-#pageCollectionId#" class="k-button normalFontWeight" type="button">Add Pages</button>
 					</div>
 				</td>
 			</tr>
 		<cfelse>
 			<tr>
-				<td class="<cfoutput>#thisContentClass#</cfoutput>">
+				<td class="#blockClass#" align="right" valign="top">Members:</td>
+				<td class="#blockClass#">
 					<cfif session.isMobile>
-						<p style="margin-top: 0; color: #888;">No pages assigned yet. Add pages to this collection<cfif len(thisCollection.externalUrl)> (needs 1 to go live, since it's a cross-link)<cfelse> (needs 2 to go live)</cfif>.</p>
+						<p style="margin-top: 0; color: ##888;">No pages assigned yet. Add pages to this collection<cfif len(thisCollection.externalUrl)> (needs 1 to go live, since it's a cross-link)<cfelse> (needs 2 to go live)</cfif>.</p>
 						<div class="pcButtonRow">
-							<button id="pcAddPages-<cfoutput>#pageCollectionId#</cfoutput>" class="k-button normalFontWeight" type="button">Add Pages</button>
+							<button id="pcAddPages-#pageCollectionId#" class="k-button normalFontWeight" type="button">Add Pages</button>
 						</div>
 					<cfelse>
 						<!--- Desktop has the room to put the button and its explanation side by side instead of
 						stacked - .pcButtonRow is already display:flex/align-items:center, so the message just needs
 						to be another child in that same row, after the button. --->
 						<div class="pcButtonRow">
-							<button id="pcAddPages-<cfoutput>#pageCollectionId#</cfoutput>" class="k-button normalFontWeight" type="button">Add Pages</button>
-							<p style="margin: 0; color: #888;">No pages assigned yet. Add pages to this collection<cfif len(thisCollection.externalUrl)> (needs 1 to go live, since it's a cross-link)<cfelse> (needs 2 to go live)</cfif>.</p>
+							<button id="pcAddPages-#pageCollectionId#" class="k-button normalFontWeight" type="button">Add Pages</button>
+							<p style="margin: 0; color: ##888;">No pages assigned yet. Add pages to this collection<cfif len(thisCollection.externalUrl)> (needs 1 to go live, since it's a cross-link)<cfelse> (needs 2 to go live)</cfif>.</p>
 						</div>
 					</cfif>
 				</td>
 			</tr>
 		</cfif>
-		<!-- Border -->
-		<tr height="2px">
-			<td align="left" valign="top" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		</tr>
-		<cfsilent><cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)></cfsilent>
-		<tr height="2px">
-			<td align="left" valign="top" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		</tr>
+
+		<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		<tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>">
+			<td class="#blockClass#">&nbsp;</td>
+			<td class="#blockClass#">
 				<div class="pcButtonRow pcDeleteRow">
-					<button id="pcSaveCollection-<cfoutput>#pageCollectionId#</cfoutput>" class="k-button k-primary" type="button">Save Collection</button>
-					<button id="pcDelete-<cfoutput>#pageCollectionId#</cfoutput>" class="k-button normalFontWeight" type="button">Delete Collection</button>
+					<button id="pcSaveCollection-#pageCollectionId#" class="k-button k-primary" type="button">Save Collection</button>
+					<button id="pcDelete-#pageCollectionId#" class="k-button normalFontWeight" type="button">Delete Collection</button>
 				</div>
+				<div class="k-form-hint">Save Collection saves the External URL and menu settings.</div>
 			</td>
 		</tr>
 	</table>
+	</cfoutput>
 </cfif>

@@ -11,24 +11,84 @@ See doc/aiDraftArticles/eventsAndFormsDesign.cfm, Part 3. --->
 	<cfif thisBooking.status eq "pending"><cfset bookingPendingCount = bookingPendingCount + 1></cfif>
 </cfloop>
 
-<p>Let visitors book a time with you: a consultation, a session, a lesson. Set up where you meet, the kinds of bookings you offer, and when you're available.</p>
-
-<table align="center" class="k-content tableBorder" width="100%" cellpadding="8" cellspacing="0" border="0">
+<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
+<cfoutput>
+<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+	<colgroup><col style="width: 20%"><col></colgroup>
+	<tr><td colspan="2" class="#blockClass#">Let visitors book a time with you: a consultation, a session, a lesson. Set up where you meet, the kinds of bookings you offer, and when you're available.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td width="30%"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(88);">Locations</button></td>
-		<td>Where you meet: in person, online or by phone. A booking type can offer several, and the client chooses. <cfoutput>(#bookingLocationCount# set up)</cfoutput></td>
+		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(88);">Locations</button></td>
+		<td class="#blockClass#">Where you meet: in person, online or by phone. A booking type can offer several, and the client chooses. (#bookingLocationCount# set up)</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(90);">Booking types</button></td>
-		<td>What can be booked: its length, price, where it happens, and the rules for booking it. <cfoutput>(#bookingTypeCount# set up)</cfoutput></td>
+		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(90);">Booking types</button></td>
+		<td class="#blockClass#">What can be booked: its length, price, where it happens, and the rules for booking it. (#bookingTypeCount# set up)</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(92);">Hours</button></td>
-		<td>When you're available each week, per location if you like, and your days off.
-			<cfif len(bookingTimeZone)><cfoutput>Times are in your blog's time zone, #encodeForHtml(bookingTimeZone)#.</cfoutput><cfelse>Set your time zone in Blog Settings first.</cfif></td>
+		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(92);">Hours</button></td>
+		<td class="#blockClass#">When you're available each week, per location if you like, and your days off. <cfif len(bookingTimeZone)>Times are in your blog's time zone, #encodeForHtml(bookingTimeZone)#.<cfelse>Set your time zone in Blog Settings first.</cfif></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(94, 'upcoming');">Bookings</button></td>
-		<td>The bookings clients have made: approve, cancel, and keep notes. <cfoutput>(#arrayLen(bookingUpcoming)# upcoming<cfif bookingPendingCount>, <b>#bookingPendingCount# waiting for your approval</b></cfif>)</cfoutput></td>
+		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(94, 'upcoming');">Bookings</button></td>
+		<td class="#blockClass#">The bookings clients have made: approve, cancel, and keep notes. (#arrayLen(bookingUpcoming)# upcoming<cfif bookingPendingCount>, #bookingPendingCount# waiting for your approval</cfif>)</td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(96);">Calendar</button></td>
+		<td class="#blockClass#">Your bookings on a calendar: by month, week or day.</td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Your calendar</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<!--- The private calendar feed (2026-10-15) - see Bookings.cfc getFeedUrl and common/services/bookingsFeed.cfm. --->
+	<tr><td colspan="2" class="#blockClass#">Subscribe to this private address and your bookings appear in your own calendar. Google Calendar: Other calendars &gt; + &gt; From URL. Outlook: Add calendar &gt; Subscribe from web. Apple Calendar: File &gt; New Calendar Subscription. Calendars check it every few hours, so a new booking can take a while to show.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Keep it to yourself; if it's ever shared by mistake, make a new one.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right"><label for="bookingFeedUrl">Address:</label></td>
+		<td class="#blockClass#">
+			<textarea id="bookingFeedUrl" class="k-textbox" readonly rows="2" style="width: 95%; resize: none; word-break: break-all;" onclick="this.select();">#encodeForHtml(application.bookings.getFeedUrl())#</textarea>			
+		</td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><button type="button" class="k-button" id="bookingFeedNew">Make a new address</button> <span id="bookingFeedStatus" role="status"></span></td>
 	</tr>
 </table>
+</cfoutput>
+<script>
+	$("#bookingFeedNew").on("click", function() {
+		$.when(kendo.ui.ExtYesNoDialog.show({ title: "Make a new address?", message: "The old address will stop working right away. Any calendar you subscribed with it (Google, Outlook, Apple) stops updating until you subscribe it to the new address.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
+			if (!answer['button'] || answer['button'] !== 'Yes') { return; }
+			jQuery.ajax({
+				type: 'post',
+				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=newBookingsFeedAddress',
+				data: { csrfToken: '<cfoutput>#csrfToken#</cfoutput>' },
+				dataType: "json",
+				success: function(response) {
+					if (response && response.feedUrl) { $("#bookingFeedUrl").val(response.feedUrl); $("#bookingFeedStatus").text("New address made."); }
+					else { $("#bookingFeedStatus").text("The address couldn't be changed."); }
+				},
+				error: function(jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
+			});
+		});
+	});
+</script>

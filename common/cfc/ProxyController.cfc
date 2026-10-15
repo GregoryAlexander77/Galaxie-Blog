@@ -344,8 +344,8 @@
 				
 		<!--- Create a random string --->
 		<cfset session.captchaText = application.blog.makeRandomString()>
-		<!--- And hash it --->
-		<cfset session.captchaHash = hash(session.captchaText)>
+		<!--- A random reference for the image, unrelated to the word (2026-10-14). The word itself is checked on the server. --->
+		<cfset session.captchaHash = lCase(hash(createUUID() & rand("SHA1PRNG"), "SHA-256"))>
 		<!--- Create a URL --->
 		<cfset captchaUrl = application.baseUrl & "/showCaptcha.cfm?hashReference=" & session.captchaHash>
 			
@@ -6643,6 +6643,13 @@
 		<cfelse>
 			<cfset secureFunction('EditUser', arguments.pkey)>
 		</cfif>
+		<!--- A profile is changed by its own user, or by someone with EditUser (2026-10-14). --->
+		<cfif arguments.action eq 'updateProfile' and application.Udf.isLoggedIn()
+			and (not structKeyExists(session, "userName") or compareNoCase(trim(arguments.userName), trim(session.userName)) neq 0)
+			and not (structKeyExists(session, "capabilityList") and listFindNoCase(session.capabilityList, "EditUser"))>
+			<cfheader statuscode="403">
+			<cfabort>
+		</cfif>
 
 		<!--- Only admins or authenticated new users can update this. --->
 		<cfif application.Udf.isLoggedIn()>
@@ -8221,42 +8228,7 @@
 
 	</cffunction>
 					
-	<cffunction name="uploadImageViaUploaderMethod" access="remote" returnformat="plain" output="false" 
-			hint="Depracated. Still keeping around for future blog post (it's simple). This function uploads an image via the tiny mce editor">
-		<cfargument name="csrfToken" default="" required="true">
-			
-		<!--- Verify the token --->
-		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<!--- Set the response --->
-			<cfset response = "Invalid token">
-			<!--- Return it --->
-			<cfif application.serverProduct eq 'Lucee'>
-				<!--- Do not serialize the response --->
-				<cfreturn response>
-			<cfelse>
-				<!--- Serialize the response --->
-				<cfset serializedResponse = serializeJSON( response ) />
-				<!--- Send the response back to the client. --->
-				<cfreturn serializedResponse>
-			</cfif>	
-			<!--- Abort the process if the token is not validated. --->
-			<cfabort>
-		</cfif>
-				
-		<!--- Manipulate the enclosure for social media sharing. ---> 
-		<!--- Set the destination. --->
-		<cfset destination = expandPath("#application.baseUrl#/enclosures")>
-
-		<!--- Upload it --->
-		<cffile action="upload" filefield="file" destination="#destination#" mode = "644" nameconflict="overwrite">
-
-		<!--- Get the full path and the name of the file --->
-		<cfset imageUrl = application.baseUrl & "/enclosures/" & cffile.serverFile>
-
-		<!--- Return the structure with the image back to the client --->
-		<cfreturn imageUrl>
-
-	</cffunction>
+	<!--- uploadImageViaUploaderMethod (an old, unused TinyMCE uploader) was removed on 2026-10-14. --->
 
 	<cffunction name="debugTraceLocal" access="private" returntype="void" output="false"
 			hint="Temporary, self-contained diagnostic tracer for the uploadVideo() enclosure-not-persisting bug -
@@ -9674,6 +9646,22 @@
 		<cfargument name="heroCarouselImageCount" default="1" required="false" hint="How many pool images the carousel shows per post when noImageFallbackMode='pool' and heroPoolDisplayMode='carousel'.">
 		<cfargument name="heroPoolDisplayMode" default="carousel" required="false" hint="'carousel' or 'single' - see BlogOption.cfc's HeroPoolDisplayMode.">
 		<cfargument name="releasedPostEmailMode" default="prompt" required="false" hint="'prompt' or 'auto' - see BlogOption.cfc's ReleasedPostEmailMode (Blog Options, Subscriber Email, 2026-10-12).">
+		<!--- Payments (2026-10-14), see Payments.cfc. Only saved when the Payments panel was posted (paymentSettingsPosted). A
+		blank secret keeps the saved one. --->
+		<cfargument name="paymentSettingsPosted" default="" required="false">
+		<cfargument name="paymentCurrency" default="" required="false">
+		<cfargument name="paymentTaxMode" default="" required="false">
+		<cfargument name="paymentTaxName" default="" required="false">
+		<cfargument name="paymentTaxRate" default="" required="false">
+		<cfargument name="paymentTestMode" default="" required="false">
+		<cfargument name="stripeTestPublishableKey" default="" required="false">
+		<cfargument name="stripeTestSecretKey" default="" required="false">
+		<cfargument name="stripeTestWebhookSecret" default="" required="false">
+		<cfargument name="stripeLivePublishableKey" default="" required="false">
+		<cfargument name="stripeLiveSecretKey" default="" required="false">
+		<cfargument name="stripeLiveWebhookSecret" default="" required="false">
+		<cfargument name="clearTestKeys" default="" required="false">
+		<cfargument name="clearLiveKeys" default="" required="false">
 
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -9697,6 +9685,21 @@
 		<cfset secureFunction('EditServerSetting')>
 			
 		<cfif application.Udf.isLoggedIn()>
+
+			<!--- Payments (2026-10-14): checked first, so a wrong key (eg. pasted into the wrong box) saves nothing at all. --->
+			<cfif len(arguments.paymentSettingsPosted)>
+				<cfset local.paymentData = {
+					currency: arguments.paymentCurrency, taxMode: arguments.paymentTaxMode, taxName: arguments.paymentTaxName, taxRate: arguments.paymentTaxRate,
+					testMode: len(arguments.paymentTestMode) gt 0,
+					stripeTestPublishableKey: arguments.stripeTestPublishableKey, stripeTestSecretKey: arguments.stripeTestSecretKey, stripeTestWebhookSecret: arguments.stripeTestWebhookSecret,
+					stripeLivePublishableKey: arguments.stripeLivePublishableKey, stripeLiveSecretKey: arguments.stripeLiveSecretKey, stripeLiveWebhookSecret: arguments.stripeLiveWebhookSecret,
+					clearTestKeys: len(arguments.clearTestKeys) gt 0, clearLiveKeys: len(arguments.clearLiveKeys) gt 0
+				}>
+				<cfset local.paymentErrors = application.payments.validateSettings(local.paymentData)>
+				<cfif arrayLen(local.paymentErrors)>
+					<cfreturn { "paymentErrors": local.paymentErrors }>
+				</cfif>
+			</cfif>
 			
 			<!--- Set the value of the checkboxes --->
 			<cfif len(arguments.useSsl)>
@@ -9840,6 +9843,11 @@
 			<cfset thisDirectory = application.baseUrl & '/cache/posts'>
 			<cfset application.blog.flushGalaxieCacheFiles(thisDirectory,'')>
 
+			<!--- Payments (2026-10-14): validated above. --->
+			<cfif len(arguments.paymentSettingsPosted)>
+				<cfset application.payments.saveSettings(local.paymentData)>
+			</cfif>
+
 			<!--- Return the Id --->
 			<cfreturn OptionDbObj.getBlogOptionId()>
 			
@@ -9907,10 +9915,21 @@
 			
 		<cfif application.Udf.isLoggedIn()>
 			
+			<!--- The password fields in Blog Settings start empty (2026-10-14): a blank field keeps the saved password. --->
+			<cfset local.keepIniDsnPassword = not len(arguments.dsnPassword)>
+			<cfif not len(arguments.dsnPassword)>
+				<cfset arguments.dsnPassword = isNull(application.BlogDbObj.getBlogDsnPassword()) ? "" : application.BlogDbObj.getBlogDsnPassword()>
+			</cfif>
+			<cfif not len(arguments.mailPassword)>
+				<cfset arguments.mailPassword = isNull(application.BlogDbObj.getBlogMailServerPassword()) ? "" : application.BlogDbObj.getBlogMailServerPassword()>
+			</cfif>
+
 			<!--- Note: we need to store the database connection credentials in the blog.ini file as well. This is needed as the database will not immediately be up and running when the blog is installed and we are using the ini file to store the credentials when we can't get them from the database --->
 			<cfset setProfileString(application.iniFile, "default", "dsn", arguments.dsn)>
 			<cfset setProfileString(application.iniFile, "default", "username", arguments.dsnUserName)>
-			<cfset setProfileString(application.iniFile, "default", "password", arguments.dsnPassword)>
+			<cfif not local.keepIniDsnPassword>
+				<cfset setProfileString(application.iniFile, "default", "password", arguments.dsnPassword)>
+			</cfif>
 			<!--- Allow users to change the URL in the ini file as well --->
 			<cfset setProfileString(application.iniFile, "default", "blogUrl", arguments.blogUrl)>
 				
@@ -10152,7 +10171,9 @@
 			
 		<cfif application.Udf.isLoggedIn()>
 		
-			<cfif arguments.fileType eq 'webVtt'>
+			<!--- Only caption files (.vtt) inside this blog's folder (2026-10-14). --->
+			<cfif arguments.fileType eq 'webVtt' and lCase(listLast(arguments.file, ".")) eq "vtt" and not find("..", arguments.file)
+				and left(arguments.file, len(application.baseUrl) + 1) eq application.baseUrl & "/">
 				<!--- Load JSoup to convert the html to text --->
 				<cfinvoke component="#application.jsoupComponentPath#" method="jsoupConvertHtmlToText2" returnvariable="jsoupWholeText">
 					<cfinvokeargument name="html" value="#arguments.fileContent#">
@@ -11132,8 +11153,11 @@
 		<cfargument name="captchaText" type="string" required="false" default="">
 		<cfargument name="website" type="string" required="false" default="" hint="The hidden field only bots fill in.">
 		<cfargument name="postId" required="false" default="0">
+		<cfargument name="returnUrl" type="string" required="false" default="" hint="The page the visitor books from; they come back to it from the payment page.">
 
-		<cfset var response = { "success": false, "errors": {}, "message": "", "status": "", "detailsHtml": "", "locationLabel": "", "startUtc": "" }>
+		<cfset var response = { "success": false, "errors": {}, "message": "", "status": "", "detailsHtml": "", "locationLabel": "", "startUtc": "", "checkoutUrl": "" }>
+		<cfset var checkout = "">
+		<cfset var backTo = "">
 		<cfset var bookingType = application.bookings.getBookingType(alias = left(trim(arguments.alias), 100))>
 		<cfset var issued = "">
 		<cfset var ip = cgi.remote_addr>
@@ -11252,6 +11276,35 @@
 			<cfif not structKeyExists(application.webFormRateLimit, ip)><cfset application.webFormRateLimit[ip] = []></cfif>
 			<cfset arrayAppend(application.webFormRateLimit[ip], now())>
 		</cflock>
+		<!--- Paid online (2026-10-15): send the visitor to Stripe's payment page. The time stays held until the payment webhook
+		confirms it (common/services/stripeWebhook.cfm), which also sends the emails; nothing is confirmed from the browser. --->
+		<cfif structKeyExists(booked, "paymentRequired") and booked.paymentRequired>
+			<cfset backTo = listFirst(trim(arguments.returnUrl), "?##")>
+			<cfif not len(backTo) or left(backTo, len(application.blogHostUrl)) neq application.blogHostUrl or reFind("[\s<>""']", backTo)>
+				<cfset backTo = application.blogHostUrl & "/">
+			</cfif>
+			<cfset checkout = application.payments.createBookingCheckout(
+				bookingId = booked.bookingId,
+				purpose = booked.paymentPurpose,
+				itemName = bookingType.name & (booked.paymentPurpose eq "deposit" ? " (deposit)" : ""),
+				itemDescription = application.bookings.formatInZone(entityLoadByPK("Booking", booked.bookingId).getStartUtc(), application.blog.getBlogTimeZoneId()),
+				amount = booked.amountDueNow,
+				currencyCode = application.payments.getCurrency(),
+				email = trim(arguments.email),
+				successUrl = backTo & "?bookingCheckout={CHECKOUT_SESSION_ID}",
+				cancelUrl = backTo & "?bookingCancelled=" & booked.manageToken
+			)>
+			<cfif not checkout.success>
+				<cfset application.bookings.expireHeldBooking(booked.bookingId)>
+				<cfset response[ "message" ] = checkout.message>
+				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+			</cfif>
+			<cfset response[ "success" ] = true>
+			<cfset response[ "status" ] = "held">
+			<cfset response[ "checkoutUrl" ] = checkout.url>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+
 		<cfset meetLocation = application.locations.getLocation(val(arguments.locationOptionId))>
 		<cfset response[ "success" ] = true>
 		<cfset response[ "status" ] = booked.status>
@@ -11269,6 +11322,161 @@
 		(?manageBooking=<token>, shown by common/js/bookings.js). The long random token is the visitor's key; nothing else about
 		them is needed, and nothing about other bookings is ever returned.
 	********************************************************************************************************************* --->
+
+	<cffunction name="getBookingsForCalendar" access="remote" returnformat="json" output="false"
+			hint="The bookings between two dates for the admin calendar (window 96, 2026-10-15).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="fromDate" type="string" default="" required="false">
+		<cfargument name="toDate" type="string" default="" required="false">
+		<cfset var response = { "bookings": [] }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn() and reFind("^\d{4}-\d{2}-\d{2}$", arguments.fromDate) and reFind("^\d{4}-\d{2}-\d{2}$", arguments.toDate)>
+			<cfset response[ "bookings" ] = application.bookings.getBookingsForCalendar(arguments.fromDate, arguments.toDate)>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="newBookingsFeedAddress" access="remote" returnformat="json" output="false"
+			hint="Makes a new secret address for the owner's bookings calendar feed (2026-10-15); the old one stops working.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfset var response = { "feedUrl": "" }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfset application.bookings.newFeedKey()>
+			<cfset response[ "feedUrl" ] = application.bookings.getFeedUrl()>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="startBalanceCheckout" access="remote" returnformat="json" output="false"
+			hint="From the 'Pay the rest online' link in a client's email (2026-10-15): opens Stripe's payment page for what's still owed.">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfset var response = { "success": false, "checkoutUrl": "", "message": "" }>
+		<cfset var b = {}>
+		<cfset var checkout = "">
+		<cfif reFind("^[a-f0-9]{64}$", arguments.token)>
+			<cfset b = application.bookings.getBooking(manageToken = arguments.token)>
+		</cfif>
+		<cfif structIsEmpty(b)>
+			<cfset response[ "message" ] = "We couldn't find this booking. Please use the link in your most recent email.">
+		<cfelseif b.balanceDue lte 0 or b.paymentStatus eq "paid">
+			<cfset response[ "message" ] = "Thank you - this booking is already paid in full.">
+		<cfelseif not application.bookings.canPayBalanceOnline(b)>
+			<cfset response[ "message" ] = "This booking can't be paid online. Please pay at your session.">
+		<cfelse>
+			<cfset checkout = application.payments.createBookingCheckout(
+				bookingId = b.bookingId,
+				purpose = "balance",
+				itemName = b.bookingType.name & " (the rest)",
+				itemDescription = application.bookings.formatInZone(b.startUtc, b.timeZone),
+				amount = b.balanceDue,
+				currencyCode = len(b.currency) ? b.currency : application.payments.getCurrency(),
+				email = b.email,
+				successUrl = application.blogHostUrl & "/?bookingCheckout={CHECKOUT_SESSION_ID}",
+				cancelUrl = application.blogHostUrl & "/?manageBooking=" & b.manageToken,
+				expiresInMinutes = 1440
+			)>
+			<cfset response[ "success" ] = checkout.success>
+			<cfset response[ "checkoutUrl" ] = checkout.url>
+			<cfset response[ "message" ] = checkout.message>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="markBookingBalancePaid" access="remote" returnformat="json" output="false"
+			hint="The owner records that what was left was paid at the session (window 95) (2026-10-15).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="bookingId" default="0" required="true">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.bookingId)>
+			<cfset response[ "success" ] = application.bookings.applyBalancePayment(val(arguments.bookingId))>
+			<cfif not response.success><cfset response[ "errorMessage" ] = "Nothing is owed on this booking."></cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="refundBookingPayment" access="remote" returnformat="json" output="false"
+			hint="The owner refunds a booking's online payment, all or part, from the booking window (95) (2026-10-15).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="bookingId" default="0" required="true">
+		<cfargument name="amount" default="0" required="false">
+		<cfset var response = { "success": false, "errorMessage": "", "refunded": 0 }>
+		<cfset var refund = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.bookingId) and isNumeric(arguments.amount)>
+			<cfset refund = application.payments.refundBooking(val(arguments.bookingId), val(arguments.amount))>
+			<cfif refund.success>
+				<cfset application.bookings.refreshPaymentStatus(val(arguments.bookingId))>
+			</cfif>
+			<cfset response[ "success" ] = refund.success>
+			<cfset response[ "refunded" ] = refund.refunded>
+			<cfset response[ "errorMessage" ] = refund.message>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getBookingCheckoutResult" access="remote" returnformat="json" output="false"
+			hint="When a visitor comes back from Stripe's payment page (2026-10-15): whether the payment webhook has confirmed their booking yet. Read only; the webhook is what confirms.">
+		<cfargument name="sessionId" type="string" required="false" default="">
+		<cfset var response = { "success": false, "paid": false, "purpose": "", "status": "", "typeName": "", "startUtc": "", "locationLabel": "", "detailsHtml": "" }>
+		<cfset var payment = application.payments.getPaymentBySession(trim(arguments.sessionId))>
+		<cfset var b = {}>
+		<cfif not structIsEmpty(payment) and payment.bookingId gt 0>
+			<cfset b = application.bookings.getBooking(bookingId = payment.bookingId)>
+		</cfif>
+		<cfif not structIsEmpty(b)>
+			<cfset response[ "success" ] = true>
+			<cfset response[ "status" ] = b.status>
+			<!--- This payment, not the booking: the booking already shows the deposit as paid while the rest is on its way. --->
+			<cfset response[ "paid" ] = listFind("paid,partlyRefunded,refunded", application.payments.getPaymentBySession(trim(arguments.sessionId)).status) gt 0>
+			<cfset response[ "purpose" ] = payment.purpose>
+			<cfset response[ "typeName" ] = structIsEmpty(b.bookingType) ? "" : b.bookingType.name>
+			<cfset response[ "startUtc" ] = b.startUtc>
+			<cfif response.paid and not structIsEmpty(b.location)>
+				<cfset response[ "locationLabel" ] = b.location.label>
+				<cfset response[ "detailsHtml" ] = application.locations.getDetailsHtml(b.location)>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="cancelBookingCheckout" access="remote" returnformat="json" output="false"
+			hint="The visitor came back from Stripe without paying (2026-10-15): closes the payment page and releases the held time at once.">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfset var response = { "success": false }>
+		<cfset var b = {}>
+		<cfset var sessionId = "">
+		<cfif reFind("^[a-f0-9]{64}$", arguments.token)>
+			<cfset b = application.bookings.getBooking(manageToken = arguments.token)>
+		</cfif>
+		<cfif not structIsEmpty(b) and b.status eq "held">
+			<cfset sessionId = application.payments.getOpenSessionForBooking(b.bookingId)>
+			<cfif len(sessionId)>
+				<cfset application.payments.expireCheckout(sessionId)>
+				<cfset application.payments.setPaymentStatus(sessionId, "cancelled")>
+			</cfif>
+			<cfset application.bookings.expireHeldBooking(b.bookingId)>
+			<cfset response[ "success" ] = true>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
 
 	<cffunction name="getManagedBooking" access="remote" returnformat="json" output="false"
 			hint="The visitor's booking for their manage link.">
@@ -11291,8 +11499,20 @@
 				"visitorTimeZone": b.visitorTimeZone,
 				"blogTimeZone": b.timeZone,
 				"partySize": b.partySize,
-				"canChange": application.bookings.canChange(b)
+				"canChange": application.bookings.canChange(b),
+				"refundNote": ""
 			}>
+			<!--- What cancelling would give back (2026-10-15). --->
+			<cfif b.amountPaid gt 0 and application.bookings.canChange(b)>
+				<cfset local.refundNow = application.bookings.getRefundOnCancel(b)>
+				<cfif local.refundNow gt 0>
+					<cfset response[ "refundNote" ] = "If you cancel now, " & application.payments.formatMoney(local.refundNow, b.currency) & " will be refunded to your card.">
+				<cfelseif b.bookingType.refundHours gt 0>
+					<cfset response[ "refundNote" ] = "Cancelling less than " & b.bookingType.refundHours & " hours before isn't refunded automatically.">
+				<cfelse>
+					<cfset response[ "refundNote" ] = "Cancelling isn't refunded automatically.">
+				</cfif>
+			</cfif>
 		</cfif>
 
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
@@ -11308,10 +11528,21 @@
 		<cfif structIsEmpty(b) or not application.bookings.canChange(b)>
 			<cfset response[ "message" ] = "This booking can't be cancelled any more.">
 		<cfelse>
+			<!--- Worked out before cancelling, while the booking still counts as upcoming (2026-10-15). --->
+			<cfset local.refundNow = application.bookings.getRefundOnCancel(b)>
 			<cflock name="galaxieBookings_#application.BlogDbObj.getBlogId()#" type="exclusive" timeout="20">
 				<cfset response[ "success" ] = application.bookings.setStatus(b.bookingId, "cancelled")>
 			</cflock>
 			<cfif response.success>
+				<cfif local.refundNow gt 0>
+					<cfset local.refund = application.payments.refundBooking(b.bookingId)>
+					<cfif local.refund.success>
+						<cfset application.bookings.refreshPaymentStatus(b.bookingId)>
+						<cfset response[ "message" ] = application.payments.formatMoney(local.refund.refunded, b.currency) & " is being refunded to your card.">
+					<cfelse>
+						<cfset response[ "message" ] = "Your refund couldn't be made automatically; the owner has been told and will sort it out.">
+					</cfif>
+				</cfif>
 				<cfset application.bookings.sendBookingEmails(b.bookingId, "cancelledByVisitor")>
 			</cfif>
 		</cfif>
@@ -11379,7 +11610,7 @@
 
 		<cfset var data = []>
 		<cfset var thisBooking = "">
-		<cfset var statusText = { "pending": "Waiting for approval", "confirmed": "Confirmed", "cancelled": "Cancelled", "completed": "Completed", "noShow": "No-show" }>
+		<cfset var statusText = { "pending": "Waiting for approval", "confirmed": "Confirmed", "cancelled": "Cancelled", "completed": "Completed", "noShow": "No-show", "held": "Waiting for payment", "expired": "Not paid - time released" }>
 		<cfset var jsonString = "">
 
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -11425,6 +11656,7 @@
 		<cfargument name="bookingId" default="0" required="true">
 		<cfargument name="status" type="string" default="" required="true">
 		<cfargument name="message" type="string" default="" required="false" hint="An optional note to the visitor when cancelling.">
+		<cfargument name="refund" type="string" default="" required="false" hint="true: refund what was paid online when cancelling.">
 
 		<cfset var response = { "success": false, "errorMessage": "" }>
 		<cfset var b = "">
@@ -11446,6 +11678,14 @@
 				<cfif response.success and arguments.status eq "confirmed" and b.status eq "pending">
 					<cfset application.bookings.sendBookingEmails(b.bookingId, "approved")>
 				<cfelseif response.success and arguments.status eq "cancelled" and listFind("confirmed,pending", b.status)>
+					<cfif arguments.refund eq "true">
+						<cfset local.refund = application.payments.refundBooking(b.bookingId)>
+						<cfif local.refund.success>
+							<cfset application.bookings.refreshPaymentStatus(b.bookingId)>
+						<cfelseif len(local.refund.message) and local.refund.message neq "There's nothing left to refund.">
+							<cfset response[ "errorMessage" ] = "The booking is cancelled, but the refund didn't go through: " & local.refund.message>
+						</cfif>
+					</cfif>
 					<cfset application.bookings.sendBookingEmails(b.bookingId, "cancelledByOwner", left(arguments.message, 2000))>
 				</cfif>
 			</cfif>
@@ -11525,7 +11765,7 @@
 				"Name": thisType.name,
 				"Category": thisType.category,
 				"Length": thisType.durationMinutes & " min" & (thisType.bookingMode eq "group" ? " (group of " & thisType.groupSize & ")" : ""),
-				"Price": thisType.price gt 0 ? numberFormat(thisType.price, "0.00") : "Free",
+				"Price": thisType.price gt 0 ? application.payments.formatMoney(thisType.price) : "Free",
 				"Locations": arrayToList(names, ", "),
 				"SortOrder": thisType.sortOrder,
 				"Status": thisType.active ? "Active" : "Not active"

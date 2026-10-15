@@ -174,7 +174,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 		<td>
 			<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="0">
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="animationEffect">Effect:</label>
 					</td>
 					<td colspan="3">
@@ -192,7 +192,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 					</td>
 				</tr>
 				<tr id="animationSwatchRow1">
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label id="animationSwatchLabel1" for="animationSwatch1">Color:</label>
 					</td>
 					<td colspan="3">
@@ -200,7 +200,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 					</td>
 				</tr>
 				<tr id="animationSwatchRow2">
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label id="animationSwatchLabel2" for="animationSwatch2">Background:</label>
 					</td>
 					<td colspan="3">
@@ -214,7 +214,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 				never recreated, just re-colored/re-labeled/shown-or-hidden" approach as before, just more slots. --->
 				<cfloop from="3" to="7" index="animationSwatchLoopIndex">
 				<tr id="animationSwatchRow<cfoutput>#animationSwatchLoopIndex#</cfoutput>" style="display:none;">
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label id="animationSwatchLabel<cfoutput>#animationSwatchLoopIndex#</cfoutput>" for="animationSwatch<cfoutput>#animationSwatchLoopIndex#</cfoutput>">Color:</label>
 					</td>
 					<td colspan="3">
@@ -223,7 +223,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 				</tr>
 				</cfloop>
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="animationSpeed">Speed:</label>
 					</td>
 					<td colspan="3">
@@ -238,7 +238,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 				min/max, only a default value), generous enough to give real room to adjust without being unusable. --->
 				<cfloop from="1" to="7" index="animationNumLoopIndex">
 				<tr id="animationNumRow<cfoutput>#animationNumLoopIndex#</cfoutput>" style="display:none;">
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label id="animationNumLabel<cfoutput>#animationNumLoopIndex#</cfoutput>" for="animationNum<cfoutput>#animationNumLoopIndex#</cfoutput>">Value:</label>
 					</td>
 					<td colspan="3">
@@ -250,11 +250,11 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 				<!--- NET's showDots is the only boolean option any effect here has - a single reusable checkbox
 				slot, same shown/hidden-per-effect idiom as everything else above. --->
 				<tr id="animationBoolRow1" style="display:none;">
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label id="animationBoolLabel1" for="animationBool1">Show Dots:</label>
 					</td>
 					<td colspan="3">
-						<input type="checkbox" id="animationBool1">
+						<input class="k-checkbox" type="checkbox" id="animationBool1">
 					</td>
 				</tr>
 				<!--- 2026-10-01: overlay text/color/font, new for the animation hero type - mirrors gradientEditor.cfm's own fields
@@ -262,7 +262,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 				same as the font list fetch above. --->
 				<cfif not isBlogOptionContext>
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="animationOverlayText">Overlay Text:</label>
 					</td>
 					<td colspan="3">
@@ -270,7 +270,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 					</td>
 				</tr>
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="animationOverlayTextColor">Text Color:</label>
 					</td>
 					<td colspan="3">
@@ -287,7 +287,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 					</td>
 				</tr>
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="animationOverlayFont">Text Font:</label>
 					</td>
 					<td colspan="3">
@@ -297,7 +297,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 				<!--- 2026-10-03: same plain range-input convention this file's own Speed slider already uses -
 				no Kendo widget needed (kendoTextBox isn't part of Kendo Core, confirmed earlier tonight). --->
 				<tr>
-					<td style="width: 15%">
+					<td align="right" style="width: 20%">
 						<label for="animationOverlayFontSize">Text Size:</label>
 					</td>
 					<td colspan="3">

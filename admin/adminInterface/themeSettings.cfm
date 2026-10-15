@@ -225,10 +225,7 @@
 	</script>
 		
 	<style>
-		.setting-title {
-			font-size: 16px;
-			padding: 8px 12px;
-		}
+		<!--- Section titles (.setting-title cells) use the shared h4.adminBlockHeading look in blogContentCss.cfm, like every other window. --->
 
 		<!--- Hide the default Kendo borders/lines around each item/header/content area for a flat, borderless look. Covers both the older (k-item/k-link/k-content) and newer (k-panelbar-*) Kendo class names, and resets box-shadow/background-image too since some Kendo skins draw the separator line that way instead of with a plain border. Scoped to direct structural children of each item so the real form content (tables, inputs, etc.) nested inside isn't affected. --->
 		#themeSettingsPanelBar,
@@ -454,6 +451,8 @@
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>">
 	<input type="hidden" name="themeId" id="themeId" value="<cfoutput>#themeId#</cfoutput>">
 	<input type="hidden" name="themeSettingId" id="themeSettingId" value="<cfoutput>#themeSettingId#</cfoutput>">
+	<!--- The same side padding as the panel sections below, so every label column lines up. --->
+	<div style="padding: 0 15px;">
 	<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
 	  <cfsilent>
 		<!---The first content class in the table should be empty. --->
@@ -461,8 +460,9 @@
 		<!--- Set the colspan property for borders --->
 		<cfset thisColSpan = "2">
 	  </cfsilent>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  <!-- Border -->
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	 <cfif len(themeId) eq 0>
 	  <tr valign="middle" height="30px">
@@ -470,8 +470,9 @@
 			The theme name can be changed to anything that you want when creating a theme. However, only use text and do not include any special characters. The name that you choose will be shown on the top menu.
 		</td>
 	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  <!-- Border -->
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	</cfif>
 	<cfif session.isMobile>
@@ -497,15 +498,14 @@
 	</cfif>
 	  <!-- Border -->
 	  <tr height="2px">
-		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
-	  <!---After the first row, the content class should be the current class. --->
 	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 	  </cfsilent>
 	  <tr height="2px">
-		  <td align="left" valign="bottom" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
@@ -513,48 +513,50 @@
 			Additionally, when a theme is in use, they will be available in the theme dropdown menu at the top of the page. You can change this setting at any time. 
 		</td>
 	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  <!-- Border -->
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	<cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="useTheme">Use Theme?<label></td>
+			<label for="useTheme">Use Theme?</label>
 		</td>
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="checkbox" name="useTheme" id="useTheme" <cfif useTheme>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="useTheme" id="useTheme" <cfif useTheme>checked</cfif>>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<label for="useTheme">Use Theme?<label></td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+			<label for="useTheme">Use Theme?</label>
+		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" name="useTheme" id="useTheme" <cfif useTheme>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="useTheme" id="useTheme" <cfif useTheme>checked</cfif>>
 		</td>
 	  </tr>
 	</cfif>
 	  <!-- Border -->
 	  <tr height="2px">
-	    <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
-	  <!---After the first row, the content class should be the current class. --->
 	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 	  </cfsilent>
 	  <tr height="2px">
-		  <td align="left" valign="bottom" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 			Selecting this theme will make this the only theme that is displayed and will remove the theme dropdowns on the top menu. You can change this setting at any time.
 		</td>
 	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  <!-- Border -->
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	<cfif session.isMobile>
 	  <tr valign="middle">
@@ -564,40 +566,38 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="checkbox" name="selectedTheme" id="selectedTheme" <cfif selectedTheme>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="selectedTheme" id="selectedTheme" <cfif selectedTheme>checked</cfif>>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="selectedTheme">Select Theme?</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" name="selectedTheme" id="selectedTheme" <cfif selectedTheme>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="selectedTheme" id="selectedTheme" <cfif selectedTheme>checked</cfif>>
 		</td>
 	  </tr>
 	</cfif>
 	  <!-- Border -->
 	  <tr height="2px">
-	    <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
-	  <!---After the first row, the content class should be the current class. --->
-
 	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 	  </cfsilent>
 	  <tr height="2px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 			The Kendo Theme controls the look and feel of the interfaces that are used by the theme. You can modify the Galaxie Blog and change the underlying Kendo theme, but be aware that all of the default Galaxie Blog themes are designed with a Kendo theme in mind. As of Galaxie Blog version 3.0, we are only supporting the Kendo Less based themes, however, we will support the Kendo SASS themes in the future. You can see all of the less based Kendo themes by navigating to the Kendo Theme builder at <a href="https://demos.telerik.com/kendo-ui/themebuilder">https://demos.telerik.com/kendo-ui/themebuilder</a>
 		</td>
 	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  <!-- Border -->
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	<cfif session.isMobile>
 	  <tr valign="middle">
@@ -612,7 +612,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="kendoThemeId">Kendo Theme:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -620,22 +620,25 @@
 		</td>
 	  </tr>
 	</cfif>	  
+	  <!-- Border -->
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
-	  <!---After the first row, the content class should be the current class. --->
 	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 	  </cfsilent>
 	  <tr height="2px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 			A dark theme is a theme with a dark background. We need to determine if this is a dark theme in order to change the appearance of the page to fit the theme. 
 		</td>
 	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  <!-- Border -->
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	<cfif session.isMobile>
 	  <tr valign="middle">
@@ -645,16 +648,16 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="checkbox" name="darkTheme" id="darkTheme" value="1" <cfif darkTheme>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="darkTheme" id="darkTheme" value="1" <cfif darkTheme>checked</cfif>>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="darkTheme">Dark Theme?</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" name="darkTheme" id="darkTheme" value="1" <cfif darkTheme>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="darkTheme" id="darkTheme" value="1" <cfif darkTheme>checked</cfif>>
 		</td>
 	  </tr>
 	</cfif>	  
@@ -664,6 +667,7 @@
 	  </tr>
 	  
 	</table>
+	</div>
 	<br/>
 		
 	<!---//***********************************************************************************************
@@ -685,30 +689,27 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				<p>You can place optional custom HTML or scripts between the head tags. This is often done when you need to embed Google Adds or other custom libraries that need to have the scripts placed at the top of the page.</p>
 				<p>If you want this custom script to be applied to all themes, click on the 'Apply across all themes' checkbox.</p>
 			</td>
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		
-		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			  
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -739,7 +740,7 @@
 		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -749,7 +750,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="applyCustomHeaderHtmlToAllThemes" name="applyCustomHeaderHtmlToAllThemes" <cfif favIconHtmlApplyAcrossThemes>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="applyCustomHeaderHtmlToAllThemes" name="applyCustomHeaderHtmlToAllThemes" <cfif favIconHtmlApplyAcrossThemes>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -758,7 +759,7 @@
 				<label for="applyCustomHeaderHtmlToAllThemes">Apply across all themes:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				 <input type="checkbox" id="applyCustomHeaderHtmlToAllThemes" name="applyCustomHeaderHtmlToAllThemes" <cfif favIconHtmlApplyAcrossThemes>checked</cfif>>
+				 <input class="k-checkbox" type="checkbox" id="applyCustomHeaderHtmlToAllThemes" name="applyCustomHeaderHtmlToAllThemes" <cfif favIconHtmlApplyAcrossThemes>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif>
@@ -790,11 +791,12 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				<p>The Favorite Icon will allow other devices to display your theme when bookmarking a page and will display the icon on the tab in the browser.</p>
 				<p>There are many free favicon generators on the web, for example, <a href="https://favicon.io/">https://favicon.io/</a> that will generate the necessary files for you.</p> <p>However, each generator is unique and creates different files and the standards are fluid and not consistent. Please generate your files manually or by using a generator, and paste in the code that you want the browser to render. Once you're done, you may also click on the upload FavIcon Files button below to upload your files to the root directory of your blog site.</p>
 				<p>If you want your Favorite Icon HTML to be applied to all themes, click on the 'Apply across all themes' checkbox.</p>
@@ -802,9 +804,8 @@
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			  
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -826,17 +827,17 @@
 			</td>
 		  </tr>
 		</cfif>	
-		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
-		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent>
-		
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			  
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -867,7 +868,7 @@
 		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -877,7 +878,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="applyFavIconToAllThemes" name="applyFavIconToAllThemes" <cfif favIconHtmlApplyAcrossThemes>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="applyFavIconToAllThemes" name="applyFavIconToAllThemes" <cfif favIconHtmlApplyAcrossThemes>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -886,7 +887,7 @@
 				<label for="applyFavIconToAllThemes">Apply across all themes:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				 <input type="checkbox" id="applyFavIconToAllThemes" name="applyFavIconToAllThemes" <cfif favIconHtmlApplyAcrossThemes>checked</cfif>>
+				 <input class="k-checkbox" type="checkbox" id="applyFavIconToAllThemes" name="applyFavIconToAllThemes" <cfif favIconHtmlApplyAcrossThemes>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif>
@@ -915,9 +916,9 @@
 			<!--- Set the colspan property for borders --->
 			<cfset thisColSpan = "2">
 		  </cfsilent>
-			 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -956,18 +957,16 @@
 			</td>
 		  </tr>
 		</cfif>	
-		<!-- Border -->
+		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-			  
-		   <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -992,16 +991,14 @@
 		</cfif>  
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-			  
-		   <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1026,15 +1023,14 @@
 		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1073,18 +1069,16 @@
 			</td>
 		  </tr>
 		</cfif>	  
-		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
-		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent>
-				
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <cfsilent>
+		  <!--- Set the class for alternating rows. --->
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1125,16 +1119,14 @@
 		</cfif>	  
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-			  
-		   <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1159,16 +1151,14 @@
 		</cfif>  
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-			  
-		   <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1219,21 +1209,19 @@
 			<!--- Set the colspan property for borders --->
 			<cfset thisColSpan = "2">
 		  </cfsilent>
-				
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				<p>The main content width sets the width on the main container that holds the two sub containers below. This setting will either increase or decrease the blog content depending upon your setting.</p>
 				
 				<p>The main content width will dynamically be adjusted depending upon the client screen resolution. When the monitor is quite wide, the main content width will be set to a smaller percentage, conversly, when the monitor is smaller in width, this width will be automatically adjusted higher.</p>
@@ -1245,7 +1233,7 @@
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1256,6 +1244,7 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<input type="number" id="contentWidth" name="contentWidth" min="33" max="100" step="1" value="<cfoutput>#contentWidth#</cfoutput>" class="k-textbox" >% 
+				<div class="k-form-hint">Aimed at screens 1700 to 1920 pixels wide.</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -1265,6 +1254,7 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input type="number" id="contentWidth" name="contentWidth" min="33" max="100" step="1" value="<cfoutput>#contentWidth#</cfoutput>" class="k-textbox" >% 
+				<span class="k-form-hint">Aimed at screens 1700 to 1920 pixels wide.</span>
 			</td>
 		  </tr>
 		</cfif>
@@ -1272,17 +1262,19 @@
 		  <tr height="2px" class="containerWidths">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-		  
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				<p>There are two options that dramatically affect the blog display.</p> 
 				<p>The <b>Classic</b> theme style displays the column on the right of the blog containing various 'pods', such as the categories, recent posts and comments, etc. this is a useful design if you want to allow your users to quickly navigate your site or if you want include visible advertising.</p>
 				<p>The <b>Modern</b> theme style removes the panel on the right, but the panel is still accessible by clicking on the hamburger at the top of the site. The Modern theme style keeps keeps the blog content center stage and is a more modern design.</p>
@@ -1290,7 +1282,7 @@
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1303,11 +1295,11 @@
 				<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0" border="0">
 					<tr>
 						<td width="50%" align="left">
-							<input id="themeStyle" name="themeStyle" type="radio" value="classic" <cfif breakPoint gt 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".containerWidths" ).show();'>
+							<input class="k-radio" id="themeStyle" name="themeStyle" type="radio" value="classic" <cfif breakPoint gt 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".containerWidths" ).show();'>
 							<label for="themeStyle">classic</label>
 						</td>
 						<td width="50%" align="left">
-							<input id="themeStyle" name="themeStyle" type="radio" value="modern" <cfif breakPoint eq 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".containerWidths" ).hide();'>
+							<input class="k-radio" id="themeStyle" name="themeStyle" type="radio" value="modern" <cfif breakPoint eq 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".containerWidths" ).hide();'>
 							<label for="modern">Modern</label>
 						</td>
 					</tr>
@@ -1323,11 +1315,11 @@
 				<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0" border="0">
 					<tr>
 						<td width="50%" align="left">
-							<input id="themeStyle" name="themeStyle" type="radio" value="classic" <cfif breakPoint gt 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".containerWidths" ).show();'>
+							<input class="k-radio" id="themeStyle" name="themeStyle" type="radio" value="classic" <cfif breakPoint gt 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".containerWidths" ).show();'>
 							<label for="themeStyle">classic</label>
 						</td>
 						<td width="50%" align="left">
-							<input id="themeStyle" name="themeStyle" type="radio" value="modern" <cfif breakPoint eq 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".containerWidths" ).hide();'>
+							<input class="k-radio" id="themeStyle" name="themeStyle" type="radio" value="modern" <cfif breakPoint eq 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".containerWidths" ).hide();'>
 							<label for="modern">Modern</label>
 						</td>
 					</tr>
@@ -1339,14 +1331,16 @@
 		  <tr height="2px" class="containerWidths">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-			  
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle" class="containerWidths">
@@ -1412,13 +1406,16 @@
 		  <tr height="2px" class="containerWidths">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
@@ -1427,7 +1424,7 @@
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1438,15 +1435,22 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<input type="number" id="siteOpacity" name="siteOpacity" min="75" max="100" step="1" value="<cfoutput>#siteOpacity#</cfoutput>" class="k-textbox" style="width: 30%">%
+				<div class="k-form-hint">100 = solid. Lower lets the background show through.</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+		  	<td colspan="2" class="">100 = solid. Lower lets the background show through.</td>
+		  </tr>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 				<label for="siteOpacity">Site Opacity:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="number" id="siteOpacity" name="siteOpacity" min="75" max="100" step="1" value="<cfoutput>#siteOpacity#</cfoutput>" class="k-textbox" style="width: 20%">%
+				<input type="number" id="siteOpacity" name="siteOpacity" min="75" max="100" step="1" value="<cfoutput>#siteOpacity#</cfoutput>" class="k-textbox" style="width: 20%">%				
 			</td>
 		  </tr>
 		</cfif>	  
@@ -1473,18 +1477,16 @@
 			<!--- Set the colspan property for borders --->
 			<cfset thisColSpan = "2">
 		  </cfsilent>
-				
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1497,11 +1499,11 @@
 				<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0" border="0">
 					<tr>
 						<td width="50%" align="left">
-							<input id="includeBackgroundImages" name="includeBackgroundImages" type="radio" value="true" <cfif includeBackgroundImages gt 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".includeBackgroundImages" ).show();$( ".backgroundColor" ).hide();'>
+							<input class="k-radio" id="includeBackgroundImages" name="includeBackgroundImages" type="radio" value="true" <cfif includeBackgroundImages gt 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".includeBackgroundImages" ).show();$( ".backgroundColor" ).hide();'>
 							<label for="includeBackgroundImages">yes</label>
 						</td>
 						<td width="50%" align="left">
-							<input id="includeBackgroundImages" name="includeBackgroundImages" type="radio" value="false" <cfif includeBackgroundImages eq 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".includeBackgroundImages" ).hide();$( ".backgroundColor" ).show();'>
+							<input class="k-radio" id="includeBackgroundImages" name="includeBackgroundImages" type="radio" value="false" <cfif includeBackgroundImages eq 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".includeBackgroundImages" ).hide();$( ".backgroundColor" ).show();'>
 							<label for="includeBackgroundImages">No</label>
 						</td>
 					</tr>
@@ -1517,11 +1519,11 @@
 				<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0" border="0">
 					<tr>
 						<td width="50%" align="left">
-							<input id="includeBackgroundImages" name="includeBackgroundImages" type="radio" value="true" <cfif includeBackgroundImages gt 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".includeBackgroundImages" ).show();$( ".backgroundColor" ).hide();'>
+							<input class="k-radio" id="includeBackgroundImages" name="includeBackgroundImages" type="radio" value="true" <cfif includeBackgroundImages gt 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".includeBackgroundImages" ).show();$( ".backgroundColor" ).hide();'>
 							<label for="includeBackgroundImages">yes</label>
 						</td>
 						<td width="50%" align="left">
-							<input id="includeBackgroundImages" name="includeBackgroundImages" type="radio" value="false" <cfif includeBackgroundImages eq 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".includeBackgroundImages" ).hide();$( ".backgroundColor" ).show();'>
+							<input class="k-radio" id="includeBackgroundImages" name="includeBackgroundImages" type="radio" value="false" <cfif includeBackgroundImages eq 0>checked</cfif> class="normalFontWeight" onclick='javascript:$( ".includeBackgroundImages" ).hide();$( ".backgroundColor" ).show();'>
 							<label for="includeBackgroundImages">No</label>
 						</td>
 					</tr>
@@ -1531,15 +1533,15 @@
 		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-				
-		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <tr height="2px" class="includeBackgroundImages">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
@@ -1552,7 +1554,7 @@
 		   <tr class="includeBackgroundImages">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#blogBackgroundImage#" class="k-textbox" style="width:75%">
+				<textarea id="blogBackgroundImage" name="blogBackgroundImage" rows="2" class="k-textbox" style="width: calc(95% - 110px); resize: none; word-break: break-all; vertical-align: middle;">#encodeForHtml(blogBackgroundImage)#</textarea>
 				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#') --->
 				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#');">Upload</button>
 				</cfoutput>
@@ -1565,7 +1567,7 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="blogBackgroundImage" name="blogBackgroundImage" value="#blogBackgroundImage#" class="k-textbox" style="width:75%">
+				<textarea id="blogBackgroundImage" name="blogBackgroundImage" rows="2" class="k-textbox" style="width: calc(95% - 110px); resize: none; word-break: break-all; vertical-align: middle;">#encodeForHtml(blogBackgroundImage)#</textarea>
 				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#') --->
 				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImage','#blogBackgroundImage#');">Upload</button>
 				</cfoutput>
@@ -1595,7 +1597,7 @@
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#blogBackgroundImageMobile#" class="k-textbox" style="width:75%">
+				<textarea id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" rows="2" class="k-textbox" style="width: calc(95% - 110px); resize: none; word-break: break-all; vertical-align: middle;">#encodeForHtml(blogBackgroundImageMobile)#</textarea>
 				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#'); --->
 				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#');">Upload</button>
 				</cfoutput>
@@ -1609,7 +1611,7 @@
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<!--- We are passing: 35 as the adminInterfaceId, URL.optArgs is the themeId, URL.otherArgs is the theme image type, and URL.otherArgs1 is the current image being used. --->
 				<cfoutput>
-				<input type="text" id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" value="#blogBackgroundImageMobile#" class="k-textbox" style="width:75%">
+				<textarea id="blogBackgroundImageMobile" name="blogBackgroundImageMobile" rows="2" class="k-textbox" style="width: calc(95% - 110px); resize: none; word-break: break-all; vertical-align: middle;">#encodeForHtml(blogBackgroundImageMobile)#</textarea>
 				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#'); --->
 				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'blogBackgroundImageMobile','#blogBackgroundImageMobile#');">Upload</button>
 				</cfoutput>
@@ -1633,9 +1635,12 @@
 				The blog background position must contain css to position the background image on the page. This is useful if you want to nudge the image around page. See <a href="https://www.w3schools.com/cssref/pr_background-position.asp">https://www.w3schools.com/cssref/pr_background-position.asp</a> or search for the background-position css property for more information.
 			</td>
 		  </tr>
+		  <tr height="2px" class="includeBackgroundImages">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle" class="includeBackgroundImages">
-			<td class="<cfoutput>#blogBackgroundImagePosition#</cfoutput>" colspan="2">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<label for="blogBackgroundImagePosition">Blog Background Position:</label>
 			</td>
 		   </tr>
@@ -1666,6 +1671,9 @@
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
 				The blog background image repeat must contain css determine how a small background image will be repeated if can't fit the dimensions of the page. You can create interesting checkered tile designs that consume very little resources. See <a href="https://www.w3schools.com/cssref/pr_background-repeat.asp">https://www.w3schools.com/cssref/pr_background-repeat.asp</a> or search the web for the background-repeat css property. Unless you're after a tile based design, its suggested to leave this setting at 'no-repeat'. 
 			</td>
+		  </tr>
+		  <tr height="2px" class="includeBackgroundImages">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle" class="includeBackgroundImages">
@@ -1759,18 +1767,18 @@
 			<!--- Set the colspan property for borders --->
 			<cfset thisColSpan = "2">
 		  </cfsilent>
-				
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				* Note: the Header Background Color is used to cover a portion of the header image when sending out email. It allows for the top portion of the page to be match the webpage and be highlighted with the logo.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1793,26 +1801,25 @@
 			</td>
 		  </tr>
 		</cfif>
-				
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The Header Background Image is at the top of the page and it covers the menu items. <i>If there is ghosting</i> on the menu after changing this, make sure to use the same image here as the Menu Background Image found in the Menu section below. This ghosting will only occur with headers that contain a gradient.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1823,7 +1830,7 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="headerBackgroundImage" name="headerBackgroundImage" value="#headerBackgroundImage#" class="k-textbox" style="width:75%">
+				<textarea id="headerBackgroundImage" name="headerBackgroundImage" rows="3" class="k-textbox" style="width: calc(95% - 110px); resize: none; word-break: break-all; vertical-align: middle;">#encodeForHtml(headerBackgroundImage)#</textarea>
 				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'headerBackgroundImage','#headerBackgroundImage#'); --->
 				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'headerBackgroundImage','#headerBackgroundImage#');">Upload</button>
 				</cfoutput>
@@ -1836,21 +1843,16 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="headerBackgroundImage" name="headerBackgroundImage" value="#headerBackgroundImage#" class="k-textbox" style="width:75%">
+				<textarea id="headerBackgroundImage" name="headerBackgroundImage" rows="3" class="k-textbox" style="width: calc(95% - 110px); resize: none; word-break: break-all; vertical-align: middle;">#encodeForHtml(headerBackgroundImage)#</textarea>
 				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'headerBackgroundImage','#headerBackgroundImage#'); --->
 				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'headerBackgroundImage','#headerBackgroundImage#');">Upload</button>
 				</cfoutput>
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- I removed the headerBackgroundDividerImage in v4 --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-			  
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1860,7 +1862,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="stretchHeaderAcrossPage" name="stretchHeaderAcrossPage" value="1"  <cfif stretchHeaderAcrossPage> checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="stretchHeaderAcrossPage" name="stretchHeaderAcrossPage" value="1"  <cfif stretchHeaderAcrossPage> checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -1869,7 +1871,7 @@
 				<label for="stretchHeaderAcrossPage">Stretch Header Across Page:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="stretchHeaderAcrossPage" name="stretchHeaderAcrossPage" value="1"  <cfif stretchHeaderAcrossPage> checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="stretchHeaderAcrossPage" name="stretchHeaderAcrossPage" value="1"  <cfif stretchHeaderAcrossPage> checked</cfif>>
 			</td>
 		  </tr>
 		</cfif>  
@@ -1900,15 +1902,14 @@
 		  </tr>				
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1941,16 +1942,14 @@
 		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-			  
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -1985,17 +1984,14 @@
 		</cfif>	  
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			  
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-			  
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
@@ -2004,7 +2000,7 @@
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -2039,15 +2035,14 @@
 		</cfif>	  
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -2070,13 +2065,16 @@
 			</td>
 		  </tr>
 		</cfif>	  
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -2124,18 +2122,16 @@
 			<!--- Set the colspan property for borders --->
 			<cfset thisColSpan = "2">
 		  </cfsilent>
-				
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -2146,7 +2142,7 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="checkbox" id="displayBlogName" name="displayBlogName"<cfif displayBlogName> checked</cfif> value="1" />
+				<input class="k-checkbox" type="checkbox" id="displayBlogName" name="displayBlogName"<cfif displayBlogName> checked</cfif> value="1" />
 				</cfoutput>
 			</td>
 		  </tr>
@@ -2157,27 +2153,21 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="checkbox" id="displayBlogName" name="displayBlogName"<cfif displayBlogName> checked</cfif> value="1" />
+				<input class="k-checkbox" type="checkbox" id="displayBlogName" name="displayBlogName"<cfif displayBlogName> checked</cfif> value="1" />
 				</cfoutput>
 			</td>
 		  </tr>
 		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-				
-		  <!-- Border -->
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -2229,18 +2219,16 @@
 			<!--- Set the colspan property for borders --->
 			<cfset thisColSpan = "2">
 		  </cfsilent>
-				
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -2250,7 +2238,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="alignBlogMenuWithBlogContent" name="alignBlogMenuWithBlogContent" value="1"  <cfif alignBlogMenuWithBlogContent> checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="alignBlogMenuWithBlogContent" name="alignBlogMenuWithBlogContent" value="1"  <cfif alignBlogMenuWithBlogContent> checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2259,30 +2247,29 @@
 				<label for="alignBlogMenuWithBlogContent">Align Menu with Blog Content:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="alignBlogMenuWithBlogContent" name="alignBlogMenuWithBlogContent" value="1"  <cfif alignBlogMenuWithBlogContent> checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="alignBlogMenuWithBlogContent" name="alignBlogMenuWithBlogContent" value="1"  <cfif alignBlogMenuWithBlogContent> checked</cfif>>
 			</td>
 		  </tr>
 		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-			  
-		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				* The Menu Background Image is used to cover a portion of the header image when there is ghosting that occurs after changing the Header Background Image. This is generally not used unless there is a gradient on the header. It is advises to use the same image that you used for the menu backgound image to remove the ghosting.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -2293,7 +2280,7 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<cfoutput>
-				<input type="text" id="headerBackgroundImage" name="menuBackgroundImage" value="#menuBackgroundImage#" class="k-textbox" style="width:75%">
+				<input type="text" id="headerBackgroundImage" name="menuBackgroundImage" value="#menuBackgroundImage#" class="k-textbox" style="width: calc(95% - 110px)">
 				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'menuBackgroundImage','#menuBackgroundImage#'); --->
 				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'menuBackgroundImage','#menuBackgroundImage#');">Upload</button>
 				</cfoutput>
@@ -2306,7 +2293,7 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<cfoutput>
-				<input type="text" id="headerBackgroundImage" name="menuBackgroundImage" value="#menuBackgroundImage#" class="k-textbox" style="width:75%">
+				<input type="text" id="headerBackgroundImage" name="menuBackgroundImage" value="#menuBackgroundImage#" class="k-textbox" style="width: calc(95% - 110px)">
 				<!--- Button to upload: createAdminInterfaceWindow(35, #themeId#,'menuBackgroundImage','#menuBackgroundImage#'); --->
 				<button id="uploadBlogBackgroundImageButton" name="uploadBlogBackgroundImageButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(35, #themeId#,'menuBackgroundImage','#menuBackgroundImage#');">Upload</button>
 				</cfoutput>
@@ -2315,16 +2302,14 @@
 		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-			  
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -2334,7 +2319,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="coverKendoMenuWithMenuBackgroundImage" name="coverKendoMenuWithMenuBackgroundImage" value="1"  <cfif coverKendoMenuWithMenuBackgroundImage> checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="coverKendoMenuWithMenuBackgroundImage" name="coverKendoMenuWithMenuBackgroundImage" value="1"  <cfif coverKendoMenuWithMenuBackgroundImage> checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2343,21 +2328,20 @@
 				<label for="coverKendoMenuWithMenuBackgroundImage">Cover Menu with Background Image:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="coverKendoMenuWithMenuBackgroundImage" name="coverKendoMenuWithMenuBackgroundImage" value="1"  <cfif coverKendoMenuWithMenuBackgroundImage> checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="coverKendoMenuWithMenuBackgroundImage" name="coverKendoMenuWithMenuBackgroundImage" value="1"  <cfif coverKendoMenuWithMenuBackgroundImage> checked</cfif>>
 			</td>
 		  </tr>
 		</cfif>  
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -2398,7 +2382,7 @@
 		</cfif>	  
 		  <!-- Border -->
 		  <tr height="2px">
-			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfsilent>	
 		<!---//***********************************************************************************************
@@ -2429,28 +2413,33 @@
 		<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
 		 </cfsilent>
 		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Navigation Menu</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Navigation Menu</h4></td>
 		 </tr>
-		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
+		 <!-- Border -->
+		 <tr height="2px">
+		 	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		 </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The menu script uses a traditional unordered HTML list to render. To create a secondary menu, create a list within a list as you would creating indented bullets.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2459,7 +2448,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2468,21 +2457,22 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2508,20 +2498,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2584,28 +2571,33 @@
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
 		  </cfsilent> 
 		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>About Window</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">About Window</h4></td>
 		 </tr>
-		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
+		 <!-- Border -->
+		 <tr height="2px">
+		 	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		 </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The about window is invoked via the menu at the top of the page. This window is optional and may be disabled by unchecking the enable checkbox below.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2614,7 +2606,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2623,25 +2615,22 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2667,20 +2656,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2728,32 +2714,38 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		 </cfsilent> 
-		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		 <!-- Border -->
+		 <tr height="2px">
+		 	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		 </tr>
 		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Biography Window</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Biography Window</h4></td>
 		 </tr>
-		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
+		 <!-- Border -->
+		 <tr height="2px">
+		 	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		 </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The biography window is invoked using the menu at the top of the site. Each user may have their own biography that is entered in the users interface, however, this window is available on all pages of the site. This is an optional element and can be disabled.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2762,7 +2754,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2771,30 +2763,22 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
-		  <cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
-		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2820,20 +2804,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2879,38 +2860,45 @@
 		</cfinvoke>
 
 		</cfsilent>
-			
-		<cfsilent>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
-		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Download Window</b></td>
-		 </tr>
-		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
+		 <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Download Window</h4></td>
+		 </tr>
+		 <!-- Border -->
+		 <tr height="2px">
+		 	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		 </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The download window opens up via the navigation script at the top of the site. There is a download pod on the left side of the page when the user clicks on the hamburger icon, however, this download window is also available on every page within the site. This is an optional window and can be disabled by unchecking the enable button below.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2919,7 +2907,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -2928,27 +2916,22 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
-		  
 		  <!-- Border -->
-
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -2974,20 +2957,17 @@
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3050,28 +3030,33 @@
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
 		  </cfsilent> 
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Download Pod</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Download Pod</h4></td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The default download pod opens up on the left side of the when the user clicks on the hamburger icon. This pod can be redesigned to fit your needs. This optional pod can also be disabled by unchecking the enable button below.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3080,7 +3065,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3089,25 +3074,22 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3133,20 +3115,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3171,8 +3150,9 @@
 				<button id="<cfoutput>#contentTemplateStr#</cfoutput>MobileButton" name="<cfoutput>#contentTemplateStr#</cfoutput>MobileButton" class="k-button k-primary" type="button" onClick="createAdminInterfaceWindow(53,<cfoutput>#themeId#</cfoutput>,'<cfoutput>#contentTemplateStr#</cfoutput>Mobile',true);">Edit</button>
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->
 		<cfsilent>
@@ -3197,32 +3177,38 @@
 		  	<!---After the first row, the content class should be the current class. --->
 		  	<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Subscribe Pod</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Subscribe Pod</h4></td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The subscribe pod is a system related interface allowing your users to subscribe to your blog. You may redesign or disable this pod if you don't need this functionality.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3231,7 +3217,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3240,25 +3226,22 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3285,20 +3268,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3347,32 +3327,38 @@
 		  	<!---After the first row, the content class should be the current class. --->
 		  	<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>CfBlogs.org Feed Aggregate Pod</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">CfBlogs.org Feed Aggregate Pod</h4></td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The default CfBlogs Feed pod is typically a aggregate feed of all ColdFusion/Lucee related sites. If you're blogging about ColdFusion, you should keep this pod as is and join the cfblogs.org community. Otherwise, you may redesign this to meet your needs to disable the pod by unchecking the enable button below. 
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3381,7 +3367,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3390,25 +3376,22 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3434,20 +3417,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3496,32 +3476,38 @@
 		  	<!---After the first row, the content class should be the current class. --->
 		  	<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Recent Posts Pod</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Recent Posts Pod</h4></td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The recent posts pod displays the most recent blog posts. 
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3530,7 +3516,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3539,25 +3525,22 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3583,20 +3566,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3645,32 +3625,38 @@
 		  	<!---After the first row, the content class should be the current class. --->
 		  	<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Recent Comments Pod</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Recent Comments Pod</h4></td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The recent comments pod displays the most recent blog comments.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3679,7 +3665,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3689,25 +3675,22 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3733,20 +3716,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3795,32 +3775,38 @@
 		  	<!---After the first row, the content class should be the current class. --->
 		  	<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Category Archives Pod</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Category Archives Pod</h4></td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The categories pod displays the parent blog categories along with a link to the category RSS feed. 
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3829,7 +3815,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3838,25 +3824,22 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3882,20 +3865,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3945,32 +3925,38 @@
 		  	<!---After the first row, the content class should be the current class. --->
 		  	<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Monthly Archives Pod</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Monthly Archives Pod</h4></td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The monthly archives shows the number of blog posts within each blog category.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -3979,7 +3965,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -3989,25 +3975,22 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -4033,20 +4016,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -4095,32 +4075,38 @@
 		  	<!---After the first row, the content class should be the current class. --->
 		  	<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Calendar Pod</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Calendar Pod</h4></td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The calander pod displays your blog posts in a calendar format. You can't edit this interface as it is a JavaScript based application, however, you may disable it if you don't want it shown. 
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -4130,7 +4116,7 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -4139,7 +4125,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
@@ -4169,35 +4155,32 @@
 			<!--- Set the colspan property for borders --->
 			<cfset thisColSpan = "2">
 		  </cfsilent>
-				
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <tr height="1px">
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Footer Image</h4></td>
+		  </tr>
+		  <tr height="2px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-		  
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Footer Image</b></td>
-		  </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				The footer logo is typcially placed above the footer content, which may be edited below. Note: the composite footer will over-ride any changes if you modify the composite footer below.
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			  
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -4229,9 +4212,8 @@
 		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			  
 		<cfsilent>
 		<!--- This logic is easily reproducable with a small number of variables. Set them here. --->
 		<cfset contentTemplateStr = "compositeFooter">
@@ -4250,29 +4232,37 @@
 	    <!--- After the first row, the content class should be the current class. --->
 	    <cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
 	  </cfsilent> 
-		 <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
+		 <!-- Border -->
+		 <tr height="2px">
+		 	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		 </tr>
 		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><b>Composite Footer</b></td>
+			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput> setting-title"><h4 class="adminBlockHeading">Composite Footer</h4></td>
+		  </tr>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				Typically, the composite footer has a site logo along with a site description. However, you can also edit the entire footer using the editors below. 
 			</td>
 		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif useEnableButton>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-		  </cfsilent> 
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>	
+		  </cfsilent>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		 <cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -4281,7 +4271,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -4290,25 +4280,22 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
 		</cfif><!---<cfif useEnableButton>--->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	
-		<!--- Desktop header code (for both mobile and desktop devices) --->
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -4335,20 +4322,17 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!--- Mobile header code (for both mobile and desktop devices) --->
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -4396,30 +4380,27 @@
 		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  <!-- Border -->
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td colspan="2"> 
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 				<p>You can place optional custom HTML or scripts at the end of the page. This is often done when you need to embed custom libraries that need to have the scripts placed at the very bottom of the page.</p>
 				<p>If you want this custom script to be applied to all themes, click on the 'Apply across all themes' checkbox.</p>
 			</td>
 		  </tr>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <cfsilent>
 		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
-		
-		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-			  
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
@@ -4450,7 +4431,7 @@
 		</cfif>
 		  <!-- Border -->
 		  <tr height="2px">
-			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -4460,7 +4441,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" id="applyCustomFooterHtmlToAllThemes" name="applyCustomFooterHtmlToAllThemes" <cfif customFooterApplyAcrossThemes>checked</cfif>>
+				<input class="k-checkbox" type="checkbox" id="applyCustomFooterHtmlToAllThemes" name="applyCustomFooterHtmlToAllThemes" <cfif customFooterApplyAcrossThemes>checked</cfif>>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -4469,7 +4450,7 @@
 				<label for="applyCustomFooterHtmlToAllThemes">Apply across all themes:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				 <input type="checkbox" id="applyCustomFooterHtmlToAllThemes" name="applyCustomFooterHtmlToAllThemes" <cfif favIconHtmlApplyAcrossThemes>checked</cfif>>
+				 <input class="k-checkbox" type="checkbox" id="applyCustomFooterHtmlToAllThemes" name="applyCustomFooterHtmlToAllThemes" <cfif favIconHtmlApplyAcrossThemes>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif>

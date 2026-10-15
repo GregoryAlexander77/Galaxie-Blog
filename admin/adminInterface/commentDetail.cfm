@@ -35,326 +35,315 @@
 			Mobile comment details
 	//**************************************************************************************************--->
 	</cfsilent>
+	<!--- Block look (2026-10-15): see table.adminBlocks in includes/templates/blogContentCss.cfm. --->
+	<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 	<cfif session.isMobile>
-		<table align="center" class="k-content tableBorder" width="95%" cellpadding="5" cellspacing="0">
+		<cfoutput>
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+		<colgroup><col style="width: 20%"><col></colgroup>
+		  <tr><td colspan="2" class="#blockClass#"><label for="post">Post</label></td></tr>
 		  <tr>
-			<td align="left" valign="top" colspan="2" class="border k-alt"></td>
-		  </tr>
-		  <tr valign="middle">
-			<td align="left" valign="middle" class="k-alt">
-				<label for="post">Post</label>
+			<td colspan="2" class="#blockClass#">
+				<input type="text" id="post" name="post" value="#getComment[1]['PostTitle']#" class="k-textbox" style="width: 95%" disabled />
 			</td>
 		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr><td colspan="2" class="#blockClass#"><label for="commentPosted">Date Posted</label></td></tr>
 		  <tr>
-			<td align="left" class="k-alt">
-				<input type="text" id="post" name="post" value="<cfoutput>#getComment[1]['PostTitle']#</cfoutput>" class="k-textbox" style="width: 100%" disabled />   
+			<td colspan="2" class="#blockClass#">
+				<input type="text" id="commentPosted" name="commentPosted" value="#dateTimeFormat(getComment[1]['DatePosted'], "medium")#" class="k-textbox" style="width: 95%" disabled/>
 			</td>
 		  </tr>
+
+		  <tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Commenter</h4></td></tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr><td colspan="2" class="#blockClass#"><label for="commenter">Name</label></td></tr>
 		  <tr>
-			<td align="left" valign="top" class="border"></td>
-		  </tr>
-		  <tr>
-			<td> 
-				<label for="commentPosted">Date Posted</label>
+			<td colspan="2" class="#blockClass#">
+				<input type="text" id="commenter" name="commenter" value="#getComment[1]['CommenterFullName']#" class="k-textbox" style="width: 95%" required />
 			</td>
 		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr><td colspan="2" class="#blockClass#"><label for="commenterEmail">Email</label></td></tr>
 		  <tr>
-			<td>
-				<input type="text" id="commentPosted" name="commentPosted" value="<cfoutput>#dateTimeFormat(getComment[1]['DatePosted'], "medium")#</cfoutput>" class="k-textbox" style="width: 95%" disabled/>    
+			<td colspan="2" class="#blockClass#">
+				<input type="email" id="commenterEmail" name="commenterEmail" value="#getComment[1]['CommenterEmail']#" class="k-textbox" style="width: 95%" placeholder="e.g. myname@example.net" required data-email-msg="Email is not valid" />
 			</td>
 		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr><td colspan="2" class="#blockClass#"><label for="commenterWebsite">Website</label></td></tr>
 		  <tr>
-			<td align="left" valign="top" class="border k-alt"></td>
-		  </tr>
-		  <tr valign="middle">
-			<td valign="middle" class="k-alt">
-				<label for="commenter">Commenter</label>
+			<td colspan="2" class="#blockClass#">
+				<input type="url" id="commenterWebsite" name="commenterWebsite" value="#getComment[1]['CommenterWebsite']#" class="k-textbox" style="width: 95%" />
+				<div class="k-form-hint">Optional</div>
 			</td>
 		  </tr>
+
+		  <tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr><td colspan="2" class="#blockClass#"><label for="#selectorName#">Comment</label></td></tr>
 		  <tr>
-			<td align="left" class="k-alt">
-				<input type="text" id="commenter" name="commenter" value="<cfoutput>#getComment[1]['CommenterFullName']#</cfoutput>" class="k-textbox" style="width: 100%" required />   
+			<td colspan="2" class="#blockClass#">
+				<input type="text" id="#selectorName#" name="#selectorName#" style="width:95%" />
 			</td>
 		  </tr>
+
+		  <tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Status</h4></td></tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td align="left" valign="top" class="border"></td>
-		  </tr>
-		  <tr valign="middle">
-			<td valign="middle">
-				<label for="commenterEmail">Email</label>
+			<td colspan="2" class="#blockClass#">
+				<cfsilent>
+					<!--- This field may not be defined (it may be null in the database) --->
+					<cfif structKeyExists(getComment[1], "Approved" )>
+						<cfset approved = getComment[1]["Approved"]>
+					<cfelse>
+						<cfset approved = 0>
+					</cfif>
+				</cfsilent>
+				<input class="k-checkbox" id="approved" name="approved" type="checkbox" <cfif approved>checked</cfif>>
+				<label for="approved">Approved</label>
+				<div class="k-form-hint">Shown on the blog.</div>
 			</td>
 		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td align="left">
-				<input type="email" id="commenterEmail" name="commenterEmail" value="<cfoutput>#getComment[1]['CommenterEmail']#</cfoutput>" class="k-textbox" style="width: 100%" placeholder="e.g. myname@example.net" required data-email-msg="Email is not valid" />   
+			<td colspan="2" class="#blockClass#">
+				<cfsilent>
+					<!--- This field may not be defined (it may be null in the database) --->
+					<cfif structKeyExists(getComment[1], "Remove")>
+						<cfset remove = getComment[1]["Remove"]>
+					<cfelse>
+						<cfset remove = 0>
+					</cfif>
+				</cfsilent>
+				<input class="k-checkbox" id="remove" name="remove" type="checkbox" <cfif remove>checked</cfif>>
+				<label for="remove">Remove</label>
+				<div class="k-form-hint">Deletes this comment when you submit.</div>
 			</td>
 		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td align="left" valign="top" class="border k-alt"></td>
-		  </tr>
-		  <tr valign="middle">
-			<td valign="middle" class="k-alt">
-				<label for="commenterWebsite">Website</label>
+			<td colspan="2" class="#blockClass#">
+				<cfsilent>
+					<!--- This field may not be defined (it may be null in the database) --->
+					<cfif structKeyExists(getComment[1], "Spam" )>
+						<cfset spam = getComment[1]["Spam"]>
+					<cfelse>
+						<cfset spam = 0>
+					</cfif>
+				</cfsilent>
+				<input class="k-checkbox" id="spam" name="spam" type="checkbox" <cfif spam>checked</cfif>>
+				<label for="spam">Spam</label>
+				<div class="k-form-hint">Removes every comment by this commenter.</div>
 			</td>
 		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td class="k-alt">
-				<input type="url" id="commenterWebsite" name="commenterWebsite" value="<cfoutput>#getComment[1]['CommenterWebsite']#</cfoutput>" class="k-textbox" style="width: 100%" />
+			<td colspan="2" class="#blockClass#">
+				<cfsilent>
+				<!--- This field may not be defined (it may be null in the database) --->
+				<cfif structKeyExists(getComment[1], "Subscribe" )>
+					<cfset subscribe = getComment[1]["Subscribe"]>
+				<cfelse>
+					<cfset subscribe = 0>
+				</cfif>
+				</cfsilent>
+				<input class="k-checkbox" id="subscribe" name="subscribe" type="checkbox" <cfif subscribe>checked</cfif>>
+				<label for="subscribe">Subscribed</label>
+				<div class="k-form-hint">Emailed when new comments are posted.</div>
 			</td>
 		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td align="left" valign="top" class="border"></td>
-		  </tr>
-		  <tr valign="middle">
-			<td valign="middle">
-				<label for="<cfoutput>#selectorName#</cfoutput>">Comment</label>
+			<td colspan="2" class="#blockClass#">
+				<cfsilent>
+				<!--- This field may not be defined (it may be null in the database) --->
+				<cfif structKeyExists(getComment[1], "Moderated" )>
+					<cfset moderated = getComment[1]["Moderated"]>
+				<cfelse>
+					<cfset moderated = 0>
+				</cfif>
+				</cfsilent>
+				<input class="k-checkbox" id="moderated" name="moderated" type="checkbox" <cfif moderated>checked</cfif>>
+				<label for="moderated">Moderated</label>
 			</td>
 		  </tr>
+
+		  <tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td align="left"> 
-				<input type="text" id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>" style="width:95%" /> 
-			</td>
-		  </tr>
-		  <tr>
-			<td align="left" valign="top" class="border k-alt"></td>
-		  </tr>
-		  <tr>
-			<td align="right" class="k-alt">
-				<table align="center" class="k-alt" width="100%" cellpadding="5" cellspacing="0">
-					<tr>
-						<td width="33%" align="left">
-							<cfsilent>
-								<!--- This field may not be defined (it may be null in the database) --->
-								<cfif structKeyExists(getComment[1], "Approved" )>
-									<cfset approved = getComment[1]["Approved"]>
-								<cfelse>
-									<cfset approved = 0>
-								</cfif>
-							</cfsilent>
-							<input id="approved" name="approved" type="checkbox" <cfif approved>checked</cfif>>
-							<label for="approved">Approved</label>
-						</td>
-						<td width="33%" align="left">
-							<cfsilent>
-								<!--- This field may not be defined (it may be null in the database) --->
-								<cfif structKeyExists(getComment[1], "Remove")>
-									<cfset remove = getComment[1]["Remove"]>
-								<cfelse>
-									<cfset remove = 0>
-								</cfif>
-							</cfsilent>
-							<input id="remove" name="remove" type="checkbox" <cfif remove>checked</cfif>>
-							<label for="remove">Remove</label>
-						</td>
-						<td width="33%" align="left">
-							<cfsilent>
-								<!--- This field may not be defined (it may be null in the database) --->
-								<cfif structKeyExists(getComment[1], "Spam" )>
-									<cfset spam = getComment[1]["Spam"]>
-								<cfelse>
-									<cfset spam = 0>
-								</cfif>
-							</cfsilent>
-							<input id="spam" name="spam" type="checkbox" <cfif spam>checked</cfif>>
-							<label for="spam">Spam</label>
-						</td>
-					</tr>
-					<tr>
-						<td width="33%" align="left">
-							<cfsilent>
-							<!--- This field may not be defined (it may be null in the database) --->
-							<cfif structKeyExists(getComment[1], "Spam" )>
-								<cfset subscribe = getComment[1]["Spam"]>
-							<cfelse>
-								<cfset spam = 0>
-							</cfif>
-							</cfsilent>
-						<input id="subscribe" name="subscribe" type="checkbox" <cfif subscribe>checked</cfif>>
-						<label for="subscribe">Subscribed</label>
-						</td>
-						<td width="33%" align="left">
-							<cfsilent>
-							<!--- This field may not be defined (it may be null in the database) --->
-							<cfif structKeyExists(getComment[1], "Moderated" )>
-								<cfset moderated = getComment[1]["Moderated"]>
-							<cfelse>
-								<cfset moderated = 0>
-							</cfif>
-							</cfsilent>
-						<input id="moderated" name="moderated" type="checkbox" <cfif moderated>checked</cfif>>
-						<label for="moderated">Moderated</label>
-						</td>
-						<td></td>
-					</tr>
-				</table>
-			</td>
-		  </tr>
-		  <tr>
-			<td align="left" valign="top" class="border"></td>
-		  </tr>
-		  <tr valign="middle">
-			<td height="25" valign="bottom" align="left">
+			<td colspan="2" class="#blockClass#">
 				<button id="commentDetailSubmit" class="k-button k-primary" type="button">Submit</button>
 			</td>
 		  </tr>
 		</table>
+		</cfoutput>
 	<cfelse>
 	<!--- //************************************************************************************************
 			Desktop comment details
 	//**************************************************************************************************--->
-		<table align="center" class="k-content tableBorder" width="95%" cellpadding="5" cellspacing="0">
+		<cfoutput>
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+		<colgroup><col style="width: 20%"><col></colgroup>
 		  <tr>
-			<td align="left" valign="top" colspan="2" class="border k-alt"></td>
-		  </tr>
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="10%" class="k-alt">
-			<label for="post">Post</label>
-			</td>
-			<td align="left" width="90%" class="k-alt">
-				<input type="text" id="post" name="post" value="<cfoutput>#getComment[1]['PostTitle']#</cfoutput>" class="k-textbox" style="width: 66%" disabled />   
+			<td class="#blockClass#" align="right"><label for="post">Post:</label></td>
+			<td class="#blockClass#">
+				<input type="text" id="post" name="post" value="#getComment[1]['PostTitle']#" class="k-textbox" style="width: 95%" disabled />
 			</td>
 		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td align="left" valign="top" colspan="2" class="border"></td>
+			<td class="#blockClass#" align="right"><label for="commentPosted">Date Posted:</label></td>
+			<td class="#blockClass#">
+				<input type="text" id="commentPosted" name="commentPosted" value="#dateTimeFormat(getComment[1]['DatePosted'], "medium")#" class="k-textbox" style="width: 45%" disabled/>
+			</td>
 		  </tr>
+
+		  <tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Commenter</h4></td></tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td align="right"> 
-			<label for="commentPosted">Date Posted</label>
-			</td>
-			<td>
-			<input type="text" id="commentPosted" name="commentPosted" value="<cfoutput>#dateTimeFormat(getComment[1]['DatePosted'], "medium")#</cfoutput>" class="k-textbox" style="width: 45%" disabled/>    
+			<td class="#blockClass#" align="right"><label for="commenter">Name:</label></td>
+			<td class="#blockClass#">
+				<input type="text" id="commenter" name="commenter" value="#getComment[1]['CommenterFullName']#" class="k-textbox" style="width: 66%" required />
 			</td>
 		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td align="left" valign="top" colspan="2" class="border k-alt"></td>
-		  </tr>
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="10%" class="k-alt">
-			<label for="commenter">Commenter</label>
-			</td>
-			<td align="left" width="90%" class="k-alt">
-				<input type="text" id="commenter" name="commenter" value="<cfoutput>#getComment[1]['CommenterFullName']#</cfoutput>" class="k-textbox" style="width: 66%" required />   
+			<td class="#blockClass#" align="right"><label for="commenterEmail">Email:</label></td>
+			<td class="#blockClass#">
+				<input type="email" id="commenterEmail" name="commenterEmail" value="#getComment[1]['CommenterEmail']#" class="k-textbox" style="width: 66%" placeholder="e.g. myname@example.net" required data-email-msg="Email is not valid" />
 			</td>
 		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td align="left" valign="top" colspan="2" class="border"></td>
-		  </tr>
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="10%">
-			<label for="commenterEmail">Email</label>
-			</td>
-			<td align="left" width="90%">
-				<input type="email" id="commenterEmail" name="commenterEmail" value="<cfoutput>#getComment[1]['CommenterEmail']#</cfoutput>" class="k-textbox" style="width: 66%" placeholder="e.g. myname@example.net" required data-email-msg="Email is not valid" />   
+			<td class="#blockClass#" align="right"><label for="commenterWebsite">Website:</label></td>
+			<td class="#blockClass#">
+				<input type="url" id="commenterWebsite" name="commenterWebsite" value="#getComment[1]['CommenterWebsite']#" class="k-textbox" style="width: 66%" />
+				<span class="k-form-hint">Optional</span>
 			</td>
 		  </tr>
-		  <tr>
-			<td align="left" valign="top" colspan="2" class="border k-alt"></td>
-		  </tr>
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" width="10%" class="k-alt">
-			<label for="commenterWebsite">Website</label>
-			</td>
-			<td align="left" width="90%" class="k-alt">
-				<input type="url" id="commenterWebsite" name="commenterWebsite" value="<cfoutput>#getComment[1]['CommenterWebsite']#</cfoutput>" class="k-textbox" style="width: 66%" />
-			</td>
-		  </tr>
-		  <tr>
-			<td align="left" valign="top" colspan="2" class="border"></td>
-		  </tr>
+
+		  <tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <!--- Preview --->
 		  <tr>
-			<td align="right"><div id="dynamicGalleryLabel"></div></td>
-			<td><div id="dynamicGalleryInputFields" name="dynamicGalleryInputFields"></div></td>
-		  </tr>
-		  <tr valign="middle">
-			<td align="right" valign="middle" height="35">
-				<label for="<cfoutput>#selectorName#</cfoutput>">Comment</label>
-			</td>
-			<td align="left"> 
-				<input type="text" id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>" style="width:95%" />  
-			</td>
+			<td class="#blockClass#" align="right"><div id="dynamicGalleryLabel"></div></td>
+			<td class="#blockClass#"><div id="dynamicGalleryInputFields" name="dynamicGalleryInputFields"></div></td>
 		  </tr>
 		  <tr>
-			<td align="left" valign="top" colspan="2" class="border k-alt"></td>
-		  </tr>
-		  <tr>
-			<td align="right" class="k-alt" colspan="2">
-				<table align="center" class="k-alt" width="100%" cellpadding="5" cellspacing="0">
-					<tr>
-						<td width="20%" align="left">
-							<label for="approved">Approved</label>
-							<cfsilent>
-								<!--- This field may not be defined (it may be null in the database) --->
-								<cfif structKeyExists(getComment[1], "Approved" )>
-									<cfset approved = getComment[1]["Approved"]>
-								<cfelse>
-									<cfset approved = 0>
-								</cfif>
-							</cfsilent>
-							<input id="approved" name="approved" type="checkbox" <cfif approved>checked</cfif>>
-						</td>
-						<td width="20%" align="left">
-							<label for="remove">Remove</label>
-							<cfsilent>
-								<!--- This field may not be defined (it may be null in the database) --->
-								<cfif structKeyExists(getComment[1], "Remove")>
-									<cfset remove = getComment[1]["Remove"]>
-								<cfelse>
-									<cfset remove = 0>
-								</cfif>
-							</cfsilent>
-							<input id="remove" name="remove" type="checkbox" <cfif remove>checked</cfif>>
-						</td>
-						<td width="20%" align="left">
-							<label for="spam">Spam</label>
-							<cfsilent>
-								<!--- This field may not be defined (it may be null in the database) --->
-								<cfif structKeyExists(getComment[1], "Spam" )>
-									<cfset spam = getComment[1]["Spam"]>
-								<cfelse>
-									<cfset spam = 0>
-								</cfif>
-							</cfsilent>
-							<input id="spam" name="spam" type="checkbox" <cfif spam>checked</cfif>>
-						</td>
-						<td width="20%" align="left">
-							<label for="subscribe">Subscribed</label>
-							<cfsilent>
-							<!--- This field may not be defined (it may be null in the database) --->
-							<cfif structKeyExists(getComment[1], "Subscribe" )>
-								<cfset subscribe = getComment[1]["Subscribe"]>
-							<cfelse>
-								<cfset spam = 0>
-							</cfif>
-							</cfsilent>
-						<input id="subscribe" name="subscribe" type="checkbox" <cfif subscribe>checked</cfif>>	
-						</td>
-						<td width="20%" align="left">
-							<label for="subscribe">Moderated</label>
-							<cfsilent>
-							<!--- This field may not be defined (it may be null in the database) --->
-							<cfif structKeyExists(getComment[1], "Moderated" )>
-								<cfset moderated = getComment[1]["Moderated"]>
-							<cfelse>
-								<cfset moderated = 0>
-							</cfif>
-							</cfsilent>
-						<input id="moderated" name="moderated" type="checkbox" <cfif moderated>checked</cfif>>	
-						</td>
-					</tr>
-				</table>
+			<td class="#blockClass#" align="right"><label for="#selectorName#">Comment:</label></td>
+			<td class="#blockClass#">
+				<input type="text" id="#selectorName#" name="#selectorName#" style="width:95%" />
 			</td>
 		  </tr>
+
+		  <tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Status</h4></td></tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td align="left" valign="top" colspan="2" class="border"></td>
+			<td class="#blockClass#" align="right"><label for="approved">Approved:</label></td>
+			<td class="#blockClass#">
+				<cfsilent>
+					<!--- This field may not be defined (it may be null in the database) --->
+					<cfif structKeyExists(getComment[1], "Approved" )>
+						<cfset approved = getComment[1]["Approved"]>
+					<cfelse>
+						<cfset approved = 0>
+					</cfif>
+				</cfsilent>
+				<input class="k-checkbox" id="approved" name="approved" type="checkbox" <cfif approved>checked</cfif>>
+				<span class="k-form-hint">Shown on the blog.</span>
+			</td>
 		  </tr>
-		  <tr valign="middle">
-			<td height="25" valign="bottom" align="right">&nbsp;</td>
-			<td height="25" valign="bottom" align="left">
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#" align="right"><label for="remove">Remove:</label></td>
+			<td class="#blockClass#">
+				<cfsilent>
+					<!--- This field may not be defined (it may be null in the database) --->
+					<cfif structKeyExists(getComment[1], "Remove")>
+						<cfset remove = getComment[1]["Remove"]>
+					<cfelse>
+						<cfset remove = 0>
+					</cfif>
+				</cfsilent>
+				<input class="k-checkbox" id="remove" name="remove" type="checkbox" <cfif remove>checked</cfif>>
+				<span class="k-form-hint">Deletes this comment when you submit.</span>
+			</td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#" align="right"><label for="spam">Spam:</label></td>
+			<td class="#blockClass#">
+				<cfsilent>
+					<!--- This field may not be defined (it may be null in the database) --->
+					<cfif structKeyExists(getComment[1], "Spam" )>
+						<cfset spam = getComment[1]["Spam"]>
+					<cfelse>
+						<cfset spam = 0>
+					</cfif>
+				</cfsilent>
+				<input class="k-checkbox" id="spam" name="spam" type="checkbox" <cfif spam>checked</cfif>>
+				<span class="k-form-hint">Removes every comment by this commenter.</span>
+			</td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#" align="right"><label for="subscribe">Subscribed:</label></td>
+			<td class="#blockClass#">
+				<cfsilent>
+				<!--- This field may not be defined (it may be null in the database) --->
+				<cfif structKeyExists(getComment[1], "Subscribe" )>
+					<cfset subscribe = getComment[1]["Subscribe"]>
+				<cfelse>
+					<cfset subscribe = 0>
+				</cfif>
+				</cfsilent>
+				<input class="k-checkbox" id="subscribe" name="subscribe" type="checkbox" <cfif subscribe>checked</cfif>>
+				<span class="k-form-hint">Emailed when new comments are posted.</span>
+			</td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#" align="right"><label for="moderated">Moderated:</label></td>
+			<td class="#blockClass#">
+				<cfsilent>
+				<!--- This field may not be defined (it may be null in the database) --->
+				<cfif structKeyExists(getComment[1], "Moderated" )>
+					<cfset moderated = getComment[1]["Moderated"]>
+				<cfelse>
+					<cfset moderated = 0>
+				</cfif>
+				</cfsilent>
+				<input class="k-checkbox" id="moderated" name="moderated" type="checkbox" <cfif moderated>checked</cfif>>
+			</td>
+		  </tr>
+
+		  <tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+		  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#"></td>
+			<td class="#blockClass#">
 				<button id="commentDetailSubmit" class="k-button k-primary" type="button">Submit</button>
 			</td>
 		  </tr>
 		</table>
+		</cfoutput>
 	</cfif>
 	</form>
 					

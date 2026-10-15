@@ -9,6 +9,8 @@
 --->
 
 <cffunction name="init" access="public" returntype="any" output="false">
+	<!--- Minutes a time is held while the visitor pays (Stripe's shortest checkout is 30 minutes). --->
+	<cfset variables.holdMinutes = 31>
 	<cfset variables.dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]>
 	<cfreturn this>
 </cffunction>
@@ -139,6 +141,21 @@
 	<cfif not listFind("0,5,10,15,20,30,45,60,90,120", startInterval)><cfset arrayAppend(result.errors, "Choose how often start times are offered.")></cfif>
 	<cfif bookingMode eq "group" and (groupSize lt 2 or groupSize gt 1000)><cfset arrayAppend(result.errors, "A group needs room for 2 to 1000 people.")></cfif>
 	<cfif price lt 0><cfset arrayAppend(result.errors, "The price can't be negative.")></cfif>
+	<!--- How it's paid (2026-10-15): full or deposit online when booking (Stripe), or at the session. Free types are "free". --->
+	<cfset local.paymentOption = price gt 0 and structKeyExists(d, "paymentOption") and listFind("full,deposit,atSession", d.paymentOption) ? d.paymentOption : (price gt 0 ? "full" : "free")>
+	<cfset local.depositIsPercent = structKeyExists(d, "depositIsPercent") and isBoolean(d.depositIsPercent) and d.depositIsPercent>
+	<cfset local.depositAmount = structKeyExists(d, "depositAmount") and isNumeric(d.depositAmount) ? round(d.depositAmount * 100) / 100 : 0>
+	<cfset local.balanceCollection = structKeyExists(d, "balanceCollection") and d.balanceCollection eq "online" ? "online" : "inPerson">
+	<cfset local.refundHours = min(wholeNumber(d, "refundHours", 24), 8760)>
+	<cfif local.paymentOption eq "deposit">
+		<cfif local.depositAmount lte 0>
+			<cfset arrayAppend(result.errors, "Enter the deposit.")>
+		<cfelseif local.depositIsPercent and local.depositAmount gte 100>
+			<cfset arrayAppend(result.errors, "A deposit is less than 100% - choose ""Paid online in full"" instead.")>
+		<cfelseif not local.depositIsPercent and local.depositAmount gte price>
+			<cfset arrayAppend(result.errors, "The deposit must be less than the price - or choose ""Paid online in full"".")>
+		</cfif>
+	</cfif>
 	<cfif not arrayLen(locationIds)><cfset arrayAppend(result.errors, "Choose at least one location - where or how you meet.")></cfif>
 	<cfif webFormId gt 0 and structIsEmpty(application.webForms.getForm(webFormId = webFormId))><cfset arrayAppend(result.errors, "That intake form no longer exists.")></cfif>
 	<cfif not isNew>
@@ -170,16 +187,11 @@
 		<cfset entity.setGroupSize(groupSize)>
 		<cfset entity.setPrice(javacast("bigdecimal", price))>
 		<cfset entity.setPricingUnit(bookingMode eq "group" and structKeyExists(d, "pricingUnit") and d.pricingUnit eq "perPerson" ? "perPerson" : "perBooking")>
-		<!--- Until payments are set up (the Stripe step), a priced type is "full" and a free one "free". --->
-		<cfif isNew or isNull(entity.getPaymentOption()) or not len(entity.getPaymentOption()) or (price eq 0) or (entity.getPaymentOption() eq "free")>
-			<cfset entity.setPaymentOption(price gt 0 ? "full" : "free")>
-		</cfif>
-		<cfif isNew>
-			<cfset entity.setDepositAmount(javacast("bigdecimal", 0))>
-			<cfset entity.setDepositIsPercent(false)>
-			<cfset entity.setBalanceCollection("inPerson")>
-			<cfset entity.setRefundHours(24)>
-		</cfif>
+		<cfset entity.setPaymentOption(local.paymentOption)>
+		<cfset entity.setDepositAmount(javacast("bigdecimal", local.paymentOption eq "deposit" ? local.depositAmount : 0))>
+		<cfset entity.setDepositIsPercent(local.paymentOption eq "deposit" and local.depositIsPercent)>
+		<cfset entity.setBalanceCollection(local.balanceCollection)>
+		<cfset entity.setRefundHours(local.refundHours)>
 		<cfset entity.setWebFormRef(webFormId)>
 		<cfset entity.setMinNoticeHours(min(wholeNumber(d, "minNoticeHours", 24), 8760))>
 		<cfset entity.setMaxDaysAhead(max(1, min(wholeNumber(d, "maxDaysAhead", 60), 730)))>
@@ -370,7 +382,7 @@
 		hint="Days off and days with different hours, from today on (in the blog's time zone), earliest first: [{ availabilityExceptionId, date, locationOptionId, closed, start, end, note }].">
 	<cfset var exceptions = []>
 	<cfset var rows = queryExecute("
-		SELECT AvailabilityExceptionId, ExceptionDate, LocationOptionRef, Closed, StartTime, EndTime, Note
+		SELECT AvailabilityExceptionId, ExceptionDate, LocationOptionRef, Closed, Kind, StartTime, EndTime, Note
 		FROM AvailabilityException
 		WHERE BlogRef = :blogId AND ExceptionDate >= :today
 		ORDER BY ExceptionDate, LocationOptionRef
@@ -381,6 +393,7 @@
 			"date": rows.ExceptionDate,
 			"locationOptionId": val(rows.LocationOptionRef),
 			"closed": isTrue(rows.Closed, true),
+			"kind": exceptionKind(rows.Kind, rows.Closed),
 			"start": valueOrEmpty(rows.StartTime),
 			"end": valueOrEmpty(rows.EndTime),
 			"note": valueOrEmpty(rows.Note)
@@ -396,6 +409,8 @@
 	<cfset var d = arguments.data>
 	<cfset var exceptionDate = structKeyExists(d, "date") ? trim(d.date) : "">
 	<cfset var closed = isTrue(structKeyExists(d, "closed") ? d.closed : true, true)>
+	<!--- closed, hours or busy (2026-10-15); older callers only send closed. --->
+	<cfset var kind = structKeyExists(d, "kind") and listFind("closed,hours,busy", d.kind) ? d.kind : (closed ? "closed" : "hours")>
 	<cfset var startTime = structKeyExists(d, "start") ? trim(d.start) : "">
 	<cfset var endTime = structKeyExists(d, "end") ? trim(d.end) : "">
 	<cfset var locationOptionId = wholeNumber(d, "locationOptionId", 0)>
@@ -405,8 +420,9 @@
 	<cfelseif exceptionDate lt dateFormat(application.blog.blogNow(), "yyyy-mm-dd")>
 		<cfset arrayAppend(result.errors, "That date has already passed.")>
 	</cfif>
+	<cfset closed = kind eq "closed">
 	<cfif not closed and (not isTime24(startTime) or not isTime24(endTime) or endTime lte startTime)>
-		<cfset arrayAppend(result.errors, "Enter the hours for that day, like 09:00 to 12:00.")>
+		<cfset arrayAppend(result.errors, kind eq "busy" ? "Enter when you're busy, like 14:00 to 16:00." : "Enter the hours for that day, like 09:00 to 12:00.")>
 	</cfif>
 	<cfif locationOptionId gt 0 and structIsEmpty(application.locations.getLocation(locationOptionId))>
 		<cfset arrayAppend(result.errors, "That location no longer exists.")>
@@ -421,6 +437,7 @@
 		<cfset entity.setLocationOptionRef(locationOptionId)>
 		<cfset entity.setExceptionDate(exceptionDate)>
 		<cfset entity.setClosed(closed)>
+		<cfset entity.setKind(kind)>
 		<cfset entity.setStartTime(closed ? "" : startTime)>
 		<cfset entity.setEndTime(closed ? "" : endTime)>
 		<cfset entity.setNote(left(trim(structKeyExists(d, "note") ? d.note : ""), 255))>
@@ -505,6 +522,9 @@
 					"description": bookingType.description,
 					"durationMinutes": bookingType.durationMinutes,
 					"price": bookingType.price,
+					"priceText": bookingType.price gt 0 ? application.payments.formatMoney(bookingType.price) : "Free",
+					"paysOnline": getPaymentPlan(bookingType, bookingType.price).online,
+					"paymentNote": getPaymentNote(bookingType),
 					"pricingUnit": bookingType.pricingUnit,
 					"isGroup": bookingType.bookingMode eq "group",
 					"groupSize": bookingType.groupSize,
@@ -614,23 +634,61 @@
 	<cfset var forLocation = "">
 	<cfset var forAll = "">
 	<cfset var range = "">
+	<cfset var busy = []>
 	<cfloop array="#arguments.exceptions#" index="e">
 		<cfif e.date eq arguments.dateText and (e.locationOptionId eq 0 or e.locationOptionId eq arguments.locationOptionId)>
 			<cfif e.closed>
 				<cfreturn []>
 			</cfif>
+			<cfif structKeyExists(e, "kind") and e.kind eq "busy">
+				<cfset arrayAppend(busy, { start: timeToMinutes(e.start), end: timeToMinutes(e.end) })>
+				<cfcontinue>
+			</cfif>
 			<cfif e.locationOptionId eq arguments.locationOptionId><cfset forLocation = e><cfelse><cfset forAll = e></cfif>
 		</cfif>
 	</cfloop>
 	<cfif isStruct(forLocation)>
-		<cfreturn [{ start: timeToMinutes(forLocation.start), end: timeToMinutes(forLocation.end) }]>
+		<cfset ranges = [{ start: timeToMinutes(forLocation.start), end: timeToMinutes(forLocation.end) }]>
 	<cfelseif isStruct(forAll)>
-		<cfreturn [{ start: timeToMinutes(forAll.start), end: timeToMinutes(forAll.end) }]>
+		<cfset ranges = [{ start: timeToMinutes(forAll.start), end: timeToMinutes(forAll.end) }]>
+	<cfelse>
+		<cfloop array="#arguments.weekly[arguments.dayOfWeek]#" index="range">
+			<cfset arrayAppend(ranges, { start: timeToMinutes(range.start), end: timeToMinutes(range.end) })>
+		</cfloop>
 	</cfif>
-	<cfloop array="#arguments.weekly[arguments.dayOfWeek]#" index="range">
-		<cfset arrayAppend(ranges, { start: timeToMinutes(range.start), end: timeToMinutes(range.end) })>
+	<cfreturn removeBusyTimes(ranges, busy)>
+</cffunction>
+
+<cffunction name="removeBusyTimes" access="private" returntype="array" output="false"
+		hint="Open ranges with the busy ones cut out (2026-10-15), eg. 9-17 less 14-16 is 9-14 and 16-17. Minutes from midnight.">
+	<cfargument name="ranges" type="array" required="true">
+	<cfargument name="busy" type="array" required="true">
+	<cfset var open = arguments.ranges>
+	<cfset var cut = "">
+	<cfset var range = "">
+	<cfset var pieces = []>
+	<cfloop array="#arguments.busy#" index="cut">
+		<cfset pieces = []>
+		<cfloop array="#open#" index="range">
+			<cfif cut.end lte range.start or cut.start gte range.end>
+				<cfset arrayAppend(pieces, range)>
+			<cfelse>
+				<cfif cut.start gt range.start><cfset arrayAppend(pieces, { start: range.start, end: cut.start })></cfif>
+				<cfif cut.end lt range.end><cfset arrayAppend(pieces, { start: cut.end, end: range.end })></cfif>
+			</cfif>
+		</cfloop>
+		<cfset open = pieces>
 	</cfloop>
-	<cfreturn ranges>
+	<cfreturn open>
+</cffunction>
+
+<cffunction name="exceptionKind" access="private" returntype="string" output="false" hint="closed, hours or busy; older rows have no Kind and follow Closed.">
+	<cfargument name="kind" required="false" default="">
+	<cfargument name="closed" required="false" default="true">
+	<cfif listFind("closed,hours,busy", valueOrEmpty(arguments.kind))>
+		<cfreturn arguments.kind>
+	</cfif>
+	<cfreturn isTrue(arguments.closed, true) ? "closed" : "hours">
 </cffunction>
 
 <cffunction name="getExceptionsBetween" access="private" returntype="array" output="false">
@@ -638,11 +696,11 @@
 	<cfargument name="toDate" type="string" required="true">
 	<cfset var exceptions = []>
 	<cfset var rows = queryExecute("
-		SELECT ExceptionDate, LocationOptionRef, Closed, StartTime, EndTime FROM AvailabilityException
+		SELECT ExceptionDate, LocationOptionRef, Closed, Kind, StartTime, EndTime FROM AvailabilityException
 		WHERE BlogRef = :blogId AND ExceptionDate >= :fromDate AND ExceptionDate <= :toDate
 	", { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, fromDate = { value = arguments.fromDate, cfsqltype = "cf_sql_varchar" }, toDate = { value = arguments.toDate, cfsqltype = "cf_sql_varchar" } })>
 	<cfloop query="rows">
-		<cfset arrayAppend(exceptions, { date: rows.ExceptionDate, locationOptionId: val(rows.LocationOptionRef), closed: isTrue(rows.Closed, true), start: valueOrEmpty(rows.StartTime), end: valueOrEmpty(rows.EndTime) })>
+		<cfset arrayAppend(exceptions, { date: rows.ExceptionDate, locationOptionId: val(rows.LocationOptionRef), closed: isTrue(rows.Closed, true), kind: exceptionKind(rows.Kind, rows.Closed), start: valueOrEmpty(rows.StartTime), end: valueOrEmpty(rows.EndTime) })>
 	</cfloop>
 	<cfreturn exceptions>
 </cffunction>
@@ -656,7 +714,7 @@
 	<cfset var rows = queryExecute("
 		SELECT BookingId, BookingTypeRef, LocationOptionRef, StartLocal, EndLocal, PartySize, BufferBeforeMinutes, BufferAfterMinutes, Status, HoldExpiresAt
 		FROM Booking
-		WHERE BlogRef = :blogId AND StartLocal >= :fromLocal AND StartLocal <= :toLocal AND Status IN ('confirmed', 'pending')
+		WHERE BlogRef = :blogId AND StartLocal >= :fromLocal AND StartLocal <= :toLocal AND Status IN ('confirmed', 'pending', 'held')
 	", { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, fromLocal = { value = arguments.fromDate & " 00:00", cfsqltype = "cf_sql_varchar" }, toLocal = { value = arguments.toDate & " 23:59", cfsqltype = "cf_sql_varchar" } })>
 	<cfloop query="rows">
 		<!--- A hold for payment that has run out no longer counts. --->
@@ -700,6 +758,7 @@
 	<cfset var submissionId = 0>
 	<cfset var entity = "">
 	<cfset var zoneId = application.blog.getBlogTimeZoneId()>
+	<cfset var plan = "">
 
 	<cfif not arrayFind(t.locationIds, arguments.locationOptionId) or structIsEmpty(meetLocation) or not meetLocation.active>
 		<cfset result.message = "Please choose where to meet again.">
@@ -739,6 +798,8 @@
 
 	<cfset startMinutes = timeToMinutes(right(arguments.startLocal, 5))>
 	<cfset amount = t.price * (t.pricingUnit eq "perPerson" ? party : 1)>
+	<!--- Paid online (2026-10-15): the time is held while the visitor pays on Stripe, and confirmed by the payment webhook. --->
+	<cfset plan = getPaymentPlan(t, amount)>
 	<!--- The intake answers are kept as a submission of the type's form, so they show under Forms > Submissions too. --->
 	<cfif t.webFormId gt 0 and not structIsEmpty(arguments.intakeValues)>
 		<cfset submissionId = application.webForms.saveSubmission(application.webForms.getForm(webFormId = t.webFormId), arguments.intakeValues, arguments.postId)>
@@ -760,13 +821,22 @@
 		<cfset entity.setEmail(left(trim(arguments.email), 255))>
 		<cfset entity.setPhone(left(trim(arguments.phone), 50))>
 		<cfset entity.setWebFormSubmissionRef(submissionId)>
-		<cfset entity.setStatus(t.requiresApproval ? "pending" : "confirmed")>
-		<!--- Until payments are set up (the Stripe step), a price is owed in full and paid outside the blog. --->
-		<cfset entity.setPaymentStatus("none")>
-		<cfset entity.setPaymentChoice(amount gt 0 ? "full" : "")>
+		<cfif plan.online>
+			<!--- Held for the visitor while they pay; released if no payment arrives (see expireHeldBooking). --->
+			<cfset entity.setStatus("held")>
+			<cfset entity.setPaymentStatus("pending")>
+			<cfset entity.setPaymentChoice(plan.purpose)>
+			<cfset entity.setHoldExpiresAt(dateAdd("n", variables.holdMinutes + 3, now()))>
+		<cfelse>
+			<cfset entity.setStatus(t.requiresApproval ? "pending" : "confirmed")>
+			<!--- No online payment: a price is paid outside the blog. --->
+			<cfset entity.setPaymentStatus("none")>
+			<cfset entity.setPaymentChoice(amount gt 0 ? "full" : "")>
+		</cfif>
 		<cfset entity.setAmountTotal(javacast("bigdecimal", amount))>
 		<cfset entity.setAmountPaid(javacast("bigdecimal", 0))>
 		<cfset entity.setBalanceDue(javacast("bigdecimal", amount))>
+		<cfset entity.setCurrency(application.payments.getCurrency())>
 		<cfset entity.setManageToken(lCase(hash(createUUID() & rand("SHA1PRNG") & getTickCount(), "SHA-256")))>
 		<cfset entity.setNotes("")>
 		<cfset entity.setPostRef(arguments.postId)>
@@ -781,7 +851,180 @@
 	<cfset result.success = true>
 	<cfset result.bookingId = entity.getBookingId()>
 	<cfset result.status = entity.getStatus()>
+	<cfset result.paymentRequired = plan.online>
+	<cfset result.paymentPurpose = plan.purpose>
+	<cfset result.amountDueNow = plan.dueNow>
+	<cfset result.manageToken = entity.getManageToken()>
 	<cfreturn result>
+</cffunction>
+
+<!--- ********************************************************************************************************************
+	Paying online (2026-10-15). A priced booking type is paid on Stripe when Blog Options > Payments has the keys for the
+	current mode; otherwise the price is shown and paid outside the blog, as before.
+********************************************************************************************************************* --->
+
+<cffunction name="getPaymentPlan" access="public" returntype="struct" output="false"
+		hint="What a booking costs now: { online, purpose (full or deposit), dueNow }. online is false for free types, or when Stripe isn't set up.">
+	<cfargument name="bookingType" type="struct" required="true">
+	<cfargument name="amount" required="true" hint="The full price for this booking.">
+	<cfset var t = arguments.bookingType>
+	<cfset var plan = { online: false, purpose: "", dueNow: 0 }>
+	<cfset var deposit = 0>
+	<cfif val(arguments.amount) lte 0 or not listFind("full,deposit,visitorChooses", t.paymentOption) or not application.payments.getStatus().ready>
+		<cfreturn plan>
+	</cfif>
+	<cfset plan.online = true>
+	<cfset plan.purpose = "full">
+	<cfset plan.dueNow = val(arguments.amount)>
+	<cfif t.paymentOption eq "deposit">
+		<cfset deposit = t.depositIsPercent ? round(val(arguments.amount) * t.depositAmount) / 100 : t.depositAmount>
+		<cfif deposit gt 0 and deposit lt val(arguments.amount)>
+			<cfset plan.purpose = "deposit">
+			<cfset plan.dueNow = deposit>
+		</cfif>
+	</cfif>
+	<cfreturn plan>
+</cffunction>
+
+<cffunction name="getRefundOnCancel" access="public" returntype="numeric" output="false"
+		hint="What a client gets back if they cancel now: everything paid online when it's at least the type's RefundHours before the start, otherwise 0.">
+	<cfargument name="booking" type="struct" required="true">
+	<cfset var b = arguments.booking>
+	<cfset var totals = "">
+	<cfset var startInstant = "">
+	<cfif structIsEmpty(b.bookingType) or b.bookingType.refundHours lte 0 or not len(b.startUtc)>
+		<cfreturn 0>
+	</cfif>
+	<cfset totals = application.payments.getPaymentTotals(b.bookingId)>
+	<cfif totals.refundable lte 0>
+		<cfreturn 0>
+	</cfif>
+	<cftry>
+		<cfset startInstant = createObject("java", "java.time.Instant").parse(b.startUtc)>
+		<cfif startInstant.minusSeconds(javacast("long", b.bookingType.refundHours * 3600)).isBefore(createObject("java", "java.time.Instant").now())>
+			<cfreturn 0>
+		</cfif>
+		<cfcatch type="any"><cfreturn 0></cfcatch>
+	</cftry>
+	<cfreturn totals.refundable>
+</cffunction>
+
+<cffunction name="refreshPaymentStatus" access="public" returntype="void" output="false"
+		hint="Sets a booking's PaymentStatus from its payments after a refund: refunded or partlyRefunded.">
+	<cfargument name="bookingId" type="numeric" required="true">
+	<cfset var totals = application.payments.getPaymentTotals(arguments.bookingId)>
+	<cfset var entity = entityLoadByPK("Booking", javacast("int", arguments.bookingId))>
+	<cfif isNull(entity) or totals.refunded lte 0>
+		<cfreturn>
+	</cfif>
+	<cftransaction>
+		<cfset entity.setPaymentStatus(totals.refunded gte totals.paid ? "refunded" : "partlyRefunded")>
+		<cfset entity.setDate(now())>
+		<cfset entitySave(entity)>
+	</cftransaction>
+</cffunction>
+
+<cffunction name="canPayBalanceOnline" access="public" returntype="boolean" output="false"
+		hint="Whether the client can pay what's left online: a deposit booking, confirmed, its type set to collect the rest online, and Stripe set up.">
+	<cfargument name="booking" type="struct" required="true">
+	<cfset var b = arguments.booking>
+	<cfreturn b.balanceDue gt 0 and b.paymentStatus eq "depositPaid" and b.status eq "confirmed"
+		and not structIsEmpty(b.bookingType) and b.bookingType.balanceCollection eq "online" and application.payments.getStatus().ready>
+</cffunction>
+
+<cffunction name="getPayBalanceUrl" access="public" returntype="string" output="false"
+		hint="The client's link to pay what's left (it opens Stripe's payment page for the balance).">
+	<cfargument name="booking" type="struct" required="true">
+	<cfreturn application.blogHostUrl & "/?payBalance=" & arguments.booking.manageToken>
+</cffunction>
+
+<cffunction name="applyBalancePayment" access="public" returntype="boolean" output="false"
+		hint="Records what's left as paid: online (a verified webhook) or in person (the owner). Returns true when there was something owing.">
+	<cfargument name="bookingId" type="numeric" required="true">
+	<cfargument name="amount" required="false" default="0" hint="0 = whatever is still owed.">
+	<cfset var entity = entityLoadByPK("Booking", javacast("int", arguments.bookingId))>
+	<cfset var owed = 0>
+	<cfset var paid = 0>
+	<cfif isNull(entity) or valueOrEmpty(entity.getBlogRef()) neq application.BlogDbObj.getBlogId()>
+		<cfreturn false>
+	</cfif>
+	<cfset owed = val(valueOrEmpty(entity.getBalanceDue()))>
+	<cfif owed lte 0>
+		<cfreturn false>
+	</cfif>
+	<cfset paid = val(arguments.amount) gt 0 ? min(val(arguments.amount), owed) : owed>
+	<cftransaction>
+		<cfset entity.setAmountPaid(javacast("bigdecimal", val(valueOrEmpty(entity.getAmountPaid())) + paid))>
+		<cfset entity.setBalanceDue(javacast("bigdecimal", round((owed - paid) * 100) / 100))>
+		<cfif owed - paid lte 0>
+			<cfset entity.setPaymentStatus("paid")>
+		</cfif>
+		<cfset entity.setDate(now())>
+		<cfset entitySave(entity)>
+	</cftransaction>
+	<cfreturn true>
+</cffunction>
+
+<cffunction name="getPaymentNote" access="public" returntype="string" output="false"
+		hint="What clients read next to the price: eg. '$25.00 deposit when booking' or 'Paid at the session'. Empty for full online payment and free types.">
+	<cfargument name="bookingType" type="struct" required="true">
+	<cfset var plan = getPaymentPlan(arguments.bookingType, arguments.bookingType.price)>
+	<cfif plan.online and plan.purpose eq "deposit">
+		<cfreturn application.payments.formatMoney(plan.dueNow) & " deposit when booking">
+	</cfif>
+	<cfif arguments.bookingType.price gt 0 and not plan.online>
+		<cfreturn "Paid at the session">
+	</cfif>
+	<cfreturn "">
+</cffunction>
+
+<cffunction name="confirmPaidBooking" access="public" returntype="struct" output="false"
+		hint="Called for a verified payment webhook: confirms a held booking (or sends it for approval). Returns { changed, status }. A booking that isn't held is left alone, so a repeated webhook does nothing.">
+	<cfargument name="bookingId" type="numeric" required="true">
+	<cfargument name="amountPaid" required="true">
+	<cfset var result = { changed: false, status: "" }>
+	<cfset var entity = "">
+	<cfset var t = "">
+	<cfset var paid = 0>
+	<cflock name="galaxieBookings_#application.BlogDbObj.getBlogId()#" type="exclusive" timeout="20">
+		<cfset entity = entityLoadByPK("Booking", javacast("int", arguments.bookingId))>
+		<cfif isNull(entity) or valueOrEmpty(entity.getBlogRef()) neq application.BlogDbObj.getBlogId()>
+			<cfreturn result>
+		</cfif>
+		<cfset result.status = valueOrEmpty(entity.getStatus())>
+		<cfif not listFind("held,expired", result.status)>
+			<cfreturn result>
+		</cfif>
+		<cfset t = getBookingType(bookingTypeId = val(entity.getBookingTypeRef()))>
+		<cfset paid = val(arguments.amountPaid)>
+		<cftransaction>
+			<cfset entity.setStatus(not structIsEmpty(t) and t.requiresApproval ? "pending" : "confirmed")>
+			<cfset entity.setPaymentStatus(entity.getPaymentChoice() eq "deposit" ? "depositPaid" : "paid")>
+			<cfset entity.setAmountPaid(javacast("bigdecimal", paid))>
+			<cfset entity.setBalanceDue(javacast("bigdecimal", max(val(valueOrEmpty(entity.getAmountTotal())) - paid, 0)))>
+			<cfset entity.setDate(now())>
+			<cfset entitySave(entity)>
+		</cftransaction>
+		<cfset result.changed = true>
+		<cfset result.status = entity.getStatus()>
+	</cflock>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="expireHeldBooking" access="public" returntype="boolean" output="false"
+		hint="Releases a booking that was held for payment (the visitor went back, or the checkout expired). Returns true when it was held.">
+	<cfargument name="bookingId" type="numeric" required="true">
+	<cfset var entity = entityLoadByPK("Booking", javacast("int", arguments.bookingId))>
+	<cfif isNull(entity) or valueOrEmpty(entity.getStatus()) neq "held" or valueOrEmpty(entity.getBlogRef()) neq application.BlogDbObj.getBlogId()>
+		<cfreturn false>
+	</cfif>
+	<cftransaction>
+		<cfset entity.setStatus("expired")>
+		<cfset entity.setPaymentStatus("expired")>
+		<cfset entity.setDate(now())>
+		<cfset entitySave(entity)>
+	</cftransaction>
+	<cfreturn true>
 </cffunction>
 
 <!--- ********************************************************************************************************************
@@ -828,6 +1071,10 @@
 		paymentStatus: valueOrEmpty(e.getPaymentStatus()),
 		amountTotal: isNull(e.getAmountTotal()) ? 0 : val(e.getAmountTotal()),
 		balanceDue: isNull(e.getBalanceDue()) ? 0 : val(e.getBalanceDue()),
+		amountPaid: isNull(e.getAmountPaid()) ? 0 : val(e.getAmountPaid()),
+		amountRefunded: application.payments.getPaymentTotals(e.getBookingId()).refunded,
+		paymentChoice: valueOrEmpty(e.getPaymentChoice()),
+		currency: valueOrEmpty(e.getCurrency()),
 		manageToken: valueOrEmpty(e.getManageToken()),
 		notes: valueOrEmpty(e.getNotes()),
 		postId: intOr(e.getPostRef(), 0),
@@ -854,6 +1101,32 @@
 		</cfif>
 	</cfif>
 	<cfreturn b>
+</cffunction>
+
+<cffunction name="getBookingsForCalendar" access="public" returntype="array" output="false"
+		hint="The bookings that take up time between two dates, for the admin calendar (2026-10-15): [{ bookingId, startLocal, endLocal, time, name, typeName, locationLabel, status }].">
+	<cfargument name="fromDate" type="string" required="true" hint="yyyy-mm-dd">
+	<cfargument name="toDate" type="string" required="true" hint="yyyy-mm-dd">
+	<cfset var list = []>
+	<cfset var rows = queryExecute("SELECT b.BookingId, b.StartLocal, b.EndLocal, b.Name, b.Status, t.Name AS TypeName, l.Label AS LocationLabel
+		FROM Booking b LEFT JOIN BookingType t ON t.BookingTypeId = b.BookingTypeRef LEFT JOIN LocationOption l ON l.LocationOptionId = b.LocationOptionRef
+		WHERE b.BlogRef = :blogId AND b.StartLocal >= :fromLocal AND b.StartLocal <= :toLocal AND b.Status IN ('confirmed', 'pending', 'held', 'completed', 'noShow')
+			AND NOT (b.Status = 'held' AND b.HoldExpiresAt < :now)
+		ORDER BY b.StartLocal",
+		{ now = { value = now(), cfsqltype = "cf_sql_timestamp" }, blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, fromLocal = { value = arguments.fromDate & " 00:00", cfsqltype = "cf_sql_varchar" }, toLocal = { value = arguments.toDate & " 23:59", cfsqltype = "cf_sql_varchar" } })>
+	<cfloop query="rows">
+		<cfset arrayAppend(list, {
+			"bookingId": rows.BookingId,
+			"startLocal": rows.StartLocal,
+			"endLocal": rows.EndLocal,
+			"time": timeFormat(createTime(val(mid(rows.StartLocal, 12, 2)), val(right(rows.StartLocal, 2)), 0), "h:mm tt"),
+			"name": valueOrEmpty(rows.Name),
+			"typeName": valueOrEmpty(rows.TypeName),
+			"locationLabel": valueOrEmpty(rows.LocationLabel),
+			"status": valueOrEmpty(rows.Status)
+		})>
+	</cfloop>
+	<cfreturn list>
 </cffunction>
 
 <cffunction name="getBookingsForList" access="public" returntype="array" output="false"
@@ -978,6 +1251,9 @@
 	<cfset var ownerSubject = "">
 	<cfset var ownerIntro = "">
 	<cfset var showManageLink = false>
+	<!--- A calendar (.ics) file (2026-10-15): "add", "cancel" or none, for each side. --->
+	<cfset var visitorCalendar = "">
+	<cfset var ownerCalendar = "">
 	<cfif structIsEmpty(b)>
 		<cfreturn>
 	</cfif>
@@ -996,27 +1272,42 @@
 				<cfset ownerIntro = "You have a new booking.">
 			</cfif>
 			<cfset showManageLink = true>
+			<cfset visitorCalendar = "add">
+			<cfset ownerCalendar = "add">
 		</cfcase>
 		<cfcase value="approved">
 			<cfset visitorSubject = "Booking confirmed: " & typeName>
 			<cfset visitorIntro = "Good news - your booking is confirmed.">
 			<cfset showManageLink = true>
+			<cfset visitorCalendar = "add">
 		</cfcase>
 		<cfcase value="cancelledByVisitor">
 			<cfset visitorSubject = "Booking cancelled: " & typeName>
 			<cfset visitorIntro = "Your booking is cancelled. You're welcome to book another time.">
 			<cfset ownerSubject = "Booking cancelled: " & typeName & " with " & b.name>
 			<cfset ownerIntro = b.name & " cancelled this booking. The time is free again.">
+			<cfset visitorCalendar = "cancel">
+			<cfset ownerCalendar = "cancel">
 		</cfcase>
 		<cfcase value="cancelledByOwner">
 			<cfset visitorSubject = "Booking cancelled: " & typeName>
 			<cfset visitorIntro = "Unfortunately this booking has been cancelled.">
+			<cfset visitorCalendar = "cancel">
 		</cfcase>
 		<cfcase value="rescheduled">
 			<cfset visitorSubject = "Booking moved: " & typeName>
 			<cfset visitorIntro = "Your booking has been moved to the new time below.">
 			<cfset ownerSubject = "Booking moved: " & typeName & " with " & b.name>
 			<cfset ownerIntro = b.name & " moved this booking to the time below.">
+			<cfset showManageLink = true>
+			<cfset visitorCalendar = "add">
+			<cfset ownerCalendar = "add">
+		</cfcase>
+		<cfcase value="balancePaid">
+			<cfset visitorSubject = "Paid in full: " & typeName>
+			<cfset visitorIntro = "Thank you - your booking is now paid in full.">
+			<cfset ownerSubject = "Paid in full: " & typeName & " with " & b.name>
+			<cfset ownerIntro = b.name & " paid the rest online.">
 			<cfset showManageLink = true>
 		</cfcase>
 		<cfcase value="reminder">
@@ -1031,7 +1322,7 @@
 	<!--- Each email on its own, so a problem with the visitor's address never stops the owner hearing about the booking. --->
 	<cftry>
 		<cfif len(visitorSubject) and isValid("email", b.email)>
-			<cfset sendOneEmail(b.email, visitorSubject & " - " & blogTitle, visitorSubject, visitorIntro, bookingDetailsHtml(b, false, arguments.ownerMessage), showManageLink ? getManageUrl(b) : "", false)>
+			<cfset sendOneEmail(b.email, visitorSubject & " - " & blogTitle, visitorSubject, visitorIntro, bookingDetailsHtml(b, false, arguments.ownerMessage) & (showManageLink and canPayBalanceOnline(b) ? '<p style="clear: both;"><a href="' & encodeForHtmlAttribute(getPayBalanceUrl(b)) & '">Pay the rest online (' & encodeForHtml(application.payments.formatMoney(b.balanceDue, b.currency)) & ')</a></p>' : ""), showManageLink ? getManageUrl(b) : "", false, len(visitorCalendar) ? buildIcs(b, false, visitorCalendar eq "cancel") : "")>
 		</cfif>
 		<cfcatch type="any">
 			<cflog file="galaxieBlogErrors" type="error" text="Booking #arguments.bookingId# (#arguments.event#): the email to the visitor could not be sent: #cfcatch.message#">
@@ -1039,7 +1330,7 @@
 	</cftry>
 	<cftry>
 		<cfif len(ownerSubject) and isValid("email", ownerAddress)>
-			<cfset sendOneEmail(ownerAddress, ownerSubject, ownerSubject, ownerIntro, bookingDetailsHtml(b, true, ""), "", true)>
+			<cfset sendOneEmail(ownerAddress, ownerSubject, ownerSubject, ownerIntro, bookingDetailsHtml(b, true, ""), "", true, len(ownerCalendar) ? buildIcs(b, true, ownerCalendar eq "cancel") : "")>
 		</cfif>
 		<cfcatch type="any">
 			<cflog file="galaxieBlogErrors" type="error" text="Booking #arguments.bookingId# (#arguments.event#): the email to the owner could not be sent: #cfcatch.message#">
@@ -1055,6 +1346,7 @@
 	<cfargument name="detailsHtml" type="string" required="true">
 	<cfargument name="manageUrl" type="string" required="true">
 	<cfargument name="toOwner" type="boolean" required="true">
+	<cfargument name="icsContent" type="string" required="false" default="">
 	<cfset var renderer = createObject("component", application.rendererComponentPath)>
 	<cfset var utils = createObject("component", application.utilsComponentPath)>
 	<cfset var emailBody = renderer.renderEmail(
@@ -1066,7 +1358,153 @@
 		callToActionLink = arguments.manageUrl
 	)>
 	<!--- Not copied to the blog's CC address: a visitor's email is theirs, and the owner gets their own notice. --->
-	<cfset utils.mail(to = arguments.to, subject = arguments.subject, body = emailBody, cc = "")>
+	<cfset utils.mail(to = arguments.to, subject = arguments.subject, body = emailBody, cc = "", attachmentName = len(arguments.icsContent) ? "booking.ics" : "", attachmentContent = arguments.icsContent, attachmentType = "text/calendar; charset=utf-8")>
+</cffunction>
+
+<cffunction name="buildIcs" access="public" returntype="string" output="false"
+		hint="A booking as an iCalendar (.ics) file (2026-10-15). The UID stays the same for the booking, and SEQUENCE grows each time, so a moved or cancelled booking updates the calendar entry already there instead of adding another.">
+	<cfargument name="booking" type="struct" required="true">
+	<cfargument name="forOwner" type="boolean" required="false" default="false">
+	<cfargument name="cancelled" type="boolean" required="false" default="false">
+	<cfset var event = buildIcsEvent(arguments.booking, arguments.forOwner, arguments.cancelled)>
+	<cfif not arrayLen(event)>
+		<cfreturn "">
+	</cfif>
+	<cfreturn icsCalendar(event, "")>
+</cffunction>
+
+<cffunction name="icsCalendar" access="private" returntype="string" output="false" hint="VEVENT lines wrapped in a VCALENDAR, folded, with CRLF line ends.">
+	<cfargument name="eventLines" type="array" required="true">
+	<cfargument name="calendarName" type="string" required="true">
+	<cfset var CRLF = chr(13) & chr(10)>
+	<cfset var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Galaxie Blog//Bookings//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"]>
+	<cfset var line = "">
+	<cfset var result = "">
+	<cfif len(arguments.calendarName)>
+		<cfset arrayAppend(lines, "X-WR-CALNAME:" & icsText(arguments.calendarName))>
+		<!--- Ask calendar apps to check again every hour (many check less often anyway). --->
+		<cfset arrayAppend(lines, "REFRESH-INTERVAL;VALUE=DURATION:PT1H")>
+		<cfset arrayAppend(lines, "X-PUBLISHED-TTL:PT1H")>
+	</cfif>
+	<cfloop array="#arguments.eventLines#" index="line"><cfset arrayAppend(lines, line)></cfloop>
+	<cfset arrayAppend(lines, "END:VCALENDAR")>
+	<cfloop array="#lines#" index="line">
+		<cfset result = result & icsFold(line) & CRLF>
+	</cfloop>
+	<cfreturn result>
+</cffunction>
+
+<!--- ********************************************************************************************************************
+	The private bookings feed (2026-10-15): a secret calendar address the owner subscribes to in Google Calendar, Outlook or
+	Apple Calendar (common/services/bookingsFeed.cfm?key=...). The key is kept in blog.ini.cfm ([bookings] feedKey); making a
+	new one stops the old address working.
+********************************************************************************************************************* --->
+
+<cffunction name="getFeedKey" access="public" returntype="string" output="false" hint="The feed's secret key, made on first use.">
+	<cfset var key = getProfileString(application.blogIniPath, "bookings", "feedKey")>
+	<cfif not reFind("^[a-f0-9]{64}$", key)>
+		<cfset key = newFeedKey()>
+	</cfif>
+	<cfreturn key>
+</cffunction>
+
+<cffunction name="newFeedKey" access="public" returntype="string" output="false" hint="Makes a new secret key; the old feed address stops working.">
+	<cfset var key = lCase(hash(createUUID() & rand("SHA1PRNG") & getTickCount(), "SHA-256"))>
+	<cfset setProfileString(application.blogIniPath, "bookings", "feedKey", key)>
+	<cfif getProfileString(application.blogIniPath, "bookings", "feedKey") neq key>
+		<cfthrow message="The feed address couldn't be saved: blog.ini.cfm can't be written.">
+	</cfif>
+	<cfreturn key>
+</cffunction>
+
+<cffunction name="getFeedUrl" access="public" returntype="string" output="false">
+	<cfreturn application.blogHostUrl & "/common/services/bookingsFeed.cfm?key=" & getFeedKey()>
+</cffunction>
+
+<cffunction name="buildFeed" access="public" returntype="string" output="false"
+		hint="The owner's bookings as one calendar: from 30 days ago on, confirmed ones and (as tentative) ones waiting for approval.">
+	<cfset var events = []>
+	<cfset var line = "">
+	<cfset var b = "">
+	<cfset var since = dateFormat(dateAdd("d", -30, application.blog.blogNow()), "yyyy-mm-dd") & " 00:00">
+	<cfset var rows = queryExecute("SELECT BookingId FROM Booking WHERE BlogRef = :blogId AND StartLocal >= :since AND Status IN ('confirmed', 'pending', 'completed', 'noShow') ORDER BY StartLocal",
+		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, since = { value = since, cfsqltype = "cf_sql_varchar" } })>
+	<cfloop query="rows">
+		<cfset b = getBooking(bookingId = rows.BookingId)>
+		<cfif not structIsEmpty(b)>
+			<cfloop array="#buildIcsEvent(b, true, false)#" index="line"><cfset arrayAppend(events, line)></cfloop>
+		</cfif>
+	</cfloop>
+	<cfreturn icsCalendar(events, "Bookings - " & application.BlogDbObj.getBlogTitle())>
+</cffunction>
+
+<cffunction name="buildIcsEvent" access="public" returntype="array" output="false"
+		hint="One booking as iCalendar VEVENT lines (2026-10-15), for an email's .ics file or the bookings feed. The UID stays the same for the booking, and SEQUENCE grows each time, so a moved or cancelled booking updates the calendar entry already there instead of adding another.">
+	<cfargument name="booking" type="struct" required="true">
+	<cfargument name="forOwner" type="boolean" required="false" default="false">
+	<cfargument name="cancelled" type="boolean" required="false" default="false">
+	<cfset var b = arguments.booking>
+	<cfset var utcFormat = createObject("java", "java.time.format.DateTimeFormatter").ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(createObject("java", "java.time.ZoneOffset").UTC)>
+	<cfset var startInstant = "">
+	<cfset var minutes = structIsEmpty(b.bookingType) ? 60 : b.bookingType.durationMinutes>
+	<cfset var typeName = structIsEmpty(b.bookingType) ? "Booking" : b.bookingType.name>
+	<cfset var place = "">
+	<cfset var details = []>
+	<cfset var lines = []>
+	<cftry>
+		<cfset startInstant = createObject("java", "java.time.Instant").parse(b.startUtc)>
+		<cfcatch type="any"><cfreturn []></cfcatch>
+	</cftry>
+	<cfif not structIsEmpty(b.location)>
+		<cfif b.location.kind eq "online">
+			<cfset place = b.location.onlineLinkMode eq "fixed" and len(b.location.onlineUrl) ? b.location.onlineUrl : b.location.label>
+		<cfelseif b.location.kind eq "phone">
+			<cfset place = b.location.label & (b.location.phoneDirection eq "youCall" and len(b.location.phoneNumber) ? " - " & b.location.phoneNumber : "")>
+		<cfelse>
+			<cfset place = trim(b.location.venueName & (len(b.location.venueName) and len(b.location.address) ? ", " : "") & reReplace(b.location.address, "[\r\n]+", ", ", "all"))>
+			<cfif not len(place)><cfset place = b.location.label></cfif>
+		</cfif>
+		<cfif len(b.location.instructions)><cfset arrayAppend(details, b.location.instructions)></cfif>
+	</cfif>
+	<cfif arguments.forOwner>
+		<cfset arrayAppend(details, "Client: " & b.name & " <" & b.email & ">" & (len(b.phone) ? ", " & b.phone : ""))>
+		<cfif b.partySize gt 1><cfset arrayAppend(details, "People: " & b.partySize)></cfif>
+	<cfelse>
+		<cfset arrayAppend(details, "Cancel or change this booking: " & getManageUrl(b))>
+	</cfif>
+	<cfset arrayAppend(lines, "BEGIN:VEVENT")>
+	<cfset arrayAppend(lines, "UID:booking-" & b.bookingId & "-" & application.BlogDbObj.getBlogId() & "@" & reReplace(application.blogHostUrl, "^https?://([^/:]+).*$", "\1"))>
+	<!--- Seconds since 2020 always grow, so each email's copy replaces the one before. --->
+	<cfset arrayAppend(lines, "SEQUENCE:" & int(dateDiff("s", createDateTime(2020, 1, 1, 0, 0, 0), now())))>
+	<cfset arrayAppend(lines, "DTSTAMP:" & utcFormat.format(createObject("java", "java.time.Instant").now()))>
+	<cfset arrayAppend(lines, "DTSTART:" & utcFormat.format(startInstant))>
+	<cfset arrayAppend(lines, "DTEND:" & utcFormat.format(startInstant.plusSeconds(javacast("long", minutes * 60))))>
+	<cfset arrayAppend(lines, "SUMMARY:" & icsText(arguments.forOwner ? typeName & " - " & b.name : typeName & " - " & application.BlogDbObj.getBlogTitle()))>
+	<cfif len(place)><cfset arrayAppend(lines, "LOCATION:" & icsText(place))></cfif>
+	<cfif arrayLen(details)><cfset arrayAppend(lines, "DESCRIPTION:" & icsText(arrayToList(details, chr(10))))></cfif>
+	<cfset arrayAppend(lines, "STATUS:" & (arguments.cancelled ? "CANCELLED" : (b.status eq "pending" ? "TENTATIVE" : "CONFIRMED")))>
+	<cfset arrayAppend(lines, "END:VEVENT")>
+	<cfreturn lines>
+</cffunction>
+
+<cffunction name="icsText" access="private" returntype="string" output="false" hint="Text escaped for an iCalendar value.">
+	<cfargument name="text" type="string" required="true">
+	<cfset var s = replace(arguments.text, "\", "\\", "all")>
+	<cfset s = replace(s, ";", "\;", "all")>
+	<cfset s = replace(s, ",", "\,", "all")>
+	<cfset s = replace(replace(replace(s, chr(13) & chr(10), chr(10), "all"), chr(13), chr(10), "all"), chr(10), "\n", "all")>
+	<cfreturn s>
+</cffunction>
+
+<cffunction name="icsFold" access="private" returntype="string" output="false" hint="An iCalendar line folded at 74 characters (lines continue with a space).">
+	<cfargument name="line" type="string" required="true">
+	<cfset var folded = "">
+	<cfset var rest = arguments.line>
+	<cfloop condition="len(rest) gt 74">
+		<cfset folded = folded & left(rest, 74) & chr(13) & chr(10) & " ">
+		<cfset rest = mid(rest, 75, len(rest))>
+	</cfloop>
+	<cfreturn folded & rest>
 </cffunction>
 
 <cffunction name="getManageUrl" access="public" returntype="string" output="false"
@@ -1084,7 +1522,7 @@
 	<cfset var zone = arguments.forOwner or not len(b.visitorTimeZone) ? b.timeZone : b.visitorTimeZone>
 	<cfset var html = "">
 	<cfset var answer = "">
-	<cfset var statusText = { "pending": "Waiting for approval", "confirmed": "Confirmed", "cancelled": "Cancelled", "completed": "Completed", "noShow": "No-show" }>
+	<cfset var statusText = { "pending": "Waiting for approval", "confirmed": "Confirmed", "cancelled": "Cancelled", "completed": "Completed", "noShow": "No-show", "held": "Waiting for payment", "expired": "Not paid - time released" }>
 	<cfif len(trim(arguments.message))>
 		<cfset html = html & "<p>" & encodeLines(arguments.message) & "</p>">
 	</cfif>
@@ -1096,7 +1534,12 @@
 	</cfif>
 	<cfset html = html & detailRow("Where", structIsEmpty(b.location) ? "" : b.location.label)>
 	<cfif b.partySize gt 1><cfset html = html & detailRow("People", b.partySize)></cfif>
-	<cfif b.amountTotal gt 0><cfset html = html & detailRow("Price", numberFormat(b.amountTotal, "0.00"))></cfif>
+	<cfif b.amountTotal gt 0><cfset html = html & detailRow("Price", application.payments.formatMoney(b.amountTotal, b.currency))></cfif>
+	<cfif b.amountPaid gt 0>
+		<cfset html = html & detailRow("Paid", application.payments.formatMoney(b.amountPaid, b.currency))>
+		<cfif b.balanceDue gt 0 and not listFind("cancelled,expired", b.status)><cfset html = html & detailRow("Still to pay", application.payments.formatMoney(b.balanceDue, b.currency))></cfif>
+		<cfif b.amountRefunded gt 0><cfset html = html & detailRow("Refunded", application.payments.formatMoney(b.amountRefunded, b.currency))></cfif>
+	</cfif>
 	<cfset html = html & detailRow("Status", structKeyExists(statusText, b.status) ? statusText[b.status] : b.status)>
 	<cfif arguments.forOwner>
 		<cfset html = html & detailRow("Name", b.name)>
@@ -1155,6 +1598,11 @@
 	", { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } })>
 	<cfset var startInstant = "">
 	<cfset var entity = "">
+	<cfset var stale = queryExecute("SELECT BookingId FROM Booking WHERE BlogRef = :blogId AND Status = 'held' AND HoldExpiresAt < :now", { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, now = { value = now(), cfsqltype = "cf_sql_timestamp" } })>
+	<!--- Holds for payment that ran out (2026-10-15). They already stopped counting as taken; this records it. --->
+	<cfloop query="stale">
+		<cfset expireHeldBooking(stale.BookingId)>
+	</cfloop>
 	<cfloop query="rows">
 		<cftry>
 			<cfset startInstant = createObject("java", "java.time.Instant").parse(rows.StartUtc)>

@@ -73,41 +73,52 @@
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
 	<input type="hidden" name="currentRoles" id="currentRoles" value=""/>
 	<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0" border="0">
-	  <cfset thisContentClass = "">
-	  
+	  <cfsilent>
+			<!---The first content class in the table should be empty. --->
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+	  </cfsilent>
 	  <tr height="1px">
-		<td align="left" valign="top" colspan="2"></td>
+		<td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <tr height="1px">
-		<td align="left" valign="top" colspan="2">You're using a new role. Please enter in a short role name and description so that you can assign this permission setting for a new user in the future.</td>
+	  <tr>
+		<td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">You're using a new role. Please enter in a short role name and description so that you can assign this permission setting for a new user in the future.</td>
 	  </tr>
+	  <!-- Border -->
 	  <tr height="2px">
-		<td align="left" valign="top" colspan="2"></td>
+		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
 	  <tr height="2px">
-		<td align="left" valign="top" colspan="2" class="border"></td>
-	  </tr>
-	  <tr height="1px">
-		<td align="left" valign="top" colspan="2"></td>
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	<cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="roleName">Role Name</label>
+			<label for="subNewRole">Role Name</label>
 		</td>
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="subNewRole" name="subNewRole" type="text" required validationMessage="Role Name is required" style="width: 95%" />   
+			<input id="subNewRole" name="subNewRole" type="text" required validationMessage="Role Name is required" class="k-textbox" style="width: 95%" />
+			<div class="k-form-hint">A short name, eg. Guest Editor.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">A short name, eg. Guest Editor.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr height="30px">
-		<td align="right" width="25%"> 
-			<label for="roleName">Role Name</label>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+			<label for="subNewRole">Role Name</label>
 		</td>
-		<td width="75%">
-			<input id="subNewRole" name="subNewRole" type="text" required validationMessage="Role Name is required" style="width: 40%" />    
+		<td class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input id="subNewRole" name="subNewRole" type="text" required validationMessage="Role Name is required" class="k-textbox" style="width: 40%" />
 		</td>
 	  </tr>
 	</cfif>
@@ -131,17 +142,24 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="subNewRoleDesc" name="subNewRoleDesc" type="text" style="width: 95%" />  
+			<input id="subNewRoleDesc" name="subNewRoleDesc" type="text" class="k-textbox" style="width: 95%" />
+			<div class="k-form-hint">Optional. What this role is for.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <!-- Form content -->
+	  <tr>
+	  	<td colspan="2" class="">Optional. What this role is for.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="subNewRoleDesc">Description</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="subNewRoleDesc" name="subNewRoleDesc" type="text" style="width: 40%" />  
+			<input id="subNewRoleDesc" name="subNewRoleDesc" type="text" class="k-textbox" style="width: 40%" />
 		</td>
 	  </tr>
 	</cfif>
@@ -159,7 +177,7 @@
 	  </tr>
 	  <!-- Submit -->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="newRoleSubmit" name="newRoleSubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>

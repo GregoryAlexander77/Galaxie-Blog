@@ -107,7 +107,7 @@ upload already has. --->
   <!-- Description -->
   <tr valign="middle">
 	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
-		<span style="font-size:smaller">A real photo to show on cards, listings, and when this post is shared on social media - for a post whose hero is a Gradient, a live Animation, or the auto-generated fallback art (none of which have a real photo of their own to show there). When set, this always takes priority over the Gradient/Animation on cards and social sharing, but never on this post's own page - the live Gradient/Animation there is unaffected. If the post has a real Image/Video/Map/Carousel enclosure instead, that enclosure is used everywhere and this cover image is ignored.</span>
+		<span>A real photo to show on cards, listings, and when this post is shared on social media - for a post whose hero is a Gradient, a live Animation, or the auto-generated fallback art (none of which have a real photo of their own to show there). When set, this always takes priority over the Gradient/Animation on cards and social sharing, but never on this post's own page - the live Gradient/Animation there is unaffected. If the post has a real Image/Video/Map/Carousel enclosure instead, that enclosure is used everywhere and this cover image is ignored.</span>
 	</td>
   </tr>
   <cfsilent>
@@ -118,8 +118,8 @@ upload already has. --->
   </tr>
   <!-- Form content -->
   <tr valign="middle" height="30px">
-	<td align="right" width="25%">Cover Image</td>
-	<td align="left" width="75%" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">Cover Image</td>
+	<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 		<!--- TinyMce container --->
 		<div style="position: relative;">
 			<textarea id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>"></textarea>
@@ -134,9 +134,10 @@ upload already has. --->
   </tr>
   <!-- Quality slider -->
   <tr valign="middle">
-	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" width="25%">Image Quality (smaller file &harr; higher quality):</td>
-	<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 6px 12px;">
+	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">Image Quality</td>
+	<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 6px 12px;">
 		<div id="imageQualitySlider" style="width: 260px;"></div>
+		<span class="k-form-hint">Left = smaller file, right = sharper image.</span>
 	</td>
   </tr>
   <cfsilent>
@@ -147,7 +148,7 @@ upload already has. --->
   </tr>
   <!-- Form content -->
   <tr valign="middle" height="30px">
-	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 		<button id="heroCoverImageSubmit" name="heroCoverImageSubmit" class="k-button k-primary" type="button" onClick="onHeroCoverImageSubmit();">Submit</button>
 	</td>

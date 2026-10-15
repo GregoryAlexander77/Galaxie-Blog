@@ -80,7 +80,7 @@ next to it, same &#44; comma-escaping trick "Create Page" already uses. --->
 	<cfset iconList = listAppend(iconList, 'ConfigureMenu')>
 	<cfset titleList = listAppend(titleList, 'Configure Menu')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(82);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/configureSite.gif")>
+	<cfset imageList = listAppend(imageList, "/images/icons/configureMenu.gif")>
 </cfif>
 <!--- Forms (2026-10-13): forms the blog owner builds and places in posts. They collect visitors' personal details, so the
 same capability as Blog Settings. --->
@@ -91,12 +91,12 @@ same capability as Blog Settings. --->
 	<cfset imageList = listAppend(imageList, "/images/icons/forms.gif")>
 </cfif>
 <!--- Bookings (2026-10-14): appointments visitors book with the blog owner. Same capability as Forms (visitors' personal
-details). The icon is a placeholder until a Bookings icon is made. --->
+details). --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting')>
 	<cfset iconList = listAppend(iconList, 'Bookings')>
 	<cfset titleList = listAppend(titleList, 'Bookings')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(87);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/settings.gif")>
+	<cfset imageList = listAppend(imageList, "/images/icons/bookings.gif")>
 </cfif>
 <!--- Don't include the comment interface with Disqus --->
 <cfif not application.includeDisqus and (listFindNoCase(currentUserCapabilityList, 'EditComment') or listFindNoCase(currentUserCapabilityList, 'EditPost'))>

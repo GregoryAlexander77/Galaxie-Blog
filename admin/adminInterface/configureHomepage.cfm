@@ -159,15 +159,28 @@
 
   <tr valign="top">
 	<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-		Sections appear in this order. Leave all unchecked for the plain blog listing.<br><br>
-		<label><input type="checkbox" id="homepageShowPages" name="homepageShowPages" <cfif homepageSettings.showPages>checked</cfif>> Featured Pages</label><br>
-		<div id="homepagePagePicker" style="margin: 6px 0 6px 22px;">
+		Sections appear in this order. Leave all unchecked for the plain blog listing.
+	</td>
+  </tr>
+  <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
+  <tr>
+  	<td colspan="2" class="">Pick one page to show its full content as the entire homepage, or two or more to show them as cards, in the order you pick them.</td>
+  </tr>
+  <tr height="2px">
+  	<td align="left" valign="top" colspan="2" class="border "></td>
+  </tr>
+  <tr valign="top">
+	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+		<label for="homepageShowPages">Featured Pages</label>
+	</td>
+	<td class="<cfoutput>#thisContentClass#</cfoutput>">
+		<input class="k-checkbox" type="checkbox" id="homepageShowPages" name="homepageShowPages" <cfif homepageSettings.showPages>checked</cfif>>
+		<div id="homepagePagePicker" style="margin: 6px 0 0 0;">
 			<select id="homepagePageId" name="homepagePageId" multiple="multiple" style="width: 250px">
 				<cfloop array="#allPages#" index="pg">
 					<option value="<cfoutput>#pg.postId#</cfoutput>" <cfif listFind(homepageSettings.pageIdList, pg.postId)>selected</cfif>><cfoutput>#pg.title#</cfoutput></option>
 				</cfloop>
-			</select>
-			<div class="k-form-hint">Pick one page to show its full content as the entire homepage, or two or more to show them as cards, in the order you pick them.</div>
+			</select>			
 			<script id="addPageNoData" type="text/x-kendo-tmpl">
 				<div>
 					No pages exist yet.
@@ -176,14 +189,27 @@
 				 <button class="k-button" onclick="createAdminInterfaceWindow(24,'newPage')" ontouchend="createAdminInterfaceWindow(24,'newPage')">Create a page</button>
 			</script>
 		</div>
-		<label><input type="checkbox" id="homepageShowCollections" name="homepageShowCollections" <cfif homepageSettings.showCollections>checked</cfif>> Featured Collections</label><br>
-		<div id="homepageCollectionPicker" style="margin: 6px 0 6px 22px;">
+	</td>
+  </tr>
+  <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
+  <tr>
+  	<td colspan="2" class="">One card per collection, in the order you pick them - same as pages.</td>
+  </tr>
+  <tr height="2px">
+  	<td align="left" valign="top" colspan="2" class="border "></td>
+  </tr>
+  <tr valign="top">
+	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+		<label for="homepageShowCollections">Featured Collections</label>
+	</td>
+	<td class="<cfoutput>#thisContentClass#</cfoutput>">
+		<input class="k-checkbox" type="checkbox" id="homepageShowCollections" name="homepageShowCollections" <cfif homepageSettings.showCollections>checked</cfif>>
+		<div id="homepageCollectionPicker" style="margin: 6px 0 0 0;">
 			<select id="homepageCollectionId" name="homepageCollectionId" multiple="multiple" style="width: 60%">
 				<cfloop array="#eligibleCollections#" index="pc">
 					<option value="<cfoutput>#pc.pageCollectionId#</cfoutput>" <cfif listFind(homepageSettings.collectionIdList, pc.pageCollectionId)>selected</cfif>><cfoutput>#pc.title#</cfoutput></option>
 				</cfloop>
-			</select>
-			<div class="k-form-hint">One card per collection, in the order you pick them - same as pages.</div>
+			</select>			
 			<script id="addCollectionNoData" type="text/x-kendo-tmpl">
 				<div>
 					No page collections are ready yet - a collection needs at least 2 pages before it can be featured here.
@@ -192,8 +218,21 @@
 				 <button class="k-button" onclick="createAdminInterfaceWindow(68)" ontouchend="createAdminInterfaceWindow(68)">Manage Page Collections</button>
 			</script>
 		</div>
-		<label><input type="checkbox" id="homepageShowBlogPosts" name="homepageShowBlogPosts" <cfif homepageSettings.showBlogPosts>checked</cfif>> Blog Posts</label><br>
-		<div class="k-form-hint" style="margin-left: 22px;">Your most recent posts, with a View All Posts link.</div>
+	</td>
+  </tr>
+  <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
+  <tr>
+  	<td colspan="2" class="">Your most recent posts, with a View All Posts link.</td>
+  </tr>
+  <tr height="2px">
+  	<td align="left" valign="top" colspan="2" class="border "></td>
+  </tr>
+  <tr valign="top">
+	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+		<label for="homepageShowBlogPosts">Blog Posts</label>
+	</td>
+	<td class="<cfoutput>#thisContentClass#</cfoutput>">
+		<input class="k-checkbox" type="checkbox" id="homepageShowBlogPosts" name="homepageShowBlogPosts" <cfif homepageSettings.showBlogPosts>checked</cfif>>		
 	</td>
   </tr>
 
@@ -202,7 +241,8 @@
   <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
 
   <tr valign="middle" height="30px">
-	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
+	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 		<button id="configureHomepageSubmit" name="configureHomepageSubmit" class="k-button k-primary" type="button">Save</button>
 	</td>
   </tr>

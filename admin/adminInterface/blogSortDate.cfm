@@ -83,7 +83,7 @@
 	  <cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<p>The Blog Sort Date is be used to change the sort order of the posts in a different order than the actual post date.</p>
+			<p>The Blog Sort Date is used to change the sort order of the posts in a different order than the actual post date.</p>
 			
 			<p>To change the sort order on the main blog page, choose a sort date between the dates of two different posts. For example, if you want this to show up underneath a post with the post made on New Year's Day, but above your post made during Christmas, set the date to something between December 25th and January 1st.</p>
 			
@@ -93,7 +93,7 @@
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
-			<p>The Blog Sort Date is be used to change the sort order of the posts in a different order than the actual post date.</p>
+			<p>The Blog Sort Date is used to change the sort order of the posts in a different order than the actual post date.</p>
 			
 			<p>To change the sort order on the main blog page, choose a sort date between the dates of two different posts. For example, if you want this to show up underneath a post with the post made on New Year's Day, but above your post made during Christmas, set the date to something between December 25th and January 1st.</p>
 			
@@ -127,7 +127,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="blogSortDate">Post Sort Date</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -155,16 +155,18 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="syncWithPostDate" name="syncWithPostDate" type="checkbox" <cfif syncDates>checked</cfif> onChange="syncDates(this)"/> 
+			<input class="k-checkbox" id="syncWithPostDate" name="syncWithPostDate" type="checkbox" <cfif syncDates>checked</cfif> onChange="syncDates(this)"/>
+			<div class="k-form-hint">Sort by the post's own date.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="syncWithPostDate">Sync with Post Date</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="syncWithPostDate" name="syncWithPostDate" type="checkbox" <cfif syncDates>checked</cfif> onChange="syncDates(this)"/>  
+			<input class="k-checkbox" id="syncWithPostDate" name="syncWithPostDate" type="checkbox" <cfif syncDates>checked</cfif> onChange="syncDates(this)"/>
+			<span class="k-form-hint">Sort by the post's own date.</span>
 		</td>
 	  </tr>
 	</cfif>
@@ -183,8 +185,14 @@
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <!-- Form content -->
+	  <tr>
+	  	<td colspan="2" class="">The date is saved when you save the post.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="postHeaderSubmit" name="postHeaderSubmit" class="k-button k-primary" type="button" onClick="onBlogSortDateSubmit()">Submit</button>
 		</td>

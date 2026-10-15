@@ -24,20 +24,25 @@ global JS scope (iframe: false, same as every createAdminInterfaceWindow popup).
 	}
 </style>
 
-<table align="left" class="k-content" width="100%" cellpadding="8" cellspacing="0" border="0">
+<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
+<cfoutput>
+<table align="left" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+	<colgroup><col style="width: 20%"><col></colgroup>
 	<tr>
-		<td>
-			<label for="gradientPasteTextarea">Paste a CSS gradient from any tool (e.g. cssgradient.io) - either the full declaration or just the gradient() value:</label>
-		</td>
+		<td colspan="2" class="#blockClass#">Paste a CSS gradient from any tool (e.g. cssgradient.io) - either the full declaration or just the gradient() value.</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td>
+		<td class="#blockClass#" align="right"><label for="gradientPasteTextarea">Gradient:</label></td>
+		<td class="#blockClass#">
 			<textarea id="gradientPasteTextarea" placeholder="background: radial-gradient(circle, rgba(238, 174, 202, 1) 0%, rgba(148, 187, 233, 1) 100%);"></textarea>
 			<div id="gradientPasteError"></div>
 		</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+</cfoutput>
 	<tr valign="middle" height="30px">
-		<td valign="bottom" align="right">
+		<td colspan="2" class="<cfoutput>#blockClass#</cfoutput>" valign="bottom" align="right">
 			<button id="gradientPasteCancelButton" class="k-button normalFontWeight" type="button" onclick="javascript:$('#gradientPasteEditorWindow').kendoWindow('destroy');">Cancel</button>
 			<button id="gradientPasteSubmitButton" class="k-button k-primary" type="button" onclick="javascript:onGradientPasteSubmit();">Use This Gradient</button>
 		</td>

@@ -109,7 +109,7 @@
 	  </tr>
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
-			Create new Subscriber. Note: an email will be sent to the subsriber asking them to confirm the subscription. Please make sure that they are aware of this subscription.
+			Create new Subscriber. Note: an email will be sent to the subscriber asking them to confirm the subscription. Please make sure that they are aware of this subscription.
 		</td>
 	  </tr>
 	  <!-- Border -->
@@ -138,7 +138,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="subscriberEmail">Subscriber Email</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -160,7 +160,7 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="addSubscriberSubmit" name="addSubscriberSubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>

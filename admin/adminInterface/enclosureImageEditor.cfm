@@ -698,13 +698,12 @@
 	  their own row rather than sharing one td, and the label lost its 12px override (way too small) so it now
 	  matches the size of every other plain instructional line in this window. --->
 	  <tr valign="middle">
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px 0px;">
-			<label for="imageQualitySlider">Image Quality (smaller file &harr; higher quality):</label>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%; padding: 8px 12px;">
+			<label for="imageQualitySlider">Image Quality</label>
 		</td>
-	  </tr>
-	  <tr valign="middle">
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 6px 12px 12px;">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
 			<div id="imageQualitySlider" style="width: 260px;"></div>
+			<span class="k-form-hint">Left = smaller file, right = sharper image.</span>
 		</td>
 	  </tr>
 	  <!--- Estimates the CURRENT enclosure image's size at the slider's quality, not an arbitrary picked file - a
@@ -717,7 +716,8 @@
 	  the real TinyMCE upload flow at all, so it can't affect anything. --->
 	  <cfif mediaType eq 'Image' and len(mediaUrl)>
 	  <tr valign="middle">
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 0px 12px 12px;">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%;"></td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 0px 12px 12px;">
 			<!--- Carries mediaUrl (safe to read here - unlike the early script block up top, see that block's own
 			comment) into the DOM as plain markup rather than a second <script> tag, so the early script's single
 			$(document).ready() handler can just read it with jQuery - no dependency on script-tag execution order
@@ -790,7 +790,7 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="mediaUploadCompleteButton" name="mediaUploadCompleteButton" class="k-button k-primary" type="button" onClick="javascript:onPostEnclosureSubmit();">Submit</button>
 		</td>

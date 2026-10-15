@@ -1,3 +1,23 @@
+<!--- Which windows can be shown (2026-10-14):
+	- a logged-in user: any window; Blog Options (38) and Blog Settings (39) need the EditServerSetting capability;
+	- otherwise: the login window (0), and the new-user profile (11) when opened from the invite link (login.cfm passes the
+	  invite key as otherArgs1). --->
+<cfparam name="URL.adminInterfaceId" default="">
+<cfset adminWindowAllowed = application.Udf.isLoggedIn()>
+<cfif not adminWindowAllowed and URL.adminInterfaceId eq "0">
+	<cfset adminWindowAllowed = true>
+</cfif>
+<cfif not adminWindowAllowed and URL.adminInterfaceId eq "11" and structKeyExists(URL, "optArgs") and structKeyExists(URL, "otherArgs1") and len(trim(URL.otherArgs1)) gte 20>
+	<cfset invitedUserMatch = ormExecuteQuery("SELECT u.UserId FROM Users u WHERE u.UserName = :userName AND u.Password = :inviteKey AND u.Active = :active", { userName = trim(URL.optArgs), inviteKey = trim(URL.otherArgs1), active = true })>
+	<cfset adminWindowAllowed = arrayLen(invitedUserMatch) gt 0>
+</cfif>
+<cfif adminWindowAllowed and listFind("38,39", URL.adminInterfaceId) and not (structKeyExists(session, "capabilityList") and listFindNoCase(session.capabilityList, "EditServerSetting"))>
+	<cfset adminWindowAllowed = false>
+</cfif>
+<cfif not adminWindowAllowed>
+	<cfheader statuscode="403">
+	<cfcontent reset="true"><cfabort>
+</cfif>
 <html> 
 <cfsilent>
 <!--- Debug flag. This will print the interfaceId along with the args send via the URL --->
@@ -1057,7 +1077,7 @@ TinyMce styles
 
 <!--- //************************************************************************************************
 		Configure Menu (2026-10-10, 4.8) - the owner's own Menu links and the names of the collections menu and the
-		combined phone menu. See admin/adminInterface/configureMenu.cfm.
+		combined mobile menu. See admin/adminInterface/configureMenu.cfm.
 //**************************************************************************************************--->
 
 <cfcase value=82>
@@ -1118,6 +1138,10 @@ days off. See common/cfc/Bookings.cfc. --->
 </cfcase>
 <cfcase value=95>
 	<cfinclude template="../../admin/adminInterface/bookingDetail.cfm">
+</cfcase>
+<!--- Bookings (2026-10-15): 96 the bookings calendar. --->
+<cfcase value=96>
+	<cfinclude template="../../admin/adminInterface/bookingsCalendar.cfm">
 </cfcase>
 
 </cfswitch>

@@ -1,71 +1,64 @@
 	<form id="ajaxLogin" name="ajaxLogin">
 	<!--- Pass the csrfToken --->
 	<input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
-	<table align="center" class="k-content tableBorder" width="95%" cellpadding="5" cellspacing="0">
+	<!--- Block look (2026-10-15): see table.adminBlocks in includes/templates/blogContentCss.cfm. --->
+	<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
+	<cfoutput>
+	<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+	<colgroup><col style="width: 20%"><col></colgroup>
 	<cfif session.isMobile>
 	  <tr>
-		<td align="left" valign="top" class="border k-alt"></td>
-	  </tr>
-	  <tr valign="middle" height="35">
-		<td align="left" valign="middle" class="k-alt">
-			<label for="userName">User Name</label>
-		</td>
-	  <tr>
-		<td align="left" class="k-alt">
-			<input type="text" id="userName" name="userName" value="" class="k-textbox" required style="width: 100%" />   
-		</td>
-	  </tr>
-	  <tr valign="middle" height="35">
-		<td valign="middle" class="k-alt">
-			<label for="password">Password</label>
-		</td>
+		<td colspan="2" class="#blockClass#"><label for="userName">User Name</label></td>
 	  </tr>
 	  <tr>
-		<td align="left" class="k-alt">
-			<input type="password" id="password" name="password" value="" class="k-textbox" style="width: 95%" />   
+		<td colspan="2" class="#blockClass#">
+			<input type="text" id="userName" name="userName" value="" class="k-textbox" required style="width: 95%" />
 		</td>
 	  </tr>
+	  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	  <tr>
-		<td align="left" valign="top" class="border"></td>
+		<td colspan="2" class="#blockClass#"><label for="password">Password</label></td>
 	  </tr>
-	  <tr valign="middle">
-		<td height="25" valign="bottom" align="left">
+	  <tr>
+		<td colspan="2" class="#blockClass#">
+			<input type="password" id="password" name="password" value="" class="k-textbox" style="width: 95%" />
+		</td>
+	  </tr>
+	  <tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	  <tr>
+		<td colspan="2" class="#blockClass#">
 			<button id="loginButton" name="loginButton" class="k-button k-primary" type="button">Submit</button>
 		</td>
 	  </tr>
 	<!--- Desktop --->
 	<cfelse>
 	  <tr>
-		<td align="left" valign="top" class="border k-alt" colspan="2"></td>
+		<td class="#blockClass#" align="right"><label for="userName">User Name:</label></td>
+		<td class="#blockClass#">
+			<input type="text" id="userName" name="userName" value="" class="k-textbox" style="width: 50%" />
+		</td>
 	  </tr>
-	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" class="k-alt" style="width: 25%">
-			<label for="userName">User Name</label>
-		</td>
-		<td align="left" class="k-alt" style="width: 75%">
-			<input type="text" id="userName" name="userName" value="" class="k-textbox" style="width: 50%" />   
-		</td>
+	  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	  <tr>
-	  </tr>
-	  <tr valign="middle" height="35">
-		<td valign="middle" align="right" class="k-alt" >
-			<label for="post">Password</label>
-		</td>
-		<td align="left" class="k-alt">
-			<input type="password" id="password" name="password" value="" class="k-textbox" style="width: 50%" />   
+		<td class="#blockClass#" align="right"><label for="password">Password:</label></td>
+		<td class="#blockClass#">
+			<input type="password" id="password" name="password" value="" class="k-textbox" style="width: 50%" />
 		</td>
 	  </tr>
+	  <tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	  <tr>
-		<td align="left" valign="top" class="border" colspan="2"></td>
-	  </tr>
-	  <tr valign="middle">
-		<td></td>
-		<td height="25" valign="bottom" align="left">
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#">
 			<button id="loginButton" name="loginButton" class="k-button k-primary" type="button">Submit</button>
 		</td>
 	  </tr>
 	</cfif><!---<cfif session.isMobile>--->
 	</table>
+	</cfoutput>
 	</form>
 	
 	<script>

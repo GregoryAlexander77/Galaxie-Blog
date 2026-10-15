@@ -401,7 +401,7 @@
 					<td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 				</tr>
 				<tr>
-					<td colspan="2"> 
+					<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 						<p>Type in a location or address in the location form to drop a pin. An autosuggest will appear below the location input to help you select the proper location.</p>
 
 						<p>You can also use the map controls to the right to customize the map type (road, arial, etc) and set the zoom. If you want a different location pin, indicate the path to the image in the field below.</p> 
@@ -681,12 +681,13 @@
 						<option value="ZM">Zambia</option>
 						<option value="ZW">Zimbabwe</option>
 					</select>
+					<div class="k-form-hint">Narrows the location suggestions.</div>
 				</td>
 			  </tr>
 			<cfelse><!---<cfif session.isMobile>--->
 				<tr>
-					<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
-						<label for="location">Country</label>
+					<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
+						<label for="countrySelector">Country</label>
 					</td>
 					<td class="<cfoutput>#thisContentClass#</cfoutput>">
 						<select id="countrySelector" style="width:85%">
@@ -941,6 +942,7 @@
 							<option value="ZM">Zambia</option>
 							<option value="ZW">Zimbabwe</option>
 						</select>
+						<span class="k-form-hint">Narrows the location suggestions.</span>
 					</td>
 				</tr>
 			</cfif>
@@ -966,15 +968,22 @@
 			   <tr>
 				<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 					<input id="location" name="location" value="<cfoutput>#location#</cfoutput>" class="k-textbox" style="width: 95%" /> 
+					<div class="k-form-hint">Start typing, then pick a suggestion.</div>
 				</td>
 			  </tr>
 			<cfelse><!---<cfif session.isMobile>--->
 				<tr>
-					<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+					<td colspan="2" class="">Start typing, then pick a suggestion.</td>
+				</tr>
+				<tr height="2px">
+					<td align="left" valign="top" colspan="2" class="border "></td>
+				</tr>
+				<tr>
+					<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 						<label for="location">Location</label>
 					</td>
 					<td class="<cfoutput>#thisContentClass#</cfoutput>">
-						<input id="location" name="location" value="<cfoutput>#location#</cfoutput>" class="k-textbox" style="width: 85%" />
+						<input id="location" name="location" value="<cfoutput>#location#</cfoutput>" class="k-textbox" style="width: 95%" />						
 					</td>
 				</tr>
 			</cfif>
@@ -986,7 +995,7 @@
 				  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 				</tr>
 				<tr valign="middle">
-				  <td colspan="2">
+				  <td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
 					<button id="createMap" class="k-button k-primary" type="button" onclick="saveMap()">Submit</button>
 				  </td>
 				</tr>   

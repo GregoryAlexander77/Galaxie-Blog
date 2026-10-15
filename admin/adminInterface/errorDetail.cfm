@@ -129,7 +129,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="errorEvent">Error Event:</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -162,7 +162,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="errorType">Error Type</label>
 		</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -196,7 +196,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="errorMessage">Error Message:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -230,7 +230,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="errorDetail">Error Detail:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -264,7 +264,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="errorTemplate">Error Template:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -298,7 +298,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="errorLine">Error Line:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -334,7 +334,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="fullName">User:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -373,7 +373,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="userId">UserId:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -414,7 +414,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="ipAddress">IP Address:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -452,7 +452,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="userAgent">User Agent String:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -489,7 +489,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="isBot">Bot?</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -526,7 +526,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="stacktrace">Stacktrace:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -560,7 +560,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="diagnosticsSent">Diagnostics Sent:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -594,7 +594,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="numErrors">Number of Errors:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -623,16 +623,23 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="checkbox" name="resolved" id="resolved" value="1" <cfif resolved>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="resolved" id="resolved" value="1" <cfif resolved>checked</cfif>>
+			<div class="k-form-hint">If it happens again, it's logged as a new error.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">If it happens again, it's logged as a new error.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="resolved">Resolved:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" name="resolved" id="resolved" value="1" <cfif resolved>checked</cfif>>
+			<input class="k-checkbox" type="checkbox" name="resolved" id="resolved" value="1" <cfif resolved>checked</cfif>>			
 		</td>
 	  </tr>
 	</cfif>
@@ -658,15 +665,22 @@
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<input id="notes" name="notes" type="text" value="<cfoutput>#notes#</cfoutput>" class="k-textbox" style="width: 95%" />
+			<div class="k-form-hint">Optional, for your own records.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">Optional, for your own records.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="notes">Resolution Notes:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="notes" name="notes" type="text" value="<cfoutput>#notes#</cfoutput>" class="k-textbox" style="width: 95%" />
+			<input id="notes" name="notes" type="text" value="<cfoutput>#notes#</cfoutput>" class="k-textbox" style="width: 95%" />			
 		</td>
 	  </tr>
 	</cfif>
@@ -683,12 +697,9 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"></td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="errorDetailSubmit" name="errorDetailSubmit" class="k-button k-primary" type="button">Submit</button>
 			<button id="errorDetailDelete" name="errorDetailDelete" class="k-button" type="button">Delete</button>

@@ -570,6 +570,8 @@
 	<input type="hidden" name="passwordNoteSeen" id="passwordNoteSeen" value="0"/>
 	<input type="hidden" name="confirmedPasword" id="confirmedPasword" value=""/>
 	
+	<!--- The same side padding as the panel sections below, so every label column lines up. --->
+	<div style="padding: 0 15px;">
 	<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0" border="0">
 	  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -593,10 +595,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr height="30px">
-		<td align="right" width="15%" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 			<label for="firstName">First Name</label>
 		</td>
-		<td width="85%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input id="firstName" name="firstName" type="text" value="<cfoutput>#firstName#</cfoutput>" required validationMessage="First Name is required" class="k-textbox" style="width: 40%" />    
 		</td>
 	  </tr>
@@ -629,10 +631,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="lastName">Last Name</label>
 		</td>
-		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input id="lastName" name="lastName" type="text" value="<cfoutput>#lastName#</cfoutput>" required validationMessage="Last Name is required" class="k-textbox" style="width: 40%" /> 
 		</td>
 	  </tr>
@@ -659,17 +661,19 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="displayName" name="displayName" type="text" value="<cfoutput>#displayName#</cfoutput>" required validationMessage="Public Display Name is required" class="k-textbox" style="width: 95%" /> 
+			<input id="displayName" name="displayName" type="text" value="<cfoutput>#displayName#</cfoutput>" required validationMessage="Public Display Name is required" class="k-textbox" style="width: 95%" />
+			<div class="k-form-hint">Shown with your posts.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" width="10%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="displayName">Public Display Name</label>
 		</td>
-		<td align="left" width="90%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="displayName" name="displayName" type="text" value="<cfoutput>#displayName#</cfoutput>" required validationMessage="Public Display Name is required" class="k-textbox" style="width: 40%" /> 
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input id="displayName" name="displayName" type="text" value="<cfoutput>#displayName#</cfoutput>" required validationMessage="Public Display Name is required" class="k-textbox" style="width: 40%" />
+			<span class="k-form-hint">Shown with your posts.</span>
 		</td>
 	  </tr>
 	</cfif>
@@ -700,7 +704,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="email">Email</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -735,7 +739,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 			<label for="userName">User Name</label>
 		</td>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -759,6 +763,12 @@
 		  
 	  <!-- Form content -->
 	<cfif session.isMobile>
+	  <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">Note: the blog does not store the password other than in encrypted form. The actual password can't be retrieved and is not stored.</td>
+	  </tr>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<label for="password"><cfif detailAction eq 'update'>Encrypted Password<cfelse>Temp Password</cfif></label>
@@ -766,16 +776,20 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="password" name="password" type="password" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 66%" <cfif detailAction neq 'insert'>onClick="showPasswordNote()"</cfif>
+			<!--- Flags that the password is being changed, which opens the confirm password window (the same as on desktop). --->
+			<input type="hidden" name="updatePassword" id="updatePassword" value="0"/>
+			<input id="password" name="password" type="password" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 66%" <cfif detailAction neq 'insert'>onClick="showPasswordNote()"</cfif> />
 		</td>
 	  </tr>
-	  <tr>
-		<td></td>
-		<td colspan="2">Note: the blog does not store the password other than in encrypted form. The actual password can't be retrieved and is not stored.</td>
-	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">Note: the blog does not store the password other than in encrypted form. The actual password can't be retrieved and is not stored.</td>
+	  </tr>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="password"><cfif detailAction neq 'insert'>Encrypted Password<cfelse>Password</cfif></label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -783,10 +797,6 @@
 			<input type="hidden" name="updatePassword" id="updatePassword" value="0"/>
 			<input id="password" name="password" type="password" value="<cfoutput>#password#</cfoutput>" required validationMessage="Password is required" autocomplete="new-password" class="k-textbox" style="width: 33%" <cfif detailAction neq 'insert'>onClick="showPasswordNote()"</cfif> />
 		</td>
-	  </tr>
-	  <tr>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>">Note: the blog does not store the password other than in encrypted form. The actual password can't be retrieved and is not stored.</td>
 	  </tr>
 	</cfif><!---<cfif session.isMobile>--->
 		
@@ -814,16 +824,23 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="checkbox" name="notify" id="notify" checked>  
+			<input class="k-checkbox" type="checkbox" name="notify" id="notify" checked>
+			<div class="k-form-hint">Emails an invitation. They choose their own password when they first log in.</div>
 		</td>
 	  </tr>
 	 <cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">Emails an invitation. They choose their own password when they first log in.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="notify">Notify User</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" name="notify" id="notify" checked>  
+			<input class="k-checkbox" type="checkbox" name="notify" id="notify" checked>			
 		</td>
 	  </tr>
 	 </cfif><!---<cfif session.isMobile>--->
@@ -851,16 +868,18 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="checkbox" id="displayEmail" name="displayEmail" <cfif displayEmailOnBio>checked</cfif>/>
+			<input class="k-checkbox" type="checkbox" id="displayEmail" name="displayEmail" <cfif displayEmailOnBio>checked</cfif>/>
+			<div class="k-form-hint">Shows the email address on the author bio.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="displayEmail">Display Email?</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input type="checkbox" id="displayEmail" name="displayEmail" <cfif displayEmailOnBio>checked</cfif>/>
+			<input class="k-checkbox" type="checkbox" id="displayEmail" name="displayEmail" <cfif displayEmailOnBio>checked</cfif>/>
+			<span class="k-form-hint">Shows the email address on the author bio.</span>
 		</td>
 	  </tr>
 	</cfif><!---<cfif session.isMobile>--->	
@@ -886,20 +905,23 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="webSite" name="webSite" type="url" value="<cfoutput>#webSite#</cfoutput>" class="k-textbox" style="width: 95%" /> 
+			<input id="webSite" name="webSite" type="url" value="<cfoutput>#webSite#</cfoutput>" class="k-textbox" style="width: 95%" />
+			<div class="k-form-hint">Optional</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 			<label for="webSite">Website</label>
 		</td>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="webSite" name="webSite" type="url" value="<cfoutput>#webSite#</cfoutput>" class="k-textbox" style="width: 65%" />   
+			<input id="webSite" name="webSite" type="url" value="<cfoutput>#webSite#</cfoutput>" class="k-textbox" style="width: 65%" />
+			<span class="k-form-hint">Optional</span>
 		</td>
 	  </tr>
 	</cfif>
-	</table>	
+	</table>
+	</div>	
 	<!---//***********************************************************************************************
 						Profile Picture and Biography
 	//************************************************************************************************--->
@@ -933,17 +955,24 @@
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<cfoutput>
 			<input type="text" id="profilePicture" name="profilePicture" value="#profilePicture#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #userId#,'profilePicture','#profilePicture#');">
+			<div class="k-form-hint">Click to choose a picture.</div>
 			</cfoutput>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">Click to choose a picture.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="profilePicture">Profile Picture:</label>
 		</td>
-		<td align="left" width="85%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<cfoutput>
-			<input type="text" id="profilePicture" name="profilePicture" value="#profilePicture#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #userId#,'profilePicture','#profilePicture#');">
+			<input type="text" id="profilePicture" name="profilePicture" value="#profilePicture#" class="k-textbox" style="width:95%" onclick="createAdminInterfaceWindow(35, #userId#,'profilePicture','#profilePicture#');">			
 			</cfoutput>
 		</td>
 	  </tr>
@@ -981,17 +1010,19 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			Note: the user biography is optional. If it is filled out, the biography will be displayed at the end of the posts that this author has made.
 		</td>
 	  </tr>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	  <tr>
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"><div id="dynamicGalleryLabel"></div></td>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><div id="dynamicGalleryLabel"></div></td>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle">
-		<td align="right" valign="middle" height="35" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" height="35" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 		<label for="<cfoutput>#selectorName#</cfoutput>">User Biography</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>"> 
@@ -1038,10 +1069,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="facebookUrl">Facebook URL</label>
 		</td>
-		<td align="left" width="85%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input type="text" id="facebookUrl" name="facebookUrl" value="<cfoutput>#facebookUrl#</cfoutput>" class="k-textbox" style="width:75%"/>
 		</td>
 	  </tr>
@@ -1073,7 +1104,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="linkedInUrl">LinkedIn URL</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -1108,7 +1139,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="instagramUrl">Instagram URL</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -1143,7 +1174,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="twitterUrl">Twitter URL</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -1184,7 +1215,7 @@
 	<cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="securityAnswer1">What is the name of your favorite pet?</label
+			<label for="securityAnswer1">What is the name of your favorite pet?</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1194,10 +1225,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="securityAnswer1">What is the name of your favorite pet?</label>
 		</td>
-		<td align="left" width="85%" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px">
 			<input type="text" id="securityAnswer1" name="securityAnswer1" value="<cfoutput>#securityAnswer1#</cfoutput>" class="k-textbox" required validationMessage="Name of favorite pet is required" style="width:66%" /> 
 		</td>
 	  </tr>
@@ -1229,7 +1260,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px" style="width: 20%">
 			<label for="securityAnswer2">What is the name of your favorite childhood friend?</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -1263,7 +1294,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" height="30px" style="width: 20%">
 			<label for="securityAnswer3">What is your favorite place?</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -1312,10 +1343,10 @@
 	<cfelse><!---<cfif session.isMobile>--->
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="role">Roles</label>
 		</td>
-		<td align="left" width="85%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<select id="roleDropdown" name="roleDropdown" required validationMessage="Role is required" style="width: 45%; font-weight: 300;"></select>   
 		</td>
 	  </tr>
@@ -1341,16 +1372,23 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<select id="capabilityDropdown" name="capabilityDropdown" required validationMessage="Capability is required" style="width: 95%; font-weight: 300;"></select> 
+			<select id="capabilityDropdown" name="capabilityDropdown" required validationMessage="Capability is required" style="width: 95%; font-weight: 300;"></select>
+			<div class="k-form-hint">Changing these from the role's defaults asks you to name a new role.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
-	  <tr valign="middle" height="30px" class="<cfoutput>#thisContentClass#</cfoutput>">
-		<td align="right" valign="middle">
+	  <tr>
+	  	<td colspan="2" class="">Changing these from the role's defaults asks you to name a new role.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
+	  <tr valign="middle" height="30px">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="capabilityDropdown">Site Capabilities</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<select id="capabilityDropdown" name="capabilityDropdown" required validationMessage="Capability is required" style="width: 100%; font-weight: 300;"></select> 
+			<select id="capabilityDropdown" name="capabilityDropdown" required validationMessage="Capability is required" style="width: 100%; font-weight: 300;"></select>			
 		</td>
 	  </tr>
 	</cfif><!---<cfif session.isMobile>--->
@@ -1396,10 +1434,10 @@
 	<cfelse><!---<cfif session.isMobile>--->
 	  <!-- Form content -->  
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label>Logs</label>
 		</td>
-		<td valign="bottom" align="left" width="85%" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="logonHistory" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="javascript:createAdminInterfaceWindow(58, '<cfoutput>#fullName#</cfoutput>');">Login History</button>
 		</td>
 	  </tr>
@@ -1408,10 +1446,12 @@
 	</div>
 	</div>
 	</li>
-	</ul>
    </cfif><!---<cfif isDefined("currentUserRole") gt 0 and (userName eq session.userName or currentUserRole eq 'Administrator')>--->
+	</ul>
 	
 	<!---</cfif><cfif not structKeyExists(URL, "userName") or session.userName neq URL.userName>--->
+	<div style="padding: 0 15px;">
+	<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0" border="0">
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -1426,10 +1466,11 @@
 	  </tr>
 	  <!-- Submit -->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<br/><br/><button id="userDetailSubmit" name="userDetailSubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>
 	  </tr>
 	</table>
+	</div>
 	</form>

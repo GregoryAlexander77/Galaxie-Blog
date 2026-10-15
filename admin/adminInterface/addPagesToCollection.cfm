@@ -93,6 +93,7 @@
   <cfsilent><cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)></cfsilent>
   <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
 
+<cfif session.isMobile>
   <tr valign="top">
 	<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 		<label for="addPagesMultiSelect">Pages:</label><br>
@@ -112,15 +113,48 @@
 			<br />
 			 <button class="k-button" onclick="createAdminInterfaceWindow(24,'newPage')" ontouchend="createAdminInterfaceWindow(24,'newPage')">Create a page</button>
 		</script>
+		<div class="k-form-hint">Only pages not yet in this collection are listed.</div>
 	</td>
   </tr>
+<cfelse><!---<cfif session.isMobile>--->
+  <tr>
+  	<td colspan="2" class="">Only pages not yet in this collection are listed.</td>
+  </tr>
+  <tr height="2px">
+  	<td align="left" valign="top" colspan="2" class="border "></td>
+  </tr>
+  <tr valign="top">
+	<td align="right" valign="top" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+		<label for="addPagesMultiSelect">Pages:</label>
+	</td>
+	<td class="<cfoutput>#thisContentClass#</cfoutput>">
+		<select id="addPagesMultiSelect" multiple="multiple" style="width: 95%">
+			<cfloop array="#eligiblePages#" index="p">
+				<option value="<cfoutput>#p.postId#</cfoutput>"><cfoutput>#p.title#</cfoutput></option>
+			</cfloop>
+		</select>
+		<script id="addPagesNoData" type="text/x-kendo-tmpl">
+			<div>
+				<cfif arrayLen(allPages) eq 0>
+				No pages exist yet.
+				<cfelse>
+				Every existing page is already in this collection.
+				</cfif>
+			</div>
+			<br />
+			 <button class="k-button" onclick="createAdminInterfaceWindow(24,'newPage')" ontouchend="createAdminInterfaceWindow(24,'newPage')">Create a page</button>
+		</script>		
+	</td>
+  </tr>
+</cfif><!---<cfif session.isMobile>--->
 
   <tr height="2px"><td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td></tr>
   <cfsilent><cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)></cfsilent>
   <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
 
   <tr valign="middle" height="30px">
-	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
+	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 		<button id="addPagesSubmit" name="addPagesSubmit" class="k-button k-primary" type="button">Add to Collection</button>
 	</td>
   </tr>

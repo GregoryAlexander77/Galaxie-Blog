@@ -152,16 +152,23 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="text" id="themeName" name="themeName" class="k-textbox" style="width: 95%" required> 
+			<input type="text" id="themeName" name="themeName" class="k-textbox" style="width: 95%" required>
+			<div class="k-form-hint">Must be different from your other themes.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">Must be different from your other themes.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="themeName">Theme Name</label>
 		</td>
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input type="text" id="themeName" name="themeName" class="k-textbox" style="width: 50%" required> 
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input type="text" id="themeName" name="themeName" class="k-textbox" style="width: 50%" required>
 		</td>
 	  </tr>
 	</cfif>
@@ -187,15 +194,21 @@
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<select id="copyThemeId" name="copyThemeId" style="width: 95%" required onchange="saveThemeIdValue(this.value)"></select>
+			<div class="k-form-hint">The new theme starts as a copy of this one.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">The new theme starts as a copy of this one.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" width="20%">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="copyThemeId">Current Theme:</label>  
 		</td>
-
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" width="80%">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<select id="copyThemeId" name="copyThemeId" style="width: 50%" required onchange="saveThemeIdValue(this.value)"></select>
 		</td>
 	  </tr>
@@ -214,7 +227,7 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"></td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="newThemeSubmit" name="newThemeSubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>

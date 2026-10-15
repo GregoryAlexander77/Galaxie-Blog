@@ -7,6 +7,9 @@
 	<!--- The day, as "yyyy-mm-dd" in the blog's time zone (a string, so no server or database time zone can shift it). --->
 	<cfproperty name="ExceptionDate" ormtype="string" length="10" default="">
 	<cfproperty name="Closed" ormtype="boolean" default="true">
+	<!--- closed (all day), hours (different hours that day) or busy (2026-10-15: the times below can't be booked, the rest of the
+	day's hours can). Empty on rows from before it existed: they follow Closed. --->
+	<cfproperty name="Kind" ormtype="string" length="10" default="">
 	<cfproperty name="StartTime" ormtype="string" length="5" default="">
 	<cfproperty name="EndTime" ormtype="string" length="5" default="">
 	<cfproperty name="Note" ormtype="string" length="255" default="">

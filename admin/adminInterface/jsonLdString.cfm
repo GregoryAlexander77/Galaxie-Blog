@@ -40,6 +40,7 @@
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 			Actual JSON-LD string used for this post.
+			<div class="k-form-hint">Search engines read this structured data to understand the post.</div>
 		</td>
 	  </tr>
 	  <!-- Border -->

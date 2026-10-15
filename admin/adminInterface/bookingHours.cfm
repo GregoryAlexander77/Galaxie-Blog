@@ -19,12 +19,15 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 <cfset hoursTimeZone = application.blog.getBlogTimeZoneId()>
 
 <style>
-	#hoursDays td { vertical-align: top; padding-top: 6px; }
+	#hoursDays tr:not(.blockSpacer) td { vertical-align: top; }
 	.hoursRange { margin-bottom: 4px; white-space: nowrap; }
-	.hoursRange .k-timepicker { width: 120px; }
+	.hoursRange .k-timepicker { width: 145px; }
 </style>
 
+<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 <script>
+	<!--- The colour of the block the day rows sit in (HtmlUtils getKendoClass). --->
+	var hoursDaysClass = "<cfoutput>#blockClass#</cfoutput>";
 	$(document).ready(function() {
 
 		var hoursByLocation = <cfoutput>#serializeJson(hoursByLocation)#</cfoutput>;
@@ -51,14 +54,16 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 			<!--- A location without its own hours shows the general hours as they are now (they may have just been saved). --->
 			var general = hoursByLocation["0"];
 			var days = (isGeneral || own) ? (hours.days || hours.DAYS) : (general.days || general.DAYS);
-			$("#hoursOwnRow").toggle(!isGeneral);
+			$(".hoursOwnRow").toggle(!isGeneral);
 			$("#hoursOwn").prop("checked", own);
 			var body = $("#hoursDays").empty();
 			for (var d = 0; d < 7; d++) {
-				var cell = $('<td class="hoursRanges"></td>').attr("data-day", d);
+				var cell = $('<div class="hoursRanges"></div>').attr("data-day", d);
 				$.each(days[d] || [], function(i, range) { cell.append(rangeHtml({ start: range.start || range.START, end: range.end || range.END })); });
-				var tr = $('<tr></tr>').append($('<td width="20%"></td>').text(dayNames[d])).append(cell)
-					.append($('<td width="20%"></td>').append('<button type="button" class="k-button hoursAdd">Add hours</button>'));
+				<!--- The blog's admin block look: a thin line above each day, the day on the left like the other labels. --->
+				body.append($('<tr class="blockSpacer"></tr>').append($('<td colspan="2"></td>').addClass("border " + hoursDaysClass)));
+				var tr = $('<tr></tr>').append($('<td align="right"></td>').addClass(hoursDaysClass).text(dayNames[d] + ":"))
+					.append($('<td></td>').addClass(hoursDaysClass).append(cell).append('<button type="button" class="k-button hoursAdd">Add hours</button>'));
 				body.append(tr);
 			}
 			refreshClosedText();
@@ -67,7 +72,7 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 
 		<!--- A day with no hours reads "Closed". --->
 		function refreshClosedText() {
-			$("#hoursDays td.hoursRanges").each(function() {
+			$("#hoursDays div.hoursRanges").each(function() {
 				$(this).find(".hoursClosed").remove();
 				if (!$(this).find(".hoursRange").length) { $(this).append('<span class="hoursClosed">Closed</span>'); }
 			});
@@ -76,17 +81,17 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 		<!--- A location that follows the general hours shows them, but they're changed under General hours. --->
 		function refreshOwn() {
 			var editable = currentLocation === "0" || $("#hoursOwn").is(":checked");
-			$("#hoursDaysTable").css("opacity", editable ? 1 : 0.55);
+			$("#hoursDays").css("opacity", editable ? 1 : 0.55);
 			$("#hoursDays button").prop("disabled", !editable);
 			$("#hoursDays input.hoursStart, #hoursDays input.hoursEnd").each(function() {
 				var picker = $(this).data("kendoTimePicker");
 				if (picker) { picker.enable(editable); }
 			});
-			$("#hoursFollowNote").toggle(!editable);
+			$(".hoursFollowNoteRow").toggle(!editable && currentLocation !== "0");
 		}
 
 		$("#hoursDays").on("click", ".hoursAdd", function() {
-			var cell = $(this).closest("tr").find("td.hoursRanges");
+			var cell = $(this).closest("tr").find("div.hoursRanges");
 			var last = cell.find(".hoursRange").last();
 			<!--- A second range starts after the first one ends, eg. 13:00-17:00 after a lunch break. --->
 			var range = last.length ? { start: kendo.toString(last.find("input.hoursEnd").data("kendoTimePicker").value(), "HH:mm"), end: "18:00" } : { start: "09:00", end: "17:00" };
@@ -118,11 +123,11 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 
 		$("#hoursCopyWeekdays").on("click", function() {
 			<!--- Monday's hours to Tuesday-Friday. --->
-			var monday = $("#hoursDays td.hoursRanges[data-day=1] .hoursRange").map(function() {
+			var monday = $("#hoursDays div.hoursRanges[data-day=1] .hoursRange").map(function() {
 				return { start: kendo.toString($(this).find("input.hoursStart").data("kendoTimePicker").value(), "HH:mm"), end: kendo.toString($(this).find("input.hoursEnd").data("kendoTimePicker").value(), "HH:mm") };
 			}).get();
 			for (var d = 2; d <= 5; d++) {
-				var cell = $("#hoursDays td.hoursRanges[data-day=" + d + "]").empty();
+				var cell = $("#hoursDays div.hoursRanges[data-day=" + d + "]").empty();
 				$.each(monday, function(i, range) { cell.append(rangeHtml(range)); });
 			}
 			refreshClosedText();
@@ -131,7 +136,7 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 		$("#hoursSubmit").on("click", function() {
 			var own = currentLocation === "0" || $("#hoursOwn").is(":checked");
 			var days = [];
-			$("#hoursDays td.hoursRanges").each(function() {
+			$("#hoursDays div.hoursRanges").each(function() {
 				days.push($(this).find(".hoursRange").map(function() {
 					var start = $(this).find("input.hoursStart").data("kendoTimePicker").value();
 					var end = $(this).find("input.hoursEnd").data("kendoTimePicker").value();
@@ -169,7 +174,11 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 		$("#exceptionLocation").data("kendoDropDownList").dataSource.at(0).set("text", "Every location");
 		$("#exceptionStart").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm"], interval: 15, value: "09:00" });
 		$("#exceptionEnd").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm"], interval: 15, value: "12:00" });
-		function refreshExceptionKind() { $("#exceptionHoursRow").toggle($("input[name=exceptionKind]:checked").val() == "hours"); }
+		function refreshExceptionKind() {
+			var kind = $("input[name=exceptionKind]:checked").val();
+			$(".exceptionHoursRow").toggle(kind == "hours" || kind == "busy");
+			$("#exceptionHoursLabel").text(kind == "busy" ? "Busy:" : "Hours:");
+		}
 		$("input[name=exceptionKind]").on("change", refreshExceptionKind);
 		refreshExceptionKind();
 
@@ -187,7 +196,8 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 			});
 		}
 		$("#exceptionAdd").on("click", function() {
-			var closed = $("input[name=exceptionKind]:checked").val() == "closed";
+			var kind = $("input[name=exceptionKind]:checked").val();
+			var closed = kind == "closed";
 			var start = $("#exceptionStart").data("kendoTimePicker").value();
 			var end = $("#exceptionEnd").data("kendoTimePicker").value();
 			sendException('<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveAvailabilityException', {
@@ -196,6 +206,7 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 					date: kendo.toString($("#exceptionDate").data("kendoDatePicker").value(), "yyyy-MM-dd") || "",
 					locationOptionId: $("#exceptionLocation").data("kendoDropDownList").value(),
 					closed: closed,
+					kind: kind,
 					start: start ? kendo.toString(start, "HH:mm") : "",
 					end: end ? kendo.toString(end, "HH:mm") : "",
 					note: $.trim($("#exceptionNote").val())
@@ -212,70 +223,89 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 </script>
 
 <cfoutput>
-<p>When you take bookings each week.<cfif len(hoursTimeZone)> Times are in your blog's time zone, <b>#encodeForHtml(hoursTimeZone)#</b>; clients see them in their own.<cfelse> <b>Set your blog's time zone in Blog Settings first.</b></cfif></p>
-<table align="center" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0" border="0">
+<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+	<colgroup><col style="width: 20%"><col></colgroup>
+	<tr><td colspan="2" class="#blockClass#">When you take bookings each week.<cfif len(hoursTimeZone)> Times are in your blog's time zone, #encodeForHtml(hoursTimeZone)#; clients see them in their own.<cfelse> Set your blog's time zone in Blog Settings first.</cfif></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">General hours apply everywhere, unless a location has its own.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td width="20%"><label for="hoursLocation">Hours for:</label></td>
-		<td><input id="hoursLocation" style="width: 320px;"></td>
+		<td class="#blockClass#" align="right"><label for="hoursLocation">Hours for:</label></td>
+		<td class="#blockClass#"><input id="hoursLocation" style="width: 95%; max-width: 450px;"></td>
 	</tr>
-	<tr id="hoursOwnRow">
-		<td colspan="2">
-			<label><input type="checkbox" class="k-checkbox" id="hoursOwn"> Use different hours for this location</label>
-			<div class="k-form-hint" id="hoursFollowNote">This location follows your general hours, shown below. Tick the box to give it its own, eg. the office only on Tuesdays and Thursdays.</div>
+	<tr class="blockSpacer hoursOwnRow"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr id="hoursFollowNote" class="hoursFollowNoteRow"><td colspan="2" class="#blockClass#">This location follows your general hours, shown below. Tick Own hours to give it its own, eg. the office only on Tuesdays and Thursdays.</td></tr>
+	<tr class="blockSpacer hoursFollowNoteRow"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr id="hoursOwnRow" class="hoursOwnRow">
+		<td class="#blockClass#" align="right"><label for="hoursOwn">Own hours:</label></td>
+		<td class="#blockClass#">
+			<input type="checkbox" class="k-checkbox" id="hoursOwn">
 		</td>
 	</tr>
+	<!--- One row per day of the week, written by the JavaScript above (showHours). --->
+	<tbody id="hoursDays"></tbody>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2">
-			<table id="hoursDaysTable" width="100%" cellpadding="3" cellspacing="0" border="0"><tbody id="hoursDays"></tbody></table>
-		</td>
-	</tr>
-	<tr>
-		<td colspan="2">
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#">
 			<button type="button" class="k-button" id="hoursCopyWeekdays">Copy Monday to Tuesday-Friday</button>
-			<button type="button" class="k-button k-primary" id="hoursSubmit" style="float: right;">Save hours</button>
+			<button type="button" class="k-button k-primary" id="hoursSubmit">Save hours</button>
 		</td>
 	</tr>
-</table>
 
-<p>&nbsp;</p>
-<table align="center" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0" border="0">
-	<tr><td class="k-header" colspan="2"><b>Days off and different hours</b></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Days off, different hours and busy times</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2" id="hoursExceptions">
+		<td class="#blockClass#" align="right">Coming up:</td>
+		<td class="#blockClass#" id="hoursExceptions">
 			<cfif not arrayLen(hoursExceptions)>
-				None coming up.
+				None.
 			<cfelse>
 				<table width="100%" cellpadding="3" cellspacing="0" border="0">
 					<cfloop array="#hoursExceptions#" index="thisException">
 						<tr>
-							<td width="22%">#dateFormat(thisException.date, "ddd, mmm d, yyyy")#</td>
-							<td width="22%">#encodeForHtml(structKeyExists(hoursLocationNames, thisException.locationOptionId) ? hoursLocationNames[thisException.locationOptionId] : "A deleted location")#</td>
-							<td>#thisException.closed ? "Closed" : timeFormat(thisException.start, "h:mm tt") & " to " & timeFormat(thisException.end, "h:mm tt")##len(thisException.note) ? " - " & encodeForHtml(thisException.note) : ""#</td>
-							<td width="10%" align="right"><button type="button" class="k-button exceptionRemove" data-id="#thisException.availabilityExceptionId#">Remove</button></td>
+							<td width="25%">#dateFormat(thisException.date, "ddd, mmm d, yyyy")#</td>
+							<td width="25%">#encodeForHtml(structKeyExists(hoursLocationNames, thisException.locationOptionId) ? hoursLocationNames[thisException.locationOptionId] : "A deleted location")#</td>
+							<td>#thisException.closed ? "Closed" : (thisException.kind eq "busy" ? "Busy " : "") & timeFormat(thisException.start, "h:mm tt") & " to " & timeFormat(thisException.end, "h:mm tt")##len(thisException.note) ? " - " & encodeForHtml(thisException.note) : ""#</td>
+							<td width="12%" align="right"><button type="button" class="k-button exceptionRemove" data-id="#thisException.availabilityExceptionId#">Remove</button></td>
 						</tr>
 					</cfloop>
 				</table>
 			</cfif>
 		</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Add a day off, a day with different hours, or a time you're busy. Busy times can't be booked, but the rest of that day's hours still can; add as many as you need.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">The day, and where it applies.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td width="20%"><label for="exceptionDate">Date:</label></td>
-		<td><input id="exceptionDate" style="width: 160px;"> <input id="exceptionLocation" style="width: 250px;" aria-label="Where"></td>
+		<td class="#blockClass#" align="right"><label for="exceptionDate">Date:</label></td>
+		<td class="#blockClass#"><input id="exceptionDate" style="width: 160px;"> <input id="exceptionLocation" style="width: 300px;" aria-label="Where"></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td>That day:</td>
-		<td>
+		<td class="#blockClass#" align="right">That day:</td>
+		<td class="#blockClass#">
 			<label><input type="radio" class="k-radio" name="exceptionKind" value="closed" checked> Closed</label>
 			<label style="margin-left: 1em;"><input type="radio" class="k-radio" name="exceptionKind" value="hours"> Different hours</label>
+			<label style="margin-left: 1em;"><input type="radio" class="k-radio" name="exceptionKind" value="busy"> Busy for part of the day</label>
 		</td>
 	</tr>
-	<tr id="exceptionHoursRow">
-		<td>Hours:</td>
-		<td><input id="exceptionStart" style="width: 120px;" aria-label="From"> to <input id="exceptionEnd" style="width: 120px;" aria-label="To"></td>
+	<tr class="blockSpacer exceptionHoursRow"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr id="exceptionHoursRow" class="exceptionHoursRow">
+		<td class="#blockClass#" align="right" id="exceptionHoursLabel">Hours:</td>
+		<td class="#blockClass#"><input id="exceptionStart" style="width: 145px;" aria-label="From"> to <input id="exceptionEnd" style="width: 145px;" aria-label="To"></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Optional; only you see it.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><label for="exceptionNote">Note:</label></td>
-		<td><input type="text" id="exceptionNote" class="k-textbox" maxlength="255" placeholder="Optional, only you see it, eg. Holiday" style="width: 60%;"> <button type="button" class="k-button k-primary" id="exceptionAdd">Add</button></td>
+		<td class="#blockClass#" align="right"><label for="exceptionNote">Note:</label></td>
+		<td class="#blockClass#"><input type="text" id="exceptionNote" class="k-textbox" maxlength="255" placeholder="eg. Holiday" style="width: 60%;"> <button type="button" class="k-button k-primary" id="exceptionAdd">Add</button></td>
 	</tr>
 </table>
 </cfoutput>

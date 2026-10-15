@@ -971,6 +971,12 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
 				var windowTitle = "Booking";
+			} else if (Id == 96){
+				// The bookings calendar (2026-10-15) - see admin/adminInterface/bookingsCalendar.cfm.
+				var windowName = "bookingsCalendarWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>85%</cfif>";
+				var windowTitle = "Bookings calendar";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

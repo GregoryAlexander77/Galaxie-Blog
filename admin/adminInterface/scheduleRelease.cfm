@@ -124,19 +124,33 @@
 	  <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
   </cfif>
 
+<cfif session.isMobile>
   <tr valign="middle">
 	<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 		<label for="scheduleReleaseDateTime">Release Date &amp; Time</label><br>
 		<input id="scheduleReleaseDateTime" name="scheduleReleaseDateTime" style="width: 60%" />
+		<div class="k-form-hint">The post goes live by itself at this time.</div>
 	</td>
   </tr>
+<cfelse><!---<cfif session.isMobile>--->
+  <tr valign="middle" height="30px">
+	<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+		<label for="scheduleReleaseDateTime">Release Date &amp; Time</label>
+	</td>
+	<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<input id="scheduleReleaseDateTime" name="scheduleReleaseDateTime" style="width: 60%" />
+		<span class="k-form-hint">The post goes live by itself at this time.</span>
+	</td>
+  </tr>
+</cfif><!---<cfif session.isMobile>--->
 
   <tr height="2px"><td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td></tr>
   <cfsilent><cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)></cfsilent>
   <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
 
   <tr valign="middle" height="30px">
-	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
+	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 		<button id="scheduleReleaseSubmit" name="scheduleReleaseSubmit" class="k-button k-primary" type="button"><cfif scheduleInfo.scheduled>Reschedule<cfelse>Schedule</cfif></button>
 		<cfif scheduleInfo.scheduled>
 			<button id="scheduleReleaseCancel" name="scheduleReleaseCancel" class="k-button" type="button">Cancel Scheduled Release</button>

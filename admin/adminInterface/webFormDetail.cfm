@@ -219,7 +219,7 @@ the submissions already received - stay matched to it when the label changes. --
 			var isPublic = $("#webFormPublicList").is(":checked");
 			if (!isPublic) { webFormShowOnMode.value("form"); }
 			webFormShowOnMode.enable(isPublic);
-			$("#webFormPublicHint").toggle(isPublic);
+			$(".webFormPublicHint").toggle(isPublic);
 			$("#webFormFieldsBody .webFormFieldRow").each(function() { refreshFieldRow($(this)); });
 		}
 		$("#webFormPublicList").on("change", refreshPublicList);
@@ -350,38 +350,47 @@ the submissions already received - stay matched to it when the label changes. --
 	});//...document.ready
 </script>
 
+<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 <cfoutput>
 <form id="webFormDetailForm" action="##" method="post" onsubmit="return false;">
-<table align="center" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0" border="0">
-	<tr>
-		<td class="k-header" colspan="2"><b><cfif isNewWebForm>New form<cfelse>#encodeForHtml(webForm.title)#</cfif></b></td>
-	</tr>
+<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+	<colgroup><col style="width: 20%"><col></colgroup>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading"><cfif isNewWebForm>New form<cfelse>#encodeForHtml(webForm.title)#</cfif></h4></td></tr>
 <cfif isNewWebForm>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Start from a ready-made form and change anything below before you save. Picking another one replaces the fields.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td width="25%"><label for="webFormStarter">Start from:</label></td>
-		<td>
-			<input id="webFormStarter" style="width: 220px;">
-			<div class="k-form-hint">A ready-made starting point. Change anything below before you save; picking another one replaces the fields.</div>
-		</td>
+		<td class="#blockClass#" align="right"><label for="webFormStarter">Start from:</label></td>
+		<td class="#blockClass#"><input id="webFormStarter" style="width: 300px;"></td>
 	</tr>
 </cfif>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><cfif isNewWebForm>Visitors see the title above the form.<cfelse>Placed in posts as #encodeForHtml(webForm.alias)#; that stays the same if you change the title.</cfif></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td width="25%"><label for="webFormTitle">Title:</label></td>
-		<td>
+		<td class="#blockClass#" align="right"><label for="webFormTitle">Title:</label></td>
+		<td class="#blockClass#">
 			<input type="text" id="webFormTitle" class="k-textbox" maxlength="125" value="#encodeForHtmlAttribute(webForm.title)#" style="width: 95%;">
-			<cfif not isNewWebForm><div class="k-form-hint">Placed in posts as <b>#encodeForHtml(webForm.alias)#</b>. That stays the same if you change the title.</div></cfif>
 		</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Optional.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><label for="webFormDescription">Text above the fields:</label></td>
-		<td><textarea id="webFormDescription" class="k-textbox" rows="2" maxlength="1000" style="width: 95%;">#encodeForHtml(webForm.description)#</textarea><div class="k-form-hint">Optional.</div></td>
+		<td class="#blockClass#" align="right"><label for="webFormDescription">Text above the fields:</label></td>
+		<td class="#blockClass#"><textarea id="webFormDescription" class="k-textbox" rows="2" maxlength="1000" style="width: 95%;">#encodeForHtml(webForm.description)#</textarea></td>
 	</tr>
+
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Fields</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Shown in this order. Use the arrows to move a field, and the X to remove it.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="k-header" colspan="2"><b>Fields</b></td>
-	</tr>
-	<tr>
-		<td colspan="2">
-			<div class="k-form-hint">Shown in this order. Use the arrows to move a field, and the X to remove it.</div>
+		<td colspan="2" class="#blockClass#">
 			<table width="100%" cellpadding="3" cellspacing="0" border="0">
 				<thead>
 					<tr>
@@ -393,68 +402,99 @@ the submissions already received - stay matched to it when the label changes. --
 				</thead>
 				<tbody id="webFormFieldsBody"></tbody>
 			</table>
-			<button id="webFormFieldAdd" type="button" class="k-button">Add a field</button>
 		</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><button id="webFormFieldAdd" type="button" class="k-button">Add a field</button></td></tr>
+
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">After sending</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="k-header" colspan="2"><b>After sending</b></td>
+		<td class="#blockClass#" align="right"><label for="webFormButtonLabel">Button text:</label></td>
+		<td class="#blockClass#"><input type="text" id="webFormButtonLabel" class="k-textbox" maxlength="50" value="#encodeForHtmlAttribute(webForm.buttonLabel)#" style="width: 300px;"><span class="k-form-hint">eg. Send, Sign up, Register.</span></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">What visitors see after sending.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><label for="webFormButtonLabel">Button text:</label></td>
-		<td><input type="text" id="webFormButtonLabel" class="k-textbox" maxlength="50" value="#encodeForHtmlAttribute(webForm.buttonLabel)#" style="width: 220px;"></td>
+		<td class="#blockClass#" align="right"><label for="webFormConfirmationMessage">Confirmation message:</label></td>
+		<td class="#blockClass#"><textarea id="webFormConfirmationMessage" class="k-textbox" rows="2" maxlength="2000" style="width: 95%;">#encodeForHtml(webForm.confirmationMessage)#</textarea></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Optional: send the visitor to a page instead of showing the message. It can start with http://, https:// or / (a page on this site).</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><label for="webFormConfirmationMessage">Confirmation message:</label></td>
-		<td><textarea id="webFormConfirmationMessage" class="k-textbox" rows="2" maxlength="2000" style="width: 95%;">#encodeForHtml(webForm.confirmationMessage)#</textarea></td>
+		<td class="#blockClass#" align="right"><label for="webFormConfirmationUrl">Or go to this page:</label></td>
+		<td class="#blockClass#"><input type="text" id="webFormConfirmationUrl" class="k-textbox" maxlength="500" placeholder="/thank-you" value="#encodeForHtmlAttribute(webForm.confirmationUrl)#" style="width: 95%;"></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Separate addresses with commas; empty uses the blog's own email.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><label for="webFormConfirmationUrl">Or go to this page:</label></td>
-		<td><input type="text" id="webFormConfirmationUrl" class="k-textbox" maxlength="500" placeholder="/thank-you" value="#encodeForHtmlAttribute(webForm.confirmationUrl)#" style="width: 95%;"><div class="k-form-hint">Optional. When set, the visitor is sent to this page instead of seeing the message. It can start with http://, https:// or / (a page on this site).</div></td>
+		<td class="#blockClass#" align="right"><label for="webFormNotifyEmails">Email each submission to:</label></td>
+		<td class="#blockClass#"><input type="text" id="webFormNotifyEmails" class="k-textbox" maxlength="1000" placeholder="#encodeForHtmlAttribute(application.BlogDbObj.getBlogEmail())#" value="#encodeForHtmlAttribute(webForm.notifyEmails)#" style="width: 95%;"></td>
 	</tr>
+
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">On the site</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Off: what people send stays private, here in the admin site. On: a sign-up list can be shown on the site with the fields you tick ("Show in the public sign-up list"), for example who is bringing what to a potluck. Email and phone fields are never shown.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><label for="webFormNotifyEmails">Email each submission to:</label></td>
-		<td><input type="text" id="webFormNotifyEmails" class="k-textbox" maxlength="1000" placeholder="#encodeForHtmlAttribute(application.BlogDbObj.getBlogEmail())#" value="#encodeForHtmlAttribute(webForm.notifyEmails)#" style="width: 95%;"><div class="k-form-hint">Separate several addresses with commas. Leave it empty to use the blog's own email address.</div></td>
+		<td class="#blockClass#" align="right"><label for="webFormPublicList">Show sign-ups publicly:</label></td>
+		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="webFormPublicList"<cfif webForm.publicList> checked</cfif>></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">The posts and pages this form appears on, below their text. Type to search; if the page doesn't exist yet, you can create it here as a draft. You can also place the form anywhere in a post with the editor's Insert &gt; Form.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="k-header" colspan="2"><b>On the site</b></td>
+		<td class="#blockClass#" align="right"><label for="webFormShowOn">Show on:</label></td>
+		<td class="#blockClass#"><select id="webFormShowOn" multiple="multiple" style="width: 95%;"></select></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Needs "Show sign-ups publicly" for the list.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2">
-			<label><input type="checkbox" class="k-checkbox" id="webFormPublicList"<cfif webForm.publicList> checked</cfif>> Show sign-ups publicly</label>
-			<div class="k-form-hint">Off: what people send stays private, here in the admin site. On: a sign-up list can be shown on the site with the fields you tick ("Show in the public sign-up list"), for example who is bringing what to a potluck. Email and phone fields are never shown.</div>
-		</td>
+		<td class="#blockClass#" align="right"><label for="webFormShowOnMode">What shows there:</label></td>
+		<td class="#blockClass#"><input id="webFormShowOnMode" style="width: 300px;"></td>
 	</tr>
+	<tr class="blockSpacer webFormPublicHint"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr id="webFormPublicHint" class="webFormPublicHint"><td colspan="2" class="#blockClass#">The sign-up list updates as people sign up. To leave someone out of it, hide their sign-up under Submissions; it still holds its spot under any choice limits.</td></tr>
+
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Options</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Offer "Email me new posts" at the end of the form. Someone who checks it is sent the usual subscriber confirmation email, and only becomes a subscriber after confirming.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><label for="webFormShowOn">Show on:</label></td>
-		<td>
-			<select id="webFormShowOn" multiple="multiple" style="width: 95%;"></select>
-			<div class="k-form-hint">The posts and pages this form appears on, below their text. Type to search; if the page doesn't exist yet, you can create it here as a draft. You can also place the form anywhere in a post with the editor's Insert > Form.</div>
-		</td>
+		<td class="#blockClass#" align="right"><label for="webFormOfferSubscribe">Offer subscribing:</label></td>
+		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="webFormOfferSubscribe"<cfif webForm.offerSubscribe> checked</cfif>></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">The captcha (the text in an image) stops simple spam bots. It can't be read with a screen reader, so you may want it off for a form everyone must be able to use; the form has other spam protection either way.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td><label for="webFormShowOnMode">What shows there:</label></td>
-		<td>
-			<input id="webFormShowOnMode" style="width: 250px;">
-			<div class="k-form-hint" id="webFormPublicHint">The sign-up list updates as people sign up. To leave someone out of it, hide their sign-up under Submissions; it still holds its spot under any choice limits.</div>
-		</td>
+		<td class="#blockClass#" align="right"><label for="webFormRequireCaptcha">Ask for the captcha:</label></td>
+		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="webFormRequireCaptcha"<cfif webForm.requireCaptcha> checked</cfif>></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">An inactive form isn't shown in posts and doesn't accept anything.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="k-header" colspan="2"><b>Options</b></td>
+		<td class="#blockClass#" align="right"><label for="webFormActive">Active:</label></td>
+		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="webFormActive"<cfif webForm.active> checked</cfif>></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2">
-			<label><input type="checkbox" class="k-checkbox" id="webFormOfferSubscribe"<cfif webForm.offerSubscribe> checked</cfif>> Offer "Email me new posts" at the end of the form</label>
-			<div class="k-form-hint">Someone who checks it is sent the usual subscriber confirmation email, and only becomes a subscriber after confirming.</div>
-			<label><input type="checkbox" class="k-checkbox" id="webFormRequireCaptcha"<cfif webForm.requireCaptcha> checked</cfif>> Ask for the captcha (the text in an image)</label>
-			<div class="k-form-hint">Stops simple spam bots. It can't be read with a screen reader, so you may want it off for a form everyone must be able to use; the form has other spam protection either way.</div>
-			<label><input type="checkbox" class="k-checkbox" id="webFormActive"<cfif webForm.active> checked</cfif>> Active</label>
-			<div class="k-form-hint">An inactive form is not shown in posts and does not accept anything.</div>
-		</td>
-	</tr>
-	<tr>
-		<td colspan="2" align="right">
-			<button id="webFormSubmit" type="button" class="k-button k-primary">Save</button>
-		</td>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><button id="webFormSubmit" type="button" class="k-button k-primary">Save</button></td>
 	</tr>
 </table>
 </form>

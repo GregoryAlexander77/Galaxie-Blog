@@ -71,19 +71,30 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input id="confirmPassword" name="confirmPassword" type="password" value="" class="k-textbox" required validationMessage="Password is required" autocomplete="new-password" style="width: 95%" />   
+			<input id="confirmPassword" name="confirmPassword" type="password" value="" class="k-textbox" required validationMessage="Password is required" autocomplete="new-password" style="width: 95%" />
+			<div class="k-form-hint">Type the new password again.</div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
+	  <tr>
+	  	<td colspan="2" class="">Type the new password again.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  </tr>
 	  <tr height="30px">
-		<td align="right" width="25%" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
 			<label for="confirmPassword">Confirm Password</label>
 		</td>
-		<td width="75%" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input id="confirmPassword" name="confirmPassword" type="password" value="" class="k-textbox" required validationMessage="Password is required" autocomplete="new-password" style="width: 33%" />    
+		<td class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input id="confirmPassword" name="confirmPassword" type="password" value="" class="k-textbox" required validationMessage="Password is required" autocomplete="new-password" style="width: 33%" />
 		</td>
 	  </tr>
 	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
 	  <!--- After the first row, the content class should be the current class. --->
@@ -94,7 +105,7 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="confirmPasswordSubmit" name="confirmPasswordSubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>

@@ -198,7 +198,7 @@
 	  </tr>
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"> 
-			Create new category. <cfif len(URL.optArgs)>The alias field is used when creating SES (Search Engine Safe) URLs. If wish to change the category alias that was recommended, do not use any non-alphanumeric characters or spaces in the alias- spaces should be replaced with dashes.</cfif>
+			Create new category.
 		</td>
 	  </tr>
 	  <!-- Border -->
@@ -227,7 +227,7 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="category">Category</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -248,6 +248,14 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+	  <tr>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			The alias field is used when creating SES (Search Engine Safe) URLs. If you wish to change the category alias that was recommended, do not use any non-alphanumeric characters or spaces in the alias- spaces should be replaced with dashes.
+		</td>
+	  </tr>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	  <!-- Form content -->
 	<cfif session.isMobile>
 		  <tr valign="middle">
@@ -262,7 +270,7 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<label for="categoryAlias">Category Alias</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
@@ -270,6 +278,10 @@
 		</td>
 	  </tr>
 	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+	    	<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 </cfif>
 	  <cfsilent>
 	  <!--- Set the class for alternating rows. --->
@@ -281,7 +293,7 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr valign="middle" height="30px">
-		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>">&nbsp;</td>
+		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<button id="addCategorySubmit" name="addCategorySubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>
