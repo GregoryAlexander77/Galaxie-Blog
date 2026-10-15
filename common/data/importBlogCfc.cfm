@@ -1,4 +1,9 @@
-<cfset temporarillyBypassSecurity = true>
+<!--- Admin tool: only for a logged-in user who can change server settings (2026-10-14). --->
+<cfif not (application.Udf.isLoggedIn() and structKeyExists(session, "capabilityList") and listFindNoCase(session.capabilityList, "EditServerSetting"))>
+	<cfheader statuscode="404">
+	<cfcontent reset="true"><cfabort>
+</cfif>
+<cfset temporarillyBypassSecurity = false>
 <!--- Don't allow anyone who is not authorized to consume this page as it may overwrite current data. --->
 <cfif temporarillyBypassSecurity or (application.Udf.isLoggedIn() and find('EditServerSetting', session.capabilityList))>
 

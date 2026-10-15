@@ -1,3 +1,8 @@
+<!--- Admin tool: only for a logged-in user who can change server settings (2026-10-14). --->
+<cfif not (application.Udf.isLoggedIn() and structKeyExists(session, "capabilityList") and listFindNoCase(session.capabilityList, "EditServerSetting"))>
+	<cfheader statuscode="404">
+	<cfcontent reset="true"><cfabort>
+</cfif>
 <!---
 	More information can be found at: https://gregoryalexander.com/blog/2019/11/1/How-to-make-the-perfect-social-media-sharing-image--part-3-Using-ColdFusion-to-generate-the-image-
 
