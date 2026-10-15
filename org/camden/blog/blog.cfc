@@ -17,8 +17,8 @@
 	//******************************************************************************************--->
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "4.8" />
-	<cfset versionName = "4.8 (Bella's Pawtrait Edition)" />
+	<cfset version = "4.9" />
+	<cfset versionName = "4.9" />
 	<cfset versionDate =  "October 11th 2026">
 
 	<!--- Require version 9 or higher as we are using ORM --->
