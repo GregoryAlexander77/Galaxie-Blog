@@ -344,8 +344,8 @@
 				
 		<!--- Create a random string --->
 		<cfset session.captchaText = application.blog.makeRandomString()>
-		<!--- And hash it --->
-		<cfset session.captchaHash = hash(session.captchaText)>
+		<!--- A random reference for the image, unrelated to the word (2026-10-14). The word itself is checked on the server. --->
+		<cfset session.captchaHash = lCase(hash(createUUID() & rand("SHA1PRNG"), "SHA-256"))>
 		<!--- Create a URL --->
 		<cfset captchaUrl = application.baseUrl & "/showCaptcha.cfm?hashReference=" & session.captchaHash>
 			
@@ -6643,6 +6643,13 @@
 		<cfelse>
 			<cfset secureFunction('EditUser', arguments.pkey)>
 		</cfif>
+		<!--- A profile is changed by its own user, or by someone with EditUser (2026-10-14). --->
+		<cfif arguments.action eq 'updateProfile' and application.Udf.isLoggedIn()
+			and (not structKeyExists(session, "userName") or compareNoCase(trim(arguments.userName), trim(session.userName)) neq 0)
+			and not (structKeyExists(session, "capabilityList") and listFindNoCase(session.capabilityList, "EditUser"))>
+			<cfheader statuscode="403">
+			<cfabort>
+		</cfif>
 
 		<!--- Only admins or authenticated new users can update this. --->
 		<cfif application.Udf.isLoggedIn()>
@@ -8221,42 +8228,7 @@
 
 	</cffunction>
 					
-	<cffunction name="uploadImageViaUploaderMethod" access="remote" returnformat="plain" output="false" 
-			hint="Depracated. Still keeping around for future blog post (it's simple). This function uploads an image via the tiny mce editor">
-		<cfargument name="csrfToken" default="" required="true">
-			
-		<!--- Verify the token --->
-		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
-			<!--- Set the response --->
-			<cfset response = "Invalid token">
-			<!--- Return it --->
-			<cfif application.serverProduct eq 'Lucee'>
-				<!--- Do not serialize the response --->
-				<cfreturn response>
-			<cfelse>
-				<!--- Serialize the response --->
-				<cfset serializedResponse = serializeJSON( response ) />
-				<!--- Send the response back to the client. --->
-				<cfreturn serializedResponse>
-			</cfif>	
-			<!--- Abort the process if the token is not validated. --->
-			<cfabort>
-		</cfif>
-				
-		<!--- Manipulate the enclosure for social media sharing. ---> 
-		<!--- Set the destination. --->
-		<cfset destination = expandPath("#application.baseUrl#/enclosures")>
-
-		<!--- Upload it --->
-		<cffile action="upload" filefield="file" destination="#destination#" mode = "644" nameconflict="overwrite">
-
-		<!--- Get the full path and the name of the file --->
-		<cfset imageUrl = application.baseUrl & "/enclosures/" & cffile.serverFile>
-
-		<!--- Return the structure with the image back to the client --->
-		<cfreturn imageUrl>
-
-	</cffunction>
+	<!--- uploadImageViaUploaderMethod (an old, unused TinyMCE uploader) was removed on 2026-10-14. --->
 
 	<cffunction name="debugTraceLocal" access="private" returntype="void" output="false"
 			hint="Temporary, self-contained diagnostic tracer for the uploadVideo() enclosure-not-persisting bug -
@@ -10152,7 +10124,9 @@
 			
 		<cfif application.Udf.isLoggedIn()>
 		
-			<cfif arguments.fileType eq 'webVtt'>
+			<!--- Only caption files (.vtt) inside this blog's folder (2026-10-14). --->
+			<cfif arguments.fileType eq 'webVtt' and lCase(listLast(arguments.file, ".")) eq "vtt" and not find("..", arguments.file)
+				and left(arguments.file, len(application.baseUrl) + 1) eq application.baseUrl & "/">
 				<!--- Load JSoup to convert the html to text --->
 				<cfinvoke component="#application.jsoupComponentPath#" method="jsoupConvertHtmlToText2" returnvariable="jsoupWholeText">
 					<cfinvokeargument name="html" value="#arguments.fileContent#">

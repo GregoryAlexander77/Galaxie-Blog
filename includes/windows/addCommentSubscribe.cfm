@@ -251,7 +251,8 @@ This section has been completely redesigned by Gregory --->
 			check: function(element) {
 				
 				<!--- Note: the validator will fire off a new request 3 times a second, and we need to make sure that we are not hitting the server with stale data every time. We are going to see if the value has changed before firing off a new request to the server. Compare the input value to the value that was stored in sessionStorage. If the data has changed, and there has been fewer than 5 validation attempts that have failed, hit the server. --->
-				if (element.val() != getCapthchaValidatedValue() || getCaptchaValidatedAttempts() <= 5){
+				<!--- Only a new word is sent to the server (2026-10-14). Re-sending the same wrong word, several times a second, counted as new attempts and swapped the image almost at once. --->
+				if (element.val() != getCapthchaValidatedValue()){
 					<!--- Post to the server side method that will validate the captcha text. --->
 					$.ajax({
 						url: "<cfoutput>#application.proxyControllerUrl#</cfoutput>?method=validateCaptcha",
