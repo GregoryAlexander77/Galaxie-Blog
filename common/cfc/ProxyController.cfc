@@ -565,7 +565,7 @@
 		The word is the one getCaptchaAsJson put in the session for the image. It is used once: after a comment is accepted it is
 		removed, so the same request can't be replayed, and the next comment gets a new image when the window opens. --->
 		<cfset response[ "validCaptcha" ] = true />
-		<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
+		<cfif captchaRequired()>
 			<cfif not structKeyExists(session, "captchaText") or not len(session.captchaText) or not len(trim(arguments.captchaText)) or trim(arguments.captchaText) neq session.captchaText>
 				<cfset valid = false>
 				<cfset response[ "validCaptcha" ] = false />
@@ -578,7 +578,7 @@
 		the comment was posted when nothing was saved. --->
 		<cfset response[ "valid" ] = valid />
 		<cfset response[ "success" ] = valid />
-		<cfif valid and application.useCaptcha and not application.Udf.isLoggedIn()>
+		<cfif valid and captchaRequired()>
 			<cfset structDelete(session, "captchaText")>
 		</cfif>
 		
@@ -9662,6 +9662,10 @@
 		<cfargument name="stripeLiveWebhookSecret" default="" required="false">
 		<cfargument name="clearTestKeys" default="" required="false">
 		<cfargument name="clearLiveKeys" default="" required="false">
+		<!--- Member accounts (2026-10-15), see Members.cfc. Only saved when the Member Accounts panel was posted. --->
+		<cfargument name="memberSettingsPosted" default="" required="false">
+		<cfargument name="memberAccountsEnabled" default="" required="false">
+		<cfargument name="memberRememberDays" default="30" required="false">
 
 		<!--- Verify the token --->
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -9701,6 +9705,11 @@
 				</cfif>
 			</cfif>
 			
+			<!--- Member accounts (2026-10-15): checked first too. --->
+			<cfif len(arguments.memberSettingsPosted) and (not isNumeric(arguments.memberRememberDays) or int(arguments.memberRememberDays) lt 1 or int(arguments.memberRememberDays) gt 365)>
+				<cfreturn { "paymentErrors": [ "Keep members signed in for 1 to 365 days." ] }>
+			</cfif>
+
 			<!--- Set the value of the checkboxes --->
 			<cfif len(arguments.useSsl)>
 				<cfset useSsl = true>
@@ -9846,6 +9855,10 @@
 			<!--- Payments (2026-10-14): validated above. --->
 			<cfif len(arguments.paymentSettingsPosted)>
 				<cfset application.payments.saveSettings(local.paymentData)>
+			</cfif>
+			<!--- Member accounts (2026-10-15): validated above. --->
+			<cfif len(arguments.memberSettingsPosted)>
+				<cfset application.members.saveSettings(len(arguments.memberAccountsEnabled) gt 0, int(arguments.memberRememberDays))>
 			</cfif>
 
 			<!--- Return the Id --->
@@ -11095,7 +11108,7 @@
 				<cfset session.bookingTokens[token] = now()>
 			</cflock>
 			<cfset response[ "token" ] = token>
-			<cfset response[ "captcha" ] = application.useCaptcha and not application.Udf.isLoggedIn()>
+			<cfset response[ "captcha" ] = captchaRequired()>
 			<cfset response[ "success" ] = true>
 		</cfif>
 
@@ -11219,7 +11232,7 @@
 		</cflock>
 
 		<!--- The captcha (not for a signed-in user), as on the comment form. --->
-		<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
+		<cfif captchaRequired()>
 			<cfif not structKeyExists(session, "captchaText") or not len(session.captchaText) or not len(trim(arguments.captchaText)) or trim(arguments.captchaText) neq session.captchaText>
 				<cfset response[ "errors" ][ "captchaText" ] = "The text from the image did not match. Please try again.">
 				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
@@ -11338,6 +11351,243 @@
 			<cfset response[ "bookings" ] = application.bookings.getBookingsForCalendar(arguments.fromDate, arguments.toDate)>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<!--- ****************************************************************************************************************
+		Member accounts (2026-10-15): visitors sign in with a one-time emailed link. See common/cfc/Members.cfc and
+		common/js/members.js. A member is never an admin user: none of these calls touch the admin login.
+	***************************************************************************************************************** --->
+
+	<cffunction name="memberStatus" access="remote" returnformat="json" output="false"
+			hint="Whether member accounts are on, and who is signed in. Called by members.js on each page (pages are cached, so nothing member-specific is in the page itself).">
+		<cfset var response = { "enabled": application.members.isEnabled(), "signedIn": false, "member": {}, "csrf": "" }>
+		<cfset var member = {}>
+		<cfif response.enabled>
+			<cfset member = application.members.getCurrentMember()>
+			<cfif not structIsEmpty(member)>
+				<cfset response[ "signedIn" ] = true>
+				<cfset response[ "member" ] = memberForBrowser(member)>
+				<cfset response[ "csrf" ] = application.members.getCsrfToken()>
+			</cfif>
+		</cfif>
+		<cfheader name="Cache-Control" value="no-store">
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="memberRequestSignIn" access="remote" returnformat="json" output="false"
+			hint="Emails a one-time sign-in link to the address given.">
+		<cfargument name="email" type="string" required="false" default="">
+		<cfargument name="returnUrl" type="string" required="false" default="">
+		<cfargument name="website" type="string" required="false" default="" hint="The hidden field only bots fill in.">
+		<cfset var result = {}>
+		<cfset var response = { "success": false, "message": "" }>
+		<cfif len(arguments.website)>
+			<!--- A bot: the same reply a person gets, and nothing sent. --->
+			<cfset response = { "success": true, "message": "If that address can be used here, a sign-in link is on its way." }>
+		<cfelse>
+			<cfset result = application.members.requestSignIn(email = arguments.email, returnUrl = arguments.returnUrl, ipAddress = cgi.remote_addr)>
+			<cfset response = { "success": result.success, "message": result.message }>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="memberCompleteSignIn" access="remote" returnformat="json" output="false"
+			hint="Uses the token from an emailed sign-in link. Only by POST, from the page the link opens (after the visitor clicks Sign in), so a mail scanner opening the link can't use it up.">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfargument name="remember" required="false" default="false">
+		<cfset var result = {}>
+		<cfset var response = { "success": false, "message": "This sign-in link has expired or was already used. Please ask for a new one.", "member": {}, "csrf": "" }>
+		<cfif cgi.request_method eq "POST">
+			<cfset result = application.members.completeSignIn(token = trim(arguments.token), remember = isBoolean(arguments.remember) and arguments.remember, userAgent = cgi.http_user_agent)>
+			<cfset response[ "success" ] = result.success>
+			<cfset response[ "message" ] = result.message>
+			<cfif result.success>
+				<cfset response[ "member" ] = memberForBrowser(result.member)>
+				<cfset response[ "csrf" ] = application.members.getCsrfToken()>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="memberSaveProfile" access="remote" returnformat="json" output="false" hint="The signed-in member's name, phone and time zone.">
+		<cfargument name="csrf" type="string" required="false" default="">
+		<cfargument name="name" type="string" required="false" default="">
+		<cfargument name="phone" type="string" required="false" default="">
+		<cfargument name="timeZone" type="string" required="false" default="">
+		<cfset var result = {}>
+		<cfset var response = { "success": false, "errors": [ "Please sign in again." ], "member": {} }>
+		<cfif cgi.request_method eq "POST" and application.members.checkCsrfToken(arguments.csrf)>
+			<cfset result = application.members.saveProfile(name = arguments.name, phone = arguments.phone, timeZone = arguments.timeZone)>
+			<cfset response = { "success": result.success, "errors": result.errors, "member": result.success ? memberForBrowser(result.member) : {} }>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="memberSignOut" access="remote" returnformat="json" output="false" hint="Signs the member out of this browser, or everywhere.">
+		<cfargument name="csrf" type="string" required="false" default="">
+		<cfargument name="everywhere" required="false" default="false">
+		<cfset var response = { "success": false }>
+		<cfif cgi.request_method eq "POST" and application.members.checkCsrfToken(arguments.csrf)>
+			<cfset application.members.signOut(everywhere = isBoolean(arguments.everywhere) and arguments.everywhere)>
+			<cfset response[ "success" ] = true>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="memberAccount" access="remote" returnformat="json" output="false"
+			hint="What the My account window lists: the member's bookings, form sign-ups and email subscriptions.">
+		<cfargument name="csrf" type="string" required="false" default="">
+		<cfset var member = {}>
+		<cfset var response = { "success": false, "bookings": [], "signups": [], "subscriptions": {} }>
+		<cfif cgi.request_method eq "POST" and application.members.checkCsrfToken(arguments.csrf)>
+			<cfset member = application.members.getCurrentMember()>
+			<cfif not structIsEmpty(member)>
+				<cfset response = {
+					"success": true,
+					"bookings": application.members.getAccountBookings(member),
+					"signups": application.members.getAccountSignups(member),
+					"subscriptions": application.members.getAccountSubscriptions(member)
+				}>
+			</cfif>
+		</cfif>
+		<cfheader name="Cache-Control" value="no-store">
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="memberSetNewPostEmails" access="remote" returnformat="json" output="false" hint="Turns the signed-in member's new-post emails on or off.">
+		<cfargument name="csrf" type="string" required="false" default="">
+		<cfargument name="on" required="false" default="false">
+		<cfset var response = { "success": false }>
+		<cfif cgi.request_method eq "POST" and application.members.checkCsrfToken(arguments.csrf)>
+			<cfset response[ "success" ] = application.members.setNewPostEmails(isBoolean(arguments.on) and arguments.on)>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="memberStopFollowingPost" access="remote" returnformat="json" output="false" hint="Stops the signed-in member's new-comment emails for one post.">
+		<cfargument name="csrf" type="string" required="false" default="">
+		<cfargument name="postId" required="false" default="0">
+		<cfset var response = { "success": false }>
+		<cfif cgi.request_method eq "POST" and application.members.checkCsrfToken(arguments.csrf) and isValid("integer", arguments.postId)>
+			<cfset response[ "success" ] = application.members.stopFollowingPost(arguments.postId)>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="memberExportData" access="remote" returnformat="plain" output="false"
+			hint="Download my data: everything the blog keeps about the signed-in member, as a JSON file.">
+		<cfargument name="csrf" type="string" required="false" default="">
+		<cfset var member = {}>
+		<cfset var fileName = "">
+		<cfif cgi.request_method neq "POST" or not application.members.checkCsrfToken(arguments.csrf)>
+			<cfheader statuscode="403">
+			<cfreturn "">
+		</cfif>
+		<cfset member = application.members.getCurrentMember()>
+		<cfif structIsEmpty(member)>
+			<cfheader statuscode="403">
+			<cfreturn "">
+		</cfif>
+		<cfset fileName = "my-data-" & reReplace(lCase(application.BlogDbObj.getBlogTitle()), "[^a-z0-9]+", "-", "all") & "-" & dateFormat(now(), "yyyy-mm-dd") & ".json">
+		<cfheader name="Content-Disposition" value='attachment; filename="#fileName#"'>
+		<cfheader name="Cache-Control" value="no-store">
+		<cfcontent type="application/json; charset=utf-8">
+		<cfreturn serializeJSON(application.members.exportData(member))>
+	</cffunction>
+
+	<cffunction name="memberAccountDeleteInfo" access="remote" returnformat="json" output="false" hint="What the delete-account window needs to say: how many upcoming bookings are still on.">
+		<cfargument name="csrf" type="string" required="false" default="">
+		<cfset var member = {}>
+		<cfset var response = { "success": false, "upcomingBookings": 0 }>
+		<cfif cgi.request_method eq "POST" and application.members.checkCsrfToken(arguments.csrf)>
+			<cfset member = application.members.getCurrentMember()>
+			<cfif not structIsEmpty(member)>
+				<cfset response = { "success": true, "upcomingBookings": application.members.countUpcomingBookings(member) }>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="memberDeleteAccount" access="remote" returnformat="json" output="false" hint="Deletes the signed-in member's account (they type their email address to confirm).">
+		<cfargument name="csrf" type="string" required="false" default="">
+		<cfargument name="confirmEmail" type="string" required="false" default="">
+		<cfargument name="stopEmails" required="false" default="true">
+		<cfset var result = {}>
+		<cfset var response = { "success": false, "message": "Please sign in again." }>
+		<cfif cgi.request_method eq "POST" and application.members.checkCsrfToken(arguments.csrf)>
+			<cfset result = application.members.deleteAccount(confirmEmail = arguments.confirmEmail, stopEmails = isBoolean(arguments.stopEmails) and arguments.stopEmails)>
+			<cfset response = { "success": result.success, "message": result.message }>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getMembersForGrid" access="remote" returnformat="json" output="false" hint="Every member, for the admin Members window.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfset var response = { "members": [] }>
+		<cfset var member = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfloop array="#application.members.getMembersForAdmin()#" index="member">
+				<cfset arrayAppend(response.members, {
+					"memberId": member.memberId, "email": member.email, "name": member.name, "phone": member.phone, "status": member.status,
+					"created": isDate(member.created) ? dateTimeFormat(member.created, "yyyy-mm-dd HH:nn") : "",
+					"lastSeen": isDate(member.lastSeen) ? dateTimeFormat(member.lastSeen, "yyyy-mm-dd HH:nn") : ""
+				})>
+			</cfloop>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="setMemberStatus" access="remote" returnformat="json" output="false" hint="Blocks or unblocks a member (admin).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="memberId" required="false" default="0">
+		<cfargument name="status" type="string" required="false" default="">
+		<cfset var response = { "success": false }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.memberId)>
+			<cfset response[ "success" ] = application.members.setMemberStatus(val(arguments.memberId), arguments.status)>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="adminDeleteMember" access="remote" returnformat="json" output="false" hint="Deletes a member (admin, Members window).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="memberId" required="false" default="0">
+		<cfargument name="stopEmails" required="false" default="false">
+		<cfset var response = { "success": false }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.memberId)>
+			<cfset response[ "success" ] = application.members.adminDeleteMember(val(arguments.memberId), isBoolean(arguments.stopEmails) and arguments.stopEmails)>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+		<cffunction name="captchaRequired" access="private" returntype="boolean" output="false"
+			hint="Whether the captcha is asked for: Use Captcha is on, and nobody is signed in - neither an admin user nor (2026-10-15) a member. Comments, bookings and forms all use this one rule, and so does the comment window (includes/windows/addCommentSubscribe.cfm).">
+		<cfif not application.useCaptcha or application.Udf.isLoggedIn()>
+			<cfreturn false>
+		</cfif>
+		<cfif structKeyExists(application, "members") and not structIsEmpty(application.members.getCurrentMember())>
+			<cfreturn false>
+		</cfif>
+		<cfreturn true>
+	</cffunction>
+
+	<cffunction name="memberForBrowser" access="private" returntype="struct" output="false" hint="The member fields the visitor's own browser may see, with lower-case keys.">
+		<cfargument name="member" type="struct" required="true">
+		<cfreturn { "name": arguments.member.name, "email": arguments.member.email, "phone": arguments.member.phone, "timeZone": arguments.member.timeZone }>
 	</cffunction>
 
 	<cffunction name="newBookingsFeedAddress" access="remote" returnformat="json" output="false"
@@ -12310,7 +12560,7 @@
 		<cfif structIsEmpty(webForm) or not webForm.active>
 			<cfset response[ "message" ] = "This form is not available.">
 		<cfelse>
-			<cfset showCaptcha = webForm.requireCaptcha and application.useCaptcha and not application.Udf.isLoggedIn()>
+			<cfset showCaptcha = webForm.requireCaptcha and captchaRequired()>
 			<cfset token = lCase(replace(createUUID(), "-", "", "all"))>
 			<cflock scope="session" type="exclusive" timeout="10">
 				<cfif not structKeyExists(session, "webFormTokens") or not isStruct(session.webFormTokens)>
@@ -12420,7 +12670,7 @@
 		</cflock>
 
 		<!--- The captcha, when the form asks for it (same rule as the comment form: not for a signed-in user). --->
-		<cfif webForm.requireCaptcha and application.useCaptcha and not application.Udf.isLoggedIn()>
+		<cfif webForm.requireCaptcha and captchaRequired()>
 			<cfif not structKeyExists(session, "captchaText") or not len(session.captchaText) or not len(trim(arguments.captchaText)) or trim(arguments.captchaText) neq session.captchaText>
 				<cfset response[ "errors" ][ "captchaText" ] = "The text from the image did not match. Please try again.">
 				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>

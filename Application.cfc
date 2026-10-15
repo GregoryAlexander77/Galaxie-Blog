@@ -561,6 +561,12 @@
 		<cfelse>
 			<cfset application.paymentsComponentPath = "common.cfc.Payments">
 		</cfif>
+		<!--- Member accounts: visitors sign in with an emailed link, no passwords (2026-10-15) - see Members.cfc. --->
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset application.membersComponentPath = application.baseComponentPath & ".common.cfc.Members">
+		<cfelse>
+			<cfset application.membersComponentPath = "common.cfc.Members">
+		</cfif>
 
 		<cfif debug>
 			<cfoutput>
@@ -619,6 +625,7 @@
 		<cfset application.locations = createObject("component", application.locationsComponentPath).init()>
 		<cfset application.bookings = createObject("component", application.bookingsComponentPath).init()>
 		<cfset application.payments = createObject("component", application.paymentsComponentPath).init()>
+		<cfset application.members = createObject("component", application.membersComponentPath).init()>
 		
 		<!---//****************************************************************************************
 				Initialize the application and set core application vars.

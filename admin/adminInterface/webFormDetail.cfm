@@ -387,17 +387,24 @@ the submissions already received - stay matched to it when the label changes. --
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Fields</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Shown in this order. Use the arrows to move a field, and the X to remove it.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Shown in this order. Use the arrows to move a field, and the X to remove it. Changes, including removing a field, aren't saved until you click Save at the bottom; close the window without saving to undo them.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td colspan="2" class="#blockClass#">
-			<table width="100%" cellpadding="3" cellspacing="0" border="0">
+			<!--- On a phone the columns share the screen's width (fixed layout) instead of growing past it. --->
+			<cfif session.isMobile>
+			<style>
+				<!--- Phones: the move/remove buttons may wrap under each other instead of pushing the table off the screen. --->
+				##webFormFieldsBody td { white-space: normal !important; }
+			</style>
+			</cfif>
+			<table width="100%" cellpadding="3" cellspacing="0" border="0"<cfif session.isMobile> style="table-layout: fixed;"</cfif>>
 				<thead>
 					<tr>
-						<th align="left" width="55%">Label</th>
+						<th align="left" width="<cfif session.isMobile>42%<cfelse>55%</cfif>">Label</th>
 						<th align="left" width="25%">Type</th>
-						<th align="center" width="8%">Required</th>
-						<th></th>
+						<th align="center" width="<cfif session.isMobile>13%<cfelse>8%</cfif>"><cfif session.isMobile>Req.<cfelse>Required</cfif></th>
+						<th<cfif session.isMobile> width="20%"</cfif>></th>
 					</tr>
 				</thead>
 				<tbody id="webFormFieldsBody"></tbody>

@@ -30,6 +30,15 @@
 	}
 </script>
 
+<!--- Member accounts (2026-10-15): "Sign in" in the menu, and the page an emailed sign-in link opens. Only when the owner has turned them on in Blog Options. See common/js/members.js. --->
+<cfif structKeyExists(application, "members") and application.members.isEnabled()>
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+	galaxieLoader.members(function() {
+		galaxieMembers.init({ baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>', blogTitle: <cfoutput>#serializeJson(application.BlogDbObj.getBlogTitle())#</cfoutput> });
+	});
+</script>
+</cfif>
+
 <!-- Bookings placed in a post or page (2026-10-14) are only downloaded when the page has one. See common/js/bookings.js. -->
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">
 	if ($('.galaxieBooking[data-booking]').length) {

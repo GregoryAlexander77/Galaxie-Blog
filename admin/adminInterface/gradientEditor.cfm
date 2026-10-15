@@ -269,7 +269,7 @@ just store a name. --->
 		</td>
 	</tr>
 	<tr valign="middle" height="30px">
-		<td valign="bottom" align="right">
+		<td valign="bottom" align="left">
 			<button id="gradientCancelButton" class="k-button normalFontWeight" type="button" onclick="javascript:$('#gradientEditorWindow').kendoWindow('destroy');">Cancel</button>
 			<button id="gradientSubmitButton" class="k-button k-primary" type="button" onclick="javascript:onGradientEditorSubmit();">Submit</button>
 		</td>

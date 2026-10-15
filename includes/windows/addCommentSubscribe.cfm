@@ -407,7 +407,7 @@ This section has been completely redesigned by Gregory --->
 		<tr class="k-content">
 			<td>
 				<!--- Important note: when using Kendo and Ajax, all forms should have both an ID and a name attribute! --->
-				<input type="text" id="commenterName" name="commenterName" value="#commenterName#" class="k-textbox" style="width: <cfoutput>#textInputWidth#</cfoutput>;" required validationMessage="Enter your name." />
+				<input type="text" id="commenterName" name="commenterName" data-member-fill="name" value="#commenterName#" class="k-textbox" style="width: <cfoutput>#textInputWidth#</cfoutput>;" required validationMessage="Enter your name." />
 			</td>
 		</tr>
 		<!-- Border and spacer. -->
@@ -430,7 +430,7 @@ This section has been completely redesigned by Gregory --->
 		<tr class="<cfif URL.uiElement neq 'subscribe'>k-alt<cfelse>k-content</cfif>">
 			<td>
 				<!--- Note that this forms type is 'email'. This is an HTML5 attribute and it will automatically be validated. --->
-				<input type="email" id="commenterEmail" name="commenterEmail" value="#commenterEmail#" class="k-textbox" 
+				<input type="email" id="commenterEmail" name="commenterEmail" data-member-fill="email" value="#commenterEmail#" class="k-textbox" 
 					   required validationMessage="Enter your email." aria-label="Enter your email address"
 					   style="width: <cfoutput>#textInputWidth#</cfoutput>;" />
 			</td>
@@ -469,7 +469,8 @@ This section has been completely redesigned by Gregory --->
 			<td height="5px"></td>
 		</tr>
 		</cfoutput>
-		<cfif ( application.useCaptcha and not application.Udf.isLoggedIn() ) or 1 eq 1>
+		<!--- Not for a signed-in admin or member (2026-10-15), the same rule as the desktop layout below and ProxyController.cfc's captchaRequired. It used to end in "or 1 eq 1", so mobile always showed a captcha the server didn't ask for. --->
+		<cfif ( application.useCaptcha and not application.Udf.isLoggedIn() and not (structKeyExists(application, "members") and not structIsEmpty(application.members.getCurrentMember())) )>
 		<!-- Captcha -->
 		<tr height="35px" class="k-alt">
 			<td>
@@ -574,7 +575,7 @@ This section has been completely redesigned by Gregory --->
 			<td width="5px"></td>
 			<td align="left" width="*">
 				<!---Important note: when using Kendo and Ajax, all forms must have both an ID and a name attribute!--->
-				<input type="text" id="commenterName" name="commenterName" value="#commenterName#" class="k-textbox" style="width: <cfoutput>#textInputWidth#</cfoutput>;" 
+				<input type="text" id="commenterName" name="commenterName" data-member-fill="name" value="#commenterName#" class="k-textbox" style="width: <cfoutput>#textInputWidth#</cfoutput>;" 
 					   required data-required-msg="Enter your name." />
 			</td>
 		</tr>
@@ -586,7 +587,7 @@ This section has been completely redesigned by Gregory --->
 			<td width="5px"></td>
 			<td align="left">
 				<!--- Note that this forms type is 'email'. This is an HTML5 attribute and it will automatically be validated. --->
-				<input type="email" id="commenterEmail" name="commenterEmail" value="#commenterEmail#" class="k-textbox" required validationMessage="Enter your email." aria-label="Enter your email address" style="width: <cfoutput>#textInputWidth#</cfoutput>;" />
+				<input type="email" id="commenterEmail" name="commenterEmail" data-member-fill="email" value="#commenterEmail#" class="k-textbox" required validationMessage="Enter your email." aria-label="Enter your email address" style="width: <cfoutput>#textInputWidth#</cfoutput>;" />
 			</td>
 		</tr>
 	<cfif URL.uiElement neq 'subscribe'>
@@ -624,7 +625,8 @@ This section has been completely redesigned by Gregory --->
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->
 		</cfoutput>
-		<cfif ( application.useCaptcha and not application.Udf.isLoggedIn() )>
+		<!--- Not for a signed-in admin or member (2026-10-15) - the same rule as ProxyController.cfc's captchaRequired. --->
+		<cfif ( application.useCaptcha and not application.Udf.isLoggedIn() and not (structKeyExists(application, "members") and not structIsEmpty(application.members.getCurrentMember())) )>
 		<tr class="k-alt">
 			<td colspan="3" align="left">
 				<!--- Captcha logic in its own table. This is a Kendo Mvvm template.  --->

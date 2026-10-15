@@ -1143,6 +1143,14 @@ days off. See common/cfc/Bookings.cfc. --->
 <cfcase value=96>
 	<cfinclude template="../../admin/adminInterface/bookingsCalendar.cfm">
 </cfcase>
+<!--- Member accounts (2026-10-15): 97 the members list. --->
+<cfcase value=97>
+	<cfinclude template="../../admin/adminInterface/members.cfm">
+</cfcase>
+<!--- 98 one member. --->
+<cfcase value=98>
+	<cfinclude template="../../admin/adminInterface/memberDetail.cfm">
+</cfcase>
 
 </cfswitch>
 

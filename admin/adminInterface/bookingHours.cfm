@@ -22,6 +22,11 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 	#hoursDays tr:not(.blockSpacer) td { vertical-align: top; }
 	.hoursRange { margin-bottom: 4px; white-space: nowrap; }
 	.hoursRange .k-timepicker { width: 145px; }
+<cfif session.isMobile>
+	<!--- Phones: a day's hours may wrap, and the pickers are a little narrower, so nothing runs off the screen. --->
+	.hoursRange { white-space: normal; }
+	.hoursRange .k-timepicker { width: 125px; }
+</cfif>
 </style>
 
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>

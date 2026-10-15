@@ -977,6 +977,18 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>85%</cfif>";
 				var windowTitle = "Bookings calendar";
+			} else if (Id == 97){
+				// Member accounts (2026-10-15) - see admin/adminInterface/members.cfm.
+				var windowName = "membersWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Members";
+			} else if (Id == 98){
+				// One member (2026-10-15) - see admin/adminInterface/memberDetail.cfm.
+				var windowName = "memberDetailWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>65%</cfif>";
+				var windowTitle = "Member";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

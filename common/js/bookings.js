@@ -288,10 +288,10 @@ var galaxieBookings = (function($) {
 			div.append('<div class="galaxieBookingError k-widget k-tooltip k-tooltip-validation k-invalid-msg" role="alert" hidden="hidden"></div>');
 			return div;
 		}
-		form.append(field("name", "Your name", $('<input type="text" class="k-textbox" maxlength="255" autocomplete="name">'), true));
-		form.append(field("email", "Email address", $('<input type="email" class="k-textbox" maxlength="255" autocomplete="email">'), true));
+		form.append(field("name", "Your name", $('<input type="text" class="k-textbox" maxlength="255" autocomplete="name" data-member-fill="name">'), true));
+		form.append(field("email", "Email address", $('<input type="email" class="k-textbox" maxlength="255" autocomplete="email" data-member-fill="email">'), true));
 		if (state.location.needsPhone) {
-			form.append(field("phone", "Phone number to call you on", $('<input type="tel" class="k-textbox" maxlength="50" autocomplete="tel">'), true));
+			form.append(field("phone", "Phone number to call you on", $('<input type="tel" class="k-textbox" maxlength="50" autocomplete="tel" data-member-fill="phone">'), true));
 		}
 		if (state.type.isGroup) {
 			var most = Math.min(state.slot.spotsLeft, state.type.groupSize);

@@ -73,7 +73,7 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 					Enter your email address to subscribe to this blog.
 					<form id="#subscribeFormId#Form" name="#subscribeFormId#Form" action="#chr(35)#" method="post" data-role="validator">
 						<!--- Note that this forms type is 'email'. This is an HTML5 attribute and it will automatically be validated. --->
-						<input type="email" id="#subscribeFormId#" name="#subscribeFormId#" value="" class="k-textbox" aria-label="Enter your email address" required validationMessage="Email is required" data-email-msg="Email is not valid" />
+						<input type="email" id="#subscribeFormId#" name="#subscribeFormId#" value="" class="k-textbox" data-member-fill="email" aria-label="Enter your email address" required validationMessage="Email is required" data-email-msg="Email is not valid" />
 						<br/>
 						<input type="button" id="#subscribeFormId#Submit" name="#subscribeFormId#Submit" value="Subscribe" class="k-button k-primary" style="<cfoutput>#kendoButtonStyle#</cfoutput>">
 					</form>

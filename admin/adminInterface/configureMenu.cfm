@@ -169,9 +169,8 @@ stays automatic. Saved by ProxyController.cfc's saveMenuSettings; drawn by inclu
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2" class="#blockClass#" align="right">
-			<button id="configureMenuSubmit" name="configureMenuSubmit" class="k-button k-primary" type="button">Save</button>
-		</td>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><button id="configureMenuSubmit" name="configureMenuSubmit" class="k-button k-primary" type="button">Save</button></td>
 	</tr>
 </table>
 </form>

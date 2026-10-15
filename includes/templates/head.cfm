@@ -415,6 +415,16 @@ var galaxieLoader = (function() {
 				});
 			}, callback);
 		},
+		<!--- Member accounts (2026-10-15) - see common/js/members.js. Only downloaded when the owner has turned member accounts on. --->
+		<cftry>
+			<cfset application.membersJsVersion = dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/members.js")).lastModified, "yyyymmddHHnnss")>
+			<cfcatch type="any"><cfset application.membersJsVersion = application.blog.getVersion()></cfcatch>
+		</cftry>
+		members: function(callback) {
+			whenReady('members', function(ready) {
+				getScript('#application.baseUrl#/common/js/members.js?v=#encodeForUrl(application.membersJsVersion)#').done(ready);
+			}, callback);
+		},
 		prism: function(callback) {
 			whenReady('prism', function(ready) {
 				addCss('#application.baseUrl#/common/libs/prism/prism.min.css');

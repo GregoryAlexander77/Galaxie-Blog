@@ -41,6 +41,8 @@
 	<cfset releasedPostEmailMode = application.blog.getReleasedPostEmailMode()>
 	<!--- Payments (2026-10-14): never includes a secret - see Payments.cfc getSettings. --->
 	<cfset paymentSettings = application.payments.getSettings()>
+	<!--- Member accounts (2026-10-15) - see Members.cfc. --->
+	<cfset memberSettings = application.members.getSettings()>
 	<cfset paymentCurrencies = application.payments.getCurrencies()>
 	<cfset paymentStatus = application.payments.getStatus()>
 		
@@ -1089,7 +1091,53 @@
 		  </tr>
 		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td colspan="2" class="#blockClass#">Testing on your own computer? Stripe can't reach it, so use the Stripe CLI instead. This command prints the signing secret to use for testing:<br><code>stripe listen --forward-to #encodeForHtml(paymentSettings.webhookUrl)#</code></td>
+			<td colspan="2" class="#blockClass#">Testing on your own computer? Stripe can't reach it, so use the Stripe CLI instead. This command prints the signing secret to use for testing:<br><code style="word-break: break-all; white-space: normal;">stripe listen --forward-to #encodeForHtml(paymentSettings.webhookUrl)#</code></td>
+		  </tr>
+		</cfoutput>
+		</table>
+	</div>
+	</div>
+	</li>
+			
+	<!---//***********************************************************************************************
+						Member Accounts
+	//************************************************************************************************--->
+	<!--- Member accounts (2026-10-15): visitors sign in with a one-time emailed link, no passwords - see common/cfc/Members.cfc.
+	Saved with the rest of Blog Options (saveBlogOptions, memberSettingsPosted). --->
+	<li>
+		Member Accounts
+	<div class="k-content">
+	<div style="padding: 15px;">
+		<input type="hidden" name="memberSettingsPosted" value="1">
+		<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
+		<table id="memberSettingsTable" align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" style="table-layout: fixed">
+		<colgroup><col style="width: 20%"><col></colgroup>
+		<cfoutput>
+		  <tr>
+			<td colspan="2" class="#blockClass#">Let visitors sign in to see their bookings and sign-ups in one place, and have their name, email and phone filled in for them. There are no passwords: a visitor enters their email address and clicks the one-time link the blog emails them. Members never have access to the admin site.</td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td colspan="2" class="#blockClass#">When this is on, a "Sign in" link appears in the menu. Sign-in emails use the blog's email settings in Blog Settings.</td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#" align="right"><label for="memberAccountsEnabled">Member accounts:</label></td>
+			<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="memberAccountsEnabled" name="memberAccountsEnabled" value="1"<cfif memberSettings.enabled> checked</cfif>></td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td colspan="2" class="#blockClass#">Members can choose "Keep me signed in on this device" when they sign in. This is how long that lasts before they're asked to sign in again.</td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#" align="right"><label for="memberRememberDays">Keep signed in:</label></td>
+			<td class="#blockClass#"><input type="number" id="memberRememberDays" name="memberRememberDays" class="k-textbox" min="1" max="365" value="#memberSettings.rememberDays#" style="width: 90px;"><span class="k-form-hint">days</span></td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#" align="right">Members:</td>
+			<td class="#blockClass#"><button type="button" class="k-button" onclick="createAdminInterfaceWindow(97);">See members</button></td>
 		  </tr>
 		</cfoutput>
 		</table>

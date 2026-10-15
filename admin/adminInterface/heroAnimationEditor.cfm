@@ -310,7 +310,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 		</td>
 	</tr>
 	<tr valign="middle" height="30px">
-		<td valign="bottom" align="right">
+		<td valign="bottom" align="left">
 			<button id="animationCancelButton" class="k-button normalFontWeight" type="button" onclick="javascript:$('#heroAnimationEditorWindow').kendoWindow('destroy');">Cancel</button>
 			<button id="animationSubmitButton" class="k-button k-primary" type="button" onclick="javascript:onHeroAnimationEditorSubmit();">Submit</button>
 		</td>

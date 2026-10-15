@@ -708,7 +708,9 @@
 						<cfset html.append('<input type="text" class="galaxieWebFormDate" id="' & id & '" name="' & encodeForHtmlAttribute(field.fieldName) & '"' & required & describedBy & '>')>
 					</cfcase>
 					<cfdefaultcase>
-						<cfset html.append('<input type="' & (field.fieldType eq "email" ? "email" : (field.fieldType eq "phone" ? "tel" : (field.fieldType eq "number" ? "number" : "text"))) & '" class="k-textbox" id="' & id & '" name="' & encodeForHtmlAttribute(field.fieldName) & '" maxlength="1000" placeholder="' & encodeForHtmlAttribute(field.placeholder) & '"' & (field.fieldType eq "email" ? ' autocomplete="email"' : '') & required & describedBy & '>')>
+						<!--- A signed-in member's details are filled into empty fields like these (2026-10-15) - see common/js/members.js. --->
+						<cfset memberFill = field.fieldType eq "email" ? "email" : (field.fieldType eq "phone" ? "phone" : (field.fieldType eq "text" and reFindNoCase("^(your |full )?name$", trim(field.label)) ? "name" : ""))>
+						<cfset html.append('<input type="' & (field.fieldType eq "email" ? "email" : (field.fieldType eq "phone" ? "tel" : (field.fieldType eq "number" ? "number" : "text"))) & '" class="k-textbox" id="' & id & '" name="' & encodeForHtmlAttribute(field.fieldName) & '" maxlength="1000" placeholder="' & encodeForHtmlAttribute(field.placeholder) & '"' & (field.fieldType eq "email" ? ' autocomplete="email"' : '') & (len(memberFill) ? ' data-member-fill="' & memberFill & '"' : '') & required & describedBy & '>')>
 					</cfdefaultcase>
 				</cfswitch>
 			</cfdefaultcase>

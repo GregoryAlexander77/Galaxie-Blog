@@ -1019,8 +1019,23 @@
 		<!--- A short hint beside a small field stays on its line; anything longer gets its own row above the field. --->
 		table.adminBlocks span.k-form-hint, table.k-content span.k-form-hint { display: inline; margin: 0 0 0 8px; }
 	<cfif session.isMobile>
+		<!--- Mobile: one column. The fixed 20% label column (colgroup + table-layout: fixed) that lines labels up on a wide
+		screen would squeeze everything into that narrow column here, so it's switched off and every cell takes the full width. --->
+		table.adminBlocks { table-layout: auto !important; display: block; width: 100%; }
+		table.adminBlocks > colgroup { display: none; }
+		table.adminBlocks > tbody, table.adminBlocks > tbody > tr { display: block; width: 100%; }
 		table.adminBlocks > tbody > tr > td { display: block; width: auto !important; text-align: left !important; }
-		table.adminBlocks > tbody > tr.blockSpacer > td { display: table-cell; }
+		table.adminBlocks > tbody > tr.blockSpacer > td { height: 4px; }
+		<!--- No window's tables run off a phone's screen: a table is never wider than its container, and a long word or web
+		address in a cell wraps. --->
+		.k-window-content table { max-width: 100%; }
+		.k-window-content td { overflow-wrap: anywhere; }
+		<!--- A dropdown showing long text (eg. a time zone name) won't shrink below that text, which pushed whole tables wider than
+		the phone. Tables keep the screen's width, and the dropdown's text ends in "..." instead. --->
+		.k-window-content table.k-content:not(.adminBlocks) { table-layout: fixed; width: 100%; }
+		.k-window-content .k-dropdown { max-width: 100%; }
+		.k-window-content .k-dropdown .k-input { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+		.k-window-content .tox-tinymce { max-width: 100%; }
 	</cfif>
 
 		<!--- Divider styles to get around IE's goofyness. IE 8+ will not render elemetns that are larger than the default font size, so I am setting the font property to 0. Stupid.... --->
