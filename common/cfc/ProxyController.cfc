@@ -11651,6 +11651,27 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="getEventCardPreview" access="remote" returnformat="json" output="false"
+			hint="The event card exactly as visitors see it at the top of the post (Events.cfc renderCard, the same call blogContentHtml.cfm makes), for the post editor's preview (2026-10-16). Empty when the post isn't an event.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" required="false" default="0">
+		<cfset var response = { "success": false, "html": "" }>
+		<cfset var getPost = []>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId)>
+			<cfset getPost = application.blog.getPostByPostId(postId = val(arguments.postId), showPages = true, showBlogPosts = true, showPendingPosts = true, showRemovedPosts = true)>
+			<cfif arrayLen(getPost)>
+				<cfset response[ "html" ] = application.events.renderCard(val(arguments.postId), getPost[1]["Title"], application.blog.makeLink(isPage = getPost[1]["IsPage"], postAlias = getPost[1]["PostAlias"], datePosted = getPost[1]["DatePosted"]))>
+				<cfset response[ "success" ] = true>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="deleteEvent" access="remote" returnformat="json" output="false"
 			hint="Takes the event off a post (admin). Refused while someone has paid for a place that hasn't been refunded - they must be cancelled and refunded first (Cancel all and refund in the sign-ups window). With checkOnly, only reports the sign-ups, so the editor can ask first.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

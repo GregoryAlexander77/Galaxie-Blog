@@ -1111,6 +1111,14 @@
 		</td>
 	  </tr>
 	</cfif>  
+	<!--- Event preview (owner, 10-16): the event card exactly as visitors see it at the top of the post - the same
+	application.events.renderCard call blogContentHtml.cfm makes. Refreshed from the server after the event window saves. --->
+	  <tr class="postEventRow">
+		<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<div class="k-form-hint">How visitors see it, at the top of the post:</div>
+			<div id="postEventPreview" style="margin-top: 6px;"><cfif postIsEvent><cfoutput>#application.events.renderCard(getPost[1]['PostId'], getPost[1]['Title'], application.blog.makeLink(isPage = getPost[1]["IsPage"], postAlias = getPost[1]["PostAlias"], datePosted = getPost[1]["DatePosted"]))#</cfoutput></cfif></div>
+		</td>
+	  </tr>
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -1710,7 +1718,20 @@ opens it again. Leaving Event takes the event details off the post after asking 
 		var isEvent = <cfoutput>#postIsEvent ? "true" : "false"#</cfoutput>;
 
 		function chosenType() { return $("input[name=postType]:checked").val(); }
-		function refreshEventRow() { $(".postEventRow").toggle(chosenType() === "event"); }
+		function refreshEventRow() {
+			$(".postEventRow").toggle(chosenType() === "event");
+			$("tr.postEventRow").toggle(chosenType() === "event" && isEvent);
+		}
+		<!--- The card as visitors see it, from the server (ProxyController getEventCardPreview). --->
+		function refreshEventPreview() {
+			jQuery.ajax({
+				type: "post",
+				url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getEventCardPreview",
+				data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId },
+				dataType: "json",
+				success: function(result) { if (result && result.success) { $("#postEventPreview").html(result.html); refreshEventRow(); } }
+			});
+		}
 		function setType(value) { $("input[name=postType][value=" + value + "]").prop("checked", true); refreshEventRow(); }
 
 		$("#postEventDetails").on("click", function() { createAdminInterfaceWindow(99, postId); });
@@ -1753,6 +1774,7 @@ opens it again. Leaving Event takes the event details off the post after asking 
 									isEvent = false;
 									$("#postEventSummary").text("");
 									setType(chosen);
+									$("#postEventPreview").empty();
 								} else {
 									setType("event");
 									kendo.ui.ExtAlertDialog.show({ title: "The event stays", message: $("<div>").text((result && result.errorMessage) || "The event could not be removed.").html(), icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
@@ -1772,12 +1794,14 @@ opens it again. Leaving Event takes the event details off the post after asking 
 			isEvent = true;
 			$("#postEventSummary").text(info.when || "");
 			setType("event");
+			refreshEventPreview();
 		});
 		$(document).off("galaxieEventRemoved.postEditor").on("galaxieEventRemoved.postEditor", function(e, info) {
 			if (!info || info.postId != postId) { return; }
 			isEvent = false;
 			$("#postEventSummary").text("");
 			setType("blogPost");
+			$("#postEventPreview").empty();
 		});
 
 		refreshEventRow();
