@@ -58,8 +58,9 @@ don't sign in, eg. a guest presenter; New person and Edit open the editor (windo
 	</cfif>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
+		<!--- In the left column, under the Edit buttons (owner, 10-16). --->
+		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(103, 0);">New guest</button></td>
 		<td class="#blockClass#"></td>
-		<td class="#blockClass#"><button type="button" class="k-button k-primary" onclick="createAdminInterfaceWindow(103, 0);">New person</button></td>
 	</tr>
 </table>
 </cfoutput>
