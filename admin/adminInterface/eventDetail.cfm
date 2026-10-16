@@ -313,7 +313,7 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 	<tr class="blockSpacer eventOrganizerPersonRow"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr class="eventOrganizerPersonRow">
 		<td class="#blockClass#" align="right"><label for="eventOrganizerPerson">Person:</label></td>
-		<td class="#blockClass#"><input id="eventOrganizerPerson" style="width: 300px;"> <a href="javascript:galaxieAddRequest('eventOrganizerPerson'); createAdminInterfaceWindow(103, 0);">Add a person</a></td>
+		<td class="#blockClass#"><input id="eventOrganizerPerson" style="width: 300px;"> <a href="javascript:galaxieAddRequest('eventOrganizerPerson'); createAdminInterfaceWindow(103, 0);">Add a guest</a></td>
 	</tr>
 	<tr class="blockSpacer eventOrganizerOtherRow"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr class="eventOrganizerOtherRow">

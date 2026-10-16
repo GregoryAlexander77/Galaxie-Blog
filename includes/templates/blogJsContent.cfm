@@ -1018,7 +1018,7 @@
 				var windowName = "personDetailWindow";
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
-				var windowTitle = "Person";
+				var windowTitle = "Guest";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";
