@@ -22,13 +22,15 @@ don't sign in, eg. a guest presenter; New person and Edit open the editor (windo
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
 	<tr><td colspan="2" class="#blockClass#">People are the names visitors see on your site: the author of each post (shown in its byline) and the organizer of each event. When a visitor clicks one of those names, a card opens with that person's picture, biography and links, and a form for sending them a message. The message is emailed straight to the person; visitors never see their email address.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">There are two kinds of people, and the difference is whether they can sign in. <b>Users</b> are admins: they sign in to this admin site to write posts and run the blog, and their card is made from their profile. <b>Guests</b> never sign in and can't change anything; a guest card only lets you name someone, such as a guest presenter, as an event's organizer, so visitors can read about them and write to them.</td></tr>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Users</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Everyone who can sign in to this admin site. Their card is made from their own profile, so to change their picture, biography or links, use Edit profile.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Everyone who can sign in to this admin site. Their card is made from their own profile, so to change their picture, biography or links, use Edit profile. To add an admin, use <a href="javascript:createAdminInterfaceWindow(28);">Users</a>.</td></tr>
 	<cfloop array="#peopleUsers#" index="thisPerson">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
@@ -42,7 +44,7 @@ don't sign in, eg. a guest presenter; New person and Edit open the editor (windo
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Guests</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">People who don't sign in, such as a guest presenter or a partner. Add them here so you can name them as an event's organizer. Visitors' messages to them go to the email address on their card.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">People who don't sign in, such as a guest presenter or a partner. Add them here so you can name them as an event's organizer. Visitors' messages to them go to the email address on their card. A guest can't sign in; to give someone access to this admin site, add them under <a href="javascript:createAdminInterfaceWindow(28);">Users</a> instead.</td></tr>
 	<cfloop array="#peopleGuests#" index="thisPerson">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
