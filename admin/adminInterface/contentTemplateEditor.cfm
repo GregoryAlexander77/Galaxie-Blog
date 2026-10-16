@@ -92,7 +92,7 @@
 		<cfif session.isMobile>
 			<cfset toolbarString = "undo redo | bold italic | link | image media fancyBoxGallery">
 		<cfelse>
-			<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | tox | hr | link | image editimage | media | fancyBoxGallery | map mapRouting | customWindow | emoticons">
+			<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link | image editimage fancyBoxGallery | media | map mapRouting | customWindow | hr emoticons">
 		</cfif>
 		<cfset imageHandlerUrl = "#application.baseUrl#/common/cfc/ProxyController.cfc?method=uploadImage&mediaProcessType=" & URL.otherArgs & "&csrfToken=" & csrfToken>
 		<cfset imageMediaIdField = "imageMediaId">

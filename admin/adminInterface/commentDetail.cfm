@@ -17,7 +17,7 @@
 	<cfif session.isMobile>
 		<cfset toolbarString = "undo redo | bold italic | link | image media fancyBoxGallery">
 	<cfelse>
-		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link | image editimage | media | fancyBoxGallery | map mapRouting">
+		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link | image editimage fancyBoxGallery | media | map mapRouting">
 	</cfif>
 	<cfset includeGallery = true>
 	</cfsilent>

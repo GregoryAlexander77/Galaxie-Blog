@@ -140,7 +140,7 @@
 	<cfif smallScreen>
 		<cfset toolbarString = "undo redo | bold italic | link | image media fancyBoxGallery">
 	<cfelse>
-		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | tox | hr | link | image editimage | media | fancyBoxGallery | map mapRouting | customWindow webForm booking | emoticons">
+		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link | image editimage fancyBoxGallery | media | map mapRouting | webForm booking customWindow | hr emoticons">
 	</cfif>
 	<cfset includeGallery = true>
 	<cfset includeCustomWindow = true>
