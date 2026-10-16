@@ -167,11 +167,12 @@ email address are required: visitors' messages from the card are emailed there. 
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Links</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Optional. Each shows as a button on the card.</td></tr>
-	<cfloop array="#[ { id: 'personWebsite', label: 'Website', value: person.website }, { id: 'personFacebook', label: 'Facebook', value: person.facebookUrl }, { id: 'personLinkedIn', label: 'LinkedIn', value: person.linkedInUrl }, { id: 'personInstagram', label: 'Instagram', value: person.instagramUrl }, { id: 'personTwitter', label: 'Twitter', value: person.twitterUrl } ]#" index="thisField">
+	<tr><td colspan="2" class="#blockClass#">Optional. Each link you fill in shows as its icon on the card.</td></tr>
+	<!--- The same Font Awesome icons the card on the site shows for each link (includes/windows/personCard.cfm). --->
+	<cfloop array="#[ { id: 'personWebsite', label: 'Website', icon: 'fa-solid fa-globe', value: person.website }, { id: 'personFacebook', label: 'Facebook', icon: 'fa-brands fa-facebook', value: person.facebookUrl }, { id: 'personLinkedIn', label: 'LinkedIn', icon: 'fa-brands fa-linkedin', value: person.linkedInUrl }, { id: 'personInstagram', label: 'Instagram', icon: 'fa-brands fa-instagram', value: person.instagramUrl }, { id: 'personTwitter', label: 'Twitter', icon: 'fa-brands fa-twitter', value: person.twitterUrl } ]#" index="thisField">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="#blockClass#" align="right"><label for="#thisField.id#">#thisField.label#:</label></td>
+		<td class="#blockClass#" align="right"><label for="#thisField.id#"><i class="#thisField.icon#" aria-hidden="true"></i> #thisField.label#:</label></td>
 		<td class="#blockClass#"><input type="text" id="#thisField.id#" class="k-textbox" maxlength="500" placeholder="https://" value="#encodeForHtmlAttribute(thisField.value)#" style="width: 95%;"></td>
 	</tr>
 	</cfloop>

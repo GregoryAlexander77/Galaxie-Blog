@@ -13,11 +13,11 @@ Their address is never shown. URL.person is a card reference, 'user:5' or 'guest
 		and not (structKeyExists(application, "members") and not structIsEmpty(application.members.getCurrentMember()))>
 	<cfset personLinks = []>
 	<cfif not structIsEmpty(personCard)>
-		<cfif len(personCard.website)><cfset arrayAppend(personLinks, { url: personCard.website, icon: "fas fa-globe", label: "Website" })></cfif>
-		<cfif len(personCard.facebookUrl)><cfset arrayAppend(personLinks, { url: personCard.facebookUrl, icon: "fab fa-facebook", label: "Facebook" })></cfif>
-		<cfif len(personCard.linkedInUrl)><cfset arrayAppend(personLinks, { url: personCard.linkedInUrl, icon: "fab fa-linkedin", label: "LinkedIn" })></cfif>
-		<cfif len(personCard.instagramUrl)><cfset arrayAppend(personLinks, { url: personCard.instagramUrl, icon: "fab fa-instagram", label: "Instagram" })></cfif>
-		<cfif len(personCard.twitterUrl)><cfset arrayAppend(personLinks, { url: personCard.twitterUrl, icon: "fab fa-twitter", label: "Twitter" })></cfif>
+		<cfif len(personCard.website)><cfset arrayAppend(personLinks, { url: personCard.website, icon: "fa-solid fa-globe", label: "Website" })></cfif>
+		<cfif len(personCard.facebookUrl)><cfset arrayAppend(personLinks, { url: personCard.facebookUrl, icon: "fa-brands fa-facebook", label: "Facebook" })></cfif>
+		<cfif len(personCard.linkedInUrl)><cfset arrayAppend(personLinks, { url: personCard.linkedInUrl, icon: "fa-brands fa-linkedin", label: "LinkedIn" })></cfif>
+		<cfif len(personCard.instagramUrl)><cfset arrayAppend(personLinks, { url: personCard.instagramUrl, icon: "fa-brands fa-instagram", label: "Instagram" })></cfif>
+		<cfif len(personCard.twitterUrl)><cfset arrayAppend(personLinks, { url: personCard.twitterUrl, icon: "fa-brands fa-twitter", label: "Twitter" })></cfif>
 	</cfif>
 </cfsilent>
 <cfif structIsEmpty(personCard)>
@@ -35,7 +35,7 @@ Their address is never shown. URL.person is a card reference, 'user:5' or 'guest
 				<h3 class="topContent">#encodeForHtml(personCard.name)#</h3>
 				<cfif arrayLen(personLinks)>
 				<p class="galaxiePersonLinks">
-					<cfloop array="#personLinks#" index="thisLink"><a href="#encodeForHtmlAttribute(thisLink.url)#" target="_blank" rel="noopener" aria-label="#thisLink.label#" title="#thisLink.label#" class="k-button" style="margin: 0 6px 6px 0;"><i class="#thisLink.icon#"></i></a></cfloop>
+					<cfloop array="#personLinks#" index="thisLink"><a href="#encodeForHtmlAttribute(thisLink.url)#" target="_blank" rel="noopener" aria-label="#thisLink.label#" title="#thisLink.label#" class="k-button" style="margin: 0 6px 6px 0;"><i class="#thisLink.icon#" aria-hidden="true"></i></a></cfloop>
 				</p>
 				</cfif>
 				<cfif len(personCard.postsUrl)><p><a href="#encodeForHtmlAttribute(personCard.postsUrl)#">See all posts by #encodeForHtml(personCard.name)#</a></p></cfif>
