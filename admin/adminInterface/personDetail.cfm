@@ -31,6 +31,42 @@ email address are required: visitors' messages from the card are emailed there. 
 			};
 		}
 
+		<!--- Picture upload (2026-10-16): saved to /images/photo/guest/ by ProxyController uploadGuestPicture; its address goes in the field. --->
+		$("#personPictureUpload").on("click", function() { $("#personPictureFile").val("").trigger("click"); });
+		$("#personPictureFile").on("change", function() {
+			var file = this.files && this.files[0];
+			if (!file) { return; }
+			var form = new FormData();
+			form.append("csrfToken", "<cfoutput>#csrfToken#</cfoutput>");
+			form.append("guestPicture", file);
+			$("#personPictureStatus").text("Uploading...");
+			jQuery.ajax({
+				type: "post",
+				url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=uploadGuestPicture",
+				data: form,
+				processData: false,
+				contentType: false,
+				dataType: "json",
+				success: function(response) {
+					if (response && response.success) {
+						$("#personPicture").val(response.url);
+						$("#personPicturePreview").attr("src", response.url).show();
+						$("#personPictureStatus").text("Uploaded. Save the card to keep it.");
+					} else {
+						$("#personPictureStatus").text((response && response.errorMessage) || "The picture could not be uploaded.");
+					}
+				},
+				error: function(jqXHR) {
+					$("#personPictureStatus").text("The picture could not be uploaded.");
+					if (jqXHR.status === 403) { createLoginWindow(); }
+				}
+			});
+		});
+		$("#personPicture").on("change", function() {
+			var url = $.trim($(this).val());
+			$("#personPicturePreview").attr("src", url).toggle(url.length > 0);
+		});
+
 		$("#personSubmit").on("click", function() {
 			var data = personData();
 			if (!data.displayName || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(data.email)) {
@@ -109,11 +145,16 @@ email address are required: visitors' messages from the card are emailed there. 
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">About them</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">The picture's web address: https://..., or /images/... for a picture on this site.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Upload a picture (JPG, PNG, GIF or WebP, up to 5 MB; a square one looks best), or paste the web address of one that's already online.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="personPicture">Picture:</label></td>
-		<td class="#blockClass#"><input type="text" id="personPicture" class="k-textbox" maxlength="500" placeholder="https://" value="#encodeForHtmlAttribute(person.picture)#" style="width: 95%;"></td>
+		<td class="#blockClass#">
+			<input type="text" id="personPicture" class="k-textbox" maxlength="500" placeholder="https://" value="#encodeForHtmlAttribute(person.picture)#" style="width: calc(95% - 160px);">
+			<button type="button" class="k-button" id="personPictureUpload">Upload a picture</button>
+			<input type="file" id="personPictureFile" accept="image/jpeg,image/png,image/gif,image/webp" style="display: none;">
+			<div style="margin-top: 6px;"><img id="personPicturePreview" src="#encodeForHtmlAttribute(person.picture)#" alt="" width="85" height="85" style="border-radius: 50%; object-fit: cover;<cfif not len(person.picture)> display: none;</cfif>"> <span id="personPictureStatus" role="status"></span></div>
+		</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>

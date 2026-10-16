@@ -11686,6 +11686,54 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="uploadGuestPicture" access="remote" returnformat="json" output="false"
+			hint="A guest card's picture (window 103, 2026-10-16): saved to /images/photo/guest/ under a random name, so uploads never replace each other. JPG, PNG, GIF or WebP up to 5 MB, and it has to be a real image. Returns { success, url, errorMessage }; the editor puts the url in its Picture field.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="guestPicture" required="false" default="" hint="The uploaded file's form field (read with cffile upload).">
+		<cfset var response = { "success": false, "url": "", "errorMessage": "" }>
+		<cfset var folder = expandPath(application.baseUrl & "/images/photo/guest/")>
+		<cfset var uploaded = {}>
+		<cfset var tempFile = "">
+		<cfset var extension = "">
+		<cfset var fileName = "">
+		<cfset var onWindows = findNoCase("windows", server.os.name) gt 0>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfif not directoryExists(folder)>
+					<cfset directoryCreate(folder)>
+					<!--- On Linux the web server has to be able to read it (galaxieblog.org answered 403 for files Lucee made). --->
+					<cfif not onWindows><cfset fileSetAccessMode(folder, "755")></cfif>
+				</cfif>
+				<cffile action="upload" fileField="guestPicture" destination="#getTempDirectory()#" nameConflict="makeUnique" result="uploaded">
+				<cfset tempFile = uploaded.serverDirectory & "/" & uploaded.serverFile>
+				<cfset extension = lCase(uploaded.serverFileExt)>
+				<cfif not listFind("jpg,jpeg,png,gif,webp", extension)>
+					<cfset response[ "errorMessage" ] = "Choose a JPG, PNG, GIF or WebP picture.">
+				<cfelseif val(uploaded.fileSize) gt 5 * 1024 * 1024>
+					<cfset response[ "errorMessage" ] = "The picture is too big; 5 MB at most.">
+				<cfelseif extension neq "webp" and not isImageFile(tempFile)>
+					<cfset response[ "errorMessage" ] = "That file isn't a picture.">
+				<cfelse>
+					<cfset fileName = "guest-" & lCase(left(hash(createUUID() & rand("SHA1PRNG"), "SHA-256"), 16)) & "." & extension>
+					<cffile action="move" source="#tempFile#" destination="#folder##fileName#">
+					<cfif not onWindows><cfset fileSetAccessMode(folder & fileName, "644")></cfif>
+					<cfset response[ "success" ] = true>
+					<cfset response[ "url" ] = application.baseUrl & "/images/photo/guest/" & fileName>
+				</cfif>
+				<cfif fileExists(tempFile)><cfset fileDelete(tempFile)></cfif>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The picture could not be uploaded: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="deletePersonCard" access="remote" returnformat="json" output="false" hint="Deletes a guest card, unless an event names it as its organizer.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="personCardId" required="false" default="0">
