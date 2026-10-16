@@ -21,14 +21,14 @@ don't sign in, eg. a guest presenter; New person and Edit open the editor (windo
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
-	<tr><td colspan="2" class="#blockClass#">A person's name on the site - the byline of their posts, or the organizer of an event - opens their card: picture, biography, links, and a form that emails them directly. Their email address is never shown.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">People are the names visitors see on your site: the author of each post (shown in its byline) and the organizer of each event. When a visitor clicks one of those names, a card opens with that person's picture, biography and links, and a form for sending them a message. The message is emailed straight to the person; visitors never see their email address.</td></tr>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Users</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Everyone who can sign in to the admin site. Their card comes from their profile: picture, biography and links.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Everyone who can sign in to this admin site. Their card is made from their own profile, so to change their picture, biography or links, use Edit profile.</td></tr>
 	<cfloop array="#peopleUsers#" index="thisPerson">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
@@ -42,7 +42,7 @@ don't sign in, eg. a guest presenter; New person and Edit open the editor (windo
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Guests</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">People who don't sign in, eg. a guest presenter or a partner, so they can organize events. Messages from visitors go to the email address on their card.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">People who don't sign in, such as a guest presenter or a partner. Add them here so you can name them as an event's organizer. Visitors' messages to them go to the email address on their card.</td></tr>
 	<cfloop array="#peopleGuests#" index="thisPerson">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
