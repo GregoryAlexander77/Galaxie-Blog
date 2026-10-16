@@ -1045,6 +1045,9 @@
 		table.k-content > tbody > tr > td[align="right"]:not([colspan]) { padding-right: 7px !important; }
 		table.adminBlocks > tbody > tr.blockSpacer > td { height: 4px; padding: 0; line-height: 0; font-size: 0; }
 		table.adminBlocks td.border { border-top: 1px solid #ddd !important; }
+		<!--- Some themes draw k-alt the same colour as k-content (uniform, office365, highcontrast) or barely different, so the
+		blocks would not show. A light tint over the theme's own colour makes every other block visible in any theme. --->
+		table.adminBlocks > tbody > tr > td.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
 		h4.adminBlockHeading { margin: 4px 0; }
 		table.adminBlocks .k-form-hint, table.k-content .k-form-hint { display: block; font-size: inherit; margin-top: 4px; }
 		<!--- A short hint beside a small field stays on its line; anything longer gets its own row above the field. --->

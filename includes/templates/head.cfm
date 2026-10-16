@@ -331,6 +331,8 @@ Either use https://code.jquery.com/jquery-3.7.1.min.js or https://ajax.googleapi
 <script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/mode/markdown/markdown.js"></script>
 <script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/mode/sql/sql.js"></script>
 <script type="#scriptTypeString#" src="#application.baseUrl#/common/libs/codemirror5/mode/xml/xml.js"></script>
+<!-- "Not found? Add it" buttons in the admin dropdowns. -->
+<script type="#scriptTypeString#" src="#application.baseUrl#/common/js/adminDropDowns.js"></script>
 </cfif>
 <!-- Optional libs -->
 <!-- FontAwesome 6.1 -->

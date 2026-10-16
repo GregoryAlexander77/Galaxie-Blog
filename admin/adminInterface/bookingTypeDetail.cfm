@@ -13,6 +13,11 @@ its refund window are in the Price section (2026-10-15). --->
 		active: true, sortOrder: 0, locationIds: [],
 		paymentOption: "full", depositAmount: 0, depositIsPercent: false, balanceCollection: "inPerson", refundHours: 24
 	}>
+	<!--- A new booking type added from a dropdown's "not found" button starts with the name typed there (otherArgs).
+	createAdminInterfaceWindow sends the text "undefined" when no otherArgs is given. --->
+	<cfif structKeyExists(URL, "otherArgs") and len(trim(URL.otherArgs)) and not listFindNoCase("undefined,null", trim(URL.otherArgs))>
+		<cfset bookingType.name = left(trim(URL.otherArgs), 125)>
+	</cfif>
 </cfif>
 <cfset bookingTypeLocations = application.locations.getLocations()>
 <cfset bookingTypeCategories = application.bookings.getCategories()>
@@ -30,7 +35,9 @@ its refund window are in the Price section (2026-10-15). --->
 		$("#bookingTypeCategory").kendoComboBox({
 			dataSource: <cfoutput>#serializeJson(bookingTypeCategories)#</cfoutput>,
 			filter: "contains",
-			placeholder: "No category",
+			<!--- The list only holds categories already used, so it is empty until the first one is typed. Say so. --->
+			placeholder: <cfoutput>#serializeJson(arrayLen(bookingTypeCategories) ? "No category" : "None yet: type one, eg. Existing clients")#</cfoutput>,
+			noDataTemplate: $("#bookingTypeCategoryNoData").html(),
 			value: <cfoutput>#serializeJson(bookingType.category)#</cfoutput>
 		});
 		$("#bookingTypeStartInterval").kendoDropDownList();
@@ -39,7 +46,28 @@ its refund window are in the Price section (2026-10-15). --->
 			dataSource: <cfoutput>#serializeJson(bookingTypeForms)#</cfoutput>,
 			dataTextField: "title",
 			dataValueField: "webFormId",
-			value: <cfoutput>#bookingType.webFormId#</cfoutput>
+			filter: "contains",
+			noDataTemplate: $("#bookingTypeWebFormNoData").html(),
+			value: <cfoutput>#bookingType.webFormId#</cfoutput>,
+			change: refreshEditFormLink
+		});
+		<!--- "Edit the chosen form" only makes sense when a form is chosen. --->
+		function refreshEditFormLink() {
+			$("#bookingTypeEditFormLink").toggle(parseInt($("#bookingTypeWebForm").data("kendoDropDownList").value(), 10) > 0);
+		}
+		refreshEditFormLink();
+		<!--- A location added with the Add a location link joins the list, ticked (locationDetail.cfm triggers this on save). --->
+		$(document).off("galaxieLocationSaved.bookingType").on("galaxieLocationSaved.bookingType", function(e, savedLocation) {
+			if (!$("#bookingTypeLocationList").length || $("#bookingTypeLocationList input.bookingTypeLocation[value='" + savedLocation.locationOptionId + "']").length) {
+				return;
+			}
+			$("#bookingTypeNoLocations").remove();
+			var checkbox = $('<input type="checkbox" class="k-checkbox bookingTypeLocation" checked>').val(savedLocation.locationOptionId);
+			$("#bookingTypeLocationList").append($("<label/>").append(checkbox).append(document.createTextNode(" " + savedLocation.label)), "<br/>");
+		});
+		<!--- A form built from the Build Form button joins the list and is selected (webFormDetail.cfm triggers this on save). --->
+		$(document).off("galaxieWebFormSaved.bookingType").on("galaxieWebFormSaved.bookingType", function(e, form) {
+			galaxieAddToDropDown("bookingTypeWebForm", { webFormId: form.webFormId, title: form.title }, "webFormId");
 		});
 
 		function refreshBookingMode() {
@@ -111,6 +139,7 @@ its refund window are in the Price section (2026-10-15). --->
 					kendo.ui.ExtWaitDialog.hide();
 					if (JSON.parse(response.success) == true) {
 						try { refreshBookingTypesWindow(); } catch (error) {}
+						try { refreshInsertBookingWindow(response.bookingTypeId); } catch (error) {}
 						try { $("#bookingsWindow").data("kendoWindow").refresh(); } catch (error) {}
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: "The booking type was saved.", icon: "k-ext-information" })).done(function() {
 							$('#bookingTypeDetailWindow').kendoWindow('destroy');
@@ -225,8 +254,9 @@ its refund window are in the Price section (2026-10-15). --->
 	<tr>
 		<td class="#blockClass#" align="right">Locations:</td>
 		<td class="#blockClass#">
+			<div id="bookingTypeLocationList">
 			<cfif not arrayLen(bookingTypeLocations)>
-				Set up a location first under Bookings &gt; Locations.
+				<span id="bookingTypeNoLocations">There are no locations yet.</span>
 			<cfelse>
 				<cfloop array="#bookingTypeLocations#" index="thisLocation">
 					<cfif thisLocation.active or arrayFind(bookingType.locationIds, thisLocation.locationOptionId)>
@@ -234,6 +264,9 @@ its refund window are in the Price section (2026-10-15). --->
 					</cfif>
 				</cfloop>
 			</cfif>
+			</div>
+			<!--- A location saved from here is added to the list above, ticked (see galaxieLocationSaved in the script). --->
+			<a href="javascript:createAdminInterfaceWindow(89, 0);">Add a location</a>
 		</td>
 	</tr>
 
@@ -242,7 +275,7 @@ its refund window are in the Price section (2026-10-15). --->
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Price</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">0 = free. The currency is set in Blog Options &gt; Payments.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">0 = free. The currency is set in <a href="javascript:createAdminInterfaceWindow(38);">Blog Options &gt; Payments</a>.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="bookingTypePrice">Price (#application.payments.getCurrency()#):</label></td>
@@ -259,7 +292,7 @@ its refund window are in the Price section (2026-10-15). --->
 	<tr class="blockSpacer bookingTypePaidRow"><td colspan="2" class="border #blockClass#"></td></tr>
 	<cfif not application.payments.getStatus().ready>
 	<tr class="bookingTypePaidRow">
-		<td colspan="2" class="#blockClass#">Paying online needs your Stripe keys in Blog Options &gt; Payments. Until they're saved, clients see the price and pay at the session.</td>
+		<td colspan="2" class="#blockClass#">Paying online needs your Stripe keys in <a href="javascript:createAdminInterfaceWindow(38);">Blog Options &gt; Payments</a>. Until they're saved, clients see the price and pay at the session.</td>
 	</tr>
 	<tr class="blockSpacer bookingTypePaidRow"><td colspan="2" class="border #blockClass#"></td></tr>
 	</cfif>
@@ -331,7 +364,7 @@ its refund window are in the Price section (2026-10-15). --->
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2" class="#blockClass#">Optional: a form from Forms that clients fill in when they book, eg. what they'd like help with. Name and email are always asked.</td>
+		<td colspan="2" class="#blockClass#">Optional: a form from <a href="javascript:createAdminInterfaceWindow(83);">Forms</a> that clients fill in when they book, eg. what they'd like help with. Name and email are always asked. The questions are the form's fields: <span id="bookingTypeEditFormLink"><a href="javascript:bookingTypeEditWebForm();">edit the chosen form</a> to add or change one, or </span><a href="javascript:galaxieAddRequest('bookingTypeWebForm'); createAdminInterfaceWindow(84, 0);">build a new form</a>.</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
@@ -364,3 +397,30 @@ its refund window are in the Price section (2026-10-15). --->
 </table>
 </form>
 </cfoutput>
+
+<!--- "Not found? Add it" templates for the dropdowns above (common/js/adminDropDowns.js). Outside cfoutput: Kendo templates use #. --->
+<script id="bookingTypeCategoryNoData" type="text/x-kendo-tmpl">
+	# var value = galaxieTypedText(instance); #
+	# if (value.length) { #
+		<div>Category not found. Do you want to add '#: value #'?</div>
+		<br />
+		<button type="button" class="k-button" onclick="galaxieAddComboText('bookingTypeCategory')">Add Category</button>
+	# } else { #
+		<div>There are no categories yet. Type one to add it.</div>
+	# } #
+</script>
+<script id="bookingTypeWebFormNoData" type="text/x-kendo-tmpl">
+	# var value = galaxieTypedText(instance); #
+	<div># if (value.length) { #Form not found. Do you want to build '#: value #'?# } else { #There are no forms yet.# } #</div>
+	<br />
+	<button type="button" class="k-button" onclick="galaxieAddRequest('bookingTypeWebForm'); createAdminInterfaceWindow(84, 0, #= kendo.htmlEncode(JSON.stringify(encodeURIComponent(value))) #)">Build Form</button>
+</script>
+<script>
+	// Opens the chosen intake form in the form editor (window 84), where its questions (fields) are added or changed.
+	function bookingTypeEditWebForm() {
+		var webFormId = parseInt($("#bookingTypeWebForm").data("kendoDropDownList").value(), 10);
+		if (webFormId > 0) {
+			createAdminInterfaceWindow(84, webFormId);
+		}
+	}
+</script>

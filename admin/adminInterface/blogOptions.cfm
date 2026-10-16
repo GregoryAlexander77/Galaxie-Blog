@@ -1118,7 +1118,7 @@
 		  </tr>
 		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td colspan="2" class="#blockClass#">When this is on, a "Sign in" link appears in the menu. Sign-in emails use the blog's email settings in Blog Settings.</td>
+			<td colspan="2" class="#blockClass#">When this is on, a "Sign in" link appears in the menu. Sign-in emails use the blog's email settings in <a href="javascript:createAdminInterfaceWindow(39);">Blog Settings</a>.</td>
 		  </tr>
 		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>

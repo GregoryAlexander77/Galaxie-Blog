@@ -330,6 +330,8 @@ the submissions already received - stay matched to it when the label changes. --
 					if (JSON.parse(response.success) == true) {
 						try { refreshWebFormsWindow(); } catch (error) {}
 						try { refreshInsertWebFormWindow(response.webFormId); } catch (error) {}
+						<!--- Open form dropdowns (booking type, event) add the new form; the one whose Build Form button opened this selects it. --->
+						$(document).trigger("galaxieWebFormSaved", [{ webFormId: response.webFormId, title: formData.title }]);
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: "The form was saved.", icon: "k-ext-information" })).done(function() {
 							$('#webFormDetailWindow').kendoWindow('destroy');
 						});

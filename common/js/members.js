@@ -212,7 +212,9 @@ var galaxieMembers = (function($) {
 		try { guess = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (error) { guess = ""; }
 		var value = selected || guess || "";
 		if (value && zones.indexOf(value) < 0) { zones.unshift(value); }
-		return { zones: zones, value: value };
+		// The label reads "America/Los Angeles"; the value keeps the real id, "America/Los_Angeles".
+		var items = $.map(zones, function(zone) { return { text: zone.replace(/_/g, " "), value: zone }; });
+		return { zones: items, value: value };
 	}
 
 	// My account: the member's bookings, sign-ups and emails (ProxyController.cfc's memberAccount), then their details.
@@ -252,7 +254,7 @@ var galaxieMembers = (function($) {
 		var tz = timeZoneOptions(m.timeZone);
 		var zonePicker = null;
 		galaxieLoader.kendoDropDownList(function() {
-			zonePicker = content.find("#galaxieMemberTimeZone").kendoDropDownList({ dataSource: tz.zones, value: tz.value, filter: "contains" }).data("kendoDropDownList");
+			zonePicker = content.find("#galaxieMemberTimeZone").kendoDropDownList({ dataSource: tz.zones, dataTextField: "text", dataValueField: "value", value: tz.value, filter: "contains" }).data("kendoDropDownList");
 		});
 		content.find("form.galaxieMemberDetails").on("submit", function(e) {
 			e.preventDefault();

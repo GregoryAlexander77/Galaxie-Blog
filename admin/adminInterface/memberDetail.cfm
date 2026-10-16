@@ -124,7 +124,7 @@ and Block/Unblock and Delete. See common/cfc/Members.cfc; saved by ProxyControll
 			<cfloop array="#detailSignups#" index="thisSignup">
 				<div>#encodeForHtml(thisSignup.formTitle)#<cfif len(thisSignup.postTitle)>, on #encodeForHtml(thisSignup.postTitle)#</cfif> (#encodeForHtml(thisSignup.date)#)</div>
 			</cfloop>
-			<div class="k-form-hint">Their answers are under Forms &gt; Submissions.</div>
+			<div class="k-form-hint">Their answers are under <a href="javascript:createAdminInterfaceWindow(83);">Forms &gt; Submissions</a>.</div>
 		</cfif>
 		</td>
 	</tr>

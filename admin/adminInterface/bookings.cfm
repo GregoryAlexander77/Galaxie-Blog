@@ -35,7 +35,7 @@ See doc/aiDraftArticles/eventsAndFormsDesign.cfm, Part 3. --->
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(92);">Hours</button></td>
-		<td class="#blockClass#">When you're available each week, per location if you like, and your days off. <cfif len(bookingTimeZone)>Times are in your blog's time zone, #encodeForHtml(bookingTimeZone)#.<cfelse>Set your time zone in Blog Settings first.</cfif></td>
+		<td class="#blockClass#">When you're available each week, per location if you like, and your days off. <cfif len(bookingTimeZone)>Times are in your blog's time zone, #encodeForHtml(replace(bookingTimeZone, "_", " ", "all"))# (<a href="javascript:createAdminInterfaceWindow(39);">Blog Settings</a>).<cfelse>Set your time zone in <a href="javascript:createAdminInterfaceWindow(39);">Blog Settings</a> first.</cfif></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>

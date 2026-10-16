@@ -9,6 +9,11 @@ which checks everything again on the server and keeps only the details for the c
 		locationOptionId: 0, kind: "inPerson", label: "", venueName: "", address: "", onlineLinkMode: "fixed", onlineUrl: "",
 		phoneDirection: "weCall", phoneNumber: "", instructions: "", active: true, sortOrder: arrayLen(application.locations.getLocations()) + 1
 	}>
+	<!--- A new location added from a dropdown's "not found" button starts with the name typed there (otherArgs).
+	createAdminInterfaceWindow sends the text "undefined" when no otherArgs is given. --->
+	<cfif structKeyExists(URL, "otherArgs") and len(trim(URL.otherArgs)) and not listFindNoCase("undefined,null", trim(URL.otherArgs))>
+		<cfset bookingLocation.label = left(trim(URL.otherArgs), 125)>
+	</cfif>
 </cfif>
 
 <script>
@@ -62,6 +67,8 @@ which checks everything again on the server and keeps only the details for the c
 					kendo.ui.ExtWaitDialog.hide();
 					if (JSON.parse(response.success) == true) {
 						try { refreshLocationsWindow(); } catch (error) {}
+						<!--- Open location dropdowns (booking hours) add the new location; the one whose New Location button opened this selects it. --->
+						$(document).trigger("galaxieLocationSaved", [{ locationOptionId: response.locationOptionId, label: locationData.label }]);
 						try { $("#bookingsWindow").data("kendoWindow").refresh(); } catch (error) {}
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: "The location was saved.", icon: "k-ext-information" })).done(function() {
 							$('#locationDetailWindow').kendoWindow('destroy');

@@ -19,9 +19,9 @@ post and click Event in the editor. See common/cfc/Events.cfc. --->
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
-	<tr><td colspan="2" class="#blockClass#">Every post that is an event. To make a post an event, open it and click Event in the editor: you choose when and where, and whether people sign up (RSVP). Open changes an event; Sign-ups shows who's coming.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Every post that is an event. To make a post an event, <a href="javascript:createAdminInterfaceWindow(5);">open it</a> and click Event in the editor: you choose when and where, and whether people sign up (RSVP). Open changes an event; Sign-ups shows who's coming.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Visitors see every upcoming event on the Events page, in the Upcoming Events pod (switch it off in Themes), and in the calendar feed they can subscribe to. New-post emails start with the event's details.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Visitors see every upcoming event on the Events page, in the Upcoming Events pod (switch it off in <a href="javascript:createAdminInterfaceWindow(29);">Themes</a>), and in the calendar feed they can subscribe to. New-post emails start with the event's details.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right">Events page:</td>

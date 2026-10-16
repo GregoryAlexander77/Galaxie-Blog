@@ -1066,7 +1066,7 @@
 			</cfloop>
 		  <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<div class="k-form-hint">Shows below the text: <cfoutput>#arrayToList(postWebFormNotes, ", ")#</cfoutput>. Change this under Forms.</div>
+				<div class="k-form-hint">Shows below the text: <cfoutput>#arrayToList(postWebFormNotes, ", ")#</cfoutput>. Change this under <a href="javascript:createAdminInterfaceWindow(83);">Forms</a>.</div>
 			</td>
 		  </tr>
 		</cfif>

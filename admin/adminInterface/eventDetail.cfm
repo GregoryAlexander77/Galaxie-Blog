@@ -21,6 +21,9 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 	<cfif reFind("^(Africa|America|Antarctica|Asia|Atlantic|Australia|Europe|Indian|Pacific)/", thisZone)><cfset arrayAppend(eventZones, thisZone)></cfif>
 </cfloop>
 <cfset arraySort(eventZones, "textnocase")>
+<!--- The dropdown reads "America/Los Angeles"; the value keeps the real id, "America/Los_Angeles". --->
+<cfset eventZoneChoices = []>
+<cfloop array="#eventZones#" index="thisZone"><cfset arrayAppend(eventZoneChoices, { "text": replace(thisZone, "_", " ", "all"), "value": thisZone })></cfloop>
 <!--- RSVP: the forms to choose from, and how many are coming so far. --->
 <cfset eventForms = application.webForms.getForms()>
 <cfset eventRsvpState = isNewEvent ? {} : application.events.getRsvpState(theEvent)>
@@ -29,12 +32,16 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 
 <script>
 	$(document).ready(function() {
-		var eventZones = <cfoutput>#serializeJson(eventZones)#</cfoutput>;
+		var eventZones = <cfoutput>#serializeJson(eventZoneChoices)#</cfoutput>;
 		$("#eventStartDate, #eventEndDate").kendoDatePicker({ format: "MMMM d, yyyy", parseFormats: ["yyyy-MM-dd"] });
 		$("#eventStartTime, #eventEndTime").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm", "h:mm tt"], interval: 15 });
-		$("#eventTimeZone").kendoDropDownList({ dataSource: eventZones, filter: "contains" });
+		$("#eventTimeZone").kendoDropDownList({ dataSource: eventZones, dataTextField: "text", dataValueField: "value", filter: "contains" });
 		$("#eventStatus").kendoDropDownList();
-		$("#eventRsvpForm").kendoDropDownList();
+		$("#eventRsvpForm").kendoDropDownList({ filter: "contains", noDataTemplate: $("#eventRsvpFormNoData").html() });
+		<!--- A form built from the Build Form button joins the list and is selected (webFormDetail.cfm triggers this on save). --->
+		$(document).off("galaxieWebFormSaved.event").on("galaxieWebFormSaved.event", function(e, form) {
+			galaxieAddToDropDown("eventRsvpForm", { value: String(form.webFormId), text: form.title }, "value");
+		});
 		$("#eventRsvpClosesDate").kendoDatePicker({ format: "MMMM d, yyyy", parseFormats: ["yyyy-MM-dd"] });
 		$("#eventRsvpClosesTime").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm", "h:mm tt"], interval: 15 });
 
@@ -190,7 +197,7 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="eventTimeZone">Time zone:</label></td>
-		<td class="#blockClass#"><select id="eventTimeZone" style="width: 300px;"><option value="#encodeForHtmlAttribute(len(theEvent.timeZone) ? theEvent.timeZone : eventBlogZone)#" selected>#encodeForHtml(len(theEvent.timeZone) ? theEvent.timeZone : eventBlogZone)#</option></select></td>
+		<td class="#blockClass#"><select id="eventTimeZone" style="width: 300px;"><option value="#encodeForHtmlAttribute(len(theEvent.timeZone) ? theEvent.timeZone : eventBlogZone)#" selected>#encodeForHtml(replace(len(theEvent.timeZone) ? theEvent.timeZone : eventBlogZone, "_", " ", "all"))#</option></select></td>
 	</tr>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
@@ -281,7 +288,7 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 		<td class="#blockClass#"><input type="text" id="eventMaxPartySize" class="k-textbox" inputmode="numeric" maxlength="2" value="#theEvent.askPartySize ? theEvent.maxPartySize : 4#" style="width: 120px;"><span class="k-form-hint">people, including the person signing up</span></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">To charge for a place, enter a price per person: people pay online through Stripe when they sign up, and their place is confirmed once the payment goes through. Leave it empty for a free event.<cfif not eventPaymentsReady> Payments aren't set up yet: turn them on in Blog Options &gt; Payments first.</cfif></td></tr>
+	<tr><td colspan="2" class="#blockClass#">To charge for a place, enter a price per person: people pay online through Stripe when they sign up, and their place is confirmed once the payment goes through. Leave it empty for a free event.<cfif not eventPaymentsReady> Payments aren't set up yet: turn them on in <a href="javascript:createAdminInterfaceWindow(38);">Blog Options &gt; Payments</a> first.</cfif></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="eventPrice">Price:</label></td>
@@ -313,3 +320,11 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 	</tr>
 </table>
 </cfoutput>
+
+<!--- "Not found? Add it" template for the sign-up form dropdown (common/js/adminDropDowns.js). Outside cfoutput: Kendo templates use #. --->
+<script id="eventRsvpFormNoData" type="text/x-kendo-tmpl">
+	# var value = galaxieTypedText(instance); #
+	<div># if (value.length) { #Form not found. Do you want to build '#: value #'?# } else { #There are no forms yet.# } #</div>
+	<br />
+	<button type="button" class="k-button" onclick="galaxieAddRequest('eventRsvpForm'); createAdminInterfaceWindow(84, 0, #= kendo.htmlEncode(JSON.stringify(encodeURIComponent(value))) #)">Build Form</button>
+</script>

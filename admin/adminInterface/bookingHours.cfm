@@ -122,7 +122,15 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 			dataSource: <cfoutput>#serializeJson(hoursChoices)#</cfoutput>,
 			dataTextField: "text",
 			dataValueField: "value",
+			filter: "contains",
+			noDataTemplate: $("#hoursLocationNoData").html(),
 			change: function() { showHours(this.value()); }
+		});
+		<!--- A location added from a dropdown's Add Location button joins both location lists here, and is selected in the one that asked
+		(locationDetail.cfm triggers this on save). --->
+		$(document).off("galaxieLocationSaved.hours").on("galaxieLocationSaved.hours", function(e, savedLocation) {
+			galaxieAddToDropDown("hoursLocation", { value: savedLocation.locationOptionId, text: savedLocation.label }, "value");
+			galaxieAddToDropDown("exceptionLocation", { value: savedLocation.locationOptionId, text: savedLocation.label }, "value");
 		});
 		showHours("0");
 
@@ -175,7 +183,7 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 
 		<!--- Days off and different hours --->
 		$("#exceptionDate").kendoDatePicker({ format: "yyyy-MM-dd", min: new Date() });
-		$("#exceptionLocation").kendoDropDownList({ dataSource: <cfoutput>#serializeJson(hoursChoices)#</cfoutput>, dataTextField: "text", dataValueField: "value" });
+		$("#exceptionLocation").kendoDropDownList({ dataSource: <cfoutput>#serializeJson(hoursChoices)#</cfoutput>, dataTextField: "text", dataValueField: "value", filter: "contains", noDataTemplate: $("#exceptionLocationNoData").html() });
 		$("#exceptionLocation").data("kendoDropDownList").dataSource.at(0).set("text", "Every location");
 		$("#exceptionStart").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm"], interval: 15, value: "09:00" });
 		$("#exceptionEnd").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm"], interval: 15, value: "12:00" });
@@ -230,7 +238,7 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
-	<tr><td colspan="2" class="#blockClass#">When you take bookings each week.<cfif len(hoursTimeZone)> Times are in your blog's time zone, #encodeForHtml(hoursTimeZone)#; clients see them in their own.<cfelse> Set your blog's time zone in Blog Settings first.</cfif></td></tr>
+	<tr><td colspan="2" class="#blockClass#">When you take bookings each week.<cfif len(hoursTimeZone)> Times are in your blog's time zone, #encodeForHtml(replace(hoursTimeZone, "_", " ", "all"))# (<a href="javascript:createAdminInterfaceWindow(39);">Blog Settings</a>); clients see them in their own.<cfelse> Set your blog's time zone in <a href="javascript:createAdminInterfaceWindow(39);">Blog Settings</a> first.</cfif></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">General hours apply everywhere, unless a location has its own.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
@@ -314,3 +322,17 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 	</tr>
 </table>
 </cfoutput>
+
+<!--- "Not found? Add it" templates for the two location dropdowns (common/js/adminDropDowns.js). Outside cfoutput: Kendo templates use #. --->
+<script id="hoursLocationNoData" type="text/x-kendo-tmpl">
+	# var value = galaxieTypedText(instance); #
+	<div>Location not found. Do you want to add '#: value #'?</div>
+	<br />
+	<button type="button" class="k-button" onclick="galaxieAddRequest('hoursLocation'); createAdminInterfaceWindow(89, 0, #= kendo.htmlEncode(JSON.stringify(value)) #)">Add Location</button>
+</script>
+<script id="exceptionLocationNoData" type="text/x-kendo-tmpl">
+	# var value = galaxieTypedText(instance); #
+	<div>Location not found. Do you want to add '#: value #'?</div>
+	<br />
+	<button type="button" class="k-button" onclick="galaxieAddRequest('exceptionLocation'); createAdminInterfaceWindow(89, 0, #= kendo.htmlEncode(JSON.stringify(value)) #)">Add Location</button>
+</script>
