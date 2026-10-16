@@ -1006,6 +1006,8 @@
 
 		<!--- The event card at the top of an event post (2026-10-15, common/cfc/Events.cfc renderCard): a date block on the left, the details on the right. Colours come from the theme (k-content, k-header). --->
 		.galaxieEventCard { display: flex; gap: 14px; align-items: flex-start; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin: 0 0 16px 0; }
+		<!--- Events page: every other event is k-alt; the same tint as the admin blocks, as some themes draw k-alt like k-content. --->
+		.galaxieEventsItem.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
 		.galaxieEventDate { flex: 0 0 64px; text-align: center; border-radius: 6px; padding: 6px 0; line-height: 1.1; }
 		.galaxieEventMonth { display: block; font-size: 0.8em; letter-spacing: 1px; }
 		.galaxieEventDay { display: block; font-size: 1.8em; font-weight: bold; }

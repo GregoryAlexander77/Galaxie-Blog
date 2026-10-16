@@ -993,14 +993,17 @@
 	</cfloop>
 	<cfset html.append('<div id="galaxieEventsCalendar" class="galaxieEventsCalendar" data-days="' & encodeForHtmlAttribute(serializeJson(days)) & '"></div>')>
 	<cfset html.append('<h2 class="galaxieEventsHeading">Coming up</h2>')>
+	<!--- The events alternate k-content / k-alt so each one stands apart (owner, 10-16); each list starts on k-content. --->
+	<cfset var itemIndex = 0>
 	<cfif arrayLen(upcoming)>
-		<cfloop array="#upcoming#" index="item"><cfset html.append(listItemHtml(item))></cfloop>
+		<cfloop array="#upcoming#" index="item"><cfset itemIndex++><cfset html.append(listItemHtml(item, itemIndex))></cfloop>
 	<cfelse>
 		<cfset html.append('<p>No events are planned right now. Subscribe above to hear about the next one.</p>')>
 	</cfif>
 	<cfif arrayLen(past)>
 		<cfset html.append('<h2 class="galaxieEventsHeading">Past events</h2>')>
-		<cfloop array="#past#" index="item"><cfset html.append(listItemHtml(item))></cfloop>
+		<cfset itemIndex = 0>
+		<cfloop array="#past#" index="item"><cfset itemIndex++><cfset html.append(listItemHtml(item, itemIndex))></cfloop>
 	</cfif>
 	<cfset html.append(eventsPageScript())>
 	<cfreturn html.toString()>
@@ -1008,13 +1011,14 @@
 
 <cffunction name="listItemHtml" access="private" returntype="string" output="false" hint="One event on the Events page.">
 	<cfargument name="item" type="struct" required="true">
+	<cfargument name="position" type="numeric" required="false" default="1" hint="1-based place in its list: odd is k-content, even is k-alt.">
 	<cfset var ev = arguments.item.ev>
 	<cfset var place = "">
 	<cfset var ways = []>
 	<cfset var note = statusNote(ev)>
 	<cfset var html = "">
 	<cfloop array="#ev.locations#" index="place"><cfset arrayAppend(ways, place.label)></cfloop>
-	<cfset html = '<div class="galaxieEventCard galaxieEventsItem k-content' & (arguments.item.isOver ? ' galaxieEventIsOver' : '') & '" data-day="' & zoned(ev.startUtc, ev.timeZone).toLocalDate().toString() & '" data-start-utc="' & encodeForHtmlAttribute(ev.startUtc) & '" data-end-utc="' & encodeForHtmlAttribute(ev.endUtc) & '" data-zone="' & encodeForHtmlAttribute(ev.timeZone) & '" data-all-day="' & (ev.allDay ? "true" : "false") & '">'>
+	<cfset html = '<div class="galaxieEventCard galaxieEventsItem ' & (arguments.position mod 2 ? 'k-content' : 'k-alt') & (arguments.item.isOver ? ' galaxieEventIsOver' : '') & '" data-day="' & zoned(ev.startUtc, ev.timeZone).toLocalDate().toString() & '" data-start-utc="' & encodeForHtmlAttribute(ev.startUtc) & '" data-end-utc="' & encodeForHtmlAttribute(ev.endUtc) & '" data-zone="' & encodeForHtmlAttribute(ev.timeZone) & '" data-all-day="' & (ev.allDay ? "true" : "false") & '">'>
 	<cfset html = html & dateBlockHtml(ev) & '<div class="galaxieEventBody">'>
 	<cfset html = html & '<h3 class="galaxieEventsItemTitle"><a href="' & encodeForHtmlAttribute(arguments.item.url) & '">' & encodeForHtml(arguments.item.title) & '</a></h3>'>
 	<cfif len(note)><cfset html = html & '<p class="galaxieEventStatus"><strong>' & note & '</strong></p>'></cfif>
