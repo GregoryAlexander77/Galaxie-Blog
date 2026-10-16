@@ -13,7 +13,8 @@ See doc/aiDraftArticles/eventsAndFormsDesign.cfm, Part 3. --->
 
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 <cfoutput>
-<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+<!--- adminHub: a clearer line between the sections (owner, 10-16). See blogContentCss.cfm. --->
+<table align="center" class="k-content adminBlocks adminHub" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
 	<tr><td colspan="2" class="#blockClass#">Let visitors book a time with you: a consultation, a session, a lesson. Set up where you meet, the kinds of bookings you offer, and when you're available.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
