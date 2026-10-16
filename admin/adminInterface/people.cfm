@@ -30,7 +30,7 @@ don't sign in, eg. a guest presenter; New person and Edit open the editor (windo
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Users</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Everyone who can sign in to this admin site. Their card is made from their own profile, so to change their picture, biography or links, use Edit profile.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Everyone who can sign in to this admin site. Each user's card is made from their own personal user profile. Edit profile opens that one person's profile: changing the picture, biography or links there changes only their card, not anyone else's and not the rest of the blog.</td></tr>
 	<cfloop array="#peopleUsers#" index="thisPerson">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
