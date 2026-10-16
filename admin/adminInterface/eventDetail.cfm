@@ -37,6 +37,13 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 		$("#eventStartTime, #eventEndTime").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm", "h:mm tt"], interval: 15 });
 		$("#eventTimeZone").kendoDropDownList({ dataSource: eventZones, dataTextField: "text", dataValueField: "value", filter: "contains" });
 		$("#eventStatus").kendoDropDownList();
+		<!--- A location added from here joins the list, checked (locationDetail.cfm triggers this on save). --->
+		$(document).off("galaxieLocationSaved.event").on("galaxieLocationSaved.event", function(e, savedLocation) {
+			if (!$("#eventLocationList").length || $("#eventLocationList input.eventLocation[value='" + savedLocation.locationOptionId + "']").length) { return; }
+			$("#eventNoLocations").remove();
+			var checkbox = $('<input type="checkbox" class="k-checkbox eventLocation" checked>').val(savedLocation.locationOptionId);
+			$("#eventLocationList").append($("<label/>").append(checkbox).append(document.createTextNode(" " + savedLocation.label)), "<br/>");
+		});
 		$("#eventRsvpForm").kendoDropDownList({ filter: "contains", noDataTemplate: $("#eventRsvpFormNoData").html() });
 		<!--- A form built from the Build Form button joins the list and is selected (webFormDetail.cfm triggers this on save). --->
 		$(document).off("galaxieWebFormSaved.event").on("galaxieWebFormSaved.event", function(e, form) {
@@ -213,20 +220,23 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Where</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Tick every way people can attend. With more than one (eg. in person or online), people say which when they sign up. Locations are shared with Bookings.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Check every location people can attend. With more than one (eg. in person or online), people say which when they sign up. Locations are shared with Bookings.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right">Locations:</td>
 		<td class="#blockClass#">
 			<cfset eventShownLocations = 0>
+			<span id="eventLocationList">
 			<cfloop array="#eventLocations#" index="thisLocation">
 				<cfif thisLocation.active or arrayFind(theEvent.locationIds, thisLocation.locationOptionId)>
 					<cfset eventShownLocations++>
 					<label><input type="checkbox" class="k-checkbox eventLocation" value="#thisLocation.locationOptionId#"<cfif arrayFind(theEvent.locationIds, thisLocation.locationOptionId)> checked</cfif>> #encodeForHtml(thisLocation.label)#<cfif not thisLocation.active> (not active)</cfif></label><br>
 				</cfif>
 			</cfloop>
-			<cfif not eventShownLocations>No locations yet.</cfif>
-			<button type="button" class="k-button" onclick="createAdminInterfaceWindow(88);" style="margin-top: 6px;">Set up locations</button>
+			</span>
+			<cfif not eventShownLocations><span id="eventNoLocations">No locations yet.</span></cfif>
+			<!--- With no locations yet, the button opens a new location straight away (owner, 10-16); a location saved there joins the list, checked. --->
+			<button type="button" class="k-button" onclick="createAdminInterfaceWindow(#arrayLen(eventLocations) ? 88 : '89, 0'#);" style="margin-top: 6px;">Set up locations</button>
 		</td>
 	</tr>
 

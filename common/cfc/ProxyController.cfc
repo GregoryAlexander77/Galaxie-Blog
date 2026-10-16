@@ -11055,7 +11055,7 @@
 				<!--- A location a booking type still offers can't be deleted (2026-10-14): untick it there, or make it inactive. --->
 				<cfset local.usedBy = application.bookings.getTypesUsingLocation(val(arguments.locationOptionId))>
 				<cfif arrayLen(local.usedBy)>
-					<cfset response[ "errorMessage" ] = "This location is offered by " & encodeForHtml(arrayToList(local.usedBy, ", ")) & ". Untick it in those booking types first, or edit the location and untick Active to stop offering it.">
+					<cfset response[ "errorMessage" ] = "This location is offered by " & encodeForHtml(arrayToList(local.usedBy, ", ")) & ". Uncheck it in those booking types first, or edit the location and untick Active to stop offering it.">
 				<!--- ...or an event (2026-10-15). --->
 				<cfelseif application.events.isLocationUsed(val(arguments.locationOptionId))>
 					<cfset response[ "errorMessage" ] = "An event uses this location. Choose another location in that event first, or edit the location and untick Active to stop offering it.">

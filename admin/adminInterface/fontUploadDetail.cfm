@@ -154,7 +154,7 @@
 			<td class="#blockClass#"><input class="k-checkbox" type="checkbox" name="italic<cfoutput>#i#</cfoutput>" id="italic<cfoutput>#i#</cfoutput>"<cfif italic> checked</cfif> value="true"></td>
 		</tr>
 		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-		<tr><td colspan="2" class="#blockClass#">Untick for fonts that didn't come from Google Fonts.</td></tr>
+		<tr><td colspan="2" class="#blockClass#">Uncheck for fonts that didn't come from Google Fonts.</td></tr>
 		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		<tr>
 			<td class="#blockClass#" align="right"><label for="googleFont<cfoutput>#i#</cfoutput>">Google Font?</label></td>

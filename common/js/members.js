@@ -170,7 +170,7 @@ var galaxieMembers = (function($) {
 			'<div>' +
 				'<p class="galaxieMemberMessage"></p>' +
 				'<div class="galaxieMemberField"><label><input type="checkbox" class="k-checkbox" id="galaxieMemberRemember" checked> Keep me signed in on this device</label></div>' +
-				'<div class="k-form-hint">Untick this on a shared or public computer.</div>' +
+				'<div class="k-form-hint">Uncheck this on a shared or public computer.</div>' +
 				'<div class="galaxieMemberButtons" style="margin-top: 1em;"><button type="button" class="k-button k-primary galaxieMemberGo">Sign in</button></div>' +
 			'</div>'
 		);

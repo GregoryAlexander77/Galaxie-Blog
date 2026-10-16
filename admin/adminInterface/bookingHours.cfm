@@ -247,7 +247,7 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 		<td class="#blockClass#"><input id="hoursLocation" style="width: 95%; max-width: 450px;"></td>
 	</tr>
 	<tr class="blockSpacer hoursOwnRow"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr id="hoursFollowNote" class="hoursFollowNoteRow"><td colspan="2" class="#blockClass#">This location follows your general hours, shown below. Tick Own hours to give it its own, eg. the office only on Tuesdays and Thursdays.</td></tr>
+	<tr id="hoursFollowNote" class="hoursFollowNoteRow"><td colspan="2" class="#blockClass#">This location follows your general hours, shown below. Check Own hours to give it its own, eg. the office only on Tuesdays and Thursdays.</td></tr>
 	<tr class="blockSpacer hoursFollowNoteRow"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr id="hoursOwnRow" class="hoursOwnRow">
 		<td class="#blockClass#" align="right"><label for="hoursOwn">Own hours:</label></td>

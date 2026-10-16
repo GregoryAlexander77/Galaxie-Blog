@@ -452,7 +452,7 @@ the submissions already received - stay matched to it when the label changes. --
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">On the site</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Off: what people send stays private, here in the admin site. On: a sign-up list can be shown on the site with the fields you tick ("Show in the public sign-up list"), for example who is bringing what to a potluck. Email and phone fields are never shown.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Off: what people send stays private, here in the admin site. On: a sign-up list can be shown on the site with the fields you check ("Show in the public sign-up list"), for example who is bringing what to a potluck. Email and phone fields are never shown.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="webFormPublicList">Show sign-ups publicly:</label></td>

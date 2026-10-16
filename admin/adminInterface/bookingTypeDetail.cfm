@@ -248,7 +248,7 @@ its refund window are in the Price section (2026-10-15). --->
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Where</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2" class="#blockClass#">Tick every way this can happen. With more than one, clients choose - eg. in person or a remote session.</td>
+		<td colspan="2" class="#blockClass#">Check every location where this can happen. With more than one, clients choose - eg. in person or a remote session.</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
