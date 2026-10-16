@@ -4,6 +4,8 @@ Locations (88), Booking types (90), Hours (92) and the Bookings list (94).
 See doc/aiDraftArticles/eventsAndFormsDesign.cfm, Part 3. --->
 <cfset bookingLocationCount = arrayLen(application.locations.getLocations())>
 <cfset bookingTypeCount = arrayLen(application.bookings.getBookingTypes())>
+<!--- A button that would open an empty list opens the window to add one instead (owner, 10-16). --->
+<!--- (Locations and Booking types below open the editor for a new one while there are none.) --->
 <cfset bookingTimeZone = application.blog.getBlogTimeZoneId()>
 <cfset bookingUpcoming = application.bookings.getBookingsForList("upcoming")>
 <cfset bookingPendingCount = 0>
@@ -21,14 +23,14 @@ See doc/aiDraftArticles/eventsAndFormsDesign.cfm, Part 3. --->
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(88);">Locations</button></td>
+		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(#bookingLocationCount ? 88 : '89, 0'#);">Locations</button></td>
 		<td class="#blockClass#">Where you meet: in person, online or by phone. A booking type can offer several, and the client chooses. (#bookingLocationCount# set up)</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(90);">Booking types</button></td>
+		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(#bookingTypeCount ? 90 : '91, 0'#);">Booking types</button></td>
 		<td class="#blockClass#">What can be booked: its length, price, where it happens, and the rules for booking it. (#bookingTypeCount# set up)</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>

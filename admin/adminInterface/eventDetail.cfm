@@ -285,7 +285,8 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 					</cfif>
 				</cfloop>
 			</select>
-			<button type="button" class="k-button" onclick="createAdminInterfaceWindow(83);">Set up forms</button>
+			<!--- A button that would open an empty list opens the window to add one instead (owner, 10-16). --->
+			<button type="button" class="k-button" onclick="<cfif arrayLen(eventForms)>createAdminInterfaceWindow(83);<cfelse>galaxieAddRequest('eventRsvpForm'); createAdminInterfaceWindow(84, 0);</cfif>">Set up forms</button>
 		</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>

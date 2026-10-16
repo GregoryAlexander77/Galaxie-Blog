@@ -2,6 +2,8 @@
 <cfset homepageSettings = application.blog.getHomepageSettings()>
 <cfset allPages = application.blog.getPagesForDropdown()>
 <cfset eligibleCollections = application.blog.getEligiblePageCollectionsForHomepage()>
+<!--- A button that would open an empty list opens the window to add one instead (owner, 10-16). --->
+<cfset homepageCollectionCount = arrayLen(application.blog.getAllPageCollections())>
 
 <script>
 
@@ -194,7 +196,7 @@
 					No page collections are ready yet - a collection needs at least 2 pages before it can be featured here.
 				</div>
 				<br />
-				 <button class="k-button" onclick="createAdminInterfaceWindow(68)" ontouchend="createAdminInterfaceWindow(68)">Manage Page Collections</button>
+				 <cfif homepageCollectionCount><button class="k-button" onclick="createAdminInterfaceWindow(68)" ontouchend="createAdminInterfaceWindow(68)">Manage Page Collections</button><cfelse><button class="k-button" onclick="createAdminInterfaceWindow(24,'newPageCollection')" ontouchend="createAdminInterfaceWindow(24,'newPageCollection')">Create a Page Collection</button></cfif>
 			</script>
 		</div>
 	</td>

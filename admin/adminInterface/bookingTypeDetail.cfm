@@ -364,7 +364,7 @@ its refund window are in the Price section (2026-10-15). --->
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2" class="#blockClass#">Optional: a form from <a href="javascript:createAdminInterfaceWindow(83);">Forms</a> that clients fill in when they book, eg. what they'd like help with. Name and email are always asked. The questions are the form's fields: <span id="bookingTypeEditFormLink"><a href="javascript:bookingTypeEditWebForm();">edit the chosen form</a> to add or change one, or </span><a href="javascript:galaxieAddRequest('bookingTypeWebForm'); createAdminInterfaceWindow(84, 0);">build a new form</a>.</td>
+		<td colspan="2" class="#blockClass#">Optional: a form from <a href="javascript:<cfif arrayLen(bookingTypeForms) gt 1>createAdminInterfaceWindow(83);<cfelse>galaxieAddRequest('bookingTypeWebForm'); createAdminInterfaceWindow(84, 0);</cfif>">Forms</a> that clients fill in when they book, eg. what they'd like help with. Name and email are always asked. The questions are the form's fields: <span id="bookingTypeEditFormLink"><a href="javascript:bookingTypeEditWebForm();">edit the chosen form</a> to add or change one, or </span><a href="javascript:galaxieAddRequest('bookingTypeWebForm'); createAdminInterfaceWindow(84, 0);">build a new form</a>.</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
