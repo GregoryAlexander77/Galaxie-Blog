@@ -53,9 +53,19 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 		$("#eventRsvpClosesTime").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm", "h:mm tt"], interval: 15 });
 
 		<!--- The most per sign-up only matters when people are asked how many are coming. --->
-		function refreshPartySize() { $("#eventMaxPartySize").prop("disabled", !$("#eventAskPartySize").is(":checked")); }
+		<!--- A disabled field also gets Kendo's disabled class, so it looks disabled (owner, 10-16). --->
+		function setDisabled(field, disabled) { $(field).prop("disabled", disabled).toggleClass("k-state-disabled", disabled); }
+		function refreshPartySize() { setDisabled("#eventMaxPartySize", !$("#eventAskPartySize").is(":checked")); }
 		$("#eventAskPartySize").on("change", refreshPartySize);
 		refreshPartySize();
+		<!--- Refunds only matter when there is a price (and the price needs Payments set up, see the Price field). --->
+		function refreshRefunds() {
+			var price = parseFloat($("#eventPrice").val());
+			setDisabled("#eventRefundHours", $("#eventPrice").prop("disabled") || !(price > 0));
+		}
+		$("#eventPrice").on("input change", refreshRefunds);
+		$("#eventPrice").toggleClass("k-state-disabled", $("#eventPrice").prop("disabled"));
+		refreshRefunds();
 
 		<!--- Times aren't needed for an all-day event. --->
 		function refreshAllDay() {

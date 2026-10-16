@@ -1067,6 +1067,9 @@
 			opacity: 1 !important; position: static !important; width: auto !important; height: auto !important; overflow: visible !important;
 			-webkit-appearance: auto !important; appearance: auto !important; margin: 0 4px 0 0 !important; vertical-align: middle;
 		}
+		<!--- Disabled fields look disabled in every theme (owner, 10-16): dimmed, with a not-allowed pointer, and so does the hint beside them. --->
+		.k-window-content input.k-textbox:disabled, .k-window-content textarea.k-textbox:disabled, .k-window-content .k-textbox.k-state-disabled { opacity: 0.55; cursor: not-allowed; }
+		.k-window-content .k-textbox:disabled + .k-form-hint { opacity: 0.55; }
 		h4.adminBlockHeading { margin: 4px 0; }
 		table.adminBlocks .k-form-hint, table.k-content .k-form-hint { display: block; font-size: inherit; margin-top: 4px; }
 		<!--- A short hint beside a small field stays on its line; anything longer gets its own row above the field. --->
