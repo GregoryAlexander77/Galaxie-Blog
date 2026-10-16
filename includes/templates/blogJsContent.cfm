@@ -551,8 +551,8 @@
 			} else if (Id == 6){
 				var windowName = "postDetailWindow";
 				var windowTitle = "Edit Post";
-				var windowHeight = "<cfif session.isMobile>90%<cfelse>66%</cfif>";
-				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>90%</cfif>";<!--- 90%: the whole editor toolbar fits (owner, 10-16) --->
 			} else if (Id == 7){
 				var windowName = "userDetailWindow";
 				var windowHeight = "85%";
