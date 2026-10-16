@@ -6,6 +6,9 @@ sign-ups opens window 100. Paid sign-ups (a price per person, paid through Strip
 enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 <cfset eventPostId = val(URL.optArgs)>
 <cfset eventPost = application.blog.getPostByPostId(postId = eventPostId, showPendingPosts = true, showRemovedPosts = true)>
+<!--- The blog owner is the default organizer (owner, 10-16): someone else may write the post for them. Falls back to the post's author. --->
+<cfset eventOwnerUserId = len(application.blogOwner ?: "") ? application.blog.getUserIdByUserName(application.blogOwner) : 0>
+<cfset eventDefaultOrganizerRef = eventOwnerUserId gt 0 ? "user:" & eventOwnerUserId : (arrayLen(eventPost) and val(eventPost[1]["UserId"]) ? "user:" & eventPost[1]["UserId"] : "")>
 <cfset theEvent = application.events.getEvent(eventPostId)>
 <cfset isNewEvent = structIsEmpty(theEvent)>
 <cfset eventLocations = application.locations.getLocations()>
@@ -13,7 +16,7 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 <!--- A new event starts as next Saturday 7-9 PM, in the blog's time zone. --->
 <cfif isNewEvent>
 	<cfset eventStartDefault = dateAdd("d", 7 - dayOfWeek(application.blog.blogNow()) + (dayOfWeek(application.blog.blogNow()) eq 7 ? 7 : 0), application.blog.blogNow())>
-	<cfset theEvent = { startLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 19:00", endLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 21:00", timeZone: eventBlogZone, allDay: false, status: "scheduled", organizerName: "", organizerUrl: (arrayLen(eventPost) and val(eventPost[1]["UserId"]) ? "person:user:" & eventPost[1]["UserId"] : ""), cost: "", ticketUrl: "", locationIds: [], webFormId: 0, capacity: 0, askPartySize: false, maxPartySize: 4, rsvpClosesLocal: "", price: 0, refundHours: 24 }>
+	<cfset theEvent = { startLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 19:00", endLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 21:00", timeZone: eventBlogZone, allDay: false, status: "scheduled", organizerName: "", organizerUrl: (len(eventDefaultOrganizerRef) ? "person:" & eventDefaultOrganizerRef : ""), cost: "", ticketUrl: "", locationIds: [], webFormId: 0, capacity: 0, askPartySize: false, maxPartySize: 4, rsvpClosesLocal: "", price: 0, refundHours: 24 }>
 </cfif>
 <!--- Time zones with region names (eg. Europe/London), sorted. --->
 <cfset eventZones = []>
@@ -26,7 +29,7 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 <cfloop array="#eventZones#" index="thisZone"><cfset arrayAppend(eventZoneChoices, { "text": replace(thisZone, "_", " ", "all"), "value": thisZone })></cfloop>
 <!--- RSVP: the forms to choose from, and how many are coming so far. --->
 <cfset eventForms = application.webForms.getForms()>
-<!--- Organizer (2026-10-16): one of the People cards (common/cfc/People.cfc - the admin users and guest cards), this blog, or
+<!--- Organizer (2026-10-16): one of the People cards (the blog owner by default) (common/cfc/People.cfc - the admin users and guest cards), this blog, or
 someone else typed in. A card is stored as person:user:5 / person:guest:3 in OrganizerUrl. --->
 <cfset eventPeople = application.events.getPeople().getCards()>
 <cfif left(theEvent.organizerUrl, 7) eq "person:">
@@ -34,10 +37,10 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 	<cfset eventOrganizerRef = mid(theEvent.organizerUrl, 8, 50)>
 <cfelseif not len(theEvent.organizerName) or (theEvent.organizerName eq application.BlogDbObj.getBlogTitle() and (not len(theEvent.organizerUrl) or theEvent.organizerUrl eq application.blogHostUrl))>
 	<cfset eventOrganizerMode = "blog">
-	<cfset eventOrganizerRef = arrayLen(eventPost) ? "user:" & eventPost[1]["UserId"] : "">
+	<cfset eventOrganizerRef = eventDefaultOrganizerRef>
 <cfelse>
 	<cfset eventOrganizerMode = "other">
-	<cfset eventOrganizerRef = arrayLen(eventPost) ? "user:" & eventPost[1]["UserId"] : "">
+	<cfset eventOrganizerRef = eventDefaultOrganizerRef>
 </cfif>
 <cfset eventOrganizerChoices = []>
 <cfloop array="#eventPeople#" index="thisPerson">
