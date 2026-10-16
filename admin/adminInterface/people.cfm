@@ -44,7 +44,7 @@ don't sign in, eg. a guest presenter; New person and Edit open the editor (windo
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Guests</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">People who don't sign in, such as a guest presenter or a partner. Add them here so you can name them as an event's organizer. Visitors' messages to them go to the email address on their card.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">People who don't sign in to this admin site, but whom you want to present on yours: a guest presenter or speaker, a co-host, a partner. Add them here so you can name them as an event's organizer; visitors can read about them and write to them, and messages go to the email address on their card. Guests aren't your customers: your customers are your <a href="javascript:createAdminInterfaceWindow(97);">Members</a>, who sign in to book or sign up. A guest card can't book anything, and the same person can be both.</td></tr>
 	<cfloop array="#peopleGuests#" index="thisPerson">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
