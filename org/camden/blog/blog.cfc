@@ -18,7 +18,7 @@
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
 	<cfset version = "4.9" />
-	<cfset versionName = "4.9" />
+	<cfset versionName = "4.9 (Join the Pack Edition)" />
 	<cfset versionDate =  "October 15th 2026">
 
 	<!--- Require version 9 or higher as we are using ORM --->
