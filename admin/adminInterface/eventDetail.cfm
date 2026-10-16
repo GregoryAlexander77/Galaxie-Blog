@@ -307,7 +307,7 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 		<td class="#blockClass#"><input type="text" id="eventMaxPartySize" class="k-textbox" inputmode="numeric" maxlength="2" value="#theEvent.askPartySize ? theEvent.maxPartySize : 4#" style="width: 120px;"><span class="k-form-hint">people, including the person signing up</span></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">To charge for a place, enter a price per person: people pay online through Stripe when they sign up, and their place is confirmed once the payment goes through. Leave it empty for a free event.<cfif not eventPaymentsReady> Payments aren't set up yet: turn them on in <a href="javascript:createAdminInterfaceWindow(38);">Blog Options &gt; Payments</a> first.</cfif></td></tr>
+	<tr><td colspan="2" class="#blockClass#">To charge for a place, enter a price per person: people pay online through Stripe when they sign up, and their place is confirmed once the payment goes through. Leave it empty for a free event.<cfif not eventPaymentsReady> Payments aren't set up yet: turn them on in <a href="javascript:createAdminInterfaceWindow(38, 'payments');">Blog Options &gt; Payments</a> first.</cfif></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="eventPrice">Price:</label></td>

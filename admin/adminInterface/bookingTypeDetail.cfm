@@ -275,7 +275,7 @@ its refund window are in the Price section (2026-10-15). --->
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Price</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">0 = free. The currency is set in <a href="javascript:createAdminInterfaceWindow(38);">Blog Options &gt; Payments</a>.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">0 = free. The currency is set in <a href="javascript:createAdminInterfaceWindow(38, 'payments');">Blog Options &gt; Payments</a>.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="bookingTypePrice">Price (#application.payments.getCurrency()#):</label></td>
@@ -292,7 +292,7 @@ its refund window are in the Price section (2026-10-15). --->
 	<tr class="blockSpacer bookingTypePaidRow"><td colspan="2" class="border #blockClass#"></td></tr>
 	<cfif not application.payments.getStatus().ready>
 	<tr class="bookingTypePaidRow">
-		<td colspan="2" class="#blockClass#">Paying online needs your Stripe keys in <a href="javascript:createAdminInterfaceWindow(38);">Blog Options &gt; Payments</a>. Until they're saved, clients see the price and pay at the session.</td>
+		<td colspan="2" class="#blockClass#">Paying online needs your Stripe keys in <a href="javascript:createAdminInterfaceWindow(38, 'payments');">Blog Options &gt; Payments</a>. Until they're saved, clients see the price and pay at the session.</td>
 	</tr>
 	<tr class="blockSpacer bookingTypePaidRow"><td colspan="2" class="border #blockClass#"></td></tr>
 	</cfif>

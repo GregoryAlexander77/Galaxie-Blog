@@ -46,7 +46,7 @@ Saved by ProxyController.cfc's setMemberStatus. Members are not admin users and 
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
-	<tr><td colspan="2" class="#blockClass#">Visitors who have signed in with an emailed link. Click a member to see their bookings, sign-ups and emails, or to delete them. They can see their own bookings and sign-ups, and have their details filled in; they never have access to the admin site.<cfif not memberSettings.enabled> Member accounts are off: turn them on in <a href="javascript:createAdminInterfaceWindow(38);">Blog Options &gt; Member Accounts</a>.</cfif></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Visitors who have signed in with an emailed link. Click a member to see their bookings, sign-ups and emails, or to delete them. They can see their own bookings and sign-ups, and have their details filled in; they never have access to the admin site.<cfif not memberSettings.enabled> Member accounts are off: turn them on in <a href="javascript:createAdminInterfaceWindow(38, 'memberAccounts');">Blog Options &gt; Member Accounts</a>.</cfif></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="memberSearch">Search:</label></td>

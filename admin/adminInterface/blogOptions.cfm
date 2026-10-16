@@ -230,6 +230,30 @@
 			$("#blogOptionsPanelBar").kendoPanelBar({
 				expandMode: "multiple"
 			});
+			<!--- Opened at a section (2026-10-16): createAdminInterfaceWindow(38, 'payments') expands that section and scrolls to it,
+			so a "turn it on in Blog Options > Payments" link lands on the right spot. The key is the section's title without spaces. --->
+			<cfif structKeyExists(URL, "optArgs") and reFind("^[A-Za-z]+$", URL.optArgs)>
+			(function() {
+				var wanted = <cfoutput>#serializeJson(lCase(URL.optArgs))#</cfoutput>;
+				var section = $("#blogOptionsPanelBar > li").filter(function() {
+					var title = $(this).children(".k-link, .k-panelbar-link, span").first().text();
+					return $.trim(title).replace(/[^A-Za-z]/g, "").toLowerCase() === wanted;
+				}).first();
+				if (!section.length) { return; }
+				$("#blogOptionsPanelBar").data("kendoPanelBar").expand(section, false);
+				<!--- The window's content area is what scrolls. Opening the window puts it back at the top once more, so keep
+				placing the section at the top for a couple of seconds while the window settles. --->
+				var tries = 0;
+				var place = setInterval(function() {
+					var box = section.closest(".k-window-content");
+					var offset = section.offset().top - box.offset().top;
+					if (Math.abs(offset - 8) > 4) { box.scrollTop(box.scrollTop() + offset - 8); }
+					if (++tries >= 10) { clearInterval(place); }
+				}, 250);
+				<!--- Stop as soon as the owner scrolls or clicks, so it never fights them. --->
+				section.closest(".k-window-content").one("wheel touchstart mousedown keydown", function() { clearInterval(place); });
+			})();
+			</cfif>
 			<!--- Payments: a searchable currency list (2026-10-14). --->
 			$("#paymentCurrency").kendoDropDownList({ filter: "contains" });
 
