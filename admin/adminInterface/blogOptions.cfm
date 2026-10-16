@@ -241,7 +241,7 @@
 	<input type="hidden" name="blogOptionId" id="blogOptionId" value="<cfoutput>#blogOptionId#</cfoutput>">
 	<!--- The same side padding as the panel sections below, so every label column lines up. --->
 	<div style="padding: 0 15px;">
-	<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+	<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
 	  <cfsilent>
 		<!---The first content class in the table should be empty. --->
 		<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
@@ -455,7 +455,7 @@
 		Jquery Location and Kendo UI
 	<div class="k-content">
 	<div style="padding: 15px;">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -636,7 +636,7 @@
 		Media Uploads
 	<div class="k-content">
 	<div style="padding: 15px;">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
 			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
@@ -676,10 +676,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
-		  	<td colspan="2" class="">Left = smaller files, right = sharper images.</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Left = smaller files, right = sharper images.</td>
 		  </tr>
 		  <tr height="2px">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
@@ -928,7 +928,7 @@
 		Subscriber Email
 	<div class="k-content">
 	<div style="padding: 15px;">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
 			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
@@ -977,7 +977,10 @@
 			#blogOptionsPanelBar table.adminBlocks td { padding: 5px 10px !important; }
 			#blogOptionsPanelBar table.adminBlocks > tbody > tr > td[align="right"]:not([colspan]) { padding-right: 7px !important; }
 			#blogOptionsPanelBar table.adminBlocks tr.blockSpacer td { padding: 0 !important; }
-			#blogOptionsPanelBar table.adminBlocks td.border { border-top: 1px solid #ddd !important; }
+			<!--- The older sections' spacer rows (<tr height="2px"> with an empty cell) stay thin too. --->
+			#blogOptionsPanelBar table.adminBlocks > tbody > tr[height] > td:empty, #blogOptionsPanelBar table.adminBlocks td.border:empty { padding: 0 !important; height: 4px; }
+			<!--- A grey that shows on light and dark themes alike (owner, 10-16: #ddd was too faint). --->
+			#blogOptionsPanelBar table.adminBlocks td.border { border-top: 1px solid rgba(128,128,128,0.45) !important; }
 		</style>
 		<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 		<table id="paymentSettingsTable" align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" style="table-layout: fixed">
@@ -1153,7 +1156,7 @@
 		Logging
 	<div class="k-content">
 	<div style="padding: 15px;">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -1355,7 +1358,7 @@
 		Google Analytics
 	<div class="k-content">
 	<div style="padding: 15px;">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
 			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
@@ -1429,7 +1432,7 @@
 		Azure Maps Library
 	<div class="k-content">
 	<div style="padding: 15px;">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -1488,7 +1491,7 @@
 		Disqus Library
 	<div class="k-content">
 	<div style="padding: 15px;">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
@@ -1738,7 +1741,7 @@
 		Greensock Animation Library
 	<div class="k-content">
 	<div style="padding: 15px;">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->
 			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
@@ -1809,7 +1812,7 @@
 		Bing Maps Library (retired)
 	<div class="k-content">
 	<div style="padding: 15px;">
-		<table align="center" class="k-content" width="100%" cellpadding="2" cellspacing="0">
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
 			
 		  <cfsilent>
 			<!---The first content class in the table should be empty. --->

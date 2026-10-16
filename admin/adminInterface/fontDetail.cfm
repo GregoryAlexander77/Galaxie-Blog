@@ -212,10 +212,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr>
-	  	<td colspan="2" class="">The fallback family, eg. sans-serif or serif.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">The fallback family, eg. sans-serif or serif.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
@@ -253,10 +253,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr>
-	  	<td colspan="2" class="">Without the extension. Font files are kept in common/fonts.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Without the extension. Font files are kept in common/fonts.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
@@ -282,10 +282,10 @@
 	  <!-- Form content -->
 	  <!--- One row per checkbox: the label on the left, the checkbox on the right, like the other fields. --->
 	  <tr>
-	  	<td colspan="2" class="">Already on most computers, so nothing needs to load.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Already on most computers, so nothing needs to load.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
@@ -323,10 +323,10 @@
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr>
-	  	<td colspan="2" class="">Loads it on every page, for your own code. Each extra font slows pages a little.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Loads it on every page, for your own code. Each extra font slows pages a little.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">

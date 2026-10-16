@@ -973,10 +973,10 @@
 			  </tr>
 			<cfelse><!---<cfif session.isMobile>--->
 				<tr>
-					<td colspan="2" class="">Start typing, then pick a suggestion.</td>
+					<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Start typing, then pick a suggestion.</td>
 				</tr>
 				<tr height="2px">
-					<td align="left" valign="top" colspan="2" class="border "></td>
+					<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 				</tr>
 				<tr>
 					<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 

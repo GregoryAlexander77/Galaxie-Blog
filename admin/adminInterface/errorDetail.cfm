@@ -629,10 +629,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr>
-	  	<td colspan="2" class="">If it happens again, it's logged as a new error.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">If it happens again, it's logged as a new error.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
@@ -670,10 +670,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr>
-	  	<td colspan="2" class="">Optional, for your own records.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Optional, for your own records.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">

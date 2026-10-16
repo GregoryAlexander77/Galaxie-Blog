@@ -1156,10 +1156,10 @@
 	  </tr>
 	<cfelse>
 	  <tr>
-	  	<td colspan="2" class="">The image or media shown at the top of the post.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">The image or media shown at the top of the post.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
@@ -1445,10 +1445,10 @@
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr>
-	  	<td colspan="2" class="">A short summary for search engines and social media.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">A short summary for search engines and social media.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">

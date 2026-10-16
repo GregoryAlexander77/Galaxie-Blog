@@ -118,17 +118,12 @@
 
 <form id="configureHomepageForm" action="#" method="post" data-role="validator">
 <input type="hidden" name="csrfToken" id="csrfToken" value="<cfoutput>#csrfToken#</cfoutput>" />
-<table align="center" class="k-content tableBorder" width="100%" cellpadding="2" cellspacing="0" border="0">
-  <cfsilent>
-	<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
-	<cfset thisColSpan = "2">
-  </cfsilent>
-  <tr height="1px">
-	  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-  </tr>
-
-  <tr height="30px">
-	<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+<!--- Admin block layout (owner's look, 10-16): a block per section, alternating k-content / k-alt, labels in a 20% column. --->
+<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
+<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+  <colgroup><col style="width: 20%"><col></colgroup>
+  <tr>
+	<td colspan="2" class="<cfoutput>#blockClass#</cfoutput>">
 		<!--- Counts only - the chosen pages and collections are already listed in the dropdowns below, so the titles
 		in getHomepageSettings()'s currentText just repeated them. A single page is the exception: that page IS the
 		homepage, so its title stays (currentText already says "the page '...'"). --->
@@ -152,28 +147,16 @@
 		Right now your homepage shows <strong><cfoutput>#homepageSummaryText#</cfoutput></strong>. You can change this below.
 	</td>
   </tr>
-
-  <tr height="2px"><td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td></tr>
-  <cfsilent><cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)></cfsilent>
-  <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
-
+  <tr class="blockSpacer"><td colspan="2" class="border <cfoutput>#blockClass#</cfoutput>"></td></tr>
+  <tr><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>">Sections appear in this order. Leave all unchecked for the plain blog listing.</td></tr>
+  <tr class="blockSpacer"><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>"></td></tr>
+  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+  <tr class="blockSpacer"><td colspan="2" class="border <cfoutput>#blockClass#</cfoutput>"></td></tr>
+  <tr><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>">Pick one page to show its full content as the entire homepage, or two or more to show them as cards, in the order you pick them.</td></tr>
+  <tr class="blockSpacer"><td colspan="2" class="border <cfoutput>#blockClass#</cfoutput>"></td></tr>
   <tr valign="top">
-	<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-		Sections appear in this order. Leave all unchecked for the plain blog listing.
-	</td>
-  </tr>
-  <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
-  <tr>
-  	<td colspan="2" class="">Pick one page to show its full content as the entire homepage, or two or more to show them as cards, in the order you pick them.</td>
-  </tr>
-  <tr height="2px">
-  	<td align="left" valign="top" colspan="2" class="border "></td>
-  </tr>
-  <tr valign="top">
-	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-		<label for="homepageShowPages">Featured Pages</label>
-	</td>
-	<td class="<cfoutput>#thisContentClass#</cfoutput>">
+	<td align="right" class="<cfoutput>#blockClass#</cfoutput>"><label for="homepageShowPages">Featured Pages:</label></td>
+	<td class="<cfoutput>#blockClass#</cfoutput>">
 		<input class="k-checkbox" type="checkbox" id="homepageShowPages" name="homepageShowPages" <cfif homepageSettings.showPages>checked</cfif>>
 		<div id="homepagePagePicker" style="margin: 6px 0 0 0;">
 			<select id="homepagePageId" name="homepagePageId" multiple="multiple" style="width: 250px">
@@ -191,18 +174,14 @@
 		</div>
 	</td>
   </tr>
-  <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
-  <tr>
-  	<td colspan="2" class="">One card per collection, in the order you pick them - same as pages.</td>
-  </tr>
-  <tr height="2px">
-  	<td align="left" valign="top" colspan="2" class="border "></td>
-  </tr>
+  <tr class="blockSpacer"><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>"></td></tr>
+  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+  <tr class="blockSpacer"><td colspan="2" class="border <cfoutput>#blockClass#</cfoutput>"></td></tr>
+  <tr><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>">One card per collection, in the order you pick them - same as pages.</td></tr>
+  <tr class="blockSpacer"><td colspan="2" class="border <cfoutput>#blockClass#</cfoutput>"></td></tr>
   <tr valign="top">
-	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-		<label for="homepageShowCollections">Featured Collections</label>
-	</td>
-	<td class="<cfoutput>#thisContentClass#</cfoutput>">
+	<td align="right" class="<cfoutput>#blockClass#</cfoutput>"><label for="homepageShowCollections">Featured Collections:</label></td>
+	<td class="<cfoutput>#blockClass#</cfoutput>">
 		<input class="k-checkbox" type="checkbox" id="homepageShowCollections" name="homepageShowCollections" <cfif homepageSettings.showCollections>checked</cfif>>
 		<div id="homepageCollectionPicker" style="margin: 6px 0 0 0;">
 			<select id="homepageCollectionId" name="homepageCollectionId" multiple="multiple" style="width: 60%">
@@ -220,32 +199,23 @@
 		</div>
 	</td>
   </tr>
-  <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
-  <tr>
-  	<td colspan="2" class="">Your most recent posts, with a View All Posts link.</td>
-  </tr>
-  <tr height="2px">
-  	<td align="left" valign="top" colspan="2" class="border "></td>
-  </tr>
+  <tr class="blockSpacer"><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>"></td></tr>
+  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+  <tr class="blockSpacer"><td colspan="2" class="border <cfoutput>#blockClass#</cfoutput>"></td></tr>
+  <tr><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>">Your most recent posts, with a View All Posts link.</td></tr>
+  <tr class="blockSpacer"><td colspan="2" class="border <cfoutput>#blockClass#</cfoutput>"></td></tr>
   <tr valign="top">
-	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-		<label for="homepageShowBlogPosts">Blog Posts</label>
-	</td>
-	<td class="<cfoutput>#thisContentClass#</cfoutput>">
+	<td align="right" class="<cfoutput>#blockClass#</cfoutput>"><label for="homepageShowBlogPosts">Blog Posts:</label></td>
+	<td class="<cfoutput>#blockClass#</cfoutput>">
 		<input class="k-checkbox" type="checkbox" id="homepageShowBlogPosts" name="homepageShowBlogPosts" <cfif homepageSettings.showBlogPosts>checked</cfif>>		
 	</td>
   </tr>
-
-  <tr height="2px"><td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td></tr>
-  <cfsilent><cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)></cfsilent>
-  <tr height="2px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
-
-  <tr valign="middle" height="30px">
-	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
-	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-		<button id="configureHomepageSubmit" name="configureHomepageSubmit" class="k-button k-primary" type="button">Save</button>
-	</td>
+  <tr class="blockSpacer"><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>"></td></tr>
+  <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+  <tr class="blockSpacer"><td colspan="2" class="border <cfoutput>#blockClass#</cfoutput>"></td></tr>
+  <tr>
+	<td class="<cfoutput>#blockClass#</cfoutput>"></td>
+	<td class="<cfoutput>#blockClass#</cfoutput>"><button id="configureHomepageSubmit" name="configureHomepageSubmit" class="k-button k-primary" type="button">Save</button></td>
   </tr>
-
 </table>
 </form>

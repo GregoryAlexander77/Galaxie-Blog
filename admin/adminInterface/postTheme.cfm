@@ -83,10 +83,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr>
-	  	<td colspan="2" class="">None Selected = the blog's normal theme.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">None Selected = the blog's normal theme.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
@@ -114,10 +114,10 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr>
-	  	<td colspan="2" class="">The theme is saved when you save the post.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">The theme is saved when you save the post.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>

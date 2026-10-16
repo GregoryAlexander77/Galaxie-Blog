@@ -612,10 +612,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
-		  	<td colspan="2" class="">Leave empty to use the content editor instead.</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Leave empty to use the content editor instead.</td>
 		  </tr>
 		  <tr height="2px">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr valign="middle" height="30px">
 			<td valign="center" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">

@@ -108,10 +108,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr>
-	  	<td colspan="2" class="">A short name, eg. Guest Editor.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">A short name, eg. Guest Editor.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr height="30px">
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
@@ -149,10 +149,10 @@
 	<cfelse><!---<cfif session.isMobile>--->
 	  <!-- Form content -->
 	  <tr>
-	  	<td colspan="2" class="">Optional. What this role is for.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Optional. What this role is for.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">

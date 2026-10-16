@@ -498,10 +498,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
-		  	<td colspan="2" class="">A short summary for search engines and social media.</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">A short summary for search engines and social media.</td>
 		  </tr>
 		  <tr height="2px">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr valign="middle" height="35">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
@@ -534,10 +534,10 @@
 		  </tr>
 		<cfelse>
 		  <tr class="field-heroImage">
-		  	<td colspan="2" class="">Makes this collection a cross-link to another site. Leave blank for a normal collection.</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Makes this collection a cross-link to another site. Leave blank for a normal collection.</td>
 		  </tr>
 		  <tr height="2px" class="field-heroImage">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr valign="middle" height="35" class="field-heroImage">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">

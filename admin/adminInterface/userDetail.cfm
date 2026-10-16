@@ -830,10 +830,10 @@
 	  </tr>
 	 <cfelse><!---<cfif session.isMobile>--->
 	  <tr>
-	  	<td colspan="2" class="">Emails an invitation. They choose their own password when they first log in.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Emails an invitation. They choose their own password when they first log in.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
@@ -961,10 +961,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr>
-	  	<td colspan="2" class="">Click to choose a picture.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Click to choose a picture.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
@@ -1378,10 +1378,10 @@
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
 	  <tr>
-	  	<td colspan="2" class="">Changing these from the role's defaults asks you to name a new role.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Changing these from the role's defaults asks you to name a new role.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">

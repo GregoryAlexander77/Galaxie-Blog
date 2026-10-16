@@ -1440,10 +1440,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
-		  	<td colspan="2" class="">100 = solid. Lower lets the background show through.</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">100 = solid. Lower lets the background show through.</td>
 		  </tr>
 		  <tr height="2px">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 

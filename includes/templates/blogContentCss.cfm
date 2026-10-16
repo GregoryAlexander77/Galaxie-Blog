@@ -1046,7 +1046,13 @@
 		<!--- Room between a right-aligned label and its field, in every admin form table. --->
 		table.k-content > tbody > tr > td[align="right"]:not([colspan]) { padding-right: 7px !important; }
 		table.adminBlocks > tbody > tr.blockSpacer > td { height: 4px; padding: 0; line-height: 0; font-size: 0; }
-		table.adminBlocks td.border { border-top: 1px solid #ddd !important; }
+		<!--- Older windows (eg. Blog Options) build their spacer rows as <tr height="2px"> with an empty cell; keep those thin too. --->
+		table.adminBlocks > tbody > tr[height] > td:empty, table.adminBlocks > tbody > tr > td.border:empty { height: 4px; padding: 0 !important; line-height: 0; font-size: 0; }
+		<!--- The thin line between rows and blocks: visible on light and dark themes (owner, 10-16; #ddd was too faint). --->
+		<!--- Older admin windows (eg. Edit Post, Blog Settings, Theme Settings) alternate the same k-content / k-alt classes in a plain
+		table.k-content, so they get the same line and tint as table.adminBlocks without its padding and column rules. --->
+		table.adminBlocks td.border, .k-window-content table.k-content td.border { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif> !important; }
+		.k-window-content table.k-content > tbody > tr > td.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
 		<!--- Hub windows (eg. Bookings) list sections side by side; a clearer line marks where each one starts. --->
 		table.adminHub td.border { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.35)<cfelse>#b3b3b3</cfif> !important; }
 		<!--- Some themes draw k-alt the same colour as k-content (uniform, office365, highcontrast) or barely different, so the

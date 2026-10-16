@@ -255,10 +255,10 @@
 			  </tr>
 			<cfelse><!---<cfif session.isMobile>--->
 				<tr>
-					<td colspan="2" class="">Optional: click to choose your own pin image.</td>
+					<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Optional: click to choose your own pin image.</td>
 				</tr>
 				<tr height="2px">
-					<td align="left" valign="top" colspan="2" class="border "></td>
+					<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 				</tr>
 				<tr valign="middle">
 				  <td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">

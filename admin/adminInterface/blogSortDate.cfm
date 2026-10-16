@@ -186,10 +186,10 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr>
-	  	<td colspan="2" class="">The date is saved when you save the post.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">The date is saved when you save the post.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>

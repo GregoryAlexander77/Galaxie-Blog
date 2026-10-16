@@ -144,10 +144,10 @@
   </tr>
 <cfelse><!---<cfif session.isMobile>--->
   <tr>
-  	<td colspan="2" class="">Optional, eg. why it was banned.</td>
+  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Optional, eg. why it was banned.</td>
   </tr>
   <tr height="2px">
-  	<td align="left" valign="top" colspan="2" class="border "></td>
+  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
   </tr>
   <tr valign="middle" height="30px">
 	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">

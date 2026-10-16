@@ -353,10 +353,10 @@
 	  </tr>
 	  <!-- Form content -->
 	  <tr>
-	  	<td colspan="2" class="">Saves the same content for both the desktop and the mobile version.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Saves the same content for both the desktop and the mobile version.</td>
 	  </tr>
 	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border "></td>
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><label for="applyAcrossDevices">Apply to Mobile and Desktop:</label></td>

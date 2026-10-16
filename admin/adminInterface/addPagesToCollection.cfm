@@ -118,10 +118,10 @@
   </tr>
 <cfelse><!---<cfif session.isMobile>--->
   <tr>
-  	<td colspan="2" class="">Only pages not yet in this collection are listed.</td>
+  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Only pages not yet in this collection are listed.</td>
   </tr>
   <tr height="2px">
-  	<td align="left" valign="top" colspan="2" class="border "></td>
+  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
   </tr>
   <tr valign="top">
 	<td align="right" valign="top" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">

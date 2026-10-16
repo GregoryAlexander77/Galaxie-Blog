@@ -760,10 +760,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>---> 
 		  <tr>
-		  	<td colspan="2" class="">eg. https://www.example.com</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">eg. https://www.example.com</td>
 		  </tr>
 		  <tr height="2px">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr valign="middle" height="30px">
 			<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
@@ -865,10 +865,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>---> 
 		  <tr>
-		  	<td colspan="2" class="">Only used when no time zone is chosen above.</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Only used when no time zone is chosen above.</td>
 		  </tr>
 		  <tr height="2px">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
@@ -905,10 +905,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>---> 
 		  <tr>
-		  	<td colspan="2" class="">Hours between your time zone and the server's.</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Hours between your time zone and the server's.</td>
 		  </tr>
 		  <tr height="2px">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
@@ -966,10 +966,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
-		  	<td colspan="2" class="">The data source name set up in the ColdFusion or Lucee administrator.</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">The data source name set up in the ColdFusion or Lucee administrator.</td>
 		  </tr>
 		  <tr height="2px">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
@@ -1205,10 +1205,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
-		  	<td colspan="2" class="">Undeliverable mail is reported to this address.</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Undeliverable mail is reported to this address.</td>
 		  </tr>
 		  <tr height="2px">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
@@ -1244,10 +1244,10 @@
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr>
-		  	<td colspan="2" class="">Where the blog sends you notices, eg. new comments.</td>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">Where the blog sends you notices, eg. new comments.</td>
 		  </tr>
 		  <tr height="2px">
-		  	<td align="left" valign="top" colspan="2" class="border "></td>
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
