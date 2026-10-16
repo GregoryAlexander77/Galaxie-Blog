@@ -593,7 +593,8 @@
 		  <tr valign="middle" height="30px">
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
 				Only change this setting if you plan on moving the Kendo Core folder or if you use your own personal Kendo UI Professional license.<br/>
-				Note: we have tested the blog using Kendo UI v2019.2.619, using a later version may require changes to the menu related code due to the different CSS rules.
+				It is the web address of the folder that holds Kendo's js and styles folders, from the site root, eg. /blog/common/libs/kendo/2021R1/ (or /common/libs/kendo/2021R1/ when the blog is at the site root).<br/>
+				Note: the blog is tested with Kendo UI Professional 2021 R1 (2021.1.119). Use 2020 or later: earlier versions (eg. 2019) draw checkboxes and radio buttons differently, so the admin site shows plain ones.
 			</td>
 		  </tr>
 		  <tr height="1px">
