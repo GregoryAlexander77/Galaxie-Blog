@@ -152,14 +152,14 @@
 					name: "Title",
 					type: "text",
 					title: "Title",
-					width: (pageWidth*(<cfif session.isMobile>50<cfelse>24</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>50<cfelse>30</cfif>/100)),
 					itemTemplate: function(value, item) {
 						return '<a href="javascript:createAdminInterfaceWindow(84, ' + item.WebFormId + ');">' + encodeGridText(value) + '</a>';
 					}
 				},
 				<cfif not session.isMobile>
-				{ name: "Alias", type: "text", title: "Placed in posts as", width: (pageWidth*(16/100)), itemTemplate: function(value) { return encodeGridText(value); } },
-				{ name: "FieldCount", type: "number", title: "Fields", width: (pageWidth*(7/100)), filtering: false },
+				{ name: "Alias", type: "text", title: "Placed in posts as", width: (pageWidth*(<cfif session.isMobile>16<cfelse>20</cfif>/100)), itemTemplate: function(value) { return encodeGridText(value); } },
+				{ name: "FieldCount", type: "number", title: "Fields", width: (pageWidth*(<cfif session.isMobile>7<cfelse>7</cfif>/100)), filtering: false },
 				</cfif>
 				{
 					name: "SubmissionCount",
@@ -182,7 +182,7 @@
 						return value ? dayjs(value).format('MM/DD/YYYY h:mm A') : '';
 					}
 				},
-				{ name: "Status", type: "text", title: "Status", width: (pageWidth*(9/100)) },
+				{ name: "Status", type: "text", title: "Status", width: (pageWidth*(<cfif session.isMobile>9<cfelse>9</cfif>/100)) },
 				</cfif>
 				{
 					type: "control",

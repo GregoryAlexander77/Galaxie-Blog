@@ -284,21 +284,21 @@
 					itemTemplate: function(value, item) {
 					  return '<a href="javascript:createAdminInterfaceWindow(7, ' + item.UserId + ', &apos;editUser&apos;);">' + value + '</a>';
 					},
-					width: (pageWidth*(<cfif session.isMobile>20<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>18</cfif>/100)),
 				},
 				{ 
 					name: "FirstName", 
 					type: "text",
 					title: "First Name",
 					editing: true,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>14</cfif>/100)),
 				},
 				{ 
 					name: "LastName", 
 					type: "text",
 					title: "Last Name",
 					editing: true,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>14</cfif>/100)),
 
 				},
 				<cfif not session.isMobile>
@@ -307,14 +307,14 @@
 					type: "text",
 					title: 'Email',
 					editing: false,
-					width: (pageWidth*(20/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>30</cfif>/100)),
 				},
 				{ 	
 					name: "Date", 
 					type: "date",
 					title: "Created",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile><cfelse>10</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile><cfelse>14</cfif>/100)),
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the momentJs lib. --->
 						return dayjs(item.DatePosted).format('MM/DD/YYYY h:mm A');

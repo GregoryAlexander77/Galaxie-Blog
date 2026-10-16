@@ -112,28 +112,28 @@
 				field: "UserName",
 				title: "User Name",
 				filterable: true,
-				width: "<cfif session.isMobile>20<cfelse>20</cfif>%",
+				width: "<cfif session.isMobile>20<cfelse>18</cfif>%",
 				template: kendo.template($("#userNameTemplate").html())
 			}, {
 				field: "FirstName",
 				title: "First Name",
 				filterable: true,
-				width: "<cfif session.isMobile>30<cfelse>20</cfif>%"
+				width: "<cfif session.isMobile>30<cfelse>14</cfif>%"
 			}, {
 				field: "LastName",
 				title: "Last Name",
 				filterable: true,
-				width: "<cfif session.isMobile>30<cfelse>20</cfif>%"
+				width: "<cfif session.isMobile>30<cfelse>14</cfif>%"
 			<cfif not session.isMobile>}, {
 				field: "Email",
 				title: "Email",
 				filterable: true,
-				width: "20%"
+				width: "<cfif session.isMobile>20<cfelse>30</cfif>%"
 			}, {
 				field: "Date",
 				title: "Created",
 				filterable: true,
-				width: "10%",
+				width: "<cfif session.isMobile>10<cfelse>14</cfif>%",
 				template: "#= Date ? dayjs(Date).format('MM/DD/YYYY h:mm A') : '' #"</cfif>
 			}, {
 				command: ["destroy"],

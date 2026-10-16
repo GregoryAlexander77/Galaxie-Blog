@@ -102,22 +102,22 @@
 				field: "Tag",
 				title: "Tag",
 				filterable: true,
-				width: "<cfif session.isMobile>50<cfelse>35</cfif>%"
+				width: "<cfif session.isMobile>50<cfelse>33</cfif>%"
 			}, {
 				field: "TagAlias",
 				title: "Alias",
 				filterable: true,
-				width: "<cfif session.isMobile>50<cfelse>35</cfif>%"
+				width: "<cfif session.isMobile>50<cfelse>33</cfif>%"
 			<cfif not session.isMobile>}, {
 				field: "PostCount",
 				title: "Post Count",
 				filterable: true,
-				width: "10%"
+				width: "<cfif session.isMobile>10<cfelse>10</cfif>%"
 			}, {
 				field: "Date",
 				title: "Date",
 				filterable: true,
-				width: "10%",
+				width: "<cfif session.isMobile>10<cfelse>14</cfif>%",
 				template: "#= Date ? dayjs(Date).format('MM/DD/YYYY h:mm A') : '' #"</cfif>
 			}, {
 				command: ["destroy"],

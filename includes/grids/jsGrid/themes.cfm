@@ -302,7 +302,7 @@
 							return '<a href="javascript:createAdminInterfaceWindow(55, ' + item.ThemeId + ');">' + value + '</a>';
 						</cfif>
 					},
-					width: (pageWidth*(<cfif session.isMobile>40<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>40<cfelse>24</cfif>/100)),
 				},
 				{ 
 					name: "KendoTheme", 
@@ -322,7 +322,7 @@
 					type: "checkbox",
 					title: 'Modern Theme?',
 					editing: true,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>15</cfif>/100)),
 				},
 				{ 
 					name: "UseTheme", 
@@ -330,7 +330,7 @@
 					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: 'Use Theme',
 					editing: true,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>13</cfif>/100)),
 				},
 				</cfif>
 				{ 
@@ -339,7 +339,7 @@
 					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: 'Selected Theme',
 					editing: true,
-					width: (pageWidth*(<cfif session.isMobile>15<cfelse>10</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>15<cfelse>15</cfif>/100)),
 				},
 				{ 
 					type: "control",

@@ -158,7 +158,7 @@
 					type: "text",
 					title: "IP Address",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>18</cfif>/100)),
 				},
 				<!--- We just don't have the room for the user agent with mobile clients. --->
 				<cfif not session.isMobile>
@@ -167,7 +167,7 @@
 					type: "text",
 					title: "User Agent",
 					editing: false,
-					width: (pageWidth*(50/100)),
+					width: (pageWidth*(<cfif session.isMobile>50<cfelse>64</cfif>/100)),
 				},
 				</cfif>
 				{ 	
@@ -175,7 +175,7 @@
 					type: "date",
 					title: "Date",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>50<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>50<cfelse>18</cfif>/100)),
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the dayjs lib. --->
 						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');

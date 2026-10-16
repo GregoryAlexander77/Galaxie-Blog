@@ -71,7 +71,7 @@
 			columns: [{
 				field: "Name",
 				title: "Name",
-				width: "<cfif session.isMobile>45<cfelse>22</cfif>%",
+				width: "<cfif session.isMobile>45<cfelse>24</cfif>%",
 				template: kendo.template($("#bookingTypeNameTemplate").html())
 			}, {
 				field: "Category",
@@ -80,18 +80,18 @@
 			<cfif not session.isMobile>}, {
 				field: "Length",
 				title: "Length",
-				width: "11%"
+				width: "<cfif session.isMobile>11<cfelse>8</cfif>%"
 			}, {
 				field: "Price",
 				title: "Price",
-				width: "8%"
+				width: "<cfif session.isMobile>8<cfelse>8</cfif>%"
 			}, {
 				field: "Locations",
 				title: "Where"
 			}, {
 				field: "Status",
 				title: "Status",
-				width: "9%"</cfif>
+				width: "<cfif session.isMobile>9<cfelse>9</cfif>%"</cfif>
 			}, {
 				command: [{
 					name: "editBookingType",

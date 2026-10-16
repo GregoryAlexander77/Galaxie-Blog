@@ -82,24 +82,24 @@
 				field: "FullName",
 				title: "User",
 				filterable: true,
-				width: "<cfif session.isMobile>34<cfelse>20</cfif>%"
+				width: "<cfif session.isMobile>34<cfelse>18</cfif>%"
 			}, {
 				field: "IpAddress",
 				title: "IP Address",
 				filterable: true,
-				width: "<cfif session.isMobile>33<cfelse>25</cfif>%",
+				width: "<cfif session.isMobile>33<cfelse>12</cfif>%",
 				template: kendo.template($("#ipAddressTemplate").html())
 			<cfif not session.isMobile>}, {
 				field: "HttpUserAgent",
 				title: "User Agent",
 				filterable: true,
-				width: "35%",
+				width: "<cfif session.isMobile>35<cfelse>55</cfif>%",
 				template: kendo.template($("#httpUserAgentTemplate").html())</cfif>
 			}, {
 				field: "Date",
 				title: "Date",
 				filterable: true,
-				width: "<cfif session.isMobile>33<cfelse>20</cfif>%",
+				width: "<cfif session.isMobile>33<cfelse>15</cfif>%",
 				template: "#= dayjs(Date).format('MM/DD/YYYY h:mm A') #"
 			}]
 		});

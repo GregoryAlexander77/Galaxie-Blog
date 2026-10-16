@@ -97,40 +97,40 @@
 				field: "ErrorLogId",
 				title: "Error Id",
 				filterable: true,
-				width: "8%",
+				width: "<cfif session.isMobile>8<cfelse>6</cfif>%",
 				template: kendo.template($("#errorIdTemplate").html())
 			}, {
 				field: "ErrorMessage",
 				title: "Error Message",
 				filterable: true,
-				width: "<cfif session.isMobile>62<cfelse>50</cfif>%"
+				width: "<cfif session.isMobile>62<cfelse>42</cfif>%"
 			<cfif not session.isMobile>}, {
 				field: "IpAddress",
 				title: "IP Address",
 				filterable: true,
-				width: "12%",
+				width: "<cfif session.isMobile>12<cfelse>11</cfif>%",
 				template: kendo.template($("#ipAddressTemplate").html())
 			}, {
 				field: "NumErrors",
 				title: "Hits",
 				filterable: true,
-				width: "6%"
+				width: "<cfif session.isMobile>6<cfelse>5</cfif>%"
 			}, {
 				field: "Resolved",
 				title: "Resolved",
 				filterable: true,
-				width: "6%"
+				width: "<cfif session.isMobile>6<cfelse>8</cfif>%"
 			}, {
 				field: "IsBot",
 				title: "Bot?",
 				filterable: true,
-				width: "6%",
+				width: "<cfif session.isMobile>6<cfelse>7</cfif>%",
 				template: "#= IsBot ? 'Yes' : 'No' #"</cfif>
 			}, {
 				field: "Date",
 				title: "Date",
 				filterable: true,
-				width: "<cfif session.isMobile>30<cfelse>12</cfif>%",
+				width: "<cfif session.isMobile>30<cfelse>15</cfif>%",
 				template: "#= dayjs(Date).format('MM/DD/YYYY h:mm A') #"
 			}, {
 				command: ["destroy"],

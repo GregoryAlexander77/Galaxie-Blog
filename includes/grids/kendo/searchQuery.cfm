@@ -88,35 +88,35 @@
 				field: "AnonymousUserId",
 				title: "User Id",
 				filterable: true,
-				width: "<cfif session.isMobile>10<cfelse>8</cfif>%",
+				width: "<cfif session.isMobile>10<cfelse>7</cfif>%",
 				template: kendo.template($("#anonymousUserIdTemplate").html())
 			}, {
 				field: "FullName",
 				title: "User",
 				filterable: true,
-				width: "<cfif session.isMobile>20<cfelse>15</cfif>%"
+				width: "<cfif session.isMobile>20<cfelse>10</cfif>%"
 			}, {
 				field: "IpAddress",
 				title: "IP Address",
 				filterable: true,
-				width: "<cfif session.isMobile>20<cfelse>15</cfif>%",
+				width: "<cfif session.isMobile>20<cfelse>12</cfif>%",
 				template: kendo.template($("#ipAddressTemplate").html())
 			<cfif not session.isMobile>}, {
 				field: "HttpUserAgent",
 				title: "User Agent",
 				filterable: true,
-				width: "27%",
+				width: "<cfif session.isMobile>27<cfelse>30</cfif>%",
 				template: kendo.template($("#httpUserAgentTemplate").html())</cfif>
 			}, {
 				field: "SearchQuery",
 				title: "Search Terms",
 				filterable: true,
-				width: "<cfif session.isMobile>35<cfelse>25</cfif>%"
+				width: "<cfif session.isMobile>35<cfelse>27</cfif>%"
 			}, {
 				field: "Date",
 				title: "Date",
 				filterable: true,
-				width: "<cfif session.isMobile>15<cfelse>10</cfif>%",
+				width: "<cfif session.isMobile>15<cfelse>14</cfif>%",
 				template: "#= dayjs(Date).format('MM/DD/YYYY h:mm A') #"
 			}]
 		});

@@ -160,7 +160,7 @@
 					type: "text",
 					title: "UserId",
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>7</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- Link to the visitor details --->
 						return '<a href="javascript:createAdminInterfaceWindow(63, ' + item.AnonymousUserId + ');">' + value + '</a>';
@@ -171,14 +171,14 @@
 					type: "text",
 					title: "User",
 					editing: false,
-					width: (pageWidth*(13/100)),
+					width: (pageWidth*(<cfif session.isMobile>13<cfelse>10</cfif>/100)),
 				},
 	  			{ 
 					name: "IpAddress", 
 					type: "text",
 					title: "IP Address",
 					editing: false,
-					width: (pageWidth*(12/100)),
+					width: (pageWidth*(<cfif session.isMobile>12<cfelse>12</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="https://www.ipalyzer.com/' + item.IpAddress + '" target="_new">' + value + '</a>';
 					}
@@ -188,7 +188,7 @@
 					type: "text",
 					title: "User Agent",
 					editing: false,
-					width: (pageWidth*(35/100)),
+					width: (pageWidth*(<cfif session.isMobile>35<cfelse>30</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="https://gs.statcounter.com/detect?useragent=' + item.HttpUserAgent + '" target="_new">' + value + '</a>';
 					}
@@ -198,14 +198,14 @@
 					type: "text",
 					title: "Search Terms",
 					editing: false,
-					width: (pageWidth*(20/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>27</cfif>/100)),
 				},
 				{ 	
 					name: "Date", 
 					type: "date",
 					title: "Date",
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>14</cfif>/100)),
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the dayjs lib. --->
 						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');

@@ -277,7 +277,7 @@
 					type: "text",
 					title: "Tag",
 					editing: true,
-					width: (pageWidth*(<cfif session.isMobile>80<cfelse>35</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>80<cfelse>33</cfif>/100)),
 				},
 				<cfif not session.isMobile>
 				{ 
@@ -285,7 +285,7 @@
 					type: "text",
 					title: "Alias",
 					editing: true,
-					width: (pageWidth*(35/100)),
+					width: (pageWidth*(<cfif session.isMobile>35<cfelse>33</cfif>/100)),
 
 				},
 				{ 
@@ -294,14 +294,14 @@
 					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: 'Post Count',
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>10</cfif>/100)),
 				},
 				{ 	
 					name: "Date", 
 					type: "date",
 					title: "Date",
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>14</cfif>/100)),
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the momentJs lib. --->
 						return dayjs(item.DatePosted).format('MM/DD/YYYY h:mm A');

@@ -225,14 +225,14 @@
 					type: "text",
 					title: "Commenter",
 					editing: false,
-					width: (pageWidth*(20/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>15</cfif>/100)),
 				},
 				<cfif not session.isMobile>
 				{ name: "PostTitle", 
 					type: "text",
 					title: "Post",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>21<cfelse>25</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>21<cfelse>20</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="javascript:createAdminInterfaceWindow(6, ' + item.PostId + ');">' + value + '</a>';
 					}
@@ -243,7 +243,7 @@
 					type: "textarea",
 					title: "Comment",
 					editing: false,
-					width: (pageWidth*(30/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>37</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- This does not work to strip out the HTML ($(value).text()) --->
 					  	return '<a href="javascript:createAdminInterfaceWindow(2, ' + item.CommentId + ');">' + cleanCommentString(value) + '</a>';
@@ -255,7 +255,7 @@
 					type: "date",
 					title: "Posted",
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>13</cfif>/100)),
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the momentJs lib. --->
 						return dayjs(item.DatePosted).format('MM/DD/YYYY h:mm A');
@@ -267,7 +267,7 @@
 					type: "checkbox",
 					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: '<cfif session.isMobile><i class="fas fa-thumbs-up"></i><cfelse>Approved</cfif>',
-					width: (pageWidth*(5/100)),
+					width: (pageWidth*(<cfif session.isMobile>5<cfelse>9</cfif>/100)),
 					<!---editTemplate: function(value, item) {
 						return "<input type='checkbox'>" + item.Approved;
 					}--->

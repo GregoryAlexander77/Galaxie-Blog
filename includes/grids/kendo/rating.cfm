@@ -115,43 +115,43 @@
 				field: "AnonymousUserId",
 				title: "UserId",
 				filterable: true,
-				width: "<cfif session.isMobile>15<cfelse>10</cfif>%",
+				width: "<cfif session.isMobile>15<cfelse>8</cfif>%",
 				template: kendo.template($("#anonymousUserIdTemplate").html())
 			}, {
 				field: "IpAddress",
 				title: "IP Address",
 				filterable: true,
-				width: "<cfif session.isMobile>20<cfelse>10</cfif>%",
+				width: "<cfif session.isMobile>20<cfelse>11</cfif>%",
 				template: kendo.template($("#ipAddressTemplate").html())
 			}, {
 				field: "Title",
 				title: "Post",
 				filterable: true,
-				width: "<cfif session.isMobile>25<cfelse>20</cfif>%",
+				width: "<cfif session.isMobile>25<cfelse>22</cfif>%",
 				template: kendo.template($("#titleTemplate").html())
 			<cfif not session.isMobile>}, {
 				field: "HttpUserAgent",
 				title: "User Agent",
 				filterable: true,
-				width: "25%",
+				width: "<cfif session.isMobile>25<cfelse>29</cfif>%",
 				template: kendo.template($("#httpUserAgentTemplate").html())</cfif>
 			}, {
 				field: "Helpful",
 				title: "Like",
 				filterable: true,
-				width: "<cfif session.isMobile>10<cfelse>5</cfif>%",
+				width: "<cfif session.isMobile>10<cfelse>6</cfif>%",
 				template: "#= Helpful ? 'Yes' : 'No' #"
 			}, {
 				field: "UnHelpful",
 				title: "Dislike",
 				filterable: true,
-				width: "<cfif session.isMobile>10<cfelse>5</cfif>%",
+				width: "<cfif session.isMobile>10<cfelse>7</cfif>%",
 				template: "#= UnHelpful ? 'Yes' : 'No' #"
 			}, {
 				field: "Date",
 				title: "Date",
 				filterable: true,
-				width: "<cfif session.isMobile>20<cfelse>10</cfif>%",
+				width: "<cfif session.isMobile>20<cfelse>12</cfif>%",
 				template: "#= dayjs(Date).format('MM/DD/YYYY h:mm A') #"
 			}, {
 				command: [{

@@ -112,13 +112,13 @@
 				field: "PostTitle",
 				title: "Post",
 				filterable: true,
-				width: "40%",
+				width: "<cfif session.isMobile>40<cfelse>38</cfif>%",
 				template: kendo.template($("#postTitleTemplate").html())</cfif>
 			}, {
 				field: "IsBot",
 				title: "Bot?",
 				filterable: true,
-				width: "<cfif session.isMobile>10<cfelse>5</cfif>%",
+				width: "<cfif session.isMobile>10<cfelse>7</cfif>%",
 				template: "#= IsBot ? 'Yes' : 'No' #"
 			}, {
 				field: "Date",

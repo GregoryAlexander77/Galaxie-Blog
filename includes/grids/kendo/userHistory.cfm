@@ -65,18 +65,18 @@
 				field: "IpAddress",
 				title: "IP Address",
 				filterable: true,
-				width: "<cfif session.isMobile>45<cfelse>30</cfif>%"
+				width: "<cfif session.isMobile>45<cfelse>18</cfif>%"
 			<cfif not session.isMobile>}, {
 				field: "HttpUserAgent",
 				title: "User Agent",
 				filterable: true,
-				width: "45%",
+				width: "<cfif session.isMobile>45<cfelse>64</cfif>%",
 				template: kendo.template($("#httpUserAgentTemplate").html())</cfif>
 			}, {
 				field: "LoginDate",
 				title: "Date",
 				filterable: true,
-				width: "<cfif session.isMobile>55<cfelse>25</cfif>%",
+				width: "<cfif session.isMobile>55<cfelse>18</cfif>%",
 				template: "#= dayjs(LoginDate).format('MM/DD/YYYY h:mm A') #"
 			}]
 		});

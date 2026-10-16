@@ -123,25 +123,25 @@
 				field: "PostTitle",
 				title: "Post",
 				filterable: true,
-				width: "20%",
+				width: "<cfif session.isMobile>20<cfelse>20</cfif>%",
 				template: kendo.template($("#postTemplate").html())
 			}, {
 				field: "DatePosted",
 				title: "Date",
 				filterable: true,
-				width: "10%",
+				width: "<cfif session.isMobile>10<cfelse>13</cfif>%",
 				template: "#= dayjs(DatePosted).format('MM/DD/YYYY h:mm A') #"</cfif>
 			}, {
 				field: "Comment",
 				title: "Comment",
 				filterable: true,
-				width: "<cfif session.isMobile>45<cfelse>40</cfif>%",
+				width: "<cfif session.isMobile>45<cfelse>37</cfif>%",
 				template: kendo.template($("#commentTemplate").html())
 			}, {
 				field: "Approved",
 				<cfif session.isMobile>headerTemplate: '<i class="far fa-thumbs-up"></i>',<cfelse>title: "Approved",</cfif>
 				filterable: true,
-				width: "<cfif session.isMobile>15<cfelse>10</cfif>%"
+				width: "<cfif session.isMobile>15<cfelse>9</cfif>%"
 			}, {
 				command: [
 					{ name: "edit", iconClass: "k-icon k-i-edit", text: "View", click: showCommentDetails },

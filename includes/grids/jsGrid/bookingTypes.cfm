@@ -153,17 +153,17 @@
 					name: "Name",
 					type: "text",
 					title: "Name",
-					width: (pageWidth*(<cfif session.isMobile>45<cfelse>22</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>45<cfelse>24</cfif>/100)),
 					itemTemplate: function(value, item) {
 						return '<a href="javascript:createAdminInterfaceWindow(91, ' + item.BookingTypeId + ');">' + encodeGridText(value) + '</a>';
 					}
 				},
 				{ name: "Category", type: "text", title: "Category", width: (pageWidth*(<cfif session.isMobile>30<cfelse>12</cfif>/100)), itemTemplate: function(value) { return encodeGridText(value); } },
 				<cfif not session.isMobile>
-				{ name: "Length", type: "text", title: "Length", width: (pageWidth*(12/100)), filtering: false, itemTemplate: function(value) { return encodeGridText(value); } },
-				{ name: "Price", type: "text", title: "Price", width: (pageWidth*(8/100)), filtering: false, itemTemplate: function(value) { return encodeGridText(value); } },
-				{ name: "Locations", type: "text", title: "Where", width: (pageWidth*(24/100)), itemTemplate: function(value) { return encodeGridText(value); } },
-				{ name: "Status", type: "text", title: "Status", width: (pageWidth*(9/100)) },
+				{ name: "Length", type: "text", title: "Length", width: (pageWidth*(<cfif session.isMobile>12<cfelse>8</cfif>/100)), filtering: false, itemTemplate: function(value) { return encodeGridText(value); } },
+				{ name: "Price", type: "text", title: "Price", width: (pageWidth*(<cfif session.isMobile>8<cfelse>8</cfif>/100)), filtering: false, itemTemplate: function(value) { return encodeGridText(value); } },
+				{ name: "Locations", type: "text", title: "Where", width: (pageWidth*(<cfif session.isMobile>24<cfelse>31</cfif>/100)), itemTemplate: function(value) { return encodeGridText(value); } },
+				{ name: "Status", type: "text", title: "Status", width: (pageWidth*(<cfif session.isMobile>9<cfelse>9</cfif>/100)) },
 				</cfif>
 				{
 					type: "control",

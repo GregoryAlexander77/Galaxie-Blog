@@ -118,7 +118,7 @@
 				field: "SubscriberToken",
 				title: "Token",
 				filterable: true,
-				width: "30%"</cfif>
+				width: "<cfif session.isMobile>30<cfelse>28</cfif>%"</cfif>
 			}, {
 				field: "SubscribeAll",
 				title: "New Posts",
@@ -128,12 +128,12 @@
 				field: "SubscriberVerified",
 				title: "Verified",
 				filterable: true,
-				width: "<cfif session.isMobile>20<cfelse>10</cfif>%"
+				width: "<cfif session.isMobile>20<cfelse>9</cfif>%"
 			<cfif not session.isMobile>}, {
 				field: "Date",
 				title: "Date",
 				filterable: true,
-				width: "10%",
+				width: "<cfif session.isMobile>10<cfelse>14</cfif>%",
 				template: "#= Date ? dayjs(Date).format('MM/DD/YYYY h:mm A') : '' #"</cfif>
 			}, {
 				command: ["destroy"],

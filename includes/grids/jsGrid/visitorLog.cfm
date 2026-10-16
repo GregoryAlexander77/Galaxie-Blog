@@ -223,7 +223,7 @@
 					type: "text",
 					title: "Post",
 					editing: false,
-					width: (pageWidth*(40/100)),
+					width: (pageWidth*(<cfif session.isMobile>40<cfelse>38</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- Don't show null posts --->
 						if (item.VisitingHomePage) {
@@ -240,7 +240,7 @@
 					type: "checkbox",
 					title: "Bot?",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>10<cfelse>5</cfif>/100))
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>7</cfif>/100))
 				},
 				{ 	
 					name: "dateVisited", 

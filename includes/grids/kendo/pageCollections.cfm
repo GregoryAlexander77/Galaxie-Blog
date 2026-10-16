@@ -105,13 +105,13 @@
 				field: "Title",
 				title: "Title",
 				filterable: true,
-				width: "<cfif session.isMobile>50<cfelse>30</cfif>%",
+				width: "<cfif session.isMobile>50<cfelse>28</cfif>%",
 				template: kendo.template($("#pcTitleTemplate").html())
 			<cfif not session.isMobile>}, {
 				field: "Description",
 				title: "Description",
 				filterable: true,
-				width: "25%"</cfif>
+				width: "<cfif session.isMobile>25<cfelse>28</cfif>%"</cfif>
 			}, {
 				field: "MemberCount",
 				title: "Pages",
@@ -127,7 +127,7 @@
 				field: "Created",
 				title: "Created",
 				filterable: true,
-				width: "10%",
+				width: "<cfif session.isMobile>10<cfelse>14</cfif>%",
 				template: "#= Created ? dayjs(Created).format('MM/DD/YYYY h:mm A') : '' #"</cfif>
 			}, {
 				<!--- Open goes straight to Page Collection Detail (window 72) for this row. Kendo's own button styling keeps it readable on any theme. --->

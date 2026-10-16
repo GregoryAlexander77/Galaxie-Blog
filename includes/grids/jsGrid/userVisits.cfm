@@ -190,7 +190,7 @@
 					type: "text",
 					title: "UserId",
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>8</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- Link to the visitor details --->
 						return '<a href="javascript:createAdminInterfaceWindow(63, ' + item.AnonymousUserId + ');">' + value + '</a>';
@@ -203,7 +203,7 @@
 					type: "text",
 					title: "IP Address",
 					editing: false,
-					width: (pageWidth*(20/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>14</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- Link to this page using the ipAddressId (createAdminInterfaceWindow(48,[anonymousUserId,ipAddressId,postId]). This will show all of the pages that the ip has visited, not necessarilly the anonymous user which is a unique combination of the user agent and ip. --->
 					  	return '<a href="javascript:createAdminInterfaceWindow(64,0,' + item.IpAddressId + ',0);">' + value + '</a>';
@@ -214,14 +214,14 @@
 					type: "text",
 					title: "Auth User",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>16</cfif>/100)),
 				},
 				{ 
 					name: "PostTitle", 
 					type: "text",
 					title: "Post",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>35</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>47</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- Don't show null posts --->
 						if (item.VisitingHomePage) {

@@ -117,41 +117,41 @@
 				field: "FullName",
 				title: "Author",
 				filterable: true,
-				width: "<cfif session.isMobile>25<cfelse>9</cfif>%"
+				width: "<cfif session.isMobile>25<cfelse>10</cfif>%"
 			}, {
 				field: "Title",
 				title: "Title",
 				filterable: true,
-				width: "<cfif session.isMobile>45<cfelse>27</cfif>%",
+				width: "<cfif session.isMobile>45<cfelse>21</cfif>%",
 				template: kendo.template($("#titleTemplate").html())
 			<cfif not session.isMobile>}, {
 				field: "Body",
 				title: "Page",
 				filterable: true,
-				width: "28%",
+				width: "<cfif session.isMobile>28<cfelse>20</cfif>%",
 				template: kendo.template($("#bodyTemplate").html())
 			}, {
 				field: "BlogSortDate",
 				title: "Sort Date",
 				filterable: true,
-				width: "8%",
+				width: "<cfif session.isMobile>8<cfelse>14</cfif>%",
 				template: "#= BlogSortDate ? dayjs(BlogSortDate).format('MM/DD/YYYY h:mm A') : '' #"
 			}, {
 				field: "DatePosted",
 				title: "Posted",
 				filterable: true,
-				width: "8%",
+				width: "<cfif session.isMobile>8<cfelse>14</cfif>%",
 				template: "#= DatePosted ? dayjs(DatePosted).format('MM/DD/YYYY h:mm A') : '' #"
 			}, {
 				field: "ViewsPerDay",
 				title: "Monthly Views",
 				filterable: true,
-				width: "7%"</cfif>
+				width: "<cfif session.isMobile>7<cfelse>8</cfif>%"</cfif>
 			}, {
 				field: "Released",
 				<cfif session.isMobile>headerTemplate: '<i class="fas fa-thumbs-up"></i>',<cfelse>title: "Released",</cfif>
 				filterable: true,
-				width: "<cfif session.isMobile>15<cfelse>6</cfif>%"
+				width: "<cfif session.isMobile>15<cfelse>7</cfif>%"
 			}, {
 				command: ["destroy"],
 				title: "&nbsp;",

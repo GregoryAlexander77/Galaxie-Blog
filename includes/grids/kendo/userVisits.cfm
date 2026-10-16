@@ -96,24 +96,24 @@
 				field: "AnonymousUserId",
 				title: "UserId",
 				filterable: true,
-				width: "<cfif session.isMobile>100<cfelse>10</cfif>%",
+				width: "<cfif session.isMobile>100<cfelse>8</cfif>%",
 				template: kendo.template($("#anonymousUserIdTemplate").html())
 			<cfif not session.isMobile>}, {
 				field: "IpAddress",
 				title: "IP Address",
 				filterable: true,
-				width: "20%",
+				width: "<cfif session.isMobile>20<cfelse>14</cfif>%",
 				template: kendo.template($("#ipAddressTemplate").html())
 			}, {
 				field: "FullName",
 				title: "Auth User",
 				filterable: true,
-				width: "20%"
+				width: "<cfif session.isMobile>20<cfelse>16</cfif>%"
 			}, {
 				field: "PostTitle",
 				title: "Post",
 				filterable: true,
-				width: "35%",
+				width: "<cfif session.isMobile>35<cfelse>47</cfif>%",
 				template: kendo.template($("#postTitleTemplate").html())</cfif>
 			}, {
 				field: "Date",

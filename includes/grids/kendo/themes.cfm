@@ -143,7 +143,7 @@
 				field: "ThemeName",
 				title: "Theme",
 				filterable: true,
-				width: "<cfif session.isMobile>40<cfelse>20</cfif>%",
+				width: "<cfif session.isMobile>40<cfelse>24</cfif>%",
 				template: kendo.template($("#themeNameTemplate").html())
 			}, {
 				field: "KendoTheme",
@@ -155,17 +155,17 @@
 				field: "ModernThemeStyle",
 				title: "Modern Theme?",
 				filterable: true,
-				width: "10%"
+				width: "<cfif session.isMobile>10<cfelse>15</cfif>%"
 			}, {
 				field: "UseTheme",
 				title: "Use Theme",
 				filterable: true,
-				width: "10%"</cfif>
+				width: "<cfif session.isMobile>10<cfelse>13</cfif>%"</cfif>
 			}, {
 				field: "SelectedTheme",
 				title: "Selected Theme",
 				filterable: true,
-				width: "<cfif session.isMobile>15<cfelse>10</cfif>%"
+				width: "<cfif session.isMobile>15<cfelse>15</cfif>%"
 			}, {
 				command: ["destroy"],
 				title: "&nbsp;",

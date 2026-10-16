@@ -153,16 +153,16 @@
 					name: "Label",
 					type: "text",
 					title: "Name",
-					width: (pageWidth*(<cfif session.isMobile>50<cfelse>24</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>50<cfelse>22</cfif>/100)),
 					itemTemplate: function(value, item) {
 						return '<a href="javascript:createAdminInterfaceWindow(89, ' + item.LocationOptionId + ');">' + encodeGridText(value) + '</a>';
 					}
 				},
-				{ name: "KindLabel", type: "text", title: "How", width: (pageWidth*(<cfif session.isMobile>25<cfelse>11</cfif>/100)), itemTemplate: function(value) { return encodeGridText(value); } },
+				{ name: "KindLabel", type: "text", title: "How", width: (pageWidth*(<cfif session.isMobile>25<cfelse>9</cfif>/100)), itemTemplate: function(value) { return encodeGridText(value); } },
 				<cfif not session.isMobile>
-				{ name: "Details", type: "text", title: "Details", width: (pageWidth*(38/100)), itemTemplate: function(value) { return encodeGridText(value); } },
-				{ name: "SortOrder", type: "number", title: "Order", width: (pageWidth*(7/100)), filtering: false },
-				{ name: "Status", type: "text", title: "Status", width: (pageWidth*(10/100)) },
+				{ name: "Details", type: "text", title: "Details", width: (pageWidth*(<cfif session.isMobile>38<cfelse>45</cfif>/100)), itemTemplate: function(value) { return encodeGridText(value); } },
+				{ name: "SortOrder", type: "number", title: "Order", width: (pageWidth*(<cfif session.isMobile>7<cfelse>7</cfif>/100)), filtering: false },
+				{ name: "Status", type: "text", title: "Status", width: (pageWidth*(<cfif session.isMobile>10<cfelse>9</cfif>/100)) },
 				</cfif>
 				{
 					type: "control",

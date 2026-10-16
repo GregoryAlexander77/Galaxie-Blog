@@ -295,7 +295,7 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 					type: "text",
 					title: "Token",
 					editing: true,
-					width: (pageWidth*(30/100))
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>28</cfif>/100))
 				},
 				</cfif>
 				{ 
@@ -312,7 +312,7 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: 'Verified',
 					editing: true,
-					width: (pageWidth*(<cfif session.isMobile>20<cfelse>10</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>9</cfif>/100)),
 				},
 				<cfif not session.isMobile>
 				{ 	
@@ -320,7 +320,7 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 					type: "date",
 					title: "Date",
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>14</cfif>/100)),
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the momentJs lib. --->
 						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');

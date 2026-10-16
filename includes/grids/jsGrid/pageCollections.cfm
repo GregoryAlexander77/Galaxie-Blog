@@ -202,7 +202,7 @@
 					type: "text",
 					title: "Title",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>60<cfelse>30</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>60<cfelse>28</cfif>/100)),
 					itemTemplate: function(value, item) {
 						return '<a href="javascript:createAdminInterfaceWindow(72, ' + item.PageCollectionId + ');">' + value + '</a>';
 					}
@@ -213,7 +213,7 @@
 					type: "text",
 					title: "Description",
 					editing: false,
-					width: (pageWidth*(25/100))
+					width: (pageWidth*(<cfif session.isMobile>25<cfelse>28</cfif>/100))
 				},
 				</cfif>
 				{
@@ -243,7 +243,7 @@
 					type: "date",
 					title: "Created",
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>14</cfif>/100)),
 					sorttype: 'date',
 					itemTemplate: function (value, item) {
 						return value ? dayjs(value).format('MM/DD/YYYY h:mm A') : '';

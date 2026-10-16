@@ -209,7 +209,7 @@ The arguments are: createAdminInterfaceWindow(62[,ipAddressId]) (createAdminInte
 					type: "text",
 					title: "UserId",
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>8</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- Link to the visitor details --->
 						return '<a href="javascript:createAdminInterfaceWindow(63, ' + item.AnonymousUserId + ');">' + value + '</a>';
@@ -220,7 +220,7 @@ The arguments are: createAdminInterfaceWindow(62[,ipAddressId]) (createAdminInte
 					type: "text",
 					title: "Ip Address",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>20<cfelse>10</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>11</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="https://www.ipalyzer.com/' + item.IpAddress + '" target="_new">' + value + '</a>';
 					}
@@ -229,7 +229,7 @@ The arguments are: createAdminInterfaceWindow(62[,ipAddressId]) (createAdminInte
 					type: "text",
 					title: "Post",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>25<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>25<cfelse>22</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="javascript:createAdminInterfaceWindow(6, ' + item.PostId + ');">' + value + '</a>';
 					}
@@ -240,7 +240,7 @@ The arguments are: createAdminInterfaceWindow(62[,ipAddressId]) (createAdminInte
 					type: "text",
 					title: "User Agent",
 					editing: false,
-					width: (pageWidth*(30/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>29</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="https://gs.statcounter.com/detect?useragent=' + item.HttpUserAgent + '" target="_new">' + value + '</a>';
 					}
@@ -251,21 +251,21 @@ The arguments are: createAdminInterfaceWindow(62[,ipAddressId]) (createAdminInte
 					type: "checkbox",
 					title: "Like",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>10<cfelse>5</cfif>/100))
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>6</cfif>/100))
 				},
 				{ 
 					name: "UnHelpful", 
 					type: "checkbox",
 					title: "Dislike",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>10<cfelse>5</cfif>/100))
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>7</cfif>/100))
 				},
 				{ 	
 					name: "Date", 
 					type: "date",
 					title: "Date",
 					editing: true,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>12</cfif>/100)),
 					sorttype: 'date', 
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the momentJs lib. --->

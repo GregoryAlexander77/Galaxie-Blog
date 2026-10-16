@@ -69,23 +69,23 @@
 			columns: [{
 				field: "Label",
 				title: "Name",
-				width: "<cfif session.isMobile>45<cfelse>24</cfif>%",
+				width: "<cfif session.isMobile>45<cfelse>22</cfif>%",
 				template: kendo.template($("#locationLabelTemplate").html())
 			}, {
 				field: "KindLabel",
 				title: "How",
-				width: "<cfif session.isMobile>25<cfelse>11</cfif>%"
+				width: "<cfif session.isMobile>25<cfelse>9</cfif>%"
 			<cfif not session.isMobile>}, {
 				field: "Details",
 				title: "Details"
 			}, {
 				field: "SortOrder",
 				title: "Order",
-				width: "8%"
+				width: "<cfif session.isMobile>8<cfelse>7</cfif>%"
 			}, {
 				field: "Status",
 				title: "Status",
-				width: "10%"</cfif>
+				width: "<cfif session.isMobile>10<cfelse>9</cfif>%"</cfif>
 			}, {
 				command: [{
 					name: "editLocation",

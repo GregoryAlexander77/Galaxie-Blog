@@ -206,7 +206,7 @@ The arguments are: createAdminInterfaceWindow(59[,ipAddressId]) (createAdminInte
 					type: "text",
 					title: "ErrorId",
 					editing: false,
-					width: (pageWidth*(5/100)),
+					width: (pageWidth*(<cfif session.isMobile>5<cfelse>6</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="javascript:createAdminInterfaceWindow(60, ' + item.ErrorLogId + ');">' + value + '</a>';
 					}
@@ -216,7 +216,7 @@ The arguments are: createAdminInterfaceWindow(59[,ipAddressId]) (createAdminInte
 					type: "text",
 					title: "Error Message",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>75<cfelse>60</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>75<cfelse>42</cfif>/100)),
 				},
 				<cfif !session.isMobile>
 				{ 
@@ -224,7 +224,7 @@ The arguments are: createAdminInterfaceWindow(59[,ipAddressId]) (createAdminInte
 					type: "text",
 					title: "IP Address",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>15<cfelse>10</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>15<cfelse>11</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- Link to this page using the ipAddressId (createAdminInterfaceWindow(59,[ipAddressId]). This will show all of the errors logs for this ip. --->
 					  	return '<a href="javascript:createAdminInterfaceWindow(59,' + item.IpAddressId + ');">' + value + '</a>';
@@ -235,21 +235,21 @@ The arguments are: createAdminInterfaceWindow(59[,ipAddressId]) (createAdminInte
 					type: "text",
 					title: "Hits",
 					editing: false,
-					width: (pageWidth*(5/100)),
+					width: (pageWidth*(<cfif session.isMobile>5<cfelse>5</cfif>/100)),
 				},
 				{ 
 					name: "Resolved", 
 					type: "text",
 					title: "Resolved",
 					editing: false,
-					width: (pageWidth*(5/100)),
+					width: (pageWidth*(<cfif session.isMobile>5<cfelse>8</cfif>/100)),
 				},
 				{ 
 					name: "IsBot", 
 					type: "checkbox",
 					title: "Bot?",
 					editing: true,
-					width: (pageWidth*(<cfif session.isMobile>10<cfelse>5</cfif>/100))
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>7</cfif>/100))
 				},
 				</cfif>
 				{ 	
@@ -257,7 +257,7 @@ The arguments are: createAdminInterfaceWindow(59[,ipAddressId]) (createAdminInte
 					type: "date",
 					title: "Date",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>15<cfelse>10</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>15<cfelse>15</cfif>/100)),
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the dayjs lib. --->
 						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');

@@ -159,14 +159,14 @@
 					type: "text",
 					title: "User",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>18</cfif>/100)),
 				},
 				{ 
 					name: "IpAddress", 
 					type: "text",
 					title: "IP Address",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>20<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>12</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="https://www.ipalyzer.com/' + item.IpAddress + '" target="_new">' + value + '</a>';
 					}
@@ -176,7 +176,7 @@
 					type: "text",
 					title: "User Agent",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>40</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>55</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="https://gs.statcounter.com/detect?useragent=' + item.HttpUserAgent + '" target="_new">' + value + '</a>';
 					}
@@ -186,7 +186,7 @@
 					type: "date",
 					title: "Date",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>20<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>15</cfif>/100)),
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the dayjs lib. --->
 						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');

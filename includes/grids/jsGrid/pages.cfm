@@ -283,7 +283,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					type: "text",
 					title: "Title",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>40<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>40<cfelse>21</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="javascript:createAdminInterfaceWindow(6, ' + item.PostId + ');">' + value + '</a>';
 					}
@@ -294,7 +294,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					type: "textarea",
 					title: "Page",
 					editing: false,
-					width: (pageWidth*(28/100)),
+					width: (pageWidth*(<cfif session.isMobile>28<cfelse>20</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- This does not work to strip out the HTML ($(value).text()) --->
 					  	return '<a href="javascript:createAdminInterfaceWindow(6, ' + item.PostId + ');">' + truncateWithEllipses(removeStrBetween(value, "postData"), 125) + '</a>';
@@ -305,7 +305,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					type: "date",
 					title: "Sort Date",
 					editing: true,
-					width: (pageWidth*(8/100)),
+					width: (pageWidth*(<cfif session.isMobile>8<cfelse>14</cfif>/100)),
 					sorttype: 'date', 
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the momentJs lib. --->
@@ -317,7 +317,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					type: "date",
 					title: "Posted",
 					editing: true,
-					width: (pageWidth*(8/100)),
+					width: (pageWidth*(<cfif session.isMobile>8<cfelse>14</cfif>/100)),
 					sorttype: 'date', 
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the momentJs lib. --->
@@ -330,7 +330,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					title: "Monthly Views",
 					filtering: false,
 					editing: false,
-					width: (pageWidth*(8/100)),
+					width: (pageWidth*(<cfif session.isMobile>8<cfelse>8</cfif>/100)),
 					sorttype: 'number'
 				},
 				{ 
@@ -338,7 +338,7 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					type: "checkbox",
 					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: '<cfif session.isMobile><i class="fas fa-thumbs-up"></i><cfelse>Released</cfif>',
-					width: (pageWidth*(8/100)),
+					width: (pageWidth*(<cfif session.isMobile>8<cfelse>7</cfif>/100)),
 					<!--- editTemplate: function(value, item) {
 						return "<input type='checkbox'>" + item.Released;
 					} --->

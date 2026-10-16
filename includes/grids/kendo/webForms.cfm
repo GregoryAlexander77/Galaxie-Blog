@@ -73,20 +73,20 @@
 			columns: [{
 				field: "Title",
 				title: "Title",
-				width: "<cfif session.isMobile>45<cfelse>26</cfif>%",
+				width: "<cfif session.isMobile>45<cfelse>30</cfif>%",
 				template: kendo.template($("#webFormTitleTemplate").html())
 			<cfif not session.isMobile>}, {
 				field: "Alias",
 				title: "Placed in posts as",
-				width: "18%"
+				width: "<cfif session.isMobile>18<cfelse>20</cfif>%"
 			}, {
 				field: "FieldCount",
 				title: "Fields",
-				width: "7%"</cfif>
+				width: "<cfif session.isMobile>7<cfelse>7</cfif>%"</cfif>
 			}, {
 				field: "SubmissionCount",
 				title: "Submissions",
-				width: "<cfif session.isMobile>20<cfelse>10</cfif>%"
+				width: "<cfif session.isMobile>20<cfelse>11</cfif>%"
 			<cfif not session.isMobile>}, {
 				field: "LastSubmission",
 				title: "Last submission",
@@ -95,7 +95,7 @@
 			}, {
 				field: "Status",
 				title: "Status",
-				width: "9%"</cfif>
+				width: "<cfif session.isMobile>9<cfelse>9</cfif>%"</cfif>
 			}, {
 				command: [{
 					name: "editWebForm",
