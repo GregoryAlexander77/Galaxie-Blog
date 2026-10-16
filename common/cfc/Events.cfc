@@ -14,6 +14,18 @@
 	<cfreturn this>
 </cffunction>
 
+<cffunction name="getPeople" access="public" returntype="any" output="false"
+		hint="People cards (common/cfc/People.cfc, 2026-10-16), created the first time they are needed - application.events.getPeople() works wherever the events do, without touching Application.cfc.">
+	<cfif not structKeyExists(application, "people")>
+		<cflock name="galaxiePeopleInit_#application.applicationName#" type="exclusive" timeout="30">
+			<cfif not structKeyExists(application, "people")>
+				<cfset application.people = createObject("component", reReplace(application.eventsComponentPath, "Events$", "People")).init()>
+			</cfif>
+		</cflock>
+	</cfif>
+	<cfreturn application.people>
+</cffunction>
+
 <!--- ********************************************************************************************************************
 	Reading
 ********************************************************************************************************************* --->
@@ -160,7 +172,18 @@
 	<!--- The rest --->
 	<cfif not listFind(variables.statuses, d.status)><cfset arrayAppend(result.errors, "Choose the event's status.")></cfif>
 	<cfif len(d.organizerName) gt 125><cfset arrayAppend(result.errors, "The organizer's name is too long.")></cfif>
-	<cfif len(d.organizerUrl) and not isWebAddress(d.organizerUrl)><cfset arrayAppend(result.errors, "The organizer's link has to start with http:// or https://.")></cfif>
+	<!--- The organizer can be one of the People cards (2026-10-16): the link is then person:user:5 or person:guest:3, and the
+	name is the card's own, so the card and the search engine data always show the current name. --->
+	<cfif left(d.organizerUrl, 7) eq "person:">
+		<cfset local.organizerCard = getPeople().getCard(mid(d.organizerUrl, 8, 50))>
+		<cfif structIsEmpty(local.organizerCard)>
+			<cfset arrayAppend(result.errors, "Choose who organizes the event.")>
+		<cfelse>
+			<cfset d.organizerName = local.organizerCard.name>
+		</cfif>
+	<cfelseif len(d.organizerUrl) and not isWebAddress(d.organizerUrl)>
+		<cfset arrayAppend(result.errors, "The organizer's link has to start with http:// or https://.")>
+	</cfif>
 	<cfif len(d.cost) gt 125><cfset arrayAppend(result.errors, "The cost is too long; keep it short, eg. $20 or Free.")></cfif>
 	<cfif len(d.ticketUrl) and not isWebAddress(d.ticketUrl)><cfset arrayAppend(result.errors, "The tickets link has to start with http:// or https://.")></cfif>
 	<cfloop list="#d.locationIds#" index="id">
@@ -1226,7 +1249,14 @@
 	<cfelseif len(ev.cost)>
 		<cfset html.append('<p class="galaxieEventCost">Cost: ' & encodeForHtml(ev.cost) & '</p>')>
 	</cfif>
-	<cfif len(ev.organizerName)>
+	<cfif left(ev.organizerUrl, 7) eq "person:">
+		<!--- One of the People cards (2026-10-16): the name opens the author card (picture, biography, links and a contact form).
+		Without JavaScript the link goes to their posts, or their website. --->
+		<cfset local.organizerCard = getPeople().getCard(mid(ev.organizerUrl, 8, 50))>
+		<cfif not structIsEmpty(local.organizerCard)>
+			<cfset html.append('<p class="galaxieEventOrganizer">Organized by <a href="' & encodeForHtmlAttribute(len(local.organizerCard.postsUrl) ? local.organizerCard.postsUrl : (len(local.organizerCard.website) ? local.organizerCard.website : "##")) & '" class="galaxiePersonLink" data-person="' & encodeForHtmlAttribute(local.organizerCard.ref) & '">' & encodeForHtml(local.organizerCard.name) & '</a></p>')>
+		</cfif>
+	<cfelseif len(ev.organizerName)>
 		<cfset html.append('<p class="galaxieEventOrganizer">Organized by ' & (len(ev.organizerUrl) ? '<a href="' & encodeForHtmlAttribute(ev.organizerUrl) & '" rel="noopener">' & encodeForHtml(ev.organizerName) & '</a>' : encodeForHtml(ev.organizerName)) & '</p>')>
 	</cfif>
 	<!--- Buttons (not for a cancelled event) --->
@@ -1333,7 +1363,13 @@
 	<cfelseif arrayLen(places)>
 		<cfset data[ "location" ] = places>
 	</cfif>
-	<cfif len(arguments.ev.organizerName)>
+	<cfif left(arguments.ev.organizerUrl, 7) eq "person:">
+		<cfset local.organizerCard = getPeople().getCard(mid(arguments.ev.organizerUrl, 8, 50))>
+		<cfif not structIsEmpty(local.organizerCard)>
+			<cfset data[ "organizer" ] = { "@type": "Person", "name": local.organizerCard.name }>
+			<cfif len(local.organizerCard.postsUrl)><cfset data.organizer[ "url" ] = local.organizerCard.postsUrl><cfelseif len(local.organizerCard.website)><cfset data.organizer[ "url" ] = local.organizerCard.website></cfif>
+		</cfif>
+	<cfelseif len(arguments.ev.organizerName)>
 		<cfset data[ "organizer" ] = { "@type": "Organization", "name": arguments.ev.organizerName }>
 		<cfif len(arguments.ev.organizerUrl)><cfset data.organizer[ "url" ] = arguments.ev.organizerUrl></cfif>
 	</cfif>

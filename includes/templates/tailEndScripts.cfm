@@ -58,6 +58,34 @@
 </script>
 </cfif>
 
+<!--- Author cards (2026-10-16): a byline or an event organizer marked class="galaxiePersonLink" data-person="user:5" opens the
+person's card - picture, biography, links and a contact form that emails them (includes/windows/personCard.cfm). Without
+JavaScript the link still goes to their posts or website. --->
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+	function galaxieOpenPersonCard(person, name) {
+		if (!$.fn.kendoWindow || !/^(user|guest):[0-9]+$/.test(person || "")) { return false; }
+		try { $("#personCardWindow").data("kendoWindow").destroy(); } catch (error) {}
+		$("#personCardWindow").remove();
+		$(document.body).append('<div id="personCardWindow"></div>');
+		$("#personCardWindow").kendoWindow({
+			title: name || "About",
+			actions: ["Close"],
+			modal: false,
+			resizable: <cfif session.isMobile>false<cfelse>true</cfif>,
+			draggable: <cfif session.isMobile>false<cfelse>true</cfif>,
+			width: <cfif session.isMobile>"95%"<cfelse>"640px"</cfif>,
+			height: <cfif session.isMobile>"90%"<cfelse>"85%"</cfif>,
+			iframe: false,
+			content: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/personCard.cfm?person=" + encodeURIComponent(person),
+			close: function() { $("#personCardWindow").data("kendoWindow").destroy(); }
+		}).data("kendoWindow").center().open();
+		return true;
+	}
+	$(document).on("click", "a.galaxiePersonLink[data-person]", function(e) {
+		if (galaxieOpenPersonCard($(this).attr("data-person"), $.trim($(this).text()))) { e.preventDefault(); }
+	});
+</script>
+
 <!-- Bookings placed in a post or page (2026-10-14) are only downloaded when the page has one. See common/js/bookings.js. -->
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">
 	if ($('.galaxieBooking[data-booking]').length) {

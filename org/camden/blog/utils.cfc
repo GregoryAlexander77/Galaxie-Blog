@@ -42,6 +42,7 @@
 		<cfargument name="mailUsername" type="string" required="false" default="#application.BlogDbObj.getBlogMailServerUserName()#">
 		<cfargument name="mailPassword" type="string" required="false" default="#application.BlogDbObj.getBlogMailServerPassword()#">
 		<cfargument name="failTo" type="string" required="false" default="#application.BlogDbObj.getBlogEmailFailToAddress()#">
+		<cfargument name="replyTo" type="string" required="false" default="" hint="Where a reply goes, eg. the visitor who wrote through a contact form (2026-10-16). Empty = the sender.">
 		<cfargument name="type" type="string" required="false" default="html">
 		<!--- An optional attached file made from text, eg. a calendar (.ics) invite (2026-10-15). --->
 		<cfargument name="attachmentName" type="string" required="false" default="">
@@ -57,6 +58,7 @@
 		<cfif arguments.mailserver is "">
 			<cfmail to="#arguments.to#" 
 				from="#arguments.from#" 
+				replyto="#len(arguments.replyTo) ? arguments.replyTo : arguments.from#"
 				cc="#arguments.cc#" 
 				bcc="#arguments.bcc#" 
 				subject="#arguments.subject#" 
@@ -65,6 +67,7 @@
 		<cfelse>
 			<cfmail to="#arguments.to#" 
 				from="#arguments.from#" 
+				replyto="#len(arguments.replyTo) ? arguments.replyTo : arguments.from#"
 				cc="#arguments.cc#"
 				bcc="#arguments.bcc#" 
 				subject="#arguments.subject#" 

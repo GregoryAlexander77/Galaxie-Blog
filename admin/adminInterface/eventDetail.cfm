@@ -13,7 +13,7 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 <!--- A new event starts as next Saturday 7-9 PM, in the blog's time zone. --->
 <cfif isNewEvent>
 	<cfset eventStartDefault = dateAdd("d", 7 - dayOfWeek(application.blog.blogNow()) + (dayOfWeek(application.blog.blogNow()) eq 7 ? 7 : 0), application.blog.blogNow())>
-	<cfset theEvent = { startLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 19:00", endLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 21:00", timeZone: eventBlogZone, allDay: false, status: "scheduled", organizerName: application.BlogDbObj.getBlogTitle(), organizerUrl: application.blogHostUrl, cost: "", ticketUrl: "", locationIds: [], webFormId: 0, capacity: 0, askPartySize: false, maxPartySize: 4, rsvpClosesLocal: "", price: 0, refundHours: 24 }>
+	<cfset theEvent = { startLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 19:00", endLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 21:00", timeZone: eventBlogZone, allDay: false, status: "scheduled", organizerName: "", organizerUrl: (arrayLen(eventPost) and val(eventPost[1]["UserId"]) ? "person:user:" & eventPost[1]["UserId"] : ""), cost: "", ticketUrl: "", locationIds: [], webFormId: 0, capacity: 0, askPartySize: false, maxPartySize: 4, rsvpClosesLocal: "", price: 0, refundHours: 24 }>
 </cfif>
 <!--- Time zones with region names (eg. Europe/London), sorted. --->
 <cfset eventZones = []>
@@ -26,6 +26,23 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 <cfloop array="#eventZones#" index="thisZone"><cfset arrayAppend(eventZoneChoices, { "text": replace(thisZone, "_", " ", "all"), "value": thisZone })></cfloop>
 <!--- RSVP: the forms to choose from, and how many are coming so far. --->
 <cfset eventForms = application.webForms.getForms()>
+<!--- Organizer (2026-10-16): one of the People cards (common/cfc/People.cfc - the admin users and guest cards), this blog, or
+someone else typed in. A card is stored as person:user:5 / person:guest:3 in OrganizerUrl. --->
+<cfset eventPeople = application.events.getPeople().getCards()>
+<cfif left(theEvent.organizerUrl, 7) eq "person:">
+	<cfset eventOrganizerMode = "person">
+	<cfset eventOrganizerRef = mid(theEvent.organizerUrl, 8, 50)>
+<cfelseif not len(theEvent.organizerName) or (theEvent.organizerName eq application.BlogDbObj.getBlogTitle() and (not len(theEvent.organizerUrl) or theEvent.organizerUrl eq application.blogHostUrl))>
+	<cfset eventOrganizerMode = "blog">
+	<cfset eventOrganizerRef = arrayLen(eventPost) ? "user:" & eventPost[1]["UserId"] : "">
+<cfelse>
+	<cfset eventOrganizerMode = "other">
+	<cfset eventOrganizerRef = arrayLen(eventPost) ? "user:" & eventPost[1]["UserId"] : "">
+</cfif>
+<cfset eventOrganizerChoices = []>
+<cfloop array="#eventPeople#" index="thisPerson">
+	<cfset arrayAppend(eventOrganizerChoices, { "ref": thisPerson.ref, "name": thisPerson.name & (thisPerson.kind eq "guest" ? " (guest)" : "") })>
+</cfloop>
 <cfset eventRsvpState = isNewEvent ? {} : application.events.getRsvpState(theEvent)>
 <cfset eventPaymentsReady = application.payments.getStatus().ready>
 <cfset arrayPrepend(eventZones, "UTC")>
@@ -48,6 +65,31 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 		<!--- A form built from the Build Form button joins the list and is selected (webFormDetail.cfm triggers this on save). --->
 		$(document).off("galaxieWebFormSaved.event").on("galaxieWebFormSaved.event", function(e, form) {
 			galaxieAddToDropDown("eventRsvpForm", { value: String(form.webFormId), text: form.title }, "value");
+		});
+		<!--- Organizer (2026-10-16): a person (People cards), this blog, or someone else typed in. --->
+		$("#eventOrganizerPerson").kendoDropDownList({
+			dataSource: <cfoutput>#serializeJson(eventOrganizerChoices)#</cfoutput>,
+			dataTextField: "name",
+			dataValueField: "ref",
+			filter: "contains",
+			value: <cfoutput>#serializeJson(eventOrganizerRef)#</cfoutput>
+		});
+		function refreshOrganizerRows() {
+			var mode = $("input[name=eventOrganizerMode]:checked").val();
+			$(".eventOrganizerPersonRow").toggle(mode === "person");
+			$(".eventOrganizerOtherRow").toggle(mode === "other");
+		}
+		$("input[name=eventOrganizerMode]").on("change", refreshOrganizerRows);
+		refreshOrganizerRows();
+		window.eventOrganizer = function() {
+			var mode = $("input[name=eventOrganizerMode]:checked").val();
+			if (mode === "person") { return { name: "", url: "person:" + ($("#eventOrganizerPerson").data("kendoDropDownList").value() || "") }; }
+			if (mode === "blog") { return { name: <cfoutput>#serializeJson(application.BlogDbObj.getBlogTitle())#</cfoutput>, url: <cfoutput>#serializeJson(application.blogHostUrl)#</cfoutput> }; }
+			return { name: $.trim($("#eventOrganizerName").val()), url: $.trim($("#eventOrganizerUrl").val()) };
+		};
+		<!--- A card added with Add a person joins the list and is selected (personDetail.cfm triggers this on save). --->
+		$(document).off("galaxiePersonSaved.event").on("galaxiePersonSaved.event", function(e, person) {
+			galaxieAddToDropDown("eventOrganizerPerson", { ref: person.ref, name: person.name + " (guest)" }, "ref");
 		});
 		$("#eventRsvpClosesDate").kendoDatePicker({ format: "MMMM d, yyyy", parseFormats: ["yyyy-MM-dd"] });
 		$("#eventRsvpClosesTime").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm", "h:mm tt"], interval: 15 });
@@ -95,8 +137,8 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 				timeZone: $("#eventTimeZone").data("kendoDropDownList").value(),
 				locationIds: $(".eventLocation:checked").map(function() { return this.value; }).get().join(","),
 				status: $("#eventStatus").data("kendoDropDownList").value(),
-				organizerName: $.trim($("#eventOrganizerName").val()),
-				organizerUrl: $.trim($("#eventOrganizerUrl").val()),
+				organizerName: eventOrganizer().name,
+				organizerUrl: eventOrganizer().url,
 				cost: $.trim($("#eventCost").val()),
 				ticketUrl: $.trim($("#eventTicketUrl").val()),
 				webFormId: $("#eventRsvpForm").data("kendoDropDownList").value(),
@@ -255,14 +297,30 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Details</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr>
-		<td class="#blockClass#" align="right"><label for="eventOrganizerName">Organizer:</label></td>
-		<td class="#blockClass#"><input type="text" id="eventOrganizerName" class="k-textbox" maxlength="125" value="#encodeForHtmlAttribute(theEvent.organizerName)#" style="width: 95%;"></td>
-	</tr>
+	<tr><td colspan="2" class="#blockClass#">Who runs the event. A person's name on the event opens their card: picture, biography and a form that emails them directly. Add people who don't sign in, eg. a guest presenter, under <a href="javascript:createAdminInterfaceWindow(102);">People</a>.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="#blockClass#" align="right"><label for="eventOrganizerUrl">Organizer link:</label></td>
-		<td class="#blockClass#"><input type="text" id="eventOrganizerUrl" class="k-textbox" maxlength="500" placeholder="https://" value="#encodeForHtmlAttribute(theEvent.organizerUrl)#" style="width: 95%;"></td>
+		<td class="#blockClass#" align="right">Organizer:</td>
+		<td class="#blockClass#">
+			<label><input type="radio" class="k-radio" name="eventOrganizerMode" value="person"<cfif eventOrganizerMode eq "person"> checked</cfif>> A person</label> &nbsp;
+			<label><input type="radio" class="k-radio" name="eventOrganizerMode" value="blog"<cfif eventOrganizerMode eq "blog"> checked</cfif>> This blog</label> &nbsp;
+			<label><input type="radio" class="k-radio" name="eventOrganizerMode" value="other"<cfif eventOrganizerMode eq "other"> checked</cfif>> Someone else</label>
+		</td>
+	</tr>
+	<tr class="blockSpacer eventOrganizerPersonRow"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr class="eventOrganizerPersonRow">
+		<td class="#blockClass#" align="right"><label for="eventOrganizerPerson">Person:</label></td>
+		<td class="#blockClass#"><input id="eventOrganizerPerson" style="width: 300px;"> <a href="javascript:galaxieAddRequest('eventOrganizerPerson'); createAdminInterfaceWindow(103, 0);">Add a person</a></td>
+	</tr>
+	<tr class="blockSpacer eventOrganizerOtherRow"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr class="eventOrganizerOtherRow">
+		<td class="#blockClass#" align="right"><label for="eventOrganizerName">Name:</label></td>
+		<td class="#blockClass#"><input type="text" id="eventOrganizerName" class="k-textbox" maxlength="125" value="#encodeForHtmlAttribute(eventOrganizerMode eq 'other' ? theEvent.organizerName : '')#" style="width: 95%;"></td>
+	</tr>
+	<tr class="blockSpacer eventOrganizerOtherRow"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr class="eventOrganizerOtherRow">
+		<td class="#blockClass#" align="right"><label for="eventOrganizerUrl">Link:</label></td>
+		<td class="#blockClass#"><input type="text" id="eventOrganizerUrl" class="k-textbox" maxlength="500" placeholder="https://" value="#encodeForHtmlAttribute(eventOrganizerMode eq 'other' ? theEvent.organizerUrl : '')#" style="width: 95%;"></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>

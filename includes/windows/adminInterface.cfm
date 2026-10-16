@@ -1164,6 +1164,16 @@ days off. See common/cfc/Bookings.cfc. --->
 	<cfinclude template="../../admin/adminInterface/events.cfm">
 </cfcase>
 
+<!--- 102 People: the author cards, users and guests (2026-10-16). --->
+<cfcase value=102>
+	<cfinclude template="../../admin/adminInterface/people.cfm">
+</cfcase>
+
+<!--- 103 a guest card, from People or an event's Add a person. --->
+<cfcase value=103>
+	<cfinclude template="../../admin/adminInterface/personDetail.cfm">
+</cfcase>
+
 </cfswitch>
 
 </html>

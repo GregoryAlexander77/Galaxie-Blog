@@ -11651,6 +11651,94 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<!--- ***************************************************************************************************************
+		People cards (2026-10-16) - see common/cfc/People.cfc. Guest cards are managed with the EditUser capability, like
+		users; the author card window on the site (includes/windows/personCard.cfm) sends messages with sendPersonMessage.
+	***************************************************************************************************************** --->
+
+	<cffunction name="savePersonCard" access="remote" returnformat="json" output="false" hint="Adds or updates a guest card (window 103).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="personJson" type="string" default="{}" required="false" hint="JSON: personCardId, displayName, email, website, profilePicture, biography, facebookUrl, linkedInUrl, instagramUrl, twitterUrl, active.">
+		<cfset var response = { "success": false, "errorMessage": "", "ref": "", "name": "" }>
+		<cfset var data = {}>
+		<cfset var result = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset data = deserializeJson(arguments.personJson)>
+				<cfif not isStruct(data)><cfset data = {}></cfif>
+				<cfset result = application.events.getPeople().saveGuest(data)>
+				<cfset response[ "success" ] = result.success>
+				<cfset response[ "errorMessage" ] = arrayToList(result.errors, "<br/>")>
+				<cfset response[ "ref" ] = result.ref>
+				<cfset response[ "name" ] = structKeyExists(data, "displayName") ? trim(data.displayName) : "">
+				<!--- A card's name shows on cached event pages. --->
+				<cfif result.success><cfset application.events.flushListings()></cfif>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The card could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="deletePersonCard" access="remote" returnformat="json" output="false" hint="Deletes a guest card, unless an event names it as its organizer.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="personCardId" required="false" default="0">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.personCardId)>
+			<!--- Copied into quoted keys: Adobe ColdFusion upper-cases unquoted keys in JSON. --->
+			<cfset local.deleted = application.events.getPeople().deleteGuest(val(arguments.personCardId))>
+			<cfset response[ "success" ] = local.deleted.success>
+			<cfset response[ "errorMessage" ] = local.deleted.errorMessage>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="sendPersonMessage" access="remote" returnformat="json" output="false"
+			hint="A visitor's message from an author card on the site, emailed straight to that person (People.sendMessage). The captcha is checked here, as for the contact form, and one visitor can send a few messages an hour.">
+		<cfargument name="person" type="string" required="false" default="">
+		<cfargument name="fromName" type="string" required="false" default="">
+		<cfargument name="fromEmail" type="string" required="false" default="">
+		<cfargument name="message" type="string" required="false" default="">
+		<cfargument name="captchaText" type="string" required="false" default="">
+		<cfset var response = { "success": false, "errors": [], "validCaptcha": true }>
+		<cfset var result = {}>
+		<cfset var recent = []>
+		<cfif captchaRequired()>
+			<cfif not structKeyExists(session, "captchaText") or not len(session.captchaText) or not len(trim(arguments.captchaText)) or trim(arguments.captchaText) neq session.captchaText>
+				<cfset response[ "validCaptcha" ] = false>
+				<cfset arrayAppend(response.errors, "The letters in the picture didn't match. Please try again.")>
+				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+			</cfif>
+		</cfif>
+		<!--- At most 5 messages an hour from one visitor's session. --->
+		<cfif not structKeyExists(session, "personMessagesSent")><cfset session.personMessagesSent = []></cfif>
+		<cfset recent = arrayFilter(session.personMessagesSent, function(sentAt) { return dateDiff("n", sentAt, now()) lt 60; })>
+		<cfif arrayLen(recent) gte 5>
+			<cfset arrayAppend(response.errors, "You've sent several messages already. Please try again later.")>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset result = application.events.getPeople().sendMessage(arguments.person, arguments.fromName, arguments.fromEmail, arguments.message)>
+		<cfset response[ "success" ] = result.success>
+		<cfset response[ "errors" ] = result.errors>
+		<cfif result.success>
+			<cfset arrayAppend(recent, now())>
+			<cfset session.personMessagesSent = recent>
+			<cfif captchaRequired()><cfset structDelete(session, "captchaText")></cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="getEventCardPreview" access="remote" returnformat="json" output="false"
 			hint="The event card exactly as visitors see it at the top of the post (Events.cfc renderCard, the same call blogContentHtml.cfm makes), for the post editor's preview (2026-10-16). Empty when the post isn't an event.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

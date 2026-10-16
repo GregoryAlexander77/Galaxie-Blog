@@ -1007,6 +1007,18 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
 				var windowTitle = "Events";
+			} else if (Id == 102){
+				// People: the author cards, users and guests (2026-10-16) - see admin/adminInterface/people.cfm.
+				var windowName = "peopleWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+				var windowTitle = "People";
+			} else if (Id == 103){
+				// A guest card (2026-10-16) - optArgs is the PersonCardId, 0 for a new one. See admin/adminInterface/personDetail.cfm.
+				var windowName = "personDetailWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
+				var windowTitle = "Person";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";
