@@ -128,7 +128,7 @@ which checks everything again on the server and keeps only the details for the c
 	<tr class="blockSpacer locationKindRow locationKind_inPerson"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr class="locationKindRow locationKind_inPerson">
 		<td class="#blockClass#" align="right"><label for="locationVenueName">Place:</label></td>
-		<td class="#blockClass#"><input type="text" id="locationVenueName" class="k-textbox" maxlength="255" placeholder="eg. Healing Arts Studio" value="#encodeForHtmlAttribute(bookingLocation.venueName)#" style="width: 95%;"></td>
+		<td class="#blockClass#"><input type="text" id="locationVenueName" class="k-textbox" maxlength="255" placeholder="eg. Main Street Studio" value="#encodeForHtmlAttribute(bookingLocation.venueName)#" style="width: 95%;"></td>
 	</tr>
 	<tr class="blockSpacer locationKindRow locationKind_inPerson"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr class="locationKindRow locationKind_inPerson"><td colspan="2" class="#blockClass#">Clients get it with an "Open in maps" link.</td></tr>
