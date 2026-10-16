@@ -99,6 +99,8 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 				dataType: "json",
 				success: function(response) {
 					kendo.ui.ExtWaitDialog.hide();
+					<!--- The post editor shows Event as the post's type, with this summary (2026-10-16). --->
+					if (response && response.success) { $(document).trigger("galaxieEventSaved", [{ postId: <cfoutput>#eventPostId#</cfoutput>, when: response.when || "" }]); }
 					if (response && response.success && response.signupsLeft > 0) {
 						<!--- Cancelled with people still signed up: offer to cancel their places (and refund) in one go. --->
 						$.when(kendo.ui.ExtYesNoDialog.show({ title: "People are still signed up", message: "The event is saved as cancelled, but " + response.signupsLeft + (response.signupsLeft === 1 ? " person is" : " people are") + " still signed up. Cancel all their places now? Each person is emailed that the event is cancelled, and anything paid online is refunded in full.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
@@ -143,7 +145,13 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 					data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: <cfoutput>#eventPostId#</cfoutput> },
 					dataType: "json",
 					success: function(response) {
-						if (response && response.success) { try { $("#eventDetailWindow").data("kendoWindow").close(); } catch (error) {} }
+						if (response && response.success) {
+							$(document).trigger("galaxieEventRemoved", [{ postId: <cfoutput>#eventPostId#</cfoutput> }]);
+							try { $("#eventDetailWindow").data("kendoWindow").close(); } catch (error) {}
+						} else if (response && response.errorMessage) {
+							<!--- Refused while someone has paid for a place (2026-10-16): they are cancelled and refunded first. --->
+							kendo.ui.ExtAlertDialog.show({ title: "The event stays", message: $("<div>").text(response.errorMessage).html(), icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+						}
 					},
 					error: function(jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
 				});

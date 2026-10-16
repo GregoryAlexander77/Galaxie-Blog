@@ -11644,24 +11644,49 @@
 				<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
 				<!--- And the Upcoming Events pod and the Events page. --->
 				<cfset application.events.flushListings()>
+				<!--- The post editor shows a one-line summary beside its Event type (2026-10-16). --->
+				<cfset response[ "when" ] = application.events.shortWhenText(application.events.getEvent(val(arguments.postId)))>
 			</cfif>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
-	<cffunction name="deleteEvent" access="remote" returnformat="json" output="false" hint="Takes the event off a post (admin).">
+	<cffunction name="deleteEvent" access="remote" returnformat="json" output="false"
+			hint="Takes the event off a post (admin). Refused while someone has paid for a place that hasn't been refunded - they must be cancelled and refunded first (Cancel all and refund in the sign-ups window). With checkOnly, only reports the sign-ups, so the editor can ask first.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="postId" required="false" default="0">
-		<cfset var response = { "success": false }>
+		<cfargument name="checkOnly" required="false" default="false">
+		<cfset var response = { "success": false, "signups": 0, "paid": 0, "errorMessage": "" }>
+		<cfset var theEvent = {}>
+		<cfset var thisRsvp = {}>
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
 			<cfset response = "Invalid token">
 			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 		</cfif>
 		<cfset secureFunction('EditPost,ReleasePost')>
 		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId)>
-			<cfset response[ "success" ] = application.events.deleteEvent(val(arguments.postId))>
-			<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
-			<cfset application.events.flushListings()>
+			<!--- Who is still signed up, and who has paid for their place. --->
+			<cfset theEvent = application.events.getEvent(val(arguments.postId))>
+			<cfif not structIsEmpty(theEvent)>
+				<cfloop array="#application.events.getRsvps(theEvent.eventId)#" index="thisRsvp">
+					<!--- confirmed, or held = on the payment page now; cancelled and expired don't count. --->
+					<cfif listFindNoCase("confirmed,held", thisRsvp.status)>
+						<cfset response[ "signups" ]++>
+						<cfif val(thisRsvp.amountPaid) gt 0 and thisRsvp.paymentStatus neq "refunded">
+							<cfset response[ "paid" ]++>
+						</cfif>
+					</cfif>
+				</cfloop>
+			</cfif>
+			<cfif isBoolean(arguments.checkOnly) and arguments.checkOnly>
+				<cfset response[ "success" ] = true>
+			<cfelseif response.paid gt 0>
+				<cfset response[ "errorMessage" ] = response.paid & (response.paid eq 1 ? " person has" : " people have") & " paid for a place. Cancel and refund them first (Event sign-ups, Cancel all and refund), then remove the event.">
+			<cfelse>
+				<cfset response[ "success" ] = application.events.deleteEvent(val(arguments.postId))>
+				<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
+				<cfset application.events.flushListings()>
+			</cfif>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>

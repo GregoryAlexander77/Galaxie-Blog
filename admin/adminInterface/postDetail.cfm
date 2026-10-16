@@ -10,6 +10,11 @@
 		<cfinvokeargument name="showPendingPosts" value="true">
 		<cfinvokeargument name="showRemovedPosts" value="true">		
 	</cfinvoke>
+	<!--- Is this post an event? Event is a Post Type beside Blog Post and Page (2026-10-16): an event is a blog post with event
+	details (admin/adminInterface/eventDetail.cfm, window 99). The type radios below show it, with a summary and Event details. --->
+	<cfset postEvent = arrayLen(getPost) ? application.events.getEvent(getPost[1]['PostId']) : {}>
+	<cfset postIsEvent = not structIsEmpty(postEvent)>
+	<cfset postEventWhen = postIsEvent ? application.events.shortWhenText(postEvent) : "">
 	<!---<cfdump var="#getPost#">--->
 		
 	<!--- Get the Body --->
@@ -1093,7 +1098,7 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage']>checked</cfif> /> Blog Post <input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage']>checked</cfif>/> Page
+			<input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Blog Post <input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent>checked</cfif>/> Page &nbsp;&nbsp;&nbsp;<input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event <span class="postEventRow" style="margin-left: 12px;"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
@@ -1102,7 +1107,7 @@
 		<label for="postType">Post Type</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage']>checked</cfif> /> Blog Post &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage']>checked</cfif>/> Page 
+			<input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Blog Post &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent>checked</cfif>/> Page &nbsp;&nbsp;&nbsp;<input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event <span class="postEventRow" style="margin-left: 12px;"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span>
 		</td>
 	  </tr>
 	</cfif>  
@@ -1278,7 +1283,6 @@
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
 			<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Change Alias</button>
-			<button id="postEvent" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(99,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Event</button>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
@@ -1305,8 +1309,7 @@
 						<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(15,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JSON-LD (SEO)</button>
 					</td>
 					<td width="20%" align="left">
-						<!--- Turns the post into an event (2026-10-15) - see admin/adminInterface/eventDetail.cfm. --->
-						<button id="postEvent" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(99,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Event</button>
+						<!--- The Event button moved up: Event is a Post Type now, with Event details beside it (2026-10-16). --->
 					</td>
 					<td width="20%" align="left">
 <!--- Schedule Release moved up next to the Date Posted picker, see the Date Posted row near the top of the form. --->
@@ -1696,3 +1699,87 @@
 	  </tr>
 	</table>
 	</form>
+
+<!--- Event as a Post Type (2026-10-16). Choosing Event opens the event window (99) when the post has no event yet; Event details
+opens it again. Leaving Event takes the event details off the post after asking - refused while someone has paid for a place
+(ProxyController deleteEvent), so they are cancelled and refunded first. The event window reports saves and removals
+(galaxieEventSaved / galaxieEventRemoved) so this row stays current. --->
+<script>
+	$(function() {
+		var postId = <cfoutput>#getPost[1]['PostId']#</cfoutput>;
+		var isEvent = <cfoutput>#postIsEvent ? "true" : "false"#</cfoutput>;
+
+		function chosenType() { return $("input[name=postType]:checked").val(); }
+		function refreshEventRow() { $(".postEventRow").toggle(chosenType() === "event"); }
+		function setType(value) { $("input[name=postType][value=" + value + "]").prop("checked", true); refreshEventRow(); }
+
+		$("#postEventDetails").on("click", function() { createAdminInterfaceWindow(99, postId); });
+
+		$("input[name=postType]").on("change", function() {
+			var chosen = $(this).val();
+			if (chosen === "event") {
+				refreshEventRow();
+				if (!isEvent) {
+					$("#postEventSummary").text("Not set up yet: add the date, time and place.");
+					createAdminInterfaceWindow(99, postId);
+				}
+				return;
+			}
+			if (!isEvent) { refreshEventRow(); return; }
+			<!--- Leaving Event takes the event details off the post: ask first. --->
+			jQuery.ajax({
+				type: "post",
+				url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteEvent",
+				data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId, checkOnly: true },
+				dataType: "json",
+				success: function(check) {
+					if (check && check.paid > 0) {
+						setType("event");
+						$.when(kendo.ui.ExtYesNoDialog.show({ title: "People have paid", message: check.paid + (check.paid === 1 ? " person has" : " people have") + " paid for a place, so the event can't be removed yet. Cancel and refund them first with Cancel all and refund. Open the sign-ups now?", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
+							if (answer['button'] === 'Yes') { createAdminInterfaceWindow(100, postId); }
+						});
+						return;
+					}
+					var who = (check && check.signups > 0) ? " " + check.signups + (check.signups === 1 ? " person is" : " people are") + " signed up and won't be told; cancel their places first if they should be." : "";
+					$.when(kendo.ui.ExtYesNoDialog.show({ title: "Remove the event?", message: "This takes the event details off the post: the date, time, place and sign-ups." + who + " The post itself stays.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
+						if (answer['button'] !== 'Yes') { setType("event"); return; }
+						jQuery.ajax({
+							type: "post",
+							url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteEvent",
+							data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId },
+							dataType: "json",
+							success: function(result) {
+								if (result && result.success) {
+									isEvent = false;
+									$("#postEventSummary").text("");
+									setType(chosen);
+								} else {
+									setType("event");
+									kendo.ui.ExtAlertDialog.show({ title: "The event stays", message: $("<div>").text((result && result.errorMessage) || "The event could not be removed.").html(), icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+								}
+							},
+							error: function(jqXHR) { setType("event"); if (jqXHR.status === 403) { createLoginWindow(); } }
+						});
+					});
+				},
+				error: function(jqXHR) { setType("event"); if (jqXHR.status === 403) { createLoginWindow(); } }
+			});
+		});
+
+		<!--- The event window (99) reports saves and removals. --->
+		$(document).off("galaxieEventSaved.postEditor").on("galaxieEventSaved.postEditor", function(e, info) {
+			if (!info || info.postId != postId) { return; }
+			isEvent = true;
+			$("#postEventSummary").text(info.when || "");
+			setType("event");
+		});
+		$(document).off("galaxieEventRemoved.postEditor").on("galaxieEventRemoved.postEditor", function(e, info) {
+			if (!info || info.postId != postId) { return; }
+			isEvent = false;
+			$("#postEventSummary").text("");
+			setType("blogPost");
+		});
+
+		refreshEventRow();
+	});
+</script>

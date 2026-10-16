@@ -11137,7 +11137,7 @@
 			<cfset BlogDbObj = entityLoadByPK("Blog", application.BlogDbObj.getBlogId())>
 				
 			<!--- Determine post type. This will be either blogPost or page --->
-			<cfif arguments.postType eq 'blogPost'>
+			<cfif arguments.postType eq 'blogPost' or arguments.postType eq 'event'><!--- An event is a blog post with event details (2026-10-16). --->
 				<cfset isBlogPost = true>
 				<cfset isPage = false>
 			<cfelse>
@@ -11237,7 +11237,7 @@
 		<!---<cfdump var="#getPost#" label="getPost"><br/>--->
 			
 		<!--- Determine post type. This will be either blogPost or page --->
-		<cfif arguments.postType eq 'blogPost'>
+		<cfif arguments.postType eq 'blogPost' or arguments.postType eq 'event'><!--- An event is a blog post with event details (2026-10-16). --->
 			<cfset isBlogPost = true>
 			<cfset isPage = false>
 		<cfelse>
