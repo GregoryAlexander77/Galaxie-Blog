@@ -1048,6 +1048,15 @@
 		<!--- Some themes draw k-alt the same colour as k-content (uniform, office365, highcontrast) or barely different, so the
 		blocks would not show. A light tint over the theme's own colour makes every other block visible in any theme. --->
 		table.adminBlocks > tbody > tr > td.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
+		<!--- Kendo before 2020 (eg. Kendo UI Professional 2019) hides input.k-checkbox and input.k-radio and draws the box on a
+		label.k-checkbox-label / k-radio-label right after them. Galaxie's checkboxes and radios have no such label, so with an old
+		Kendo they vanished. head.cfm adds galaxieLegacyKendoInputs to the html tag for those versions; show the browser's own
+		control then, except where the old-style label is there to draw it. --->
+		html.galaxieLegacyKendoInputs input.k-checkbox:not(:has(+ .k-checkbox-label)),
+		html.galaxieLegacyKendoInputs input.k-radio:not(:has(+ .k-radio-label)) {
+			opacity: 1 !important; position: static !important; width: auto !important; height: auto !important; overflow: visible !important;
+			-webkit-appearance: auto !important; appearance: auto !important; margin: 0 4px 0 0 !important; vertical-align: middle;
+		}
 		h4.adminBlockHeading { margin: 4px 0; }
 		table.adminBlocks .k-form-hint, table.k-content .k-form-hint { display: block; font-size: inherit; margin-top: 4px; }
 		<!--- A short hint beside a small field stays on its line; anything longer gets its own row above the field. --->

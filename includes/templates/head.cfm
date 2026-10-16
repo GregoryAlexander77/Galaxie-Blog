@@ -265,6 +265,19 @@ Either use https://code.jquery.com/jquery-3.7.1.min.js or https://ajax.googleapi
 </cfsilent>	
 <!-- Kendo scripts. Do not defer these! -->
 <script type="text/javascript" src="#kendoSourceLocation#js/<cfif kendoCommercial>kendo.all.min<cfelse>#kendoJsFile#</cfif>.js"></script>
+<!-- Kendo before 2020 hides input.k-checkbox and input.k-radio and draws them on a label beside them; see galaxieLegacyKendoInputs in blogContentCss.cfm. -->
+<script type="text/javascript">
+	if (window.kendo && parseInt(kendo.version, 10) < 2020) { document.documentElement.className += " galaxieLegacyKendoInputs"; }
+	<!--- The stylesheets can come from another Kendo folder than the script, so once they have loaded, ask a test checkbox too. --->
+	window.addEventListener("load", function() {
+		var probe = document.createElement("input");
+		probe.type = "checkbox";
+		probe.className = "k-checkbox";
+		document.body.appendChild(probe);
+		if (window.getComputedStyle(probe).opacity === "0") { document.documentElement.classList.add("galaxieLegacyKendoInputs"); }
+		document.body.removeChild(probe);
+	});
+</script>
 <!-- Note: the Kendo stylesheets are critical to the look of the site and I am not deferring them. -->
 <script type="text/javascript">
 <cfif isDefined("thisKendoSourceLocation") and len(thisKendoSourceLocation)><!--- Allow the blog user to switch over to Kendo commercial using XML directives in the post header --->
