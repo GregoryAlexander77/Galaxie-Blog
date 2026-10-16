@@ -30,7 +30,7 @@ don't sign in, eg. a guest presenter; New person and Edit open the editor (windo
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Users</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Everyone who can sign in to this admin site. Their card is made from their own profile, so to change their picture, biography or links, use Edit profile. To add an admin, use <a href="javascript:createAdminInterfaceWindow(28);">Users</a>.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Everyone who can sign in to this admin site. Their card is made from their own profile, so to change their picture, biography or links, use Edit profile.</td></tr>
 	<cfloop array="#peopleUsers#" index="thisPerson">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
@@ -44,7 +44,7 @@ don't sign in, eg. a guest presenter; New person and Edit open the editor (windo
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Guests</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">People who don't sign in, such as a guest presenter or a partner. Add them here so you can name them as an event's organizer. Visitors' messages to them go to the email address on their card. A guest can't sign in; to give someone access to this admin site, add them under <a href="javascript:createAdminInterfaceWindow(28);">Users</a> instead.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">People who don't sign in, such as a guest presenter or a partner. Add them here so you can name them as an event's organizer. Visitors' messages to them go to the email address on their card.</td></tr>
 	<cfloop array="#peopleGuests#" index="thisPerson">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
