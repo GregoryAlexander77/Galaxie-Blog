@@ -449,12 +449,12 @@ This section has been completely redesigned by Gregory --->
 		<!-- Comments -->
 		<tr height="35px" class="k-content">
 			<td>
-				<label for="comments">Comment:</label>
+				<label for="comments"><cfif URL.uiElement eq 'contact'>Message:<cfelse>Comment:</cfif></label>
 			</td>
 		</tr>
 		<tr height="35px" class="k-content">
 			<td>
-				<textarea name="comments" id="comments" rows="5" cols="25" style="height: #textAreaHeight#; width:<cfoutput>#textInputWidth#</cfoutput>; font-family: 'Arial', Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', 'DejaVu Sans', Verdana, 'sans-serif'" required validationMessage="Enter comment."></textarea>
+				<textarea name="comments" id="comments" rows="5" cols="25" style="height: #textAreaHeight#; width:<cfoutput>#textInputWidth#</cfoutput>; font-family: 'Arial', Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', 'DejaVu Sans', Verdana, 'sans-serif'" required validationMessage="<cfif URL.uiElement eq 'contact'>Enter your message.<cfelse>Enter comment.</cfif>"></textarea>
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->
@@ -615,12 +615,12 @@ This section has been completely redesigned by Gregory --->
 		</tr>
 		<tr height="35px" class="k-alt">
 			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>">
-				<label for="comments">Comment:</label>
+				<label for="comments"><cfif URL.uiElement eq 'contact'>Message:<cfelse>Comment:</cfif></label>
 			</td>
 			<td width="5px"></td>
 			<td align="left">
 				<textarea name="comments" id="comments" rows="5" cols="45" style="height:250px; width:66%;" required 
-						  validationMessage="Enter comments."></textarea>
+						  validationMessage="<cfif URL.uiElement eq 'contact'>Enter your message.<cfelse>Enter comments.</cfif>"></textarea>
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->
