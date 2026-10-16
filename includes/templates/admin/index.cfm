@@ -20,6 +20,29 @@
 	
 <!--- Determine if the post should be shown --->
 	
+<!--- An icon whose list would be empty opens the window to add the first one instead (owner, 10-16), eg. Forms opens a new
+form when there are none. One query counts them; if it fails, every icon opens its list as before. --->
+<cfset adminHomeCounts = { posts: -1, pages: -1, collections: -1, forms: -1, events: -1, categories: -1, tags: -1, subscribers: -1 }>
+<cftry>
+	<cfset adminHomeCountQuery = queryExecute("
+		SELECT
+			(SELECT COUNT(*) FROM Post WHERE BlogRef = :blogId AND IsPage = 0 AND Remove = 0) AS PostCount,
+			(SELECT COUNT(*) FROM Post WHERE BlogRef = :blogId AND IsPage = 1 AND Remove = 0) AS PageCount,
+			(SELECT COUNT(*) FROM PageCollection WHERE BlogRef = :blogId) AS CollectionCount,
+			(SELECT COUNT(*) FROM WebForm WHERE BlogRef = :blogId) AS FormCount,
+			(SELECT COUNT(*) FROM BlogEvent WHERE BlogRef = :blogId) AS EventCount,
+			(SELECT COUNT(*) FROM Category WHERE BlogRef = :blogId) AS CategoryCount,
+			(SELECT COUNT(*) FROM Tag WHERE BlogRef = :blogId) AS TagCount,
+			(SELECT COUNT(*) FROM Subscriber WHERE BlogRef = :blogId) AS SubscriberCount",
+		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } }, { datasource = application.dsn })>
+	<cfset adminHomeCounts = {
+		posts: val(adminHomeCountQuery.PostCount), pages: val(adminHomeCountQuery.PageCount), collections: val(adminHomeCountQuery.CollectionCount),
+		forms: val(adminHomeCountQuery.FormCount), events: val(adminHomeCountQuery.EventCount), categories: val(adminHomeCountQuery.CategoryCount),
+		tags: val(adminHomeCountQuery.TagCount), subscribers: val(adminHomeCountQuery.SubscriberCount)
+	}>
+	<cfcatch type="any"><!--- Keep the lists. ---></cfcatch>
+</cftry>
+
 <!--- Create an empty list --->
 <cfparam name="iconList" type="string" default="">
 <cfparam name="titleList" type="string" default="">
@@ -37,7 +60,7 @@
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
 	<cfset iconList = listAppend(iconList, 'Posts')>
 	<cfset titleList = listAppend(titleList, 'Posts')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(5);")>
+	<cfset linkList = listAppend(linkList, adminHomeCounts.posts eq 0 ? "javascript:createAdminInterfaceWindow(24);" : "javascript:createAdminInterfaceWindow(5);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/posts.png")>
 </cfif>
 <!--- A direct shortcut into the same 3-way New chooser (createAdminInterfaceWindow(24,...)) used by "Create Post" above,
@@ -56,7 +79,7 @@ pre-selecting the Page radio instead of leaving the owner to land on Post and sw
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
 	<cfset iconList = listAppend(iconList, 'Pages')>
 	<cfset titleList = listAppend(titleList, 'Pages')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(57);")>
+	<cfset linkList = listAppend(linkList, adminHomeCounts.pages eq 0 ? "javascript:createAdminInterfaceWindow(24&##44;'newPage');" : "javascript:createAdminInterfaceWindow(57);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/contentEditor.png")>
 </cfif>
 <!--- A third shortcut into the same 3-way New chooser used by "Create Post"/"Create Page" above, pre-selecting the
@@ -72,7 +95,7 @@ next to it, same &#44; comma-escaping trick "Create Page" already uses. --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditPost') gt 0>
 	<cfset iconList = listAppend(iconList, 'ConfigurePageCollections')>
 	<cfset titleList = listAppend(titleList, 'Page Collections')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(68);")>
+	<cfset linkList = listAppend(linkList, adminHomeCounts.collections eq 0 ? "javascript:createAdminInterfaceWindow(24&##44;'newPageCollection');" : "javascript:createAdminInterfaceWindow(68);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/pageCollection.gif")>
 </cfif>
 <!--- Configure Menu (2026-10-10, 4.8): the owner's Menu links and the top menu's names. Same capability as Themes. --->
@@ -87,7 +110,7 @@ same capability as Blog Settings. --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting')>
 	<cfset iconList = listAppend(iconList, 'Forms')>
 	<cfset titleList = listAppend(titleList, 'Forms')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(83);")>
+	<cfset linkList = listAppend(linkList, adminHomeCounts.forms eq 0 ? "javascript:createAdminInterfaceWindow(84&##44;0);" : "javascript:createAdminInterfaceWindow(83);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/forms.gif")>
 </cfif>
 <!--- Bookings (2026-10-14): appointments visitors book with the blog owner. Same capability as Forms (visitors' personal
@@ -102,7 +125,7 @@ details). --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditPost')>
 	<cfset iconList = listAppend(iconList, 'Events')>
 	<cfset titleList = listAppend(titleList, 'Events')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(101);")>
+	<cfset linkList = listAppend(linkList, adminHomeCounts.events eq 0 ? "javascript:createAdminInterfaceWindow(24&##44;'newEvent');" : "javascript:createAdminInterfaceWindow(101);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/event.gif")>
 </cfif>
 <!--- Don't include the comment interface with Disqus --->
@@ -116,13 +139,13 @@ details). --->
 	<!--- Categories --->
 	<cfset iconList = listAppend(iconList, 'Categories')>
 	<cfset titleList = listAppend(titleList, 'Categories')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(25);")>
+	<cfset linkList = listAppend(linkList, adminHomeCounts.categories eq 0 ? "javascript:createAdminInterfaceWindow(12);" : "javascript:createAdminInterfaceWindow(25);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/categories.png")>
 </cfif>	
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
 	<cfset iconList = listAppend(iconList, 'Tags')>
 	<cfset titleList = listAppend(titleList, 'Tags')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(50);")>
+	<cfset linkList = listAppend(linkList, adminHomeCounts.tags eq 0 ? "javascript:createAdminInterfaceWindow(49);" : "javascript:createAdminInterfaceWindow(50);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/tags.png")>
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditTheme')>
@@ -134,7 +157,7 @@ details). --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditSubscriber') gt 0>
 	<cfset iconList = listAppend(iconList, 'Subscriber')>
 	<cfset titleList = listAppend(titleList, 'Subscribers')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(26);")>
+	<cfset linkList = listAppend(linkList, adminHomeCounts.subscribers eq 0 ? "javascript:createAdminInterfaceWindow(27);" : "javascript:createAdminInterfaceWindow(26);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/subscriber.png")>
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
