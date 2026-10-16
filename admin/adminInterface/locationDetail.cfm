@@ -72,6 +72,8 @@ which checks everything again on the server and keeps only the details for the c
 						try { $("#bookingsWindow").data("kendoWindow").refresh(); } catch (error) {}
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: "The location was saved.", icon: "k-ext-information" })).done(function() {
 							$('#locationDetailWindow').kendoWindow('destroy');
+							<!--- The Locations list closes too (owner, 10-16): saving finishes the job. --->
+							try { $('#locationsWindow').kendoWindow('destroy'); } catch (error) {}
 						});
 					} else {
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
