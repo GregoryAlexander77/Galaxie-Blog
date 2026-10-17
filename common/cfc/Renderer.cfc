@@ -415,12 +415,14 @@
 					<cfinvokeargument name="currentRow" value="#arguments.currentRow#">
 				</cfinvoke>
 			</cfif>
+			<cfset local.heroKind = "map">
 		</cfif>
 						
 		<!---*********************    Handle the carousel  *********************--->
 		<cfif len(enclosureCarouselId)>	
 			<!--- Render the carousel using the renderCarousel method: renderCarousel(carouselId,renderCard) --->
 			<cfset enclosureHtml = this.renderCarousel(enclosureCarouselId,0)>
+			<cfset local.heroKind = "carousel">
 		</cfif>
 						
 		<!---*********************    Handle the enclosure  *********************--->
@@ -434,6 +436,7 @@
 					<cfinvokeargument name="mediaId" value="#mediaId#">
 					<cfinvokeargument name="useFadeClass" value="true">
 				</cfinvoke>
+				<cfset local.heroKind = "image">
 				
 			<!--- The media type string for video is Video - Large, Video - YouTube URL, etc. All of the video types start with 'Video' --->
 			<cfelseif left(mediaType, 5) eq 'Video'>
@@ -442,6 +445,7 @@
 					<cfinvokeargument name="getPost" value="#getPost#">
 					<cfinvokeargument name="currentRow" value="#arguments.currentRow#">
 				</cfinvoke>
+				<cfset local.heroKind = "video">
 			</cfif>
 		</cfif>
 		<!---<cfdump var="#mediaHtml#" label="mediaHtml">--->
@@ -454,6 +458,7 @@
 		not a fallback. --->
 		<cfif not len(enclosureHtml) and len(getPost[arguments.currentRow]["HeroGradient"])>
 			<cfset enclosureHtml = this.renderHeroGradientHtml(heroGradient=getPost[arguments.currentRow]["HeroGradient"], heroOverlayText=getPost[arguments.currentRow]["HeroOverlayText"], heroOverlayTextColor=getPost[arguments.currentRow]["HeroOverlayTextColor"], heroOverlayFont=getPost[arguments.currentRow]["HeroOverlayFont"], heroOverlayFontSize=getPost[arguments.currentRow]["HeroOverlayFontSize"], fullSize=true)>
+			<cfset local.heroKind = "gradient">
 		</cfif>
 
 		<!--- Explicit per-post animation pick (see Post.cfc's HeroAnimationEffect) - same priority tier as
@@ -480,6 +485,7 @@
 				heroOverlayFont = getPost[arguments.currentRow]["HeroOverlayFont"],
 				heroOverlayFontSize = getPost[arguments.currentRow]["HeroOverlayFontSize"],
 				cardMode = false)>
+			<cfset local.heroKind = "animation">
 		</cfif>
 
 		<!--- The post had no map, carousel, or enclosure at all. NoImageFallbackMode='none' (suppressImage=true) means
@@ -490,15 +496,23 @@
 			<cfset heroFallback = this.getHeroFallbackHtml(postId=getPost[arguments.currentRow]["PostId"], cardMode=false, isSinglePostPage=arguments.isSinglePostPage)>
 			<cfif heroFallback.isHtml>
 				<cfset enclosureHtml = heroFallback.content>
+				<cfset local.heroKind = find("entryAnimation", heroFallback.content) ? "animation" : "carousel">
 			<cfelseif heroFallback.suppressImage>
 				<!--- 'none' - leave enclosureHtml empty, no image area at all. --->
+				<cfset local.heroKind = "none">
 			<cfelse>
+				<cfset local.heroKind = "fallback">
 				<cfinvoke component="#this#" method="renderEnclosureImage" returnvariable="enclosureHtml">
 					<cfinvokeargument name="mediaUrl" value="#heroFallback.content#">
 					<cfinvokeargument name="mediaId" value="">
 					<cfinvokeargument name="useFadeClass" value="true">
 				</cfinvoke>
 			</cfif>
+		</cfif>
+
+		<!--- What the hero is, for the event panel over it (Events.cfc renderHeroPanelHtml, 2026-10-16): it only goes over a picture, a gradient or an animation. --->
+		<cfif arguments.isSinglePostPage>
+			<cfset request.galaxieHeroKind = local.heroKind ?: "none">
 		</cfif>
 
 		<cfreturn enclosureHtml>

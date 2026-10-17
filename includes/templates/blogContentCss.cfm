@@ -1050,6 +1050,17 @@
 		.galaxieEventStrip i { width: 1.3em; text-align: center; margin-right: 4px; }
 		.galaxieEventStrip.galaxieEventIsOver .galaxieEventStripSignup { display: none; }
 		.galaxieEventStrip .galaxieEventEnded { margin-right: 4px; }
+		<!--- The event panel over the hero of an event post (2026-10-16, Events.cfc renderHeroPanelHtml), on the theme's side. --->
+		.galaxieEventHeroPanel { position: absolute; bottom: 16px; z-index: 3; display: flex; gap: 12px; align-items: flex-start; max-width: 360px; width: calc(100% - 32px); box-sizing: border-box; padding: 12px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.35); text-align: left; line-height: 1.35; }
+		.galaxieEventHeroPanel[hidden] { display: none; }
+		.galaxieEventHeroPanel-left { left: 16px; }
+		.galaxieEventHeroPanel-right { right: 16px; }
+		.galaxieEventHeroPanel-center { left: 50%; transform: translateX(-50%); }
+		.galaxieEventHeroPanel .galaxieEventDate { flex: 0 0 56px; }
+		.galaxieEventHeroPanel .galaxieEventButtons { margin: 8px 0 0 0 !important; }
+		.galaxieEventHeroPanel .galaxieEventButtons .k-button { margin: 0 6px 4px 0; }
+		.galaxieEventHeroPanel.galaxieEventIsOver .galaxieEventStripSignup { display: none; }
+		@media (max-width: 700px) { .galaxieEventHeroPanel { display: none; } }
 		@media (max-width: 600px) {
 			.galaxieEventCard { gap: 10px; padding: 10px; }
 			.galaxieEventDate { flex-basis: 46px; }

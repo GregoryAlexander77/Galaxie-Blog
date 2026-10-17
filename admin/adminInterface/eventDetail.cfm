@@ -16,7 +16,7 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 <!--- A new event starts as next Saturday 7-9 PM, in the blog's time zone. --->
 <cfif isNewEvent>
 	<cfset eventStartDefault = dateAdd("d", 7 - dayOfWeek(application.blog.blogNow()) + (dayOfWeek(application.blog.blogNow()) eq 7 ? 7 : 0), application.blog.blogNow())>
-	<cfset theEvent = { startLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 19:00", endLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 21:00", timeZone: eventBlogZone, allDay: false, status: "scheduled", organizerName: "", organizerUrl: (len(eventDefaultOrganizerRef) ? "person:" & eventDefaultOrganizerRef : ""), cost: "", ticketUrl: "", locationIds: [], webFormId: 0, capacity: 0, askPartySize: false, maxPartySize: 4, rsvpClosesLocal: "", price: 0, refundHours: 24 }>
+	<cfset theEvent = { startLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 19:00", endLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 21:00", timeZone: eventBlogZone, allDay: false, status: "scheduled", organizerName: "", organizerUrl: (len(eventDefaultOrganizerRef) ? "person:" & eventDefaultOrganizerRef : ""), cost: "", ticketUrl: "", locationIds: [], webFormId: 0, capacity: 0, askPartySize: false, maxPartySize: 4, rsvpClosesLocal: "", price: 0, refundHours: 24, heroPanel: true }>
 </cfif>
 <!--- Time zones with region names (eg. Europe/London), sorted. --->
 <cfset eventZones = []>
@@ -151,7 +151,8 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 				rsvpClosesDate: dateText("#eventRsvpClosesDate"),
 				rsvpClosesTime: timeText("#eventRsvpClosesTime"),
 				price: $.trim($("#eventPrice").val() || ""),
-				refundHours: $.trim($("#eventRefundHours").val() || "")
+				refundHours: $.trim($("#eventRefundHours").val() || ""),
+				heroPanel: $("#eventHeroPanel").is(":checked")
 			};
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Saving the event.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 			jQuery.ajax({
@@ -336,6 +337,14 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 	<tr>
 		<td class="#blockClass#" align="right"><label for="eventTicketUrl">Tickets link:</label></td>
 		<td class="#blockClass#"><input type="text" id="eventTicketUrl" class="k-textbox" maxlength="500" placeholder="https://" value="#encodeForHtmlAttribute(theEvent.ticketUrl)#" style="width: 95%;"></td>
+	</tr>
+	<!--- The panel over the hero (2026-10-16, Events.cfc renderHeroPanelHtml). --->
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">On the post's own page, the date, time, where and Sign up can sit in a small panel over the post's hero picture, so visitors see them first. It shows over a picture, a gradient or an animation, on the side your theme aligns to. The full event card is still on the page, just below the hero. On phones, and with a map, video or carousel, there is no panel; the event card shows as usual.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right"></td>
+		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="eventHeroPanel"<cfif theEvent.heroPanel> checked</cfif>> <label for="eventHeroPanel">Show the event details over the hero picture</label></td>
 	</tr>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>

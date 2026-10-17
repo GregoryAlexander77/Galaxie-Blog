@@ -11617,6 +11617,7 @@
 		<cfargument name="rsvpClosesTime" type="string" required="false" default="">
 		<cfargument name="price" type="string" required="false" default="" hint="Per person; empty or 0 = free.">
 		<cfargument name="refundHours" type="string" required="false" default="24">
+		<cfargument name="heroPanel" required="false" default="true" hint="Show the event details over the post's hero (2026-10-16).">
 		<cfset var result = {}>
 		<cfset var response = { "success": false, "errors": [] }>
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -11641,6 +11642,7 @@
 			</cfif>
 			<!--- The post shows the event, so its cached page has to be made again. --->
 			<cfif result.success>
+				<cfset application.events.setSetting(val(arguments.postId), "heroPanel", (isBoolean(arguments.heroPanel) and not arguments.heroPanel) ? "false" : "true")>
 				<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
 				<!--- And the Upcoming Events pod and the Events page. --->
 				<cfset application.events.flushListings()>
