@@ -1499,19 +1499,39 @@
 </cffunction>
 
 <cffunction name="renderDateTileHtml" access="public" returntype="string" output="false"
-		hint="The date tile that takes the place of the no-image picture on an event post's card: a calendar page (month, day, and the day and time) on the post's generated art. Same box as the card pictures (3:2, at most 210px tall).">
+		hint="The date tile that takes the place of the no-image picture on an event post's card: a calendar page (month, day, and the day and time) on the blog's no-picture choice (generated art, a hero pool picture, or the theme's header colour). Same box as the card pictures (3:2, at most 210px tall).">
 	<cfargument name="ev" type="struct" required="true">
 	<cfset var s = zoned(arguments.ev.startUtc, arguments.ev.timeZone)>
 	<cfset var note = statusNote(arguments.ev)>
 	<cfset var artUrl = "">
 	<cfset var timeLine = "">
+	<cfset var tileClass = "galaxieEventTile">
+	<cfset var fallbackMode = "">
+	<cfset var poolCarouselId = "">
+	<cfset var poolItems = []>
+	<!--- Behind the calendar page: the no-picture choice in Blog Options (NoImageFallbackMode, owner 10-16) - the generated art
+	(also for 'animation', which cards never animate), a picture from the hero image pool (picked by the post id, as
+	Renderer.cfc getHeroFallbackHtml does, so it never changes), or for 'generic' and 'none' the theme's header colour. --->
 	<cftry>
-		<cfif not structKeyExists(variables, "imageObj")>
-			<cfset variables.imageObj = createObject("component", application.imageComponentPath)>
+		<cfset fallbackMode = application.BlogOptionDbObj.getNoImageFallbackMode()>
+		<cfif fallbackMode eq "pool">
+			<cfset poolCarouselId = application.blog.getHeroImagePoolCarouselId()>
+			<cfif len(poolCarouselId)><cfset poolItems = application.blog.getCarousel(poolCarouselId)></cfif>
+			<cfif arrayLen(poolItems)>
+				<cfset artUrl = poolItems[(arguments.ev.postId mod arrayLen(poolItems)) + 1]["MediaUrl"]>
+			<cfelse>
+				<cfset fallbackMode = "generated">
+			</cfif>
 		</cfif>
-		<cfset artUrl = variables.imageObj.generateHeroArt(arguments.ev.postId)>
+		<cfif listFindNoCase("generated,animation", fallbackMode)>
+			<cfif not structKeyExists(variables, "imageObj")>
+				<cfset variables.imageObj = createObject("component", application.imageComponentPath)>
+			</cfif>
+			<cfset artUrl = variables.imageObj.generateHeroArt(arguments.ev.postId)>
+		</cfif>
 		<cfcatch type="any"></cfcatch>
 	</cftry>
+	<cfif not len(artUrl)><cfset tileClass = tileClass & " k-header"></cfif>
 	<cfif len(note)>
 		<cfset timeLine = note>
 	<cfelseif arguments.ev.allDay>
@@ -1519,7 +1539,7 @@
 	<cfelse>
 		<cfset timeLine = s.format(formatter("EEE h:mm a"))>
 	</cfif>
-	<cfreturn '<div class="galaxieEventTile"' & eventDataAttributes(arguments.ev) & (len(artUrl) ? ' style="background-image: url(''' & encodeForHtmlAttribute(artUrl) & ''');"' : '') & ' role="img" aria-label="' & encodeForHtmlAttribute(shortWhenText(arguments.ev)) & '">'
+	<cfreturn '<div class="' & tileClass & '"' & eventDataAttributes(arguments.ev) & (len(artUrl) ? ' style="background-image: url(''' & encodeForHtmlAttribute(artUrl) & ''');"' : '') & ' role="img" aria-label="' & encodeForHtmlAttribute(shortWhenText(arguments.ev)) & '">'
 		& '<div class="galaxieEventSheet" aria-hidden="true"><span class="galaxieEventSheetMonth">' & encodeForHtml(s.format(formatter("MMM"))) & '</span>'
 		& '<span class="galaxieEventSheetDay">' & encodeForHtml(s.format(formatter("d"))) & '</span>'
 		& '<span class="galaxieEventSheetTime">' & timeLine & '</span><span class="galaxieEventEnded" hidden>Ended</span></div></div>'
@@ -1627,8 +1647,9 @@
 	<cfset html = html & '<a class="k-button" href="##galaxieEventCard">Details</a></p></div>'>
 	<!--- Into the hero once the page is there: the hero is the first element after the event card. The panel waits (unseen) up to 3
 	seconds for a lazy-loaded picture to reach its size; a window too narrow, or a hero too short for the panel (eg. the small
-	no-image picture), keeps the card where it is and drops the panel. --->
-	<cfset html = html & '<script>(function(){function fit(panel,hero,card,tries){if(hero.offsetHeight>=panel.offsetHeight+48){panel.style.visibility="";if(card){hero.parentNode.insertBefore(card,hero.nextSibling);}return;}if(tries<12){setTimeout(function(){fit(panel,hero,card,tries+1);},250);return;}panel.parentNode.removeChild(panel);}function place(){var panel=document.getElementById("galaxieEventHeroPanel");var card=document.getElementById("galaxieEventCard");if(!panel){return;}var hero=(card||panel).nextElementSibling;while(hero&&/^(SCRIPT|STYLE|LINK|BR)$/.test(hero.tagName)){hero=hero.nextElementSibling;}if(!hero||window.innerWidth<700){panel.parentNode.removeChild(panel);return;}if(window.getComputedStyle(hero).position==="static"){hero.style.position="relative";}panel.style.visibility="hidden";hero.appendChild(panel);panel.hidden=false;fit(panel,hero,card,0);}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",place);}else{place();}})();</script>'>
+	no-image picture), keeps the card where it is and drops the panel. With the panel, the card below the hero leaves out what the
+	panel already shows - the placard, the date and the status (galaxieEventCardWithPanel, owner 10-16). --->
+	<cfset html = html & '<script>(function(){function fit(panel,hero,card,tries){if(hero.offsetHeight>=panel.offsetHeight+48){panel.style.visibility="";if(card){card.classList.add("galaxieEventCardWithPanel");hero.parentNode.insertBefore(card,hero.nextSibling);}return;}if(tries<12){setTimeout(function(){fit(panel,hero,card,tries+1);},250);return;}panel.parentNode.removeChild(panel);}function place(){var panel=document.getElementById("galaxieEventHeroPanel");var card=document.getElementById("galaxieEventCard");if(!panel){return;}var hero=(card||panel).nextElementSibling;while(hero&&/^(SCRIPT|STYLE|LINK|BR)$/.test(hero.tagName)){hero=hero.nextElementSibling;}if(!hero||window.innerWidth<700){panel.parentNode.removeChild(panel);return;}if(window.getComputedStyle(hero).position==="static"){hero.style.position="relative";}panel.style.visibility="hidden";hero.appendChild(panel);panel.hidden=false;fit(panel,hero,card,0);}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",place);}else{place();}})();</script>'>
 	<cfreturn html & cardScript()>
 </cffunction>
 

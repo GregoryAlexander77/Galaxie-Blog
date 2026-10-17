@@ -68,9 +68,13 @@
 		<!--- Preset the social media description variable. It may be overwritten later if the social media description is embedded in the xml within a post like so: '<socialMediaDescMetaData:this description></socialMediaDescMetaData>'. --->
 		<cfset socialMediaDescMetaTagValue = descriptionMetaTagValue>
 
+		<!--- Pictures are files, so their addresses never have /index.cfm in them (2026-10-16): on a site without URL rewriting,
+		thisUrl ends in /index.cfm, and https://example.com/index.cfm/enclosures/... returns the blog's home page instead of the
+		picture, so link previews on Facebook, X and the like had no picture. --->
+		<cfset seoFileBaseUrl = replaceNoCase(thisUrl, "/index.cfm", "")>
 		<!--- Preset the default social media image URLs. We will overwrite these later if they're available. --->
-		<cfset facebookImageMetaTagValue = thisUrl & getTheme[1]["DefaultLogoImageForSocialMediaShare"]>
-		<cfset twitterImageMetaTagValue = thisUrl & getTheme[1]["DefaultLogoImageForSocialMediaShare"]>
+		<cfset facebookImageMetaTagValue = seoFileBaseUrl & getTheme[1]["DefaultLogoImageForSocialMediaShare"]>
+		<cfset twitterImageMetaTagValue = seoFileBaseUrl & getTheme[1]["DefaultLogoImageForSocialMediaShare"]>
 		<!--- Only ever set (non-empty) for an actual post whose Pinterest crop exists - see the pinterest block below. Preset empty here so head.cfm's <cfif len(pinterestImageMetaTagValue)> check always has a defined variable to read on every page type. --->
 		<cfset pinterestImageMetaTagValue = "">
 
@@ -96,28 +100,28 @@
 				instead of falling back to anything sized sensibly. --->
 				<cfset socialMediaEnclosureFileName = getFileFromPath(getPost[1]["MediaUrl"])>
 				<cfset socialMediaEnclosureFileNameNoExt = reReplaceNoCase(socialMediaEnclosureFileName, "\.[^.]+$", "")>
-				<cfset classicGalaxieBlogImageUrl = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileName>
+				<cfset classicGalaxieBlogImageUrl = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileName>
 
-				<cfset facebookImageUrl = thisUrl & "/enclosures/facebook/" & socialMediaEnclosureFileName>
+				<cfset facebookImageUrl = seoFileBaseUrl & "/enclosures/facebook/" & socialMediaEnclosureFileName>
 				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset facebookImageMetaTagValue = thisUrl & "/enclosures/facebook/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+					<cfset facebookImageMetaTagValue = seoFileBaseUrl & "/enclosures/facebook/" & socialMediaEnclosureFileNameNoExt & '.webp'>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileName))>
 					<cfset facebookImageMetaTagValue = facebookImageUrl>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset facebookImageMetaTagValue = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+					<cfset facebookImageMetaTagValue = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
 					<cfset facebookImageMetaTagValue = classicGalaxieBlogImageUrl>
 				<cfelse>
 					<cfset facebookImageMetaTagValue = getPost[1]["MediaUrl"]>
 				</cfif>
 
-				<cfset twitterImageUrl = thisUrl & "/enclosures/twitter/" & socialMediaEnclosureFileName>
+				<cfset twitterImageUrl = seoFileBaseUrl & "/enclosures/twitter/" & socialMediaEnclosureFileName>
 				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset twitterImageMetaTagValue = thisUrl & "/enclosures/twitter/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+					<cfset twitterImageMetaTagValue = seoFileBaseUrl & "/enclosures/twitter/" & socialMediaEnclosureFileNameNoExt & '.webp'>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileName))>
 					<cfset twitterImageMetaTagValue = twitterImageUrl>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset twitterImageMetaTagValue = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+					<cfset twitterImageMetaTagValue = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
 					<cfset twitterImageMetaTagValue = classicGalaxieBlogImageUrl>
 				<cfelse>
@@ -130,9 +134,9 @@
 				when generating a Rich Pin, so this is additive, not a replacement for the primary og:image below. --->
 				<cfset pinterestImageMetaTagValue = "">
 				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset pinterestImageMetaTagValue = thisUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+					<cfset pinterestImageMetaTagValue = seoFileBaseUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileNameNoExt & '.webp'>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileName))>
-					<cfset pinterestImageMetaTagValue = thisUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileName>
+					<cfset pinterestImageMetaTagValue = seoFileBaseUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileName>
 				</cfif>
 
 			<!--- 2026-10-01: a Hero Cover Image - a static uploaded photo for a post with no real Image enclosure
@@ -146,28 +150,28 @@
 
 				<cfset socialMediaEnclosureFileName = getFileFromPath(getPost[1]["HeroCoverImageUrl"])>
 				<cfset socialMediaEnclosureFileNameNoExt = reReplaceNoCase(socialMediaEnclosureFileName, "\.[^.]+$", "")>
-				<cfset classicGalaxieBlogImageUrl = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileName>
+				<cfset classicGalaxieBlogImageUrl = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileName>
 
-				<cfset facebookImageUrl = thisUrl & "/enclosures/facebook/" & socialMediaEnclosureFileName>
+				<cfset facebookImageUrl = seoFileBaseUrl & "/enclosures/facebook/" & socialMediaEnclosureFileName>
 				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset facebookImageMetaTagValue = thisUrl & "/enclosures/facebook/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+					<cfset facebookImageMetaTagValue = seoFileBaseUrl & "/enclosures/facebook/" & socialMediaEnclosureFileNameNoExt & '.webp'>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileName))>
 					<cfset facebookImageMetaTagValue = facebookImageUrl>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset facebookImageMetaTagValue = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+					<cfset facebookImageMetaTagValue = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
 					<cfset facebookImageMetaTagValue = classicGalaxieBlogImageUrl>
 				<cfelse>
 					<cfset facebookImageMetaTagValue = getPost[1]["HeroCoverImageUrl"]>
 				</cfif>
 
-				<cfset twitterImageUrl = thisUrl & "/enclosures/twitter/" & socialMediaEnclosureFileName>
+				<cfset twitterImageUrl = seoFileBaseUrl & "/enclosures/twitter/" & socialMediaEnclosureFileName>
 				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset twitterImageMetaTagValue = thisUrl & "/enclosures/twitter/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+					<cfset twitterImageMetaTagValue = seoFileBaseUrl & "/enclosures/twitter/" & socialMediaEnclosureFileNameNoExt & '.webp'>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileName))>
 					<cfset twitterImageMetaTagValue = twitterImageUrl>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset twitterImageMetaTagValue = thisUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+					<cfset twitterImageMetaTagValue = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
 					<cfset twitterImageMetaTagValue = classicGalaxieBlogImageUrl>
 				<cfelse>
@@ -176,9 +180,9 @@
 
 				<cfset pinterestImageMetaTagValue = "">
 				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset pinterestImageMetaTagValue = thisUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileNameNoExt & '.webp'>
+					<cfset pinterestImageMetaTagValue = seoFileBaseUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileNameNoExt & '.webp'>
 				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileName))>
-					<cfset pinterestImageMetaTagValue = thisUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileName>
+					<cfset pinterestImageMetaTagValue = seoFileBaseUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileName>
 				</cfif>
 
 			</cfif><!---<cfif (getPost[1]["MediaUrl"] contains '.jpg' or getPost[1]["MediaUrl"] contains '.gif' or getPost[1]["MediaUrl"] contains '.png' or getPost[1]["MediaUrl"] contains '.mp3')>--->

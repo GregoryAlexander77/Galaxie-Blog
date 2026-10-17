@@ -77,6 +77,16 @@
 <!-- Twitter meta tags. -->			
 <meta name="twitter:card" content="#twitterCardType#">
 <meta name="twitter:site" content="@#canonicalUrl#">
+<cfsilent>
+<!--- og:image and twitter:image must be full addresses (2026-10-16): a picture stored as /blog/enclosures/... (a post's own picture,
+a hero cover image, or one typed into a directive) gets the blog's scheme and host in front. --->
+<cfset seoHostUrl = reReplace(application.blogHostUrl, "^(https?://[^/]+).*$", "\1")>
+<cfif len(seoHostUrl)>
+	<cfif left(facebookImageMetaTagValue, 1) eq "/" and left(facebookImageMetaTagValue, 2) neq "//"><cfset facebookImageMetaTagValue = seoHostUrl & facebookImageMetaTagValue></cfif>
+	<cfif left(twitterImageMetaTagValue, 1) eq "/" and left(twitterImageMetaTagValue, 2) neq "//"><cfset twitterImageMetaTagValue = seoHostUrl & twitterImageMetaTagValue></cfif>
+	<cfif left(pinterestImageMetaTagValue, 1) eq "/" and left(pinterestImageMetaTagValue, 2) neq "//"><cfset pinterestImageMetaTagValue = seoHostUrl & pinterestImageMetaTagValue></cfif>
+</cfif>
+</cfsilent>
 <meta name="twitter:title" content="#titleMetaTagValue#">
 <meta name="twitter:description" content="#descriptionMetaTagValue#">
 <!-- The twitter image is still required with player cards -->
@@ -112,8 +122,9 @@
 <meta property="og:video:height" content="#ogVideoHeight#">
 </cfif><!---<cfif videoType neq "" and getPageMode() eq 'post'>--->
 <!--TODO <meta property="og:type" content="blog" />-->
-<link rel="alternate" type="application/rss+xml" title="RSS" href="#thisUrl#/rss.cfm?mode=full" />
-<link rel="alternate" type="application/atom+xml" title="Atom" href="#thisUrl#/atom.cfm?mode=full" />
+<!--- The feeds are files: no /index.cfm in their addresses (2026-10-16), or a site without URL rewriting linked to its home page. --->
+<link rel="alternate" type="application/rss+xml" title="RSS" href="#replaceNoCase(thisUrl, '/index.cfm', '')#/rss.cfm?mode=full" />
+<link rel="alternate" type="application/atom+xml" title="Atom" href="#replaceNoCase(thisUrl, '/index.cfm', '')#/atom.cfm?mode=full" />
 <cfsilent>
 <!--- We are only including the top level ld json when we are not in blog mode. The ld json will be in the body of the post.  ---->
 <cfif getPageMode() eq 'blog'>

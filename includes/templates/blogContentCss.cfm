@@ -1057,6 +1057,8 @@
 		.galaxieEventHeroPanel-right { right: 16px; }
 		.galaxieEventHeroPanel-center { left: 50%; transform: translateX(-50%); }
 		.galaxieEventHeroPanel .galaxieEventDate { flex: 0 0 56px; }
+		<!--- The event card below a hero with the panel: the panel already shows the placard, the date and the status. --->
+		.galaxieEventCardWithPanel > .galaxieEventDate, .galaxieEventCardWithPanel .galaxieEventWhen, .galaxieEventCardWithPanel .galaxieEventStatus { display: none; }
 		.galaxieEventHeroTop { display: flex; gap: 12px; align-items: center; }
 		.galaxieEventHeroPanel .galaxieEventBody p { margin: 0 0 4px 0; }
 		<!--- The description is held to two lines. --->
