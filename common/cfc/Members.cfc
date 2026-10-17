@@ -621,6 +621,130 @@
 	<cfreturn members>
 </cffunction>
 
+<cffunction name="getPeopleForAdmin" access="public" returntype="array" output="false"
+		hint="The combined Members list (2026-10-17, owner): everyone who isn't running the blog, one entry per email address, matched across member accounts, subscribers, bookings, event sign-ups, form sends and the profiles shown on the site. Built from the existing tables when the window opens; nothing is copied. Commenters are left out (owner). Newest activity first: [{ email, name, phone, memberId, memberStatus, isMember, onSite, personCardId, isSubscriber, subscriberConfirmed, bookings, signUps, forms, isUser, labels[], lastActivity, lastActivityText, since }].">
+	<cfset var params = { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, yes = { value = true, cfsqltype = "cf_sql_bit" } }>
+	<cfset var people = {}>
+	<cfset var rows = "">
+	<cfset var key = "">
+	<cfset var person = {}>
+	<cfset var list = []>
+
+	<!--- One entry per lower-cased email; the name and phone come from the newest record that has one. --->
+	<cfscript>
+	var touch = function(required string email, string name = "", string phone = "", any when = "", string what = "") {
+		var k = lCase(trim(arguments.email));
+		if (!len(k) || !isValid("email", k)) { return {}; }
+		if (!structKeyExists(people, k)) {
+			people[k] = { email: k, name: "", phone: "", nameDate: "", memberId: 0, memberStatus: "", isMember: false, onSite: false, personCardId: 0,
+				isSubscriber: false, subscriberConfirmed: false, bookings: 0, signUps: 0, forms: 0, isUser: false,
+				labels: [], lastActivity: "", lastActivityText: "", since: "" };
+		}
+		var p = people[k];
+		if (isDate(arguments.when)) {
+			if (len(trim(arguments.name)) && (!isDate(p.nameDate) || dateCompare(arguments.when, p.nameDate) gt 0)) { p.name = trim(arguments.name); p.nameDate = arguments.when; }
+			if (!isDate(p.lastActivity) || dateCompare(arguments.when, p.lastActivity) gt 0) { p.lastActivity = arguments.when; p.lastActivityText = arguments.what; }
+			if (!isDate(p.since) || dateCompare(arguments.when, p.since) lt 0) { p.since = arguments.when; }
+		} else if (len(trim(arguments.name)) && !len(p.name)) {
+			p.name = trim(arguments.name);
+		}
+		if (len(trim(arguments.phone)) && !len(p.phone)) { p.phone = trim(arguments.phone); }
+		return p;
+	};
+	</cfscript>
+
+	<!--- Member accounts --->
+	<cfset rows = queryExecute("SELECT MemberId, Email, Name, Phone, Status, Created, LastSeen FROM BlogMember WHERE BlogRef = :blogId", params)>
+	<cfloop query="rows">
+		<cfset person = touch(rows.Email, rows.Name, rows.Phone, rows.Created, "Created an account")>
+		<cfif not structIsEmpty(person)>
+			<cfset person.isMember = true>
+			<cfset person.memberId = rows.MemberId>
+			<cfset person.memberStatus = len(rows.Status) ? rows.Status : "active">
+			<cfif isDate(rows.LastSeen)><cfset touch(rows.Email, "", "", rows.LastSeen, "Signed in")></cfif>
+		</cfif>
+	</cfloop>
+
+	<!--- Subscribers: unsubscribed ones are left out; ones who never confirmed are shown, marked. --->
+	<cfset rows = queryExecute("SELECT SubscriberEmail, SubscriberVerified, Date FROM Subscriber WHERE BlogRef = :blogId AND Active = :yes", params)>
+	<cfloop query="rows">
+		<cfset person = touch(rows.SubscriberEmail, "", "", rows.Date, "Subscribed")>
+		<cfif not structIsEmpty(person)>
+			<cfset person.isSubscriber = true>
+			<cfif isBoolean(rows.SubscriberVerified) and rows.SubscriberVerified><cfset person.subscriberConfirmed = true></cfif>
+		</cfif>
+	</cfloop>
+
+	<!--- Bookings (not the ones held for a payment that never came) --->
+	<cfset rows = queryExecute("
+		SELECT b.Email, b.Name, b.Phone, b.Created, t.Name AS TypeName
+		FROM Booking b
+			LEFT JOIN BookingType t ON t.BookingTypeId = b.BookingTypeRef
+		WHERE b.BlogRef = :blogId AND (b.Status IS NULL OR b.Status NOT IN ('held', 'expired'))", params)>
+	<cfloop query="rows">
+		<cfset person = touch(rows.Email, rows.Name, rows.Phone, rows.Created, "Booked " & (len(rows.TypeName) ? rows.TypeName : "a session"))>
+		<cfif not structIsEmpty(person)><cfset person.bookings++></cfif>
+	</cfloop>
+
+	<!--- Event sign-ups and form sends (the answers given when booking belong to the booking) --->
+	<cfset rows = queryExecute("
+		SELECT s.Email, s.Name, s.Created, s.EventRef, w.Title AS FormTitle, p.Title AS PostTitle
+		FROM WebFormSubmission s
+			INNER JOIN WebForm w ON w.WebFormId = s.WebFormRef
+			LEFT JOIN Post p ON p.PostId = s.PostRef
+		WHERE w.BlogRef = :blogId
+			AND s.WebFormSubmissionId NOT IN (SELECT bk.WebFormSubmissionRef FROM Booking bk WHERE bk.WebFormSubmissionRef > 0)
+			AND (s.Status IS NULL OR s.Status NOT IN ('held', 'expired'))", params)>
+	<cfloop query="rows">
+		<cfif val(rows.EventRef) gt 0>
+			<cfset person = touch(rows.Email, rows.Name, "", rows.Created, "Signed up for " & (len(rows.PostTitle) ? rows.PostTitle : "an event"))>
+			<cfif not structIsEmpty(person)><cfset person.signUps++></cfif>
+		<cfelse>
+			<cfset person = touch(rows.Email, rows.Name, "", rows.Created, "Sent " & (len(rows.FormTitle) ? rows.FormTitle : "a form"))>
+			<cfif not structIsEmpty(person)><cfset person.forms++></cfif>
+		</cfif>
+	</cfloop>
+
+	<!--- Profiles shown on the site (People.cfc's cards for people who don't run the blog) --->
+	<cftry>
+		<cfset rows = queryExecute("SELECT PersonCardId, DisplayName, Email, Active, Created FROM PersonCard WHERE BlogRef = :blogId", params)>
+		<cfloop query="rows">
+			<cfset person = touch(rows.Email, rows.DisplayName, "", rows.Created, "Added to the site")>
+			<cfif not structIsEmpty(person)>
+				<cfset person.personCardId = rows.PersonCardId>
+				<cfif isBoolean(rows.Active) and rows.Active><cfset person.onSite = true></cfif>
+			</cfif>
+		</cfloop>
+		<!--- No PersonCard table yet: it's made the first time People is used. --->
+		<cfcatch type="database"></cfcatch>
+	</cftry>
+
+	<!--- Also a user: only noted, users are never added to the list. --->
+	<cfset rows = queryExecute("SELECT Email FROM Users WHERE BlogRef = :blogId", params)>
+	<cfloop query="rows">
+		<cfset key = lCase(trim(rows.Email))>
+		<cfif len(key) and structKeyExists(people, key)><cfset people[key].isUser = true></cfif>
+	</cfloop>
+
+	<cfloop collection="#people#" item="key">
+		<cfset person = people[key]>
+		<cfif person.isMember><cfset arrayAppend(person.labels, person.memberStatus eq "blocked" ? "Member (blocked)" : "Member")></cfif>
+		<cfif person.onSite><cfset arrayAppend(person.labels, "On the site")></cfif>
+		<cfif person.isSubscriber><cfset arrayAppend(person.labels, person.subscriberConfirmed ? "Subscriber" : "Subscriber (not confirmed)")></cfif>
+		<cfif person.bookings><cfset arrayAppend(person.labels, "Booked " & person.bookings)></cfif>
+		<cfif person.signUps><cfset arrayAppend(person.labels, "Signed up " & person.signUps)></cfif>
+		<cfif person.forms><cfset arrayAppend(person.labels, "Forms " & person.forms)></cfif>
+		<cfset structDelete(person, "nameDate")>
+		<cfset arrayAppend(list, person)>
+	</cfloop>
+	<cfset arraySort(list, function(a, b) {
+		if (!isDate(a.lastActivity)) { return 1; }
+		if (!isDate(b.lastActivity)) { return -1; }
+		return dateCompare(b.lastActivity, a.lastActivity);
+	})>
+	<cfreturn list>
+</cffunction>
+
 <cffunction name="setMemberStatus" access="public" returntype="boolean" output="false" hint="Blocks (signed out everywhere at once) or unblocks a member.">
 	<cfargument name="memberId" type="numeric" required="true">
 	<cfargument name="status" type="string" required="true">
