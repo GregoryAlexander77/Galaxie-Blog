@@ -1115,7 +1115,7 @@
 	application.events.renderCard call blogContentHtml.cfm makes. Refreshed from the server after the event window saves. --->
 	  <tr class="postEventRow">
 		<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<div class="k-form-hint">How visitors see it, at the top of the post:</div>
+			<div class="k-form-hint">How visitors see it, below the post's picture:</div>
 			<div id="postEventPreview" style="margin-top: 6px;"><cfif postIsEvent><cfoutput>#application.events.renderCard(postId = getPost[1]['PostId'], title = getPost[1]['Title'], postUrl = application.blog.makeLink(isPage = getPost[1]["IsPage"], postAlias = getPost[1]["PostAlias"], datePosted = getPost[1]["DatePosted"]), preview = true)#</cfoutput></cfif></div>
 		</td>
 	  </tr>
