@@ -1007,18 +1007,14 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
 				var windowTitle = "Events";
-			} else if (Id == 102){
-				// People: the author cards, users and guests (2026-10-16) - see admin/adminInterface/people.cfm.
-				var windowName = "peopleWindow";
-				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
-				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
-				var windowTitle = "People";
+			// 102 is retired (2026-10-17): it was the People window, replaced by Members (97). Don't reuse the number.
 			} else if (Id == 103){
-				// A guest card (2026-10-16) - optArgs is the PersonCardId, 0 for a new one. See admin/adminInterface/personDetail.cfm.
+				// A person's profile on the site (2026-10-16; part of Members 2026-10-17) - optArgs is the PersonCardId, 0 for a new
+				// one (otherArgs = name, otherArgs1 = email to start with). See admin/adminInterface/personDetail.cfm.
 				var windowName = "personDetailWindow";
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
-				var windowTitle = "Guest";
+				var windowTitle = "Profile on the site";
 			} else if (Id == 104){
 				// A booking page (2026-10-17): what it offers - optArgs is the page's PostId. See admin/adminInterface/bookingPageDetail.cfm.
 				var windowName = "bookingPageWindow";

@@ -166,14 +166,8 @@ details). --->
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(28);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/users.png")>
 </cfif>
-<!--- People (2026-10-16): the author cards - users and guests - that open from bylines and event organizers. Icon: people.gif (owner, 10-17). --->
-<cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
-	<cfset iconList = listAppend(iconList, 'People')>
-	<cfset titleList = listAppend(titleList, 'People')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(102);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/people.gif")>
-</cfif>
-<!--- Members (2026-10-17): your customers' accounts - the visitors who sign in to book or sign up (window 97). Icon: members.gif (owner). --->
+<!--- The People icon (2026-10-16) was removed 2026-10-17: profiles on the site are part of Members now. people.gif is kept for later (owner). --->
+<!--- Members (2026-10-17): everyone who isn't running the blog - accounts, subscribers, bookings, sign-ups, forms and profiles on the site (window 97). Icon: members.gif (owner). --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
 	<cfset iconList = listAppend(iconList, 'Members')>
 	<cfset titleList = listAppend(titleList, 'Members')>

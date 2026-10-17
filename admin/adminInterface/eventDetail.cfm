@@ -29,8 +29,9 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 <cfloop array="#eventZones#" index="thisZone"><cfset arrayAppend(eventZoneChoices, { "text": replace(thisZone, "_", " ", "all"), "value": thisZone })></cfloop>
 <!--- RSVP: the forms to choose from, and how many are coming so far. --->
 <cfset eventForms = application.webForms.getForms()>
-<!--- Organizer (2026-10-16): one of the People cards (the blog owner by default) (common/cfc/People.cfc - the admin users and guest cards), this blog, or
-someone else typed in. A card is stored as person:user:5 / person:guest:3 in OrganizerUrl. --->
+<!--- Organizer (2026-10-16): a person (the blog owner by default) - one of the users, or someone in Members shown on the site
+(common/cfc/People.cfc: users and PersonCard profiles, 2026-10-17) - this blog, or someone else typed in. A person is stored as
+person:user:5 / person:guest:3 in OrganizerUrl ("guest" is only the internal name for a profile). --->
 <cfset eventPeople = application.events.getPeople().getCards()>
 <cfif left(theEvent.organizerUrl, 7) eq "person:">
 	<cfset eventOrganizerMode = "person">
@@ -44,7 +45,7 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 </cfif>
 <cfset eventOrganizerChoices = []>
 <cfloop array="#eventPeople#" index="thisPerson">
-	<cfset arrayAppend(eventOrganizerChoices, { "ref": thisPerson.ref, "name": thisPerson.name & (thisPerson.kind eq "guest" ? " (guest)" : "") })>
+	<cfset arrayAppend(eventOrganizerChoices, { "ref": thisPerson.ref, "name": thisPerson.name, "group": thisPerson.kind eq "guest" ? "Members shown on the site" : "Users" })>
 </cfloop>
 <cfset eventRsvpState = isNewEvent ? {} : application.events.getRsvpState(theEvent)>
 <cfset eventPaymentsReady = application.payments.getStatus().ready>
@@ -91,9 +92,9 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 		$(document).off("galaxieWebFormSaved.event").on("galaxieWebFormSaved.event", function(e, form) {
 			galaxieAddToDropDown("eventRsvpForm", { value: String(form.webFormId), text: form.title }, "value");
 		});
-		<!--- Organizer (2026-10-16): a person (People cards), this blog, or someone else typed in. --->
+		<!--- Organizer (2026-10-16): a person (users, then members shown on the site, 2026-10-17), this blog, or someone else typed in. --->
 		$("#eventOrganizerPerson").kendoDropDownList({
-			dataSource: <cfoutput>#serializeJson(eventOrganizerChoices)#</cfoutput>,
+			dataSource: new kendo.data.DataSource({ data: <cfoutput>#serializeJson(eventOrganizerChoices)#</cfoutput>, group: { field: "group", dir: "desc" } }),
 			dataTextField: "name",
 			dataValueField: "ref",
 			filter: "contains",
@@ -112,9 +113,9 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 			if (mode === "blog") { return { name: <cfoutput>#serializeJson(application.BlogDbObj.getBlogTitle())#</cfoutput>, url: <cfoutput>#serializeJson(application.blogHostUrl)#</cfoutput> }; }
 			return { name: $.trim($("#eventOrganizerName").val()), url: $.trim($("#eventOrganizerUrl").val()) };
 		};
-		<!--- A card added with Add a person joins the list and is selected (personDetail.cfm triggers this on save). --->
+		<!--- A person added with Add a person joins the list and is selected (personDetail.cfm triggers this on save). --->
 		$(document).off("galaxiePersonSaved.event").on("galaxiePersonSaved.event", function(e, person) {
-			galaxieAddToDropDown("eventOrganizerPerson", { ref: person.ref, name: person.name + " (guest)" }, "ref");
+			galaxieAddToDropDown("eventOrganizerPerson", { ref: person.ref, name: person.name, group: "Members shown on the site" }, "ref");
 		});
 		$("#eventRsvpClosesDate").kendoDatePicker({ format: "MMMM d, yyyy", parseFormats: ["yyyy-MM-dd"] });
 		$("#eventRsvpClosesTime").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm", "h:mm tt"], interval: 15 });
@@ -344,7 +345,7 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Details</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Who runs the event. A person's name on the event opens their card: picture, biography and a form that emails them directly. Add people who don't sign in, eg. a guest presenter, under <a href="javascript:createAdminInterfaceWindow(102);">People</a>.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Who runs the event. A person's name on the event opens their profile: picture, biography and a form that emails them directly. Choose one of your users, or someone in <a href="javascript:createAdminInterfaceWindow(97);">Members</a> who's shown on the site; Add a person adds someone new, eg. a presenter.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right">Organizer:</td>
@@ -357,7 +358,7 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 	<tr class="blockSpacer eventOrganizerPersonRow"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr class="eventOrganizerPersonRow">
 		<td class="#blockClass#" align="right"><label for="eventOrganizerPerson">Person:</label></td>
-		<td class="#blockClass#"><input id="eventOrganizerPerson" style="width: 300px;"> <a href="javascript:galaxieAddRequest('eventOrganizerPerson'); createAdminInterfaceWindow(103, 0);">Add a guest</a></td>
+		<td class="#blockClass#"><input id="eventOrganizerPerson" style="width: 300px;"> <a href="javascript:galaxieAddRequest('eventOrganizerPerson'); createAdminInterfaceWindow(103, 0);">Add a person</a></td>
 	</tr>
 	<tr class="blockSpacer eventOrganizerOtherRow"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr class="eventOrganizerOtherRow">

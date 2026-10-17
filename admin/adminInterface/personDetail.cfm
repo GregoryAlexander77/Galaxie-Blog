@@ -1,6 +1,6 @@
 <!--- Profile on the site (window 103, 2026-10-16; part of Members 2026-10-17): the public profile of someone in Members - eg. a
 presenter who hosts an event - that opens from their name on the site. Stored as a People.cfc "guest" card (PersonCard); only the
-wording changed. Opened from a person's page in Members, Members' Add person, People (102) or an event's Add a person link with
+wording changed. Opened from a person's page in Members, Members' Add person or an event's Add a person link with
 createAdminInterfaceWindow(103, personCardId); 0 makes a new one, with otherArgs = the name and otherArgs1 = the email address to
 start with. The name and the email address are required: visitors' messages from the profile are emailed there, and the email
 address is how it's matched to the person in Members. Saved by ProxyController.cfc's savePersonCard -> People.cfc saveGuest,
@@ -89,7 +89,6 @@ which checks everything again on the server. --->
 				success: function(response) {
 					kendo.ui.ExtWaitDialog.hide();
 					if (response && JSON.parse(response.success) == true) {
-						try { refreshPeopleWindow(); } catch (error) {}
 						<!--- Members and the person's page show the profile (members.cfm, memberDetail.cfm). --->
 						try { $("#membersWindow").data("kendoWindow").refresh(); } catch (error) {}
 						try { $("#memberDetailWindow").data("kendoWindow").refresh(); } catch (error) {}
@@ -119,7 +118,6 @@ which checks everything again on the server. --->
 					dataType: "json",
 					success: function(response) {
 						if (response && response.success) {
-							try { refreshPeopleWindow(); } catch (error) {}
 							try { $("#membersWindow").data("kendoWindow").refresh(); } catch (error) {}
 							try { $("#memberDetailWindow").data("kendoWindow").refresh(); } catch (error) {}
 							$('#personDetailWindow').kendoWindow('destroy');
