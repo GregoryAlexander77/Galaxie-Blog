@@ -68,6 +68,7 @@
 						<cfset thumbnailMedia = ''>
 						<cfset thumbnailCarousel = ''>
 						<cfset cardEvent = structKeyExists(popularCardEvents, getPosts[i]["PostId"]) ? popularCardEvents[getPosts[i]["PostId"]] : {}>
+						<cfset cardEventTile = false>
 
 						<!--- Get the data --->		
 						<cfset thisBlogId = 1>
@@ -137,6 +138,7 @@
 							<!--- An event with no picture of its own: its date tile (2026-10-16). --->
 							<cfelseif not structIsEmpty(cardEvent)>
 								<cfset thumbnailCarousel = application.events.renderDateTileHtml(cardEvent)>
+								<cfset cardEventTile = true>
 							<cfelse>
 								<cfset heroFallback = RendererObj.getHeroFallbackHtml(postId=getPosts[i]["PostId"], cardMode=true)>
 								<cfif heroFallback.isHtml>
@@ -245,7 +247,7 @@
 								<div class="k-card-body">
 									<!-- The font should be 14pt for this compact widget. No extra margins are necessary for the popular posts -->
 									<h2 class="k-card-title" style="font-size: 14pt;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h4>
-									<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(ev=cardEvent, compact=true)#</cfoutput></cfif>
+									<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(ev=cardEvent, compact=true, hasTile=cardEventTile)#</cfoutput></cfif>
 								</div>
 							<cfif postScrollWidgetType eq 'popularPosts'><!--- Only show the read more button for popular posts. --->
 								<div class="k-card-actions k-card-actions-stretched k-card-actions-vertical">

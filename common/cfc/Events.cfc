@@ -969,7 +969,8 @@
 <cffunction name="dateBlockHtml" access="private" returntype="string" output="false">
 	<cfargument name="ev" type="struct" required="true">
 	<cfset var s = zoned(arguments.ev.startUtc, arguments.ev.timeZone)>
-	<cfreturn '<div class="galaxieEventDate k-header" aria-hidden="true"><span class="galaxieEventMonth">' & encodeForHtml(uCase(s.format(formatter("MMM")))) & '</span><span class="galaxieEventDay">' & encodeForHtml(s.format(formatter("d"))) & '</span></div>'>
+	<!--- The placard carries the date for screen readers too, as the text beside it may give only the weekday and time. --->
+	<cfreturn '<div class="galaxieEventDate k-header" role="img" aria-label="' & encodeForHtmlAttribute(s.format(formatter("EEEE, MMMM d, yyyy"))) & '"><span class="galaxieEventMonth" aria-hidden="true">' & encodeForHtml(uCase(s.format(formatter("MMM")))) & '</span><span class="galaxieEventDay" aria-hidden="true">' & encodeForHtml(s.format(formatter("d"))) & '</span></div>'>
 </cffunction>
 
 <cffunction name="statusNote" access="private" returntype="string" output="false">
@@ -991,7 +992,7 @@
 	<cfset html = '<ul class="galaxieEventPodList">'>
 	<cfloop array="#list#" index="item">
 		<cfset note = statusNote(item.ev)>
-		<cfset html = html & '<li class="galaxieEventPodItem">' & dateBlockHtml(item.ev) & '<div class="galaxieEventPodText"><a href="' & encodeForHtmlAttribute(item.url) & '">' & encodeForHtml(item.title) & '</a><br/><span class="galaxieEventPodWhen">' & encodeForHtml(shortWhenText(item.ev)) & '</span>' & (len(note) ? ' <strong>' & note & '</strong>' : '') & '</div></li>'>
+		<cfset html = html & '<li class="galaxieEventPodItem">' & dateBlockHtml(item.ev) & '<div class="galaxieEventPodText"><a href="' & encodeForHtmlAttribute(item.url) & '">' & encodeForHtml(item.title) & '</a><br/><span class="galaxieEventPodWhen">' & encodeForHtml(placardWhenText(item.ev, true)) & '</span>' & (len(note) ? ' <strong>' & note & '</strong>' : '') & '</div></li>'>
 	</cfloop>
 	<cfset html = html & '</ul><p class="galaxieEventPodLinks"><a href="' & encodeForHtmlAttribute(getEventsPageUrl()) & '">All events</a></p>'>
 	<cfreturn html>
@@ -1046,7 +1047,7 @@
 	<cfset html = html & dateBlockHtml(ev) & '<div class="galaxieEventBody">'>
 	<cfset html = html & '<h3 class="galaxieEventsItemTitle"><a href="' & encodeForHtmlAttribute(arguments.item.url) & '">' & encodeForHtml(arguments.item.title) & '</a></h3>'>
 	<cfif len(note)><cfset html = html & '<p class="galaxieEventStatus"><strong>' & note & '</strong></p>'></cfif>
-	<cfset html = html & '<p class="galaxieEventWhen">' & encodeForHtml(whenText(ev)) & '<span class="galaxieEventYourTime"></span></p>'>
+	<cfset html = html & '<p class="galaxieEventWhen">' & encodeForHtml(placardWhenText(ev)) & '<span class="galaxieEventYourTime"></span></p>'>
 	<cfif arrayLen(ways)><cfset html = html & '<p>' & encodeForHtml(arrayToList(ways, " or ")) & '</p>'></cfif>
 	<cfif ev.price gt 0>
 		<cfset html = html & '<p>' & encodeForHtml(application.payments.formatMoney(ev.price)) & ' per person</p>'>
@@ -1222,10 +1223,10 @@
 	<cfset endZoned = zoned(ev.endUtc, ev.timeZone)>
 	<cfset monthText = startZoned.format(formatter("MMM"))>
 	<cfset dayText = startZoned.format(formatter("d"))>
-	<cfset whenLabel = whenText(ev)>
+	<cfset whenLabel = placardWhenText(ev)>
 
 	<cfset html.append('<div id="galaxieEventCard" class="galaxieEventCard k-content" data-postid="' & arguments.postId & '" data-start-utc="' & encodeForHtmlAttribute(ev.startUtc) & '" data-end-utc="' & encodeForHtmlAttribute(ev.endUtc) & '" data-zone="' & encodeForHtmlAttribute(ev.timeZone) & '" data-all-day="' & (ev.allDay ? "true" : "false") & '" data-status="' & ev.status & '">')>
-	<cfset html.append('<div class="galaxieEventDate k-header" aria-hidden="true"><span class="galaxieEventMonth">' & encodeForHtml(uCase(monthText)) & '</span><span class="galaxieEventDay">' & encodeForHtml(dayText) & '</span></div>')>
+	<cfset html.append(dateBlockHtml(ev))>
 	<cfset html.append('<div class="galaxieEventBody">')>
 	<cfif ev.status eq "cancelled">
 		<cfset html.append('<p class="galaxieEventStatus"><strong>This event is cancelled.</strong></p>')>
@@ -1281,6 +1282,33 @@
 	<cfset html.append(cardScript())>
 	<cfset html.append('<script type="application/ld+json">' & replace(serializeJson(jsonLd(ev, arguments.title, arguments.postUrl)), "</", "<\/", "all") & '</script>')>
 	<cfreturn html.toString()>
+</cffunction>
+
+<cffunction name="placardWhenText" access="public" returntype="string" output="false"
+		hint="The when text beside a date placard (2026-10-16, owner: the placard already shows the month and day, so the text gives the weekday and time, as other event sites do): eg. 'Saturday, 7:00 PM - 9:00 PM PDT', 'Saturday, all day', 'All day, through Sunday, November 15'. An event in another year than this one gets the full date (the placard has no year).">
+	<cfargument name="ev" type="struct" required="true">
+	<cfargument name="short" type="boolean" required="false" default="false" hint="Short day names (Sat), for small places.">
+	<cfset var s = zoned(arguments.ev.startUtc, arguments.ev.timeZone)>
+	<cfset var e = zoned(arguments.ev.endUtc, arguments.ev.timeZone)>
+	<cfset var sameDay = s.toLocalDate().equals(e.toLocalDate())>
+	<cfset var day = arguments.short ? "EEE" : "EEEE">
+	<cfset var date = arguments.short ? "EEE, MMM d" : "EEEE, MMMM d">
+	<cfif s.getYear() neq year(now())>
+		<cfreturn arguments.short ? shortWhenText(arguments.ev) : whenText(arguments.ev)>
+	</cfif>
+	<cfif arguments.ev.allDay>
+		<cfif sameDay>
+			<cfreturn s.format(formatter(day)) & ", all day">
+		</cfif>
+		<cfreturn "All day, through " & e.format(formatter(date))>
+	</cfif>
+	<cfif sameDay>
+		<cfif s.equals(e)>
+			<cfreturn s.format(formatter(day & ", h:mm a z"))>
+		</cfif>
+		<cfreturn s.format(formatter(day & ", h:mm a")) & " - " & e.format(formatter("h:mm a z"))>
+	</cfif>
+	<cfreturn s.format(formatter(day & ", h:mm a")) & " - " & e.format(formatter(date & ", h:mm a z"))>
 </cffunction>
 
 <cffunction name="whenText" access="public" returntype="string" output="false" hint="eg. 'Saturday, October 17, 2026, 7:00 PM - 9:00 PM PDT', or 'Saturday, October 17 - Sunday, October 18, 2026 (all day)'.">
@@ -1502,13 +1530,14 @@
 		hint="The event under a post card's title: when (and the visitor's own time), a Postponed or Cancelled note, where, and the price and sign-up. Once the event is over it says Ended and drops the sign-up.">
 	<cfargument name="ev" type="struct" required="true">
 	<cfargument name="compact" type="boolean" required="false" default="false" hint="Only the when line and a Postponed or Cancelled note, for the small Popular and Related cards.">
+	<cfargument name="hasTile" type="boolean" required="false" default="false" hint="The card shows the date tile, so the when line gives the weekday and time, not the date again.">
 	<cfset var note = statusNote(ev)>
 	<cfset var ways = []>
 	<cfset var place = "">
 	<cfset var priceText = "">
 	<cfset var html = '<div class="galaxieEventStrip"' & eventDataAttributes(ev) & '>'>
 	<cfloop array="#ev.locations#" index="place"><cfset arrayAppend(ways, place.label)></cfloop>
-	<cfset html = html & '<p><i class="fa-regular fa-calendar" aria-hidden="true"></i><strong class="galaxieEventEnded" hidden>Ended:</strong> ' & encodeForHtml(shortWhenText(ev)) & '<span class="galaxieEventYourTime"></span></p>'>
+	<cfset html = html & '<p><i class="fa-regular fa-calendar" aria-hidden="true"></i><strong class="galaxieEventEnded" hidden>Ended:</strong> ' & encodeForHtml(arguments.hasTile ? placardWhenText(ev, true) : shortWhenText(ev)) & '<span class="galaxieEventYourTime"></span></p>'>
 	<cfif len(note)>
 		<cfset html = html & '<p><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><strong>' & note & '</strong></p>'>
 	</cfif>
@@ -1567,9 +1596,14 @@
 	</cfif>
 	<cfset note = statusNote(ev)>
 	<cfloop array="#ev.locations#" index="place"><cfset arrayAppend(ways, place.label)></cfloop>
+	<!--- What the event is (owner, 10-16: "I know that there is an event, but I don't know what it is"): its title and the post's description, cut to a couple of lines. --->
+	<cfset var summary = postSummary(arguments.postId, 160)>
 	<cfset html = '<div id="galaxieEventHeroPanel" class="galaxieEventHeroPanel galaxieEventHeroPanel-' & side & ' k-content"' & eventDataAttributes(ev) & ' hidden>'>
-	<cfset html = html & dateBlockHtml(ev) & '<div class="galaxieEventBody">'>
-	<cfset html = html & '<p class="galaxieEventWhen"><strong class="galaxieEventEnded" hidden>Ended: </strong><strong>' & encodeForHtml(shortWhenText(ev)) & '</strong><span class="galaxieEventYourTime"></span></p>'>
+	<!--- The title first, then the placard with when, where and price beside it, then the description and the buttons, full width
+	(owner's pick of three layouts, 10-16). --->
+	<cfif len(arguments.title)><cfset html = html & '<p class="galaxieEventHeroTitle"><strong>' & encodeForHtml(arguments.title) & '</strong></p>'></cfif>
+	<cfset html = html & '<div class="galaxieEventHeroTop">' & dateBlockHtml(ev) & '<div class="galaxieEventBody">'>
+	<cfset html = html & '<p class="galaxieEventWhen"><strong class="galaxieEventEnded" hidden>Ended: </strong><strong>' & encodeForHtml(placardWhenText(ev, true)) & '</strong><span class="galaxieEventYourTime"></span></p>'>
 	<cfif len(note)><cfset html = html & '<p><strong>' & note & '</strong></p>'></cfif>
 	<cfif arrayLen(ways)><cfset html = html & '<p>' & encodeForHtml(arrayToList(ways, " or ")) & '</p>'></cfif>
 	<cfif ev.price gt 0>
@@ -1577,6 +1611,8 @@
 	<cfelseif len(ev.cost)>
 		<cfset html = html & '<p>' & encodeForHtml(ev.cost) & '</p>'>
 	</cfif>
+	<cfset html = html & '</div></div>'>
+	<cfif len(summary)><cfset html = html & '<p class="galaxieEventHeroSummary">' & encodeForHtml(summary) & '</p>'></cfif>
 	<cfset html = html & '<p class="galaxieEventButtons">'>
 	<cfif ev.status neq "cancelled">
 		<cfif ev.webFormId gt 0>
@@ -1588,12 +1624,32 @@
 			<cfset html = html & '<a class="k-button galaxieEventCalendarButton" href="' & encodeForHtmlAttribute(googleCalendarUrl(ev, arguments.title, arguments.postUrl)) & '" rel="noopener" target="_blank">Add to calendar</a> '>
 		</cfif>
 	</cfif>
-	<cfset html = html & '<a class="k-button" href="##galaxieEventCard">Details</a></p></div></div>'>
+	<cfset html = html & '<a class="k-button" href="##galaxieEventCard">Details</a></p></div>'>
 	<!--- Into the hero once the page is there: the hero is the first element after the event card. The panel waits (unseen) up to 3
 	seconds for a lazy-loaded picture to reach its size; a window too narrow, or a hero too short for the panel (eg. the small
 	no-image picture), keeps the card where it is and drops the panel. --->
 	<cfset html = html & '<script>(function(){function fit(panel,hero,card,tries){if(hero.offsetHeight>=panel.offsetHeight+48){panel.style.visibility="";if(card){hero.parentNode.insertBefore(card,hero.nextSibling);}return;}if(tries<12){setTimeout(function(){fit(panel,hero,card,tries+1);},250);return;}panel.parentNode.removeChild(panel);}function place(){var panel=document.getElementById("galaxieEventHeroPanel");var card=document.getElementById("galaxieEventCard");if(!panel){return;}var hero=(card||panel).nextElementSibling;while(hero&&/^(SCRIPT|STYLE|LINK|BR)$/.test(hero.tagName)){hero=hero.nextElementSibling;}if(!hero||window.innerWidth<700){panel.parentNode.removeChild(panel);return;}if(window.getComputedStyle(hero).position==="static"){hero.style.position="relative";}panel.style.visibility="hidden";hero.appendChild(panel);panel.hidden=false;fit(panel,hero,card,0);}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",place);}else{place();}})();</script>'>
 	<cfreturn html & cardScript()>
+</cffunction>
+
+<cffunction name="postSummary" access="private" returntype="string" output="false" hint="An event post's description as plain text, cut at a word to at most maxLength characters (with ... when cut).">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfargument name="maxLength" type="numeric" required="false" default="160">
+	<cfset var found = "">
+	<cfset var text = "">
+	<cftry>
+		<cfset found = queryExecute("SELECT Description FROM Post WHERE PostId = :postId", { postId = { value = arguments.postId, cfsqltype = "cf_sql_integer" } })>
+		<cfcatch type="any"><cfreturn ""></cfcatch>
+	</cftry>
+	<cfif not found.recordCount>
+		<cfreturn "">
+	</cfif>
+	<cfset text = trim(reReplace(reReplace(found.Description, "<[^>]*>", " ", "all"), "\s+", " ", "all"))>
+	<cfset text = replaceList(text, "&nbsp;,&amp;,&quot;,&##39;,&lt;,&gt;", " ,&,"",',<,>")>
+	<cfif len(text) gt arguments.maxLength>
+		<cfset text = reReplace(left(text, arguments.maxLength), "\s+\S*$", "") & "...">
+	</cfif>
+	<cfreturn text>
 </cffunction>
 
 <cffunction name="getSetting" access="public" returntype="string" output="false" hint="One of an event's own settings (BlogEventSetting), or the default.">

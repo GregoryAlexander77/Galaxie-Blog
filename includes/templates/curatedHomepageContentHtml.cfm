@@ -182,6 +182,7 @@ mechanism working (it needs exactly one #blogContent sibling next to #sidebar). 
 	<cfset curatedCardEvents = structKeyExists(application, "events") ? application.events.getCardEvents(curatedCardPostIds) : {}>
 	<cfloop from="1" to="#arrayLen(recentBlogPostsForHomepage)#" index="i">
 		<cfset cardEvent = structKeyExists(curatedCardEvents, recentBlogPostsForHomepage[i]["PostId"]) ? curatedCardEvents[recentBlogPostsForHomepage[i]["PostId"]] : {}>
+		<cfset cardEventTile = false>
 		<!--- cardGridSection.cfm supports a ready-to-insert widget via mediaHtml (its own top display priority - see
 		its comment), same as renderKendoCardGrid.cfm/popularPosts.cfm's thumbnailCarousel slot - so this calls
 		getHeroFallbackHtml with allowHtml=true (default) and routes isHtml=true content into mediaHtml, instead of
@@ -226,6 +227,7 @@ mechanism working (it needs exactly one #blogContent sibling next to #sidebar). 
 		<!--- An event with no picture of its own: its date tile (2026-10-16). --->
 		<cfelseif not len(thisBlogPostImageUrl) and not structIsEmpty(cardEvent)>
 			<cfset thisBlogPostMediaHtml = application.events.renderDateTileHtml(cardEvent)>
+			<cfset cardEventTile = true>
 		<cfelseif not len(thisBlogPostImageUrl)>
 			<cfset thisHeroFallback = RendererObj.getHeroFallbackHtml(postId=recentBlogPostsForHomepage[i]["PostId"], cardMode=true)>
 			<cfif thisHeroFallback.isHtml>
@@ -242,7 +244,7 @@ mechanism working (it needs exactly one #blogContent sibling next to #sidebar). 
 			imageUrl: thisBlogPostImageUrl,
 			mediaHtml: thisBlogPostMediaHtml,
 			suppressImage: thisBlogPostSuppressImage,
-			eventHtml: structIsEmpty(cardEvent) ? "" : application.events.renderCardStripHtml(cardEvent),
+			eventHtml: structIsEmpty(cardEvent) ? "" : application.events.renderCardStripHtml(ev = cardEvent, hasTile = cardEventTile),
 			<!--- 2026-10-01: the "thin border around promoted posts" treatment (cardGridSection.cfm's own
 			highlightedWidget/bullhorn-icon support, mirroring renderKendoCardGrid.cfm's older promotedPost logic)
 			never got wired up here when this curated homepage was built - this card template's items simply had

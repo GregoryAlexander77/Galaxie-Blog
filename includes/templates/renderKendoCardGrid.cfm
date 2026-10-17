@@ -106,6 +106,7 @@
 		<cfset cardGridEvents = structKeyExists(application, "events") ? application.events.getCardEvents(cardGridPostIds) : {}>
 	</cfif>
 	<cfset cardEvent = structKeyExists(cardGridEvents, getPost[i]["PostId"]) ? cardGridEvents[getPost[i]["PostId"]] : {}>
+	<cfset cardEventTile = false>
 		
 	<!--- Also see if a video or enclosure should be rendered using xmlkeywords. This returns a structure. --->
 	<cfset xmlKeywordStruct = application.blog.getXmlKeywordStruct(getPost[i]["PostHeader"])>
@@ -162,6 +163,7 @@
 		<!--- An event with no picture of its own: its date tile (2026-10-16). --->
 		<cfelseif not structIsEmpty(cardEvent)>
 			<cfset thumbnailCarousel = application.events.renderDateTileHtml(cardEvent)>
+			<cfset cardEventTile = true>
 		<cfelse>
 			<cfset heroFallback = RendererObj.getHeroFallbackHtml(postId=getPost[i]["PostId"], cardMode=true)>
 			<cfif heroFallback.isHtml>
@@ -301,7 +303,7 @@
 					<hr class="k-card-separator" />
 					<h2 class="k-card-title" style="font-size: 14pt; margin: 10px 0px;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" style="font-size: 14pt" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h2>
 					<hr class="k-card-separator" />
-					<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(cardEvent)#</cfoutput></cfif>
+					<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(ev = cardEvent, hasTile = cardEventTile)#</cfoutput></cfif>
 					<span class="blog-content"><cfoutput>#postContent#</cfoutput></span>
 				</div><!---<div class="k-card-body">--->
 				<span class="k-card-action">
