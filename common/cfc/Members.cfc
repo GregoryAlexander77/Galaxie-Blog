@@ -766,6 +766,16 @@
 	<cfreturn found>
 </cffunction>
 
+<cffunction name="invitationHtml" access="public" returntype="string" output="false"
+		hint="The 'create your account' line for a booking or event sign-up confirmation email (2026-10-17, owner: invite, don't create accounts behind people's backs). Empty when member accounts are off or the address already has an account. The link opens the site's sign-in window with the address filled in (common/js/members.js reads memberJoin from the part of the link after the hash sign); that part isn't sent to the server, kept in its logs or seen by analytics.">
+	<cfargument name="email" type="string" required="true">
+	<cfset var key = lCase(trim(arguments.email))>
+	<cfif not len(key) or not isValid("email", key) or not isEnabled() or isStruct(findMemberByEmail(key))>
+		<cfreturn "">
+	</cfif>
+	<cfreturn '<p style="clear: both;">See all your bookings and sign-ups in one place: <a href="' & encodeForHtmlAttribute(application.blogHostUrl & "/##memberJoin=" & urlEncodedFormat(key)) & '">create your account</a>. No password needed.</p>'>
+</cffunction>
+
 <cffunction name="getDeleteBlockers" access="public" returntype="array" output="false"
 		hint="What stops a person being deleted from Members (2026-10-17, owner): an upcoming booking, a place at an upcoming event, or an event they host. Each is a sentence saying what to do first; an empty array means they can be deleted.">
 	<cfargument name="email" type="string" required="true">

@@ -1324,7 +1324,8 @@
 	<!--- Each email on its own, so a problem with the visitor's address never stops the owner hearing about the booking. --->
 	<cftry>
 		<cfif len(visitorSubject) and isValid("email", b.email)>
-			<cfset sendOneEmail(b.email, visitorSubject & " - " & blogTitle, visitorSubject, visitorIntro, bookingDetailsHtml(b, false, arguments.ownerMessage) & (showManageLink and canPayBalanceOnline(b) ? '<p style="clear: both;"><a href="' & encodeForHtmlAttribute(getPayBalanceUrl(b)) & '">Pay the rest online (' & encodeForHtml(application.payments.formatMoney(b.balanceDue, b.currency)) & ')</a></p>' : ""), showManageLink ? getManageUrl(b) : "", false, len(visitorCalendar) ? buildIcs(b, false, visitorCalendar eq "cancel") : "")>
+			<!--- New and approved bookings invite them to create an account (Members.cfc invitationHtml, 2026-10-17). --->
+			<cfset sendOneEmail(b.email, visitorSubject & " - " & blogTitle, visitorSubject, visitorIntro, bookingDetailsHtml(b, false, arguments.ownerMessage) & (showManageLink and canPayBalanceOnline(b) ? '<p style="clear: both;"><a href="' & encodeForHtmlAttribute(getPayBalanceUrl(b)) & '">Pay the rest online (' & encodeForHtml(application.payments.formatMoney(b.balanceDue, b.currency)) & ')</a></p>' : "") & (listFind("booked,approved", arguments.event) and structKeyExists(application, "members") ? application.members.invitationHtml(b.email) : ""), showManageLink ? getManageUrl(b) : "", false, len(visitorCalendar) ? buildIcs(b, false, visitorCalendar eq "cancel") : "")>
 		</cfif>
 		<cfcatch type="any">
 			<cflog file="galaxieBlogErrors" type="error" text="Booking #arguments.bookingId# (#arguments.event#): the email to the visitor could not be sent: #cfcatch.message#">

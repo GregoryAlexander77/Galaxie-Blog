@@ -129,7 +129,7 @@ var galaxieMembers = (function($) {
 
 	// ------------------------------------------------------------------------------------------------------- sign in
 
-	function openSignIn(message) {
+	function openSignIn(message, email) {
 		var content = $(
 			'<form novalidate>' +
 				'<p class="galaxieMemberMessage"></p>' +
@@ -142,7 +142,8 @@ var galaxieMembers = (function($) {
 		);
 		content.find(".galaxieMemberMessage").text(message || "Sign in to see your bookings and sign-ups, and have your details filled in for you.");
 		var dialog = openWindow("Sign in to " + blogTitle, content);
-		content.find("#galaxieMemberEmail").focus();
+		if (email) { content.find("#galaxieMemberEmail").val(email); }
+		content.find(email ? "button[type=submit]" : "#galaxieMemberEmail").focus();
 		content.on("submit", function(e) {
 			e.preventDefault();
 			var button = content.find("button[type=submit]").prop("disabled", true);
@@ -546,7 +547,18 @@ var galaxieMembers = (function($) {
 			state = { enabled: true, signedIn: response.signedIn === true, member: response.member || {}, csrf: response.csrf || "" };
 			updateMenus();
 			$(document).trigger("galaxieMemberChanged", [state]);
-			if (token) { completeSignIn(token[1]); }
+			if (token) { completeSignIn(token[1]); return; }
+			// "Create your account" from a booking or sign-up confirmation email (Members.cfc invitationHtml, 2026-10-17): the
+			// sign-in window with their address filled in. It's after the # so it never reaches the server; cleared at once.
+			var join = /^#memberJoin=(.+)$/.exec(window.location.hash);
+			if (join) {
+				if (window.history && window.history.replaceState) { window.history.replaceState(null, "", currentPage()); }
+				if (!state.signedIn) {
+					var joinEmail = "";
+					try { joinEmail = decodeURIComponent(join[1]); } catch (error) { joinEmail = ""; }
+					openSignIn("Create your account to see all your bookings and sign-ups in one place. We'll email you a link that signs you in: no password needed.", /^[^@\s]+@[^@\s]+$/.test(joinEmail) ? joinEmail : "");
+				}
+			}
 		});
 	}
 

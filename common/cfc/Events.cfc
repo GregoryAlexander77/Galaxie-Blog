@@ -700,7 +700,7 @@
 				email = r.email,
 				emailTitle = arguments.kind eq "confirmed" ? "You have a place" : (arguments.kind eq "eventCancelled" ? "This event is cancelled" : "Your place is cancelled"),
 				emailDesc = r.title,
-				emailBody = rsvpEmailHtml(r, arguments.kind neq "confirmed", arguments.kind eq "cancelledByPerson") & (arguments.kind eq "cancelledByOwner" ? "<p>The organizer cancelled this sign-up. If you think that's a mistake, please reply to this email.</p>" : "") & (arguments.kind eq "eventCancelled" ? "<p>The event is cancelled, so your place is cancelled too. We're sorry for the change of plans.</p>" : "") & refundLine,
+				emailBody = rsvpEmailHtml(r, arguments.kind neq "confirmed", arguments.kind eq "cancelledByPerson") & (arguments.kind eq "cancelledByOwner" ? "<p>The organizer cancelled this sign-up. If you think that's a mistake, please reply to this email.</p>" : "") & (arguments.kind eq "eventCancelled" ? "<p>The event is cancelled, so your place is cancelled too. We're sorry for the change of plans.</p>" : "") & refundLine & (arguments.kind eq "confirmed" and structKeyExists(application, "members") ? application.members.invitationHtml(r.email) : ""),
 				callToActionText = "See the event",
 				callToActionLink = r.postUrl
 			)>
