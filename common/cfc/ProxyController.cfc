@@ -11547,6 +11547,25 @@
 		<cfreturn serializeJSON(application.members.exportData(member))>
 	</cffunction>
 
+	<cffunction name="adminDeletePerson" access="remote" returnformat="json" output="false"
+			hint="Delete everything about one person in Members (admin, window 98, 2026-10-17) - Members.cfc adminDeletePerson. Returns { success, blockers[] }: when something stops it (an upcoming booking or event place, or an event they host), nothing is deleted and blockers says what to do first.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="email" type="string" required="false" default="">
+		<cfset var response = { "success": false, "blockers": [] }>
+		<cfset var outcome = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfset outcome = application.members.adminDeletePerson(arguments.email)>
+			<cfset response[ "success" ] = outcome.success>
+			<cfset response[ "blockers" ] = outcome.blockers>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="adminExportPersonData" access="remote" returnformat="plain" output="false"
 			hint="Download their data (admin, window 98, 2026-10-17): everything the blog keeps about one person in the Members list, found by email address, as a JSON file - the same file a member gets from Download my data, and it works for people without an account.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

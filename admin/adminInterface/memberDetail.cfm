@@ -21,6 +21,8 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 <!--- Shown on the site (2026-10-17): their public profile (People.cfc's PersonCard), edited in window 103. --->
 <cfset detailProfile = detailPerson.personCardId gt 0 ? application.events.getPeople().getCard("guest:" & detailPerson.personCardId, true) : {}>
 <cfset detailHosts = structIsEmpty(detailProfile) ? [] : application.events.getPeople().getEventsUsing("guest:" & detailPerson.personCardId)>
+<!--- Delete (2026-10-17): what has to be done first, shown before they try (the server checks again). --->
+<cfset detailBlockers = application.members.getDeleteBlockers(detailPerson.email)>
 <!--- Booking times in the blog's own time zone, like the rest of the admin site. --->
 <cfset detailMemberInBlogZone = duplicate(detailMember)>
 <cfset detailMemberInBlogZone.timeZone = application.blog.getBlogTimeZoneId()>
@@ -98,19 +100,25 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 			}
 		});
 
+		<!--- Delete everything (2026-10-17, owner's choice): ProxyController.cfc's adminDeletePerson -> Members.cfc adminDeletePerson. --->
 		$("#memberDetailDelete").on("click", function() {
-			var stopEmails = $("#memberDetailStopEmails").is(":checked");
-			$.when(kendo.ui.ExtYesNoDialog.show({ title: "Delete member?", message: "Delete this member's account? They're signed out everywhere. Their bookings, payments, sign-ups and comments are kept." + (stopEmails ? " Their email subscriptions are removed too." : ""), icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
+			$.when(kendo.ui.ExtYesNoDialog.show({ title: "Delete everything?", message: "Delete everything about this person? This can't be undone.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
 				if (!answer['button'] || answer['button'] !== 'Yes') { return; }
 				jQuery.ajax({
 					type: "post",
-					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=adminDeleteMember",
-					data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", memberId: <cfoutput>#detailMember.memberId#</cfoutput>, stopEmails: stopEmails },
+					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=adminDeletePerson",
+					data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", email: "<cfoutput>#encodeForJavaScript(detailPerson.email)#</cfoutput>" },
 					dataType: "json",
 					success: function(response) {
 						if (response && response.success) {
 							refreshMembersList();
 							try { $("#memberDetailWindow").data("kendoWindow").close(); } catch (error) {}
+						} else if (response && response.blockers && response.blockers.length) {
+							var list = $("<div>");
+							$.each(response.blockers, function(i, text) { list.append($("<p>").text(text)); });
+							$.when(kendo.ui.ExtAlertDialog.show({ title: "Not deleted yet", message: list.html(), icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+						} else {
+							$.when(kendo.ui.ExtAlertDialog.show({ title: "Not deleted", message: "They couldn't be deleted. Please try again.", icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 						}
 					},
 					error: function(jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
@@ -261,19 +269,26 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 		<td class="#blockClass#"></td>
 		<td class="#blockClass#"><button type="button" class="k-button" id="memberDetailStatus" data-status="#detailMember.status eq 'blocked' ? 'active' : 'blocked'#">#detailMember.status eq "blocked" ? "Unblock" : "Block"#</button></td>
 	</tr>
+	</cfif>
+
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Deleting removes their account, so they can't see their bookings or sign-ups here any more (they can make a new account by signing in again). Their bookings, payments, form sign-ups and comments are kept for your records.</td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Delete</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Deletes everything about them<cfif detailHasAccount>: their account (they're signed out everywhere),<cfelse>:</cfif> their email subscriptions<cfif not structIsEmpty(detailProfile)> and their profile on the site</cfif>. On past bookings, sign-ups and forms, their name, email, phone and answers become "Deleted person"; the dates and amounts stay for your records. Comments they wrote stay as they are. This can't be undone.</td></tr>
+	<cfif arrayLen(detailBlockers)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="#blockClass#" align="right"><label for="memberDetailStopEmails">Remove emails:</label></td>
-		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="memberDetailStopEmails"><span class="k-form-hint">Also remove their email subscriptions.</span></td>
+		<td class="#blockClass#" align="right">First:</td>
+		<td class="#blockClass#"><cfloop array="#detailBlockers#" index="thisBlocker"><div>#encodeForHtml(thisBlocker)#</div></cfloop></td>
 	</tr>
+	</cfif>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#"></td>
-		<td class="#blockClass#"><button type="button" class="k-button" id="memberDetailDelete">Delete member</button></td>
+		<td class="#blockClass#"><button type="button" class="k-button" id="memberDetailDelete">Delete everything</button></td>
 	</tr>
-	</cfif>
 </table>
 </cfoutput>
 </cfif>

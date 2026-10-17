@@ -766,6 +766,98 @@
 	<cfreturn found>
 </cffunction>
 
+<cffunction name="getDeleteBlockers" access="public" returntype="array" output="false"
+		hint="What stops a person being deleted from Members (2026-10-17, owner): an upcoming booking, a place at an upcoming event, or an event they host. Each is a sentence saying what to do first; an empty array means they can be deleted.">
+	<cfargument name="email" type="string" required="true">
+	<cfset var key = lCase(trim(arguments.email))>
+	<cfset var blockers = []>
+	<cfset var b = {}>
+	<cfset var rows = "">
+	<cfset var nowInstant = createObject("java", "java.time.Instant").now()>
+	<cfset var person = getPersonForAdmin(key)>
+	<cfset var hosted = []>
+	<cfset var title = "">
+	<!--- Upcoming bookings still on --->
+	<cfloop array="#getAccountBookings({ email: key, timeZone: application.blog.getBlogTimeZoneId() })#" index="b">
+		<cfif b.upcoming and listFind("confirmed,pending", b.status)>
+			<cfset arrayAppend(blockers, "They have a booking on " & b.when & ". Cancel it first (open it under Bookings on their page).")>
+		</cfif>
+	</cfloop>
+	<!--- Places at upcoming events --->
+	<cfset rows = queryExecute("
+		SELECT e.EndUtc, e.Status AS EventStatus, p.Title AS PostTitle
+		FROM WebFormSubmission s
+			INNER JOIN BlogEvent e ON e.EventId = s.EventRef
+			LEFT JOIN Post p ON p.PostId = e.PostRef
+		WHERE e.BlogRef = :blogId AND s.EventRef > 0 AND LOWER(s.Email) = :email AND s.Status = 'confirmed'",
+		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, email = { value = key, cfsqltype = "cf_sql_varchar" } })>
+	<cfloop query="rows">
+		<cftry>
+			<cfif rows.EventStatus neq "cancelled" and len(rows.EndUtc) and nowInstant.isBefore(createObject("java", "java.time.Instant").parse(rows.EndUtc))>
+				<cfset arrayAppend(blockers, "They have a place at " & (len(rows.PostTitle) ? rows.PostTitle : "an upcoming event") & ". Cancel their place first, under the event's Sign-ups.")>
+			</cfif>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+	</cfloop>
+	<!--- Events they host --->
+	<cfif not structIsEmpty(person) and person.personCardId gt 0 and structKeyExists(application, "events")>
+		<cfset hosted = application.events.getPeople().getEventsUsing("guest:" & person.personCardId)>
+		<cfloop array="#hosted#" index="title">
+			<cfset arrayAppend(blockers, "They host " & title & ". Choose another host for it first.")>
+		</cfloop>
+	</cfif>
+	<cfreturn blockers>
+</cffunction>
+
+<cffunction name="adminDeletePerson" access="public" returntype="struct" output="false"
+		hint="Delete everything (Members, 2026-10-17, owner's choice b): their account (signed out everywhere), sign-in links, email subscriptions and profile on the site are deleted; on past bookings, sign-ups and form sends the name, email, phone and answers are replaced with 'Deleted person', keeping the dates and amounts for the owner's records. Payments hold no personal details. Comments are left as they are. Refused while getDeleteBlockers finds anything. Returns { success, blockers[] }.">
+	<cfargument name="email" type="string" required="true">
+	<cfset var key = lCase(trim(arguments.email))>
+	<cfset var result = { success: false, blockers: [] }>
+	<cfset var person = {}>
+	<cfset var params = {}>
+	<cfif not len(key) or not isValid("email", key)>
+		<cfreturn result>
+	</cfif>
+	<cfset person = getPersonForAdmin(key)>
+	<cfif structIsEmpty(person)>
+		<cfreturn result>
+	</cfif>
+	<cfset result.blockers = getDeleteBlockers(key)>
+	<cfif arrayLen(result.blockers)>
+		<cfreturn result>
+	</cfif>
+	<cfset params = {
+		blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" },
+		email = { value = key, cfsqltype = "cf_sql_varchar" },
+		deleted = { value = "Deleted person", cfsqltype = "cf_sql_varchar" },
+		empty = { value = "", cfsqltype = "cf_sql_varchar" },
+		emptyJson = { value = "{}", cfsqltype = "cf_sql_longvarchar" }
+	}>
+	<!--- The account first: removeMember has its own transaction, and deletes the subscriptions too. --->
+	<cfif person.member.memberId gt 0>
+		<cfset removeMember(person.member.memberId, key, true)>
+	</cfif>
+	<cftransaction>
+		<cfset queryExecute("UPDATE Booking SET Name = :deleted, Email = :empty, Phone = :empty, ManageToken = :empty WHERE BlogRef = :blogId AND LOWER(Email) = :email", params)>
+		<cfset queryExecute("
+			UPDATE WebFormSubmission SET Name = :deleted, Email = :empty, ValuesJson = :emptyJson, ManageToken = :empty
+			WHERE LOWER(Email) = :email AND WebFormRef IN (SELECT WebFormId FROM WebForm WHERE BlogRef = :blogId)", params)>
+		<cfset queryExecute("DELETE FROM PostSubscriber WHERE SubscriberRef IN (SELECT SubscriberId FROM Subscriber WHERE BlogRef = :blogId AND LOWER(SubscriberEmail) = :email)", params)>
+		<cfset queryExecute("DELETE FROM Subscriber WHERE BlogRef = :blogId AND LOWER(SubscriberEmail) = :email", params)>
+		<cfset queryExecute("UPDATE Comment SET Subscribe = 0 WHERE BlogRef = :blogId AND CommenterRef IN (SELECT CommenterId FROM Commenter WHERE LOWER(Email) = :email)", params)>
+		<cfset queryExecute("DELETE FROM MemberLoginToken WHERE BlogRef = :blogId AND LOWER(Email) = :email", params)>
+		<cftry>
+			<cfset queryExecute("DELETE FROM PersonCard WHERE BlogRef = :blogId AND LOWER(Email) = :email", params)>
+			<!--- No PersonCard table yet: nothing to delete. --->
+			<cfcatch type="database"></cfcatch>
+		</cftry>
+	</cftransaction>
+	<cflog file="galaxieMembers" type="information" text="A person was deleted from Members by #getAuthUser()#.">
+	<cfset result.success = true>
+	<cfreturn result>
+</cffunction>
+
 <cffunction name="setMemberStatus" access="public" returntype="boolean" output="false" hint="Blocks (signed out everywhere at once) or unblocks a member.">
 	<cfargument name="memberId" type="numeric" required="true">
 	<cfargument name="status" type="string" required="true">
