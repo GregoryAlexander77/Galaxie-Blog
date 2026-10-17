@@ -1207,6 +1207,7 @@
 	<cfargument name="title" type="string" required="true">
 	<cfargument name="postUrl" type="string" required="true">
 	<cfargument name="heroKind" type="string" required="false" default="" hint="What the post's hero is (Renderer.cfc renderEnclosure, request.galaxieHeroKind). With a hero, a small script moves the card from above it to just below it.">
+	<cfargument name="preview" type="boolean" required="false" default="false" hint="The post editor's preview (ProxyController getEventCardPreview): the sign-up form can't load there, so a note says where it will be.">
 	<cfset var ev = {}>
 	<cfset var html = createObject("java", "java.lang.StringBuilder").init()>
 	<cfset var place = "">
@@ -1270,6 +1271,9 @@
 		<cfset priceText = application.payments.formatMoney(ev.price) & " per person">
 	<cfelseif len(ev.cost)>
 		<cfset priceText = ev.cost>
+	<cfelseif hasRsvp and not len(ev.ticketUrl)>
+		<!--- Sign-ups here, nothing to pay (owner, 10-16): say so, rather than a row with only a button. --->
+		<cfset priceText = "Free">
 	</cfif>
 	<cfif len(priceText) or hasRsvp or (len(ev.ticketUrl) and ev.status neq "cancelled")>
 		<cfset local.priceBody = len(priceText) ? '<p class="galaxieEventRowTitle galaxieEventCost">' & encodeForHtml(priceText) & '</p>' : ''>
@@ -1283,7 +1287,9 @@
 	</cfif>
 	<!--- The RSVP: webForms.js loads the form (with the places left, worked out fresh, as the page is cached) or says why sign-ups are closed. --->
 	<cfif hasRsvp>
-		<cfset html.append('<div id="galaxieEventRsvp" class="galaxieEventRsvp"><h4 class="galaxieEventRsvpHeading">' & encodeForHtml(len(rsvpForm.title) ? rsvpForm.title : "RSVP") & '</h4><div class="galaxieWebForm" data-webform="' & encodeForHtmlAttribute(rsvpForm.alias) & '" data-event-post="' & arguments.postId & '"></div></div>')>
+		<!--- The form's own title, unless it would only repeat the Sign up button (the blog's own sign-up form is called "Sign up"). --->
+		<cfset local.rsvpHeading = (not len(trim(rsvpForm.title)) or listFindNoCase("Sign up,Signup,Sign-up", trim(rsvpForm.title))) ? "Your details" : rsvpForm.title>
+		<cfset html.append('<div id="galaxieEventRsvp" class="galaxieEventRsvp"><h4 class="galaxieEventRsvpHeading">' & encodeForHtml(local.rsvpHeading) & '</h4>' & (arguments.preview ? '<p class="k-form-hint">The sign-up form appears here on the post.</p>' : '') & '<div class="galaxieWebForm" data-webform="' & encodeForHtmlAttribute(rsvpForm.alias) & '" data-event-post="' & arguments.postId & '"></div></div>')>
 	</cfif>
 	<cfset html.append('</div>')>
 	<!--- With a hero, the card goes just below it (the card is written before the post, the hero is the post's first element). --->

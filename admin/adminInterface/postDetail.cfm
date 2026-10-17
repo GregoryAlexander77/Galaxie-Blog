@@ -1116,7 +1116,7 @@
 	  <tr class="postEventRow">
 		<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<div class="k-form-hint">How visitors see it, at the top of the post:</div>
-			<div id="postEventPreview" style="margin-top: 6px;"><cfif postIsEvent><cfoutput>#application.events.renderCard(getPost[1]['PostId'], getPost[1]['Title'], application.blog.makeLink(isPage = getPost[1]["IsPage"], postAlias = getPost[1]["PostAlias"], datePosted = getPost[1]["DatePosted"]))#</cfoutput></cfif></div>
+			<div id="postEventPreview" style="margin-top: 6px;"><cfif postIsEvent><cfoutput>#application.events.renderCard(postId = getPost[1]['PostId'], title = getPost[1]['Title'], postUrl = application.blog.makeLink(isPage = getPost[1]["IsPage"], postAlias = getPost[1]["PostAlias"], datePosted = getPost[1]["DatePosted"]), preview = true)#</cfoutput></cfif></div>
 		</td>
 	  </tr>
 	  <!-- Border -->

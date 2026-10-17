@@ -11901,7 +11901,7 @@
 		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId)>
 			<cfset getPost = application.blog.getPostByPostId(postId = val(arguments.postId), showPages = true, showBlogPosts = true, showPendingPosts = true, showRemovedPosts = true)>
 			<cfif arrayLen(getPost)>
-				<cfset response[ "html" ] = application.events.renderCard(val(arguments.postId), getPost[1]["Title"], application.blog.makeLink(isPage = getPost[1]["IsPage"], postAlias = getPost[1]["PostAlias"], datePosted = getPost[1]["DatePosted"]))>
+				<cfset response[ "html" ] = application.events.renderCard(postId = val(arguments.postId), title = getPost[1]["Title"], postUrl = application.blog.makeLink(isPage = getPost[1]["IsPage"], postAlias = getPost[1]["PostAlias"], datePosted = getPost[1]["DatePosted"]), preview = true)>
 				<cfset response[ "success" ] = true>
 			</cfif>
 		</cfif>
