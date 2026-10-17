@@ -1058,6 +1058,8 @@
 		.galaxieEventTile.galaxieEventIsOver { filter: grayscale(1); }
 		<!--- The calendar page centred over an event card's own picture or gradient (2026-10-16). Clicks go through to the card's link. --->
 		.galaxieEventOnPicture { position: relative; }
+		<!--- The picture under the calendar page at 50% (owner, 10-16), the same as the tile's art. --->
+		.galaxieEventOnPicture > :not(.galaxieEventSheetOverlay):not(script) { opacity: 0.5; }
 		.galaxieEventSheetOverlay { position: absolute; top: 0; right: 0; bottom: 5px; left: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 20; }
 		.galaxieEventSheetOverlay.galaxieEventIsOver .galaxieEventSheet { filter: grayscale(1); }
 		.galaxieEventSheetOverlay.galaxieEventIsOver .galaxieEventSheetTime { display: none; }
