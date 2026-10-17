@@ -12522,6 +12522,68 @@
 		<cfreturn jsonString>
 	</cffunction>
 
+	<cffunction name="getPeopleForGrid" access="remote" returnformat="json" output="false"
+			hint="The Members grid (window 97, 2026-10-17), Kendo or jsGrid: everyone in the combined list (Members.cfc getPeopleForAdmin), one row per email address. Shown when there are more than 10 people.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="gridType" required="no" default="kendo" hint="Either kendo or jsGrid">
+		<!--- Not used for filtering (the grid filters client-side) - declared so jsGrid's field-based filter query params don't trip strict argument matching. --->
+		<cfargument name="name" required="no" default="">
+		<cfargument name="email" required="no" default="">
+		<cfargument name="labels" required="no" default="">
+		<cfargument name="lastActivity" required="no" default="">
+		<cfargument name="since" required="no" default="">
+		<cfargument name="filters" required="no" default="">
+
+		<cfset var data = []>
+		<cfset var thisPerson = "">
+		<cfset var filterKeys = "">
+		<cfset var jsonString = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn "Invalid token"><cfelse><cfreturn serializeJSON("Invalid token")></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+
+		<cfloop array="#application.members.getPeopleForAdmin()#" index="thisPerson">
+			<!--- The keys the filter buttons above the grid match on (members.cfm). --->
+			<cfset filterKeys = "all">
+			<cfif thisPerson.isMember><cfset filterKeys = filterKeys & " member"></cfif>
+			<cfif thisPerson.onSite><cfset filterKeys = filterKeys & " onsite"></cfif>
+			<cfif thisPerson.isSubscriber><cfset filterKeys = filterKeys & " subscriber"></cfif>
+			<cfif thisPerson.bookings><cfset filterKeys = filterKeys & " booked"></cfif>
+			<cfif thisPerson.signUps><cfset filterKeys = filterKeys & " signedup"></cfif>
+			<cfif thisPerson.forms><cfset filterKeys = filterKeys & " forms"></cfif>
+			<cfset arrayAppend(data, [
+				"Email": thisPerson.email,
+				"MemberId": thisPerson.memberId,
+				"Name": len(thisPerson.name) ? thisPerson.name : "(no name)",
+				"Labels": arrayToList(thisPerson.labels, ", ") & (thisPerson.isUser ? (arrayLen(thisPerson.labels) ? ". " : "") & "Also a user" : ""),
+				"LastActivity": len(thisPerson.lastActivityText) ? thisPerson.lastActivityText & (isDate(thisPerson.lastActivity) ? ", " & dateFormat(thisPerson.lastActivity, "mmm d, yyyy") : "") : "",
+				"LastActivityDate": isDate(thisPerson.lastActivity) ? dateTimeFormat(thisPerson.lastActivity, "yyyy-mm-dd HH:nn") : "",
+				"Since": isDate(thisPerson.since) ? dateFormat(thisPerson.since, "yyyy-mm") : "",
+				"Filters": filterKeys
+			])>
+		</cfloop>
+
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#data#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<cfif arguments.gridType eq 'jsGrid'>
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">
+			</cfif>
+		</cfinvoke>
+		<cfreturn jsonString>
+	</cffunction>
+
 	<cffunction name="setBookingStatus" access="remote" returnformat="json" output="false"
 			hint="The owner approves, cancels, or marks a booking completed or no-show (window 95). Approving and cancelling email the visitor.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

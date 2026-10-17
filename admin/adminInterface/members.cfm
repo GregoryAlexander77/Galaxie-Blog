@@ -6,6 +6,9 @@ Clicking a member with an account opens them (window 98: their bookings, sign-up
 in and signs them out everywhere; Unblock lets them sign in again (ProxyController.cfc's setMemberStatus). --->
 <cfset peopleList = application.members.getPeopleForAdmin()>
 <cfset memberSettings = application.members.getSettings()>
+<!--- Up to 10 people: a plain list. More than that: a grid (Kendo when Kendo Professional is loaded, jsGrid otherwise), with
+paging, sorting and its own search. --->
+<cfset membersUseGrid = arrayLen(peopleList) gt 10>
 <!--- The filters and their counts. A person can be in several. --->
 <cfset memberFilters = [
 	{ key: "all", label: "All", count: arrayLen(peopleList) },
@@ -32,24 +35,27 @@ in and signs them out everywhere; Unblock lets them sign in again (ProxyControll
 <script>
 	$(document).ready(function() {
 		var memberFilter = "all";
-		<!--- Show the rows that match both the chosen filter and the search text. --->
+		<!--- The list: show the rows that match the chosen filter. --->
 		function showMemberRows() {
-			var text = $.trim($("#memberSearch").val() || "").toLowerCase();
 			var shown = 0;
 			$("#memberRows tr.memberRow").each(function() {
 				var row = $(this);
-				var show = (" " + row.attr("data-filters") + " ").indexOf(" " + memberFilter + " ") >= 0 && (!text.length || row.attr("data-search").indexOf(text) >= 0);
+				var show = (" " + row.attr("data-filters") + " ").indexOf(" " + memberFilter + " ") >= 0;
 				row.toggle(show);
 				if (show) { shown++; }
 			});
 			$("#memberNoMatch").toggle(shown === 0);
 		}
-		$("#memberSearch").on("input", showMemberRows);
 		$(".memberFilterButton").on("click", function() {
 			memberFilter = $(this).attr("data-filter");
 			$(".memberFilterButton").removeClass("k-primary");
 			$(this).addClass("k-primary");
-			showMemberRows();
+			<!--- The grid filters itself (includes/grids/kendo|jsGrid/members.cfm). --->
+			if (typeof membersGridFilter === "function") {
+				membersGridFilter(memberFilter);
+			} else {
+				showMemberRows();
+			}
 		});
 
 		$("#memberRows").on("click", ".memberStatusButton", function() {
@@ -97,12 +103,6 @@ in and signs them out everywhere; Unblock lets them sign in again (ProxyControll
 			</cfloop>
 		</td>
 	</tr>
-	<cfif arrayLen(peopleList) gt 10>
-	<tr>
-		<td class="#blockClass#" align="right"><label for="memberSearch">Search:</label></td>
-		<td class="#blockClass#"><input type="text" id="memberSearch" class="k-textbox" style="width: 60%;" placeholder="Name, email or phone"></td>
-	</tr>
-	</cfif>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
@@ -111,6 +111,13 @@ in and signs them out everywhere; Unblock lets them sign in again (ProxyControll
 		<td colspan="2" class="#blockClass#">
 		<cfif not arrayLen(peopleList)>
 			Nobody yet. People appear here when they book, sign up for an event, subscribe, send a form or create an account.
+		<cfelseif membersUseGrid>
+			<!--- An included file is compiled on its own, so the grids' ## templates aren't read by this cfoutput. --->
+			<cfif application.kendoCommercial>
+				<cfinclude template="../../includes/grids/kendo/members.cfm">
+			<cfelse>
+				<cfinclude template="../../includes/grids/jsGrid/members.cfm">
+			</cfif>
 		<cfelse>
 			<table width="100%" cellpadding="4" cellspacing="0" border="0">
 				<cfif not session.isMobile>
@@ -135,18 +142,18 @@ in and signs them out everywhere; Unblock lets them sign in again (ProxyControll
 					<cfset personSince = isDate(thisPerson.since) ? dateFormat(thisPerson.since, "mmm yyyy") : "">
 					<cfif session.isMobile>
 					<!--- Mobile: each person as a small card, so nothing runs off the screen. --->
-					<tr class="memberRow" data-filters="#thisPerson.filterKeys#" data-search="#encodeForHtmlAttribute(lCase(thisPerson.name & ' ' & thisPerson.email & ' ' & thisPerson.phone))#">
+					<tr class="memberRow" data-filters="#thisPerson.filterKeys#">
 						<td style="border-top: 1px solid ##ddd; padding: 8px 0;">
 							#personName#<br>
-							#encodeForHtml(thisPerson.email)#<cfif len(thisPerson.phone)><br>#encodeForHtml(thisPerson.phone)#</cfif><br>
+							<a href="mailto:#encodeForHtmlAttribute(thisPerson.email)#">#encodeForHtml(thisPerson.email)#</a><cfif len(thisPerson.phone)><br>#encodeForHtml(thisPerson.phone)#</cfif><br>
 							<span class="memberStatusText">#encodeForHtml(personLabels)#</span><cfif thisPerson.isUser><br>Also a user</cfif><br>
 							<cfif len(personLast)>#personLast#<br></cfif>
 							<cfif thisPerson.isMember><button type="button" class="k-button" onclick="createAdminInterfaceWindow(98, #thisPerson.memberId#);">Open</button> <button type="button" class="k-button memberStatusButton" data-id="#thisPerson.memberId#" data-status="#thisPerson.memberStatus eq 'blocked' ? 'active' : 'blocked'#">#thisPerson.memberStatus eq "blocked" ? "Unblock" : "Block"#</button></cfif>
 						</td>
 					</tr>
 					<cfelse>
-					<tr class="memberRow" data-filters="#thisPerson.filterKeys#" data-search="#encodeForHtmlAttribute(lCase(thisPerson.name & ' ' & thisPerson.email & ' ' & thisPerson.phone))#">
-						<td valign="top">#personName#<br>#encodeForHtml(thisPerson.email)#</td>
+					<tr class="memberRow" data-filters="#thisPerson.filterKeys#">
+						<td valign="top">#personName#<br><a href="mailto:#encodeForHtmlAttribute(thisPerson.email)#">#encodeForHtml(thisPerson.email)#</a></td>
 						<td valign="top"><span class="memberStatusText">#encodeForHtml(personLabels)#</span><cfif thisPerson.isUser><br>Also a user</cfif></td>
 						<td valign="top">#personLast#</td>
 						<td valign="top">#personSince#</td>
