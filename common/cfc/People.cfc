@@ -80,8 +80,6 @@
 		<cfset card = {
 			ref: arguments.ref, kind: "user", id: id,
 			name: len(trim(valueOrEmpty(row.DisplayName))) ? trim(row.DisplayName) : trim(valueOrEmpty(row.FullName)),
-			<!--- The full name too: an event's host line uses it (owner, 10-16), whatever the Display name is. --->
-			fullName: len(trim(valueOrEmpty(row.FullName))) ? trim(row.FullName) : trim(valueOrEmpty(row.DisplayName)),
 			picture: valueOrEmpty(row.ProfilePicture), biography: valueOrEmpty(row.Biography), website: valueOrEmpty(row.Website),
 			facebookUrl: valueOrEmpty(row.FacebookUrl), linkedInUrl: valueOrEmpty(row.LinkedInUrl), instagramUrl: valueOrEmpty(row.InstagramUrl), twitterUrl: valueOrEmpty(row.TwitterUrl),
 			postsUrl: val(posts.PostCount) ? application.blog.makeUserLink(valueOrEmpty(row.FullName)) : "",
