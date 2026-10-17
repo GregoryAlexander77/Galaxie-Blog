@@ -1533,36 +1533,21 @@
 </cffunction>
 
 <cffunction name="renderDateTileHtml" access="public" returntype="string" output="false"
-		hint="The date tile that takes the place of the no-image picture on an event post's card: a calendar page (month, day, and the day and time) on the blog's no-picture choice (generated art, a hero pool picture, or the theme's header colour). Same box as the card pictures (3:2, at most 210px tall).">
+		hint="The date tile that takes the place of the no-image picture on an event post's card: a calendar page (month, day, and the day and time) on the post's generated art (design A). Same box as the card pictures (3:2, at most 210px tall).">
 	<cfargument name="ev" type="struct" required="true">
 	<cfset var s = zoned(arguments.ev.startUtc, arguments.ev.timeZone)>
 	<cfset var note = statusNote(arguments.ev)>
 	<cfset var artUrl = "">
 	<cfset var timeLine = "">
 	<cfset var tileClass = "galaxieEventTile">
-	<cfset var fallbackMode = "">
-	<cfset var poolCarouselId = "">
-	<cfset var poolItems = []>
-	<!--- Behind the calendar page: the no-picture choice in Blog Options (NoImageFallbackMode, owner 10-16) - the generated art
-	(also for 'animation', which cards never animate), a picture from the hero image pool (picked by the post id, as
-	Renderer.cfc getHeroFallbackHtml does, so it never changes), or for 'generic' and 'none' the theme's header colour. --->
+	<!--- Behind the calendar page: always the post's own generated art (owner, 10-16: design A, whatever the no-picture choice
+	in Blog Options is - it briefly followed that choice, which put the page on a plain header colour). The theme's header
+	colour only if the art can't be made. --->
 	<cftry>
-		<cfset fallbackMode = application.BlogOptionDbObj.getNoImageFallbackMode()>
-		<cfif fallbackMode eq "pool">
-			<cfset poolCarouselId = application.blog.getHeroImagePoolCarouselId()>
-			<cfif len(poolCarouselId)><cfset poolItems = application.blog.getCarousel(poolCarouselId)></cfif>
-			<cfif arrayLen(poolItems)>
-				<cfset artUrl = poolItems[(arguments.ev.postId mod arrayLen(poolItems)) + 1]["MediaUrl"]>
-			<cfelse>
-				<cfset fallbackMode = "generated">
-			</cfif>
+		<cfif not structKeyExists(variables, "imageObj")>
+			<cfset variables.imageObj = createObject("component", application.imageComponentPath)>
 		</cfif>
-		<cfif listFindNoCase("generated,animation", fallbackMode)>
-			<cfif not structKeyExists(variables, "imageObj")>
-				<cfset variables.imageObj = createObject("component", application.imageComponentPath)>
-			</cfif>
-			<cfset artUrl = variables.imageObj.generateHeroArt(arguments.ev.postId)>
-		</cfif>
+		<cfset artUrl = variables.imageObj.generateHeroArt(arguments.ev.postId)>
 		<cfcatch type="any"></cfcatch>
 	</cftry>
 	<cfif not len(artUrl)><cfset tileClass = tileClass & " k-header"></cfif>
