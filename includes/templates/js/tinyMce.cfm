@@ -753,6 +753,64 @@
 						createAdminInterfaceWindow(93);
 					}
 				});
+				<!--- The real look of a booking in the editor (2026-10-17, owner), instead of only "[Booking: Name]": the booking
+				choices visitors see (name, length, price, description, Book), from the same call the site uses (getBookingWidget).
+				The preview is data-mce-bogus="all", so TinyMCE never saves it: the post keeps its small placeholder, which the site,
+				feeds and emails use as before. The placeholder's own text is hidden while the preview shows. --->
+				var galaxieBookingPreviewTypes = {};
+				function galaxieBookingPreviewText(value) { return $("<div/>").text(value === null || value === undefined ? "" : String(value)).html(); }
+				function galaxieBookingPreviewHtml(types, alias) {
+					var html = '<div class="galaxieBookingPreviewLabel">' + (alias === "*" ? "Bookings" : "Booking") + ': how visitors see it</div>';
+					var lastCategory = null;
+					if (!types.length) {
+						return html + '<p>No booking types to show yet. Add them under Bookings.</p>';
+					}
+					$.each(types, function(i, type) {
+						var minutes = Number(type.durationMinutes) || 0;
+						var length = minutes % 60 === 0 ? (minutes / 60) + (minutes === 60 ? " hour" : " hours") : (minutes > 60 ? Math.floor(minutes / 60) + " h " + (minutes % 60) + " min" : minutes + " minutes");
+						var price = Number(type.price) > 0 ? (type.priceText || Number(type.price).toFixed(2)) : "Free";
+						if (type.category !== lastCategory) {
+							lastCategory = type.category;
+							if (type.category) { html += '<h3>' + galaxieBookingPreviewText(type.category) + '</h3>'; }
+						}
+						html += '<div class="galaxieBookingPreviewType"><h4>' + galaxieBookingPreviewText(type.name) + '</h4>'
+							+ '<div>' + galaxieBookingPreviewText(length + " · " + price) + '</div>'
+							+ (type.description ? '<p>' + galaxieBookingPreviewText(type.description).replace(/\n/g, "<br/>") + '</p>' : '')
+							+ '<span class="galaxieBookingPreviewButton">Book</span></div>';
+					});
+					return html;
+				}
+				function galaxieShowBookingPreviews(editor) {
+					$.each(editor.dom.select("div.galaxieBooking"), function(i, box) {
+						if (editor.dom.select(".galaxieBookingPreview", box).length) { return; }
+						var alias = box.getAttribute("data-booking") || "*";
+						var show = function(types) {
+							if (editor.dom.select(".galaxieBookingPreview", box).length) { return; }
+							editor.dom.add(box, "div", { "class": "galaxieBookingPreview", "data-mce-bogus": "all", "contenteditable": "false" }, galaxieBookingPreviewHtml(types, alias));
+						};
+						if (galaxieBookingPreviewTypes[alias]) { show(galaxieBookingPreviewTypes[alias]); return; }
+						$.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getBookingWidget", data: { alias: alias }, dataType: "json", cache: false })
+							.done(function(response) {
+								galaxieBookingPreviewTypes[alias] = response && response.success === true ? response.types : [];
+								show(galaxieBookingPreviewTypes[alias]);
+							});
+					});
+				}
+				editor.on("init", function() {
+					editor.dom.addStyle(
+						".galaxieBooking { font-size: 0; border: 1px dashed #bbb; border-radius: 6px; padding: 10px 14px; margin: 1em 0; }" +
+						".galaxieBooking:not(:has(.galaxieBookingPreview)) { font-size: inherit; }" +
+						".galaxieBookingPreview { font-size: 1rem; cursor: default; }" +
+						".galaxieBookingPreviewLabel { font-size: 0.8em; opacity: 0.65; margin-bottom: 0.5em; }" +
+						".galaxieBookingPreview h3 { margin: 0.8em 0 0.3em 0; }" +
+						".galaxieBookingPreviewType { margin: 0 0 1em 0; }" +
+						".galaxieBookingPreviewType h4 { margin: 0 0 0.25em 0; }" +
+						".galaxieBookingPreviewButton { display: inline-block; padding: 4px 14px; border-radius: 4px; background: #555; color: #fff; }"
+					);
+					galaxieShowBookingPreviews(editor);
+				});
+				<!--- After the post loads, and after Insert Booking adds one. --->
+				editor.on("SetContent", function() { galaxieShowBookingPreviews(editor); });
 				editor.ui.registry.addMenuItem('booking', {
 					text: 'Booking',
 					icon: 'booking',

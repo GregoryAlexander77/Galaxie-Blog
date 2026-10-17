@@ -21,6 +21,9 @@ See doc/aiDraftArticles/eventsAndFormsDesign.cfm, Part 3. --->
 <table align="center" class="k-content adminBlocks adminHub" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
 	<tr><td colspan="2" class="#blockClass#">Let visitors book a time with you: a consultation, a session, a lesson. Set up where you meet, the kinds of bookings you offer, and when you're available.</td></tr>
+	<!--- How visitors get to book (owner, 2026-10-17): the window only set things up, so it wasn't clear how a booking reaches the site. --->
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><b>How to start taking bookings:</b> set up your Locations, Booking types and Hours below, then click <b>New booking page</b> to make a page where visitors book. To add bookings to a page you already have instead, open the page and choose <b>Insert &gt; Booking</b> (or the calendar button in the editor's toolbar).</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
