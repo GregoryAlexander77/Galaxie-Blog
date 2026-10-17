@@ -1649,6 +1649,17 @@
 	<cfreturn 0>
 </cffunction>
 
+<cffunction name="deleteSetting" access="public" returntype="void" output="false" hint="Removes one of an event's (or page's) own settings (BlogEventSetting).">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfargument name="name" type="string" required="true">
+	<cfset ensureSettingTable()>
+	<cfset queryExecute("DELETE FROM BlogEventSetting WHERE BlogRef = :blogId AND PostRef = :postId AND SettingName = :name", {
+		blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" },
+		postId = { value = arguments.postId, cfsqltype = "cf_sql_integer" },
+		name = { value = arguments.name, cfsqltype = "cf_sql_varchar" }
+	})>
+</cffunction>
+
 <cffunction name="getSetting" access="public" returntype="string" output="false" hint="One of an event's own settings (BlogEventSetting), or the default.">
 	<cfargument name="postId" type="numeric" required="true">
 	<cfargument name="name" type="string" required="true">

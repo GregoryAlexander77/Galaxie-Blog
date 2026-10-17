@@ -15,6 +15,11 @@
 	<cfset postEvent = arrayLen(getPost) ? application.events.getEvent(getPost[1]['PostId']) : {}>
 	<cfset postIsEvent = not structIsEmpty(postEvent)>
 	<cfset postEventWhen = postIsEvent ? application.events.shortWhenText(postEvent) : "">
+	<!--- Is this page a booking page? Booking is a Post Type beside Page (2026-10-17): a page whose text is followed by the booking
+	form (admin/adminInterface/bookingPageDetail.cfm, window 104; common/cfc/Bookings.cfc, Booking pages). --->
+	<cfset postBookingOffer = arrayLen(getPost) and getPost[1]['IsPage'] ? application.bookings.getPageOffer(getPost[1]['PostId']) : "">
+	<cfset postIsBooking = len(postBookingOffer) gt 0>
+	<cfset postBookingLabel = postIsBooking ? application.bookings.offerLabel(postBookingOffer) : "">
 	<!---<cfdump var="#getPost#">--->
 		
 	<!--- Get the Body --->
@@ -151,7 +156,8 @@
 	<cfset includeCustomWindow = true>
 	<!--- Forms (2026-10-13): the Insert Form button. --->
 	<cfset includeWebForm = true>
-	<cfset includeBooking = true>
+	<!--- Booking (2026-10-17): only on pages. A blog post can't hold a booking - a booking stays available, so it belongs on a page. --->
+	<cfset includeBooking = arrayLen(getPost) and getPost[1]['IsPage']>
 	</cfsilent>
 	<!--- Include the tinymce js template --->
 	<cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">
@@ -1098,7 +1104,7 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<span class="postTypeGroup"><span class="postTypeGroupLabel">Blog post:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event</label></span><span class="postTypeGroup"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent>checked</cfif>/> Page</label></span> <span class="postEventRow"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span>
+			<span class="postTypeGroup"><span class="postTypeGroupLabel">Blog post:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event</label></span><span class="postTypeGroup"><span class="postTypeGroupLabel">Page:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking>checked</cfif>/> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label></span> <span class="postEventRow"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span><span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
@@ -1107,7 +1113,7 @@
 		<label for="postType">Post Type</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<span class="postTypeGroup"><span class="postTypeGroupLabel">Blog post:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event</label></span><span class="postTypeGroup"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent>checked</cfif>/> Page</label></span> <span class="postEventRow"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span>
+			<span class="postTypeGroup"><span class="postTypeGroupLabel">Blog post:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event</label></span><span class="postTypeGroup"><span class="postTypeGroupLabel">Page:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking>checked</cfif>/> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label></span> <span class="postEventRow"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span><span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span>
 		</td>
 	  </tr>
 	</cfif>  
@@ -1716,10 +1722,12 @@ opens it again. Leaving Event takes the event details off the post after asking 
 	$(function() {
 		var postId = <cfoutput>#getPost[1]['PostId']#</cfoutput>;
 		var isEvent = <cfoutput>#postIsEvent ? "true" : "false"#</cfoutput>;
+		var isBooking = <cfoutput>#postIsBooking ? "true" : "false"#</cfoutput>;
 
 		function chosenType() { return $("input[name=postType]:checked").val(); }
 		function refreshEventRow() {
 			$(".postEventRow").toggle(chosenType() === "event");
+			$(".postBookingRow").toggle(chosenType() === "booking");
 			$("tr.postEventRow").toggle(chosenType() === "event" && isEvent);
 		}
 		<!--- The card as visitors see it, from the server (ProxyController getEventCardPreview). --->
@@ -1735,9 +1743,36 @@ opens it again. Leaving Event takes the event details off the post after asking 
 		function setType(value) { $("input[name=postType][value=" + value + "]").prop("checked", true); refreshEventRow(); }
 
 		$("#postEventDetails").on("click", function() { createAdminInterfaceWindow(99, postId); });
+		$("#postBookingDetails").on("click", function() { createAdminInterfaceWindow(104, postId); });
 
 		$("input[name=postType]").on("change", function() {
 			var chosen = $(this).val();
+			<!--- Booking (2026-10-17): a booking page is a page with a booking form. Choosing it opens the booking page window;
+			leaving it takes the form off after asking (the page and its text stay). --->
+			if (chosen === "booking") {
+				refreshEventRow();
+				if (!isBooking) {
+					$("#postBookingSummary").text("Not set up yet: choose what it offers.");
+					createAdminInterfaceWindow(104, postId);
+				}
+				return;
+			}
+			if (isBooking) {
+				$.when(kendo.ui.ExtYesNoDialog.show({ title: "Take the booking form off?", message: "This page stops being a booking page: the booking form comes off. The page and its text stay.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
+					if (answer['button'] !== 'Yes') { setType("booking"); return; }
+					jQuery.ajax({
+						type: "post",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removeBookingPage",
+						data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId },
+						dataType: "json",
+						success: function(result) {
+							if (result && result.success) { isBooking = false; $("#postBookingSummary").text(""); setType(chosen); } else { setType("booking"); }
+						},
+						error: function(jqXHR) { setType("booking"); if (jqXHR.status === 403) { createLoginWindow(); } }
+					});
+				});
+				return;
+			}
 			if (chosen === "event") {
 				refreshEventRow();
 				if (!isEvent) {
@@ -1802,6 +1837,20 @@ opens it again. Leaving Event takes the event details off the post after asking 
 			$("#postEventSummary").text("");
 			setType("blogPost");
 			$("#postEventPreview").empty();
+		});
+
+		<!--- The booking page window (104) reports saves and removals. --->
+		$(document).off("galaxieBookingPageSaved.postEditor").on("galaxieBookingPageSaved.postEditor", function(e, info) {
+			if (!info || info.postId != postId) { return; }
+			isBooking = true;
+			$("#postBookingSummary").text(info.label || "");
+			setType("booking");
+		});
+		$(document).off("galaxieBookingPageRemoved.postEditor").on("galaxieBookingPageRemoved.postEditor", function(e, info) {
+			if (!info || info.postId != postId) { return; }
+			isBooking = false;
+			$("#postBookingSummary").text("");
+			setType("page");
 		});
 
 		refreshEventRow();

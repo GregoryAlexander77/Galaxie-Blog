@@ -490,8 +490,10 @@
 ********************************************************************************************************************* --->
 
 <cffunction name="getPublicTypes" access="public" returntype="array" output="false"
-		hint="The active booking types (all, or the one with this alias) with their active locations, as visitors see them. Nothing private is included. Types without an active location are left out.">
+		hint="The active booking types (all, the one with this alias, or one category as category:Name) with their active locations, as visitors see them. Nothing private is included. Types without an active location are left out.">
 	<cfargument name="alias" type="string" required="false" default="">
+	<!--- One category (2026-10-17, booking pages): category:Name. --->
+	<cfset var wantCategory = left(arguments.alias, 9) eq "category:" ? mid(arguments.alias, 10, 200) : "">
 	<cfset var types = []>
 	<cfset var bookingType = "">
 	<cfset var locations = {}>
@@ -502,7 +504,7 @@
 		<cfset locations[thisLocation.locationOptionId] = thisLocation>
 	</cfloop>
 	<cfloop array="#getBookingTypes(activeOnly = true)#" index="bookingType">
-		<cfif not len(arguments.alias) or bookingType.alias eq arguments.alias>
+		<cfif len(wantCategory) ? bookingType.category eq wantCategory : (not len(arguments.alias) or bookingType.alias eq arguments.alias)>
 			<cfset offered = []>
 			<cfloop array="#bookingType.locationIds#" index="locationId">
 				<cfif structKeyExists(locations, locationId)>
@@ -1746,6 +1748,120 @@
 		<cfreturn arguments.defaultValue>
 	</cfif>
 	<cfreturn arguments.value>
+</cffunction>
+
+<!--- ********************************************************************************************************************
+	Booking pages (2026-10-17, owner): a booking is a page subtype, not a post - a booking stays available, so it belongs on a
+	page (on the menu, no date, not in the RSS feed), as on Squarespace (a Scheduling block on a page). A booking page is a Page
+	with an offer: every booking type (*), one category (category:Name) or one booking type (its alias). The page's text shows
+	first, then the booking widget (common/js/bookings.js). The offer is the page's own setting 'bookingOffer' in
+	BlogEventSetting (Events.cfc getSetting / setSetting). Made from New post > Booking, or a page's Post Type in the post
+	editor; set up in the Booking page window (104, admin/adminInterface/bookingPageDetail.cfm). Blog posts can't hold a
+	booking widget; ordinary pages still can, through the editor's Insert Booking.
+********************************************************************************************************************* --->
+
+<cffunction name="getPageOffer" access="public" returntype="string" output="false" hint="What a booking page offers (*, category:Name or a booking type's alias), or '' when the page isn't a booking page.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfreturn application.events.getSetting(arguments.postId, "bookingOffer", "")>
+</cffunction>
+
+<cffunction name="setPageOffer" access="public" returntype="struct" output="false" hint="Makes a page a booking page, or changes what it offers. Returns { success, errors[] }.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfargument name="offer" type="string" required="true">
+	<cfset var result = { success: false, errors: [] }>
+	<cfset var cleanOffer = trim(arguments.offer)>
+	<cfif not isValidOffer(cleanOffer)>
+		<cfset arrayAppend(result.errors, "Choose what the page offers.")>
+		<cfreturn result>
+	</cfif>
+	<cfset application.events.setSetting(arguments.postId, "bookingOffer", cleanOffer)>
+	<cfset result.success = true>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="removePage" access="public" returntype="void" output="false" hint="Makes a booking page an ordinary page again (its text stays).">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfset application.events.deleteSetting(arguments.postId, "bookingOffer")>
+</cffunction>
+
+<cffunction name="isValidOffer" access="private" returntype="boolean" output="false">
+	<cfargument name="offer" type="string" required="true">
+	<cfset var choice = "">
+	<cfloop array="#getOfferChoices()#" index="choice">
+		<cfif choice.value eq arguments.offer><cfreturn true></cfif>
+	</cfloop>
+	<cfreturn false>
+</cffunction>
+
+<cffunction name="getOfferChoices" access="public" returntype="array" output="false" hint="What a booking page can offer, for the Booking page window: every booking type, each category, each active booking type. [{ value, text }]">
+	<cfset var choices = [ { "value": "*", "text": "All booking types (visitors choose)" } ]>
+	<cfset var categories = []>
+	<cfset var bookingType = "">
+	<cfset var activeTypes = getBookingTypes(activeOnly = true)>
+	<cfloop array="#activeTypes#" index="bookingType">
+		<cfif len(bookingType.category) and not arrayFindNoCase(categories, bookingType.category)>
+			<cfset arrayAppend(categories, bookingType.category)>
+		</cfif>
+	</cfloop>
+	<cfloop array="#categories#" index="local.category">
+		<cfset arrayAppend(choices, { "value": "category:" & local.category, "text": "Category: " & local.category })>
+	</cfloop>
+	<cfloop array="#activeTypes#" index="bookingType">
+		<cfset arrayAppend(choices, { "value": bookingType.alias, "text": (len(bookingType.category) ? bookingType.category & ": " : "") & bookingType.name })>
+	</cfloop>
+	<cfreturn choices>
+</cffunction>
+
+<cffunction name="offerLabel" access="public" returntype="string" output="false" hint="A booking page's offer in words, eg. 'All booking types', 'Category: Pets', 'Pets: Pets at the office'.">
+	<cfargument name="offer" type="string" required="true">
+	<cfset var choice = "">
+	<cfif arguments.offer eq "*"><cfreturn "All booking types"></cfif>
+	<cfloop array="#getOfferChoices()#" index="choice">
+		<cfif choice.value eq arguments.offer><cfreturn choice.text></cfif>
+	</cfloop>
+	<cfreturn len(arguments.offer) ? "A booking type that isn't active any more" : "">
+</cffunction>
+
+<cffunction name="getBookingPages" access="public" returntype="array" output="false" hint="This blog's booking pages, for the Bookings window: [{ postId, title, url, released, offer, label }].">
+	<cfset var pages = []>
+	<cfset var rows = "">
+	<cftry>
+		<cfset rows = queryExecute("
+			SELECT s.PostRef, s.SettingValue, p.Title, p.PostAlias, p.DatePosted, p.Released
+			FROM BlogEventSetting s INNER JOIN Post p ON p.PostId = s.PostRef
+			WHERE s.BlogRef = :blogId AND s.SettingName = 'bookingOffer' AND p.Remove = 0
+			ORDER BY p.Title", { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } })>
+		<cfcatch type="any">
+			<!--- No settings table yet (it is made the first time a setting is saved): no booking pages. --->
+			<cfreturn pages>
+		</cfcatch>
+	</cftry>
+	<cfloop query="rows">
+		<cfif len(rows.SettingValue)>
+			<cfset arrayAppend(pages, {
+				postId: rows.PostRef,
+				title: rows.Title,
+				url: application.blog.makeLink(isPage = true, postAlias = rows.PostAlias, datePosted = rows.DatePosted),
+				released: isBoolean(rows.Released) and rows.Released,
+				offer: rows.SettingValue,
+				label: offerLabel(rows.SettingValue)
+			})>
+		</cfif>
+	</cfloop>
+	<cfreturn pages>
+</cffunction>
+
+<cffunction name="renderPageWidgetHtml" access="public" returntype="string" output="false" hint="The booking widget under a booking page's text, or '' for any other page. common/js/bookings.js fills it in.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfset var offer = "">
+	<cftry>
+		<cfset offer = getPageOffer(arguments.postId)>
+		<cfcatch type="any"><cfreturn ""></cfcatch>
+	</cftry>
+	<cfif not len(offer)>
+		<cfreturn "">
+	</cfif>
+	<cfreturn '<div class="galaxieBooking galaxieBookingPage" data-booking="' & encodeForHtmlAttribute(offer) & '"></div>'>
 </cffunction>
 
 </cfcomponent>

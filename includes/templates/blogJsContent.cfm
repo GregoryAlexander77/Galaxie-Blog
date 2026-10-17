@@ -1019,6 +1019,12 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
 				var windowTitle = "Guest";
+			} else if (Id == 104){
+				// A booking page (2026-10-17): what it offers - optArgs is the page's PostId. See admin/adminInterface/bookingPageDetail.cfm.
+				var windowName = "bookingPageWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>55%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>50%</cfif>";
+				var windowTitle = "Booking page";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

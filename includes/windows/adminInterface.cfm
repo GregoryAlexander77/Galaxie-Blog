@@ -1174,6 +1174,11 @@ days off. See common/cfc/Bookings.cfc. --->
 	<cfinclude template="../../admin/adminInterface/personDetail.cfm">
 </cfcase>
 
+<!--- 104 a booking page: what it offers (2026-10-17). --->
+<cfcase value=104>
+	<cfinclude template="../../admin/adminInterface/bookingPageDetail.cfm">
+</cfcase>
+
 </cfswitch>
 
 </html>

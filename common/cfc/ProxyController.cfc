@@ -11090,6 +11090,48 @@
 		rate limit, captcha, answers) and books the time inside one lock, so two visitors can't take the same time.
 	********************************************************************************************************************* --->
 
+	<cffunction name="saveBookingPage" access="remote" returnformat="json" output="false"
+			hint="Makes a page a booking page, or changes what it offers (2026-10-17, the Booking page window, 104). Returns { success, errorMessage, label }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" required="false" default="0">
+		<cfargument name="offer" type="string" required="false" default="">
+		<cfset var response = { "success": false, "errorMessage": "", "label": "" }>
+		<cfset var result = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId) and arguments.postId gt 0>
+			<cfset result = application.bookings.setPageOffer(val(arguments.postId), arguments.offer)>
+			<cfset response[ "success" ] = result.success>
+			<cfset response[ "errorMessage" ] = arrayToList(result.errors, " ")>
+			<cfif result.success>
+				<cfset response[ "label" ] = application.bookings.offerLabel(trim(arguments.offer))>
+				<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="removeBookingPage" access="remote" returnformat="json" output="false"
+			hint="Makes a booking page an ordinary page again: the booking form comes off, the page stays (2026-10-17). Returns { success }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" required="false" default="0">
+		<cfset var response = { "success": false }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId) and arguments.postId gt 0>
+			<cfset application.bookings.removePage(val(arguments.postId))>
+			<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
+			<cfset response[ "success" ] = true>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="getBookingWidget" access="remote" returnformat="json" output="false"
 			hint="The booking types for a booking widget (one type by alias, or all of them for *), as visitors see them, with a token for sending.">
 		<cfargument name="alias" type="string" required="false" default="*">

@@ -138,7 +138,7 @@
 					$('.field-dateAuthor').hide();
 					$('.field-heroImage').show();
 					$('#newPostSubmit').text('Next');
-				} else if (postType === 'page') {
+				} else if (postType === 'page' || postType === 'booking') {
 					$('.field-dateAuthor').hide();
 					$('.field-heroImage').hide();
 					$('#newPostSubmit').text('Next');
@@ -155,6 +155,8 @@
 						$("#newPostWindow").data("kendoWindow").title("Create Page");
 					} else if (postType === 'event') {
 						$("#newPostWindow").data("kendoWindow").title("Create Event");
+					} else if (postType === 'booking') {
+						$("#newPostWindow").data("kendoWindow").title("Create Booking Page");
 					} else {
 						$("#newPostWindow").data("kendoWindow").title("Create Post");
 					}
@@ -241,6 +243,8 @@
 				createAdminInterfaceWindow(6, response.postId);
 				<!--- An event (2026-10-16): the event window opens on top, for the date, time and place. --->
 				if ($("input[name='postType']:checked").val() === 'event') { createAdminInterfaceWindow(99, response.postId); }
+				<!--- A booking page (2026-10-17): the booking page window opens on top, to choose what it offers. --->
+				if ($("input[name='postType']:checked").val() === 'booking') { createAdminInterfaceWindow(104, response.postId); }
 				<!--- Close this window --->
 				jQuery('#newPostWindow').kendoWindow('destroy');
 			} else {
@@ -332,10 +336,12 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				Blog post:<br/>
-				<label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent", URL.optArgs)>checked</cfif> /> Article</label><br/>
+				<label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking", URL.optArgs)>checked</cfif> /> Article</label><br/>
 				<label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label><br/>
+				Page:<br/>
+				<label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection</label><br/>
 				<label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><br/>
-				<input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection
+				<label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -346,6 +352,7 @@
 			Page content is generally permanent, does not have comments or a visible published date, and links to the page are much more prominent and placed on the menu. Conversely, pages are not shown on the RSS feeds.<br/>
 			Use pages for universal site content or evergreen content that does not change, and use blog posts for specific content that is dynamic or that may change.<br/>
 			An event is a kind of blog post: an article with a date, time and place - a class, a workshop, a meetup. After Next, the event window opens so you can set them up.<br/>
+			A booking is a kind of page: a page where visitors book a time with you. It stays up, isn't dated and isn't in the RSS feed. After Next, the booking page window opens so you can choose what it offers.<br/>
 			A page collection is different still - it isn't a page by itself, it's a themed index that links out to two or more of your existing pages, like a Portfolio or a Services section. If you just want one icon linking to one destination, create a page instead and place it directly.
 			</td>
 		  </tr>
@@ -357,7 +364,7 @@
 			<label for="postType">Post Type</label><br/>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<span class="postTypeGroup"><span class="postTypeGroupLabel">Blog post:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label></span><span class="postTypeGroup"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection</label></span>
+				<span class="postTypeGroup"><span class="postTypeGroupLabel">Blog post:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label></span><span class="postTypeGroup"><span class="postTypeGroupLabel">Page:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label></span>
 			</td>
 		  </tr>
 		</cfif>
