@@ -1,7 +1,10 @@
-<!--- Person editor (window 103, 2026-10-16): a guest card - someone who doesn't sign in, eg. a guest presenter - opened from People
-(102) or an event's Add a person link with createAdminInterfaceWindow(103, personCardId); 0 makes a new one. The name and the
-email address are required: visitors' messages from the card are emailed there. Saved by ProxyController.cfc's savePersonCard
--> People.cfc saveGuest, which checks everything again on the server. --->
+<!--- Profile on the site (window 103, 2026-10-16; part of Members 2026-10-17): the public profile of someone in Members - eg. a
+presenter who hosts an event - that opens from their name on the site. Stored as a People.cfc "guest" card (PersonCard); only the
+wording changed. Opened from a person's page in Members, Members' Add person, People (102) or an event's Add a person link with
+createAdminInterfaceWindow(103, personCardId); 0 makes a new one, with otherArgs = the name and otherArgs1 = the email address to
+start with. The name and the email address are required: visitors' messages from the profile are emailed there, and the email
+address is how it's matched to the person in Members. Saved by ProxyController.cfc's savePersonCard -> People.cfc saveGuest,
+which checks everything again on the server. --->
 <cfset personCardId = val(URL.optArgs)>
 <cfset person = personCardId gt 0 ? application.events.getPeople().getCard("guest:" & personCardId, true) : {}>
 <cfset isNewPerson = structIsEmpty(person)>
@@ -10,6 +13,10 @@ email address are required: visitors' messages from the card are emailed there. 
 	<!--- A person added from a dropdown starts with the name typed there (otherArgs). --->
 	<cfif structKeyExists(URL, "otherArgs") and len(trim(URL.otherArgs)) and not listFindNoCase("undefined,null", trim(URL.otherArgs))>
 		<cfset person.name = left(trim(URL.otherArgs), 125)>
+	</cfif>
+	<!--- From a person's page in Members: their email address too (otherArgs1). --->
+	<cfif structKeyExists(URL, "otherArgs1") and isValid("email", trim(URL.otherArgs1))>
+		<cfset person.email = left(trim(URL.otherArgs1), 255)>
 	</cfif>
 </cfif>
 
@@ -51,7 +58,7 @@ email address are required: visitors' messages from the card are emailed there. 
 					if (response && response.success) {
 						$("#personPicture").val(response.url);
 						$("#personPicturePreview").attr("src", response.url).show();
-						$("#personPictureStatus").text("Uploaded. Save the card to keep it.");
+						$("#personPictureStatus").text("Uploaded. Save the profile to keep it.");
 					} else {
 						$("#personPictureStatus").text((response && response.errorMessage) || "The picture could not be uploaded.");
 					}
@@ -73,7 +80,7 @@ email address are required: visitors' messages from the card are emailed there. 
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Name and email", message: "Enter the person's name and a valid email address: visitors' messages are sent there.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 				return;
 			}
-			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Saving the card.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
+			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Saving the profile.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
 			jQuery.ajax({
 				type: "post",
 				url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=savePersonCard",
@@ -83,13 +90,16 @@ email address are required: visitors' messages from the card are emailed there. 
 					kendo.ui.ExtWaitDialog.hide();
 					if (response && JSON.parse(response.success) == true) {
 						try { refreshPeopleWindow(); } catch (error) {}
+						<!--- Members and the person's page show the profile (members.cfm, memberDetail.cfm). --->
+						try { $("#membersWindow").data("kendoWindow").refresh(); } catch (error) {}
+						try { $("#memberDetailWindow").data("kendoWindow").refresh(); } catch (error) {}
 						<!--- An event's Person dropdown adds the new card and selects it (eventDetail.cfm). --->
 						$(document).trigger("galaxiePersonSaved", [{ ref: response.ref, name: response.name }]);
-						$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: "The card was saved.", icon: "k-ext-information" })).done(function() {
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: "The profile was saved.", icon: "k-ext-information" })).done(function() {
 							$('#personDetailWindow').kendoWindow('destroy');
 						});
 					} else {
-						$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The card could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The profile could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 					}
 				},
 				error: function(jqXHR) {
@@ -100,7 +110,7 @@ email address are required: visitors' messages from the card are emailed there. 
 		});
 
 		$("#personDelete").on("click", function() {
-			$.when(kendo.ui.ExtYesNoDialog.show({ title: "Delete this card?", message: "Visitors won't be able to see it or write to this person any more.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
+			$.when(kendo.ui.ExtYesNoDialog.show({ title: "Delete this profile?", message: "Visitors won't be able to see it or write to this person any more. They stay in Members if they've done anything else on the site.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
 				if (answer['button'] !== 'Yes') { return; }
 				jQuery.ajax({
 					type: "post",
@@ -110,9 +120,11 @@ email address are required: visitors' messages from the card are emailed there. 
 					success: function(response) {
 						if (response && response.success) {
 							try { refreshPeopleWindow(); } catch (error) {}
+							try { $("#membersWindow").data("kendoWindow").refresh(); } catch (error) {}
+							try { $("#memberDetailWindow").data("kendoWindow").refresh(); } catch (error) {}
 							$('#personDetailWindow').kendoWindow('destroy');
 						} else {
-							kendo.ui.ExtAlertDialog.show({ title: "The card stays", message: $("<div>").text((response && response.errorMessage) || "The card could not be deleted.").html(), icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+							kendo.ui.ExtAlertDialog.show({ title: "The profile stays", message: $("<div>").text((response && response.errorMessage) || "The profile could not be deleted.").html(), icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
 						}
 					},
 					error: function(jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
@@ -126,14 +138,14 @@ email address are required: visitors' messages from the card are emailed there. 
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
-	<tr><td colspan="2" class="#blockClass#">A card for someone who doesn't sign in, eg. a guest presenter. It opens from their name on an event: picture, biography, links, and a form that emails them. Their address is never shown on the site.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Their profile on the site, eg. for a presenter who hosts an event. It opens from their name: picture, biography, links, and a form that emails them. Their email address is never shown. They're listed in Members with "On the site".</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="personDisplayName">Name:</label></td>
 		<td class="#blockClass#"><input type="text" id="personDisplayName" class="k-textbox" maxlength="125" value="#encodeForHtmlAttribute(person.name)#" style="width: 95%;"></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Required. Messages from visitors are emailed here, with their address to reply to; make sure this person agrees.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Required. Messages from visitors are emailed here, with their address to reply to; make sure this person agrees. It's also how they're matched in Members, so use the address they book or sign up with.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="personEmail">Email:</label></td>
@@ -167,8 +179,8 @@ email address are required: visitors' messages from the card are emailed there. 
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Links</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Optional. Each link you fill in shows as its icon on the card.</td></tr>
-	<!--- The same Font Awesome icons the card on the site shows for each link (includes/windows/personCard.cfm). --->
+	<tr><td colspan="2" class="#blockClass#">Optional. Each link you fill in shows as its icon on the profile.</td></tr>
+	<!--- The same Font Awesome icons the profile on the site shows for each link (includes/windows/personCard.cfm). --->
 	<cfloop array="#[ { id: 'personWebsite', label: 'Website', icon: 'fa-solid fa-globe', value: person.website }, { id: 'personFacebook', label: 'Facebook', icon: 'fa-brands fa-facebook', value: person.facebookUrl }, { id: 'personLinkedIn', label: 'LinkedIn', icon: 'fa-brands fa-linkedin', value: person.linkedInUrl }, { id: 'personInstagram', label: 'Instagram', icon: 'fa-brands fa-instagram', value: person.instagramUrl }, { id: 'personTwitter', label: 'Twitter', icon: 'fa-brands fa-twitter', value: person.twitterUrl } ]#" index="thisField">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
@@ -180,10 +192,10 @@ email address are required: visitors' messages from the card are emailed there. 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">An inactive card isn't shown on the site and can't be chosen as an organizer.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">When this is off, the profile is hidden: it isn't shown on the site, and they can't be chosen as an event's host.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="#blockClass#" align="right"><label for="personActive">Active:</label></td>
+		<td class="#blockClass#" align="right"><label for="personActive">Shown on the site:</label></td>
 		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="personActive"<cfif person.active> checked</cfif>></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>

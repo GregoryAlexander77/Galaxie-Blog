@@ -18,6 +18,9 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 <cfset detailMember = detailPerson.member>
 <cfset detailHasAccount = detailMember.memberId gt 0>
 <cfset memberSettings = application.members.getSettings()>
+<!--- Shown on the site (2026-10-17): their public profile (People.cfc's PersonCard), edited in window 103. --->
+<cfset detailProfile = detailPerson.personCardId gt 0 ? application.events.getPeople().getCard("guest:" & detailPerson.personCardId, true) : {}>
+<cfset detailHosts = structIsEmpty(detailProfile) ? [] : application.events.getPeople().getEventsUsing("guest:" & detailPerson.personCardId)>
 <!--- Booking times in the blog's own time zone, like the rest of the admin site. --->
 <cfset detailMemberInBlogZone = duplicate(detailMember)>
 <cfset detailMemberInBlogZone.timeZone = application.blog.getBlogTimeZoneId()>
@@ -85,6 +88,16 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 				.then(function() { button.prop("disabled", false); });
 		});
 
+		<!--- Their profile on the site: edit it, or start one with their name and email filled in (personDetail.cfm, window 103). --->
+		$("#memberDetailProfile").on("click", function() {
+			var cardId = $(this).attr("data-card");
+			if (cardId !== "0") {
+				createAdminInterfaceWindow(103, cardId);
+			} else {
+				createAdminInterfaceWindow(103, 0, encodeURIComponent($(this).attr("data-name")), encodeURIComponent($(this).attr("data-email")));
+			}
+		});
+
 		$("#memberDetailDelete").on("click", function() {
 			var stopEmails = $("#memberDetailStopEmails").is(":checked");
 			$.when(kendo.ui.ExtYesNoDialog.show({ title: "Delete member?", message: "Delete this member's account? They're signed out everywhere. Their bookings, payments, sign-ups and comments are kept." + (stopEmails ? " Their email subscriptions are removed too." : ""), icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
@@ -139,6 +152,32 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 		<td class="#blockClass#">#len(thisValue) ? encodeForHtml(thisValue) : "-"#</td>
 	</tr>
 	</cfloop>
+
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Shown on the site</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<cfif structIsEmpty(detailProfile)>
+	<tr><td colspan="2" class="#blockClass#">Not shown on the site. Show them when they host an event, so visitors can see who they are: a profile with a picture, biography and links opens from their name, with a form that emails them. Their email address is never shown.</td></tr>
+	<cfelse>
+	<tr><td colspan="2" class="#blockClass#"><cfif detailProfile.active>Their profile opens from their name on the site, with a form that emails them. Their email address is never shown.<cfelse>Their profile is hidden: it isn't shown on the site, and they can't be chosen as an event's host.</cfif></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right">Profile:</td>
+		<td class="#blockClass#"><cfif len(detailProfile.picture)><img src="#encodeForHtmlAttribute(detailProfile.picture)#" alt="" width="60" height="60" style="border-radius: 50%; object-fit: cover; vertical-align: middle;"> </cfif>#encodeForHtml(detailProfile.name)#<cfif not detailProfile.active> (hidden)</cfif></td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right">Hosts:</td>
+		<td class="#blockClass#"><cfif arrayLen(detailHosts)><cfloop array="#detailHosts#" index="thisHosted"><div>#encodeForHtml(thisHosted)#</div></cfloop><cfelse>No events</cfif></td>
+	</tr>
+	</cfif>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><button type="button" class="k-button" id="memberDetailProfile" data-card="#structIsEmpty(detailProfile) ? 0 : detailProfile.id#" data-name="#encodeForHtmlAttribute(detailPerson.name)#" data-email="#encodeForHtmlAttribute(detailPerson.email)#"><cfif structIsEmpty(detailProfile)>Show on the site<cfelse>Edit their profile</cfif></button></td>
+	</tr>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
