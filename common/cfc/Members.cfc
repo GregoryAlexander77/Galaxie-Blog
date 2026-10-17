@@ -35,8 +35,13 @@
 	<cfreturn settings>
 </cffunction>
 
-<cffunction name="isEnabled" access="public" returntype="boolean" output="false">
-	<cfreturn cachedSettings().enabled>
+<cffunction name="isEnabled" access="public" returntype="boolean" output="false"
+		hint="Whether visitors can use member accounts: switched on in Blog Options AND the blog's email address filled in (2026-10-17). Sign-in links are emailed, and without the blog's email address utils.cfc mail() stops the whole request, so until it's filled in there's no Sign in link and no invitation in confirmation emails. Blog Options and Members say so (canSendEmail).">
+	<cfreturn cachedSettings().enabled and canSendEmail()>
+</cffunction>
+
+<cffunction name="canSendEmail" access="public" returntype="boolean" output="false" hint="Whether the blog's email address (Blog Settings) is filled in, which every email the blog sends needs.">
+	<cfreturn len(trim(application.BlogDbObj.getBlogEmail())) gt 0>
 </cffunction>
 
 <cffunction name="saveSettings" access="public" returntype="struct" output="false" hint="Returns { success, errors[] }.">

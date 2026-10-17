@@ -128,6 +128,29 @@ Populate the blog table.
 	<cfset blogId = BlogDbObj.getBlogId()>
 	<cfset application.BlogDbObj = EntityLoadByPk("Blog", blogId)>
 
+	<!--- Member accounts are on for a new blog (2026-10-17, owner); an upgraded blog keeps them off until its owner turns them
+	on. Visitors only see them once the blog's email address is filled in (Members.cfc isEnabled), and Blog Options says so. --->
+	<cftry>
+		<cfquery name="getMemberSetting" datasource="#application.dsn#">
+			SELECT MemberSettingId FROM MemberSetting WHERE BlogRef = <cfqueryparam value="#blogId#" cfsqltype="cf_sql_integer">
+		</cfquery>
+		<cfif not getMemberSetting.recordCount>
+			<cfquery datasource="#application.dsn#">
+				INSERT INTO MemberSetting (BlogRef, Enabled, RememberDays, Created, Updated)
+				VALUES (
+					<cfqueryparam value="#blogId#" cfsqltype="cf_sql_integer">,
+					<cfqueryparam value="true" cfsqltype="cf_sql_bit">,
+					<cfqueryparam value="30" cfsqltype="cf_sql_integer">,
+					<cfqueryparam value="#now()#" cfsqltype="cf_sql_timestamp">,
+					<cfqueryparam value="#now()#" cfsqltype="cf_sql_timestamp">
+				)
+			</cfquery>
+		</cfif>
+		<cfcatch type="any">
+			<cflog file="galaxieBlogInstaller" type="warning" text="Member accounts could not be switched on for the new blog (they can be turned on in Blog Options): #cfcatch.message#">
+		</cfcatch>
+	</cftry>
+
 	<cfif isDefined("debug") and debug>Blog Table succesfully populated.<br/></cfif>
 </cfif>
 

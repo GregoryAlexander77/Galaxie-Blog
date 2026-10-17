@@ -141,6 +141,17 @@
 						}                                    
 						return true;
 					},
+					<!--- The Kendo folder is only needed with the commercial Kendo UI (2026-10-17). Empty means the Kendo Core that
+					comes with the blog (Application.cfc), so it no longer stops Blog Options being saved; with the commercial
+					edition ticked, an empty path would leave the site without Kendo. --->
+					kendoFolderNeeded:
+					function(input){
+						if (input.is("[id='kendoFolderPath']") && $("#kendoCommercial").is(":checked") && !$.trim(input.val()).length) {
+							input.attr("data-kendoFolderNeeded-msg", "Enter the Kendo folder path: the commercial Kendo UI edition is ticked");
+							return false;
+						}
+						return true;
+					},
 				}
 			}).data("kendoValidator");
 
@@ -632,7 +643,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="text" name="kendoFolderPath" id="kendoFolderPath" value="<cfoutput>#kendoFolderPath#</cfoutput>" class="k-textbox" style="width: 95%" required />
+				<input type="text" name="kendoFolderPath" id="kendoFolderPath" value="<cfoutput>#kendoFolderPath#</cfoutput>" class="k-textbox" style="width: 95%" />
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -641,7 +652,7 @@
 				<label for="kendoFolderPath">Kendo Folder Path:</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:80%">
-				<input type="text" name="kendoFolderPath" id="kendoFolderPath" value="<cfoutput>#kendoFolderPath#</cfoutput>" class="k-textbox" style="width: 50%" required />
+				<input type="text" name="kendoFolderPath" id="kendoFolderPath" value="<cfoutput>#kendoFolderPath#</cfoutput>" class="k-textbox" style="width: 50%" />
 			</td>
 		  </tr>
 		</cfif>
@@ -1153,6 +1164,22 @@
 			<td class="#blockClass#" align="right"><label for="memberAccountsEnabled">Member accounts:</label></td>
 			<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="memberAccountsEnabled" name="memberAccountsEnabled" value="1"<cfif memberSettings.enabled> checked</cfif>></td>
 		  </tr>
+		  <!--- No blog email address (2026-10-17): sign-in links can't be sent, so member accounts stay hidden from visitors
+		  (Members.cfc isEnabled) - said here, and asked when the box is ticked. --->
+		  <cfif not application.members.canSendEmail()>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td colspan="2" class="#blockClass#"><b>Visitors can't sign in yet:</b> sign-in links are sent by email, and the blog's email address isn't filled in. Add it in <a href="javascript:createAdminInterfaceWindow(39);">Blog Settings</a><cfif memberSettings.enabled>; member accounts appear on the site as soon as it is</cfif>.</td>
+		  </tr>
+		  <script>
+			$("##memberAccountsEnabled").on("change", function() {
+				if (!this.checked) { return; }
+				$.when(kendo.ui.ExtYesNoDialog.show({ title: "Email isn't set up", message: "Sign-in links are sent by email, and the blog's email address isn't filled in yet. Member accounts stay hidden from visitors until it is. Open Blog Settings to fill it in now?", icon: "k-ext-question", width: "#application.kendoExtendedUiWindowWidth#" })).done(function(answer) {
+					if (answer['button'] === 'Yes') { createAdminInterfaceWindow(39); }
+				});
+			});
+		  </script>
+		  </cfif>
 		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
 			<td colspan="2" class="#blockClass#">Members can choose "Keep me signed in on this device" when they sign in. This is how long that lasts before they're asked to sign in again.</td>

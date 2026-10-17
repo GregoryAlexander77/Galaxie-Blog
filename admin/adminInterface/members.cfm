@@ -104,7 +104,7 @@ paging, sorting and its own search. --->
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
-	<tr><td colspan="2" class="#blockClass#">Everyone who has booked, signed up, subscribed or written to you, in one place. Each person shows once, with what they've done. People who run the blog are in Users. Members never have access to the admin site.<cfif not memberSettings.enabled> Member accounts are off, so nobody can sign in yet: turn them on in <a href="javascript:createAdminInterfaceWindow(38, 'memberAccounts');">Blog Options &gt; Member Accounts</a>.</cfif></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Everyone who has booked, signed up, subscribed or written to you, in one place. Each person shows once, with what they've done. People who run the blog are in Users. Members never have access to the admin site.<cfif not memberSettings.enabled> Member accounts are off, so nobody can sign in yet: turn them on in <a href="javascript:createAdminInterfaceWindow(38, 'memberAccounts');">Blog Options &gt; Member Accounts</a>.<cfelseif not application.members.canSendEmail()> Member accounts are on, but nobody can sign in until the blog's email address is filled in, in <a href="javascript:createAdminInterfaceWindow(39);">Blog Settings</a>: sign-in links are sent by email.</cfif></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#"></td>
