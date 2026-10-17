@@ -1551,7 +1551,7 @@
 		<cfcatch type="any"></cfcatch>
 	</cftry>
 	<cfif not len(artUrl)><cfset tileClass = tileClass & " k-header"></cfif>
-	<cfreturn '<div class="' & tileClass & '"' & eventDataAttributes(arguments.ev) & (len(artUrl) ? ' style="background-image: url(''' & encodeForHtmlAttribute(artUrl) & ''');"' : '') & ' role="img" aria-label="' & encodeForHtmlAttribute(shortWhenText(arguments.ev)) & '">'
+	<cfreturn '<div class="' & tileClass & '"' & eventDataAttributes(arguments.ev) & (len(artUrl) ? ' style="--galaxie-tile-art: url(''' & encodeForHtmlAttribute(artUrl) & ''');"' : '') & ' role="img" aria-label="' & encodeForHtmlAttribute(shortWhenText(arguments.ev)) & '">'
 		& sheetHtml(arguments.ev) & '</div>' & cardScript()>
 </cffunction>
 

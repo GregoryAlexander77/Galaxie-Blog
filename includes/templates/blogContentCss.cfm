@@ -1042,7 +1042,11 @@
 		<!--- Event posts in the card listings (2026-10-16, Events.cfc renderDateTileHtml / renderCardStripHtml). The date tile is
 		a calendar page on the post's generated art, in the same box as the card pictures (3:2, at most 210px tall); once the
 		event is over (cardScript adds galaxieEventIsOver) it turns grey and says Ended. --->
-		.galaxieEventTile { width: 100%; aspect-ratio: 3 / 2; max-height: 210px; background-color: #6b6b6b; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; overflow: hidden; }
+		.galaxieEventTile { position: relative; width: 100%; aspect-ratio: 3 / 2; max-height: 210px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; overflow: hidden; }
+		<!--- The art at 50% (owner, 10-16), so the calendar page stands out; it is drawn on a layer behind the page, as a background
+		picture can't be faded on its own. The art's address comes in the --galaxie-tile-art style (Events.cfc renderDateTileHtml). --->
+		.galaxieEventTile::before { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; background-image: var(--galaxie-tile-art, none); background-size: cover; background-position: center; opacity: 0.5; }
+		.galaxieEventTile .galaxieEventSheet { position: relative; }
 		<!--- The date is in the theme's primary font (owner, 10-16). --->
 		.galaxieEventSheet { font-family: <cfoutput>'#font#', #fontType#</cfoutput>; width: 112px; background: #ffffff; color: #2c2c2a; border-radius: 10px; overflow: hidden; text-align: center; line-height: 1.15; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 		<!--- The tile sits inside the card's link: inline-block spans keep the link's underline off the date. --->
