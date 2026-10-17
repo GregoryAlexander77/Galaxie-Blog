@@ -221,7 +221,8 @@
 		<!--- Fixed navigation menu at the top of the page when the user scrolls down --->
 		#fixedNavHeader {
 			position: fixed;
-			z-index: 1;
+			<!--- 2 on phones: above #mainBlog, which is 1 there (see #mainBlog). --->
+			z-index: <cfif session.isMobile>2<cfelse>1</cfif>;
 			visibility: hidden; /* This will be overridden and set to visible when the page fully loads */
 			top: 0px;
 			height: <cfif kendoTheme contains 'materialblack'><cfif session.isMobile>55<cfelse>65</cfif><cfelse><cfif session.isMobile>35<cfelse>45</cfif></cfif>px;
@@ -431,6 +432,13 @@
 		#mainBlog {
 			<!--- This is the main flex container (set by class) and essentially the outer table --->
 			position: relative;
+		<cfif session.isMobile>
+			<!--- 2026-10-16: on phones the sidebar fly-out (#sidebarPanel) is inside this table, whose opacity makes it its own layer,
+			so the panel's z-index can't lift it out. The footer comes after it at the same level, so on a post shorter than the
+			panel the open panel slid behind the footer. One level up puts the panel over the footer; #fixedNavHeader is 2 there
+			so the floating menu stays on top. --->
+			z-index: 1;
+		</cfif>
 			display: table;
 			width: var(--contentWidth); 
 			margin:0 auto;
