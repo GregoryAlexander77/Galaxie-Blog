@@ -28,7 +28,9 @@ var galaxieBookings = (function($) {
 			".galaxieBookingStep { margin: 1em 0; }" +
 			".galaxieBookingBack { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }" +
 			".galaxieBookingCalendarRow { display: flex; flex-wrap: wrap; gap: 1.5em; align-items: flex-start; }" +
-			".galaxieBookingCalendarRow .k-calendar { width: auto; display: inline-block; max-width: 100%; }" +
+			// .k-widget too (2026-10-17): the theme's .k-widget.k-calendar { width: 90% } loads later and won, so the calendar
+			// stretched across the page with its days on the left.
+			".galaxieBookingCalendarRow .k-widget.k-calendar, .galaxieBookingCalendarRow .k-calendar { width: auto; display: inline-block; max-width: 100%; }" +
 			".galaxieBookingTimes { flex: 1 1 14em; min-width: 12em; }" +
 			".galaxieBookingTimes .k-button { margin: 0 0.4em 0.4em 0; min-width: 6.5em; }" +
 			".galaxieBookingField { margin: 0 0 1em 0; }" +
