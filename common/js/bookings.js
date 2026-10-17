@@ -195,7 +195,10 @@ var galaxieBookings = (function($) {
 		when.append('<div class="galaxieBookingDetails"></div>');
 
 		zoneInput.kendoDropDownList({
-			dataSource: timeZoneList(state.blogZone),
+			// Shown as "America/Los Angeles": the underscore in the zone name is only for computers (2026-10-16).
+			dataSource: $.map(timeZoneList(state.blogZone), function(zone) { return { text: zone.replace(/_/g, " "), value: zone }; }),
+			dataTextField: "text",
+			dataValueField: "value",
 			value: state.zone,
 			filter: "contains",
 			change: function() {

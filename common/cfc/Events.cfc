@@ -31,7 +31,7 @@
 ********************************************************************************************************************* --->
 
 <cffunction name="getEvent" access="public" returntype="struct" output="false"
-		hint="The event on a post, or an empty struct: { eventId, postId, startLocal, endLocal, timeZone, startUtc, endUtc, allDay, status, organizerName, organizerUrl, cost, ticketUrl, locationIds, locations, webFormId, capacity, askPartySize, maxPartySize, rsvpClosesLocal, price (per person, 0 = free), refundHours, heroPanel (show the event over the hero) }.">
+		hint="The event on a post, or an empty struct: { eventId, postId, startLocal, endLocal, timeZone, startUtc, endUtc, allDay, status, organizerName, organizerUrl, cost, ticketUrl, locationIds, locations, webFormId, capacity, askPartySize, maxPartySize, rsvpClosesLocal, price (per person, 0 = free), refundHours }.">
 	<cfargument name="postId" type="numeric" required="true">
 	<cfset var found = ormExecuteQuery("FROM BlogEvent WHERE BlogRef = :blogId AND PostRef = :postId", { blogId = javacast("int", application.BlogDbObj.getBlogId()), postId = javacast("int", arguments.postId) })>
 	<cfset var e = "">
@@ -64,8 +64,7 @@
 		price: val(valueOrEmpty(e.getPrice())),
 		refundHours: len(valueOrEmpty(e.getRefundHours())) ? val(e.getRefundHours()) : 24,
 		locationIds: getLocationIds(arguments.postId),
-		locations: [],
-		heroPanel: getSetting(arguments.postId, "heroPanel", "true") neq "false"
+		locations: []
 	}>
 	<cfloop array="#ev.locationIds#" index="id">
 		<cfset place = application.locations.getLocation(id)>
@@ -430,7 +429,7 @@
 	<cfreturn state>
 </cffunction>
 
-<cffunction name="getRsvpCloseUtc" access="public" returntype="string" output="false" hint="When sign-ups close: the owner's closing time, or when the event starts.">
+<cffunction name="getRsvpCloseUtc" access="public" returntype="string" output="false" hint="When sign-ups close: the owner's closing time, or 24 hours before the event starts (owner, 10-16; it was the start).">
 	<cfargument name="ev" type="struct" required="true">
 	<cfif len(arguments.ev.rsvpClosesLocal)>
 		<cftry>
@@ -438,6 +437,10 @@
 			<cfcatch type="any"></cfcatch>
 		</cftry>
 	</cfif>
+	<cftry>
+		<cfreturn createObject("java", "java.time.Instant").parse(arguments.ev.startUtc).minusSeconds(86400).toString()>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
 	<cfreturn arguments.ev.startUtc>
 </cffunction>
 
@@ -1007,8 +1010,9 @@
 	<cfset var days = []>
 	<cfset var feed = getFeedUrl()>
 	<cfset var webcal = reReplace(feed, "^https?://", "webcal://")>
-	<cfset html.append('<h1 class="topContent">Events</h1>')>
-	<cfset html.append('<p class="galaxieEventsFeed">Add every event to your own calendar: <a href="' & encodeForHtmlAttribute(webcal) & '">Subscribe in your calendar app</a> &middot; <a href="' & encodeForHtmlAttribute("https://calendar.google.com/calendar/render?cid=" & encodeForUrl(webcal)) & '" rel="noopener" target="_blank">Add to Google Calendar</a>. New events show up there by themselves.</p>')>
+	<!--- In a post's box, with the blog page's thin dividers: topContent headings, a bottomContent foot (owner, 10-16). --->
+	<cfset html.append('<div class="blogPost widget k-content galaxieEventsPage"><h1 class="topContent">Events</h1>')>
+	<cfset local.feedHtml = ('<p class="galaxieEventsFeed bottomContent">Add every event to your own calendar: <a href="' & encodeForHtmlAttribute(webcal) & '">Subscribe in your calendar app</a> &middot; <a href="' & encodeForHtmlAttribute("https://calendar.google.com/calendar/render?cid=" & encodeForUrl(webcal)) & '" rel="noopener" target="_blank">Add to Google Calendar</a>. New events show up there by themselves.</p>')>
 	<!--- The month calendar: event days are highlighted; picking one jumps to its events. --->
 	<cfloop array="#upcoming#" index="item">
 		<cfset arrayAppend(days, zoned(item.ev.startUtc, item.ev.timeZone).toLocalDate().toString())>
@@ -1017,7 +1021,7 @@
 		<cfset arrayAppend(days, zoned(item.ev.startUtc, item.ev.timeZone).toLocalDate().toString())>
 	</cfloop>
 	<cfset html.append('<div id="galaxieEventsCalendar" class="galaxieEventsCalendar" data-days="' & encodeForHtmlAttribute(serializeJson(days)) & '"></div>')>
-	<cfset html.append('<h2 class="galaxieEventsHeading">Coming up</h2>')>
+	<cfset html.append('<h2 class="topContent galaxieEventsHeading">Coming up</h2>')>
 	<!--- The events alternate k-content / k-alt so each one stands apart (owner, 10-16); each list starts on k-content. --->
 	<cfset var itemIndex = 0>
 	<cfif arrayLen(upcoming)>
@@ -1026,10 +1030,11 @@
 		<cfset html.append('<p>No events are planned right now. Subscribe above to hear about the next one.</p>')>
 	</cfif>
 	<cfif arrayLen(past)>
-		<cfset html.append('<h2 class="galaxieEventsHeading">Past events</h2>')>
+		<cfset html.append('<h2 class="topContent galaxieEventsHeading">Past events</h2>')>
 		<cfset itemIndex = 0>
 		<cfloop array="#past#" index="item"><cfset itemIndex++><cfset html.append(listItemHtml(item, itemIndex))></cfloop>
 	</cfif>
+	<cfset html.append(local.feedHtml & '</div>')>
 	<cfset html.append(eventsPageScript())>
 	<cfreturn html.toString()>
 </cffunction>
@@ -1197,20 +1202,20 @@
 ********************************************************************************************************************* --->
 
 <cffunction name="renderCard" access="public" returntype="string" output="false"
-		hint="The event card shown at the top of the post: date, time with its time zone, status, where, cost, organizer, Add to Google Calendar, Download .ics and the tickets link, plus schema.org Event JSON-LD. The page is cached, so 'has it ended' and the visitor's own time are worked out in the browser (the small script after the card). Every value is encoded here.">
+		hint="The event card on the post (2026-10-16 layout, after Meetup's, owner's pick): a rounded card under the post's hero, one row per detail with an icon - status, when (with the visitor's own time and the calendar buttons), each way to attend, the host, the price with Sign up - then the sign-up form. Plus schema.org Event JSON-LD. The page is cached, so 'has it ended' and the visitor's own time are worked out in the browser (cardScript). Every value is encoded here.">
 	<cfargument name="postId" type="numeric" required="true">
 	<cfargument name="title" type="string" required="true">
 	<cfargument name="postUrl" type="string" required="true">
+	<cfargument name="heroKind" type="string" required="false" default="" hint="What the post's hero is (Renderer.cfc renderEnclosure, request.galaxieHeroKind). With a hero, a small script moves the card from above it to just below it.">
 	<cfset var ev = {}>
 	<cfset var html = createObject("java", "java.lang.StringBuilder").init()>
 	<cfset var place = "">
-	<cfset var placeHtml = "">
-	<cfset var startZoned = "">
-	<cfset var endZoned = "">
-	<cfset var monthText = "">
-	<cfset var dayText = "">
-	<cfset var whenLabel = "">
+	<cfset var placeIcon = "">
 	<cfset var rsvpForm = {}>
+	<cfset var priceText = "">
+	<cfset var hasRsvp = false>
+	<cfset var organizerHtml = "">
+	<cfset var organizerCard = {}>
 	<!--- Every post page calls this, so it must never break one: before the updater has made the BlogEvent table there is simply no card. --->
 	<cftry>
 		<cfset ev = getEvent(arguments.postId)>
@@ -1219,69 +1224,98 @@
 	<cfif structIsEmpty(ev)>
 		<cfreturn "">
 	</cfif>
-	<cfset startZoned = zoned(ev.startUtc, ev.timeZone)>
-	<cfset endZoned = zoned(ev.endUtc, ev.timeZone)>
-	<cfset monthText = startZoned.format(formatter("MMM"))>
-	<cfset dayText = startZoned.format(formatter("d"))>
-	<cfset whenLabel = placardWhenText(ev)>
+	<cfif ev.webFormId gt 0 and ev.status neq "cancelled">
+		<cfset rsvpForm = application.webForms.getForm(webFormId = ev.webFormId)>
+		<cfset hasRsvp = not structIsEmpty(rsvpForm) and rsvpForm.active>
+	</cfif>
 
-	<cfset html.append('<div id="galaxieEventCard" class="galaxieEventCard k-content" data-postid="' & arguments.postId & '" data-start-utc="' & encodeForHtmlAttribute(ev.startUtc) & '" data-end-utc="' & encodeForHtmlAttribute(ev.endUtc) & '" data-zone="' & encodeForHtmlAttribute(ev.timeZone) & '" data-all-day="' & (ev.allDay ? "true" : "false") & '" data-status="' & ev.status & '">')>
-	<cfset html.append(dateBlockHtml(ev))>
-	<cfset html.append('<div class="galaxieEventBody">')>
+	<cfset html.append('<div id="galaxieEventCard" class="galaxieEventCard galaxieEventInfo k-content" data-postid="' & arguments.postId & '"' & eventDataAttributes(ev) & ' data-status="' & ev.status & '"' & ((not len(arguments.heroKind) or arguments.heroKind eq "none") ? '' : ' data-after-hero="true"') & '>')>
+	<!--- Status --->
 	<cfif ev.status eq "cancelled">
-		<cfset html.append('<p class="galaxieEventStatus"><strong>This event is cancelled.</strong></p>')>
+		<cfset html.append(rowHtml("fa-solid fa-circle-exclamation", '<p class="galaxieEventRowTitle">This event is cancelled.</p>', "galaxieEventStatus"))>
 	<cfelseif ev.status eq "postponed">
-		<cfset html.append('<p class="galaxieEventStatus"><strong>This event is postponed.</strong> New details will follow.</p>')>
+		<cfset html.append(rowHtml("fa-solid fa-circle-exclamation", '<p class="galaxieEventRowTitle">This event is postponed.</p><p class="galaxieEventRowNote">New details will follow.</p>', "galaxieEventStatus"))>
 	</cfif>
-	<cfset html.append('<p class="galaxieEventEnded" hidden><strong>This event has ended.</strong></p>')>
-	<cfset html.append('<p class="galaxieEventWhen"><strong>' & encodeForHtml(whenLabel) & '</strong><span class="galaxieEventYourTime"></span></p>')>
-	<!--- Where --->
+	<cfset html.append('<div class="galaxieEventRow galaxieEventEnded" hidden><i class="fa-regular fa-calendar-xmark" aria-hidden="true"></i><div class="galaxieEventRowBody"><p class="galaxieEventRowTitle">This event has ended.</p></div></div>')>
+	<!--- When, with the visitor's own time and the calendar buttons --->
+	<cfset local.whenBody = '<p class="galaxieEventRowTitle galaxieEventWhen">' & encodeForHtml(infoWhenText(ev)) & '</p><p class="galaxieEventRowNote galaxieEventYourTime"></p>'>
+	<cfif ev.status neq "cancelled">
+		<cfset local.whenBody = local.whenBody & '<p class="galaxieEventButtons"><a class="k-button galaxieEventCalendarButton" href="' & encodeForHtmlAttribute(googleCalendarUrl(ev, arguments.title, arguments.postUrl)) & '" rel="noopener" target="_blank">Add to Google Calendar</a> <a class="k-button galaxieEventCalendarButton" href="' & encodeForHtmlAttribute(application.baseUrl & "/common/services/eventIcs.cfm?postId=" & arguments.postId) & '">Download .ics</a></p>'>
+	</cfif>
+	<cfset html.append(rowHtml("fa-regular fa-calendar", local.whenBody))>
+	<!--- Each way to attend --->
 	<cfloop array="#ev.locations#" index="place">
-		<cfset placeHtml = placeHtml & '<div class="galaxieEventPlace">' & locationHtml(place) & '</div>'>
+		<cfset placeIcon = place.kind eq "online" ? "fa-solid fa-video" : (place.kind eq "phone" ? "fa-solid fa-phone" : "fa-solid fa-location-dot")>
+		<cfset html.append(rowHtml(placeIcon, locationHtml(place), "galaxieEventPlace"))>
 	</cfloop>
-	<cfif len(placeHtml)>
-		<cfset html.append(placeHtml)>
-		<cfif arrayLen(ev.locations) gt 1>
-			<cfset html.append('<p class="galaxieEventChoice">Come whichever way suits you.</p>')>
-		</cfif>
+	<cfif arrayLen(ev.locations) gt 1>
+		<cfset html.append('<p class="galaxieEventChoice">Come whichever way suits you.</p>')>
 	</cfif>
-	<!--- A price paid online wins over the Cost text, which is for events that aren't paid here. --->
-	<cfif ev.price gt 0>
-		<cfset html.append('<p class="galaxieEventCost">Cost: ' & encodeForHtml(application.payments.formatMoney(ev.price)) & ' per person</p>')>
-	<cfelseif len(ev.cost)>
-		<cfset html.append('<p class="galaxieEventCost">Cost: ' & encodeForHtml(ev.cost) & '</p>')>
-	</cfif>
+	<!--- The host --->
 	<cfif left(ev.organizerUrl, 7) eq "person:">
 		<!--- One of the People cards (2026-10-16): the name opens the author card (picture, biography, links and a contact form).
 		Without JavaScript the link goes to their posts, or their website. --->
-		<cfset local.organizerCard = getPeople().getCard(mid(ev.organizerUrl, 8, 50))>
-		<cfif not structIsEmpty(local.organizerCard)>
-			<cfset html.append('<p class="galaxieEventOrganizer">Organized by <a href="' & encodeForHtmlAttribute(len(local.organizerCard.postsUrl) ? local.organizerCard.postsUrl : (len(local.organizerCard.website) ? local.organizerCard.website : "##")) & '" class="galaxiePersonLink" data-person="' & encodeForHtmlAttribute(local.organizerCard.ref) & '">' & encodeForHtml(local.organizerCard.name) & '</a></p>')>
+		<cfset organizerCard = getPeople().getCard(mid(ev.organizerUrl, 8, 50))>
+		<cfif not structIsEmpty(organizerCard)>
+			<cfset organizerHtml = '<a href="' & encodeForHtmlAttribute(len(organizerCard.postsUrl) ? organizerCard.postsUrl : (len(organizerCard.website) ? organizerCard.website : "##")) & '" class="galaxiePersonLink" data-person="' & encodeForHtmlAttribute(organizerCard.ref) & '">' & encodeForHtml(organizerCard.name) & '</a>'>
 		</cfif>
 	<cfelseif len(ev.organizerName)>
-		<cfset html.append('<p class="galaxieEventOrganizer">Organized by ' & (len(ev.organizerUrl) ? '<a href="' & encodeForHtmlAttribute(ev.organizerUrl) & '" rel="noopener">' & encodeForHtml(ev.organizerName) & '</a>' : encodeForHtml(ev.organizerName)) & '</p>')>
+		<cfset organizerHtml = len(ev.organizerUrl) ? '<a href="' & encodeForHtmlAttribute(ev.organizerUrl) & '" rel="noopener">' & encodeForHtml(ev.organizerName) & '</a>' : encodeForHtml(ev.organizerName)>
 	</cfif>
-	<!--- Buttons (not for a cancelled event) --->
-	<cfif ev.status neq "cancelled">
-		<cfset html.append('<p class="galaxieEventButtons">')>
-		<cfif len(ev.ticketUrl)>
-			<cfset html.append('<a class="k-button k-primary" href="' & encodeForHtmlAttribute(ev.ticketUrl) & '" rel="noopener" target="_blank">Tickets</a> ')>
+	<cfif len(organizerHtml)>
+		<cfset html.append(rowHtml("fa-solid fa-user", '<p class="galaxieEventRowTitle galaxieEventOrganizer">Hosted by ' & organizerHtml & '</p>'))>
+	</cfif>
+	<!--- The price and Sign up (or the outside tickets page). A price paid online wins over the Cost text, which is for events that aren't paid here. --->
+	<cfif ev.price gt 0>
+		<cfset priceText = application.payments.formatMoney(ev.price) & " per person">
+	<cfelseif len(ev.cost)>
+		<cfset priceText = ev.cost>
+	</cfif>
+	<cfif len(priceText) or hasRsvp or (len(ev.ticketUrl) and ev.status neq "cancelled")>
+		<cfset local.priceBody = len(priceText) ? '<p class="galaxieEventRowTitle galaxieEventCost">' & encodeForHtml(priceText) & '</p>' : ''>
+		<cfif ev.status neq "cancelled" and (hasRsvp or len(ev.ticketUrl))>
+			<cfset local.priceBody = local.priceBody & '<p class="galaxieEventButtons galaxieEventSignupButtons">'>
+			<cfif hasRsvp><cfset local.priceBody = local.priceBody & '<a class="k-button k-primary" href="##galaxieEventRsvp">Sign up</a> '></cfif>
+			<cfif len(ev.ticketUrl)><cfset local.priceBody = local.priceBody & '<a class="k-button' & (hasRsvp ? '' : ' k-primary') & '" href="' & encodeForHtmlAttribute(ev.ticketUrl) & '" rel="noopener" target="_blank">Tickets</a>'></cfif>
+			<cfset local.priceBody = local.priceBody & '</p>'>
 		</cfif>
-		<cfset html.append('<a class="k-button galaxieEventCalendarButton" href="' & encodeForHtmlAttribute(googleCalendarUrl(ev, arguments.title, arguments.postUrl)) & '" rel="noopener" target="_blank">Add to Google Calendar</a> ')>
-		<cfset html.append('<a class="k-button galaxieEventCalendarButton" href="' & encodeForHtmlAttribute(application.baseUrl & "/common/services/eventIcs.cfm?postId=" & arguments.postId) & '">Download .ics</a>')>
-		<cfset html.append('</p>')>
+		<cfset html.append(rowHtml("fa-solid fa-ticket", local.priceBody))>
 	</cfif>
 	<!--- The RSVP: webForms.js loads the form (with the places left, worked out fresh, as the page is cached) or says why sign-ups are closed. --->
-	<cfif ev.webFormId gt 0 and ev.status neq "cancelled">
-		<cfset rsvpForm = application.webForms.getForm(webFormId = ev.webFormId)>
-		<cfif not structIsEmpty(rsvpForm) and rsvpForm.active>
-			<cfset html.append('<div id="galaxieEventRsvp" class="galaxieEventRsvp"><h4 class="galaxieEventRsvpHeading">' & encodeForHtml(len(rsvpForm.title) ? rsvpForm.title : "RSVP") & '</h4><div class="galaxieWebForm" data-webform="' & encodeForHtmlAttribute(rsvpForm.alias) & '" data-event-post="' & arguments.postId & '"></div></div>')>
-		</cfif>
+	<cfif hasRsvp>
+		<cfset html.append('<div id="galaxieEventRsvp" class="galaxieEventRsvp"><h4 class="galaxieEventRsvpHeading">' & encodeForHtml(len(rsvpForm.title) ? rsvpForm.title : "RSVP") & '</h4><div class="galaxieWebForm" data-webform="' & encodeForHtmlAttribute(rsvpForm.alias) & '" data-event-post="' & arguments.postId & '"></div></div>')>
 	</cfif>
-	<cfset html.append('</div></div>')>
+	<cfset html.append('</div>')>
+	<!--- With a hero, the card goes just below it (the card is written before the post, the hero is the post's first element). --->
+	<cfset html.append('<script>(function(){var card=document.getElementById("galaxieEventCard");if(!card||!card.getAttribute("data-after-hero")){return;}var hero=card.nextElementSibling;while(hero&&/^(SCRIPT|STYLE|LINK|BR)$/.test(hero.tagName)){hero=hero.nextElementSibling;}function move(){if(hero&&hero.parentNode){hero.parentNode.insertBefore(card,hero.nextSibling);}}if(hero){move();}else{document.addEventListener("DOMContentLoaded",function(){hero=card.nextElementSibling;while(hero&&/^(SCRIPT|STYLE|LINK|BR)$/.test(hero.tagName)){hero=hero.nextElementSibling;}move();});}})();</script>')>
 	<cfset html.append(cardScript())>
 	<cfset html.append('<script type="application/ld+json">' & replace(serializeJson(jsonLd(ev, arguments.title, arguments.postUrl)), "</", "<\/", "all") & '</script>')>
 	<cfreturn html.toString()>
+</cffunction>
+
+<cffunction name="rowHtml" access="private" returntype="string" output="false" hint="One row of the event card: an icon, then its text.">
+	<cfargument name="icon" type="string" required="true">
+	<cfargument name="body" type="string" required="true">
+	<cfargument name="rowClass" type="string" required="false" default="">
+	<cfreturn '<div class="galaxieEventRow' & (len(arguments.rowClass) ? ' ' & arguments.rowClass : '') & '"><i class="' & arguments.icon & '" aria-hidden="true"></i><div class="galaxieEventRowBody">' & arguments.body & '</div></div>'>
+</cffunction>
+
+<cffunction name="infoWhenText" access="public" returntype="string" output="false" hint="The when line of the event card: eg. 'Saturday, Oct 17 · 7:00 PM to 9:00 PM PDT', 'Saturday, Oct 17 · All day', or 'Saturday, Oct 17, 7:00 PM to Sunday, Oct 18, 9:00 AM PDT'. The year is added when it isn't this year.">
+	<cfargument name="ev" type="struct" required="true">
+	<cfset var s = zoned(arguments.ev.startUtc, arguments.ev.timeZone)>
+	<cfset var e = zoned(arguments.ev.endUtc, arguments.ev.timeZone)>
+	<cfset var day = s.getYear() eq year(now()) ? "EEEE, MMM d" : "EEEE, MMM d, yyyy">
+	<cfset var endDay = e.getYear() eq year(now()) ? "EEEE, MMM d" : "EEEE, MMM d, yyyy">
+	<cfset var sameDay = s.toLocalDate().equals(e.toLocalDate())>
+	<cfif arguments.ev.allDay>
+		<cfif sameDay><cfreturn s.format(formatter(day)) & " " & chr(183) & " All day"></cfif>
+		<cfreturn s.format(formatter(day)) & " to " & e.format(formatter(endDay)) & " " & chr(183) & " All day">
+	</cfif>
+	<cfif sameDay>
+		<cfif s.equals(e)><cfreturn s.format(formatter(day)) & " " & chr(183) & " " & s.format(formatter("h:mm a z"))></cfif>
+		<cfreturn s.format(formatter(day)) & " " & chr(183) & " " & s.format(formatter("h:mm a")) & " to " & e.format(formatter("h:mm a z"))>
+	</cfif>
+	<cfreturn s.format(formatter(day & ", h:mm a")) & " to " & e.format(formatter(endDay & ", h:mm a z"))>
 </cffunction>
 
 <cffunction name="placardWhenText" access="public" returntype="string" output="false"
@@ -1583,94 +1617,28 @@
 	<cfreturn ' data-start-utc="' & encodeForHtmlAttribute(arguments.ev.startUtc) & '" data-end-utc="' & encodeForHtmlAttribute(arguments.ev.endUtc) & '" data-zone="' & encodeForHtmlAttribute(arguments.ev.timeZone) & '" data-all-day="' & (arguments.ev.allDay ? "true" : "false") & '"'>
 </cffunction>
 
-<!--- ********************************************************************************************************************
-	The hero panel (2026-10-16): on an event post's own page, a small panel with the date, time, where and Sign up / Add to
-	calendar sits over the hero, on the side the theme aligns to (ThemeSetting.TopMenuAlign). Only over a picture, a gradient
-	or an animation, and only on wide screens: it would cover a map's, video's or carousel's controls, and too much of a small
-	hero on a phone - there the event card is shown as before. With the panel, the full event card moves below the hero.
-	Each event can switch it off (the event editor, window 99; stored in BlogEventSetting).
-********************************************************************************************************************* --->
-
-<cffunction name="renderHeroPanelHtml" access="public" returntype="string" output="false"
-		hint="The event panel over the hero of an event post's own page, or an empty string (not an event, switched off, a phone, or a hero that can't take it). A small script puts it into the hero once the page has loaded.">
-	<cfargument name="postId" type="numeric" required="true">
-	<cfargument name="heroKind" type="string" required="true" hint="What the hero is, from Renderer.cfc renderEnclosure (request.galaxieHeroKind): image, gradient, animation, fallback, map, video, carousel or none.">
-	<cfargument name="postUrl" type="string" required="false" default="">
-	<cfargument name="title" type="string" required="false" default="">
-	<cfargument name="align" type="string" required="false" default="left" hint="The theme's alignment: left, center or right.">
-	<cfset var ev = {}>
-	<cfset var html = "">
-	<cfset var note = "">
-	<cfset var ways = []>
-	<cfset var place = "">
-	<cfset var side = listFindNoCase("center,right", arguments.align) ? lCase(arguments.align) : "left">
-	<cfif session.isMobile or not listFindNoCase("image,gradient,animation,fallback", arguments.heroKind)>
-		<cfreturn "">
+<!--- An event's own settings (2026-10-16), in BlogEventSetting: a raw-SQL name/value table made on first use, so a setting
+	can be added without an ORM or database update. --->
+<cffunction name="getSignupFormId" access="public" returntype="numeric" output="false"
+		hint="The blog's own event sign-up form (2026-10-16, owner: a generic sign-up form the admin can edit): made the first time from the 'Event sign-up' starter (Name, Email address, Notes), then kept - its id is a blog-wide setting (post 0 in BlogEventSetting). Made again if it was deleted. Returns 0 when it can't be made.">
+	<cfset var formId = val(getSetting(0, "signupFormId", "0"))>
+	<cfset var starter = {}>
+	<cfset var result = {}>
+	<cfif formId gt 0 and not structIsEmpty(application.webForms.getForm(webFormId = formId))>
+		<cfreturn formId>
 	</cfif>
-	<cftry>
-		<cfset ev = getEvent(arguments.postId)>
-		<cfcatch type="any"><cfreturn ""></cfcatch>
-	</cftry>
-	<cfif structIsEmpty(ev) or not ev.heroPanel>
-		<cfreturn "">
-	</cfif>
-	<cfset note = statusNote(ev)>
-	<cfloop array="#ev.locations#" index="place"><cfset arrayAppend(ways, place.label)></cfloop>
-	<!--- What the event is (owner, 10-16: "I know that there is an event, but I don't know what it is"): its title and the post's description, cut to a couple of lines. --->
-	<cfset var summary = postSummary(arguments.postId, 160)>
-	<cfset html = '<div id="galaxieEventHeroPanel" class="galaxieEventHeroPanel galaxieEventHeroPanel-' & side & ' k-content"' & eventDataAttributes(ev) & ' hidden>'>
-	<!--- The title first, then the placard with when, where and price beside it, then the description and the buttons, full width
-	(owner's pick of three layouts, 10-16). --->
-	<cfif len(arguments.title)><cfset html = html & '<p class="galaxieEventHeroTitle"><strong>' & encodeForHtml(arguments.title) & '</strong></p>'></cfif>
-	<cfset html = html & '<div class="galaxieEventHeroTop">' & dateBlockHtml(ev) & '<div class="galaxieEventBody">'>
-	<cfset html = html & '<p class="galaxieEventWhen"><strong class="galaxieEventEnded" hidden>Ended: </strong><strong>' & encodeForHtml(placardWhenText(ev, true)) & '</strong><span class="galaxieEventYourTime"></span></p>'>
-	<cfif len(note)><cfset html = html & '<p><strong>' & note & '</strong></p>'></cfif>
-	<cfif arrayLen(ways)><cfset html = html & '<p>' & encodeForHtml(arrayToList(ways, " or ")) & '</p>'></cfif>
-	<cfif ev.price gt 0>
-		<cfset html = html & '<p class="galaxieEventStripSignup">' & encodeForHtml(application.payments.formatMoney(ev.price)) & ' per person</p>'>
-	<cfelseif len(ev.cost)>
-		<cfset html = html & '<p>' & encodeForHtml(ev.cost) & '</p>'>
-	</cfif>
-	<cfset html = html & '</div></div>'>
-	<cfif len(summary)><cfset html = html & '<p class="galaxieEventHeroSummary">' & encodeForHtml(summary) & '</p>'></cfif>
-	<cfset html = html & '<p class="galaxieEventButtons">'>
-	<cfif ev.status neq "cancelled">
-		<cfif ev.webFormId gt 0>
-			<cfset html = html & '<a class="k-button k-primary galaxieEventStripSignup" href="##galaxieEventRsvp">Sign up</a> '>
-		<cfelseif len(ev.ticketUrl)>
-			<cfset html = html & '<a class="k-button k-primary galaxieEventStripSignup" href="' & encodeForHtmlAttribute(ev.ticketUrl) & '" rel="noopener" target="_blank">Tickets</a> '>
+	<cfloop array="#application.webForms.getStarterTemplates()#" index="starter">
+		<cfif starter.key eq "eventSignup">
+			<cfset starter["webFormId"] = 0>
+			<cfset starter["active"] = true>
+			<cfset result = application.webForms.saveForm(starter)>
+			<cfif result.success>
+				<cfset setSetting(0, "signupFormId", result.webFormId)>
+				<cfreturn result.webFormId>
+			</cfif>
 		</cfif>
-		<cfif len(arguments.postUrl)>
-			<cfset html = html & '<a class="k-button galaxieEventCalendarButton" href="' & encodeForHtmlAttribute(googleCalendarUrl(ev, arguments.title, arguments.postUrl)) & '" rel="noopener" target="_blank">Add to calendar</a> '>
-		</cfif>
-	</cfif>
-	<cfset html = html & '<a class="k-button" href="##galaxieEventCard">Details</a></p></div>'>
-	<!--- Into the hero once the page is there: the hero is the first element after the event card. The panel waits (unseen) up to 3
-	seconds for a lazy-loaded picture to reach its size; a window too narrow, or a hero too short for the panel (eg. the small
-	no-image picture), keeps the card where it is and drops the panel. With the panel, the card below the hero leaves out what the
-	panel already shows - the placard, the date and the status (galaxieEventCardWithPanel, owner 10-16). --->
-	<cfset html = html & '<script>(function(){function fit(panel,hero,card,tries){if(hero.offsetHeight>=panel.offsetHeight+48){panel.style.visibility="";if(card){card.classList.add("galaxieEventCardWithPanel");hero.parentNode.insertBefore(card,hero.nextSibling);}return;}if(tries<12){setTimeout(function(){fit(panel,hero,card,tries+1);},250);return;}panel.parentNode.removeChild(panel);}function place(){var panel=document.getElementById("galaxieEventHeroPanel");var card=document.getElementById("galaxieEventCard");if(!panel){return;}var hero=(card||panel).nextElementSibling;while(hero&&/^(SCRIPT|STYLE|LINK|BR)$/.test(hero.tagName)){hero=hero.nextElementSibling;}if(!hero||window.innerWidth<700){panel.parentNode.removeChild(panel);return;}if(window.getComputedStyle(hero).position==="static"){hero.style.position="relative";}panel.style.visibility="hidden";hero.appendChild(panel);panel.hidden=false;fit(panel,hero,card,0);}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",place);}else{place();}})();</script>'>
-	<cfreturn html & cardScript()>
-</cffunction>
-
-<cffunction name="postSummary" access="private" returntype="string" output="false" hint="An event post's description as plain text, cut at a word to at most maxLength characters (with ... when cut).">
-	<cfargument name="postId" type="numeric" required="true">
-	<cfargument name="maxLength" type="numeric" required="false" default="160">
-	<cfset var found = "">
-	<cfset var text = "">
-	<cftry>
-		<cfset found = queryExecute("SELECT Description FROM Post WHERE PostId = :postId", { postId = { value = arguments.postId, cfsqltype = "cf_sql_integer" } })>
-		<cfcatch type="any"><cfreturn ""></cfcatch>
-	</cftry>
-	<cfif not found.recordCount>
-		<cfreturn "">
-	</cfif>
-	<cfset text = trim(reReplace(reReplace(found.Description, "<[^>]*>", " ", "all"), "\s+", " ", "all"))>
-	<cfset text = replaceList(text, "&nbsp;,&amp;,&quot;,&##39;,&lt;,&gt;", " ,&,"",',<,>")>
-	<cfif len(text) gt arguments.maxLength>
-		<cfset text = reReplace(left(text, arguments.maxLength), "\s+\S*$", "") & "...">
-	</cfif>
-	<cfreturn text>
+	</cfloop>
+	<cfreturn 0>
 </cffunction>
 
 <cffunction name="getSetting" access="public" returntype="string" output="false" hint="One of an event's own settings (BlogEventSetting), or the default.">
@@ -1734,7 +1702,7 @@
 
 <cffunction name="cardScript" access="private" returntype="string" output="false"
 		hint="The card's own small script, worked out in the visitor's browser (the page is cached): 'This event has ended', and the time in the visitor's own time zone when it isn't the event's. Written once per page.">
-	<cfreturn '<script>(function(){if(window.galaxieEventCards){return;}window.galaxieEventCards=true;function run(){var cards=document.querySelectorAll(".galaxieEventCard,.galaxieEventStrip,.galaxieEventTile,.galaxieEventHeroPanel");for(var i=0;i<cards.length;i++){var c=cards[i];var end=new Date(c.getAttribute("data-end-utc"));if(!isNaN(end)&&end<new Date()){var ended=c.querySelector(".galaxieEventEnded");if(ended){ended.hidden=false;}c.classList.add("galaxieEventIsOver");}if(c.getAttribute("data-all-day")==="true"){continue;}try{var mine=Intl.DateTimeFormat().resolvedOptions().timeZone;if(mine&&mine!==c.getAttribute("data-zone")){var start=new Date(c.getAttribute("data-start-utc"));var text=new Intl.DateTimeFormat(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(start);var span=c.querySelector(".galaxieEventYourTime");if(span){span.textContent=" (your time: "+text+")";}}}catch(e){}}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}})();</script>'>
+	<cfreturn '<script>(function(){if(window.galaxieEventCards){return;}window.galaxieEventCards=true;function run(){var cards=document.querySelectorAll(".galaxieEventCard,.galaxieEventStrip,.galaxieEventTile");for(var i=0;i<cards.length;i++){var c=cards[i];var end=new Date(c.getAttribute("data-end-utc"));if(!isNaN(end)&&end<new Date()){var ended=c.querySelector(".galaxieEventEnded");if(ended){ended.hidden=false;}c.classList.add("galaxieEventIsOver");}if(c.getAttribute("data-all-day")==="true"){continue;}try{var mine=Intl.DateTimeFormat().resolvedOptions().timeZone;if(mine&&mine!==c.getAttribute("data-zone")){var start=new Date(c.getAttribute("data-start-utc"));var text=new Intl.DateTimeFormat(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(start);var span=c.querySelector(".galaxieEventYourTime");if(span){span.textContent=span.tagName==="P"?"Your time: "+text:" (your time: "+text+")";}}}catch(e){}}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}})();</script>'>
 </cffunction>
 
 <cffunction name="zoned" access="private" returntype="any" output="false" hint="A UTC instant in the event's time zone (java ZonedDateTime).">

@@ -510,7 +510,7 @@
 			</cfif>
 		</cfif>
 
-		<!--- What the hero is, for the event panel over it (Events.cfc renderHeroPanelHtml, 2026-10-16): it only goes over a picture, a gradient or an animation. --->
+		<!--- What the hero is (2026-10-16): an event post's card goes just below a hero (Events.cfc renderCard). --->
 		<cfif arguments.isSinglePostPage>
 			<cfset request.galaxieHeroKind = local.heroKind ?: "none">
 		</cfif>

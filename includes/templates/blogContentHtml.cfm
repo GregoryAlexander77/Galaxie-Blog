@@ -465,8 +465,8 @@
 								**********************************************************************************************--->
 								</cfsilent>
 								<!--- The event card (2026-10-15), when the post is an event: date, where, Add to calendar (common/cfc/Events.cfc renderCard). --->
-								<!--- And the event panel over the hero (2026-10-16, Events.cfc renderHeroPanelHtml): over a picture, gradient or animation on a wide screen; the card then moves below the hero. --->
-								<cfif getPageMode() eq 'post' and structKeyExists(application, "events")>#application.events.renderHeroPanelHtml(postId = postId, heroKind = (request.galaxieHeroKind ?: ""), postUrl = postLink, title = title, align = (isDefined("topMenuAlign") ? topMenuAlign : "left"))##application.events.renderCard(postId, title, postLink)#</cfif>
+								<!--- With a hero, the card moves to just below it (2026-10-16). --->
+								<cfif getPageMode() eq 'post' and structKeyExists(application, "events")>#application.events.renderCard(postId = postId, title = title, postUrl = postLink, heroKind = (request.galaxieHeroKind ?: ""))#</cfif>
 								#post#	
 								<!--- If the more tag exists and we are not looking at a page, summarize the content (done when we set the postContent in logic above) and render a button to get to the full post. --->
 							<cfif len(morebody)>

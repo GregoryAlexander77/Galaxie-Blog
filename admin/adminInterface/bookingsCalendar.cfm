@@ -123,7 +123,7 @@ and "next 7 days" list. Clicking a booking opens it (window 95). Data: ProxyCont
 
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 <cfoutput>
-<p>Times are in your blog's time zone<cfif len(calendarZone)> (#encodeForHtml(calendarZone)#)</cfif>. Click a booking to open it.</p>
+<p>Times are in your blog's time zone<cfif len(calendarZone)> (#encodeForHtml(replace(calendarZone, "_", " ", "all"))#)</cfif>. Click a booking to open it.</p>
 <div id="bookingsCalendarScheduler"></div>
 <div id="bookingsCalendarFallback">
 	<table class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0">

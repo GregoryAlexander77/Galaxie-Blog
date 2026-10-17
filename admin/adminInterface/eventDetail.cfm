@@ -16,7 +16,7 @@ enough) need Payments set up in Blog Options. See common/cfc/Events.cfc. --->
 <!--- A new event starts as next Saturday 7-9 PM, in the blog's time zone. --->
 <cfif isNewEvent>
 	<cfset eventStartDefault = dateAdd("d", 7 - dayOfWeek(application.blog.blogNow()) + (dayOfWeek(application.blog.blogNow()) eq 7 ? 7 : 0), application.blog.blogNow())>
-	<cfset theEvent = { startLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 19:00", endLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 21:00", timeZone: eventBlogZone, allDay: false, status: "scheduled", organizerName: "", organizerUrl: (len(eventDefaultOrganizerRef) ? "person:" & eventDefaultOrganizerRef : ""), cost: "", ticketUrl: "", locationIds: [], webFormId: 0, capacity: 0, askPartySize: false, maxPartySize: 4, rsvpClosesLocal: "", price: 0, refundHours: 24, heroPanel: true }>
+	<cfset theEvent = { startLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 19:00", endLocal: dateFormat(eventStartDefault, "yyyy-mm-dd") & " 21:00", timeZone: eventBlogZone, allDay: false, status: "scheduled", organizerName: "", organizerUrl: (len(eventDefaultOrganizerRef) ? "person:" & eventDefaultOrganizerRef : ""), cost: "", ticketUrl: "", locationIds: [], webFormId: 0, capacity: 0, askPartySize: false, maxPartySize: 4, rsvpClosesLocal: "", price: 0, refundHours: 24 }>
 </cfif>
 <!--- Time zones with region names (eg. Europe/London), sorted. --->
 <cfset eventZones = []>
@@ -51,6 +51,28 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 <cfset arrayPrepend(eventZones, "UTC")>
 
 <script>
+	<!--- Set up forms (owner, 10-16): the blog's own sign-up form, made the first time - chosen for this event, then opened so it can be changed. --->
+	function eventUseSignupForm() {
+		jQuery.ajax({
+			type: "post",
+			url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getEventSignupForm",
+			data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>" },
+			dataType: "json",
+			success: function(result) {
+				if (!result || !result.success) { createAdminInterfaceWindow(83); return; }
+				var formList = $("#eventRsvpForm").data("kendoDropDownList");
+				var id = String(result.webFormId);
+				if (formList) {
+					var known = $.grep(formList.dataSource.data(), function(item) { return String(item.value) === id; }).length;
+					if (!known) { formList.dataSource.add({ text: result.title, value: id }); }
+					formList.value(id);
+					formList.trigger("change");
+				}
+				createAdminInterfaceWindow(84, result.webFormId);
+			},
+			error: function(jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
+		});
+	}
 	$(document).ready(function() {
 		var eventZones = <cfoutput>#serializeJson(eventZoneChoices)#</cfoutput>;
 		$("#eventStartDate, #eventEndDate").kendoDatePicker({ format: "MMMM d, yyyy", parseFormats: ["yyyy-MM-dd"] });
@@ -96,6 +118,28 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 		});
 		$("#eventRsvpClosesDate").kendoDatePicker({ format: "MMMM d, yyyy", parseFormats: ["yyyy-MM-dd"] });
 		$("#eventRsvpClosesTime").kendoTimePicker({ format: "h:mm tt", parseFormats: ["HH:mm", "h:mm tt"], interval: 15 });
+		<!--- Sign-ups close 24 hours before the start unless set otherwise (owner, 10-16): an empty closing time is filled in from the
+		start, and follows the start when it changes, until it is changed by hand. --->
+		(function() {
+			var closeDate = $("#eventRsvpClosesDate").data("kendoDatePicker");
+			var closeTime = $("#eventRsvpClosesTime").data("kendoTimePicker");
+			var following = !closeDate.value() && !closeTime.value();
+			function follow() {
+				if (!following) { return; }
+				var day = $("#eventStartDate").data("kendoDatePicker").value();
+				var time = $("#eventStartTime").data("kendoTimePicker").value();
+				if (!day) { return; }
+				var before = new Date(day.getTime());
+				before.setDate(before.getDate() - 1);
+				closeDate.value(before);
+				closeTime.value(time || null);
+			}
+			follow();
+			$("#eventStartDate").data("kendoDatePicker").bind("change", follow);
+			$("#eventStartTime").data("kendoTimePicker").bind("change", follow);
+			closeDate.bind("change", function() { following = false; });
+			closeTime.bind("change", function() { following = false; });
+		})();
 
 		<!--- The most per sign-up only matters when people are asked how many are coming. --->
 		<!--- A disabled field also gets Kendo's disabled class, so it looks disabled (owner, 10-16). --->
@@ -151,8 +195,7 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 				rsvpClosesDate: dateText("#eventRsvpClosesDate"),
 				rsvpClosesTime: timeText("#eventRsvpClosesTime"),
 				price: $.trim($("#eventPrice").val() || ""),
-				refundHours: $.trim($("#eventRefundHours").val() || ""),
-				heroPanel: $("#eventHeroPanel").is(":checked")
+				refundHours: $.trim($("#eventRefundHours").val() || "")
 			};
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Saving the event.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 			jQuery.ajax({
@@ -338,14 +381,6 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 		<td class="#blockClass#" align="right"><label for="eventTicketUrl">Tickets link:</label></td>
 		<td class="#blockClass#"><input type="text" id="eventTicketUrl" class="k-textbox" maxlength="500" placeholder="https://" value="#encodeForHtmlAttribute(theEvent.ticketUrl)#" style="width: 95%;"></td>
 	</tr>
-	<!--- The panel over the hero (2026-10-16, Events.cfc renderHeroPanelHtml). --->
-	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">On the post's own page, the date, time, where and Sign up can sit in a small panel over the post's hero picture, so visitors see them first. It shows over a picture, a gradient or an animation, on the side your theme aligns to. The full event card is still on the page, just below the hero. On phones, and with a map, video or carousel, there is no panel; the event card shows as usual.</td></tr>
-	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr>
-		<td class="#blockClass#" align="right"></td>
-		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="eventHeroPanel"<cfif theEvent.heroPanel> checked</cfif>> <label for="eventHeroPanel">Show the event details over the hero picture</label></td>
-	</tr>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
@@ -365,8 +400,10 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 					</cfif>
 				</cfloop>
 			</select>
-			<!--- A button that would open an empty list opens the window to add one instead (owner, 10-16). --->
-			<button type="button" class="k-button" onclick="<cfif arrayLen(eventForms)>createAdminInterfaceWindow(83);<cfelse>galaxieAddRequest('eventRsvpForm'); createAdminInterfaceWindow(84, 0);</cfif>">Set up forms</button>
+			<!--- The blog's own sign-up form (owner, 10-16): made the first time (Events.cfc getSignupFormId), chosen here, and opened so
+			it can be changed. Forms lists every form. --->
+			<button type="button" class="k-button" onclick="eventUseSignupForm();">Set up forms</button>
+			<a href="javascript:createAdminInterfaceWindow(83);">All forms</a>
 		</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
@@ -399,7 +436,7 @@ someone else typed in. A card is stored as person:user:5 / person:guest:3 in Org
 		<td class="#blockClass#"><input type="text" id="eventRefundHours" class="k-textbox" inputmode="numeric" maxlength="4" value="#theEvent.refundHours#" style="width: 120px;"><span class="k-form-hint">hours before the start a cancelled place is still refunded; 0 for no refunds</span></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Optional: stop sign-ups earlier, eg. the day before, to plan food or seating. Leave empty to take sign-ups until the event starts. In the event's time zone.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">When sign-ups stop. It starts at 24 hours before the event, to give you time to plan food or seating, and moves with the start date until you change it. Leave it empty to stop 24 hours before; set it to the start time to take sign-ups until the event starts. In the event's time zone.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="eventRsvpClosesDate">Sign-ups close:</label></td>

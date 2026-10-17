@@ -11617,7 +11617,6 @@
 		<cfargument name="rsvpClosesTime" type="string" required="false" default="">
 		<cfargument name="price" type="string" required="false" default="" hint="Per person; empty or 0 = free.">
 		<cfargument name="refundHours" type="string" required="false" default="24">
-		<cfargument name="heroPanel" required="false" default="true" hint="Show the event details over the post's hero (2026-10-16).">
 		<cfset var result = {}>
 		<cfset var response = { "success": false, "errors": [] }>
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -11642,7 +11641,6 @@
 			</cfif>
 			<!--- The post shows the event, so its cached page has to be made again. --->
 			<cfif result.success>
-				<cfset application.events.setSetting(val(arguments.postId), "heroPanel", (isBoolean(arguments.heroPanel) and not arguments.heroPanel) ? "false" : "true")>
 				<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
 				<!--- And the Upcoming Events pod and the Events page. --->
 				<cfset application.events.flushListings()>
@@ -11785,6 +11783,100 @@
 			<cfset arrayAppend(recent, now())>
 			<cfset session.personMessagesSent = recent>
 			<cfif captchaRequired()><cfset structDelete(session, "captchaText")></cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="adminAddRsvp" access="remote" returnformat="json" output="false"
+			hint="Adds a sign-up for someone who signed up by phone, by email or in person (2026-10-16, the sign-ups window, 100). Confirmed straight away with no payment, even after sign-ups close or when the event is full - the owner decides. Optionally emails them the usual confirmation (with the calendar file and the cancel link). Returns { success, errorMessage }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" required="false" default="0">
+		<cfargument name="name" type="string" required="false" default="">
+		<cfargument name="email" type="string" required="false" default="">
+		<cfargument name="partySize" required="false" default="1">
+		<cfargument name="locationOptionId" required="false" default="0">
+		<cfargument name="sendEmail" required="false" default="true">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var ev = {}>
+		<cfset var webForm = {}>
+		<cfset var values = {}>
+		<cfset var field = "">
+		<cfset var gotEmail = false>
+		<cfset var gotName = false>
+		<cfset var people = 1>
+		<cfset var placeId = 0>
+		<cfset var submissionId = 0>
+		<cfset var rsvp = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif not application.Udf.isLoggedIn()>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset ev = isValid("integer", arguments.postId) ? application.events.getEvent(val(arguments.postId)) : {}>
+		<cfif not structIsEmpty(ev) and ev.webFormId gt 0>
+			<cfset webForm = application.webForms.getForm(webFormId = ev.webFormId)>
+		</cfif>
+		<cfif structIsEmpty(ev)>
+			<cfset response[ "errorMessage" ] = "This post isn't an event any more.">
+		<cfelseif structIsEmpty(webForm)>
+			<cfset response[ "errorMessage" ] = "Choose a sign-up form for the event first (the Event window, Sign-ups).">
+		<cfelseif not len(trim(arguments.name))>
+			<cfset response[ "errorMessage" ] = "Enter their name.">
+		<cfelseif not isValid("email", trim(arguments.email))>
+			<cfset response[ "errorMessage" ] = "Enter a valid email address.">
+		<cfelseif application.events.isSignedUp(ev.eventId, trim(arguments.email))>
+			<cfset response[ "errorMessage" ] = "That email address already has a place.">
+		</cfif>
+		<cfif len(response.errorMessage)>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<!--- The name and email go into the form's own first name and email fields, as if they had filled it in. --->
+		<cfloop array="#webForm.fields#" index="field">
+			<cfif not gotEmail and field.fieldType eq "email">
+				<cfset values[field.fieldName] = trim(arguments.email)>
+				<cfset gotEmail = true>
+			<cfelseif not gotName and field.fieldType eq "text" and findNoCase("name", field.label)>
+				<cfset values[field.fieldName] = trim(arguments.name)>
+				<cfset gotName = true>
+			</cfif>
+		</cfloop>
+		<cfif ev.askPartySize and isValid("integer", arguments.partySize) and arguments.partySize gte 1>
+			<cfset people = min(int(arguments.partySize), 99)>
+		</cfif>
+		<cfif arrayLen(ev.locationIds) eq 1>
+			<cfset placeId = ev.locationIds[1]>
+		<cfelseif isValid("integer", arguments.locationOptionId) and arrayFind(ev.locationIds, int(arguments.locationOptionId))>
+			<cfset placeId = int(arguments.locationOptionId)>
+		</cfif>
+		<cfset submissionId = application.webForms.saveSubmission(webForm, values, val(arguments.postId), { eventId: ev.eventId, partySize: people, locationOptionId: placeId, amountTotal: 0 })>
+		<cfif isBoolean(arguments.sendEmail) and arguments.sendEmail>
+			<cfset rsvp = application.events.getRsvp(submissionId = submissionId)>
+			<cfif not structIsEmpty(rsvp)><cfset application.events.sendRsvpEmails(rsvp, "confirmed")></cfif>
+		</cfif>
+		<cfset response[ "success" ] = true>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getEventSignupForm" access="remote" returnformat="json" output="false"
+			hint="The blog's own event sign-up form, made the first time it's asked for (Events.cfc getSignupFormId), for the event window's Set up forms button (2026-10-16). Returns { success, webFormId, title }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfset var response = { "success": false, "webFormId": 0, "title": "" }>
+		<cfset var signupForm = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfset response[ "webFormId" ] = application.events.getSignupFormId()>
+			<cfif response.webFormId gt 0>
+				<cfset signupForm = application.webForms.getForm(webFormId = response.webFormId)>
+				<cfset response[ "title" ] = structKeyExists(signupForm, "title") ? signupForm.title : "Sign up">
+				<cfset response[ "success" ] = true>
+			</cfif>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>

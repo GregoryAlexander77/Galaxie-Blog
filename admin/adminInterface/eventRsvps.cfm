@@ -67,6 +67,39 @@ that left without paying (Not paid). See common/cfc/Events.cfc. --->
 	});
 </script>
 
+<script>
+	<!--- Add a sign-up (owner, 10-16): for someone who signed up by phone, by email or in person. ProxyController.cfc's adminAddRsvp. --->
+	$(document).ready(function() {
+		$("#eventRsvpAdd").on("click", function() {
+			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Adding the sign-up.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+			jQuery.ajax({
+				type: "post",
+				url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=adminAddRsvp",
+				data: {
+					csrfToken: "<cfoutput>#csrfToken#</cfoutput>",
+					postId: <cfoutput>#rsvpPostId#</cfoutput>,
+					name: $.trim($("#eventRsvpAddName").val()),
+					email: $.trim($("#eventRsvpAddEmail").val()),
+					partySize: $("#eventRsvpAddPeople").val() || 1,
+					locationOptionId: $("#eventRsvpAddHow").val() || 0,
+					sendEmail: $("#eventRsvpAddSendEmail").is(":checked")
+				},
+				dataType: "json",
+				success: function(response) {
+					kendo.ui.ExtWaitDialog.hide();
+					if (!response || !response.success) {
+						kendo.ui.ExtAlertDialog.show({ title: "Not added", message: $("<div>").text((response && response.errorMessage) || "The sign-up could not be added.").html(), icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+						return;
+					}
+					try { $("#eventRsvpsWindow").data("kendoWindow").close(); } catch (error) {}
+					createAdminInterfaceWindow(100, <cfoutput>#rsvpPostId#</cfoutput>);
+				},
+				error: function(jqXHR) { kendo.ui.ExtWaitDialog.hide(); if (jqXHR.status === 403) { createLoginWindow(); } }
+			});
+		});
+	});
+</script>
+
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
@@ -158,6 +191,48 @@ that left without paying (Not paid). See common/cfc/Events.cfc. --->
 			</table>
 		</cfif>
 		</td>
+	</tr>
+
+	<!--- Add a sign-up (owner, 10-16). --->
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Add a sign-up</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">For someone who signed up by phone, by email or in person. Their place is confirmed straight away, with nothing to pay online, even after sign-ups close or when the event is full.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right"><label for="eventRsvpAddName">Name:</label></td>
+		<td class="#blockClass#"><input type="text" id="eventRsvpAddName" class="k-textbox" maxlength="125" style="width: 60%;"></td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right"><label for="eventRsvpAddEmail">Email:</label></td>
+		<td class="#blockClass#"><input type="email" id="eventRsvpAddEmail" class="k-textbox" maxlength="255" style="width: 60%;"></td>
+	</tr>
+	<cfif rsvpEvent.askPartySize>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right"><label for="eventRsvpAddPeople">People:</label></td>
+		<td class="#blockClass#"><input type="number" id="eventRsvpAddPeople" class="k-textbox" min="1" max="99" value="1" style="width: 80px;"><span class="k-form-hint">including them</span></td>
+	</tr>
+	</cfif>
+	<cfif arrayLen(rsvpEvent.locations) gt 1>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right"><label for="eventRsvpAddHow">How:</label></td>
+		<td class="#blockClass#"><select id="eventRsvpAddHow" class="k-textbox" style="width: 60%;"><cfloop array="#rsvpEvent.locations#" index="thisPlace"><option value="#thisPlace.locationOptionId#">#encodeForHtml(thisPlace.label)#</option></cfloop></select></td>
+	</tr>
+	</cfif>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="eventRsvpAddSendEmail" checked> <label for="eventRsvpAddSendEmail">Email them a confirmation</label><span class="k-form-hint">with the calendar file and a link to cancel</span></td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><button type="button" class="k-button k-primary" id="eventRsvpAdd">Add sign-up</button></td>
 	</tr>
 </table>
 </cfoutput>

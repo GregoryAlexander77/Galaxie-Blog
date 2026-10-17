@@ -32,11 +32,14 @@ post and click Event in the editor. See common/cfc/Events.cfc. --->
 		<td class="#blockClass#" align="right">Calendar feed:</td>
 		<td class="#blockClass#">#encodeForHtml(application.events.getFeedUrl())#</td>
 	</tr>
+	<!--- Search finds events by title as you type; only worth showing once the list is long (owner, 10-16). --->
+	<cfif arrayLen(eventList) gt 10>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="eventSearch">Search:</label></td>
 		<td class="#blockClass#"><input type="text" id="eventSearch" class="k-textbox" style="width: 60%;" placeholder="Event title"><span class="k-form-hint">#arrayLen(eventList)# event<cfif arrayLen(eventList) neq 1>s</cfif></span></td>
 	</tr>
+	</cfif>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>

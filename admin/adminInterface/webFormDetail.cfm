@@ -437,7 +437,7 @@ the submissions already received - stay matched to it when the label changes. --
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="webFormConfirmationUrl">Or go to this page:</label></td>
-		<td class="#blockClass#"><input type="text" id="webFormConfirmationUrl" class="k-textbox" maxlength="500" placeholder="/thank-you" value="#encodeForHtmlAttribute(webForm.confirmationUrl)#" style="width: 95%;"></td>
+		<td class="#blockClass#"><input type="text" id="webFormConfirmationUrl" class="k-textbox" maxlength="500" placeholder="/thank-you" value="#encodeForHtmlAttribute(webForm.confirmationUrl)#" style="width: 95%;"><div class="k-form-hint">After the form is sent, the visitor goes to this page instead of seeing the message above, eg. a thank-you page. Leave it empty to show the message.</div></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">Separate addresses with commas; empty uses the blog's own email.</td></tr>

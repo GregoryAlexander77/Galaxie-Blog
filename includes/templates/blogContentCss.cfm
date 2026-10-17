@@ -1053,29 +1053,30 @@
 		.galaxieEventSheetTime, .galaxieEventSheet .galaxieEventEnded { font-size: 0.8em; color: #5f5e5a; padding: 0 4px 7px 4px; }
 		.galaxieEventTile.galaxieEventIsOver { filter: grayscale(1); }
 		.galaxieEventTile.galaxieEventIsOver .galaxieEventSheetTime { display: none; }
-		.galaxieEventStrip { margin: 0 0 8px 0; overflow-wrap: anywhere; }
-		.galaxieEventStrip p { margin: 0 0 4px 0; }
+		<!--- Smaller, one line each, so the details don't wrap on the cards (owner, 10-16); a long line ends in "...". --->
+		.galaxieEventStrip { margin: 0 0 8px 0; font-size: 0.85em; }
+		.galaxieEventStrip p { margin: 0 0 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 		.galaxieEventStrip i { width: 1.3em; text-align: center; margin-right: 4px; }
 		.galaxieEventStrip.galaxieEventIsOver .galaxieEventStripSignup { display: none; }
 		.galaxieEventStrip .galaxieEventEnded { margin-right: 4px; }
-		<!--- The event panel over the hero of an event post (2026-10-16, Events.cfc renderHeroPanelHtml), on the theme's side. --->
-		.galaxieEventHeroPanel { position: absolute; bottom: 16px; z-index: 3; max-width: 400px; width: calc(100% - 32px); box-sizing: border-box; padding: 12px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.35); text-align: left; line-height: 1.35; }
-		.galaxieEventHeroPanel[hidden] { display: none; }
-		.galaxieEventHeroPanel-left { left: 16px; }
-		.galaxieEventHeroPanel-right { right: 16px; }
-		.galaxieEventHeroPanel-center { left: 50%; transform: translateX(-50%); }
-		.galaxieEventHeroPanel .galaxieEventDate { flex: 0 0 56px; }
-		<!--- The event card below a hero with the panel: the panel already shows the placard, the date and the status. --->
-		.galaxieEventCardWithPanel > .galaxieEventDate, .galaxieEventCardWithPanel .galaxieEventWhen, .galaxieEventCardWithPanel .galaxieEventStatus { display: none; }
-		.galaxieEventHeroTop { display: flex; gap: 12px; align-items: center; }
-		.galaxieEventHeroPanel .galaxieEventBody p { margin: 0 0 4px 0; }
-		<!--- The description is held to two lines. --->
-		.galaxieEventHeroSummary { margin: 8px 0 0 0; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-		.galaxieEventHeroTitle { font-size: 1.15em; margin: 0 0 8px 0 !important; }
-		.galaxieEventHeroPanel .galaxieEventButtons { margin: 8px 0 0 0 !important; }
-		.galaxieEventHeroPanel .galaxieEventButtons .k-button { margin: 0 6px 4px 0; }
-		.galaxieEventHeroPanel.galaxieEventIsOver .galaxieEventStripSignup { display: none; }
-		@media (max-width: 700px) { .galaxieEventHeroPanel { display: none; } }
+		<!--- Post type choices in the post editor and New post (2026-10-16): Blog post (Article or Event), then Page, spaced apart. --->
+		.postTypeGroup { display: inline-block; margin-right: 32px; white-space: nowrap; }
+		.postTypeGroupLabel { margin-right: 6px; }
+		.postTypeChoice { display: inline-block; margin-right: 18px; cursor: pointer; }
+		.postEventRow { margin-left: 4px; }
+		<!--- The event card on an event post (2026-10-16, after Meetup's; Events.cfc renderCard): a rounded card below the hero, one
+		row per detail with an icon, divided by thin lines. --->
+		.galaxieEventCard.galaxieEventInfo { display: block; padding: 0; border-radius: 12px; overflow: hidden; margin: 16px 0; }
+		.galaxieEventRow { display: flex; gap: 14px; align-items: flex-start; padding: 14px 18px; }
+		.galaxieEventRow[hidden] { display: none; }
+		.galaxieEventRow + .galaxieEventRow, .galaxieEventInfo .galaxieEventChoice, .galaxieEventInfo .galaxieEventRsvp { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.15)<cfelse>#e2e2e2</cfif>; }
+		.galaxieEventRow > i { flex: 0 0 1.5em; font-size: 1.35em; text-align: center; margin-top: 2px; }
+		.galaxieEventRowBody { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+		.galaxieEventRowBody p { margin: 0 0 4px 0; }
+		.galaxieEventRowTitle { font-weight: bold; }
+		.galaxieEventRowBody .galaxieEventButtons { margin: 8px 0 0 0 !important; }
+		.galaxieEventInfo .galaxieEventChoice { margin: 0; padding: 10px 18px; }
+		.galaxieEventInfo .galaxieEventRsvp { padding: 14px 18px; }
 		@media (max-width: 600px) {
 			.galaxieEventCard { gap: 10px; padding: 10px; }
 			.galaxieEventDate { flex-basis: 46px; }
