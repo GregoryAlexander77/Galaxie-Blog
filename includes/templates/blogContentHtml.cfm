@@ -207,6 +207,9 @@
 				<cfset postId = getPost[i]["PostId"]>
 				<!--- Read here, not where it is used: the Related Posts/Tags/etc. loops further down reuse i as their own index, so getPost[i] is no longer this post by then. --->
 				<cfset postIsPage = getPost[i]["IsPage"]>
+				<!--- A booking page (2026-10-17, owner): reads like a service page - no byline, author box, reactions, comments,
+				Subscribe or "posted on" line, as a booking isn't dated or discussed (common/cfc/Bookings.cfc, Booking pages). --->
+				<cfset postIsBookingPage = postIsPage and getPageMode() eq 'post' and structKeyExists(application, "bookings") and len(application.bookings.getPageOffer(postId)) gt 0>
 				<cfset postAlias = getPost[i]["PostAlias"]>
 				<cfset postUuid = getPost[i]["PostUuid"]>
 				<cfset themeId = getPost[i]["ThemeRef"]>
@@ -389,7 +392,7 @@
 							</cfif><!---<cfif isPageMode()>--->
 							<p class="postAuthor">
 								<span class="info">
-									<cfif len(fullName)>by <a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
+									<cfif len(fullName) and not postIsBookingPage>by <a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
 									<!--- Loop through the categories array. --->
 									<cfloop from="1" to="#arrayLen(getCategories)#" index="i">
 										<cfsilent>
@@ -453,7 +456,7 @@
 							</table>
 							<p class="postAuthor">
 								<span class="info">
-									<cfif len(fullName)>by <a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
+									<cfif len(fullName) and not postIsBookingPage>by <a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
 								</span>
 							</p>							
 						</cfif><!---<cfif session.isMobile>--->
@@ -497,7 +500,7 @@
 								Like/Dislike
 							**********************************************************************************************--->
 							</cfsilent>
-							<cfif getPageMode() eq 'post' and application.logVisitors>
+							<cfif getPageMode() eq 'post' and application.logVisitors and not postIsBookingPage>
 								<cfsilent>
 								<!--- Note: this is inside of the post cache, so the html is shared by all visitors. Nothing that belongs to a visitor (their vote, the totals or their anonymous user id) can be output here, or every visitor would see and change the votes of whoever viewed the post first. The totals and the visitor's vote are requested after the page loads (see getPostReactionState in ProxyController.cfc). --->
 								<!--- Set the class for the vote buttons. The Kendo primary class indicates how the visitor voted. Otherwise, use muted buttons --->
@@ -762,6 +765,7 @@
 						</cfif> 
 						<!--- galaxieCache will read content between the cfmodule tags (or a normal tag) and save the content to the file system. This can't be in a cfsilent block --->
 						</cfsilent>
+						<cfif not postIsBookingPage>
 						<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/bio/#cacheName#.cfm" debug="false" disabled="#disableCache#">
 						<cfoutput>
 						<!---<cfdump var="#authorData#">--->
@@ -811,6 +815,7 @@
 						</cfif><!---<cfif len( authorData[1]["Biography"] ) >--->
 						</cfoutput>	
 						</cfmodule><!--- End Bio Cache --->
+						</cfif><!---<cfif not postIsBookingPage>--->
 						<cfsilent>
 						<!--- ********************************************************************************************
 							Comment interfaces (Disqus and Galaxie Blog)
@@ -826,6 +831,7 @@
 						<cfelse>
 							<cfset showCommentInterface = true>
 						</cfif>
+						<cfif postIsBookingPage><cfset showCommentInterface = false></cfif>
 								
 						</cfsilent>
 						<cfoutput>
