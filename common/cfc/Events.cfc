@@ -11,6 +11,9 @@
 
 <cffunction name="init" access="public" returntype="any" output="false">
 	<cfset variables.statuses = "scheduled,postponed,cancelled">
+	<!--- People cards are made the first time they are needed (getPeople) and kept in the application. This runs on every application
+	start and reinit, so let a new People.cfc load too - otherwise a changed People.cfc needed a server restart (found 10-16). --->
+	<cfset structDelete(application, "people")>
 	<cfreturn this>
 </cffunction>
 
@@ -179,7 +182,7 @@
 		<cfif structIsEmpty(local.organizerCard)>
 			<cfset arrayAppend(result.errors, "Choose who organizes the event.")>
 		<cfelse>
-			<cfset d.organizerName = local.organizerCard.name>
+			<cfset d.organizerName = structKeyExists(local.organizerCard, "fullName") and len(local.organizerCard.fullName) ? local.organizerCard.fullName : local.organizerCard.name>
 		</cfif>
 	<cfelseif len(d.organizerUrl) and not isWebAddress(d.organizerUrl)>
 		<cfset arrayAppend(result.errors, "The organizer's link has to start with http:// or https://.")>
@@ -1258,7 +1261,7 @@
 		Without JavaScript the link goes to their posts, or their website. --->
 		<cfset organizerCard = getPeople().getCard(mid(ev.organizerUrl, 8, 50))>
 		<cfif not structIsEmpty(organizerCard)>
-			<cfset organizerHtml = '<a href="' & encodeForHtmlAttribute(len(organizerCard.postsUrl) ? organizerCard.postsUrl : (len(organizerCard.website) ? organizerCard.website : "##")) & '" class="galaxiePersonLink" data-person="' & encodeForHtmlAttribute(organizerCard.ref) & '">' & encodeForHtml(organizerCard.name) & '</a>'>
+			<cfset organizerHtml = '<a href="' & encodeForHtmlAttribute(len(organizerCard.postsUrl) ? organizerCard.postsUrl : (len(organizerCard.website) ? organizerCard.website : "##")) & '" class="galaxiePersonLink" data-person="' & encodeForHtmlAttribute(organizerCard.ref) & '">' & encodeForHtml(structKeyExists(organizerCard, "fullName") and len(organizerCard.fullName) ? organizerCard.fullName : organizerCard.name) & '</a>'>
 		</cfif>
 	<cfelseif len(ev.organizerName)>
 		<cfset organizerHtml = len(ev.organizerUrl) ? '<a href="' & encodeForHtmlAttribute(ev.organizerUrl) & '" rel="noopener">' & encodeForHtml(ev.organizerName) & '</a>' : encodeForHtml(ev.organizerName)>
@@ -1435,7 +1438,7 @@
 	<cfif left(arguments.ev.organizerUrl, 7) eq "person:">
 		<cfset local.organizerCard = getPeople().getCard(mid(arguments.ev.organizerUrl, 8, 50))>
 		<cfif not structIsEmpty(local.organizerCard)>
-			<cfset data[ "organizer" ] = { "@type": "Person", "name": local.organizerCard.name }>
+			<cfset data[ "organizer" ] = { "@type": "Person", "name": structKeyExists(local.organizerCard, "fullName") and len(local.organizerCard.fullName) ? local.organizerCard.fullName : local.organizerCard.name }>
 			<cfif len(local.organizerCard.postsUrl)><cfset data.organizer[ "url" ] = local.organizerCard.postsUrl><cfelseif len(local.organizerCard.website)><cfset data.organizer[ "url" ] = local.organizerCard.website></cfif>
 		</cfif>
 	<cfelseif len(arguments.ev.organizerName)>
