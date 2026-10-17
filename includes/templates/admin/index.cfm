@@ -166,13 +166,12 @@ details). --->
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(28);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/users.png")>
 </cfif>
-<!--- People (2026-10-16): the author cards - users and guests - that open from bylines and event organizers. The icon is a
-placeholder until the owner makes one. --->
+<!--- People (2026-10-16): the author cards - users and guests - that open from bylines and event organizers. Icon: people.gif (owner, 10-17). --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
 	<cfset iconList = listAppend(iconList, 'People')>
 	<cfset titleList = listAppend(titleList, 'People')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(102);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/users.gif")>
+	<cfset imageList = listAppend(imageList, "/images/icons/people.gif")>
 </cfif>
 		
 <!--- Every user has a profile --->
