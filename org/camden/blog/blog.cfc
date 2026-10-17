@@ -11110,6 +11110,11 @@
 			WHERE Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 			AND Post.Released = <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 			AND (Post.IsPage = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Post.IsPage IS NULL)
+			<!--- The same rules as the listing's getPost(showBlogPosts=true) (2026-10-18): a post without IsBlogPost, a title or a date
+			was counted but never shown, so the pager offered a last page that came back empty (page 17 of 145, 10/08). --->
+			AND Post.IsBlogPost = <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+			AND Post.Title IS NOT NULL
+			AND Post.DatePosted IS NOT NULL
 			AND Post.BlogRef = #application.BlogDbObj.getBlogId()#
 		</cfquery>
 		<cfreturn Data[1]["PostCount"]>

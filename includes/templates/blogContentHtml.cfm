@@ -1010,7 +1010,12 @@
 		computing correct offsets for page 3+. When fps is absent (every pre-existing caller), effectiveFirstPageSize
 		equals maxEntries and this produces the exact same totalPages/links as before - a strict generalization, not
 		a behavior change for pageTypeId 1/9/20/21. --->
-		<cfset effectiveFirstPageSize = (isDefined("URL.fps") and isNumeric(URL.fps) and val(URL.fps) gt 0) ? val(URL.fps) : maxEntries>
+		<!--- fps only belongs to the plain blog listing that follows the curated homepage (2026-10-18, the "No Entries" bug): it was
+		carried onto month/category/search listings too, so a month with 4 posts worked out its pages as if page 1 held 15 and
+		offered pages 2-4 that came back empty (seen in galaxieBlogPagerNoEntries.log, 10/08). Every other listing ignores it and
+		drops it from its links. --->
+		<cfset honorFps = isDefined("isPlainBlogListing") and isPlainBlogListing>
+		<cfset effectiveFirstPageSize = (honorFps and isDefined("URL.fps") and isNumeric(URL.fps) and val(URL.fps) gt 0) ? val(URL.fps) : maxEntries>
 		<cfset totalPages = 1 + ceiling(max(0, postCount - effectiveFirstPageSize) / maxEntries)>
 
 		<!--- Set links --->
@@ -1043,7 +1048,7 @@
 					data: [<!--- Page 1 always starts at row 0; every page after it steps by the standard maxEntries from wherever page 1 actually left off (effectiveFirstPageSize), not from a naive (page-1)*maxEntries - that's what keeps this correct when page 1 was an odd size. fps is carried on every link so the SAME effectiveFirstPageSize keeps being used if this pager is rebuilt again from page 3, 4, etc. --->
 					<cfloop from="1" to="#totalPages#" index="page">
 						<cfset thisStartRow = (page eq 1) ? 0 : (effectiveFirstPageSize + ((page - 2) * maxEntries))>
-						<cfset thisLink = queryString & "&startRow=" & thisStartRow & "&page=" & page & "&fps=" & effectiveFirstPageSize>
+						<cfset thisLink = queryString & "&startRow=" & thisStartRow & "&page=" & page & (honorFps ? "&fps=" & effectiveFirstPageSize : "")>
 						{ pagerUrl: "#thisLink#", page: "#page#" }<cfif page lt totalPages>,</cfif>
 					</cfloop>
 					],
@@ -1136,7 +1141,8 @@
 			page itself. Safe to remove once the real cause is confirmed and fixed - this is a trap, not a
 			permanent feature. --->
 			<cftry>
-				<cfif isDefined("URL.startRow") and val(URL.startRow) gt 0>
+				<!--- Only an empty page 2 or later (2026-10-18): startRow is 1 on every single post, so "post not found" filled the log. --->
+				<cfif isDefined("URL.page") and val(URL.page) gt 1>
 					<cflog file="galaxieBlogPagerNoEntries" type="information" text="url.mode=#(isDefined('url.mode') ? url.mode : '')# startRow=#URL.startRow# page=#(isDefined('URL.page') ? URL.page : '')# fps=#(isDefined('URL.fps') ? URL.fps : '')# isMobile=#session.isMobile# postCount=#(isDefined('postCount') ? postCount : '')# maxEntries=#(isDefined('maxEntries') ? maxEntries : '')# themeId=#(isDefined('themeId') ? themeId : '')# referrer=#cgi.http_referer# queryString=#cgi.query_string# alias=#(isDefined('URL.alias') ? URL.alias : '')# categoryId=#(isDefined('URL.categoryId') ? URL.categoryId : '')# pathInfo=#cgi.path_info# userAgent=#cgi.http_user_agent#">
 				</cfif>
 				<cfcatch type="any"></cfcatch>

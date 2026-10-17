@@ -324,7 +324,11 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 		<cfelseif pageTypeId eq 25>
 			<!--- The Events page (/events) - see the cfscript block above and includes/templates/eventListContentHtml.cfm. --->
 			<cfinclude template="#application.baseUrl#/includes/templates/eventListContentHtml.cfm" />
-		<cfelseif pageTypeId eq 24 and (not isDefined("URL.startRow") or val(URL.startRow) lte 1)>
+		<!--- Not for a filtered address (2026-10-18): ?mode=month (the sidebar calendar), a day, category, tag, author or search
+		showed the curated homepage instead, and its "All Blogs" page 2 then applied the month filter 15 rows in - an empty page
+		(the "No Entries" bug, galaxieBlogPagerNoEntries.log 10/08). A filtered address falls through to the normal listing
+		below. isPlainBlogListing is set by getPost.cfm. --->
+		<cfelseif pageTypeId eq 24 and (not isDefined("URL.startRow") or val(URL.startRow) lte 1) and (not isDefined("isPlainBlogListing") or isPlainBlogListing)>
 			<!--- The additive/curated homepage, page 1 only - Featured Pages, Featured Collections and/or Blog Posts,
 			any independent combination, stacked in that order. Reads getHomepageSettings() directly rather than through
 			getPost.cfm's single-array params pipeline, since it needs several independent fetches on one page. --->
