@@ -1013,8 +1013,9 @@
 	<cfset var days = []>
 	<cfset var feed = getFeedUrl()>
 	<cfset var webcal = reReplace(feed, "^https?://", "webcal://")>
-	<!--- In a post's box, with the blog page's thin dividers: topContent headings, a bottomContent foot (owner, 10-16). --->
-	<cfset html.append('<div class="blogPost widget k-content galaxieEventsPage"><h1 class="topContent">Events</h1>')>
+	<!--- The blog page's thin dividers - topContent headings, a bottomContent foot (owner, 10-16) - without a post's box around the
+	page (owner, 10-17: the box made it look crowded). The lines come from .galaxieEventsPage in blogContentCss.cfm. --->
+	<cfset html.append('<div class="galaxieEventsPage"><h1 class="topContent">Events</h1>')>
 	<cfset local.feedHtml = ('<p class="galaxieEventsFeed bottomContent">Add every event to your own calendar: <a href="' & encodeForHtmlAttribute(webcal) & '">Subscribe in your calendar app</a> &middot; <a href="' & encodeForHtmlAttribute("https://calendar.google.com/calendar/render?cid=" & encodeForUrl(webcal)) & '" rel="noopener" target="_blank">Add to Google Calendar</a>. New events show up there by themselves.</p>')>
 	<!--- The month calendar: event days are highlighted; picking one jumps to its events. --->
 	<cfloop array="#upcoming#" index="item">

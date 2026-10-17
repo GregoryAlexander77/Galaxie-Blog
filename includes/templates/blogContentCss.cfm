@@ -1037,6 +1037,9 @@
 		.galaxieEventsCalendar.k-calendar { width: 100%; }
 		.galaxieEventsDayMark { font-weight: bold; text-decoration: underline; }
 		.galaxieEventsItemTitle { margin: 0 0 6px 0; }
+		<!--- The Events page's headings and foot: the same thin lines as a post's (.widget h2.topContent / p.bottomContent), without the box (2026-10-17). --->
+		.galaxieEventsPage h2.topContent { font-size: 1em; padding: 0 0 10px 0; border-bottom: 1px solid #e2e2e2; text-align: left; }
+		.galaxieEventsPage p.bottomContent { padding: 10px 0 0 0; border-top: 1px solid #e2e2e2; }
 		.galaxieEventsItem.galaxieEventIsOver { opacity: 0.8; }
 		.galaxieEventsPicked { outline: 3px solid currentColor; }
 		<!--- Event posts in the card listings (2026-10-16, Events.cfc renderDateTileHtml / renderCardStripHtml). The date tile is
