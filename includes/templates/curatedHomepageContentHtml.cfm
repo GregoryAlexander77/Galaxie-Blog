@@ -238,8 +238,8 @@ mechanism working (it needs exactly one #blogContent sibling next to #sidebar). 
 				<cfset thisBlogPostImageUrl = thisHeroFallback.content>
 			</cfif>
 		</cfif>
-		<!--- An event with its own picture or gradient: the calendar page in the middle of it (owner, 10-16); not over a map or carousel. --->
-		<cfset cardEventOverlay = not structIsEmpty(cardEvent) and not cardEventTile and not thisBlogPostSuppressImage and not len(recentBlogPostsForHomepage[i]["EnclosureMapId"]) and not len(recentBlogPostsForHomepage[i]["EnclosureCarouselId"]) and (len(thisBlogPostImageUrl) or len(thisBlogPostMediaHtml))>
+		<!--- An event with its own picture, gradient, map or carousel: the calendar page in the middle of it (owner, 10-16); clicks go through it. --->
+		<cfset cardEventOverlay = not structIsEmpty(cardEvent) and not cardEventTile and not thisBlogPostSuppressImage and (len(thisBlogPostImageUrl) or len(thisBlogPostMediaHtml))>
 		<cfset arrayAppend(blogPostItems, {
 			title: recentBlogPostsForHomepage[i]["Title"],
 			description: recentBlogPostsForHomepage[i]["Description"],

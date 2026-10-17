@@ -1054,7 +1054,7 @@
 		.galaxieEventTile.galaxieEventIsOver { filter: grayscale(1); }
 		<!--- The calendar page centred over an event card's own picture or gradient (2026-10-16). Clicks go through to the card's link. --->
 		.galaxieEventOnPicture { position: relative; }
-		.galaxieEventSheetOverlay { position: absolute; top: 0; right: 0; bottom: 5px; left: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 1; }
+		.galaxieEventSheetOverlay { position: absolute; top: 0; right: 0; bottom: 5px; left: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 20; }
 		.galaxieEventSheetOverlay.galaxieEventIsOver .galaxieEventSheet { filter: grayscale(1); }
 		.galaxieEventSheetOverlay.galaxieEventIsOver .galaxieEventSheetTime { display: none; }
 		.galaxieEventTile.galaxieEventIsOver .galaxieEventSheetTime { display: none; }

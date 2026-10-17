@@ -274,9 +274,9 @@
 		<cfset thumbnailCarousel = RendererObj.renderCarousel(enclosureCarouselId,true)>
 	</cfif>
 
-	<!--- An event with its own picture or gradient: the calendar page goes in the middle of it (owner, 10-16). Not over a video,
-	map or carousel, whose controls it would cover. --->
-	<cfset cardEventOverlay = not structIsEmpty(cardEvent) and not cardEventTile and not len(thumbnailMedia) and not len(enclosureMapId) and not len(enclosureCarouselId) and not suppressCardImage>
+	<!--- An event with its own picture, gradient, video, map or carousel: the calendar page goes in the middle of it (owner, 10-16).
+	Clicks go through it, so a video's, map's or carousel's controls still work. --->
+	<cfset cardEventOverlay = not structIsEmpty(cardEvent) and not cardEventTile and not suppressCardImage>
 
 	<!--- Remove HTML from the string --->
 	<cfinvoke component="#application.jsoupComponentPath#" method="jsoupConvertHtmlToText" returnvariable="postContent">

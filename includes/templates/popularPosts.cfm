@@ -234,8 +234,8 @@
 							<cfinvokeargument name="html" value="#postContent#">
 						</cfinvoke>
 
-						<!--- An event with its own picture or gradient: the calendar page in the middle of it (owner, 10-16); not over a video, map or carousel. --->
-						<cfset cardEventOverlay = not structIsEmpty(cardEvent) and not cardEventTile and not len(thumbnailMedia) and not len(enclosureMapId) and not len(enclosureCarouselId) and not suppressCardImage>
+						<!--- An event with its own picture, gradient, video, map or carousel: the calendar page in the middle of it (owner, 10-16); clicks go through it. --->
+						<cfset cardEventOverlay = not structIsEmpty(cardEvent) and not cardEventTile and not suppressCardImage>
 
 						<!--- Make the string a bit longer white white space if it is too short --->
 						<cfif len(postContent) lt 100>

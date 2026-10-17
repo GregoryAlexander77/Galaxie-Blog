@@ -1556,7 +1556,7 @@
 </cffunction>
 
 <cffunction name="renderSheetOverlayHtml" access="public" returntype="string" output="false"
-		hint="The same calendar page, centred over a card's own picture or gradient (2026-10-16, owner: on the cards, the calendar sits in the middle of the event's picture; the post's own page keeps the picture and the event card apart). The card template wraps its picture in a galaxieEventOnPicture box and puts this inside it. Not over a video, map or carousel - it would cover their controls.">
+		hint="The same calendar page, centred over a card's own picture or gradient (2026-10-16, owner: on the cards, the calendar sits in the middle of the event's picture; the post's own page keeps the picture and the event card apart). The card template wraps its picture in a galaxieEventOnPicture box and puts this inside it. Also over a video, map or carousel (owner, 10-16, to try): clicks go through it to their controls.">
 	<cfargument name="ev" type="struct" required="true">
 	<cfreturn '<div class="galaxieEventSheetOverlay"' & eventDataAttributes(arguments.ev) & ' role="img" aria-label="' & encodeForHtmlAttribute(shortWhenText(arguments.ev)) & '">' & sheetHtml(arguments.ev) & '</div>' & cardScript()>
 </cffunction>
