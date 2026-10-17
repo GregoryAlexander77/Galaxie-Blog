@@ -274,6 +274,10 @@
 		<cfset thumbnailCarousel = RendererObj.renderCarousel(enclosureCarouselId,true)>
 	</cfif>
 
+	<!--- An event with its own picture or gradient: the calendar page goes in the middle of it (owner, 10-16). Not over a video,
+	map or carousel, whose controls it would cover. --->
+	<cfset cardEventOverlay = not structIsEmpty(cardEvent) and not cardEventTile and not len(thumbnailMedia) and not len(enclosureMapId) and not len(enclosureCarouselId) and not suppressCardImage>
+
 	<!--- Remove HTML from the string --->
 	<cfinvoke component="#application.jsoupComponentPath#" method="jsoupConvertHtmlToText" returnvariable="postContent">
 		<cfinvokeargument name="html" value="#postContent#">
@@ -290,6 +294,7 @@
 			<div class="k-card <cfif promotedPost>highlightedWidget</cfif>" style="width: <cfoutput>#cardWidth#</cfoutput>%;"> 
 				<div class="k-card-body">
 					<a href="<cfoutput>#postUrl#</cfoutput>" aria-label="thumbnail map">
+						<cfif cardEventOverlay><div class="galaxieEventOnPicture"></cfif>
 						<cfif len(thumbnailMedia)>
 							<cfoutput>#thumbnailMedia#</cfoutput>
 						<cfelseif len(enclosureMapId)>
@@ -299,11 +304,12 @@
 						<cfelseif not suppressCardImage>
 							<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div>
 						</cfif>
+						<cfif cardEventOverlay><cfoutput>#application.events.renderSheetOverlayHtml(cardEvent)#</cfoutput></div></cfif>
 					</a>
 					<hr class="k-card-separator" />
 					<h2 class="k-card-title" style="font-size: 14pt; margin: 10px 0px;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" style="font-size: 14pt" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h2>
 					<hr class="k-card-separator" />
-					<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(ev = cardEvent, hasTile = cardEventTile)#</cfoutput></cfif>
+					<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(ev = cardEvent, hasTile = cardEventTile or cardEventOverlay)#</cfoutput></cfif>
 					<span class="blog-content"><cfoutput>#postContent#</cfoutput></span>
 				</div><!---<div class="k-card-body">--->
 				<span class="k-card-action">

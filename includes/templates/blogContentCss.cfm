@@ -1052,6 +1052,11 @@
 		.galaxieEventSheet .galaxieEventEnded[hidden] { display: none; }
 		.galaxieEventSheetTime, .galaxieEventSheet .galaxieEventEnded { font-size: 0.8em; color: #5f5e5a; padding: 0 4px 7px 4px; }
 		.galaxieEventTile.galaxieEventIsOver { filter: grayscale(1); }
+		<!--- The calendar page centred over an event card's own picture or gradient (2026-10-16). Clicks go through to the card's link. --->
+		.galaxieEventOnPicture { position: relative; }
+		.galaxieEventSheetOverlay { position: absolute; top: 0; right: 0; bottom: 5px; left: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 1; }
+		.galaxieEventSheetOverlay.galaxieEventIsOver .galaxieEventSheet { filter: grayscale(1); }
+		.galaxieEventSheetOverlay.galaxieEventIsOver .galaxieEventSheetTime { display: none; }
 		.galaxieEventTile.galaxieEventIsOver .galaxieEventSheetTime { display: none; }
 		<!--- Smaller, one line each, so the details don't wrap on the cards (owner, 10-16); a long line ends in "...". --->
 		.galaxieEventStrip { margin: 0 0 8px 0; font-size: 0.85em; }

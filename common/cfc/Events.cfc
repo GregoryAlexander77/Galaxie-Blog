@@ -1551,6 +1551,21 @@
 		<cfcatch type="any"></cfcatch>
 	</cftry>
 	<cfif not len(artUrl)><cfset tileClass = tileClass & " k-header"></cfif>
+	<cfreturn '<div class="' & tileClass & '"' & eventDataAttributes(arguments.ev) & (len(artUrl) ? ' style="background-image: url(''' & encodeForHtmlAttribute(artUrl) & ''');"' : '') & ' role="img" aria-label="' & encodeForHtmlAttribute(shortWhenText(arguments.ev)) & '">'
+		& sheetHtml(arguments.ev) & '</div>' & cardScript()>
+</cffunction>
+
+<cffunction name="renderSheetOverlayHtml" access="public" returntype="string" output="false"
+		hint="The same calendar page, centred over a card's own picture or gradient (2026-10-16, owner: on the cards, the calendar sits in the middle of the event's picture; the post's own page keeps the picture and the event card apart). The card template wraps its picture in a galaxieEventOnPicture box and puts this inside it. Not over a video, map or carousel - it would cover their controls.">
+	<cfargument name="ev" type="struct" required="true">
+	<cfreturn '<div class="galaxieEventSheetOverlay"' & eventDataAttributes(arguments.ev) & ' role="img" aria-label="' & encodeForHtmlAttribute(shortWhenText(arguments.ev)) & '">' & sheetHtml(arguments.ev) & '</div>' & cardScript()>
+</cffunction>
+
+<cffunction name="sheetHtml" access="private" returntype="string" output="false" hint="The calendar page itself: the month bar, the day, and the weekday and time (or Postponed / Cancelled); Ended once it is over.">
+	<cfargument name="ev" type="struct" required="true">
+	<cfset var s = zoned(arguments.ev.startUtc, arguments.ev.timeZone)>
+	<cfset var note = statusNote(arguments.ev)>
+	<cfset var timeLine = "">
 	<cfif len(note)>
 		<cfset timeLine = note>
 	<cfelseif arguments.ev.allDay>
@@ -1558,11 +1573,9 @@
 	<cfelse>
 		<cfset timeLine = s.format(formatter("EEE h:mm a"))>
 	</cfif>
-	<cfreturn '<div class="' & tileClass & '"' & eventDataAttributes(arguments.ev) & (len(artUrl) ? ' style="background-image: url(''' & encodeForHtmlAttribute(artUrl) & ''');"' : '') & ' role="img" aria-label="' & encodeForHtmlAttribute(shortWhenText(arguments.ev)) & '">'
-		& '<div class="galaxieEventSheet" aria-hidden="true"><span class="galaxieEventSheetMonth">' & encodeForHtml(s.format(formatter("MMM"))) & '</span>'
+	<cfreturn '<div class="galaxieEventSheet" aria-hidden="true"><span class="galaxieEventSheetMonth">' & encodeForHtml(s.format(formatter("MMM"))) & '</span>'
 		& '<span class="galaxieEventSheetDay">' & encodeForHtml(s.format(formatter("d"))) & '</span>'
-		& '<span class="galaxieEventSheetTime">' & timeLine & '</span><span class="galaxieEventEnded" hidden>Ended</span></div></div>'
-		& cardScript()>
+		& '<span class="galaxieEventSheetTime">' & timeLine & '</span><span class="galaxieEventEnded" hidden>Ended</span></div>'>
 </cffunction>
 
 <cffunction name="renderCardStripHtml" access="public" returntype="string" output="false"
@@ -1687,7 +1700,7 @@
 
 <cffunction name="cardScript" access="private" returntype="string" output="false"
 		hint="The card's own small script, worked out in the visitor's browser (the page is cached): 'This event has ended', and the time in the visitor's own time zone when it isn't the event's. Written once per page.">
-	<cfreturn '<script>(function(){if(window.galaxieEventCards){return;}window.galaxieEventCards=true;function run(){var cards=document.querySelectorAll(".galaxieEventCard,.galaxieEventStrip,.galaxieEventTile");for(var i=0;i<cards.length;i++){var c=cards[i];var end=new Date(c.getAttribute("data-end-utc"));if(!isNaN(end)&&end<new Date()){var ended=c.querySelector(".galaxieEventEnded");if(ended){ended.hidden=false;}c.classList.add("galaxieEventIsOver");}if(c.getAttribute("data-all-day")==="true"){continue;}try{var mine=Intl.DateTimeFormat().resolvedOptions().timeZone;if(mine&&mine!==c.getAttribute("data-zone")){var start=new Date(c.getAttribute("data-start-utc"));var text=new Intl.DateTimeFormat(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(start);var span=c.querySelector(".galaxieEventYourTime");if(span){span.textContent=span.tagName==="P"?"Your time: "+text:" (your time: "+text+")";}}}catch(e){}}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}})();</script>'>
+	<cfreturn '<script>(function(){if(window.galaxieEventCards){return;}window.galaxieEventCards=true;function run(){var cards=document.querySelectorAll(".galaxieEventCard,.galaxieEventStrip,.galaxieEventTile,.galaxieEventSheetOverlay");for(var i=0;i<cards.length;i++){var c=cards[i];var end=new Date(c.getAttribute("data-end-utc"));if(!isNaN(end)&&end<new Date()){var ended=c.querySelector(".galaxieEventEnded");if(ended){ended.hidden=false;}c.classList.add("galaxieEventIsOver");}if(c.getAttribute("data-all-day")==="true"){continue;}try{var mine=Intl.DateTimeFormat().resolvedOptions().timeZone;if(mine&&mine!==c.getAttribute("data-zone")){var start=new Date(c.getAttribute("data-start-utc"));var text=new Intl.DateTimeFormat(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(start);var span=c.querySelector(".galaxieEventYourTime");if(span){span.textContent=span.tagName==="P"?"Your time: "+text:" (your time: "+text+")";}}}catch(e){}}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}})();</script>'>
 </cffunction>
 
 <cffunction name="zoned" access="private" returntype="any" output="false" hint="A UTC instant in the event's time zone (java ZonedDateTime).">

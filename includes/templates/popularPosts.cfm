@@ -234,6 +234,9 @@
 							<cfinvokeargument name="html" value="#postContent#">
 						</cfinvoke>
 
+						<!--- An event with its own picture or gradient: the calendar page in the middle of it (owner, 10-16); not over a video, map or carousel. --->
+						<cfset cardEventOverlay = not structIsEmpty(cardEvent) and not cardEventTile and not len(thumbnailMedia) and not len(enclosureMapId) and not len(enclosureCarouselId) and not suppressCardImage>
+
 						<!--- Make the string a bit longer white white space if it is too short --->
 						<cfif len(postContent) lt 100>
 							<cfset postContent = postContent & "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;">
@@ -243,11 +246,11 @@
 							<!--- Note: this is using the k-card-deck image --->
 							<div class="k-card k-card-type-rich<cfif promotedPost>highlightedWidget</cfif>" style="width: <cfoutput>#popularPostCardWidthStyle#</cfoutput>;">
 								<!--- Was <cfelseif len(enclosureCarouselId)> - switched to checking thumbnailCarousel itself (the rendered HTML), not the post's own enclosureCarouselId, since the hero image pool fallback above can populate thumbnailCarousel from a different carousel (the shared pool) with no enclosureCarouselId on the post at all. Every existing case is unaffected: a real enclosure carousel always has both set together. --->
-								<a href="<cfoutput>#postUrl#</cfoutput>"><cfif len(enclosureMapId)><cfoutput>#thumbnailMap#</cfoutput><cfelseif len(thumbnailCarousel)><cfoutput>#thumbnailCarousel#</cfoutput><cfelseif len(thumbnailMedia)><cfoutput>#thumbnailMedia#</cfoutput><cfelseif not suppressCardImage><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-scroll-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif></a>
+								<a href="<cfoutput>#postUrl#</cfoutput>"><cfif cardEventOverlay><div class="galaxieEventOnPicture"></cfif><cfif len(enclosureMapId)><cfoutput>#thumbnailMap#</cfoutput><cfelseif len(thumbnailCarousel)><cfoutput>#thumbnailCarousel#</cfoutput><cfelseif len(thumbnailMedia)><cfoutput>#thumbnailMedia#</cfoutput><cfelseif not suppressCardImage><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-scroll-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif><cfif cardEventOverlay><cfoutput>#application.events.renderSheetOverlayHtml(cardEvent)#</cfoutput></div></cfif></a>
 								<div class="k-card-body">
 									<!-- The font should be 14pt for this compact widget. No extra margins are necessary for the popular posts -->
 									<h2 class="k-card-title" style="font-size: 14pt;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h4>
-									<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(ev=cardEvent, compact=true, hasTile=cardEventTile)#</cfoutput></cfif>
+									<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(ev=cardEvent, compact=true, hasTile=cardEventTile or cardEventOverlay)#</cfoutput></cfif>
 								</div>
 							<cfif postScrollWidgetType eq 'popularPosts'><!--- Only show the read more button for popular posts. --->
 								<div class="k-card-actions k-card-actions-stretched k-card-actions-vertical">

@@ -238,13 +238,16 @@ mechanism working (it needs exactly one #blogContent sibling next to #sidebar). 
 				<cfset thisBlogPostImageUrl = thisHeroFallback.content>
 			</cfif>
 		</cfif>
+		<!--- An event with its own picture or gradient: the calendar page in the middle of it (owner, 10-16); not over a map or carousel. --->
+		<cfset cardEventOverlay = not structIsEmpty(cardEvent) and not cardEventTile and not thisBlogPostSuppressImage and not len(recentBlogPostsForHomepage[i]["EnclosureMapId"]) and not len(recentBlogPostsForHomepage[i]["EnclosureCarouselId"]) and (len(thisBlogPostImageUrl) or len(thisBlogPostMediaHtml))>
 		<cfset arrayAppend(blogPostItems, {
 			title: recentBlogPostsForHomepage[i]["Title"],
 			description: recentBlogPostsForHomepage[i]["Description"],
 			imageUrl: thisBlogPostImageUrl,
 			mediaHtml: thisBlogPostMediaHtml,
 			suppressImage: thisBlogPostSuppressImage,
-			eventHtml: structIsEmpty(cardEvent) ? "" : application.events.renderCardStripHtml(ev = cardEvent, hasTile = cardEventTile),
+			eventHtml: structIsEmpty(cardEvent) ? "" : application.events.renderCardStripHtml(ev = cardEvent, hasTile = cardEventTile or cardEventOverlay),
+			eventOverlayHtml: cardEventOverlay ? application.events.renderSheetOverlayHtml(cardEvent) : "",
 			<!--- 2026-10-01: the "thin border around promoted posts" treatment (cardGridSection.cfm's own
 			highlightedWidget/bullhorn-icon support, mirroring renderKendoCardGrid.cfm's older promotedPost logic)
 			never got wired up here when this curated homepage was built - this card template's items simply had

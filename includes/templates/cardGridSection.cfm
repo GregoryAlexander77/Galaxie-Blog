@@ -17,7 +17,8 @@ promoted post on the plain blog listing (blogContentCss.cfm's .highlightedWidget
 accent color). Only blog-post items have a concept of "promoted" today (curatedHomepageContentHtml.cfm's Blog
 Posts section) - Featured Pages/Collections items simply omit the key, which is treated the same as false.
 
-Items may also carry "eventHtml" (2026-10-16): an event post's details (Events.cfc renderCardStripHtml), shown under the title. --->
+Items may also carry "eventHtml" (2026-10-16): an event post's details (Events.cfc renderCardStripHtml), shown under the title;
+and "eventOverlayHtml": the event's calendar page, centred over the card's picture. --->
 <cfparam name="cardGridFooterLink" default="">
 
 <h2 class="topContent"><cfoutput>#cardGridHeading#</cfoutput></h2>
@@ -47,6 +48,8 @@ Items may also carry "eventHtml" (2026-10-16): an event post's details (Events.c
 					<div class="k-card<cfif cardGridItemPromoted> highlightedWidget</cfif>" style="width: <cfoutput>#cardGridCardWidth#</cfoutput>%;">
 						<div class="k-card-body">
 							<a href="<cfoutput>#cardGridOneItem.linkUrl#</cfoutput>" aria-label="<cfoutput>#cardGridOneItem.title#</cfoutput>">
+								<cfset cardGridOverlay = structKeyExists(cardGridOneItem, "eventOverlayHtml") ? cardGridOneItem.eventOverlayHtml : "">
+								<cfif len(cardGridOverlay)><div class="galaxieEventOnPicture"></cfif>
 								<!--- Priority: mediaHtml (a ready-to-insert widget, eg. a rendered hero-pool carousel) ->
 								imageUrl (plain image) -> suppressImage (NoImageFallbackMode='none', show nothing) ->
 								noMedia.png (today's unchanged default). --->
@@ -57,6 +60,7 @@ Items may also carry "eventHtml" (2026-10-16): an event post's details (Events.c
 								<cfelseif not cardGridOneItem.suppressImage>
 									<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#application.baseUrl#</cfoutput>/images/icons/noMedia.png" alt="<cfoutput>#cardGridOneItem.title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#application.baseUrl#</cfoutput>/images/icons/noMedia.png"></div>
 								</cfif>
+								<cfif len(cardGridOverlay)><cfoutput>#cardGridOverlay#</cfoutput></div></cfif>
 							</a>
 							<hr class="k-card-separator" />
 							<h3 class="k-card-title" style="font-size: 14pt; margin: 10px 0px;"><cfif cardGridItemPromoted>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" style="font-size: 14pt" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#cardGridOneItem.linkUrl#</cfoutput>" aria-label="<cfoutput>#cardGridOneItem.title#</cfoutput>"><cfoutput>#cardGridOneItem.title#</cfoutput></a></h3>
