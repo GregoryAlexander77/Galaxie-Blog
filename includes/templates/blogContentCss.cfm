@@ -1143,6 +1143,9 @@
 		table.adminBlocks { table-layout: auto !important; display: block; width: 100%; }
 		table.adminBlocks > colgroup { display: none; }
 		table.adminBlocks > tbody, table.adminBlocks > tbody > tr { display: block; width: 100%; }
+		<!--- A row's old height attribute (eg. height="30px") is only a minimum on a table row, but becomes a fixed height once the row is a block,
+		so long text spilled over the rows below it (Blog Options on an iPhone, 2026-10-17). Let each row grow with its text. --->
+		table.adminBlocks > tbody > tr[height] { height: auto !important; }
 		table.adminBlocks > tbody > tr > td { display: block; width: auto !important; text-align: left !important; }
 		table.adminBlocks > tbody > tr.blockSpacer > td { height: 4px; }
 		<!--- No window's tables run off a phone's screen: a table is never wider than its container, and a long word or web
