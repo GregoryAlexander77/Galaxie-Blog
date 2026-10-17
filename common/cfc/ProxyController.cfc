@@ -8809,6 +8809,9 @@
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">
 		<cfargument name="postId" default="" required="false" hint="Mutually exclusive with pageCollectionId">
 		<cfargument name="pageCollectionId" default="" required="false" hint="Pass in when removing a Page Collection's hero enclosure instead of a Post's">
+		<!--- 2026-10-16: the editor sends template=enclosureImageEditor in the address, and Adobe ColdFusion refuses an argument a remote
+		function doesn't declare - so removing a picture always failed there (a JSON error in the editor). --->
+		<cfargument name="template" default="" required="false" hint="Which window called this (not used).">
 		
 		<!--- Error params --->
 		<cfparam name="error" default="false" type="boolean">
@@ -8858,6 +8861,9 @@
 			<!--- The public collection pages are cached - clear them so the removed hero doesn't keep showing. --->
 			<cfif len(arguments.pageCollectionId)>
 				<cfset application.blog.flushGalaxieCache('pageCollection')>
+			<!--- And a post's page and the card listings (2026-10-16): until now the removed picture kept showing on the site until the cache was refreshed. --->
+			<cfelseif isValid("integer", arguments.postId)>
+				<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
 			</cfif>
 
 			<cfreturn len(arguments.postId) ? arguments.postId : arguments.pageCollectionId>

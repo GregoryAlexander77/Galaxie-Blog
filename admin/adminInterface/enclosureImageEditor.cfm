@@ -496,6 +496,28 @@
 			<!--- Note: this does not do anything. I suspect because the tinymce editor is modal mode when it is invoked. This is only used for debugging purposes now alert(response.postId) alert(response. mediaId) alert(response.externalUrl) $("#externalImageUrl").val(response.externalUrl); --->
 		}
 		
+		<!--- Remove the picture (owner, 10-16: a post had no visible way to take its hero picture off - only emptying the editor
+		box and pressing Submit did it). Asks first, removes it, refreshes the post editor's preview and closes this window. --->
+		function removePostHero(){
+			$.when(kendo.ui.ExtYesNoDialog.show({ title: "Remove the picture?", message: "This takes the picture off the post. Nothing is deleted from your media library.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
+				if (answer['button'] !== 'Yes') { return; }
+				jQuery.ajax({
+					type: 'post',
+					url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removeMediaEnclosure&template=enclosureImageEditor',
+					dataType: "json",
+					data: { csrfToken: '<cfoutput>#csrfToken#</cfoutput>', postId: <cfoutput>#URL.optArgs#</cfoutput> }
+				}).done(function() {
+					try { tinymce.get("<cfoutput>#selectorName#</cfoutput>").setContent(""); } catch (e) {}
+					$("#externalImageUrl").val("");
+					try { reloadEnclosureThumbnailPreview(<cfoutput>#URL.optArgs#</cfoutput>); } catch (e) {}
+					$('#postEnclosureWindow').kendoWindow('destroy');
+				}).fail(function(jqXHR) {
+					if (jqXHR.status === 403) { createLoginWindow(); return; }
+					kendo.ui.ExtAlertDialog.show({ title: "The picture stays", message: "It could not be removed. Please try again.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+				});
+			});
+		}
+
 		function removeMediaEnclosure(){
 			jQuery.ajax({
 				type: 'post',
@@ -686,6 +708,15 @@
 			</div>
 		</td>
 	  </tr>
+	  <!--- Remove the picture (2026-10-16), only when the post has one. --->
+	  <cfif len(mediaUrl)>
+	  <tr valign="middle">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
+			<button type="button" class="k-button normalFontWeight" onclick="removePostHero();"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove picture</button>
+			<span class="k-form-hint">Takes the picture off the post. The post then shows your no-picture choice in Blog Options; an event shows its calendar tile on the front page.</span>
+		</td>
+	  </tr>
+	  </cfif>
 	  </cfif>
 	  <!-- Border -->
 	  <tr height="2px">
