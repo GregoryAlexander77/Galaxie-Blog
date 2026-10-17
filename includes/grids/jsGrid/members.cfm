@@ -86,6 +86,10 @@
 	}
 
 	$(function() {
+		$("#<cfoutput>#gridName#</cfoutput>").on("click", ".memberPersonLink", function(event) {
+			event.preventDefault();
+			openMembersPerson($(this).attr("data-email"));
+		});
 
 		jsGrid.setDefaults({
 			tableClass: "jsgrid-table table table-striped table-hover"
@@ -149,10 +153,7 @@
 					title: "Name",
 					width: (pageWidth*(<cfif session.isMobile>50<cfelse>30</cfif>/100)),
 					itemTemplate: function(value, item) {
-						var name = encodeGridText(value);
-						if (item.MemberId > 0) {
-							name = '<a href="javascript:createAdminInterfaceWindow(98, ' + item.MemberId + ');">' + name + '</a>';
-						}
+						var name = '<a href="#" class="memberPersonLink" data-email="' + encodeGridText(item.Email) + '">' + encodeGridText(value) + '</a>';
 						return name + '<br><a href="mailto:' + encodeGridText(item.Email) + '">' + encodeGridText(item.Email) + '</a>';
 					}
 				},

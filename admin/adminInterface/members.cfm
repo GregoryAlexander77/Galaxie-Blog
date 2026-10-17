@@ -33,6 +33,12 @@ paging, sorting and its own search. --->
 </cfloop>
 
 <script>
+	<!--- Opens one person (window 98) by email address, so it works for people without an account too. Encoded here because
+	createAdminInterfaceWindow adds optArgs to the address as it is (a + in an address would become a space). Also used by the grids. --->
+	function openMembersPerson(email) {
+		createAdminInterfaceWindow(98, encodeURIComponent(email));
+	}
+
 	$(document).ready(function() {
 		var memberFilter = "all";
 		<!--- The list: show the rows that match the chosen filter. --->
@@ -56,6 +62,11 @@ paging, sorting and its own search. --->
 			} else {
 				showMemberRows();
 			}
+		});
+
+		$("#memberRows").on("click", ".memberPersonLink, .memberOpenButton", function(event) {
+			event.preventDefault();
+			openMembersPerson($(this).attr("data-email"));
 		});
 
 		$("#memberRows").on("click", ".memberStatusButton", function() {
@@ -133,10 +144,7 @@ paging, sorting and its own search. --->
 				</cfif>
 				<tbody id="memberRows">
 				<cfloop array="#peopleList#" index="thisPerson">
-					<cfset personName = len(thisPerson.name) ? encodeForHtml(thisPerson.name) : "(no name)">
-					<cfif thisPerson.isMember>
-						<cfset personName = '<a href="javascript:createAdminInterfaceWindow(98, #thisPerson.memberId#);">' & personName & '</a>'>
-					</cfif>
+					<cfset personName = '<a href="##" class="memberPersonLink" data-email="#encodeForHtmlAttribute(thisPerson.email)#">' & (len(thisPerson.name) ? encodeForHtml(thisPerson.name) : "(no name)") & '</a>'>
 					<cfset personLabels = arrayToList(thisPerson.labels, ", ")>
 					<cfset personLast = len(thisPerson.lastActivityText) ? encodeForHtml(thisPerson.lastActivityText) & (isDate(thisPerson.lastActivity) ? ", " & dateFormat(thisPerson.lastActivity, "mmm d, yyyy") : "") : "">
 					<cfset personSince = isDate(thisPerson.since) ? dateFormat(thisPerson.since, "mmm yyyy") : "">
@@ -148,7 +156,7 @@ paging, sorting and its own search. --->
 							<a href="mailto:#encodeForHtmlAttribute(thisPerson.email)#">#encodeForHtml(thisPerson.email)#</a><cfif len(thisPerson.phone)><br>#encodeForHtml(thisPerson.phone)#</cfif><br>
 							<span class="memberStatusText">#encodeForHtml(personLabels)#</span><cfif thisPerson.isUser><br>Also a user</cfif><br>
 							<cfif len(personLast)>#personLast#<br></cfif>
-							<cfif thisPerson.isMember><button type="button" class="k-button" onclick="createAdminInterfaceWindow(98, #thisPerson.memberId#);">Open</button> <button type="button" class="k-button memberStatusButton" data-id="#thisPerson.memberId#" data-status="#thisPerson.memberStatus eq 'blocked' ? 'active' : 'blocked'#">#thisPerson.memberStatus eq "blocked" ? "Unblock" : "Block"#</button></cfif>
+							<button type="button" class="k-button memberOpenButton" data-email="#encodeForHtmlAttribute(thisPerson.email)#">Open</button><cfif thisPerson.isMember> <button type="button" class="k-button memberStatusButton" data-id="#thisPerson.memberId#" data-status="#thisPerson.memberStatus eq 'blocked' ? 'active' : 'blocked'#">#thisPerson.memberStatus eq "blocked" ? "Unblock" : "Block"#</button></cfif>
 						</td>
 					</tr>
 					<cfelse>
@@ -157,7 +165,7 @@ paging, sorting and its own search. --->
 						<td valign="top"><span class="memberStatusText">#encodeForHtml(personLabels)#</span><cfif thisPerson.isUser><br>Also a user</cfif></td>
 						<td valign="top">#personLast#</td>
 						<td valign="top">#personSince#</td>
-						<td valign="top" align="right" nowrap="nowrap"><cfif thisPerson.isMember><button type="button" class="k-button" onclick="createAdminInterfaceWindow(98, #thisPerson.memberId#);">Open</button> <button type="button" class="k-button memberStatusButton" data-id="#thisPerson.memberId#" data-status="#thisPerson.memberStatus eq 'blocked' ? 'active' : 'blocked'#">#thisPerson.memberStatus eq "blocked" ? "Unblock" : "Block"#</button></cfif></td>
+						<td valign="top" align="right" nowrap="nowrap"><button type="button" class="k-button memberOpenButton" data-email="#encodeForHtmlAttribute(thisPerson.email)#">Open</button><cfif thisPerson.isMember> <button type="button" class="k-button memberStatusButton" data-id="#thisPerson.memberId#" data-status="#thisPerson.memberStatus eq 'blocked' ? 'active' : 'blocked'#">#thisPerson.memberStatus eq "blocked" ? "Unblock" : "Block"#</button></cfif></td>
 					</tr>
 					</cfif>
 				</cfloop>

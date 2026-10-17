@@ -11547,6 +11547,33 @@
 		<cfreturn serializeJSON(application.members.exportData(member))>
 	</cffunction>
 
+	<cffunction name="adminExportPersonData" access="remote" returnformat="plain" output="false"
+			hint="Download their data (admin, window 98, 2026-10-17): everything the blog keeps about one person in the Members list, found by email address, as a JSON file - the same file a member gets from Download my data, and it works for people without an account.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="email" type="string" required="false" default="">
+		<cfset var person = {}>
+		<cfset var fileName = "">
+		<cfif cgi.request_method neq "POST" or not verifyCsrfToken(arguments.csrfToken)>
+			<cfheader statuscode="403">
+			<cfreturn "">
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfif not application.Udf.isLoggedIn()>
+			<cfheader statuscode="403">
+			<cfreturn "">
+		</cfif>
+		<cfset person = application.members.getPersonForAdmin(arguments.email)>
+		<cfif structIsEmpty(person)>
+			<cfheader statuscode="404">
+			<cfreturn "">
+		</cfif>
+		<cfset fileName = "data-" & reReplace(lCase(person.email), "[^a-z0-9]+", "-", "all") & "-" & dateFormat(now(), "yyyy-mm-dd") & ".json">
+		<cfheader name="Content-Disposition" value='attachment; filename="#fileName#"'>
+		<cfheader name="Cache-Control" value="no-store">
+		<cfcontent type="application/json; charset=utf-8">
+		<cfreturn serializeJSON(application.members.exportData(person.member))>
+	</cffunction>
+
 	<cffunction name="memberAccountDeleteInfo" access="remote" returnformat="json" output="false" hint="What the delete-account window needs to say: how many upcoming bookings are still on.">
 		<cfargument name="csrf" type="string" required="false" default="">
 		<cfset var member = {}>

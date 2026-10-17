@@ -1,18 +1,30 @@
-<!--- One member (window 98, 2026-10-15), opened from the Members window (97) with createAdminInterfaceWindow(98, memberId). Their
-details, bookings (each opens the booking, window 95), form sign-ups and email subscriptions, all found by their email address,
-and Block/Unblock and Delete. See common/cfc/Members.cfc; saved by ProxyController.cfc's setMemberStatus and adminDeleteMember. --->
-<cfset detailMember = application.members.getMember(val(URL.optArgs))>
+<!--- One person (window 98, 2026-10-15; anyone in the combined list 2026-10-17), opened from the Members window (97) with
+createAdminInterfaceWindow(98, memberId) or openMembersPerson(email). Their details, what they've done, bookings (each opens the
+booking, window 95), sign-ups and forms, email subscriptions and Download their data, all found by their email address; for a
+member with an account, also Block/Unblock and Delete. See common/cfc/Members.cfc getPersonForAdmin; saved by
+ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonData. --->
+<cfset detailEmail = "">
+<cfif isValid("integer", URL.optArgs)>
+	<cfset detailAccount = application.members.getMember(val(URL.optArgs))>
+	<cfif not structIsEmpty(detailAccount)><cfset detailEmail = detailAccount.email></cfif>
+<cfelseif isValid("email", trim(URL.optArgs))>
+	<cfset detailEmail = trim(URL.optArgs)>
+</cfif>
+<cfset detailPerson = len(detailEmail) ? application.members.getPersonForAdmin(detailEmail) : {}>
 
-<cfif structIsEmpty(detailMember)>
-	<p>This member no longer exists. They may have deleted their account.</p>
+<cfif structIsEmpty(detailPerson)>
+	<p>This person isn't in Members any more. They may have deleted their account.</p>
 <cfelse>
+<cfset detailMember = detailPerson.member>
+<cfset detailHasAccount = detailMember.memberId gt 0>
+<cfset memberSettings = application.members.getSettings()>
 <!--- Booking times in the blog's own time zone, like the rest of the admin site. --->
 <cfset detailMemberInBlogZone = duplicate(detailMember)>
 <cfset detailMemberInBlogZone.timeZone = application.blog.getBlogTimeZoneId()>
 <cfset detailBookings = application.members.getAccountBookings(detailMemberInBlogZone)>
 <cfset detailSignups = application.members.getAccountSignups(detailMember)>
 <cfset detailSubscriptions = application.members.getAccountSubscriptions(detailMember)>
-<cfset detailDevices = application.members.countRememberedDevices(detailMember.memberId)>
+<cfset detailDevices = detailHasAccount ? application.members.countRememberedDevices(detailMember.memberId) : 0>
 
 <script>
 	$(document).ready(function() {
@@ -43,6 +55,36 @@ and Block/Unblock and Delete. See common/cfc/Members.cfc; saved by ProxyControll
 			});
 		});
 
+		<!--- Download their data: the server sends a JSON file (ProxyController.cfc's adminExportPersonData), saved under the name it gives. --->
+		$("#memberDetailDownload").on("click", function() {
+			var button = $(this);
+			button.prop("disabled", true);
+			var body = new URLSearchParams();
+			body.append("csrfToken", "<cfoutput>#csrfToken#</cfoutput>");
+			body.append("email", "<cfoutput>#encodeForJavaScript(detailPerson.email)#</cfoutput>");
+			fetch("<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=adminExportPersonData", { method: "POST", body: body, credentials: "same-origin", cache: "no-store" })
+				.then(function(response) {
+					if (response.status === 403) { createLoginWindow(); throw new Error("signed out"); }
+					if (!response.ok) { throw new Error("status " + response.status); }
+					var name = /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") || "");
+					return response.blob().then(function(blob) { return { blob: blob, name: name ? name[1] : "data.json" }; });
+				})
+				.then(function(file) {
+					var link = document.createElement("a");
+					link.href = URL.createObjectURL(file.blob);
+					link.download = file.name;
+					document.body.appendChild(link);
+					link.click();
+					setTimeout(function() { URL.revokeObjectURL(link.href); link.remove(); }, 1000);
+				})
+				.catch(function(error) {
+					if (error.message !== "signed out") {
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Download their data", message: "Their data couldn't be downloaded. Please try again.", icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+					}
+				})
+				.then(function() { button.prop("disabled", false); });
+		});
+
 		$("#memberDetailDelete").on("click", function() {
 			var stopEmails = $("#memberDetailStopEmails").is(":checked");
 			$.when(kendo.ui.ExtYesNoDialog.show({ title: "Delete member?", message: "Delete this member's account? They're signed out everywhere. Their bookings, payments, sign-ups and comments are kept." + (stopEmails ? " Their email subscriptions are removed too." : ""), icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
@@ -69,12 +111,22 @@ and Block/Unblock and Delete. See common/cfc/Members.cfc; saved by ProxyControll
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
-	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">#len(detailMember.name) ? encodeForHtml(detailMember.name) : encodeForHtml(detailMember.email)#</h4></td></tr>
-	<cfloop list="Email,Name,Phone,Time zone,Joined,Last seen,Kept signed in,Status" index="thisLabel">
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">#len(detailPerson.name) ? encodeForHtml(detailPerson.name) : encodeForHtml(detailPerson.email)#</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right">Email:</td>
+		<td class="#blockClass#"><a href="mailto:#encodeForHtmlAttribute(detailPerson.email)#">#encodeForHtml(detailPerson.email)#</a></td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right">What they've done:</td>
+		<td class="#blockClass#">#encodeForHtml(arrayToList(detailPerson.labels, ", "))#<cfif detailPerson.isUser><br>Also a user: they also sign in to run the blog (<a href="javascript:createAdminInterfaceWindow(28);">Users</a>).</cfif></td>
+	</tr>
+	<cfset detailLabels = detailHasAccount ? "Name,Phone,Time zone,Joined,Last seen,Kept signed in,Status" : "Name,Phone">
+	<cfloop list="#detailLabels#" index="thisLabel">
 		<cfswitch expression="#thisLabel#">
-			<cfcase value="Email"><cfset thisValue = detailMember.email></cfcase>
-			<cfcase value="Name"><cfset thisValue = detailMember.name></cfcase>
-			<cfcase value="Phone"><cfset thisValue = detailMember.phone></cfcase>
+			<cfcase value="Name"><cfset thisValue = detailHasAccount ? detailMember.name : detailPerson.name></cfcase>
+			<cfcase value="Phone"><cfset thisValue = detailHasAccount ? detailMember.phone : detailPerson.phone></cfcase>
 			<cfcase value="Time zone"><cfset thisValue = replace(detailMember.timeZone, "_", " ", "all")></cfcase>
 			<cfcase value="Joined"><cfset thisValue = isDate(detailMember.created) ? dateFormat(detailMember.created, "mmmm d, yyyy") : ""></cfcase>
 			<cfcase value="Last seen"><cfset thisValue = isDate(detailMember.lastSeen) ? dateFormat(detailMember.lastSeen, "mmmm d, yyyy") & " " & timeFormat(detailMember.lastSeen, "h:mm tt") : ""></cfcase>
@@ -114,12 +166,12 @@ and Block/Unblock and Delete. See common/cfc/Members.cfc; saved by ProxyControll
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Sign-ups</h4></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Sign-ups and forms</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td colspan="2" class="#blockClass#">
 		<cfif not arrayLen(detailSignups)>
-			No sign-ups.
+			No event sign-ups or forms.
 		<cfelse>
 			<cfloop array="#detailSignups#" index="thisSignup">
 				<div>#encodeForHtml(thisSignup.formTitle)#<cfif len(thisSignup.postTitle)>, on #encodeForHtml(thisSignup.postTitle)#</cfif> (#encodeForHtml(thisSignup.date)#)</div>
@@ -147,8 +199,23 @@ and Block/Unblock and Delete. See common/cfc/Members.cfc; saved by ProxyControll
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Their data</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Everything the blog keeps about them, as a file: <cfif detailHasAccount>their account, </cfif>bookings, sign-ups and forms with their answers, email subscriptions and comments. Send it to them if they ask what you have about them.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><button type="button" class="k-button" id="memberDetailDownload">Download their data</button></td>
+	</tr>
+
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Account</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<cfif not detailHasAccount>
+	<tr><td colspan="2" class="#blockClass#">No account yet.<cfif memberSettings.enabled> They can make one by signing in on the site with this email address, and everything above is there for them straight away.<cfelse> Member accounts are off, in <a href="javascript:createAdminInterfaceWindow(38, 'memberAccounts');">Blog Options &gt; Member Accounts</a>.</cfif></td></tr>
+	<cfelse>
 	<tr><td colspan="2" class="#blockClass#"><cfif detailMember.status eq "blocked">Unblocking lets them sign in again.<cfelse>Blocking signs them out everywhere at once and stops them signing in until you unblock them. They aren't told.</cfif></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
@@ -167,6 +234,7 @@ and Block/Unblock and Delete. See common/cfc/Members.cfc; saved by ProxyControll
 		<td class="#blockClass#"></td>
 		<td class="#blockClass#"><button type="button" class="k-button" id="memberDetailDelete">Delete member</button></td>
 	</tr>
+	</cfif>
 </table>
 </cfoutput>
 </cfif>

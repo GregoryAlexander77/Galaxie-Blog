@@ -12,7 +12,7 @@
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
 <script type="text/x-kendo-template" id="memberNameTemplate">
-	# if (MemberId > 0) { #<a href="javascript:createAdminInterfaceWindow(98, #: MemberId #);">#: Name #</a># } else { ##: Name ## } #<br><a href="mailto:#: Email #">#: Email #</a>
+	<a href="javascript:void(0);" class="memberPersonLink" data-email="#: Email #">#: Name #</a><br><a href="mailto:#: Email #">#: Email #</a>
 </script>
 
 <script>
@@ -28,6 +28,10 @@
 	}
 
 	$(document).ready(function() {
+		$("#<cfoutput>#gridName#</cfoutput>").on("click", ".memberPersonLink", function(event) {
+			event.preventDefault();
+			openMembersPerson($(this).attr("data-email"));
+		});
 
 		membersDs = new kendo.data.DataSource({
 			transport: {
@@ -93,11 +97,10 @@
 				command: [{
 					name: "openMember",
 					text: "Open",
-					visible: function(item) { return item.MemberId > 0; },
 					click: function(e) {
 						e.preventDefault();
 						var item = this.dataItem($(e.currentTarget).closest("tr"));
-						createAdminInterfaceWindow(98, item.MemberId);
+						openMembersPerson(item.Email);
 					}
 				}],
 				title: "&nbsp;",

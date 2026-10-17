@@ -745,6 +745,27 @@
 	<cfreturn list>
 </cffunction>
 
+<cffunction name="getPersonForAdmin" access="public" returntype="struct" output="false"
+		hint="One person from the combined Members list, by email address (window 98, 2026-10-17), or an empty struct. Also gives 'member': their account (getMember) when they have one, otherwise the same shape built from what they've sent, so the account functions below (bookings, sign-ups, emails, exportData) work for everyone.">
+	<cfargument name="email" type="string" required="true">
+	<cfset var key = lCase(trim(arguments.email))>
+	<cfset var person = {}>
+	<cfset var found = {}>
+	<cfloop array="#getPeopleForAdmin()#" index="person">
+		<cfif person.email eq key><cfset found = person><cfbreak></cfif>
+	</cfloop>
+	<cfif structIsEmpty(found)>
+		<cfreturn {}>
+	</cfif>
+	<cfif found.isMember>
+		<cfset found.member = getMember(found.memberId)>
+	</cfif>
+	<cfif not structKeyExists(found, "member") or structIsEmpty(found.member)>
+		<cfset found.member = { memberId: 0, email: found.email, name: found.name, phone: found.phone, timeZone: "", status: "", created: "", lastSeen: "" }>
+	</cfif>
+	<cfreturn found>
+</cffunction>
+
 <cffunction name="setMemberStatus" access="public" returntype="boolean" output="false" hint="Blocks (signed out everywhere at once) or unblocks a member.">
 	<cfargument name="memberId" type="numeric" required="true">
 	<cfargument name="status" type="string" required="true">
