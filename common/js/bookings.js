@@ -32,6 +32,8 @@ var galaxieBookings = (function($) {
 			// stretched across the page with its days on the left.
 			".galaxieBookingCalendarRow .k-widget.k-calendar, .galaxieBookingCalendarRow .k-calendar { width: auto; display: inline-block; max-width: 100%; }" +
 			".galaxieBookingTimes { flex: 1 1 14em; min-width: 12em; }" +
+			// "No free times this month" above the calendar, over the site's thin divider (#e2e2e2 on a light theme) (owner, 2026-10-17).
+			".galaxieBookingNotice { padding-bottom: 10px; border-bottom: 1px solid rgba(128,128,128,0.3); }" +
 			".galaxieBookingTimes .k-button { margin: 0 0.4em 0.4em 0; min-width: 6.5em; }" +
 			".galaxieBookingField { margin: 0 0 1em 0; }" +
 			".galaxieBookingField > label { display: block; margin-bottom: 0.3em; }" +
@@ -190,6 +192,8 @@ var galaxieBookings = (function($) {
 		var zoneRow = $('<div class="galaxieBookingStep"></div>').append('<label>Times are shown in: </label>');
 		var zoneInput = $("<input>").appendTo(zoneRow);
 		when.append(zoneRow);
+		// Shown when the month on the calendar has no free times (updateNotice).
+		var notice = $('<div class="galaxieBookingNotice galaxieBookingStep" role="status"></div>').hide().appendTo(when);
 		var row = $('<div class="galaxieBookingCalendarRow galaxieBookingStep"></div>').appendTo(when);
 		var calendarDiv = $("<div></div>").appendTo(row);
 		var times = $('<div class="galaxieBookingTimes" aria-live="polite"></div>').appendTo(row);
@@ -209,6 +213,7 @@ var galaxieBookings = (function($) {
 				when.find(".galaxieBookingDetails").empty();
 				refreshCalendar();
 				times.text("Choose a day.");
+				updateNotice();
 			}
 		});
 
@@ -219,7 +224,7 @@ var galaxieBookings = (function($) {
 			footer: false,
 			disableDates: function(date) { return !hasDay(date); },
 			change: function() { showTimes(this.value()); },
-			navigate: function() { if (!refreshing) { fetchMonth(this.current()); } }
+			navigate: function() { if (!refreshing) { fetchMonth(this.current()); updateNotice(this.current()); } }
 		}).data("kendoCalendar");
 
 		// The visitor's calendar days, from the free times in their time zone.
@@ -233,6 +238,23 @@ var galaxieBookings = (function($) {
 				(days[key] = days[key] || []).push(slot);
 			});
 			return days;
+		}
+		// "No free times this month" above the calendar, once the month's times have loaded and none of its days has any.
+		function monthText(date) { return dateText(new Date(date.getFullYear(), date.getMonth(), 1)).slice(0, 7); }
+		// current: the month shown. Kendo also navigates while the calendar is being built, before calendar is set.
+		function updateNotice(current) {
+			if (!current && !calendar) { return; }
+			var month = monthText(current || calendar.current());
+			var loaded = state.loadedMonths && state.loadedMonths[month];
+			var hasFree = false;
+			$.each(byDay(), function(day) { if (day.slice(0, 7) === month) { hasFree = true; return false; } });
+			if (loaded && !hasFree) {
+				notice.text("No free times this month. Try the next month.").show();
+				times.empty();
+			} else {
+				notice.hide();
+				if (!times.children().length && !$.trim(times.text())) { times.text("Choose a day."); }
+			}
 		}
 		function refreshCalendar() {
 			refreshing = true;
@@ -255,7 +277,9 @@ var galaxieBookings = (function($) {
 				if (response && response.success) {
 					$.each(response.slots, function(i, slot) { state.slots[slot.local] = slot; });
 					refreshCalendar();
-					if (!response.slots.length && $.isEmptyObject(state.slots)) { times.text("No free times this month. Try the next month."); }
+					state.loadedMonths = state.loadedMonths || {};
+					state.loadedMonths[monthText(current)] = true;
+					updateNotice();
 				}
 			});
 		}
