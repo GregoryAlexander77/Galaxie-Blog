@@ -15,7 +15,9 @@ Each item may also optionally carry a "promoted" boolean (2026-10-01) - when tru
 highlightedWidget border + bullhorn-icon treatment renderKendoCardGrid.cfm's own promotedPost logic gives a
 promoted post on the plain blog listing (blogContentCss.cfm's .highlightedWidget - a thin border in the theme's
 accent color). Only blog-post items have a concept of "promoted" today (curatedHomepageContentHtml.cfm's Blog
-Posts section) - Featured Pages/Collections items simply omit the key, which is treated the same as false. --->
+Posts section) - Featured Pages/Collections items simply omit the key, which is treated the same as false.
+
+Items may also carry "eventHtml" (2026-10-16): an event post's details (Events.cfc renderCardStripHtml), shown under the title. --->
 <cfparam name="cardGridFooterLink" default="">
 
 <h2 class="topContent"><cfoutput>#cardGridHeading#</cfoutput></h2>
@@ -58,6 +60,7 @@ Posts section) - Featured Pages/Collections items simply omit the key, which is 
 							</a>
 							<hr class="k-card-separator" />
 							<h3 class="k-card-title" style="font-size: 14pt; margin: 10px 0px;"><cfif cardGridItemPromoted>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" style="font-size: 14pt" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#cardGridOneItem.linkUrl#</cfoutput>" aria-label="<cfoutput>#cardGridOneItem.title#</cfoutput>"><cfoutput>#cardGridOneItem.title#</cfoutput></a></h3>
+							<cfif structKeyExists(cardGridOneItem, "eventHtml") and len(cardGridOneItem.eventHtml)><cfoutput>#cardGridOneItem.eventHtml#</cfoutput></cfif>
 							<cfif len(cardGridOneItem.description)>
 								<hr class="k-card-separator" />
 								<span class="blog-content"><cfoutput>#cardGridOneItem.description#</cfoutput></span>

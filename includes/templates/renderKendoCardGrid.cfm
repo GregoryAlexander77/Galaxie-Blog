@@ -98,6 +98,14 @@
 		<cfset enclosureCarouselId = getPost[i]["EnclosureCarouselId"]>
 	</cfif>
 	<cfset datePosted = getPost[i]["DatePosted"]> 
+
+	<!--- Events (2026-10-16): the events on this page of cards, looked up once (Events.cfc getCardEvents). An event post's card shows the event under its title, and a date tile instead of the no-image picture. --->
+	<cfif not isDefined("cardGridEvents")>
+		<cfset cardGridPostIds = []>
+		<cfloop from="1" to="#arrayLen(getPost)#" index="cardGridIndex"><cfset arrayAppend(cardGridPostIds, getPost[cardGridIndex]["PostId"])></cfloop>
+		<cfset cardGridEvents = structKeyExists(application, "events") ? application.events.getCardEvents(cardGridPostIds) : {}>
+	</cfif>
+	<cfset cardEvent = structKeyExists(cardGridEvents, getPost[i]["PostId"]) ? cardGridEvents[getPost[i]["PostId"]] : {}>
 		
 	<!--- Also see if a video or enclosure should be rendered using xmlkeywords. This returns a structure. --->
 	<cfset xmlKeywordStruct = application.blog.getXmlKeywordStruct(getPost[i]["PostHeader"])>
@@ -151,6 +159,9 @@
 			Renderer.cfc's own renderMediaPreview()/renderEnclosure() and the other two card templates. --->
 			<!--- Named arguments (2026-10-09): the 4th positional argument became heroOverlayFont when font support was added, so a positional "true" set the font to "true" and left the card at the tiny admin-thumbnail size. --->
 			<cfset thumbnailCarousel = RendererObj.renderHeroGradientHtml(heroGradient=getPost[i]["HeroGradient"], heroOverlayText=getPost[i]["HeroOverlayText"], heroOverlayTextColor=getPost[i]["HeroOverlayTextColor"], heroOverlayFont=(structKeyExists(getPost[i], "HeroOverlayFont") ? getPost[i]["HeroOverlayFont"] : ""), heroOverlayFontSize=(structKeyExists(getPost[i], "HeroOverlayFontSize") ? getPost[i]["HeroOverlayFontSize"] : ""), cardMode=true)>
+		<!--- An event with no picture of its own: its date tile (2026-10-16). --->
+		<cfelseif not structIsEmpty(cardEvent)>
+			<cfset thumbnailCarousel = application.events.renderDateTileHtml(cardEvent)>
 		<cfelse>
 			<cfset heroFallback = RendererObj.getHeroFallbackHtml(postId=getPost[i]["PostId"], cardMode=true)>
 			<cfif heroFallback.isHtml>
@@ -290,6 +301,7 @@
 					<hr class="k-card-separator" />
 					<h2 class="k-card-title" style="font-size: 14pt; margin: 10px 0px;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" style="font-size: 14pt" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h2>
 					<hr class="k-card-separator" />
+					<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(cardEvent)#</cfoutput></cfif>
 					<span class="blog-content"><cfoutput>#postContent#</cfoutput></span>
 				</div><!---<div class="k-card-body">--->
 				<span class="k-card-action">

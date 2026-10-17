@@ -1429,9 +1429,113 @@
 	<cfreturn arrayToList(parts, " / ")>
 </cffunction>
 
+<!--- ********************************************************************************************************************
+	Post cards (2026-10-16): an event post's card in the card listings (renderKendoCardGrid.cfm, popularPosts.cfm and the
+	curated homepage's cardGridSection.cfm) shows the event under its title (when, where, price and sign-up), and, when the
+	post has no picture of its own, a date tile in place of the no-image fallback: a small calendar page on the post's
+	generated art (owner's pick of two designs, 10-16). 'Ended' and the visitor's own time are worked out in the browser by
+	cardScript, since the listings are cached.
+********************************************************************************************************************* --->
+
+<cffunction name="getCardEvents" access="public" returntype="struct" output="false"
+		hint="The events on a page of post cards, in one query: { postId: event (getEvent) }, only for the posts that have one.">
+	<cfargument name="postIds" type="array" required="true">
+	<cfset var events = {}>
+	<cfset var ids = []>
+	<cfset var id = "">
+	<cfset var rows = "">
+	<cfset var ev = {}>
+	<cfloop array="#arguments.postIds#" index="id">
+		<cfif isNumeric(id) and id gt 0><cfset arrayAppend(ids, int(id))></cfif>
+	</cfloop>
+	<cfif not arrayLen(ids)>
+		<cfreturn events>
+	</cfif>
+	<cftry>
+		<cfset rows = queryExecute("SELECT PostRef FROM BlogEvent WHERE BlogRef = :blogId AND PostRef IN (:postIds)", {
+			blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" },
+			postIds = { value = arrayToList(ids), cfsqltype = "cf_sql_integer", list = true }
+		})>
+		<cfloop query="rows">
+			<cfset ev = getEvent(rows.PostRef)>
+			<cfif not structIsEmpty(ev) and len(ev.startUtc) and len(ev.endUtc) and len(ev.timeZone)>
+				<cfset events[rows.PostRef] = ev>
+			</cfif>
+		</cfloop>
+		<cfcatch type="any">
+			<!--- A blog without the events table yet (before the 4.9 update) shows its cards as before. --->
+		</cfcatch>
+	</cftry>
+	<cfreturn events>
+</cffunction>
+
+<cffunction name="renderDateTileHtml" access="public" returntype="string" output="false"
+		hint="The date tile that takes the place of the no-image picture on an event post's card: a calendar page (month, day, and the day and time) on the post's generated art. Same box as the card pictures (3:2, at most 210px tall).">
+	<cfargument name="ev" type="struct" required="true">
+	<cfset var s = zoned(arguments.ev.startUtc, arguments.ev.timeZone)>
+	<cfset var note = statusNote(arguments.ev)>
+	<cfset var artUrl = "">
+	<cfset var timeLine = "">
+	<cftry>
+		<cfif not structKeyExists(variables, "imageObj")>
+			<cfset variables.imageObj = createObject("component", application.imageComponentPath)>
+		</cfif>
+		<cfset artUrl = variables.imageObj.generateHeroArt(arguments.ev.postId)>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+	<cfif len(note)>
+		<cfset timeLine = note>
+	<cfelseif arguments.ev.allDay>
+		<cfset timeLine = s.format(formatter("EEE")) & " &middot; All day">
+	<cfelse>
+		<cfset timeLine = s.format(formatter("EEE h:mm a"))>
+	</cfif>
+	<cfreturn '<div class="galaxieEventTile"' & eventDataAttributes(arguments.ev) & (len(artUrl) ? ' style="background-image: url(''' & encodeForHtmlAttribute(artUrl) & ''');"' : '') & ' role="img" aria-label="' & encodeForHtmlAttribute(shortWhenText(arguments.ev)) & '">'
+		& '<div class="galaxieEventSheet" aria-hidden="true"><span class="galaxieEventSheetMonth">' & encodeForHtml(s.format(formatter("MMM"))) & '</span>'
+		& '<span class="galaxieEventSheetDay">' & encodeForHtml(s.format(formatter("d"))) & '</span>'
+		& '<span class="galaxieEventSheetTime">' & timeLine & '</span><span class="galaxieEventEnded" hidden>Ended</span></div></div>'
+		& cardScript()>
+</cffunction>
+
+<cffunction name="renderCardStripHtml" access="public" returntype="string" output="false"
+		hint="The event under a post card's title: when (and the visitor's own time), a Postponed or Cancelled note, where, and the price and sign-up. Once the event is over it says Ended and drops the sign-up.">
+	<cfargument name="ev" type="struct" required="true">
+	<cfargument name="compact" type="boolean" required="false" default="false" hint="Only the when line and a Postponed or Cancelled note, for the small Popular and Related cards.">
+	<cfset var note = statusNote(ev)>
+	<cfset var ways = []>
+	<cfset var place = "">
+	<cfset var priceText = "">
+	<cfset var html = '<div class="galaxieEventStrip"' & eventDataAttributes(ev) & '>'>
+	<cfloop array="#ev.locations#" index="place"><cfset arrayAppend(ways, place.label)></cfloop>
+	<cfset html = html & '<p><i class="fa-regular fa-calendar" aria-hidden="true"></i><strong class="galaxieEventEnded" hidden>Ended:</strong> ' & encodeForHtml(shortWhenText(ev)) & '<span class="galaxieEventYourTime"></span></p>'>
+	<cfif len(note)>
+		<cfset html = html & '<p><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><strong>' & note & '</strong></p>'>
+	</cfif>
+	<cfif arguments.compact>
+		<cfreturn html & '</div>' & cardScript()>
+	</cfif>
+	<cfif arrayLen(ways)>
+		<cfset html = html & '<p><i class="fa-solid fa-location-dot" aria-hidden="true"></i>' & encodeForHtml(arrayToList(ways, " or ")) & '</p>'>
+	</cfif>
+	<cfif ev.price gt 0>
+		<cfset priceText = application.payments.formatMoney(ev.price) & " per person">
+	<cfelseif len(ev.cost)>
+		<cfset priceText = ev.cost>
+	</cfif>
+	<cfif ev.status neq "cancelled" and (len(priceText) or ev.webFormId gt 0)>
+		<cfset html = html & '<p class="galaxieEventStripSignup"><i class="fa-solid fa-ticket" aria-hidden="true"></i>' & encodeForHtml(priceText) & (len(priceText) and ev.webFormId gt 0 ? ' &middot; ' : '') & (ev.webFormId gt 0 ? 'Sign up' : '') & '</p>'>
+	</cfif>
+	<cfreturn html & '</div>' & cardScript()>
+</cffunction>
+
+<cffunction name="eventDataAttributes" access="private" returntype="string" output="false" hint="The data- attributes cardScript reads.">
+	<cfargument name="ev" type="struct" required="true">
+	<cfreturn ' data-start-utc="' & encodeForHtmlAttribute(arguments.ev.startUtc) & '" data-end-utc="' & encodeForHtmlAttribute(arguments.ev.endUtc) & '" data-zone="' & encodeForHtmlAttribute(arguments.ev.timeZone) & '" data-all-day="' & (arguments.ev.allDay ? "true" : "false") & '"'>
+</cffunction>
+
 <cffunction name="cardScript" access="private" returntype="string" output="false"
 		hint="The card's own small script, worked out in the visitor's browser (the page is cached): 'This event has ended', and the time in the visitor's own time zone when it isn't the event's. Written once per page.">
-	<cfreturn '<script>(function(){if(window.galaxieEventCards){return;}window.galaxieEventCards=true;function run(){var cards=document.querySelectorAll(".galaxieEventCard");for(var i=0;i<cards.length;i++){var c=cards[i];var end=new Date(c.getAttribute("data-end-utc"));if(!isNaN(end)&&end<new Date()){var ended=c.querySelector(".galaxieEventEnded");if(ended){ended.hidden=false;}c.classList.add("galaxieEventIsOver");}if(c.getAttribute("data-all-day")==="true"){continue;}try{var mine=Intl.DateTimeFormat().resolvedOptions().timeZone;if(mine&&mine!==c.getAttribute("data-zone")){var start=new Date(c.getAttribute("data-start-utc"));var text=new Intl.DateTimeFormat(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(start);var span=c.querySelector(".galaxieEventYourTime");if(span){span.textContent=" (your time: "+text+")";}}}catch(e){}}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}})();</script>'>
+	<cfreturn '<script>(function(){if(window.galaxieEventCards){return;}window.galaxieEventCards=true;function run(){var cards=document.querySelectorAll(".galaxieEventCard,.galaxieEventStrip,.galaxieEventTile");for(var i=0;i<cards.length;i++){var c=cards[i];var end=new Date(c.getAttribute("data-end-utc"));if(!isNaN(end)&&end<new Date()){var ended=c.querySelector(".galaxieEventEnded");if(ended){ended.hidden=false;}c.classList.add("galaxieEventIsOver");}if(c.getAttribute("data-all-day")==="true"){continue;}try{var mine=Intl.DateTimeFormat().resolvedOptions().timeZone;if(mine&&mine!==c.getAttribute("data-zone")){var start=new Date(c.getAttribute("data-start-utc"));var text=new Intl.DateTimeFormat(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(start);var span=c.querySelector(".galaxieEventYourTime");if(span){span.textContent=" (your time: "+text+")";}}}catch(e){}}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}})();</script>'>
 </cffunction>
 
 <cffunction name="zoned" access="private" returntype="any" output="false" hint="A UTC instant in the event's time zone (java ZonedDateTime).">

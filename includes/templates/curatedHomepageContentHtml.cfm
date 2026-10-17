@@ -176,7 +176,12 @@ mechanism working (it needs exactly one #blogContent sibling next to #sidebar). 
 	</cfif>
 
 	<cfset blogPostItems = []>
+	<!--- Events (2026-10-16): the events among these posts, looked up once (Events.cfc getCardEvents). An event post's card shows the event under its title (eventHtml, see cardGridSection.cfm), and a date tile instead of the no-image picture. --->
+	<cfset curatedCardPostIds = []>
+	<cfloop from="1" to="#arrayLen(recentBlogPostsForHomepage)#" index="i"><cfset arrayAppend(curatedCardPostIds, recentBlogPostsForHomepage[i]["PostId"])></cfloop>
+	<cfset curatedCardEvents = structKeyExists(application, "events") ? application.events.getCardEvents(curatedCardPostIds) : {}>
 	<cfloop from="1" to="#arrayLen(recentBlogPostsForHomepage)#" index="i">
+		<cfset cardEvent = structKeyExists(curatedCardEvents, recentBlogPostsForHomepage[i]["PostId"]) ? curatedCardEvents[recentBlogPostsForHomepage[i]["PostId"]] : {}>
 		<!--- cardGridSection.cfm supports a ready-to-insert widget via mediaHtml (its own top display priority - see
 		its comment), same as renderKendoCardGrid.cfm/popularPosts.cfm's thumbnailCarousel slot - so this calls
 		getHeroFallbackHtml with allowHtml=true (default) and routes isHtml=true content into mediaHtml, instead of
@@ -218,6 +223,9 @@ mechanism working (it needs exactly one #blogContent sibling next to #sidebar). 
 			<cfset thisBlogPostMediaHtml = RendererObj.renderMapPreview(recentBlogPostsForHomepage[i]["EnclosureMapId"], true, true, false, showSidebar)>
 		<cfelseif not len(thisBlogPostImageUrl) and len(recentBlogPostsForHomepage[i]["EnclosureCarouselId"])>
 			<cfset thisBlogPostMediaHtml = RendererObj.renderCarousel(recentBlogPostsForHomepage[i]["EnclosureCarouselId"], true)>
+		<!--- An event with no picture of its own: its date tile (2026-10-16). --->
+		<cfelseif not len(thisBlogPostImageUrl) and not structIsEmpty(cardEvent)>
+			<cfset thisBlogPostMediaHtml = application.events.renderDateTileHtml(cardEvent)>
 		<cfelseif not len(thisBlogPostImageUrl)>
 			<cfset thisHeroFallback = RendererObj.getHeroFallbackHtml(postId=recentBlogPostsForHomepage[i]["PostId"], cardMode=true)>
 			<cfif thisHeroFallback.isHtml>
@@ -234,6 +242,7 @@ mechanism working (it needs exactly one #blogContent sibling next to #sidebar). 
 			imageUrl: thisBlogPostImageUrl,
 			mediaHtml: thisBlogPostMediaHtml,
 			suppressImage: thisBlogPostSuppressImage,
+			eventHtml: structIsEmpty(cardEvent) ? "" : application.events.renderCardStripHtml(cardEvent),
 			<!--- 2026-10-01: the "thin border around promoted posts" treatment (cardGridSection.cfm's own
 			highlightedWidget/bullhorn-icon support, mirroring renderKendoCardGrid.cfm's older promotedPost logic)
 			never got wired up here when this curated homepage was built - this card template's items simply had

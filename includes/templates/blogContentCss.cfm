@@ -1031,6 +1031,25 @@
 		.galaxieEventsItemTitle { margin: 0 0 6px 0; }
 		.galaxieEventsItem.galaxieEventIsOver { opacity: 0.8; }
 		.galaxieEventsPicked { outline: 3px solid currentColor; }
+		<!--- Event posts in the card listings (2026-10-16, Events.cfc renderDateTileHtml / renderCardStripHtml). The date tile is
+		a calendar page on the post's generated art, in the same box as the card pictures (3:2, at most 210px tall); once the
+		event is over (cardScript adds galaxieEventIsOver) it turns grey and says Ended. --->
+		.galaxieEventTile { width: 100%; aspect-ratio: 3 / 2; max-height: 210px; background-color: #6b6b6b; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; overflow: hidden; }
+		<!--- The date is in the theme's primary font (owner, 10-16). --->
+		.galaxieEventSheet { font-family: <cfoutput>'#font#', #fontType#</cfoutput>; width: 112px; background: #ffffff; color: #2c2c2a; border-radius: 10px; overflow: hidden; text-align: center; line-height: 1.15; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+		<!--- The tile sits inside the card's link: inline-block spans keep the link's underline off the date. --->
+		.galaxieEventSheet span { display: inline-block; width: 100%; box-sizing: border-box; text-decoration: none; }
+		.galaxieEventSheetMonth { background: #d9443a; color: #ffffff; font-size: 0.85em; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; padding: 4px 0; }
+		.galaxieEventSheetDay { color: #2c2c2a; font-size: 2.6em; font-weight: bold; padding-top: 2px; }
+		.galaxieEventSheet .galaxieEventEnded[hidden] { display: none; }
+		.galaxieEventSheetTime, .galaxieEventSheet .galaxieEventEnded { font-size: 0.8em; color: #5f5e5a; padding: 0 4px 7px 4px; }
+		.galaxieEventTile.galaxieEventIsOver { filter: grayscale(1); }
+		.galaxieEventTile.galaxieEventIsOver .galaxieEventSheetTime { display: none; }
+		.galaxieEventStrip { margin: 0 0 8px 0; overflow-wrap: anywhere; }
+		.galaxieEventStrip p { margin: 0 0 4px 0; }
+		.galaxieEventStrip i { width: 1.3em; text-align: center; margin-right: 4px; }
+		.galaxieEventStrip.galaxieEventIsOver .galaxieEventStripSignup { display: none; }
+		.galaxieEventStrip .galaxieEventEnded { margin-right: 4px; }
 		@media (max-width: 600px) {
 			.galaxieEventCard { gap: 10px; padding: 10px; }
 			.galaxieEventDate { flex-basis: 46px; }
