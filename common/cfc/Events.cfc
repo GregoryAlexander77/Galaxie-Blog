@@ -1545,11 +1545,12 @@
 <cffunction name="renderDateTileHtml" access="public" returntype="string" output="false"
 		hint="The date tile that takes the place of the no-image picture on an event post's card: a calendar page (month, day, and the day and time) on the post's generated art (design A). Same box as the card pictures (3:2, at most 210px tall).">
 	<cfargument name="ev" type="struct" required="true">
+	<cfargument name="large" type="boolean" required="false" default="false" hint="The large tile at the top of the event's own page, when it has no picture (2026-10-17): the hero's shape, a bigger calendar page.">
 	<cfset var s = zoned(arguments.ev.startUtc, arguments.ev.timeZone)>
 	<cfset var note = statusNote(arguments.ev)>
 	<cfset var artUrl = "">
 	<cfset var timeLine = "">
-	<cfset var tileClass = "galaxieEventTile">
+	<cfset var tileClass = arguments.large ? "galaxieEventTile galaxieEventTileLarge" : "galaxieEventTile">
 	<!--- Behind the calendar page: always the post's own generated art (owner, 10-16: design A, whatever the no-picture choice
 	in Blog Options is - it briefly followed that choice, which put the page on a plain header colour). The theme's header
 	colour only if the art can't be made. --->

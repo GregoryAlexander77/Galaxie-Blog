@@ -173,6 +173,13 @@ details). --->
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(102);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/people.gif")>
 </cfif>
+<!--- Members (2026-10-17): your customers' accounts - the visitors who sign in to book or sign up (window 97). Icon: members.gif (owner). --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
+	<cfset iconList = listAppend(iconList, 'Members')>
+	<cfset titleList = listAppend(titleList, 'Members')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(97);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/members.gif")>
+</cfif>
 		
 <!--- Every user has a profile --->
 <cfset iconList = listAppend(iconList, 'userProfile')>

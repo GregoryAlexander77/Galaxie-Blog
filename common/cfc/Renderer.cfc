@@ -492,6 +492,18 @@
 		no image area at all, by design. Every other mode should show something, matching the card views
 		(renderKendoCardGrid.cfm/popularPosts.cfm) - including 'generic', which falls through to renderEnclosureImage's
 		own empty-mediaUrl default (noImage.jpg), the same default those card views already show for 'generic'. --->
+		<!--- An event with no picture of its own (2026-10-17, owner): on its own page, the large calendar tile (design A, the same
+		calendar page as on the cards) instead of the no-picture choice. The event card follows below it. --->
+		<cfif not len(enclosureHtml) and arguments.isSinglePostPage and structKeyExists(application, "events")>
+			<cftry>
+				<cfset local.heroEvent = application.events.getEvent(getPost[arguments.currentRow]["PostId"])>
+				<cfif not structIsEmpty(local.heroEvent)>
+					<cfset enclosureHtml = application.events.renderDateTileHtml(ev = local.heroEvent, large = true)>
+					<cfset local.heroKind = "tile">
+				</cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+		</cfif>
 		<cfif not len(enclosureHtml)>
 			<cfset heroFallback = this.getHeroFallbackHtml(postId=getPost[arguments.currentRow]["PostId"], cardMode=false, isSinglePostPage=arguments.isSinglePostPage)>
 			<cfif heroFallback.isHtml>
