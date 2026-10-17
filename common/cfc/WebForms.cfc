@@ -106,6 +106,105 @@
 			starterField("Anything else?", "textarea", false)
 		]
 	})>
+	<!--- More everyday forms (2026-10-17, owner): ready to use as they are, so someone new picks one and only adjusts it. --->
+	<cfset arrayAppend(templates, {
+		"key": "quote", "name": "Request a quote",
+		"title": "Request a quote", "description": "Tell me what you need and I'll get back to you with a price.", "buttonLabel": "Send request",
+		"confirmationMessage": "Thanks! I'll be in touch with a quote soon.", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true),
+			starterField("Email address", "email", true),
+			starterField("Phone", "phone", false, "", "If you'd like a call back."),
+			starterField("What do you need?", "textarea", true, "", "The more detail, the better the quote."),
+			starterField("Budget", "select", false, "", "", "Not sure yet#chr(10)#Under $500#chr(10)#$500 - $1,000#chr(10)#$1,000 - $5,000#chr(10)#Over $5,000"),
+			starterField("When do you need it?", "date", false)
+		]
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "feedback", "name": "Feedback",
+		"title": "Feedback", "description": "How are we doing? Your answers help us get better.", "buttonLabel": "Send feedback",
+		"confirmationMessage": "Thank you for your feedback!", "offerSubscribe": false,
+		"fields": [
+			starterField("How would you rate your experience?", "radio", true, "", "", "Excellent#chr(10)#Good#chr(10)#Fair#chr(10)#Poor"),
+			starterField("What did you like?", "textarea", false),
+			starterField("What could be better?", "textarea", false),
+			starterField("Name", "text", false, "", "Optional."),
+			starterField("Email address", "email", false, "", "Optional, if you'd like a reply.")
+		]
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "testimonial", "name": "Testimonial",
+		"title": "Share your experience", "description": "I'd love to hear how it went. With your permission, I may share your words on this site.", "buttonLabel": "Send",
+		"confirmationMessage": "Thank you for taking the time to share this!", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true, "", "As you'd like it shown."),
+			starterField("Email address", "email", true, "", "Never shown on the site."),
+			starterField("Your town or role", "text", false, "eg. Seattle, or Small business owner"),
+			starterField("Your experience", "textarea", true),
+			starterField("Permission", "consent", true, "", "", "You may publish my words and name on this site.")
+		]
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "volunteer", "name": "Volunteer sign-up",
+		"title": "Volunteer", "description": "Thank you for offering to help! Let us know how and when.", "buttonLabel": "Sign me up",
+		"confirmationMessage": "Thank you! We'll be in touch.", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true),
+			starterField("Email address", "email", true),
+			starterField("Phone", "phone", false),
+			starterField("How would you like to help?", "checkboxes", true, "", "", "Setting up#chr(10)#Welcoming people#chr(10)#Food and drinks#chr(10)#Cleaning up#chr(10)#Wherever I'm needed"),
+			starterField("When are you available?", "checkboxes", false, "", "", "Weekdays#chr(10)#Weekday evenings#chr(10)#Weekends"),
+			starterField("Anything else?", "textarea", false)
+		]
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "registration", "name": "Class or workshop registration",
+		"title": "Register", "description": "Save your place, and tell us a little about yourself.", "buttonLabel": "Register",
+		"confirmationMessage": "You're registered! You'll hear from us before it starts.", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true),
+			starterField("Email address", "email", true),
+			starterField("Phone", "phone", false),
+			starterField("Your experience", "radio", false, "", "", "New to this#chr(10)#Some experience#chr(10)#Experienced"),
+			starterField("Anything we should know?", "textarea", false, "", "Access needs, allergies or questions.")
+		]
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "support", "name": "Help request",
+		"title": "Get help", "description": "Tell us what's going on and we'll help as soon as we can.", "buttonLabel": "Send",
+		"confirmationMessage": "Thanks, we've got your request and will reply soon.", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true),
+			starterField("Email address", "email", true),
+			starterField("Subject", "text", true),
+			starterField("What happened?", "textarea", true, "", "What you did, what you expected, and what happened instead."),
+			starterField("How urgent is it?", "radio", false, "", "", "Not urgent#chr(10)#Soon, please#chr(10)#Urgent")
+		]
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "guestPost", "name": "Guest post idea",
+		"title": "Write for us", "description": "Have an idea for a guest post? Tell us about it.", "buttonLabel": "Send idea",
+		"confirmationMessage": "Thanks for your idea! We'll read it and get back to you.", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true),
+			starterField("Email address", "email", true),
+			starterField("Your website", "text", false, "https://"),
+			starterField("Proposed title", "text", true),
+			starterField("What it's about", "textarea", true, "", "A few sentences is plenty."),
+			starterField("Original work", "consent", true, "", "", "This is my own original work and hasn't been published elsewhere.")
+		]
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "waitlist", "name": "Waitlist",
+		"title": "Join the waitlist", "description": "Be the first to know when it's available.", "buttonLabel": "Join",
+		"confirmationMessage": "You're on the list! We'll email you as soon as it's ready.", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", false),
+			starterField("Email address", "email", true),
+			starterField("Interested in", "text", false, "", "What would you like to hear about?"),
+			starterField("Agreement", "consent", true, "", "", "I agree to be emailed about this, and know I can ask to be removed at any time.")
+		]
+	})>
 	<!--- On the site: every template starts private (no public list, form only), except RSVP and Potluck, which show who's
 	coming / who's bringing what. Email and phone are never public. --->
 	<cfloop array="#templates#" index="local.starter">
