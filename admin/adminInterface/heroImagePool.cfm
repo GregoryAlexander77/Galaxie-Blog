@@ -49,7 +49,8 @@ this is just what lets the button disable itself instead of waiting on a server 
 </div>
 
 <div style="padding: 12px;">
-	<input type="file" id="heroImagePoolFile" accept="image/*" style="display: none;">
+	<!--- No WebP where this server can't read it (2026-10-16). --->
+	<input type="file" id="heroImagePoolFile" accept="<cfif application.imageEngineSupportsWebP>image/*<cfelse>image/jpeg,image/png,image/gif,image/bmp</cfif>" style="display: none;">
 	<button type="button" id="heroImagePoolAddBtn" class="k-button k-primary" <cfif atHeroImagePoolLimit>disabled</cfif>>Add Photo</button>
 	<span id="heroImagePoolStatus" style="margin-left: 10px;"></span>
 </div>

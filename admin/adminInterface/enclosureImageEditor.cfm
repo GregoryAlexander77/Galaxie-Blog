@@ -349,7 +349,7 @@
 		var enclosureUppy = Uppy.Core({
 			restrictions: {
 				maxNumberOfFiles: 1,
-				allowedFileTypes: ['image/*']
+				allowedFileTypes: <cfif application.imageEngineSupportsWebP>['image/*']<cfelse>['.jpg', '.jpeg', '.png', '.gif', '.bmp']</cfif><!--- No WebP where this server can't read it (2026-10-16) --->
 			}
 		})
 

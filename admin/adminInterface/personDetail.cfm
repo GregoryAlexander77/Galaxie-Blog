@@ -152,7 +152,7 @@ email address are required: visitors' messages from the card are emailed there. 
 		<td class="#blockClass#">
 			<input type="text" id="personPicture" class="k-textbox" maxlength="500" placeholder="https://" value="#encodeForHtmlAttribute(person.picture)#" style="width: calc(95% - 160px);">
 			<button type="button" class="k-button" id="personPictureUpload">Upload a picture</button>
-			<input type="file" id="personPictureFile" accept="image/jpeg,image/png,image/gif,image/webp" style="display: none;">
+			<input type="file" id="personPictureFile" accept="image/jpeg,image/png,image/gif<cfif application.imageEngineSupportsWebP>,image/webp</cfif>" style="display: none;">
 			<div style="margin-top: 6px;"><img id="personPicturePreview" src="#encodeForHtmlAttribute(person.picture)#" alt="" width="85" height="85" style="border-radius: 50%; object-fit: cover;<cfif not len(person.picture)> display: none;</cfif>"> <span id="personPictureStatus" role="status"></span></div>
 		</td>
 	</tr>

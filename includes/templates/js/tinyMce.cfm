@@ -250,7 +250,7 @@
 			//<cfoutput>#application.baseUrl#</cfoutput>/common/libs/tinymce/skins/ui/oxide/content.css"
 			height: "<cfoutput>#editorHeight#</cfoutput>",
 			<!--- This only works with tinymce 5.6+ --->
-			images_file_types: 'jpeg,jpg,jpe,jfi,jif,jfif,png,gif,bmp,webp',
+			images_file_types: 'jpeg,jpg,jpe,jfi,jif,jfif,png,gif,bmp<cfif application.imageEngineSupportsWebP>,webp</cfif>',<!--- No WebP where this server can't read it (2026-10-16) --->
 			<!--- Custom plugin argument to allow us to use fontawesome icons --->
 			iconfonts_selector: '.fa, .fab, .fal, .far, .fas, .glyphicon', // optional (default shown)
 		<!--- Set the menu depending upon the selector name. --->

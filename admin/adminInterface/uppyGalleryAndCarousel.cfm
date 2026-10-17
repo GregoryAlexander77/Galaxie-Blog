@@ -28,7 +28,7 @@
 		var uppy = Uppy.Core({
 			restrictions : {
 				maxNumberOfFiles: 12,  // limit 12 images
-				allowedFileTypes: ['image/*'] // only allow images
+				allowedFileTypes: <cfif application.imageEngineSupportsWebP>['image/*']<cfelse>['.jpg', '.jpeg', '.png', '.gif', '.bmp']</cfif><!--- No WebP where this server can't read it (2026-10-16) --->
         	}
 		})
 		
