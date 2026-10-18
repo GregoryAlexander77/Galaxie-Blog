@@ -1190,7 +1190,7 @@
 			-moz-border-radius: 50%;
 			-webkit-border-radius: 50%;
 		}
-	<cfif isDefined("condensedGridView") and condensedGridView or (postFound and getPageMode() eq 'post')>
+	<cfif isDefined("condensedGridView") and condensedGridView or (isDefined("postFound") and postFound and getPageMode() eq 'post')>
 		<!--- --- Cards (displays popular and related posts) --- --->
 		<!--- Handle the k-cards when in condensed mode (for the categories for example) --->
 		.cards-container {
