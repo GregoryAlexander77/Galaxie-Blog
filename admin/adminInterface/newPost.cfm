@@ -347,13 +347,8 @@
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			Both Blog Posts and pages are nearly identical but have several significant differences.<br/>
-			Blog Posts are dynamic and are placed in the blogs section that is ordered by the most recent date. Posts are also meant to be interactive and may have comments.
-			Page content is generally permanent, does not have comments or a visible published date, and links to the page are much more prominent and placed on the menu. Conversely, pages are not shown on the RSS feeds.<br/>
-			Use pages for universal site content or evergreen content that does not change, and use blog posts for specific content that is dynamic or that may change.<br/>
-			An event is a kind of blog post: an article with a date, time and place - a class, a workshop, a meetup. After Next, the event window opens so you can set them up.<br/>
-			A booking is a kind of page: a page where visitors book a time with you. It stays up, isn't dated and isn't in the RSS feed. After Next, the booking page window opens so you can choose what it offers.<br/>
-			A page collection is different still - it isn't a page by itself, it's a themed index that links out to two or more of your existing pages, like a Portfolio or a Services section. If you just want one icon linking to one destination, create a page instead and place it directly.
+			<!--- Trimmed (owner, 2026-10-17): each choice below now has a few words of its own. --->
+			Blog posts are dated, listed newest first in your blog and RSS feed, and can have comments. Pages stay put, are linked from your menu, and have no date or comments. After Next, an event or a booking page opens its own window so you can set it up.
 			</td>
 		  </tr>
 		  <tr height="2px">
