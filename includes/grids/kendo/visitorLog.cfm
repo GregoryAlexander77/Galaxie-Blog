@@ -47,6 +47,25 @@
 </cfif>
 
 <script>
+	<!--- Signed-in members (2026-10-17, owner): their round picture (or initials) and name instead of only a browser; it opens
+	their page in Members. Admins keep their name. MemberName, MemberEmail and MemberPicture come from getVisitorLogForGrid. --->
+	function visitorSignedInAs(item) {
+		var text = function(value) { return $("<div/>").text(value === null || value === undefined ? "" : String(value)).html(); };
+		if (item.MemberName) {
+			var words = String(item.MemberName).split(/\s+/).filter(function(word) { return word.length; });
+			var initials = words.length > 1 ? words[0].charAt(0) + words[words.length - 1].charAt(0) : String(item.MemberName).charAt(0);
+			var circle = item.MemberPicture
+				? '<img src="' + text(item.MemberPicture) + '" alt="" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; vertical-align: middle;">'
+				: '<span class="k-state-selected" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 10px; font-weight: bold; vertical-align: middle;">' + text(initials.toUpperCase()) + '</span>';
+			return '<a href="javascript:void(0);" class="visitorMemberLink" data-email="' + text(item.MemberEmail) + '">' + circle + ' ' + text(item.MemberName) + '</a>';
+		}
+		return text(item.FullName);
+	}
+	$(document).off("click.visitorMember").on("click.visitorMember", ".visitorMemberLink", function(event) {
+		event.preventDefault();
+		createAdminInterfaceWindow(98, encodeURIComponent($(this).attr("data-email")));
+	});
+
 	$(document).ready(function() {
 
 		visitorLogDs = new kendo.data.DataSource({
@@ -105,9 +124,10 @@
 				template: kendo.template($("#ipAddressTemplate").html())
 			}, {
 				field: "FullName",
-				title: "Auth User",
+				title: "Signed in as",
 				filterable: true,
-				width: "<cfif session.isMobile>30<cfelse>20</cfif>%"
+				width: "<cfif session.isMobile>30<cfelse>20</cfif>%",
+				template: function(item) { return visitorSignedInAs(item); }
 			<cfif not session.isMobile>}, {
 				field: "PostTitle",
 				title: "Post",

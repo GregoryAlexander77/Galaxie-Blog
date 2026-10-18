@@ -4046,6 +4046,25 @@
 				<cfinvokeargument name="date" value="#arguments.dateVisited#"/>
 			</cfif>
 		</cfinvoke>
+
+		<!--- Signed-in members (2026-10-17): their name, email and picture, for the "Signed in as" column (Members.cfc getVisitorMembers). --->
+		<cfset var visitorMemberIds = "">
+		<cfset var visitorRow = "">
+		<cfset var visitorMembers = {}>
+		<cfset var visitorMember = {}>
+		<cfif structKeyExists(application, "members") and isArray(Data) and arrayLen(Data)>
+			<cfset visitorMemberIds = "">
+			<cfloop array="#Data#" index="visitorRow">
+				<cfif structKeyExists(visitorRow, "AnonymousUserId") and not isNull(visitorRow["AnonymousUserId"])><cfset visitorMemberIds = listAppend(visitorMemberIds, visitorRow["AnonymousUserId"])></cfif>
+			</cfloop>
+			<cfset visitorMembers = application.members.getVisitorMembers(visitorMemberIds)>
+			<cfloop array="#Data#" index="visitorRow">
+				<cfset visitorMember = (structKeyExists(visitorRow, "AnonymousUserId") and not isNull(visitorRow["AnonymousUserId"]) and structKeyExists(visitorMembers, visitorRow["AnonymousUserId"])) ? visitorMembers[visitorRow["AnonymousUserId"]] : {}>
+				<cfset visitorRow["MemberName"] = structIsEmpty(visitorMember) ? "" : visitorMember.name>
+				<cfset visitorRow["MemberEmail"] = structIsEmpty(visitorMember) ? "" : visitorMember.email>
+				<cfset visitorRow["MemberPicture"] = structIsEmpty(visitorMember) ? "" : visitorMember.picture>
+			</cfloop>
+		</cfif>
 		
 		<!--- Return the data as a json object. --->
 		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">

@@ -52,6 +52,10 @@
 			</cfif><!---<cfif isDefined("AnonymousUserDbObj")>--->
 		<cfelse><!---<cfif not structKeyExists(cookie, "gauid")>--->
 			<cfset anonymousUserId = cookie.gauid>
+			<!--- A signed-in member (2026-10-17): the admin's visitor screens show them by picture and name (Members.cfc linkVisitor). --->
+			<cfif structKeyExists(session, "galaxieMember") and structKeyExists(application, "members")>
+				<cfset application.members.linkVisitor(anonymousUserId)>
+			</cfif>
 			<!--- Load the anonymousUser entity --->
 			<cfset AnonymousUserDbObj = entityLoadByPk("AnonymousUser", anonymousUserId)>
 		</cfif><!---<cfif not structKeyExists(cookie, "gauid")>--->

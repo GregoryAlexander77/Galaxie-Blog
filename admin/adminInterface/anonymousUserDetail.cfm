@@ -3,6 +3,9 @@
 		<cfset getAnnonymousUser = application.blog.getAnonymousUser(anonymousUserId=URL.optArgs)><!--- getVisitorLog--->
 		<cfset getVisitedPosts = application.blog.getVisitedPosts(anonymousUserId=URL.optArgs)>
 		<cfset getSubscribers = application.blog.getSubscriber(anonymousUserId=URL.optArgs)>
+		<!--- A signed-in member (2026-10-17, owner): their picture and name, opening their page in Members (Members.cfc getVisitorMembers). --->
+		<cfset visitorMembers = structKeyExists(application, "members") ? application.members.getVisitorMembers(URL.optArgs) : {}>
+		<cfset visitorMember = structKeyExists(visitorMembers, val(URL.optArgs)) ? visitorMembers[val(URL.optArgs)] : {}>
 			
 		<cfif arrayLen(getAnnonymousUser)>
 			<!--- Set the variable values. I want to shorten the long variable names here. --->
@@ -85,6 +88,12 @@
 			<p>All of the unique visitors are logged including the IP address and user agent sting. The user name is available for administrative users only.</p>
 		</td>
 	  </tr>
+	<cfif not structIsEmpty(visitorMember)>
+	  <tr>
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">Member:</td>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" align="left"><cfoutput><a href="javascript:void(0);" onclick="createAdminInterfaceWindow(98, encodeURIComponent(this.getAttribute('data-email')));" data-email="#encodeForHtmlAttribute(visitorMember.email)#"><cfif len(visitorMember.picture)><img src="#encodeForHtmlAttribute(visitorMember.picture)#" alt="" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; vertical-align: middle;"><cfelse><span class="k-state-selected" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; font-size: 12px; font-weight: bold; vertical-align: middle;">#encodeForHtml(uCase(left(visitorMember.name, 1)) & (listLen(visitorMember.name, " ") gt 1 ? uCase(left(listLast(visitorMember.name, " "), 1)) : ""))#</span></cfif> #encodeForHtml(visitorMember.name)#</a></cfoutput></td>
+	  </tr>
+	</cfif>
 	<cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">

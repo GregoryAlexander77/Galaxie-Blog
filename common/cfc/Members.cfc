@@ -595,9 +595,11 @@
 	<cfargument name="email" type="string" required="true">
 	<cfargument name="stopEmails" type="boolean" required="true">
 	<cfset var params = { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, email = { value = lCase(arguments.email), cfsqltype = "cf_sql_varchar" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" } }>
-	<!--- Their picture and its file (2026-10-17). --->
+	<!--- Their picture and its file, and the links from the visitor log (2026-10-17). --->
 	<cftry>
 		<cfset removePicture(arguments.memberId)>
+		<cfset ensureVisitorTable()>
+		<cfset queryExecute("DELETE FROM MemberVisitor WHERE BlogRef = :blogId AND MemberRef = :memberId", params)>
 		<cfcatch type="any"></cfcatch>
 	</cftry>
 	<cftransaction>
@@ -946,6 +948,91 @@
 	</cfif>
 	<cfset queryExecute("DELETE FROM MemberPicture WHERE BlogRef = :blogId AND MemberRef = :memberId",
 		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" } })>
+</cffunction>
+
+<!--- ********************************************************************************************************************
+	Members in the visitor log (2026-10-17, owner): while a member is signed in, their visitor record (the AnonymousUser the
+	gauid cookie points to) is linked to them, so the admin's visitor screens show their picture and name instead of only a
+	browser. Its own small table (MemberVisitor), made the first time it's needed, like MemberPicture.
+********************************************************************************************************************* --->
+
+<cffunction name="ensureVisitorTable" access="private" returntype="void" output="false" hint="Creates the MemberVisitor table if it isn't there yet, once per application start.">
+	<cfset var updaterPath = "">
+	<cfset var updater = "">
+	<cfif structKeyExists(variables, "visitorTableReady")>
+		<cfreturn>
+	</cfif>
+	<cfset updaterPath = len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.DatabaseUpdater" : "common.cfc.DatabaseUpdater">
+	<cfset updater = createObject("component", updaterPath).init(application.rootDirectoryPath, application.blogIniPath)>
+	<cfif not len(application.databaseType ?: "")>
+		<cfset application.databaseType = getProfileString(application.blogIniPath, "default", "databaseType")>
+	</cfif>
+	<cfset updater.createTableIfMissing("MemberVisitor", {
+		sqlServer: "CREATE TABLE MemberVisitor (MemberVisitorId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, AnonymousUserRef INT NOT NULL, Updated DATETIME NOT NULL)",
+		mySql: "CREATE TABLE MemberVisitor (MemberVisitorId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, AnonymousUserRef INT NOT NULL, Updated DATETIME NOT NULL) DEFAULT CHARSET=utf8mb4",
+		postgre: "CREATE TABLE MemberVisitor (MemberVisitorId SERIAL PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, AnonymousUserRef INT NOT NULL, Updated TIMESTAMP NOT NULL)"
+	})>
+	<cfset variables.visitorTableReady = true>
+</cffunction>
+
+<cffunction name="linkVisitor" access="public" returntype="void" output="false"
+		hint="Notes that a visitor record belongs to the signed-in member (includes/templates/core/visitorTracking.cfm). Once per session per visitor record; never breaks a page.">
+	<cfargument name="anonymousUserId" required="true">
+	<cfset var memberId = 0>
+	<cfset var key = "">
+	<cfset var params = {}>
+	<cftry>
+		<cfif not structKeyExists(session, "galaxieMember") or not val(arguments.anonymousUserId)>
+			<cfreturn>
+		</cfif>
+		<cfset memberId = val(session.galaxieMember.memberId)>
+		<cfset key = memberId & "-" & val(arguments.anonymousUserId)>
+		<cfif memberId lte 0 or (structKeyExists(session, "galaxieMemberVisitorLinked") and session.galaxieMemberVisitorLinked eq key)>
+			<cfreturn>
+		</cfif>
+		<cfset ensureVisitorTable()>
+		<cfset params = { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = memberId, cfsqltype = "cf_sql_integer" },
+			anonymousUserId = { value = val(arguments.anonymousUserId), cfsqltype = "cf_sql_integer" }, now = { value = now(), cfsqltype = "cf_sql_timestamp" } }>
+		<!--- A shared computer: the record now belongs to whoever signed in last. --->
+		<cfset queryExecute("DELETE FROM MemberVisitor WHERE BlogRef = :blogId AND AnonymousUserRef = :anonymousUserId AND MemberRef <> :memberId", params)>
+		<cfif not queryExecute("SELECT COUNT(*) AS n FROM MemberVisitor WHERE BlogRef = :blogId AND AnonymousUserRef = :anonymousUserId", params).n>
+			<cfset queryExecute("INSERT INTO MemberVisitor (BlogRef, MemberRef, AnonymousUserRef, Updated) VALUES (:blogId, :memberId, :anonymousUserId, :now)", params)>
+		</cfif>
+		<cfset session.galaxieMemberVisitorLinked = key>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+</cffunction>
+
+<cffunction name="getVisitorMembers" access="public" returntype="struct" output="false"
+		hint="The members behind visitor records, for the admin's visitor screens: { anonymousUserId: { memberId, name, email, picture } }.">
+	<cfargument name="anonymousUserIds" type="string" required="true" hint="A list of AnonymousUserIds.">
+	<cfset var found = {}>
+	<cfset var ids = "">
+	<cfset var rows = "">
+	<cfset var pictures = {}>
+	<cfloop list="#arguments.anonymousUserIds#" index="ids">
+		<cfif val(ids)><cfset found[val(ids)] = ""></cfif>
+	</cfloop>
+	<cfif structIsEmpty(found)>
+		<cfreturn {}>
+	</cfif>
+	<cftry>
+		<cfset ensureVisitorTable()>
+		<cfset ensurePictureTable()>
+		<cfset rows = queryExecute("
+			SELECT v.AnonymousUserRef, m.MemberId, m.Name, m.Email, p.Picture
+			FROM MemberVisitor v
+				INNER JOIN BlogMember m ON m.MemberId = v.MemberRef
+				LEFT JOIN MemberPicture p ON p.MemberRef = m.MemberId AND p.BlogRef = v.BlogRef
+			WHERE v.BlogRef = :blogId AND v.AnonymousUserRef IN (:ids)",
+			{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, ids = { value = structKeyList(found), cfsqltype = "cf_sql_integer", list = true } })>
+		<cfset found = {}>
+		<cfloop query="rows">
+			<cfset found[rows.AnonymousUserRef] = { memberId: rows.MemberId, name: len(trim(rows.Name)) ? trim(rows.Name) : rows.Email, email: rows.Email, picture: isNull(rows.Picture) ? "" : rows.Picture }>
+		</cfloop>
+		<cfreturn found>
+		<cfcatch type="any"><cfreturn {}></cfcatch>
+	</cftry>
 </cffunction>
 
 <cffunction name="setMemberStatus" access="public" returntype="boolean" output="false" hint="Blocks (signed out everywhere at once) or unblocks a member.">
