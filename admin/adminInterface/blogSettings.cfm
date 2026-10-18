@@ -28,10 +28,10 @@
 	<cfset blogDsnUserName = application.BlogDbObj.getBlogDsnUserName()>
 	<cfset blogDsnPassword = application.BlogDbObj.getBlogDsnPassword()>
 	<cfset blogDBType = application.BlogDbObj.getBlogDatabaseType()>
-	<!--- The following 3 args are found in the blog ini file. --->
-	<cfset dsn = getProfileString(application.iniFile, "default", "dsn")>
-	<cfset dsnUserName = getProfileString(application.iniFile, "default", "username")>
-	<cfset dsnPassword = getProfileString(application.iniFile, "default", "password")>
+	<!--- The following 3 args are found in the blog ini file. application.blogIniPath, not application.iniFile (2026-10-18): iniFile is relative, so from this window it became includes\windows\C:\...\blog.ini.cfm and failed. --->
+	<cfset dsn = getProfileString(application.blogIniPath, "default", "dsn")>
+	<cfset dsnUserName = getProfileString(application.blogIniPath, "default", "username")>
+	<cfset dsnPassword = getProfileString(application.blogIniPath, "default", "password")>
 	<!--- Mail server settings. --->
 	<cfset mailServer = application.BlogDbObj.getBlogMailServer()>
 	<cfset mailusername = application.BlogDbObj.getBlogMailServerUserName()>
