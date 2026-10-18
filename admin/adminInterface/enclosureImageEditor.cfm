@@ -496,6 +496,8 @@
 			<!--- Note: this does not do anything. I suspect because the tinymce editor is modal mode when it is invoked. This is only used for debugging purposes now alert(response.postId) alert(response. mediaId) alert(response.externalUrl) $("#externalImageUrl").val(response.externalUrl); --->
 		}
 		
+		<!--- Posts only (2026-10-18): it uses the post editor's selectorName, which a Page Collection's window never sets (the error broke its picture editor). --->
+		<cfif not isPageCollectionEnclosure>
 		<!--- Remove the picture (owner, 10-16: a post had no visible way to take its hero picture off - only emptying the editor
 		box and pressing Submit did it). Asks first, removes it, refreshes the post editor's preview and closes this window. --->
 		function removePostHero(){
@@ -517,6 +519,7 @@
 				});
 			});
 		}
+		</cfif>
 
 		function removeMediaEnclosure(){
 			jQuery.ajax({
