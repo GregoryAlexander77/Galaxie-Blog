@@ -31,6 +31,8 @@ var galaxieMembers = (function($) {
 			// selected colour (k-state-selected) so it suits every theme. Their picture will go in the same circle.
 			".galaxieMemberAvatar { display: inline-flex; align-items: center; justify-content: center; width: 2em; height: 2em; border-radius: 50%; overflow: hidden; font-size: 0.8em; font-weight: bold; line-height: 1; vertical-align: middle; letter-spacing: 0.02em; }" +
 			".galaxieMemberAvatar img { width: 100%; height: 100%; object-fit: cover; }" +
+			".galaxieMemberAvatarLarge { width: 3.5em; height: 3.5em; font-size: 1.1em; }" +
+			".galaxieMemberPictureRow { display: flex; align-items: center; gap: 0.6em; flex-wrap: wrap; }" +
 			".galaxieMemberMessage { margin: 0 0 1em 0; }" +
 			".galaxieMemberButtons .k-button { margin: 0 0.5em 0.5em 0; }" +
 			// Hints read like normal text (the owner's admin look), not Kendo's small hint font.
@@ -84,6 +86,17 @@ var galaxieMembers = (function($) {
 		return (state.member.email || "").charAt(0).toUpperCase();
 	}
 
+	// Fills a round picture: the member's own picture (2026-10-17) when they've uploaded one, otherwise their initials.
+	function fillAvatar(circle) {
+		circle.empty();
+		if (state.member.picture) {
+			circle.removeClass("k-state-selected").append($('<img alt="">').attr("src", state.member.picture));
+		} else {
+			circle.addClass("k-state-selected").text(initials());
+		}
+		return circle;
+	}
+
 	// Adds "Sign in" / the member's name to both menus (the one under the title and the one fixed to the top when scrolling).
 	// Where the words would make the menu wrap to a second line (phones, or a long name), a person icon is shown instead,
 	// with the words as its label and tooltip.
@@ -106,13 +119,13 @@ var galaxieMembers = (function($) {
 			}
 			item.find(".galaxieMemberMenuText").text(menuText()).removeClass("galaxieMemberMenuIcon").removeAttr("aria-label title role");
 			// Signed in (owner, 2026-10-17): a small round picture instead of the name, like most sites - their initials for now.
-			if (state.signedIn && initials()) {
+			if (state.signedIn && (state.member.picture || initials())) {
 				item.find(".galaxieMemberMenuText").empty().addClass("galaxieMemberMenuIcon")
 					.attr({ "aria-label": menuText(), title: menuText(), role: "img" })
-					.append($('<span class="galaxieMemberAvatar k-state-selected" aria-hidden="true"></span>').text(initials()));
+					.append(fillAvatar($('<span class="galaxieMemberAvatar" aria-hidden="true"></span>')));
 			}
 		});
-		if (state.signedIn && initials()) { return; }
+		if (state.signedIn && (state.member.picture || initials())) { return; }
 		// The menu fixed to the top is hidden until the page scrolls, so the menu under the title decides for both.
 		var measured = $("#topMenu:visible");
 		if (!measured.length) { measured = $("#fixedNavMenu:visible"); }
@@ -248,6 +261,14 @@ var galaxieMembers = (function($) {
 				'<div class="galaxieMemberSection galaxieMemberSignups"><h4>Your sign-ups</h4><div class="galaxieMemberList">Loading...</div></div>' +
 				'<div class="galaxieMemberSection galaxieMemberEmails"><h4>Emails</h4><div class="galaxieMemberList">Loading...</div></div>' +
 				'<form novalidate class="galaxieMemberSection galaxieMemberDetails"><h4>Your details</h4>' +
+					'<div class="galaxieMemberField"><label>Picture</label>' +
+						'<div class="galaxieMemberPictureRow"><span class="galaxieMemberAvatar galaxieMemberAvatarLarge" aria-hidden="true"></span>' +
+						'<button type="button" class="k-button galaxieMemberPictureUpload">Upload a picture</button>' +
+						'<button type="button" class="k-button galaxieMemberPictureRemove">Remove</button>' +
+						'<input type="file" class="galaxieMemberPictureFile" accept="image/jpeg,image/png,image/gif,image/webp" hidden></div>' +
+						'<div class="k-form-hint">Shown in the menu when you are signed in. JPG, PNG, GIF or WebP, up to 5 MB; a square one looks best.</div>' +
+						'<div class="galaxieMemberPictureStatus" role="status"></div>' +
+					'</div>' +
 					'<div class="galaxieMemberField"><label>Email</label><div class="galaxieMemberEmail"></div></div>' +
 					'<div class="galaxieMemberField"><label for="galaxieMemberName">Name</label><input type="text" id="galaxieMemberName" class="k-textbox" maxlength="125" autocomplete="name"></div>' +
 					'<div class="galaxieMemberField"><label for="galaxieMemberPhone">Phone</label><div class="k-form-hint">Optional. Filled in when you book.</div><input type="tel" id="galaxieMemberPhone" class="k-textbox" maxlength="50" autocomplete="tel"></div>' +
@@ -296,6 +317,45 @@ var galaxieMembers = (function($) {
 					}
 				})
 				.fail(function() { button.prop("disabled", false); saved.text("Something went wrong. Please try again."); });
+		});
+		// The picture (2026-10-17): saved as soon as it's chosen, and shown in the menu straight away.
+		function showPicture() {
+			fillAvatar(content.find(".galaxieMemberAvatarLarge"));
+			content.find(".galaxieMemberPictureRemove").toggle(!!state.member.picture);
+			content.find(".galaxieMemberPictureUpload").text(state.member.picture ? "Change picture" : "Upload a picture");
+		}
+		showPicture();
+		content.find(".galaxieMemberPictureUpload").on("click", function() { content.find(".galaxieMemberPictureFile").val("").trigger("click"); });
+		content.find(".galaxieMemberPictureFile").on("change", function() {
+			var file = this.files && this.files[0];
+			var status = content.find(".galaxieMemberPictureStatus");
+			if (!file) { return; }
+			if (file.size > 5 * 1024 * 1024) { status.text("The picture is too big; 5 MB at most."); return; }
+			var body = new FormData();
+			body.append("csrf", state.csrf);
+			body.append("memberPicture", file);
+			status.text("Uploading...");
+			$.ajax({ type: "post", url: proxyUrl + "?method=memberUploadPicture", data: body, processData: false, contentType: false, dataType: "json", cache: false })
+				.done(function(response) {
+					if (response && response.success) {
+						state.member.picture = response.url;
+						status.text("");
+						showPicture();
+						updateMenus();
+					} else {
+						status.text((response && response.errorMessage) || "The picture could not be uploaded.");
+					}
+				})
+				.fail(function() { status.text("The picture could not be uploaded. Please try again."); });
+		});
+		content.find(".galaxieMemberPictureRemove").on("click", function() {
+			post("memberRemovePicture", { csrf: state.csrf }).done(function(response) {
+				if (response && response.success) {
+					state.member.picture = "";
+					showPicture();
+					updateMenus();
+				}
+			});
 		});
 		content.find(".galaxieMemberDownload").on("click", function() { downloadData($(this)); });
 		content.find(".galaxieMemberDelete").on("click", function() { openDeleteAccount(dialog); });

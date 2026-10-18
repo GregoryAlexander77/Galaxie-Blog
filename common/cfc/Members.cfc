@@ -456,6 +456,7 @@
 		"siteAddress": application.blogHostUrl,
 		"profile": {
 			"email": arguments.member.email, "name": arguments.member.name, "phone": arguments.member.phone, "timeZone": arguments.member.timeZone,
+			"picture": structKeyExists(arguments.member, "memberId") ? getPicture(arguments.member.memberId) : "",
 			"joined": isDate(arguments.member.created) ? dateTimeFormat(arguments.member.created, "yyyy-mm-dd HH:nn") : "",
 			"lastSeen": isDate(arguments.member.lastSeen) ? dateTimeFormat(arguments.member.lastSeen, "yyyy-mm-dd HH:nn") : ""
 		},
@@ -594,6 +595,11 @@
 	<cfargument name="email" type="string" required="true">
 	<cfargument name="stopEmails" type="boolean" required="true">
 	<cfset var params = { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, email = { value = lCase(arguments.email), cfsqltype = "cf_sql_varchar" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" } }>
+	<!--- Their picture and its file (2026-10-17). --->
+	<cftry>
+		<cfset removePicture(arguments.memberId)>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
 	<cftransaction>
 		<cfset queryExecute("DELETE FROM MemberRememberToken WHERE BlogRef = :blogId AND MemberRef = :memberId", params)>
 		<cfset queryExecute("DELETE FROM MemberLoginToken WHERE BlogRef = :blogId AND LOWER(Email) = :email", params)>
@@ -765,6 +771,7 @@
 	<cfif found.isMember>
 		<cfset found.member = getMember(found.memberId)>
 	</cfif>
+	<cfset found.picture = found.memberId gt 0 ? getPicture(found.memberId) : "">
 	<cfif not structKeyExists(found, "member") or structIsEmpty(found.member)>
 		<cfset found.member = { memberId: 0, email: found.email, name: found.name, phone: found.phone, timeZone: "", status: "", created: "", lastSeen: "" }>
 	</cfif>
@@ -871,6 +878,74 @@
 	<cflog file="galaxieMembers" type="information" text="A person was deleted from Members by #getAuthUser()#.">
 	<cfset result.success = true>
 	<cfreturn result>
+</cffunction>
+
+<!--- ********************************************************************************************************************
+	The member's picture (2026-10-17, owner): the round picture in the menu instead of their initials, in My account and in the
+	admin. Kept in its own small table (MemberPicture, made the first time it's needed) rather than a new BlogMember column:
+	ORM only adds columns when the whole application restarts, and BlogMember is read on every page.
+********************************************************************************************************************* --->
+
+<cffunction name="ensurePictureTable" access="private" returntype="void" output="false" hint="Creates the MemberPicture table if it isn't there yet (DatabaseUpdater.createTableIfMissing), once per application start.">
+	<cfset var updaterPath = "">
+	<cfset var updater = "">
+	<cfif structKeyExists(variables, "pictureTableReady")>
+		<cfreturn>
+	</cfif>
+	<cfset updaterPath = len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.DatabaseUpdater" : "common.cfc.DatabaseUpdater">
+	<cfset updater = createObject("component", updaterPath).init(application.rootDirectoryPath, application.blogIniPath)>
+	<!--- createTableIfMissing picks the SQL by application.databaseType, which only the updater sets (see People.cfc ensureTable). --->
+	<cfif not len(application.databaseType ?: "")>
+		<cfset application.databaseType = getProfileString(application.blogIniPath, "default", "databaseType")>
+	</cfif>
+	<cfset updater.createTableIfMissing("MemberPicture", {
+		sqlServer: "CREATE TABLE MemberPicture (MemberPictureId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, Picture NVARCHAR(500) NOT NULL, Updated DATETIME NOT NULL)",
+		mySql: "CREATE TABLE MemberPicture (MemberPictureId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, Picture VARCHAR(500) NOT NULL, Updated DATETIME NOT NULL) DEFAULT CHARSET=utf8mb4",
+		postgre: "CREATE TABLE MemberPicture (MemberPictureId SERIAL PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, Picture VARCHAR(500) NOT NULL, Updated TIMESTAMP NOT NULL)"
+	})>
+	<cfset variables.pictureTableReady = true>
+</cffunction>
+
+<cffunction name="getPicture" access="public" returntype="string" output="false" hint="The web address of a member's picture, or '' when they haven't uploaded one.">
+	<cfargument name="memberId" type="numeric" required="true">
+	<cfset var rows = "">
+	<cfif arguments.memberId lte 0>
+		<cfreturn "">
+	</cfif>
+	<cftry>
+		<cfset ensurePictureTable()>
+		<cfset rows = queryExecute("SELECT Picture FROM MemberPicture WHERE BlogRef = :blogId AND MemberRef = :memberId ORDER BY MemberPictureId DESC",
+			{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" } })>
+		<cfreturn rows.recordCount ? rows.Picture : "">
+		<!--- A picture must never break a page. --->
+		<cfcatch type="any"><cfreturn ""></cfcatch>
+	</cftry>
+</cffunction>
+
+<cffunction name="setPicture" access="public" returntype="void" output="false" hint="Saves a member's new picture, removing the old one and its file.">
+	<cfargument name="memberId" type="numeric" required="true">
+	<cfargument name="url" type="string" required="true">
+	<cfset removePicture(arguments.memberId)>
+	<cfset queryExecute("INSERT INTO MemberPicture (BlogRef, MemberRef, Picture, Updated) VALUES (:blogId, :memberId, :picture, :now)",
+		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" },
+		  picture = { value = arguments.url, cfsqltype = "cf_sql_varchar" }, now = { value = now(), cfsqltype = "cf_sql_timestamp" } })>
+</cffunction>
+
+<cffunction name="removePicture" access="public" returntype="void" output="false" hint="Removes a member's picture and its file (the member, or the site owner from their page in Members).">
+	<cfargument name="memberId" type="numeric" required="true">
+	<cfset var old = getPicture(arguments.memberId)>
+	<cfset var path = "">
+	<cfset ensurePictureTable()>
+	<!--- Only files this feature made are deleted: /images/photo/member/ --->
+	<cfif len(old) and findNoCase(application.baseUrl & "/images/photo/member/", old) eq 1>
+		<cfset path = expandPath(old)>
+		<cftry>
+			<cfif fileExists(path)><cfset fileDelete(path)></cfif>
+			<cfcatch type="any"><cflog file="galaxieMembers" type="warning" text="A member's old picture file could not be deleted: #cfcatch.message#"></cfcatch>
+		</cftry>
+	</cfif>
+	<cfset queryExecute("DELETE FROM MemberPicture WHERE BlogRef = :blogId AND MemberRef = :memberId",
+		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" } })>
 </cffunction>
 
 <cffunction name="setMemberStatus" access="public" returntype="boolean" output="false" hint="Blocks (signed out everywhere at once) or unblocks a member.">

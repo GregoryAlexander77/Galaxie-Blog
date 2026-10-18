@@ -101,6 +101,25 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 		});
 
 		<!--- Delete everything (2026-10-17, owner's choice): ProxyController.cfc's adminDeletePerson -> Members.cfc adminDeletePerson. --->
+		<!--- Remove their picture (ProxyController.cfc adminRemoveMemberPicture); their initials show again. --->
+		$("#memberDetailRemovePicture").on("click", function() {
+			$.when(kendo.ui.ExtYesNoDialog.show({ title: "Remove picture?", message: "Remove this member's picture? Their initials show instead. They can upload another one.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
+				if (!answer['button'] || answer['button'] !== 'Yes') { return; }
+				jQuery.ajax({
+					type: "post",
+					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=adminRemoveMemberPicture",
+					data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", memberId: <cfoutput>#detailMember.memberId#</cfoutput> },
+					dataType: "json",
+					success: function(response) {
+						if (response && response.success) {
+							try { $("#memberDetailWindow").data("kendoWindow").refresh(); } catch (error) {}
+						}
+					},
+					error: function(jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
+				});
+			});
+		});
+
 		$("#memberDetailDelete").on("click", function() {
 			$.when(kendo.ui.ExtYesNoDialog.show({ title: "Delete everything?", message: "Delete everything about this person? This can't be undone.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
 				if (!answer['button'] || answer['button'] !== 'Yes') { return; }
@@ -138,6 +157,14 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 		<td class="#blockClass#" align="right">Email:</td>
 		<td class="#blockClass#"><a href="mailto:#encodeForHtmlAttribute(detailPerson.email)#">#encodeForHtml(detailPerson.email)#</a></td>
 	</tr>
+	<!--- Their own picture (2026-10-17), with Remove for one that isn't suitable. --->
+	<cfif len(detailPerson.picture)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right">Picture:</td>
+		<td class="#blockClass#"><img src="#encodeForHtmlAttribute(detailPerson.picture)#" alt="" width="60" height="60" style="border-radius: 50%; object-fit: cover; vertical-align: middle;"> <button type="button" class="k-button" id="memberDetailRemovePicture">Remove picture</button></td>
+	</tr>
+	</cfif>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right">What they've done:</td>

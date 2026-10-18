@@ -12255,8 +12255,91 @@
 
 	<cffunction name="memberForBrowser" access="private" returntype="struct" output="false" hint="The member fields the visitor's own browser may see, with lower-case keys.">
 		<cfargument name="member" type="struct" required="true">
-		<cfreturn { "name": arguments.member.name, "email": arguments.member.email, "phone": arguments.member.phone, "timeZone": arguments.member.timeZone }>
+		<cfreturn { "name": arguments.member.name, "email": arguments.member.email, "phone": arguments.member.phone, "timeZone": arguments.member.timeZone,
+			"picture": structKeyExists(arguments.member, "memberId") ? application.members.getPicture(arguments.member.memberId) : "" }>
 	</cffunction>
+
+	<cffunction name="memberUploadPicture" access="remote" returnformat="json" output="false"
+			hint="My account (2026-10-17): the signed-in member's own picture, saved to /images/photo/member/ under a random name. JPG, PNG, GIF or WebP up to 5 MB, and it has to be a real image. Replaces their old one. Returns { success, url, errorMessage }.">
+		<cfargument name="csrf" type="string" required="false" default="">
+		<cfargument name="memberPicture" required="false" default="" hint="The uploaded file's form field (read with cffile upload).">
+		<cfset var response = { "success": false, "url": "", "errorMessage": "Please sign in again." }>
+		<cfset var member = {}>
+		<cfset var folder = expandPath(application.baseUrl & "/images/photo/member/")>
+		<cfset var uploaded = {}>
+		<cfset var tempFile = "">
+		<cfset var extension = "">
+		<cfset var fileName = "">
+		<cfset var onWindows = findNoCase("windows", server.os.name) gt 0>
+		<cfif cgi.request_method eq "POST" and application.members.checkCsrfToken(arguments.csrf)>
+			<cfset member = application.members.getCurrentMember()>
+		</cfif>
+		<cfif not structIsEmpty(member)>
+			<cfset response[ "errorMessage" ] = "">
+			<cftry>
+				<cfif not directoryExists(folder)>
+					<cfset directoryCreate(folder)>
+					<!--- On Linux the web server has to be able to read it (galaxieblog.org answered 403 for files Lucee made). --->
+					<cfif not onWindows><cfset fileSetAccessMode(folder, "755")></cfif>
+				</cfif>
+				<cffile action="upload" fileField="memberPicture" destination="#getTempDirectory()#" nameConflict="makeUnique" result="uploaded">
+				<cfset tempFile = uploaded.serverDirectory & "/" & uploaded.serverFile>
+				<cfset extension = lCase(uploaded.serverFileExt)>
+				<cfif not listFind("jpg,jpeg,png,gif,webp", extension)>
+					<cfset response[ "errorMessage" ] = "Choose a JPG, PNG, GIF or WebP picture.">
+				<cfelseif val(uploaded.fileSize) gt 5 * 1024 * 1024>
+					<cfset response[ "errorMessage" ] = "The picture is too big; 5 MB at most.">
+				<cfelseif extension neq "webp" and not isImageFile(tempFile)>
+					<cfset response[ "errorMessage" ] = "That file isn't a picture.">
+				<cfelse>
+					<cfset fileName = "member-" & lCase(left(hash(createUUID() & rand("SHA1PRNG"), "SHA-256"), 16)) & "." & extension>
+					<cffile action="move" source="#tempFile#" destination="#folder##fileName#">
+					<cfif not onWindows><cfset fileSetAccessMode(folder & fileName, "644")></cfif>
+					<cfset application.members.setPicture(member.memberId, application.baseUrl & "/images/photo/member/" & fileName)>
+					<cfset response[ "success" ] = true>
+					<cfset response[ "url" ] = application.baseUrl & "/images/photo/member/" & fileName>
+				</cfif>
+				<cfif fileExists(tempFile)><cfset fileDelete(tempFile)></cfif>
+				<cfcatch type="any">
+					<cflog file="galaxieMembers" type="error" text="A member's picture could not be uploaded: #cfcatch.message#">
+					<cfset response[ "errorMessage" ] = "The picture could not be uploaded. Please try another one.">
+				</cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="memberRemovePicture" access="remote" returnformat="json" output="false" hint="My account (2026-10-17): removes the signed-in member's picture; their initials show again.">
+		<cfargument name="csrf" type="string" required="false" default="">
+		<cfset var response = { "success": false }>
+		<cfset var member = {}>
+		<cfif cgi.request_method eq "POST" and application.members.checkCsrfToken(arguments.csrf)>
+			<cfset member = application.members.getCurrentMember()>
+			<cfif not structIsEmpty(member)>
+				<cfset application.members.removePicture(member.memberId)>
+				<cfset response[ "success" ] = true>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="adminRemoveMemberPicture" access="remote" returnformat="json" output="false" hint="The site owner removes a member's picture (window 98, 2026-10-17), eg. one that isn't suitable.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="memberId" required="false" default="0">
+		<cfset var response = { "success": false }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.memberId) and val(arguments.memberId) gt 0>
+			<cfset application.members.removePicture(val(arguments.memberId))>
+			<cflog file="galaxieMembers" type="information" text="Member #val(arguments.memberId)#'s picture was removed by #getAuthUser()#.">
+			<cfset response[ "success" ] = true>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 
 	<cffunction name="newBookingsFeedAddress" access="remote" returnformat="json" output="false"
 			hint="Makes a new secret address for the owner's bookings calendar feed (2026-10-15); the old one stops working.">
