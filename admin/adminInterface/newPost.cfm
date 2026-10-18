@@ -478,9 +478,17 @@
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 				<input type="text" id="title" name="title" value="" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%" /> 
+				<div class="k-form-hint">The name of your post or page, shown as its heading. Its web address is made from it.</div>
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
+		  <!--- A line above Title, like Description's (owner, 2026-10-17). --->
+		  <tr>
+		  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">The name of your post or page, shown as its heading. Its web address is made from it.</td>
+		  </tr>
+		  <tr height="2px">
+		  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
 		  <tr valign="middle" height="35">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
 			<h4 class="adminBlockHeading"><label for="post">Title:</label></h4>
