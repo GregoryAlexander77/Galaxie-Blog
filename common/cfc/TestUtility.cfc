@@ -1985,6 +1985,13 @@ END CATCH;
 	<cfif arrayLen(warnings)>
 		<h3>Not changed - needs a look (#arrayLen(warnings)#)</h3>
 		<cfloop array="#warnings#" index="item"><div>#encodeForHtml(item)#</div></cfloop>
+		<!--- A new page's collection wasn't found (2026-10-18): list them all, so the right title or address can be copied. --->
+		<cfif arrayToList(warnings, chr(10)) contains ": no collection /">
+			<h3>The page collections on this blog</h3>
+			<cfloop array="#ormExecuteQuery('FROM PageCollection WHERE BlogRef = :blog ORDER BY Title', { blog = application.BlogDbObj })#" index="item">
+				<div>"#encodeForHtml(item.getTitle())#" - /#encodeForHtml(item.getCollectionAlias())#</div>
+			</cfloop>
+		</cfif>
 	<cfelse>
 		<p>Every edit matched.</p>
 	</cfif>
