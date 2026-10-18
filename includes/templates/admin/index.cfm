@@ -98,6 +98,14 @@ next to it, same &#44; comma-escaping trick "Create Page" already uses. --->
 	<cfset linkList = listAppend(linkList, adminHomeCounts.collections eq 0 ? "javascript:createAdminInterfaceWindow(24&##44;'newPageCollection');" : "javascript:createAdminInterfaceWindow(68);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/pageCollection.gif")>
 </cfif>
+<!--- Configure Homepage - the global "what shows as homepage" toggle. Moved here 2026-10-18 (owner), right after Page
+Collections and before Configure Menu, so the homepage and menu settings sit together. --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
+	<cfset iconList = listAppend(iconList, 'ConfigureHomepage')>
+	<cfset titleList = listAppend(titleList, 'Configure Homepage')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(70);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/configureSite.gif")>
+</cfif>
 <!--- Configure Menu (2026-10-10, 4.8): the owner's Menu links and the top menu's names. Same capability as Themes. --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditTheme')>
 	<cfset iconList = listAppend(iconList, 'ConfigureMenu')>
@@ -193,21 +201,11 @@ details). --->
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(38);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/settings.gif")>
 </cfif>
-<!--- Configure Homepage - the global "what shows as homepage" toggle. Managing the underlying Page Collections
-structure itself now lives up near Create Post/Create Page (Create Page Collection/Page Collections), not here. --->
-<!--- Themes ahead of Configure Homepage - themes get reached for far more often (designing/tweaking the site), so it
-gets the earlier slot of the two. --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditTheme') gt 0>
 	<cfset iconList = listAppend(iconList, 'Themes')>
 	<cfset titleList = listAppend(titleList, 'Themes & Content')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(29);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/themes.png")>
-</cfif>
-<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
-	<cfset iconList = listAppend(iconList, 'ConfigureHomepage')>
-	<cfset titleList = listAppend(titleList, 'Configure Homepage')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(70);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/configureSite.gif")>
 </cfif>
 <!--- There are occassional ORM lock issues on occassion since the logging requires capturing data for each visitor ---> 
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
