@@ -1814,7 +1814,8 @@ END CATCH;
 	  ALLPAGES  - find/replace pairs applied to every page and post that contains the text (eg. a link's text);
 	  PAGES     - per page (by POSTALIAS): find/replace EDITS, and an optional NEWTITLE and NEWDESCRIPTION. The address
 	              (alias) is never changed, so links to the page keep working;
-	  NEWPAGES  - pages to create, as drafts (not released), in the collection named by COLLECTIONALIAS. A page whose
+	  NEWPAGES  - pages to create, as drafts (not released), in the collection named by COLLECTIONALIAS (or, when no
+	              collection has that address, by COLLECTIONTITLE). A page whose
 	              alias already exists is left alone, so your own changes to it are never overwritten.
 	Each FIND must match the stored HTML exactly (get it with exportDocsContent). For every edit the dry run says:
 	  will change          - the text was found once (ALLPAGES: anywhere) and will be replaced;
@@ -1931,13 +1932,18 @@ END CATCH;
 	<cfloop array="#structKeyExists(docsEditList, 'NEWPAGES') ? docsEditList.NEWPAGES : []#" index="newPage">
 		<cfset found = ormExecuteQuery("FROM Post WHERE BlogRef = :blog AND PostAlias = :alias", { blog = application.BlogDbObj, alias = newPage.POSTALIAS })>
 		<cfset collectionList = ormExecuteQuery("FROM PageCollection WHERE BlogRef = :blog AND CollectionAlias = :alias", { blog = application.BlogDbObj, alias = newPage.COLLECTIONALIAS })>
+		<!--- Or by its title (2026-10-18): a collection's address is made from its title when it's first saved and isn't shown
+		anywhere, so a list can name the collection by COLLECTIONTITLE too. --->
+		<cfif not arrayLen(collectionList) and structKeyExists(newPage, "COLLECTIONTITLE") and len(newPage.COLLECTIONTITLE)>
+			<cfset collectionList = ormExecuteQuery("FROM PageCollection WHERE BlogRef = :blog AND lower(Title) = :title", { blog = application.BlogDbObj, title = lCase(trim(newPage.COLLECTIONTITLE)) })>
+		</cfif>
 		<cfoutput><h3>New page: #encodeForHtml(newPage.TITLE)# <small>/#encodeForHtml(newPage.POSTALIAS)#</small></h3></cfoutput>
 		<cfif arrayLen(found)>
 			<cfoutput><div><b>already exists</b> - left alone</div></cfoutput>
 			<cfcontinue>
 		</cfif>
 		<cfif not arrayLen(collectionList)>
-			<cfset arrayAppend(warnings, "New page " & newPage.TITLE & ": no collection /" & newPage.COLLECTIONALIAS & " - not created")>
+			<cfset arrayAppend(warnings, "New page " & newPage.TITLE & ": no collection /" & newPage.COLLECTIONALIAS & (structKeyExists(newPage, "COLLECTIONTITLE") ? " or titled """ & newPage.COLLECTIONTITLE & """" : "") & " - not created")>
 			<cfcontinue>
 		</cfif>
 		<cfoutput>
