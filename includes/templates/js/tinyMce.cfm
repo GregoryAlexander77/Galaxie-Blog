@@ -164,7 +164,7 @@
 
 				<!--- Build a url-fragment-safe slug: lower case, spaces/punctuation collapsed to single dashes, leading/trailing dashes trimmed. --->
 				function slugify(text) {
-					var clean = (text || '').replace(/ /g, ' ').trim().toLowerCase();
+					var clean = (text || '').replace(/\u00a0/g, ' ').trim().toLowerCase();
 					var slug = clean.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 					return slug || 'section';
 				}
