@@ -924,30 +924,51 @@
 <cffunction name="ensurePodTemplate" access="public" returntype="void" output="false"
 		hint="Makes sure the Upcoming Events pod has its ContentTemplate row (so Themes can switch it off). Run by the 4.9 update and, once per application start, by the sidebar; new installs get it the same way. Safe to run more than once.">
 	<cfset var found = 0>
-	<cfset var entity = "">
-	<cfset var templateType = "">
 	<cfif structKeyExists(variables, "podTemplateChecked") and variables.podTemplateChecked>
 		<cfreturn>
 	</cfif>
+	<!--- Only once per application start, also when it fails: the sidebar calls this on every page, and a failure that is
+	retried every time turns into thousands of database errors (2,157 in three days on a live blog, 2026-10-18). --->
+	<cfset variables.podTemplateChecked = true>
 	<cftry>
-		<cfset found = ormExecuteQuery("SELECT COUNT(*) FROM ContentTemplate WHERE ContentTemplateName = :name", { name = "upcomingEventsPod" }, true)>
+		<cfset found = queryExecute("SELECT COUNT(*) AS Found FROM ContentTemplate WHERE ContentTemplateName = :name", { name = { value = "upcomingEventsPod", cfsqltype = "varchar" } }).Found>
 		<cfif val(found) eq 0>
-			<cftransaction>
-				<cfset entity = entityNew("ContentTemplate")>
-				<cfset templateType = entityLoadByPK("ContentTemplateType", javacast("int", 2))>
-				<cfif not isNull(templateType)><cfset entity.setContentTemplateTypeRef(templateType)></cfif>
-				<cfset entity.setParentTemplatePath("includes/templates/sideBar.cfm")>
-				<cfset entity.setContentTemplateName("upcomingEventsPod")>
-				<cfset entity.setContentTemplateDesc("The upcoming events pod")>
-				<cfset entity.setContentTemplatePath("includes/layers/sideBar.cfm")>
-				<cfset entity.setActive(true)>
-				<cfset entity.setDate(now())>
-				<cfset entitySave(entity)>
-			</cftransaction>
+			<cfset addContentTemplateRow("upcomingEventsPod", "The upcoming events pod", "includes/templates/sideBar.cfm", "includes/layers/sideBar.cfm", 2)>
 		</cfif>
-		<cfset variables.podTemplateChecked = true>
 		<cfcatch type="any">
 			<cflog file="galaxieBlogErrors" type="error" text="Events: the Upcoming Events pod template could not be added: #cfcatch.message#">
+		</cfcatch>
+	</cftry>
+</cffunction>
+
+<cffunction name="addContentTemplateRow" access="public" returntype="void" output="false"
+		hint="Adds a ContentTemplate row with plain SQL (2026-10-18). Not with entitySave: on blogs whose ContentTemplateId does not number itself (older SQL Server installs, where the installer gave every row its id), the ORM insert fails with 'Cannot insert the value NULL into column ContentTemplateId', and the failed entity stays in the ORM session. So: insert without an id first, and when the database refuses, give the row the next id.">
+	<cfargument name="name" type="string" required="true">
+	<cfargument name="description" type="string" required="true">
+	<cfargument name="parentTemplatePath" type="string" required="true">
+	<cfargument name="templatePath" type="string" required="true">
+	<cfargument name="templateTypeId" type="numeric" required="true">
+	<cfset var typeFound = queryExecute("SELECT COUNT(*) AS Found FROM ContentTemplateType WHERE ContentTemplateTypeId = :id", { id = { value = arguments.templateTypeId, cfsqltype = "integer" } })>
+	<cfset var params = {
+		typeRef = { value = arguments.templateTypeId, cfsqltype = "integer", null = (typeFound.Found eq 0) },
+		parentPath = { value = arguments.parentTemplatePath, cfsqltype = "varchar" },
+		name = { value = arguments.name, cfsqltype = "varchar" },
+		description = { value = arguments.description, cfsqltype = "varchar" },
+		path = { value = arguments.templatePath, cfsqltype = "varchar" },
+		yes = { value = 1, cfsqltype = "bit" },
+		no = { value = 0, cfsqltype = "bit" },
+		now = { value = now(), cfsqltype = "timestamp" }
+	}>
+	<cfset var columns = "ContentTemplateTypeRef, ParentTemplatePath, ContentTemplateName, ContentTemplateDesc, ContentTemplatePath, ContentTemplateUrl, EnableContentTemplate, CustomOutput, Cache, Active, Date">
+	<cfset var values = ":typeRef, :parentPath, :name, :description, :path, '', :yes, :no, :yes, :yes, :now">
+	<cfset var nextId = "">
+	<cftry>
+		<cfset queryExecute("INSERT INTO ContentTemplate (#columns#) VALUES (#values#)", params)>
+		<cfcatch type="database">
+			<!--- The id does not number itself here: use the next one. --->
+			<cfset nextId = queryExecute("SELECT COALESCE(MAX(ContentTemplateId), 0) + 1 AS NextId FROM ContentTemplate").NextId>
+			<cfset params.id = { value = nextId, cfsqltype = "integer" }>
+			<cfset queryExecute("INSERT INTO ContentTemplate (ContentTemplateId, #columns#) VALUES (:id, #values#)", params)>
 		</cfcatch>
 	</cftry>
 </cffunction>
