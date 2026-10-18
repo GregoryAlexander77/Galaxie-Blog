@@ -157,7 +157,8 @@
 	<!--- Forms (2026-10-13): the Insert Form button. --->
 	<cfset includeWebForm = true>
 	<!--- Booking (2026-10-17): only on pages. A blog post can't hold a booking - a booking stays available, so it belongs on a page. --->
-	<cfset includeBooking = arrayLen(getPost) and getPost[1]['IsPage']>
+	<!--- Not on a booking page either (2026-10-17): it adds its own booking form under the text (Booking details sets what it offers). --->
+	<cfset includeBooking = arrayLen(getPost) and getPost[1]['IsPage'] and not postIsBooking>
 	</cfsilent>
 	<!--- Include the tinymce js template --->
 	<cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">

@@ -472,7 +472,8 @@
 								<cfif getPageMode() eq 'post' and structKeyExists(application, "events")>#application.events.renderCard(postId = postId, title = title, postUrl = postLink, heroKind = (request.galaxieHeroKind ?: ""))#</cfif>
 								#post#	
 								<!--- A booking page (2026-10-17): the booking form under the page's text (Bookings.cfc renderPageWidgetHtml). --->
-								<cfif getPageMode() eq 'post' and structKeyExists(application, "bookings")>#application.bookings.renderPageWidgetHtml(postId)#</cfif>
+								<!--- Not when the text already has a booking placed with Insert > Booking (2026-10-17), so it's never shown twice. --->
+								<cfif getPageMode() eq 'post' and structKeyExists(application, "bookings") and not reFindNoCase('class="galaxieBooking["[:space:]]', post)>#application.bookings.renderPageWidgetHtml(postId)#</cfif>
 								<!--- If the more tag exists and we are not looking at a page, summarize the content (done when we set the postContent in logic above) and render a button to get to the full post. --->
 							<cfif len(morebody)>
 								<!--- Show a button in single page mode --->
