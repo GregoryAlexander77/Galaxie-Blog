@@ -774,7 +774,7 @@
 							if (type.category) { html += '<h3>' + galaxieBookingPreviewText(type.category) + '</h3>'; }
 						}
 						html += '<div class="galaxieBookingPreviewType"><h4>' + galaxieBookingPreviewText(type.name) + '</h4>'
-							+ '<div>' + galaxieBookingPreviewText(length + " · " + price) + '</div>'
+							+ '<div>' + galaxieBookingPreviewText(length + " \u00b7 " + price) + '</div>'
 							+ (type.description ? '<p>' + galaxieBookingPreviewText(type.description).replace(/\n/g, "<br/>") + '</p>' : '')
 							+ '<span class="galaxieBookingPreviewButton">Book</span></div>';
 					});
