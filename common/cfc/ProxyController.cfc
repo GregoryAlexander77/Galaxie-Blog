@@ -11585,6 +11585,41 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="getMemberSignInsForGrid" access="remote" returnformat="json" output="false"
+			hint="The Member sign-ins grid (window 105, 2026-10-17), Kendo or jsGrid: every time a member signed in (Members.cfc getSignInsForAdmin).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="gridType" required="no" default="kendo" hint="Either kendo or jsGrid">
+		<cfargument name="memberId" required="no" default="0" hint="One member's sign-ins, or 0 for everyone's.">
+		<!--- Not used for filtering (the grid filters client-side) - declared so jsGrid's field-based filter query params don't trip strict argument matching. --->
+		<cfargument name="memberName" required="no" default="">
+		<cfargument name="ipAddress" required="no" default="">
+		<cfargument name="httpUserAgent" required="no" default="">
+		<cfargument name="method" required="no" default="">
+		<cfargument name="signedIn" required="no" default="">
+		<cfset var jsonString = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfif application.serverProduct eq 'Lucee'><cfreturn "Invalid token"><cfelse><cfreturn serializeJSON("Invalid token")></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfinvoke component="#jsonArray#" method="convertHqlQuery2JsonStruct" returnvariable="jsonString">
+			<cfinvokeargument name="hqlQueryObj" value="#application.members.getSignInsForAdmin(isValid('integer', arguments.memberId) ? val(arguments.memberId) : 0)#">
+			<cfinvokeargument name="includeTotal" value="false">
+			<cfinvokeargument name="overRideTotal" value="false">
+			<cfinvokeargument name="newTotal" value="">
+			<cfif arguments.gridType eq 'jsGrid'>
+				<cfinvokeargument name="includeDataHandle" value="true">
+				<cfinvokeargument name="dataHandleName" value="data">
+			<cfelse>
+				<cfinvokeargument name="includeDataHandle" value="false">
+				<cfinvokeargument name="dataHandleName" value="">
+			</cfif>
+			<cfif application.serverProduct eq 'Lucee'>
+				<cfinvokeargument name="serializeData" value="false">
+			</cfif>
+		</cfinvoke>
+		<cfreturn jsonString>
+	</cffunction>
+
 	<cffunction name="adminExportPersonData" access="remote" returnformat="plain" output="false"
 			hint="Download their data (admin, window 98, 2026-10-17): everything the blog keeps about one person in the Members list, found by email address, as a JSON file - the same file a member gets from Download my data, and it works for people without an account.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

@@ -1021,6 +1021,13 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>55%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>50%</cfif>";
 				var windowTitle = "Booking page";
+			} else if (Id == 105){
+				// Member sign-ins (2026-10-17): every time a member signed in, like the admin log - optArgs is the MemberId, or 0 for
+				// everyone. See admin/adminInterface/memberSignIns.cfm.
+				var windowName = "memberSignInsWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
+				var windowTitle = "Member sign-ins";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

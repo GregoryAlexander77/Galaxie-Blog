@@ -185,6 +185,8 @@
 	<cfif arguments.remember>
 		<cfset setRememberCookie(entity.getMemberId(), arguments.userAgent)>
 	</cfif>
+	<!--- The sign-in log (2026-10-17, owner), like the admin log for admin users. --->
+	<cfset logSignIn(entity.getMemberId(), "Email link")>
 	<cfset result.success = true>
 	<cfset result.message = "">
 	<cfset result.member = getCurrentMember()>
@@ -460,7 +462,7 @@
 			"joined": isDate(arguments.member.created) ? dateTimeFormat(arguments.member.created, "yyyy-mm-dd HH:nn") : "",
 			"lastSeen": isDate(arguments.member.lastSeen) ? dateTimeFormat(arguments.member.lastSeen, "yyyy-mm-dd HH:nn") : ""
 		},
-		"bookings": [], "signUps": [], "subscriptions": getAccountSubscriptions(arguments.member), "comments": [], "signedInDevices": []
+		"bookings": [], "signUps": [], "subscriptions": getAccountSubscriptions(arguments.member), "comments": [], "signedInDevices": [], "signIns": []
 	}>
 	<cfset var rows = "">
 	<cfset var b = {}>
@@ -533,6 +535,13 @@
 		<cfset arrayAppend(data.comments, { "post": rows.PostTitle, "posted": isDate(rows.DatePosted) ? dateTimeFormat(rows.DatePosted, "yyyy-mm-dd HH:nn") : "", "comment": rows.Comment })>
 	</cfloop>
 
+	<!--- Sign-ins (2026-10-17) --->
+	<cfif structKeyExists(arguments.member, "memberId") and val(arguments.member.memberId) gt 0>
+		<cfloop array="#getSignInsForAdmin(arguments.member.memberId)#" index="b">
+			<cfset arrayAppend(data.signIns, { "signedIn": b.SignedIn, "ipAddress": b.IpAddress, "browser": b.HttpUserAgent, "how": b.Method })>
+		</cfloop>
+	</cfif>
+
 	<!--- Devices kept signed in --->
 	<cfset rows = queryExecute("SELECT UserAgent, Created, LastUsed, Expires FROM MemberRememberToken WHERE BlogRef = :blogId AND MemberRef = :memberId ORDER BY LastUsed DESC",
 		{ blogId = params.blogId, memberId = { value = arguments.member.memberId, cfsqltype = "cf_sql_integer" } })>
@@ -600,6 +609,8 @@
 		<cfset removePicture(arguments.memberId)>
 		<cfset ensureVisitorTable()>
 		<cfset queryExecute("DELETE FROM MemberVisitor WHERE BlogRef = :blogId AND MemberRef = :memberId", params)>
+		<cfset ensureLoginLogTable()>
+		<cfset queryExecute("DELETE FROM MemberLoginLog WHERE BlogRef = :blogId AND MemberRef = :memberId", params)>
 		<cfcatch type="any"></cfcatch>
 	</cftry>
 	<cftransaction>
@@ -1033,6 +1044,78 @@
 		<cfreturn found>
 		<cfcatch type="any"><cfreturn {}></cfcatch>
 	</cftry>
+</cffunction>
+
+<!--- ********************************************************************************************************************
+	Member sign-ins (2026-10-17, owner): every time a member signs in, like the admin log does for admin users - the IP address,
+	the browser and how they signed in. Shown in the Member sign-ins grid (window 105). Its own small table (MemberLoginLog),
+	made the first time it's needed. Deleted with the member; part of their Download my data.
+********************************************************************************************************************* --->
+
+<cffunction name="ensureLoginLogTable" access="private" returntype="void" output="false" hint="Creates the MemberLoginLog table if it isn't there yet, once per application start.">
+	<cfset var updaterPath = "">
+	<cfset var updater = "">
+	<cfif structKeyExists(variables, "loginLogTableReady")>
+		<cfreturn>
+	</cfif>
+	<cfset updaterPath = len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.DatabaseUpdater" : "common.cfc.DatabaseUpdater">
+	<cfset updater = createObject("component", updaterPath).init(application.rootDirectoryPath, application.blogIniPath)>
+	<cfif not len(application.databaseType ?: "")>
+		<cfset application.databaseType = getProfileString(application.blogIniPath, "default", "databaseType")>
+	</cfif>
+	<cfset updater.createTableIfMissing("MemberLoginLog", {
+		sqlServer: "CREATE TABLE MemberLoginLog (MemberLoginLogId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, IpAddress NVARCHAR(64) NULL, HttpUserAgent NVARCHAR(500) NULL, Method NVARCHAR(30) NULL, Created DATETIME NOT NULL)",
+		mySql: "CREATE TABLE MemberLoginLog (MemberLoginLogId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, IpAddress VARCHAR(64) NULL, HttpUserAgent VARCHAR(500) NULL, Method VARCHAR(30) NULL, Created DATETIME NOT NULL) DEFAULT CHARSET=utf8mb4",
+		postgre: "CREATE TABLE MemberLoginLog (MemberLoginLogId SERIAL PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, IpAddress VARCHAR(64) NULL, HttpUserAgent VARCHAR(500) NULL, Method VARCHAR(30) NULL, Created TIMESTAMP NOT NULL)"
+	})>
+	<cfset variables.loginLogTableReady = true>
+</cffunction>
+
+<cffunction name="logSignIn" access="public" returntype="void" output="false" hint="Writes one sign-in to the log. Never stops a sign-in.">
+	<cfargument name="memberId" type="numeric" required="true">
+	<cfargument name="method" type="string" required="false" default="Email link" hint="How they signed in: Email link (and later Google, Facebook).">
+	<cftry>
+		<cfset ensureLoginLogTable()>
+		<cfset queryExecute("INSERT INTO MemberLoginLog (BlogRef, MemberRef, IpAddress, HttpUserAgent, Method, Created) VALUES (:blogId, :memberId, :ip, :agent, :method, :now)",
+			{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" },
+			  ip = { value = left(application.blog.getIpAddress(), 64), cfsqltype = "cf_sql_varchar" }, agent = { value = left(CGI.HTTP_USER_AGENT, 500), cfsqltype = "cf_sql_varchar" },
+			  method = { value = left(arguments.method, 30), cfsqltype = "cf_sql_varchar" }, now = { value = now(), cfsqltype = "cf_sql_timestamp" } })>
+		<cfcatch type="any"><cflog file="galaxieMembers" type="warning" text="A member sign-in could not be logged: #cfcatch.message#"></cfcatch>
+	</cftry>
+</cffunction>
+
+<cffunction name="getSignInsForAdmin" access="public" returntype="array" output="false"
+		hint="Member sign-ins for the grid (window 105), newest first, the last 10000: [{ MemberId, MemberName, MemberEmail, MemberPicture, IpAddress, HttpUserAgent, Method, SignedIn (yyyy-mm-dd HH:nn) }]. Keys are quoted so they keep their case in the JSON.">
+	<cfargument name="memberId" type="numeric" required="false" default="0" hint="One member's sign-ins, or 0 for everyone's.">
+	<cfset var rows = "">
+	<cfset var list = []>
+	<cftry>
+		<cfset ensureLoginLogTable()>
+		<cfset ensurePictureTable()>
+		<cfset rows = queryExecute("
+			SELECT l.MemberRef, l.IpAddress, l.HttpUserAgent, l.Method, l.Created, m.Name, m.Email, p.Picture
+			FROM MemberLoginLog l
+				INNER JOIN BlogMember m ON m.MemberId = l.MemberRef
+				LEFT JOIN MemberPicture p ON p.MemberRef = l.MemberRef AND p.BlogRef = l.BlogRef
+			WHERE l.BlogRef = :blogId" & (arguments.memberId gt 0 ? " AND l.MemberRef = :memberId" : "") & "
+			ORDER BY l.Created DESC",
+			{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" } },
+			{ maxrows = 10000 })>
+		<cfloop query="rows">
+			<cfset arrayAppend(list, {
+				"MemberId": rows.MemberRef,
+				"MemberName": len(trim(rows.Name)) ? trim(rows.Name) : rows.Email,
+				"MemberEmail": rows.Email,
+				"MemberPicture": isNull(rows.Picture) ? "" : rows.Picture,
+				"IpAddress": rows.IpAddress,
+				"HttpUserAgent": rows.HttpUserAgent,
+				"Method": rows.Method,
+				"SignedIn": isDate(rows.Created) ? dateTimeFormat(rows.Created, "yyyy-mm-dd HH:nn") : ""
+			})>
+		</cfloop>
+		<cfcatch type="any"><cflog file="galaxieMembers" type="error" text="Member sign-ins could not be read: #cfcatch.message#"></cfcatch>
+	</cftry>
+	<cfreturn list>
 </cffunction>
 
 <cffunction name="setMemberStatus" access="public" returntype="boolean" output="false" hint="Blocks (signed out everywhere at once) or unblocks a member.">

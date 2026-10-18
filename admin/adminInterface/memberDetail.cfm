@@ -294,7 +294,7 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#"></td>
-		<td class="#blockClass#"><button type="button" class="k-button" id="memberDetailStatus" data-status="#detailMember.status eq 'blocked' ? 'active' : 'blocked'#">#detailMember.status eq "blocked" ? "Unblock" : "Block"#</button></td>
+		<td class="#blockClass#"><button type="button" class="k-button" id="memberDetailStatus" data-status="#detailMember.status eq 'blocked' ? 'active' : 'blocked'#">#detailMember.status eq "blocked" ? "Unblock" : "Block"#</button> <button type="button" class="k-button" onclick="createAdminInterfaceWindow(105, #detailMember.memberId#);">Sign-ins</button></td>
 	</tr>
 	</cfif>
 

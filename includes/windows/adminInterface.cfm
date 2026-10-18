@@ -1176,6 +1176,11 @@ days off. See common/cfc/Bookings.cfc. --->
 	<cfinclude template="../../admin/adminInterface/bookingPageDetail.cfm">
 </cfcase>
 
+<!--- 105 member sign-ins (2026-10-17): every time a member signed in, like the admin log. optArgs = MemberId, or 0 for everyone. --->
+<cfcase value=105>
+	<cfinclude template="../../admin/adminInterface/memberSignIns.cfm">
+</cfcase>
+
 </cfswitch>
 
 </html>

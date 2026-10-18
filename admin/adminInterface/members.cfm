@@ -108,7 +108,7 @@ paging, sorting and its own search. --->
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#"></td>
-		<td class="#blockClass#"><button type="button" class="k-button" onclick="createAdminInterfaceWindow(103, 0);">Add person</button><span class="k-form-hint">Someone to show on the site who hasn't booked or signed up, eg. a presenter who hosts an event.</span></td>
+		<td class="#blockClass#"><button type="button" class="k-button" onclick="createAdminInterfaceWindow(103, 0);">Add person</button> <button type="button" class="k-button" onclick="createAdminInterfaceWindow(105, 0);">Sign-ins</button><span class="k-form-hint">Someone to show on the site who hasn't booked or signed up, eg. a presenter who hosts an event.</span></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
