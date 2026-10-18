@@ -1171,7 +1171,8 @@
 		<cfelse>
 			<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) ? 'Fill in the form "' & title & '" on the website' : 'Fill in the form on the website') & '</a></p>'>
 		</cfif>
-		<cfset result = left(result, match.pos[1] - 1) & replacement & mid(result, match.pos[1] + match.len[1], len(result))>
+		<!--- left() with 0 throws on ACF (Lucee allows it), so a placeholder at the very start of the post needs its own case. --->
+		<cfset result = (match.pos[1] gt 1 ? left(result, match.pos[1] - 1) : "") & replacement & mid(result, match.pos[1] + match.len[1], len(result))>
 		<cfset position = match.pos[1] + len(replacement)>
 	</cfloop>
 	<cfreturn result>
