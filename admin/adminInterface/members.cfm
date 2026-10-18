@@ -51,7 +51,15 @@ paging, sorting and its own search. --->
 				if (show) { shown++; }
 			});
 			$("#memberNoMatch").toggle(shown === 0);
+			stripeMemberRows();
 		}
+		<!--- Alternating rows (owner, 2026-10-17), the theme's two admin shades, counted over the rows that are showing. --->
+		function stripeMemberRows() {
+			$("#memberRows tr.memberRow:visible").each(function(i) {
+				$(this).children("td").toggleClass("k-content", i % 2 === 0).toggleClass("k-alt", i % 2 === 1);
+			});
+		}
+		stripeMemberRows();
 		$(".memberFilterButton").on("click", function() {
 			memberFilter = $(this).attr("data-filter");
 			$(".memberFilterButton").removeClass("k-primary");
