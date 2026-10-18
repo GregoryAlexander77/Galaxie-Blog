@@ -25,8 +25,8 @@
 		
 	<!--- Allows the owner to access the admin portal without the proper user credentials. --->
 	<cfset disableAuth = false>
-	<!--- Error logging is typically set in the admin UI, however, when developing you can turn it off manually --->
-	<cfset disableErrorLogging = true>
+	<!--- Error logging: off only on a local development copy (localhost), where the full error is shown on the page instead. Everywhere else errors are saved to the Error Log, emailed, and visitors see a short message. Set it by hand only to test. --->
+	<cfset disableErrorLogging = listFindNoCase("localhost,127.0.0.1", cgi.server_name) gt 0>
 
 	<!--- 7 day application timeout. Be careful when you change this to a shorter timeout otherwise the variables on the admin pages won't stick --->
 	<cfset this.applicationTimeout = createTimeSpan(7,0,0,0) />
