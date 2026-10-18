@@ -238,6 +238,14 @@ gets the earlier slot of the two. --->
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(58);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/adminLog.gif")>
 </cfif>
+<!--- Member Log (2026-10-17, owner): every time a member signed in (window 105, admin/adminInterface/memberSignIns.cfm). Icon: userLog.gif (owner). --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
+	<cfset iconList = listAppend(iconList, 'MemberLog')>
+	<cfset titleList = listAppend(titleList, 'Member Log')>
+	<!--- No comma: linkList is a comma-separated list. No member (optArgs) means everyone's sign-ins. --->
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(105);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/userLog.gif")>
+</cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'AddPost') or listFindNoCase(currentUserCapabilityList, 'EditCategory') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'ReleasePost')>
 	<!--- Visitor Log --->
 	<cfset iconList = listAppend(iconList, 'ErrorLog')>
