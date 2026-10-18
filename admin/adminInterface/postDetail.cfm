@@ -1098,27 +1098,30 @@
 	  </tr>
 		<!-- Form content -->
 	<!--- Booking is offered only on pages (owner, 2026-10-17): a blog post can't become a booking page. --->
+	<!--- Post type in rows (owner, 2026-10-17): Blog post and Page each on their own row, with a few words on what it is. --->
 	<cfif smallScreen>
-	  <tr valign="middle">
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-		<label for="postType">Post Type</label>
-		</td>
-	   </tr>
-	   <tr>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<span class="postTypeGroup"><span class="postTypeGroupLabel">Blog post:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event</label></span><span class="postTypeGroup"><span class="postTypeGroupLabel">Page:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking>checked</cfif>/> Page</label><cfif getPost[1]['IsPage']><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label></cfif></span> <span class="postEventRow"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span><span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span>
-		</td>
+	  <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><b>Blog post:</b> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event</label> <span class="k-form-hint">dated, in the blog and RSS feed</span> <span class="postEventRow"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span></td>
+	  </tr>
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><b>Page:</b> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking>checked</cfif>/> Page</label><cfif getPost[1]['IsPage']><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label></cfif> <span class="k-form-hint">stays put, on your menu</span> <span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span></td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-		<label for="postType">Post Type</label>
-		</td>
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<span class="postTypeGroup"><span class="postTypeGroupLabel">Blog post:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event</label></span><span class="postTypeGroup"><span class="postTypeGroupLabel">Page:</span> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking>checked</cfif>/> Page</label><cfif getPost[1]['IsPage']><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label></cfif></span> <span class="postEventRow"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span><span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span>
-		</td>
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">Blog post:</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event</label> <span class="k-form-hint">dated, in the blog and RSS feed</span> <span class="postEventRow"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span></td>
 	  </tr>
-	</cfif>  
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr valign="middle" height="35">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">Page:</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking>checked</cfif>/> Page</label><cfif getPost[1]['IsPage']><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label></cfif> <span class="k-form-hint">stays put, on your menu</span> <span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span></td>
+	  </tr>
+	</cfif>
 	<!--- Event preview (owner, 10-16): the event card exactly as visitors see it at the top of the post - the same
 	application.events.renderCard call blogContentHtml.cfm makes. Refreshed from the server after the event window saves. --->
 	  <tr class="postEventRow">
