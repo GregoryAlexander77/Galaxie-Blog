@@ -424,7 +424,7 @@
 	  </tr>
 	  <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 0px 12px 8px;">
-			<span style="font-size:smaller">Email new errors to the blog owner. A copy also goes to the developer of Galaxie Blog to help to find bugs: the error, its address and the stack trace, never form values. To send the copy to someone else, or not at all, set developerEmail in blog.ini.cfm.</span>
+			<span style="font-size:smaller">Email errors to the blog owner, as a nightly summary or right away (see Error emails below). A copy also goes to the developer of Galaxie Blog to help to find bugs: the error, its address and the stack trace, never form values. To send the copy to someone else, or not at all, set developerEmail in blog.ini.cfm.</span>
 		</td>
 	  </tr>
 	  <tr valign="middle" height="30px">
@@ -435,7 +435,7 @@
 	  <cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
 		<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
-			Email new errors to the blog owner. A copy also goes to the developer of Galaxie Blog to help to find bugs: the error, its address and the stack trace, never form values. To send the copy to someone else, or not at all, set developerEmail in blog.ini.cfm.
+			Email errors to the blog owner, as a nightly summary or right away (see Error emails below). A copy also goes to the developer of Galaxie Blog to help to find bugs: the error, its address and the stack trace, never form values. To send the copy to someone else, or not at all, set developerEmail in blog.ini.cfm.
 		</td>
 	  </tr>
 	  <tr height="1px">
@@ -448,6 +448,68 @@
 		</td>
 	  </tr>
 	  </cfif>
+	  <!--- Error emails (2026-10-18): one summary a night (the default) or an email for each new error - common/cfc/ErrorDigest.cfc.
+	  Saved with the rest of Blog Options (saveBlogOptions, errorEmailMode/errorDigestHour). --->
+	  <cfset errorDigest = application.blog.getErrorDigest()>
+	  <cfset errorEmailModeValue = errorDigest.mode()>
+	  <cfset errorDigestHourValue = errorDigest.digestHour()>
+	  <cfsavecontent variable="errorEmailControls"><cfoutput>
+		<select name="errorEmailMode" id="errorEmailMode">
+			<option value="daily"<cfif errorEmailModeValue eq "daily"> selected</cfif>>A nightly summary (recommended)</option>
+			<option value="immediate"<cfif errorEmailModeValue eq "immediate"> selected</cfif>>Right away, for each new error</option>
+		</select>
+		<div id="errorDigestHourWrapper" style="margin-top: 8px;<cfif errorEmailModeValue neq 'daily'> display: none;</cfif>">
+			Send it after
+			<select name="errorDigestHour" id="errorDigestHour">
+				<cfloop from="0" to="23" index="errorHour">
+					<option value="#errorHour#"<cfif errorHour eq errorDigestHourValue> selected</cfif>>#timeFormat(createTime(errorHour, 0, 0), "h tt")#</option>
+				</cfloop>
+			</select>
+			<button type="button" class="k-button" id="sendErrorSummaryNow" style="margin-left: 8px;">Send a summary now</button>
+		</div>
+		<script>
+			$("##errorEmailMode").kendoDropDownList({
+				change: function() { $("##errorDigestHourWrapper").toggle(this.value() === "daily"); }
+			}).data("kendoDropDownList").wrapper.css("width", "#session.isMobile ? '95%' : '90%'#");
+			$("##errorDigestHour").kendoDropDownList().data("kendoDropDownList").wrapper.css("width", "120px");
+			$("##sendErrorSummaryNow").on("click", function() {
+				var button = $(this).prop("disabled", true);
+				$.ajax({
+					type: "post",
+					url: "#application.baseUrl#/common/cfc/ProxyController.cfc?method=sendErrorSummaryNow",
+					data: { csrfToken: "#csrfToken#" },
+					dataType: "json"
+				}).done(function(result) {
+					var message = result.errors ? "Sent: " + result.errors + " error(s) in the last 24 hours." : "There were no errors in the last 24 hours, so nothing was sent.";
+					if (result.errors && !result.sent) { message = result.errors + " error(s), but the email could not be sent: check the blog's email address in Blog Settings."; }
+					kendo.ui.ExtAlertDialog.show({ title: "Error summary", message: message, icon: "k-ext-information", width: "#application.kendoExtendedUiWindowWidth#" });
+				}).fail(function() {
+					kendo.ui.ExtAlertDialog.show({ title: "Error summary", message: "The summary could not be sent.", icon: "k-ext-error", width: "#application.kendoExtendedUiWindowWidth#" });
+				}).always(function() { button.prop("disabled", false); });
+			});
+		</script>
+	  </cfoutput></cfsavecontent>
+	  <tr height="1px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfif session.isMobile>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">Error emails:</td>
+	  </tr>
+	  <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><cfoutput>#errorEmailControls#</cfoutput></td>
+	  </tr>
+	  <cfelse>
+	  <tr valign="middle">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"><label for="errorEmailMode">Error emails:</label></td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 40px 8px 12px;"><cfoutput>#errorEmailControls#</cfoutput></td>
+	  </tr>
+	  </cfif>
+	  <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			The summary is one email with every error since the last one, the most frequent first and new ones marked, and nothing when there were no errors. If many errors happen at once (the site may be down), you still get one email right away. Times are in the blog's time zone.
+		</td>
+	  </tr>
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>

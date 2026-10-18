@@ -3,6 +3,13 @@
 //****************************************************************************************************************--->
 <!--- Split out of coreLogic.cfm (item 7 of the index.cfm/coreLogic.cfm rewrite proposal) so each concern is easier to find. Assumes it is included from coreLogic.cfm, which is itself included from within a <cfsilent> block on index.cfm. --->
 
+	<!--- The nightly error summary (2026-10-18, common/cfc/ErrorDigest.cfc): the first page view after the summary time sends it,
+	in its own thread. Almost always just one date compare in memory. Not a scheduled task - ColdFusion's outbound network policy can silently block those. --->
+	<cftry>
+		<cfset application.blog.getErrorDigest().maybeSend()>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+
 	<!--- //**************************************************************************************************************
 			Visitor Logging (in blog mode)
 	//****************************************************************************************************************--->

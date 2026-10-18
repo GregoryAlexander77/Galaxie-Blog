@@ -1376,6 +1376,14 @@
 			</cfif>
 		</cfif>
 
+		<!--- With the nightly summary (2026-10-18), a burst of errors - the site may be down - still sends one email right away. --->
+		<cftry>
+			<cfif application.sendDiagnostics and errorEmailMode() eq "daily" and getErrorDigest().isBurst()>
+				<cfset getErrorDigest().sendBurstAlert(arguments.errorMessage, arguments.errorUrl)>
+			</cfif>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+
 		<!--- A known error is done here. The email is only for new errors. --->
 		<cfif not isNewError>
 			<cfreturn 1>
@@ -1433,7 +1441,8 @@
 			I will only send email if this is a new error. I don't want to spam everyone
 			Do not send any form values via email as they may contain sensitive login information
 		*********************************************************************************************************--->
-		<cfif isNewError and application.sendDiagnostics and application.blog.shouldSendErrorEmail()>
+		<!--- Only in 'Right away' mode (2026-10-18). With the nightly summary (the default), new errors are in tonight's email - see common/cfc/ErrorDigest.cfc. --->
+		<cfif isNewError and application.sendDiagnostics and errorEmailMode() eq "immediate" and application.blog.shouldSendErrorEmail()>
 		<!---<cfif !arrayLen(getErrorLog) and !arrayLen(previousRecordsWithinPreviousMinute) and application.sendDiagnostics>--->
 
 			<!--- How many emails the rate limiter above has silently dropped since the last one we actually sent. Fetching (and resetting) this here, right before building the email, means it gets reported exactly once per email rather than lost or repeated. --->
@@ -1503,6 +1512,24 @@
 			
 	</cffunction>
 					
+	<cffunction name="getErrorDigest" access="public" returnType="any" output="false" hint="The nightly error summary (common/cfc/ErrorDigest.cfc, 2026-10-18), created on first use and kept in application.errorDigest.">
+		<cfif not structKeyExists(application, "errorDigest")>
+			<cflock name="galaxieErrorDigestCreate_#application.applicationName#" type="exclusive" timeout="10">
+				<cfif not structKeyExists(application, "errorDigest")>
+					<cfset application.errorDigest = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.ErrorDigest" : "common.cfc.ErrorDigest")>
+				</cfif>
+			</cflock>
+		</cfif>
+		<cfreturn application.errorDigest>
+	</cffunction>
+
+	<cffunction name="errorEmailMode" access="public" returnType="string" output="false" hint="'daily' (one summary a night, the default) or 'immediate' (an email for each new error). Falls back to 'immediate' if the summary can't be read, so errors are never silently dropped.">
+		<cftry>
+			<cfreturn getErrorDigest().mode()>
+			<cfcatch type="any"><cfreturn "immediate"></cfcatch>
+		</cftry>
+	</cffunction>
+
 	<!--- ************************** Search Query ************************** --->
 					
 	<cffunction name="getSearchQuery" access="public" returnType="array" output="false" hint="Gets the search queries by a variety of args. This returns a ColdFusion HQL object.">

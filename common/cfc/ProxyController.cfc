@@ -9689,6 +9689,8 @@
 		<cfargument name="clearTestKeys" default="" required="false">
 		<cfargument name="clearLiveKeys" default="" required="false">
 		<!--- Member accounts (2026-10-15), see Members.cfc. Only saved when the Member Accounts panel was posted. --->
+		<cfargument name="errorEmailMode" default="" required="false" hint="daily or immediate (2026-10-18, ErrorDigest.cfc)">
+		<cfargument name="errorDigestHour" default="2" required="false">
 		<cfargument name="memberSettingsPosted" default="" required="false">
 		<cfargument name="memberAccountsEnabled" default="" required="false">
 		<cfargument name="memberRememberDays" default="30" required="false">
@@ -9885,6 +9887,10 @@
 			<!--- Member accounts (2026-10-15): validated above. --->
 			<cfif len(arguments.memberSettingsPosted)>
 				<cfset application.members.saveSettings(len(arguments.memberAccountsEnabled) gt 0, int(arguments.memberRememberDays))>
+			</cfif>
+			<!--- Error emails (2026-10-18): a nightly summary or an email for each new error. --->
+			<cfif len(arguments.errorEmailMode)>
+				<cfset application.blog.getErrorDigest().saveSettings(arguments.errorEmailMode, isNumeric(arguments.errorDigestHour) ? arguments.errorDigestHour : 2)>
 			</cfif>
 
 			<!--- Return the Id --->
@@ -11599,6 +11605,23 @@
 		<cfif application.Udf.isLoggedIn()>
 			<cfset result = application.webForms.useReadyMade(left(trim(arguments.key), 40))>
 			<cfset response = { "success": result.success, "webFormId": result.webFormId, "alias": result.alias, "title": result.title, "publicList": result.publicList, "errors": result.errors }>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="sendErrorSummaryNow" access="remote" returnformat="json" output="false"
+			hint="Blog Options (2026-10-18): sends the error summary for the last 24 hours right away (ErrorDigest.cfc send), without changing when tonight's is due. Returns { errors, distinct, sent }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfset var response = { "errors": 0, "distinct": 0, "sent": false }>
+		<cfset var result = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfset result = application.blog.getErrorDigest().send(dateTimeFormat(dateAdd("h", -24, application.blog.blogNow()), "yyyy-mm-dd HH:nn:ss"))>
+			<cfset response = { "errors": result.errors, "distinct": result.distinct, "sent": result.sent }>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
