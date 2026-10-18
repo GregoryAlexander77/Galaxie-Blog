@@ -388,7 +388,7 @@
 		<cfif session.isMobile>
 		  <tr valign="middle" class="field-dateAuthor">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<h4 class="adminBlockHeading"><label for="post">Date Posted</label></h4>
+			<h4 class="adminBlockHeading"><label for="post">Date Posted:</label></h4>
 			</td>
 		   </tr>
 		   <tr class="field-dateAuthor">
@@ -399,7 +399,7 @@
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr class="field-dateAuthor">
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
-			<h4 class="adminBlockHeading"><label for="post">Date Posted</label></h4>
+			<h4 class="adminBlockHeading"><label for="post">Date Posted:</label></h4>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input id="newDatePosted" name="newDatePosted" value="<cfoutput>#dateTimeFormat(now(), "medium")#</cfoutput>" style="width: <cfif session.isMobile>95<cfelse>45</cfif>%" />    
@@ -422,7 +422,7 @@
 		<cfif session.isMobile>
 		  <tr valign="middle" class="field-dateAuthor">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<h4 class="adminBlockHeading"><label for="post">Author</label></h4>
+			<h4 class="adminBlockHeading"><label for="post">Author:</label></h4>
 			</td>
 		   </tr>
 		   <tr class="field-dateAuthor">
@@ -441,7 +441,7 @@
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="35" class="field-dateAuthor">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-			<h4 class="adminBlockHeading"><label for="post">Author</label></h4>
+			<h4 class="adminBlockHeading"><label for="post">Author:</label></h4>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<select id="author" style="width: <cfif session.isMobile>95<cfelse>50</cfif>%"></select>
@@ -472,7 +472,7 @@
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<h4 class="adminBlockHeading"><label for="post">Title</label></h4>
+			<h4 class="adminBlockHeading"><label for="post">Title:</label></h4>
 			</td>
 		   </tr>
 		   <tr>
@@ -483,7 +483,7 @@
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="35">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-			<h4 class="adminBlockHeading"><label for="post">Title</label></h4>
+			<h4 class="adminBlockHeading"><label for="post">Title:</label></h4>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input type="text" id="title" name="title" value="" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%" />
@@ -506,7 +506,7 @@
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<h4 class="adminBlockHeading"><label for="post">Description</label></h4>
+			<h4 class="adminBlockHeading"><label for="post">Description:</label></h4>
 			</td>
 		  </tr>
 		  <tr>
@@ -524,7 +524,7 @@
 		  </tr>
 		  <tr valign="middle" height="35">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-			<h4 class="adminBlockHeading"><label for="post">Description</label></h4>
+			<h4 class="adminBlockHeading"><label for="post">Description:</label></h4>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%"></textarea>				
@@ -542,7 +542,7 @@
 		<cfif session.isMobile>
 		  <tr valign="middle" class="field-heroImage">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<h4 class="adminBlockHeading"><label for="externalUrl">External URL (optional - makes this a cross-link)</label></h4>
+			<h4 class="adminBlockHeading"><label for="externalUrl">External URL (optional - makes this a cross-link):</label></h4>
 			</td>
 		  </tr>
 		  <tr class="field-heroImage">
@@ -560,7 +560,7 @@
 		  </tr>
 		  <tr valign="middle" height="35" class="field-heroImage">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-			<h4 class="adminBlockHeading"><label for="externalUrl">External URL (optional)</label></h4>
+			<h4 class="adminBlockHeading"><label for="externalUrl">External URL (optional):</label></h4>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input type="text" id="externalUrl" name="externalUrl" value="" placeholder="https://example.com" class="k-textbox" style="width: 95%" />				
