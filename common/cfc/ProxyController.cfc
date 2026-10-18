@@ -11585,6 +11585,24 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="useReadyMadeForm" access="remote" returnformat="json" output="false"
+			hint="Insert Form (window 86, 2026-10-17): the form for a ready-made choice, made from its starter the first time (WebForms.cfc useReadyMade). Returns { success, webFormId, alias, title, publicList, errors }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="key" type="string" required="false" default="">
+		<cfset var response = { "success": false, "webFormId": 0, "alias": "", "title": "", "publicList": false, "errors": [] }>
+		<cfset var result = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfset result = application.webForms.useReadyMade(left(trim(arguments.key), 40))>
+			<cfset response = { "success": result.success, "webFormId": result.webFormId, "alias": result.alias, "title": result.title, "publicList": result.publicList, "errors": result.errors }>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="getMemberSignInsForGrid" access="remote" returnformat="json" output="false"
 			hint="The Member sign-ins grid (window 105, 2026-10-17), Kendo or jsGrid: every time a member signed in (Members.cfc getSignInsForAdmin).">
 		<cfargument name="csrfToken" type="string" default="" required="true">

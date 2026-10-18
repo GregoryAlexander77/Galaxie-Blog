@@ -731,6 +731,36 @@
 						createAdminInterfaceWindow(86);
 					}
 				});
+				<!--- The real look of a form in the editor (2026-10-17, owner), instead of only "[Form: Title]": the form as visitors
+				see it, from the same call the site uses (getWebFormForPage). The preview is data-mce-bogus="all", so TinyMCE never
+				saves it: the post keeps its small placeholder. It can't be typed in; Insert > Form > Edit this form changes it. --->
+				function galaxieShowFormPreviews(editor) {
+					$.each(editor.dom.select("div.galaxieWebForm"), function(i, box) {
+						if (editor.dom.select(".galaxieWebFormPreview", box).length) { return; }
+						var alias = box.getAttribute("data-webform") || "";
+						if (!alias) { return; }
+						$.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getWebFormForPage", data: { alias: alias }, dataType: "json", cache: false })
+							.done(function(response) {
+								if (editor.dom.select(".galaxieWebFormPreview", box).length) { return; }
+								var html = '<div class="galaxieWebFormPreviewLabel">Form: how visitors see it</div>' +
+									(response && response.success === true ? response.html : '<p>This form is turned off or was deleted, so visitors don\'t see it.</p>');
+								editor.dom.add(box, "div", { "class": "galaxieWebFormPreview", "data-mce-bogus": "all", "contenteditable": "false" }, html);
+							});
+					});
+				}
+				editor.on("init", function() {
+					editor.dom.addStyle(
+						".galaxieWebForm { font-size: 0; border: 1px dashed #bbb; border-radius: 6px; padding: 10px 14px; margin: 1em 0; }" +
+						".galaxieWebForm:not(:has(.galaxieWebFormPreview)) { font-size: inherit; }" +
+						".galaxieWebFormPreview { font-size: 1rem; cursor: default; }" +
+						".galaxieWebFormPreview input, .galaxieWebFormPreview textarea, .galaxieWebFormPreview select, .galaxieWebFormPreview button { pointer-events: none; }" +
+						".galaxieWebFormPreview input[type=text], .galaxieWebFormPreview input[type=email], .galaxieWebFormPreview input[type=tel], .galaxieWebFormPreview input[type=number], .galaxieWebFormPreview input[type=date], .galaxieWebFormPreview textarea, .galaxieWebFormPreview select { display: block; width: 100%; max-width: 30em; box-sizing: border-box; margin: 0.2em 0 0.6em 0; padding: 4px 6px; }" +
+						".galaxieWebFormPreviewLabel { font-size: 0.8em; opacity: 0.65; margin-bottom: 0.5em; }"
+					);
+					galaxieShowFormPreviews(editor);
+				});
+				<!--- After the post loads, and after Insert Form adds one. --->
+				editor.on("SetContent", function() { galaxieShowFormPreviews(editor); });
 				editor.ui.registry.addMenuItem('webForm', {
 					text: 'Form',
 					icon: 'webForm',

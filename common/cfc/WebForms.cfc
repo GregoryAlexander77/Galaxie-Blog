@@ -233,6 +233,80 @@
 	</cfloop>
 </cffunction>
 
+<!--- ********************************************************************************************************************
+	Ready-made forms (2026-10-17, owner: "my customers are not tech at all"): every starter can be placed in a post or page
+	straight from Insert Form, as it is - no form editor. The form is made the first time it's used (so the Forms window only
+	lists forms that are on the site), remembered in the setting 'readyMadeForm:<key>' (Events.cfc, post 0, like the event
+	sign-up form), and can be changed later with Edit this form. Replies go to the blog's email address and the spam check is
+	on, the saveForm defaults.
+********************************************************************************************************************* --->
+
+<cffunction name="getReadyMadeChoices" access="public" returntype="array" output="false"
+		hint="The ready-made forms Insert Form offers: every starter except the blank form and the event sign-up form (events make their own), and except one already made or with the same title as one of the blog's forms. [{ key, name, description, publicList }].">
+	<cfset var choices = []>
+	<cfset var starter = {}>
+	<cfset var titles = {}>
+	<cfset var existing = {}>
+	<cfloop array="#getForms()#" index="existing">
+		<cfset titles[lCase(trim(existing.title))] = true>
+	</cfloop>
+	<cfloop array="#getStarterTemplates()#" index="starter">
+		<cfif listFindNoCase("blank,eventSignup", starter.key)><cfcontinue></cfif>
+		<cfif structKeyExists(titles, lCase(trim(starter.title))) or structKeyExists(titles, lCase(trim(starter.name)))><cfcontinue></cfif>
+		<cfif readyMadeFormId(starter.key) gt 0><cfcontinue></cfif>
+		<cfset arrayAppend(choices, { "key": starter.key, "name": starter.name, "description": starter.description, "publicList": structKeyExists(starter, "publicList") and isTrue(starter.publicList) })>
+	</cfloop>
+	<cfreturn choices>
+</cffunction>
+
+<cffunction name="useReadyMade" access="public" returntype="struct" output="false"
+		hint="The form for a ready-made choice: made from its starter the first time, then the same form every time. Returns { success, webFormId, alias, title, publicList, errors[] }.">
+	<cfargument name="key" type="string" required="true">
+	<cfset var result = { success: false, webFormId: 0, alias: "", title: "", publicList: false, errors: [] }>
+	<cfset var formId = readyMadeFormId(arguments.key)>
+	<cfset var starter = {}>
+	<cfset var saved = {}>
+	<cfset var made = {}>
+	<cfif formId eq 0>
+		<cfloop array="#getStarterTemplates()#" index="starter">
+			<cfif starter.key eq arguments.key and not listFindNoCase("blank,eventSignup", starter.key)>
+				<cfset starter["webFormId"] = 0>
+				<cfset starter["active"] = true>
+				<cfset saved = saveForm(starter)>
+				<cfif saved.success>
+					<cfset formId = saved.webFormId>
+					<cfset application.events.setSetting(0, "readyMadeForm:" & arguments.key, formId)>
+				<cfelse>
+					<cfset result.errors = saved.errors>
+				</cfif>
+				<cfbreak>
+			</cfif>
+		</cfloop>
+	</cfif>
+	<cfif formId gt 0>
+		<cfset made = getForm(webFormId = formId)>
+		<cfif not structIsEmpty(made)>
+			<cfset result = { success: true, webFormId: formId, alias: made.alias, title: made.title, publicList: made.publicList, errors: [] }>
+		</cfif>
+	<cfelseif not arrayLen(result.errors)>
+		<cfset arrayAppend(result.errors, "That ready-made form isn't available.")>
+	</cfif>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="readyMadeFormId" access="private" returntype="numeric" output="false" hint="The form already made for a ready-made choice, or 0 (also when it was deleted since).">
+	<cfargument name="key" type="string" required="true">
+	<cfset var formId = 0>
+	<cftry>
+		<cfset formId = val(application.events.getSetting(0, "readyMadeForm:" & arguments.key, "0"))>
+		<cfcatch type="any"><cfreturn 0></cfcatch>
+	</cftry>
+	<cfif formId gt 0 and structIsEmpty(getForm(webFormId = formId))>
+		<cfreturn 0>
+	</cfif>
+	<cfreturn formId>
+</cffunction>
+
 <cffunction name="starterField" access="private" returntype="struct" output="false"
 		hint="One field of a starter template, in the shape the form editor uses.">
 	<cfargument name="label" type="string" required="true">
