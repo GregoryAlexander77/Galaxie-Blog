@@ -268,9 +268,9 @@ var galaxieMembers = (function($) {
 						state.member = response.member;
 						updateMenus();
 						$(document).trigger("galaxieMemberChanged", [state]);
-						saved.text("Saved.");
-						// Booking times follow the time zone.
-						loadAccount(content, dialog);
+						// Saved: the window closes (owner, 2026-10-17); My account opens again from the menu, with booking
+						// times in the new time zone. A problem keeps it open with the message below.
+						dialog.close();
 					} else {
 						saved.text(((response && response.errors) || ["Something went wrong."]).join(" "));
 					}
