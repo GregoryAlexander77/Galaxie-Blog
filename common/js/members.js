@@ -27,6 +27,10 @@ var galaxieMembers = (function($) {
 			".galaxieMemberForm .galaxieMemberField > label { display: block; margin-bottom: 0.3em; }" +
 			".galaxieMemberForm .k-textbox, .galaxieMemberForm .k-dropdown { width: 100%; box-sizing: border-box; }" +
 			".galaxieMemberHp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }" +
+			// The signed-in member in the menu (2026-10-17): a small circle with their initials, coloured by the Kendo theme's own
+			// selected colour (k-state-selected) so it suits every theme. Their picture will go in the same circle.
+			".galaxieMemberAvatar { display: inline-flex; align-items: center; justify-content: center; width: 2em; height: 2em; border-radius: 50%; overflow: hidden; font-size: 0.8em; font-weight: bold; line-height: 1; vertical-align: middle; letter-spacing: 0.02em; }" +
+			".galaxieMemberAvatar img { width: 100%; height: 100%; object-fit: cover; }" +
 			".galaxieMemberMessage { margin: 0 0 1em 0; }" +
 			".galaxieMemberButtons .k-button { margin: 0 0.5em 0.5em 0; }" +
 			// Hints read like normal text (the owner's admin look), not Kendo's small hint font.
@@ -71,6 +75,15 @@ var galaxieMembers = (function($) {
 		return state.member.name ? state.member.name : "My account";
 	}
 
+	// The member's initials for the menu circle: the first letters of the first and last words of their name ("Jane Smith" is
+	// JS), or the first letter of their email address when they haven't given a name.
+	function initials() {
+		var words = $.trim(state.member.name || "").split(/\s+/).filter(function(word) { return word.length; });
+		if (words.length > 1) { return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase(); }
+		if (words.length === 1) { return words[0].charAt(0).toUpperCase(); }
+		return (state.member.email || "").charAt(0).toUpperCase();
+	}
+
 	// Adds "Sign in" / the member's name to both menus (the one under the title and the one fixed to the top when scrolling).
 	// Where the words would make the menu wrap to a second line (phones, or a long name), a person icon is shown instead,
 	// with the words as its label and tooltip.
@@ -92,7 +105,14 @@ var galaxieMembers = (function($) {
 				item = menuElement.find("> li.galaxieMemberMenuItem");
 			}
 			item.find(".galaxieMemberMenuText").text(menuText()).removeClass("galaxieMemberMenuIcon").removeAttr("aria-label title role");
+			// Signed in (owner, 2026-10-17): a small round picture instead of the name, like most sites - their initials for now.
+			if (state.signedIn && initials()) {
+				item.find(".galaxieMemberMenuText").empty().addClass("galaxieMemberMenuIcon")
+					.attr({ "aria-label": menuText(), title: menuText(), role: "img" })
+					.append($('<span class="galaxieMemberAvatar k-state-selected" aria-hidden="true"></span>').text(initials()));
+			}
 		});
+		if (state.signedIn && initials()) { return; }
 		// The menu fixed to the top is hidden until the page scrolls, so the menu under the title decides for both.
 		var measured = $("#topMenu:visible");
 		if (!measured.length) { measured = $("#fixedNavMenu:visible"); }
