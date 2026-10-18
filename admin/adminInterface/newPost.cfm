@@ -327,22 +327,22 @@
 			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 	  	  <!-- Form content --->
-		<!--- Post type in rows (owner, 2026-10-17): Blog post, Page and Collection each on their own row, with a few words on what it is. --->
+		<!--- Labels are h4.adminBlockHeading (owner, 2026-10-17). Post type in rows (owner, 2026-10-17): Blog post, Page and Collection each on their own row, with a few words on what it is. --->
 		<cfif session.isMobile>
 		  <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><b>Blog post:</b> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label> <span class="k-form-hint">dated, in the blog and RSS feed</span></td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Blog post:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label> <span class="k-form-hint">dated, in the blog and RSS feed</span></td>
 		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><b>Page:</b> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label> <span class="k-form-hint">stays put, on your menu</span></td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Page:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label> <span class="k-form-hint">stays put, on your menu</span></td>
 		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><b>Collection:</b> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection</label> <span class="k-form-hint">links to several of your pages</span></td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Collection:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection</label> <span class="k-form-hint">links to several of your pages</span></td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle">
@@ -355,21 +355,21 @@
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">Blog post:</td>
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Blog post:</h4></td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label> <span class="k-form-hint">dated, in the blog and RSS feed</span></td>
 		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">Page:</td>
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Page:</h4></td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label> <span class="k-form-hint">stays put, on your menu</span></td>
 		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">Collection:</td>
+			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Collection:</h4></td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection</label> <span class="k-form-hint">links to several of your pages</span></td>
 		  </tr>
 		</cfif>
@@ -388,7 +388,7 @@
 		<cfif session.isMobile>
 		  <tr valign="middle" class="field-dateAuthor">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="post">Date Posted</label>
+			<h4 class="adminBlockHeading"><label for="post">Date Posted</label></h4>
 			</td>
 		   </tr>
 		   <tr class="field-dateAuthor">
@@ -399,7 +399,7 @@
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr class="field-dateAuthor">
 			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"> 
-			<label for="post">Date Posted</label>
+			<h4 class="adminBlockHeading"><label for="post">Date Posted</label></h4>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input id="newDatePosted" name="newDatePosted" value="<cfoutput>#dateTimeFormat(now(), "medium")#</cfoutput>" style="width: <cfif session.isMobile>95<cfelse>45</cfif>%" />    
@@ -422,7 +422,7 @@
 		<cfif session.isMobile>
 		  <tr valign="middle" class="field-dateAuthor">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="post">Author</label>
+			<h4 class="adminBlockHeading"><label for="post">Author</label></h4>
 			</td>
 		   </tr>
 		   <tr class="field-dateAuthor">
@@ -441,7 +441,7 @@
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="35" class="field-dateAuthor">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-			<label for="post">Author</label>
+			<h4 class="adminBlockHeading"><label for="post">Author</label></h4>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<select id="author" style="width: <cfif session.isMobile>95<cfelse>50</cfif>%"></select>
@@ -472,7 +472,7 @@
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="post">Title</label>
+			<h4 class="adminBlockHeading"><label for="post">Title</label></h4>
 			</td>
 		   </tr>
 		   <tr>
@@ -483,7 +483,7 @@
 		<cfelse><!---<cfif session.isMobile>--->
 		  <tr valign="middle" height="35">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-			<label for="post">Title</label>
+			<h4 class="adminBlockHeading"><label for="post">Title</label></h4>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input type="text" id="title" name="title" value="" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%" />
@@ -506,7 +506,7 @@
 		<cfif session.isMobile>
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="post">Description</label>
+			<h4 class="adminBlockHeading"><label for="post">Description</label></h4>
 			</td>
 		  </tr>
 		  <tr>
@@ -524,7 +524,7 @@
 		  </tr>
 		  <tr valign="middle" height="35">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-			<label for="post">Description</label>
+			<h4 class="adminBlockHeading"><label for="post">Description</label></h4>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: <cfif session.isMobile>95<cfelse>66</cfif>%"></textarea>				
@@ -542,7 +542,7 @@
 		<cfif session.isMobile>
 		  <tr valign="middle" class="field-heroImage">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="externalUrl">External URL (optional - makes this a cross-link)</label>
+			<h4 class="adminBlockHeading"><label for="externalUrl">External URL (optional - makes this a cross-link)</label></h4>
 			</td>
 		  </tr>
 		  <tr class="field-heroImage">
@@ -560,7 +560,7 @@
 		  </tr>
 		  <tr valign="middle" height="35" class="field-heroImage">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
-			<label for="externalUrl">External URL (optional)</label>
+			<h4 class="adminBlockHeading"><label for="externalUrl">External URL (optional)</label></h4>
 			</td>
 			<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input type="text" id="externalUrl" name="externalUrl" value="" placeholder="https://example.com" class="k-textbox" style="width: 95%" />				
