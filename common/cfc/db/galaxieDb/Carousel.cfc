@@ -10,6 +10,10 @@
 	<cfproperty name="CarouselTitle" ormtype="string" default="" length="125" hint="The title of the fancybox thing">
 	<cfproperty name="CarouselEffect" ormtype="string" default="" length="125" hint="The swiper based effect">
 	<cfproperty name="CarouselShader" ormtype="string" default="" length="125" hint="The swiper based shader">
+	<!--- 5.0 (2026-10-19): the shadow behind the titles and text over the pictures - none, soft, strong or glow (the same as
+	scenes and post heroes) in a colour of its own; empty keeps the faint shadow carousels have always had. --->
+	<cfproperty name="CarouselTextShadow" ormtype="string" default="" length="20">
+	<cfproperty name="CarouselTextShadowColor" ormtype="string" default="" length="20">
 	<cfproperty name="Date" ormtype="timestamp">
 		
 </cfcomponent>

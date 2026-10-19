@@ -35,6 +35,13 @@
 	and a string sidesteps ORM needing a non-empty numeric default for "not set yet". Shared with HeroAnimation
 	below, same as every other HeroOverlay* column. --->
 	<cfproperty name="HeroOverlayFontSize" ormtype="string" length="10" default="">
+	<!--- 5.0 (2026-10-19, owner): more for the hero's text, on image, gradient and animated heroes alike. A second line under
+	the heading; the heading size on phones (digits, like HeroOverlayFontSize; empty = scaled down from it); and a shadow
+	behind the text - none, soft, strong or glow - in a colour of its own (empty = black, or the text colour for glow). --->
+	<cfproperty name="HeroOverlaySubText" ormtype="string" length="500" default="">
+	<cfproperty name="HeroOverlayFontSizePhone" ormtype="string" length="10" default="">
+	<cfproperty name="HeroOverlayShadow" ormtype="string" length="20" default="">
+	<cfproperty name="HeroOverlayShadowColor" ormtype="string" length="20" default="">
 	<!--- A live animated background (currently rendered via Vanta.js, see heroAnimationEditor.cfm) as another
 	alternative hero/enclosure option, alongside EnclosureMedia/Map/Carousel and HeroGradient above. Named
 	generically (not after Vanta specifically) so the rendering library can change later without a column

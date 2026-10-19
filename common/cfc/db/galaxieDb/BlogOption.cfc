@@ -63,6 +63,10 @@
 	launched from Blog Options' "Configure Animation Defaults" button, same shape as the per-post override.
 	2026-10-03: renamed from VantaEffect/VantaOptions while still dev-only/unmigrated. --->
 	<cfproperty name="AnimationEffect" ormtype="string" length="20" default="">
+	<!--- 5.0 (2026-10-19): how a post's image, gradient and animated hero is shown on its own page. 'classic' as in 4.8 (inside
+	the post, below the title); 'scene' drawn by the scene engine (common/js/galaxieScene.js): full width, the hero text
+	rising over it, fading into the post. Carousels, maps and videos are the same either way. --->
+	<cfproperty name="PostHeroStyle" ormtype="string" length="20" default="classic">
 	<cfproperty name="AnimationOptions" ormtype="string" length="1000" default="">
 	<!--- 2026-10-10 (4.8): top menu labels, set in the admin site's Configure Menu window. Blank uses the default.
 	CollectionsMenuLabel names the dropdown listing the Page Collections marked Show in Menu (default "Collections").

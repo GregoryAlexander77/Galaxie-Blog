@@ -7064,6 +7064,8 @@
 		<cfargument name="effect" type="string" default="" required="false">
 		<cfargument name="selectorId" type="string" default="" required="false">
 		<cfargument name="carouselFontDropdown" type="string" default="" required="false">
+		<cfargument name="carouselTextShadow" type="string" default="" required="false" hint="none, soft, strong or glow; empty for the usual faint shadow.">
+		<cfargument name="carouselTextShadowColor" type="string" default="" required="false">
 		<cfargument name="getMediaUrl" type="string" default="" required="false">
 		<cfargument name="carouselTitle1" type="string" default="" required="false">
 		<cfargument name="carouselBody1" type="string" default="" required="false">
@@ -7236,6 +7238,8 @@
 									<cfset CarouselDbObj.setCarouselName(arguments.mediaIdList)>
 									<cfset CarouselDbObj.setCarouselEffect(arguments.effect)>
 									<cfset CarouselDbObj.setCarouselShader(arguments.shader)>
+									<cfset CarouselDbObj.setCarouselTextShadow(listFind("none,soft,strong,glow", arguments.carouselTextShadow) ? arguments.carouselTextShadow : "")>
+									<cfset CarouselDbObj.setCarouselTextShadowColor(reFind("^##[0-9A-Fa-f]{3,8}$", arguments.carouselTextShadowColor) ? arguments.carouselTextShadowColor : "")>
 									<cfset CarouselDbObj.setDate(application.blog.blogNow())>
 									<!---Save the entity--->
 									<cfset EntitySave(CarouselDbObj)>

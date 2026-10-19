@@ -13419,6 +13419,8 @@
 				Carousel.CarouselTitle as CarouselTitle,
 				Carousel.CarouselEffect as CarouselEffect,
 				Carousel.CarouselShader as CarouselShader,
+				Carousel.CarouselTextShadow as CarouselTextShadow,
+				Carousel.CarouselTextShadowColor as CarouselTextShadowColor,
 				CarouselItem.CarouselItemId as CarouselItemId,
 				CarouselItem.CarouselItemTitle as CarouselItemTitle,
 				CarouselItem.CarouselItemTitleFontColor as CarouselItemTitleFontColor,

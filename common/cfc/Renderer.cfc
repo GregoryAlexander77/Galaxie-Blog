@@ -50,6 +50,21 @@
 		Composite post injection functions
 	//**************************************************************************************************--->
 
+	<cffunction name="getTextShadowCss" access="public" returntype="string" output="false"
+			hint="The CSS text-shadow for a shadow setting (5.0): soft, strong or glow in a colour (##rrggbb; black when empty), 'none', or an empty string when no shadow is set (the caller keeps its own default). The same shadows as the scene engine (galaxieScene.js SHADOWS).">
+		<cfargument name="kind" type="string" required="true">
+		<cfargument name="colour" type="string" required="false" default="">
+		<cfset var hex = reFind("^##[0-9A-Fa-f]{6}$", trim(arguments.colour)) ? mid(trim(arguments.colour), 2, 6) : "000000">
+		<cfset var rgb = inputBaseN(left(hex, 2), 16) & "," & inputBaseN(mid(hex, 3, 2), 16) & "," & inputBaseN(right(hex, 2), 16)>
+		<cfswitch expression="#arguments.kind#">
+			<cfcase value="none"><cfreturn "none"></cfcase>
+			<cfcase value="soft"><cfreturn "0 2px 6px rgba(" & rgb & ",0.65)"></cfcase>
+			<cfcase value="strong"><cfreturn "0 3px 12px rgba(" & rgb & ",0.85), 0 0 2px rgba(" & rgb & ",0.9)"></cfcase>
+			<cfcase value="glow"><cfreturn "0 0 10px rgba(" & rgb & ",0.9), 0 0 26px rgba(" & rgb & ",0.7)"></cfcase>
+		</cfswitch>
+		<cfreturn "">
+	</cffunction>
+
 	<cffunction name="renderScene" access="public" returnType="string" output="false"
 			hint="A Galaxie 5 scene (common/js/galaxieScene.js) as HTML: an empty container plus the script that builds it. The scene comes from the Scene tables (Scenes.cfc, phase 3), or else from includes/postContent/scenes/{name}.json. Returns an empty string when the name is not a plain name or the file is missing or not valid JSON, so a bad directive never breaks a post.">
 		<cfargument name="sceneName" type="string" required="true">
@@ -1703,6 +1718,12 @@
 							</cfif>
 							<cfif structKeyExists(getCarousel[i], "CarouselItemBodyFontSize") and isNumeric(getCarousel[i]["CarouselItemBodyFontSize"]) and not session.isMobile>
 								<cfset slideBodyStyle = slideBodyStyle & "font-size:" & getCarousel[i]["CarouselItemBodyFontSize"] & "px;">
+							</cfif>
+							<!--- The carousel's text shadow (5.0); none set keeps the usual faint one from the stylesheet. --->
+							<cfset carouselShadowCss = getTextShadowCss(getCarousel[i]["CarouselTextShadow"] ?: "", getCarousel[i]["CarouselTextShadowColor"] ?: "")>
+							<cfif len(carouselShadowCss)>
+								<cfset slideTitleStyle = slideTitleStyle & "text-shadow:" & carouselShadowCss & ";">
+								<cfset slideBodyStyle = slideBodyStyle & "text-shadow:" & carouselShadowCss & ";">
 							</cfif>
 						</cfif>
 						</cfsilent>
