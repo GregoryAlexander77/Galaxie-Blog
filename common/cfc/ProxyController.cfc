@@ -13474,6 +13474,34 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="setPostScene" access="remote" returnformat="json" output="false"
+			hint="Shows a scene at the top of a post, or none (an empty alias), from the post's Scene window (108). Changes only the scene line of the post's header, then clears the post's cached page.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" default="0" required="true">
+		<cfargument name="alias" type="string" default="" required="false">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId)>
+			<cftry>
+				<cfset application.blog.getScenes().setPostScene(val(arguments.postId), arguments.alias)>
+				<cfset flushWebFormPosts([val(arguments.postId)])>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.Scenes" ? cfcatch.message : "The scene could not be set: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="deleteScene" access="remote" returnformat="json" output="false" hint="Deletes a scene (Scenes window 106). Posts that showed it show nothing in its place.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="sceneId" default="0" required="true">

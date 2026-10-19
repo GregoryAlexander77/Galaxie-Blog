@@ -227,6 +227,38 @@
 	</cftransaction>
 </cffunction>
 
+<cffunction name="getPostScene" access="public" returntype="string" output="false" hint="The alias of the scene a post shows (the <galaxieScene> directive in its header), or an empty string.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfset var header = queryExecute("SELECT PostHeader FROM Post WHERE PostId = :postId", { postId = { value = arguments.postId, cfsqltype = "cf_sql_integer" } })>
+	<cfset var found = header.recordCount ? reMatchNoCase("<galaxieScene>\s*[A-Za-z0-9_-]{1,80}\s*</galaxieScene>", header.PostHeader ?: "") : []>
+	<cfreturn arrayLen(found) ? trim(reReplaceNoCase(found[1], "</?galaxieScene>", "", "all")) : "">
+</cffunction>
+
+<cffunction name="setPostScene" access="public" returntype="void" output="false"
+		hint="Shows a scene on a post (or none, with an empty alias): adds, replaces or removes the <galaxieScene> directive in the post's header and leaves the rest of the header, and the post's date, as they are. The Scene window (108) in the post editor.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfargument name="alias" type="string" required="true">
+	<cfset var post = "">
+	<cfset var header = "">
+	<cfset var sceneAlias = trim(arguments.alias)>
+	<cfif len(sceneAlias) and not (reFind("^[A-Za-z0-9_-]{1,80}$", sceneAlias) and aliasExists(sceneAlias))>
+		<cfthrow type="GalaxieBlog.Scenes" message="There is no scene called '#sceneAlias#'.">
+	</cfif>
+	<cftransaction>
+		<cfset post = entityLoad("Post", { postId = arguments.postId }, true)>
+		<cfif isNull(post)>
+			<cfthrow type="GalaxieBlog.Scenes" message="This post no longer exists.">
+		</cfif>
+		<cfset header = post.getPostHeader() ?: "">
+		<cfset header = trim(reReplaceNoCase(header, "\s*<galaxieScene>[^<]*</galaxieScene>", "", "all"))>
+		<cfif len(sceneAlias)>
+			<cfset header = (len(header) ? header & chr(10) : "") & "<galaxieScene>" & sceneAlias & "</galaxieScene>">
+		</cfif>
+		<cfset post.setPostHeader(header)>
+		<cfset entitySave(post)>
+	</cftransaction>
+</cffunction>
+
 <cffunction name="getFontFaceCss" access="public" returntype="string" output="false"
 		hint="The @font-face rules for the blog fonts a scene uses (its sections' headingFontId and textFontId), so a scene's fonts load wherever it is shown. Web-safe fonts need none.">
 	<cfargument name="sceneJson" type="string" required="true">

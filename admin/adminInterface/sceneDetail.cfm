@@ -57,6 +57,8 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 <cfset includeMaps = false>
 <cfset includeCommonCss = false>
 <cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">
+<!--- The scene cards (thumbnails drawn from a scene), shared with the post's Scene window (108). --->
+<cfinclude template="sceneCards.cfm">
 
 <style>
 	#sceneEditor { display: flex; flex-direction: column; height: 100%; }
@@ -91,17 +93,6 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 	.sceneGradientBar .grp-handler-cp-c { display: none; }
 	.sceneGradient .sceneRow { margin-bottom: 8px; }
 	#sceneGallery { flex: 1 1 auto; overflow: auto; padding: 14px 16px; }
-	#sceneGalleryCards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 12px; }
-	<!--- Flex column from the top: a button centres its content by default, which left shorter cards sitting lower. --->
-	.sceneCard { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; height: 100%; width: 100%; text-align: left; padding: 0; border: 1px solid rgba(128,128,128,.35); border-radius: 6px; overflow: hidden; background: transparent; color: inherit; font: inherit; cursor: pointer; }
-	.sceneCard:hover, .sceneCard:focus { border-color: currentColor; outline: none; box-shadow: 0 0 0 2px rgba(128,128,128,.35); }
-	.sceneCardThumb { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #222; }
-	.sceneCardThumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-	.sceneCardHeading { position: absolute; left: 0; right: 0; bottom: 10%; padding: 0 12px; text-align: center; color: #fff; font-size: 18px; font-weight: bold; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
-	.sceneCardBadge { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; }
-	.sceneCardText { padding: 8px 10px 10px; }
-	.sceneCardText strong { display: block; margin-bottom: 2px; }
-	.sceneCardEmpty .sceneCardThumb { display: flex; align-items: center; justify-content: center; background: transparent; border-bottom: 1px dashed rgba(128,128,128,.5); font-size: 40px; opacity: .6; }
 	@media (max-width: 900px) {
 		#sceneEditorBody { flex-direction: column; overflow: auto; }
 		#sceneEditorList, #sceneEditorSettings { flex: 0 0 auto; overflow: visible; }
@@ -130,7 +121,7 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 	<div id="sceneGallery" class="#altClass#">
 		<h4 class="adminBlockHeading">Pick a starting point</h4>
 		<div>Every part of it can be changed: the words, pictures, fonts, colours and motion. You can also start from nothing.</div>
-		<div id="sceneGalleryCards"></div>
+		<div id="sceneGalleryCards" class="sceneCards"></div>
 	</div>
 </cfif>
 	<div id="sceneEditorBody"<cfif isNewScene> style="display: none;"</cfif>>
@@ -621,26 +612,7 @@ $(document).ready(function () {
 	updateUseHint();
 
 	<!--- ---------- The gallery (new scenes) --->
-	function cardThumb(data) {
-		var box = $('<div class="sceneCardThumb"></div>').css("background", data.pageColour || "#222");
-		var s = (data.sections || [])[0] || {};
-		if (data.thumbnail) {
-			box.append($('<img alt="">').attr("src", withBase(data.thumbnail)));
-		} else if (s.kind === "layeredHero") {
-			$.each(s.layers || [], function (i, layer) { box.append($('<img alt="" loading="lazy">').attr("src", withBase(layer.src))); });
-		} else if (s.image || s.poster) {
-			box.append($('<img alt="" loading="lazy">').attr("src", withBase(s.imagePhone || s.image || s.poster)));
-		} else if (s.gradient) {
-			box.css("background", s.gradient);
-		} else if (s.kind === "vantaHero") {
-			box.css("background", "radial-gradient(ellipse at 50% 120%, " + ((s.options && s.options.color) || "#0e3b5c") + " 0%, " + (data.pageColour || "#0b1d2e") + " 75%)");
-		} else if (s.colour) {
-			box.css("background", s.colour);
-		}
-		if (s.kind === "vantaHero") { box.append('<span class="sceneCardBadge">Animated</span>'); }
-		if (s.heading) { box.append($('<div class="sceneCardHeading"></div>').text(s.heading).css("font-family", s.headingFont || "")); }
-		return box;
-	}
+	function cardThumb(data) { return galaxieSceneCardThumb(data, BASE_URL); }
 	function startFrom(data) {
 		scene = JSON.parse(JSON.stringify(data));
 		scene.settings = scene.settings || {}; scene.sections = scene.sections || [];
@@ -739,6 +711,8 @@ $(document).ready(function () {
 					$("#sceneRestart").remove();
 					$("#sceneSaved").text("Saved at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
 					try { refreshScenesWindow(); } catch (e) {}
+					<!--- The post's Scene window (108), when it opened this editor, lists the new scene and picks it. --->
+					$(document).trigger("galaxieSceneSaved", [{ sceneId: sceneId, alias: alias }]);
 				} else {
 					$("#sceneSaved").text("");
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The scene could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));

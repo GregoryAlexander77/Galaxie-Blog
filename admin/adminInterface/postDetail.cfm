@@ -1217,6 +1217,8 @@
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(46,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">CSS</button>
 			<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(47,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JavaScript</button>
+			<!--- Scene (2026-10-19, Galaxie 5): the scrolling hero at the top of the post (window 108). --->
+			<button id="sceneButton" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(108,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Scene</button>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
@@ -1229,16 +1231,20 @@
 			<!--- Inner table --->
 			<table align="center" class="<cfoutput>#thisContentClass#</cfoutput>" width="100%" cellpadding="5" cellspacing="0">
 				<tr>
-					<td width="25%">
+					<td width="20%">
 						<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(23,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Alias</button>
 					</td>
-					<td width="25%">
+					<td width="20%">
 						<button id="postHeader" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(42,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Post Header</button>
 					</td>
-					<td width="25%">
+					<!--- Scene (2026-10-19, Galaxie 5): the scrolling hero at the top of the post (window 108). --->
+					<td width="20%">
+						<button id="sceneButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(108,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Scene</button>
+					</td>
+					<td width="20%">
 						<button id="cssButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(46,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">CSS</button>
 					</td>
-					<td width="25%">
+					<td width="20%">
 						<button id="javascriptButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(47,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JavaScript</button>
 					</td>
 				</tr>

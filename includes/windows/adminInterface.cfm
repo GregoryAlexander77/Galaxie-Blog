@@ -1189,6 +1189,10 @@ admin/adminInterface/scenes.cfm, sceneDetail.cfm and common/cfc/Scenes.cfc. --->
 <cfcase value=107>
 	<cfinclude template="../../admin/adminInterface/sceneDetail.cfm">
 </cfcase>
+<!--- 108 a post's scene, from the Scene button in the post editor (optArgs = PostId). See admin/adminInterface/postScene.cfm. --->
+<cfcase value=108>
+	<cfinclude template="../../admin/adminInterface/postScene.cfm">
+</cfcase>
 
 </cfswitch>
 

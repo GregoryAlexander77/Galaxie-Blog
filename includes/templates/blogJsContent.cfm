@@ -1041,6 +1041,13 @@
 				var windowHeight = "92%";
 				var windowWidth = "<cfif session.isMobile>98%<cfelse>96%</cfif>";
 				var windowTitle = "Scene";
+			} else if (Id == 108){
+				// A post's scene (2026-10-19, Galaxie 5), from the Scene button in the post editor - optArgs is the PostId.
+				// See admin/adminInterface/postScene.cfm.
+				var windowName = "postSceneWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>65%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
+				var windowTitle = "Scene for this post";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";
