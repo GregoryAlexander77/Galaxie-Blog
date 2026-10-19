@@ -13496,6 +13496,52 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="savePostHeroText" access="remote" returnformat="json" output="false"
+			hint="The text over a post's image, gradient or animated hero, from the Hero text window (109, 2026-10-19, Galaxie 5). Anything out of range is dropped rather than refused: an unknown colour or shadow becomes empty (the default), a size is kept between 12 and 120 px.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" default="0" required="true">
+		<cfargument name="heading" type="string" default="" required="false">
+		<cfargument name="subText" type="string" default="" required="false">
+		<cfargument name="colour" type="string" default="" required="false">
+		<cfargument name="font" type="string" default="" required="false">
+		<cfargument name="size" type="string" default="" required="false">
+		<cfargument name="sizePhone" type="string" default="" required="false">
+		<cfargument name="shadow" type="string" default="" required="false">
+		<cfargument name="shadowColour" type="string" default="" required="false">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var heroText = {}>
+		<cfset var colourPattern = "^##[0-9A-Fa-f]{3,8}$">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId)>
+			<cfset heroText = {
+				heading = left(trim(arguments.heading), 500),
+				subText = left(trim(arguments.subText), 500),
+				colour = reFind(colourPattern, arguments.colour) ? arguments.colour : "",
+				font = left(trim(arguments.font), 100),
+				size = isNumeric(arguments.size) ? toString(min(max(int(arguments.size), 12), 120)) : "",
+				sizePhone = isNumeric(arguments.sizePhone) ? toString(min(max(int(arguments.sizePhone), 12), 120)) : "",
+				shadow = listFind("none,soft,strong,glow", arguments.shadow) ? arguments.shadow : "",
+				shadowColour = reFind(colourPattern, arguments.shadowColour) ? arguments.shadowColour : ""
+			}>
+			<cftry>
+				<cfset application.blog.savePostHeroText(val(arguments.postId), heroText)>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.HeroText" ? cfcatch.message : "The hero text could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="saveSceneSettings" access="remote" returnformat="json" output="false"
 			hint="Blog-wide scene settings from the Scenes window (106): where the animation library is loaded from ('cdn' or 'local'). Clears the cached pages of the posts that show scenes, as they carry this choice.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

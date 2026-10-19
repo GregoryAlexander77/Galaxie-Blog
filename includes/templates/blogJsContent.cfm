@@ -1048,6 +1048,13 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>65%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
 				var windowTitle = "Scene for this post";
+			} else if (Id == 109){
+				// A post's hero text (2026-10-19, Galaxie 5), from the Hero text button in the post editor - optArgs is the PostId.
+				// See admin/adminInterface/postHeroText.cfm.
+				var windowName = "postHeroTextWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+				var windowTitle = "Hero text";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

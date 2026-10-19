@@ -6287,6 +6287,35 @@
 		<cfreturn true>
 	</cffunction>
 
+	<cffunction name="savePostHeroText" access="public" returnType="void" output="false"
+			hint="The text over a post's image, gradient or animated hero, from the Hero text window (109, 2026-10-19, Galaxie 5):
+			the heading and second line, colour, font (a font NAME), heading size and phone size (px digits), and a shadow
+			(none, soft, strong or glow) with its colour. Leaves the hero itself as it is. The values are checked by the caller
+			(ProxyController.cfc savePostHeroText). Updates Post.Date (dateModified) and clears the post's cached page.">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfargument name="heroText" type="struct" required="true">
+		<cfset var post = entityLoadByPK("Post", arguments.postId)>
+		<cfif isNull(post)>
+			<cfthrow type="GalaxieBlog.HeroText" message="This post no longer exists.">
+		</cfif>
+		<cftransaction>
+			<cfset post.setHeroOverlayText(arguments.heroText.heading)>
+			<cfset post.setHeroOverlaySubText(arguments.heroText.subText)>
+			<cfset post.setHeroOverlayTextColor(arguments.heroText.colour)>
+			<cfset post.setHeroOverlayFont(arguments.heroText.font)>
+			<cfset post.setHeroOverlayFontSize(arguments.heroText.size)>
+			<cfset post.setHeroOverlayFontSizePhone(arguments.heroText.sizePhone)>
+			<cfset post.setHeroOverlayShadow(arguments.heroText.shadow)>
+			<cfset post.setHeroOverlayShadowColor(arguments.heroText.shadowColour)>
+			<cfset post.setDate(blogNow())>
+			<cfset entitySave(post)>
+		</cftransaction>
+		<cftry>
+			<cfset flushGalaxieCache(type = "post", postId = arguments.postId)>
+			<cfcatch type="any"><!--- A cache that can't be cleared now is rebuilt when it expires; it mustn't fail the save. ---></cfcatch>
+		</cftry>
+	</cffunction>
+
 	<cffunction name="savePostHeroCoverImage" access="public" returnType="boolean" output="false"
 			hint="Updates a Post's HeroCoverImageUrl - the static uploaded photo used for cards/listings and
 			social-media share images when the post has no real Image/Video/Map/Carousel enclosure (see
@@ -10543,6 +10572,10 @@
 				COALESCE(Post.HeroOverlayTextColor, '') as HeroOverlayTextColor,
 				COALESCE(Post.HeroOverlayFont, '') as HeroOverlayFont,
 				COALESCE(Post.HeroOverlayFontSize, '') as HeroOverlayFontSize,
+				COALESCE(Post.HeroOverlaySubText, '') as HeroOverlaySubText,
+				COALESCE(Post.HeroOverlayFontSizePhone, '') as HeroOverlayFontSizePhone,
+				COALESCE(Post.HeroOverlayShadow, '') as HeroOverlayShadow,
+				COALESCE(Post.HeroOverlayShadowColor, '') as HeroOverlayShadowColor,
 				COALESCE(Post.HeroAnimationEffect, '') as HeroAnimationEffect,
 				COALESCE(Post.HeroAnimationOptions, '') as HeroAnimationOptions,
 				COALESCE(Post.HeroCoverImageUrl, '') as HeroCoverImageUrl,
@@ -10803,6 +10836,10 @@
 					<cfelse>
 						<cfset PostStruct["HeroOverlayFontSize"] = "">
 					</cfif>
+					<!--- 5.0: the hero text's second line, phone size and shadow (same guard as above). --->
+					<cfloop list="HeroOverlaySubText,HeroOverlayFontSizePhone,HeroOverlayShadow,HeroOverlayShadowColor" index="heroField">
+						<cfset PostStruct[heroField] = structKeyExists(postRow, heroField) ? Data[i][heroField] : "">
+					</cfloop>
 					<!--- HeroAnimationEffect/HeroAnimationOptions - same newly-added-column guard as HeroGradient
 					above, same reasoning. 2026-10-03: renamed from HeroVantaEffect/HeroVantaOptions while still
 					dev-only/unmigrated. --->

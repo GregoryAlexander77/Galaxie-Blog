@@ -1219,6 +1219,8 @@
 			<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(47,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JavaScript</button>
 			<!--- Scene (2026-10-19, Galaxie 5): the scrolling hero at the top of the post (window 108). --->
 			<button id="sceneButton" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(108,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Scene</button>
+			<!--- Hero text (2026-10-19, Galaxie 5): the heading over the post's image, gradient or animated hero (window 109). --->
+			<button id="heroTextButton" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(109,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Hero text</button>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
@@ -1240,6 +1242,10 @@
 					<!--- Scene (2026-10-19, Galaxie 5): the scrolling hero at the top of the post (window 108). --->
 					<td width="20%">
 						<button id="sceneButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(108,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Scene</button>
+					</td>
+					<!--- Hero text (2026-10-19, Galaxie 5): the heading over the post's image, gradient or animated hero (window 109). --->
+					<td width="20%">
+						<button id="heroTextButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(109,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Hero text</button>
 					</td>
 					<td width="20%">
 						<button id="cssButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(46,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">CSS</button>

@@ -1190,6 +1190,10 @@ admin/adminInterface/scenes.cfm, sceneDetail.cfm and common/cfc/Scenes.cfc. --->
 <cfcase value=108>
 	<cfinclude template="../../admin/adminInterface/postScene.cfm">
 </cfcase>
+<!--- 109 a post's hero text, from the Hero text button in the post editor (optArgs = PostId). See admin/adminInterface/postHeroText.cfm. --->
+<cfcase value=109>
+	<cfinclude template="../../admin/adminInterface/postHeroText.cfm">
+</cfcase>
 
 </cfswitch>
 
