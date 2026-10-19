@@ -3,6 +3,10 @@ heroes built by common/js/galaxieScene.js. New scene and Edit open the Scene edi
 <galaxieScene>name</galaxieScene> in its header. The work is done by application.blog.getScenes() (common/cfc/Scenes.cfc)
 through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. --->
 <cfset sceneList = application.blog.getScenes().listScenes()>
+<!--- Where the animation library (GSAP) comes from (2026-10-19). "This server only" needs the files in common/libs/gsap3/. --->
+<cfset sceneLibrarySource = application.blog.getScenes().getSetting("librarySource", "cdn")>
+<cfset sceneLocalFiles = application.blog.getScenes().getLocalLibraryFiles()>
+<cfset sceneHasLocal = arrayFind(sceneLocalFiles, "gsap.min.js") and arrayFind(sceneLocalFiles, "ScrollTrigger.min.js")>
 
 <script>
 	<!--- Called by the Scene editor after a save, so the list stays current. --->
@@ -12,6 +16,20 @@ through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. -
 		} catch (error) {
 			<!--- The window may not be open. --->
 		}
+	}
+
+	function saveSceneLibrarySource() {
+		jQuery.ajax({
+			type: "post",
+			url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveSceneSettings",
+			data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", librarySource: $("input[name=sceneLibrarySource]:checked").val() },
+			dataType: "json",
+			success: function(response) {
+				if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+				$("#sceneLibrarySaved").text(response && response.success ? "Saved." : ((response && response.errorMessage) || "Could not save."));
+			},
+			error: function(jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
+		});
 	}
 
 	function deleteScene(sceneId, sceneName) {
@@ -98,6 +116,22 @@ through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. -
 				</tbody>
 			</table>
 		</cfif>
+		</td>
+	</tr>
+
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Animation library</h4></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Scenes move with GSAP, a free animation library. It normally comes from Cloudflare's network (cdnjs), which is fast, with this server as a backup if Cloudflare can't be reached. Choose this server only if you'd rather your visitors' browsers didn't contact a third party.<cfif not sceneHasLocal> This server doesn't have the files yet (common/libs/gsap3/), so that choice isn't available.</cfif></td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right">Load it from:</td>
+		<td class="#blockClass#">
+			<label><input type="radio" class="k-radio" name="sceneLibrarySource" value="cdn" onchange="saveSceneLibrarySource();"<cfif sceneLibrarySource neq "local" or not sceneHasLocal> checked</cfif>> Cloudflare (cdnjs), with this server as a backup</label><br>
+			<label><input type="radio" class="k-radio" name="sceneLibrarySource" value="local" onchange="saveSceneLibrarySource();"<cfif sceneLibrarySource eq "local" and sceneHasLocal> checked</cfif><cfif not sceneHasLocal> disabled</cfif>> This server only</label>
+			<span id="sceneLibrarySaved" class="k-form-hint"></span>
 		</td>
 	</tr>
 </table>

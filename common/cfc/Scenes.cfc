@@ -67,6 +67,59 @@
 		& ',"sections":[' & arrayToList(parts, ",") & ']}'>
 </cffunction>
 
+<!---//*****************************************************************************************************
+		Settings, and where the animation library comes from
+//******************************************************************************************************--->
+
+<cffunction name="getSetting" access="public" returntype="string" output="false" hint="A blog-wide scene setting, or the default when it isn't set.">
+	<cfargument name="name" type="string" required="true">
+	<cfargument name="default" type="string" required="false" default="">
+	<cfset var row = "">
+	<cfif not structKeyExists(variables, "settings")>
+		<cfset ensureTables()>
+		<cfset variables.settings = {}>
+		<cfset row = queryExecute("SELECT SettingName, SettingValue FROM SceneSetting WHERE BlogRef = :blogId", { blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } })>
+		<cfloop query="row">
+			<cfset variables.settings[row.SettingName] = row.SettingValue ?: "">
+		</cfloop>
+	</cfif>
+	<cfreturn structKeyExists(variables.settings, arguments.name) ? variables.settings[arguments.name] : arguments.default>
+</cffunction>
+
+<cffunction name="setSetting" access="public" returntype="void" output="false">
+	<cfargument name="name" type="string" required="true">
+	<cfargument name="value" type="string" required="true">
+	<cfset var params = { blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, name = { value = arguments.name, cfsqltype = "cf_sql_varchar" }, value = { value = arguments.value, cfsqltype = "cf_sql_varchar" } }>
+	<cfset ensureTables()>
+	<cfif queryExecute("SELECT SceneSettingId FROM SceneSetting WHERE BlogRef = :blogId AND SettingName = :name", params).recordCount>
+		<cfset queryExecute("UPDATE SceneSetting SET SettingValue = :value WHERE BlogRef = :blogId AND SettingName = :name", params)>
+	<cfelse>
+		<cfset queryExecute("INSERT INTO SceneSetting (BlogRef, SettingName, SettingValue) VALUES (:blogId, :name, :value)", params)>
+	</cfif>
+	<cfset structDelete(variables, "settings")>
+</cffunction>
+
+<cffunction name="getLocalLibraryFiles" access="public" returntype="array" output="false"
+		hint="The GSAP files this server has in common/libs/gsap3/ (the fallback when cdnjs can't be reached, or the only source when the owner chose this server only).">
+	<cfset var folder = expandPath(application.baseUrl & "/common/libs/gsap3/")>
+	<cfset var found = []>
+	<cfset var name = "">
+	<cfloop list="gsap.min.js,ScrollTrigger.min.js,SplitText.min.js" index="name">
+		<cfif fileExists(folder & name)><cfset arrayAppend(found, name)></cfif>
+	</cfloop>
+	<cfreturn found>
+</cffunction>
+
+<cffunction name="getEngineConfigScript" access="public" returntype="string" output="false"
+		hint="The script that tells the scene engine where to load GSAP from: window.GalaxieSceneConfig = { source, localBase, local }. 'cdn' (cdnjs, then this server if cdnjs fails) is the default; 'local' is this server only, and only when this server has the core files.">
+	<cfset var libFiles = getLocalLibraryFiles()>
+	<cfset var source = getSetting("librarySource", "cdn") eq "local" and arrayFind(libFiles, "gsap.min.js") and arrayFind(libFiles, "ScrollTrigger.min.js") ? "local" : "cdn">
+	<cfset var parts = []>
+	<cfset var name = "">
+	<cfloop array="#libFiles#" index="name"><cfset arrayAppend(parts, serializeJSON(name))></cfloop>
+	<cfreturn '<script>window.GalaxieSceneConfig = { "source": "' & source & '", "localBase": ' & serializeJSON(application.baseUrl & "/common/libs/gsap3/") & ', "local": [' & arrayToList(parts, ",") & '] };</script>'>
+</cffunction>
+
 <cffunction name="getEngineUrl" access="public" returntype="string" output="false"
 		hint="The address of the scene engine (common/js/galaxieScene.js) with the file's last-changed time on it, so browsers fetch a changed engine instead of an old cached copy. Worked out once per application start.">
 	<cfset var filePath = "">
@@ -463,6 +516,12 @@ key NAMES are taken from the original text, so their case survives on Adobe Cold
 				sqlServer: "CREATE TABLE SceneLayer (SceneLayerId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, SceneSectionRef INT NOT NULL, SortOrder INT NOT NULL, Src NVARCHAR(500) NOT NULL, SrcPhone NVARCHAR(500) NULL, Depth INT NOT NULL)",
 				mySql: "CREATE TABLE SceneLayer (SceneLayerId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, SceneSectionRef INT NOT NULL, SortOrder INT NOT NULL, Src VARCHAR(500) NOT NULL, SrcPhone VARCHAR(500) NULL, Depth INT NOT NULL) DEFAULT CHARSET=utf8mb4",
 				postgre: "CREATE TABLE SceneLayer (SceneLayerId SERIAL PRIMARY KEY, SceneSectionRef INT NOT NULL, SortOrder INT NOT NULL, Src VARCHAR(500) NOT NULL, SrcPhone VARCHAR(500) NULL, Depth INT NOT NULL)"
+			})>
+			<!--- Scene settings (2026-10-19): blog-wide choices, such as where the animation library is loaded from. --->
+			<cfset updater.createTableIfMissing("SceneSetting", {
+				sqlServer: "CREATE TABLE SceneSetting (SceneSettingId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, BlogRef INT NOT NULL, SettingName NVARCHAR(80) NOT NULL, SettingValue NVARCHAR(500) NULL)",
+				mySql: "CREATE TABLE SceneSetting (SceneSettingId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, BlogRef INT NOT NULL, SettingName VARCHAR(80) NOT NULL, SettingValue VARCHAR(500) NULL) DEFAULT CHARSET=utf8mb4",
+				postgre: "CREATE TABLE SceneSetting (SceneSettingId SERIAL PRIMARY KEY, BlogRef INT NOT NULL, SettingName VARCHAR(80) NOT NULL, SettingValue VARCHAR(500) NULL)"
 			})>
 			<cfset variables.tablesReady = true>
 		</cfif>

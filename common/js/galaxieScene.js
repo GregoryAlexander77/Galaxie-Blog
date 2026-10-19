@@ -3,9 +3,15 @@
 	plain data description, with GSAP 3 + ScrollTrigger. Replaces the 2019 ScrollMagic templates in includes/postContent/parallax/,
 	which keep working until each post is moved over. Design: doc/aiDraftArticles/parallaxScenesDesign.cfm.
 
-	GSAP is loaded from cdnjs (not included in Galaxie - see the GSAP licence question in the design doc), with Subresource
-	Integrity, so the browser refuses the files if they were ever changed. GalaxieScene.ready() loads it when the page doesn't
-	have it yet. Never use this on a page that still loads TweenMax 2 / ScrollMagic: GSAP 3 defines the same global names.
+	GSAP is loaded from cdnjs with Subresource Integrity, so the browser refuses the files if they were ever changed; if cdnjs
+	can't be reached (a firewall, a privacy blocker), the same files are loaded from this server, when the blog has them in
+	common/libs/gsap3/. The blog owner can also choose "this server only" (no third party): the page tells the engine in
+	window.GalaxieSceneConfig = { source: "cdn" or "local", localBase: ".../common/libs/gsap3/", local: ["gsap.min.js", ...] }.
+	GalaxieScene.ready(callback, data) loads GSAP and the plugins the scene's effects need.
+
+	Plugins and effects (2026-10-19): PLUGINS lists the GSAP plugins the engine knows. An effect names the plugin it needs, and
+	falls back to the plain rise when that plugin can't be loaded, so a scene never breaks. To add a plugin: one entry in
+	PLUGINS (file, integrity, global) and the effect that uses it (see NEEDS and animateReveals). Never use this on a page that still loads TweenMax 2 / ScrollMagic: GSAP 3 defines the same global names.
 
 	Usage:
 		GalaxieScene.ready(function () {
@@ -55,11 +61,19 @@
 		glow: function (c) { return "0 0 10px " + rgba(c, 0.9) + ", 0 0 26px " + rgba(c, 0.7); }
 	};
 	var scriptPromises = {};
-	// GSAP 3.15.0 from cdnjs, with its published SHA-512 hashes.
-	var GSAP_FILES = [
-		{ src: "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/gsap.min.js", integrity: "sha512-oJ8QbaQThQoJZ7oEv+29jfPM6CcP+zUxh3PKJs1vyOhx0UraUrE7PQgeItu3dOuCJyrzWpoYMsVjkkPEBzbUqw==" },
-		{ src: "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/ScrollTrigger.min.js", integrity: "sha512-OaIE7ud4P04EhnBuhEcm0wQSceIxbi2pV03oBLS/+F6ampfxsnxcIxOp7H2eF9G7N0kEht0VAzOLG+dTLSo17Q==" }
+	// GSAP 3.15.0, with the SHA-512 hashes of the files on cdnjs (the copies in common/libs/gsap3/ are the same files).
+	var CDN = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/";
+	var CORE = [
+		{ file: "gsap.min.js", global: "gsap", integrity: "sha512-oJ8QbaQThQoJZ7oEv+29jfPM6CcP+zUxh3PKJs1vyOhx0UraUrE7PQgeItu3dOuCJyrzWpoYMsVjkkPEBzbUqw==" },
+		{ file: "ScrollTrigger.min.js", global: "ScrollTrigger", integrity: "sha512-OaIE7ud4P04EhnBuhEcm0wQSceIxbi2pV03oBLS/+F6ampfxsnxcIxOp7H2eF9G7N0kEht0VAzOLG+dTLSo17Q==" }
 	];
+	// The GSAP plugins the engine knows. Only loaded on a page whose scene uses an effect that needs one.
+	var PLUGINS = {
+		SplitText: { file: "SplitText.min.js", global: "SplitText", integrity: "sha512-LFdAHEel9Gwq2HmgZUgnl3mLwXjC6nrfMU6IRLA2AOaKQaWgdrT8ZlmI2ZjVkgB32TeYyi7KdD80ihb9W6uH8Q==" }
+	};
+	// Which plugin each effect needs: headingEffect "words" and "letters" split the heading with SplitText.
+	var NEEDS = { headingEffect: { words: "SplitText", letters: "SplitText" } };
+	function config() { return window.GalaxieSceneConfig || { source: "cdn", local: [] }; }
 	var stylesAdded = false;
 
 	/* ---------- small helpers ---------- */
@@ -302,7 +316,22 @@
 
 	/* ---------- animations ---------- */
 
-	function animateHero(data, section, root, phoneFactor) {
+	// Plugin effect: a heading that comes in word by word or letter by letter (SplitText). Returns false when it can't (no
+	// SplitText, or another effect), so the caller does its usual animation instead.
+	function splitIn(x, data, section, rise, splits, trigger) {
+		var effect = section.headingEffect;
+		if ((effect !== "words" && effect !== "letters") || !window.SplitText) { return false; }
+		var split = new window.SplitText(x, { type: effect === "letters" ? "words,chars" : "words" });
+		splits.push(split);
+		gsap.set(x, { opacity: 1, y: 0 });
+		gsap.from(effect === "letters" ? split.chars : split.words, {
+			opacity: 0, y: rise * 0.35, duration: 0.8, ease: "power3.out", stagger: effect === "letters" ? 0.03 : 0.09, delay: trigger === x ? 0 : 0.2,
+			scrollTrigger: { trigger: trigger, start: "top 88%", toggleActions: "play none none reverse", markers: !!setting(data, section, "guides") }
+		});
+		return true;
+	}
+
+	function animateHero(data, section, root, phoneFactor, splits) {
 		var guides = !!setting(data, section, "guides");
 		var tl = gsap.timeline({
 			scrollTrigger: {
@@ -330,6 +359,9 @@
 			if (fade) { tl.to(fade, { height: "100vh", ease: "none" }, 0); }
 		}
 		var text = root.querySelector(".gs-heroText");
+		// The heading's entrance, when the hero has a heading effect: plays as the hero comes on screen (at once, for a hero at the top).
+		var heroHeading = root.querySelector(".gs-heading");
+		if (heroHeading) { splitIn(heroHeading, data, section, setting(data, section, "rise") * phoneFactor, splits, root); }
 		if (text) {
 			tl.to(text, { y: function () { return -window.innerHeight * 0.45 * phoneFactor; }, opacity: 0, ease: "none" }, 0);
 		}
@@ -345,9 +377,11 @@
 		});
 	}
 
-	function animateReveals(data, section, root, phoneFactor) {
+	function animateReveals(data, section, root, phoneFactor, splits) {
 		var rise = setting(data, section, "rise") * phoneFactor;
 		Array.prototype.forEach.call(root.querySelectorAll(".gs-reveal"), function (x) {
+			// Heading effects that need SplitText: each word or letter rises in turn. Without SplitText, the plain rise below.
+			if (x.classList.contains("gs-heading") && splitIn(x, data, section, rise, splits, x)) { return; }
 			gsap.fromTo(x, { opacity: 0, y: rise }, {
 				opacity: 1, y: 0, duration: 1.2, ease: "power3.out",
 				scrollTrigger: { trigger: x, start: "top 88%", toggleActions: "play none none reverse", markers: !!setting(data, section, "guides") }
@@ -398,13 +432,17 @@
 				built.forEach(function (b) { if (HERO_KINDS[b.section.kind] && b.root.getBoundingClientRect().top < window.innerHeight) { startLive(data, b.section, b.root); } });
 				return;
 			}
+			var splits = [];
 			built.forEach(function (b) {
 				var factor = c.phone && setting(data, b.section, "phoneMotion") === "light" ? 0.5 : 1;
-				if (HERO_KINDS[b.section.kind]) { animateHero(data, b.section, b.root, factor); }
+				if (HERO_KINDS[b.section.kind]) { animateHero(data, b.section, b.root, factor, splits); }
 				if (b.section.kind === "imageSlide") { animateSlide(data, b.section, b.root); }
-				animateReveals(data, b.section, b.root, factor);
+				animateReveals(data, b.section, b.root, factor, splits);
 			});
-			return function () { built.forEach(function (b) { if (HERO_KINDS[b.section.kind]) { stopLive(b.section, b.root); } }); };
+			return function () {
+				splits.forEach(function (split) { try { split.revert(); } catch (e) {} });
+				built.forEach(function (b) { if (HERO_KINDS[b.section.kind]) { stopLive(b.section, b.root); } });
+			};
 		});
 
 		// Images change the page height as they load; measure again once everything is in.
@@ -419,13 +457,40 @@
 	}
 
 	// Loads GSAP and ScrollTrigger from the CDN (in order) unless the page already has them, then calls back.
-	function ready(callback) {
-		var have = window.gsap && window.ScrollTrigger;
-		var loading = have ? Promise.resolve() : GSAP_FILES.reduce(function (chain, f) {
-			return chain.then(function () { return loadScript(f.src, f.integrity); });
-		}, Promise.resolve());
-		return loading.then(function () { if (callback) { callback(); } });
+	// One library file: from cdnjs, then from this server if cdnjs fails; or from this server only, when the owner chose that.
+	function loadLibrary(entry) {
+		if (window[entry.global]) { return Promise.resolve(); }
+		var c = config();
+		var local = (c.local || []).indexOf(entry.file) >= 0 && c.localBase ? c.localBase + entry.file : null;
+		if (c.source === "local") { return local ? loadScript(local, entry.integrity) : Promise.reject(new Error(entry.file + " is not on this server")); }
+		return loadScript(CDN + entry.file, entry.integrity).catch(function (error) {
+			if (local) { return loadScript(local, entry.integrity); }
+			throw error;
+		});
+	}
+	// The plugins a scene's effects need.
+	function pluginsFor(data) {
+		var wanted = {};
+		((data && data.sections) || []).forEach(function (section) {
+			Object.keys(NEEDS).forEach(function (key) { var name = NEEDS[key][section[key]]; if (name) { wanted[name] = true; } });
+		});
+		return Object.keys(wanted);
+	}
+	// Loads GSAP and ScrollTrigger, then the plugins the scene needs (a plugin that won't load is skipped: its effect falls back).
+	function ready(callback, data) {
+		var core = CORE.reduce(function (chain, entry) { return chain.then(function () { return loadLibrary(entry); }); }, Promise.resolve());
+		return core.then(function () {
+			return Promise.all(pluginsFor(data).map(function (name) {
+				return loadLibrary(PLUGINS[name]).then(function () { gsap.registerPlugin(window[PLUGINS[name].global]); }).catch(function () {});
+			}));
+		}).then(function () { if (callback) { callback(); } });
 	}
 
-	window.GalaxieScene = { build: build, ready: ready, version: "1.1.0-editor" };
+	// Whether a plugin can be used on this blog (the editor offers an effect only then).
+	function pluginAvailable(name) {
+		var c = config(), p = PLUGINS[name];
+		return !!p && (c.source !== "local" || (c.local || []).indexOf(p.file) >= 0);
+	}
+
+	window.GalaxieScene = { build: build, ready: ready, pluginAvailable: pluginAvailable, plugins: Object.keys(PLUGINS), version: "1.2.0-plugins" };
 })(window, document);

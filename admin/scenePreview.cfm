@@ -24,6 +24,7 @@ view, so the engine's phone settings apply as they would on a phone. In the admi
 <div id="scenePreviewHost"></div>
 <div id="scenePreviewAfter">The post's own text starts here.</div>
 <!--- With the engine's last-changed time on the address, so a changed engine is never an old cached copy (Scenes.cfc getEngineUrl). --->
+#application.blog.getScenes().getEngineConfigScript()#
 <script src="#application.blog.getScenes().getEngineUrl()#"></script>
 <script>
 (function () {
@@ -32,6 +33,7 @@ view, so the engine's phone settings apply as they would on a phone. In the admi
 	var waiting = null;
 	var ready = false;
 	var shown = null;
+	var settleY = 0;
 	<!--- The layer builder's "hold the scroll" (2026-10-19): { section, progress } keeps the scene at one point of a section's scroll -
 	progress 0 to 1 through a pinned hero's pin, or through the section itself - so a depth can be changed and watched in place. --->
 	var hold = null;
@@ -53,6 +55,7 @@ view, so the engine's phone settings apply as they would on a phone. In the admi
 		shown = data;
 		var host = document.getElementById("scenePreviewHost");
 		var y = window.scrollY;
+		settleY = y;
 		if (current) { try { current.destroy(); } catch (e) {} current = null; }
 		host.innerHTML = "";
 		document.getElementById("scenePreviewEmpty").style.display = (data.sections && data.sections.length) ? "none" : "block";
@@ -62,12 +65,22 @@ view, so the engine's phone settings apply as they would on a phone. In the admi
 		data.settings = data.settings || {};
 		data.settings.baseUrl = baseUrl;
 		document.body.style.background = data.pageColour || "##222";
-		try {
-			current = GalaxieScene.build(container, data);
-		} catch (e) {
-			host.innerHTML = '<div style="padding:20px;color:##f99">The preview could not be built: ' + String(e.message).replace(/</g, "&lt;") + '</div>';
-			return;
-		}
+		<!--- The plugins this scene's effects need are loaded first (GalaxieScene.ready); then it is built. --->
+		GalaxieScene.ready(function () {
+			if (shown !== data) { return; }   <!--- a newer scene arrived meanwhile --->
+			try {
+				current = GalaxieScene.build(container, data);
+			} catch (e) {
+				host.innerHTML = '<div style="padding:20px;color:##f99">The preview could not be built: ' + String(e.message).replace(/</g, "&lt;") + '</div>';
+				return;
+			}
+			settle();
+		}, data);
+		return;
+	}
+
+	function settle() {
+		var y = settleY;
 		<!--- Back to where the user was (or to the held point), after the layout settles. --->
 		window.scrollTo(0, y);
 		applyHold();

@@ -13502,6 +13502,41 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="saveSceneSettings" access="remote" returnformat="json" output="false"
+			hint="Blog-wide scene settings from the Scenes window (106): where the animation library is loaded from ('cdn' or 'local'). Clears the cached pages of the posts that show scenes, as they carry this choice.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="librarySource" type="string" default="cdn" required="false">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var scenes = "">
+		<cfset var list = "">
+		<cfset var postIds = []>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset scenes = application.blog.getScenes()>
+				<cfset scenes.setSetting("librarySource", arguments.librarySource eq "local" ? "local" : "cdn")>
+				<cfset list = scenes.listScenes()>
+				<cfloop query="list">
+					<cfset arrayAppend(postIds, scenes.getPostIdsUsing(list.Alias), true)>
+				</cfloop>
+				<cfset flushWebFormPosts(postIds)>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The setting could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="deleteScene" access="remote" returnformat="json" output="false" hint="Deletes a scene (Scenes window 106). Posts that showed it show nothing in its place.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="sceneId" default="0" required="true">

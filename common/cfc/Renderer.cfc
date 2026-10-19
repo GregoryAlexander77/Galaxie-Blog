@@ -90,13 +90,13 @@
 			<cfset fontCss = application.blog.getScenes().getFontFaceCss(sceneJson)>
 			<cfcatch type="any"><cfset fontCss = ""></cfcatch>
 		</cftry>
-		<cfsavecontent variable="html"><cfoutput><cfif len(fontCss)><style>#fontCss#</style></cfif><div class="galaxieSceneHost" id="#containerId#"></div>
+		<cfsavecontent variable="html"><cfoutput><cfif len(fontCss)><style>#fontCss#</style></cfif>#application.blog.getScenes().getEngineConfigScript()#<div class="galaxieSceneHost" id="#containerId#"></div>
 <script>
 (function () {
 	var data = #sceneJson#;
 	data.settings = data.settings || {};
 	data.settings.baseUrl = data.settings.baseUrl || "#application.baseUrl#";
-	function go() { GalaxieScene.ready(function () { GalaxieScene.build(document.getElementById("#containerId#"), data); }); }
+	function go() { GalaxieScene.ready(function () { GalaxieScene.build(document.getElementById("#containerId#"), data); }, data); }
 	if (window.GalaxieScene) { go(); return; }
 	var s = document.createElement("script");
 	s.src = "#application.blog.getScenes().getEngineUrl()#";

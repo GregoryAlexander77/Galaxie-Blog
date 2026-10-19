@@ -48,6 +48,9 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 	</cfif>
 </cfloop>
 <cfset sceneFontsJson = replace(serializeJSON(sceneFonts), "</", "<\/", "all")>
+<!--- Plugin effects (2026-10-19) are offered only when their plugin can be loaded: from cdnjs, or from this server when the owner
+chose "this server only" (Scenes window settings). --->
+<cfset sceneSplitText = application.blog.getScenes().getSetting("librarySource", "cdn") neq "local" or arrayFind(application.blog.getScenes().getLocalLibraryFiles(), "SplitText.min.js")>
 
 <!--- The rich text editor for a section's text: the blog's shared TinyMCE setup, without the menu bar (tinyMce.cfm, case sceneTextEditor). --->
 <cfset selectorId = "sceneTextEditor">
@@ -237,6 +240,10 @@ $(document).ready(function () {
 		{ key: "headingFont", idKey: "headingFontId", label: "Font", type: "font" },
 		{ key: "headingSize", label: "Size", type: "select", options: HEADING_SIZES },
 		{ key: "headingSizePhone", label: "Size on phones", type: "select", options: HEADING_SIZES_PHONE },
+	<cfif sceneSplitText>
+		<!--- Needs the SplitText plugin; without it the heading simply rises in. --->
+		{ key: "headingEffect", label: "How it comes in", type: "select", options: [["", "Rises into place"], ["words", "Word by word"], ["letters", "Letter by letter"]] },
+	</cfif>
 		{ group: "Text" },
 		{ key: "textFont", idKey: "textFontId", label: "Font", type: "font" },
 		{ key: "textSize", label: "Size", type: "select", options: TEXT_SIZES },
