@@ -5,7 +5,9 @@ is edited as the engine's own data ({ name, pageColour, settings, sections: [...
 this editor doesn't know yet are kept as they are. Saved by ProxyController.cfc's saveScene -> Scenes.cfc saveScene.
 Step 3 (2026-10-19): rich text (one TinyMCE that stays put while sections are picked), the blog's fonts, picture upload
 (ProxyController uploadSceneImage), gradients (Grapick, as in the gradient editor) and Kendo colour pickers.
-To come: the colour helper, layer builder and the gallery (design doc, Galaxie 5). --->
+Step 4 (2026-10-19): a new scene opens on a gallery of the ready-made scenes (includes/postContent/scenes/*.json), each card
+drawn from the scene itself (its layers, photo or gradient), or from the picture named in the file's "thumbnail".
+To come: the colour helper and the layer builder (design doc, Galaxie 5). --->
 <cfset sceneId = val(URL.optArgs)>
 <cfset scene = sceneId gt 0 ? application.blog.getScenes().getScene(sceneId) : {}>
 <cfset isNewScene = structIsEmpty(scene)>
@@ -88,6 +90,18 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 	<!--- Each band's colour is picked with the Band colour picker below the bar, not Grapick's own small input. --->
 	.sceneGradientBar .grp-handler-cp-c { display: none; }
 	.sceneGradient .sceneRow { margin-bottom: 8px; }
+	#sceneGallery { flex: 1 1 auto; overflow: auto; padding: 14px 16px; }
+	#sceneGalleryCards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 12px; }
+	<!--- Flex column from the top: a button centres its content by default, which left shorter cards sitting lower. --->
+	.sceneCard { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; height: 100%; width: 100%; text-align: left; padding: 0; border: 1px solid rgba(128,128,128,.35); border-radius: 6px; overflow: hidden; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+	.sceneCard:hover, .sceneCard:focus { border-color: currentColor; outline: none; box-shadow: 0 0 0 2px rgba(128,128,128,.35); }
+	.sceneCardThumb { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #222; }
+	.sceneCardThumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+	.sceneCardHeading { position: absolute; left: 0; right: 0; bottom: 10%; padding: 0 12px; text-align: center; color: #fff; font-size: 18px; font-weight: bold; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+	.sceneCardBadge { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; }
+	.sceneCardText { padding: 8px 10px 10px; }
+	.sceneCardText strong { display: block; margin-bottom: 2px; }
+	.sceneCardEmpty .sceneCardThumb { display: flex; align-items: center; justify-content: center; background: transparent; border-bottom: 1px dashed rgba(128,128,128,.5); font-size: 40px; opacity: .6; }
 	@media (max-width: 900px) {
 		#sceneEditorBody { flex-direction: column; overflow: auto; }
 		#sceneEditorList, #sceneEditorSettings { flex: 0 0 auto; overflow: visible; }
@@ -101,14 +115,8 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 <cfoutput>
 <div id="sceneEditor">
 	<div id="sceneEditorTop" class="#blockClass#">
-	<cfif isNewScene and arrayLen(sceneStarters)>
-		<label for="sceneStarter">Start from:</label>
-		<select id="sceneStarter" style="width: 180px;">
-			<cfloop array="#sceneStarters#" index="thisStarter">
-				<option value="#encodeForHtmlAttribute(thisStarter.key)#"<cfif thisStarter.key eq "arch"> selected</cfif>>#encodeForHtml(thisStarter.name)#</option>
-			</cfloop>
-			<option value="">Empty scene</option>
-		</select>
+	<cfif isNewScene>
+		<button id="sceneRestart" type="button" class="k-button" style="display: none;" title="Pick another ready-made scene. What you've changed so far is replaced.">Start again</button>
 	</cfif>
 		<label for="sceneAlias">Name in posts:</label>
 		<input type="text" id="sceneAlias" class="k-textbox" maxlength="80" style="width: 220px;" value="<cfif not isNewScene>#encodeForHtmlAttribute(scene.alias)#</cfif>"<cfif not isNewScene> readonly title="A saved scene keeps its name, so the posts that show it keep working."</cfif>>
@@ -117,7 +125,15 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 		<span id="sceneSaved" class="k-form-hint"></span>
 		<span class="k-form-hint" id="sceneUseHint"></span>
 	</div>
-	<div id="sceneEditorBody">
+<cfif isNewScene>
+	<!--- New scene: the gallery comes first; the editor below shows once a starting point is picked. --->
+	<div id="sceneGallery" class="#altClass#">
+		<h4 class="adminBlockHeading">Pick a starting point</h4>
+		<div>Every part of it can be changed: the words, pictures, fonts, colours and motion. You can also start from nothing.</div>
+		<div id="sceneGalleryCards"></div>
+	</div>
+</cfif>
+	<div id="sceneEditorBody"<cfif isNewScene> style="display: none;"</cfif>>
 		<div id="sceneEditorList" class="#altClass#">
 			<div id="sceneSectionList"></div>
 			<div style="margin-top: 10px;">
@@ -604,15 +620,58 @@ $(document).ready(function () {
 	$("#sceneAlias").on("input", function () { aliasTyped = true; updateUseHint(); });
 	updateUseHint();
 
-	$("#sceneStarter").on("change", function () {
-		var key = $(this).val(), found = null;
-		$.each(starters, function (i, st) { if (st.key === key) { found = st; } });
-		scene = found ? JSON.parse(JSON.stringify(found.json)) : { name: "New scene", pageColour: "#392630", settings: {}, sections: [] };
+	<!--- ---------- The gallery (new scenes) --->
+	function cardThumb(data) {
+		var box = $('<div class="sceneCardThumb"></div>').css("background", data.pageColour || "#222");
+		var s = (data.sections || [])[0] || {};
+		if (data.thumbnail) {
+			box.append($('<img alt="">').attr("src", withBase(data.thumbnail)));
+		} else if (s.kind === "layeredHero") {
+			$.each(s.layers || [], function (i, layer) { box.append($('<img alt="" loading="lazy">').attr("src", withBase(layer.src))); });
+		} else if (s.image || s.poster) {
+			box.append($('<img alt="" loading="lazy">').attr("src", withBase(s.imagePhone || s.image || s.poster)));
+		} else if (s.gradient) {
+			box.css("background", s.gradient);
+		} else if (s.kind === "vantaHero") {
+			box.css("background", "radial-gradient(ellipse at 50% 120%, " + ((s.options && s.options.color) || "#0e3b5c") + " 0%, " + (data.pageColour || "#0b1d2e") + " 75%)");
+		} else if (s.colour) {
+			box.css("background", s.colour);
+		}
+		if (s.kind === "vantaHero") { box.append('<span class="sceneCardBadge">Animated</span>'); }
+		if (s.heading) { box.append($('<div class="sceneCardHeading"></div>').text(s.heading).css("font-family", s.headingFont || "")); }
+		return box;
+	}
+	function startFrom(data) {
+		scene = JSON.parse(JSON.stringify(data));
 		scene.settings = scene.settings || {}; scene.sections = scene.sections || [];
+		delete scene.description; delete scene.thumbnail;
 		if (!aliasTyped) { $("#sceneAlias").val(aliasFrom(scene.name || "")); updateUseHint(); }
+		$("#sceneGallery").hide();
+		$("#sceneEditorTop").css("display", "");
+		$("#sceneEditorBody").show();
+		$("#sceneRestart").show();
 		select(-1);
-		schedulePreview();
-	});
+		<!--- The preview was hidden while the gallery showed, so it is measured again now. --->
+		setTimeout(sendPreview, 50);
+	}
+	function showGallery() {
+		var cards = $("#sceneGalleryCards").empty();
+		$.each(starters, function (i, st) {
+			var card = $('<button type="button" class="sceneCard"></button>').append(cardThumb(st.json),
+				$('<div class="sceneCardText"></div>').append($('<strong></strong>').text(st.name), $('<span></span>').text(st.json.description || "")));
+			card.on("click", function () { startFrom(st.json); });
+			cards.append(card);
+		});
+		var empty = $('<button type="button" class="sceneCard sceneCardEmpty"></button>').append('<div class="sceneCardThumb">+</div>',
+			$('<div class="sceneCardText"></div>').append('<strong>Empty scene</strong>', '<span>Start from nothing and add your own sections.</span>'));
+		empty.on("click", function () { startFrom({ name: "New scene", pageColour: "#392630", settings: {}, sections: [] }); });
+		cards.append(empty);
+		$("#sceneEditorBody").hide();
+		<!--- Nothing to name or save until a starting point is picked. --->
+		$("#sceneEditorTop").css("display", "none");
+		$("#sceneGallery").show();
+	}
+	$("#sceneRestart").on("click", showGallery);
 
 	<!--- ---------- Preview --->
 	function sendPreview() {
@@ -677,7 +736,7 @@ $(document).ready(function () {
 					<!--- Saved: from now on this is an existing scene, and its name in posts stays as it is. --->
 					sceneId = response.sceneId;
 					$("#sceneAlias").prop("readonly", true).attr("title", "A saved scene keeps its name, so the posts that show it keep working.");
-					$("#sceneStarter").prop("disabled", true);
+					$("#sceneRestart").remove();
 					$("#sceneSaved").text("Saved at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
 					try { refreshScenesWindow(); } catch (e) {}
 				} else {
@@ -695,5 +754,6 @@ $(document).ready(function () {
 	});
 
 	select(-1);
+	if (sceneId === 0) { showGallery(); }
 });
 </script>

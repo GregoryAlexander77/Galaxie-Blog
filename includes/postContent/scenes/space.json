@@ -1,0 +1,59 @@
+{
+	"name": "Galaxie space",
+	"description": "The 2019 Galaxie Blog scene: planets and stars in six layers, then text and a picture.",
+	"pageColour": "#180109",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "",
+			"html": "",
+			"fadeColour": "#180109",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/space/1.png",
+					"depth": 100
+				},
+				{
+					"src": "{baseUrl}/images/scenes/space/2.png",
+					"depth": 200
+				},
+				{
+					"src": "{baseUrl}/images/scenes/space/3.png",
+					"depth": 300
+				},
+				{
+					"src": "{baseUrl}/images/scenes/space/4.png",
+					"depth": 400
+				},
+				{
+					"src": "{baseUrl}/images/scenes/space/5.png",
+					"depth": 500
+				},
+				{
+					"src": "{baseUrl}/images/scenes/space/6.png",
+					"depth": 700
+				}
+			]
+		},
+		{
+			"kind": "text",
+			"heading": "Your heading here",
+			"html": "<p>A few sentences about your post. Change this text, the fonts and the colours in the Scene editor.</p>",
+			"colour": "#4a6239",
+			"gradient": "linear-gradient(180deg, #4a6239 0%, #28341f 100%)"
+		},
+		{
+			"kind": "imageSlide",
+			"heading": "And a picture",
+			"html": "<p>The picture moves slower than the page.</p>",
+			"image": "{baseUrl}/images/parallax/galaxie/background/spiralBlueGalaxy.webp",
+			"imagePhone": "{baseUrl}/images/parallax/galaxie/background/spiralBlueGalaxy640.webp",
+			"align": "center"
+		}
+	]
+}

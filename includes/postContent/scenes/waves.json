@@ -1,0 +1,36 @@
+{
+	"name": "Ocean waves",
+	"description": "A slow animated sea behind your heading. No pictures needed.",
+	"pageColour": "#0b1d2e",
+	"settings": {
+		"scrub": true,
+		"pinLength": "150%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "vantaHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"effect": "WAVES",
+			"options": {
+				"color": "#0e3b5c",
+				"shininess": 40,
+				"waveHeight": 18,
+				"waveSpeed": 0.7,
+				"zoom": 0.85
+			},
+			"align": "center",
+			"shadow": "glow",
+			"shadowColour": "#0a2a44",
+			"fadeColour": "#0b1d2e"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Change this text, the fonts and the colours in the Scene editor.</p>",
+			"colour": "#0b1d2e",
+			"gradient": "linear-gradient(180deg, #0b1d2e 0%, #046fa1 100%)"
+		}
+	]
+}

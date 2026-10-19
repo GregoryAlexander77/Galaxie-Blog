@@ -1,0 +1,27 @@
+{
+	"name": "Sunset gradient",
+	"description": "Warm colours and a big heading. Quick to load, and easy to change to your own colours.",
+	"pageColour": "#2b1a2f",
+	"settings": {
+		"scrub": true,
+		"pinLength": "150%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "gradientHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"gradient": "linear-gradient(180deg, #f7b267 0%, #f4845f 45%, #7b2d5b 80%, #2b1a2f 100%)",
+			"align": "center",
+			"shadow": "soft",
+			"fadeColour": "#2b1a2f"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Change this text, the fonts and the colours in the Scene editor.</p>",
+			"colour": "#2b1a2f"
+		}
+	]
+}
