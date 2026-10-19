@@ -1,6 +1,7 @@
 {
 	"name": "Ocean waves",
 	"description": "A slow animated sea behind your heading. No pictures needed.",
+	"order": 13,
 	"pageColour": "#0b1d2e",
 	"settings": {
 		"scrub": true,
@@ -28,9 +29,16 @@
 		{
 			"kind": "text",
 			"heading": "Then your story",
-			"html": "<p>Change this text, the fonts and the colours in the Scene editor.</p>",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
 			"colour": "#0b1d2e",
 			"gradient": "linear-gradient(180deg, #0b1d2e 0%, #046fa1 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#046fa1",
+			"gradient": "linear-gradient(180deg, #046fa1 0%, #0b1d2e 100%)"
 		}
 	]
 }

@@ -1,0 +1,38 @@
+{
+	"name": "Soft pastels",
+	"description": "Still pastel colours and dark text. The lightest scene to load.",
+	"order": 12,
+	"pageColour": "#eef3f6",
+	"settings": {
+		"scrub": true,
+		"pinLength": "150%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "gradientHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"fadeColour": "#eef3f6",
+			"gradient": "linear-gradient(160deg, #f3e7e9 0%, #e3eeff 45%, #cfe5e1 100%)",
+			"textColour": "#3c4a5c"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#eef3f6",
+			"gradient": "linear-gradient(180deg, #eef3f6 0%, #f3e7e9 100%)",
+			"textColour": "#3c4a5c"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#f3e7e9",
+			"gradient": "linear-gradient(180deg, #f3e7e9 0%, #eef3f6 100%)",
+			"textColour": "#3c4a5c"
+		}
+	]
+}

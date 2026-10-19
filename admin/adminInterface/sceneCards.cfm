@@ -23,18 +23,22 @@ gallery (sceneDetail.cfm, window 107) and the post's Scene window (postScene.cfm
 		if (data.thumbnail) {
 			box.append($('<img alt="">').attr("src", withBase(data.thumbnail)));
 		} else if (s.kind === "layeredHero") {
-			$.each(s.layers || [], function (i, layer) { box.append($('<img alt="" loading="lazy">').attr("src", withBase(layer.src))); });
+			$.each(s.layers || [], function (i, layer) { box.append($('<img alt="">').attr("src", withBase(layer.src))); });
 		} else if (s.image || s.poster) {
-			box.append($('<img alt="" loading="lazy">').attr("src", withBase(s.imagePhone || s.image || s.poster)));
+			box.append($('<img alt="">').attr("src", withBase(s.imagePhone || s.image || s.poster)));
 		} else if (s.gradient) {
 			box.css("background", s.gradient);
 		} else if (s.kind === "vantaHero") {
-			box.css("background", "radial-gradient(ellipse at 50% 120%, " + ((s.options && s.options.color) || "#0e3b5c") + " 0%, " + (data.pageColour || "#0b1d2e") + " 75%)");
+			<!--- The animation's own colours: each Vanta effect names them differently (color, highlightColor, skyColor...). --->
+			var o = s.options || {};
+			var c1 = o.color || o.highlightColor || o.skyColor || o.midtoneColor || "#0e3b5c";
+			var c2 = o.baseColor || o.cloudColor || o.lowlightColor || o.backgroundColor || data.pageColour || "#0b1d2e";
+			box.css("background", "radial-gradient(ellipse at 50% 120%, " + c1 + " 0%, " + c2 + " 75%)");
 		} else if (s.colour) {
 			box.css("background", s.colour);
 		}
 		if (s.kind === "vantaHero") { box.append('<span class="sceneCardBadge">Animated</span>'); }
-		if (s.heading) { box.append($('<div class="sceneCardHeading"></div>').text(s.heading).css("font-family", s.headingFont || "")); }
+		if (s.heading) { box.append($('<div class="sceneCardHeading"></div>').text(s.heading).css({ "font-family": s.headingFont || "", color: s.textColour || "" })); }
 		return box;
 	};
 </script>

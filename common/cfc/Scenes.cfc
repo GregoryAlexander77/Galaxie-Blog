@@ -105,7 +105,7 @@
 </cffunction>
 
 <cffunction name="getStarters" access="public" returntype="array" output="false"
-		hint="The ready-made scenes a new scene can start from: every includes/postContent/scenes/*.json file, as [{ key, name, json }], by name. The gallery in the Scene editor.">
+		hint="The ready-made scenes a new scene can start from: every includes/postContent/scenes/*.json file, as [{ key, name, order, json }], in each file's own order value, then by name. The gallery in the Scene editor.">
 	<cfset var folder = expandPath(application.baseUrl & "/includes/postContent/scenes/")>
 	<cfset var files = "">
 	<cfset var starters = []>
@@ -119,9 +119,12 @@
 		<cfset text = fileRead(folder & files.name, "utf-8")>
 		<cfif isJSON(text) and reFind("^[A-Za-z0-9_-]{1,80}\.json$", files.name)>
 			<cfset data = deserializeJSON(text)>
-			<cfset arrayAppend(starters, { "key": listFirst(files.name, "."), "name": isStruct(data) and structKeyExists(data, "name") ? data.name : listFirst(files.name, "."), "json": text })>
+			<cfset arrayAppend(starters, { "key": listFirst(files.name, "."), "name": isStruct(data) and structKeyExists(data, "name") ? data.name : listFirst(files.name, "."),
+				"order": isStruct(data) and isNumeric(data.order ?: "") ? data.order : 999, "json": text })>
 		</cfif>
 	</cfloop>
+	<!--- In the order the files give ("order"), then by name. --->
+	<cfset arraySort(starters, function (a, b) { return a.order neq b.order ? (a.order lt b.order ? -1 : 1) : compareNoCase(a.name, b.name); })>
 	<cfreturn starters>
 </cffunction>
 

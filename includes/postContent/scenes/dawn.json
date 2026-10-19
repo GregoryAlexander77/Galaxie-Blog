@@ -1,0 +1,61 @@
+{
+	"name": "Mountains at dawn",
+	"description": "The mountains in soft morning pinks and blues. Light to load.",
+	"order": 4,
+	"pageColour": "#352c45",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"fadeColour": "#352c45",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/dawn/1.svg",
+					"depth": 60
+				},
+				{
+					"src": "{baseUrl}/images/scenes/dawn/2.svg",
+					"depth": 160
+				},
+				{
+					"src": "{baseUrl}/images/scenes/dawn/3.svg",
+					"depth": 280
+				},
+				{
+					"src": "{baseUrl}/images/scenes/dawn/4.svg",
+					"depth": 420
+				},
+				{
+					"src": "{baseUrl}/images/scenes/dawn/5.svg",
+					"depth": 560
+				},
+				{
+					"src": "{baseUrl}/images/scenes/dawn/6.svg",
+					"depth": 700
+				}
+			],
+			"shadow": "strong"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#352c45",
+			"gradient": "linear-gradient(180deg, #352c45 0%, #594767 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#594767",
+			"gradient": "linear-gradient(180deg, #594767 0%, #352c45 100%)"
+		}
+	]
+}

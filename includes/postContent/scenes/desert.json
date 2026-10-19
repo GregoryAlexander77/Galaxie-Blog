@@ -1,0 +1,61 @@
+{
+	"name": "Desert mountains",
+	"description": "The mountains in warm desert oranges, with dark text on a bright sky. Light to load.",
+	"order": 7,
+	"pageColour": "#4a2420",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"fadeColour": "#4a2420",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/desert/1.svg",
+					"depth": 60
+				},
+				{
+					"src": "{baseUrl}/images/scenes/desert/2.svg",
+					"depth": 160
+				},
+				{
+					"src": "{baseUrl}/images/scenes/desert/3.svg",
+					"depth": 280
+				},
+				{
+					"src": "{baseUrl}/images/scenes/desert/4.svg",
+					"depth": 420
+				},
+				{
+					"src": "{baseUrl}/images/scenes/desert/5.svg",
+					"depth": 560
+				},
+				{
+					"src": "{baseUrl}/images/scenes/desert/6.svg",
+					"depth": 700
+				}
+			],
+			"textColour": "#4a2420"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#4a2420",
+			"gradient": "linear-gradient(180deg, #4a2420 0%, #7c3e2c 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#7c3e2c",
+			"gradient": "linear-gradient(180deg, #7c3e2c 0%, #4a2420 100%)"
+		}
+	]
+}

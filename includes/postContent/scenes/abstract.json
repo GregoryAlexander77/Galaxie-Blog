@@ -1,0 +1,40 @@
+{
+	"name": "Abstract photo",
+	"description": "Flowing abstract colours as the hero, then text and a second picture. Upload your own photos in the Scene editor.",
+	"order": 9,
+	"pageColour": "#101a3a",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "photoHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"shadow": "strong",
+			"image": "{baseUrl}/images/parallax/galaxie/background/abstractWaves.webp",
+			"imagePhone": "{baseUrl}/images/parallax/galaxie/background/abstractWaves640.webp",
+			"zoom": 1.15,
+			"fadeColour": "#101a3a"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#101a3a",
+			"gradient": "linear-gradient(180deg, #101a3a 0%, #2c2f6b 100%)"
+		},
+		{
+			"kind": "imageSlide",
+			"heading": "And another picture",
+			"html": "<p>A picture that moves slower than the page.</p>",
+			"align": "center",
+			"shadow": "strong",
+			"image": "{baseUrl}/images/parallax/galaxie/background/blueFusion.webp",
+			"imagePhone": "{baseUrl}/images/parallax/galaxie/background/blueFusion640.webp"
+		}
+	]
+}

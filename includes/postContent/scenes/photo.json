@@ -1,0 +1,47 @@
+{
+	"name": "Photo story",
+	"description": "A photo held in place with a slow zoom, then text and a second picture. Upload your own photos in the Scene editor.",
+	"order": 8,
+	"pageColour": "#0b1630",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "photoHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"shadow": "strong",
+			"image": "{baseUrl}/images/parallax/galaxie/background/spiralBlueGalaxy.webp",
+			"imagePhone": "{baseUrl}/images/parallax/galaxie/background/spiralBlueGalaxy640.webp",
+			"zoom": 1.15,
+			"fadeColour": "#0b1630"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#0b1630",
+			"gradient": "linear-gradient(180deg, #0b1630 0%, #1d3a6b 100%)"
+		},
+		{
+			"kind": "imageSlide",
+			"heading": "And another picture",
+			"html": "<p>A picture that moves slower than the page.</p>",
+			"align": "center",
+			"shadow": "strong",
+			"image": "{baseUrl}/images/parallax/galaxie/background/blueGears.webp",
+			"imagePhone": "{baseUrl}/images/parallax/galaxie/background/blueGears640.webp"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#1d3a6b",
+			"gradient": "linear-gradient(180deg, #1d3a6b 0%, #0b1630 100%)"
+		}
+	]
+}

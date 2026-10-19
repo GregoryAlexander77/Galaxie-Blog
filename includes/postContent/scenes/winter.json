@@ -1,0 +1,61 @@
+{
+	"name": "Winter mountains",
+	"description": "The mountains in cool winter blues. Light to load.",
+	"order": 6,
+	"pageColour": "#263a5c",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"fadeColour": "#263a5c",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/winter/1.svg",
+					"depth": 60
+				},
+				{
+					"src": "{baseUrl}/images/scenes/winter/2.svg",
+					"depth": 160
+				},
+				{
+					"src": "{baseUrl}/images/scenes/winter/3.svg",
+					"depth": 280
+				},
+				{
+					"src": "{baseUrl}/images/scenes/winter/4.svg",
+					"depth": 420
+				},
+				{
+					"src": "{baseUrl}/images/scenes/winter/5.svg",
+					"depth": 560
+				},
+				{
+					"src": "{baseUrl}/images/scenes/winter/6.svg",
+					"depth": 700
+				}
+			],
+			"shadow": "soft"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#263a5c",
+			"gradient": "linear-gradient(180deg, #263a5c 0%, #455f87 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#455f87",
+			"gradient": "linear-gradient(180deg, #455f87 0%, #263a5c 100%)"
+		}
+	]
+}

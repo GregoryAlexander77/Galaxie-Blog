@@ -1,0 +1,47 @@
+{
+	"name": "Calm mist",
+	"description": "Slow drifting mist in soft colours. Calm and quiet, for wellness and services.",
+	"order": 10,
+	"pageColour": "#f7f3f0",
+	"settings": {
+		"scrub": true,
+		"pinLength": "150%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "vantaHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"effect": "FOG",
+			"fadeColour": "#f7f3f0",
+			"options": {
+				"highlightColor": "#f6d6e0",
+				"midtoneColor": "#d9e4f5",
+				"lowlightColor": "#c8e3dc",
+				"baseColor": "#f7f3f0",
+				"blurFactor": 0.6,
+				"speed": 0.6,
+				"zoom": 0.8
+			},
+			"textColour": "#3c4a5c"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#f7f3f0",
+			"gradient": "linear-gradient(180deg, #f7f3f0 0%, #e3eef0 100%)",
+			"textColour": "#3c4a5c"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#e3eef0",
+			"gradient": "linear-gradient(180deg, #e3eef0 0%, #f7f3f0 100%)",
+			"textColour": "#3c4a5c"
+		}
+	]
+}

@@ -1,0 +1,48 @@
+{
+	"name": "Soft clouds",
+	"description": "A gentle sky moving past, with dark text. Calm and open.",
+	"order": 11,
+	"pageColour": "#e8f1f8",
+	"settings": {
+		"scrub": true,
+		"pinLength": "150%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "vantaHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"effect": "CLOUDS",
+			"fadeColour": "#e8f1f8",
+			"textColour": "#2f3d52",
+			"shadow": "glow",
+			"shadowColour": "#ffffff",
+			"options": {
+				"skyColor": "#9cc8e6",
+				"cloudColor": "#dbe6f2",
+				"sunColor": "#ffd9a8",
+				"sunGlareColor": "#ffb38a",
+				"sunlightColor": "#ffc79a",
+				"speed": 0.6
+			}
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#e8f1f8",
+			"gradient": "linear-gradient(180deg, #e8f1f8 0%, #d6e7f3 100%)",
+			"textColour": "#2f3d52"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#d6e7f3",
+			"gradient": "linear-gradient(180deg, #d6e7f3 0%, #e8f1f8 100%)",
+			"textColour": "#2f3d52"
+		}
+	]
+}

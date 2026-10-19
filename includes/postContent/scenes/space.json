@@ -1,6 +1,7 @@
 {
 	"name": "Galaxie space",
 	"description": "The 2019 Galaxie Blog scene: planets and stars in six layers, then text and a picture.",
+	"order": 2,
 	"pageColour": "#180109",
 	"settings": {
 		"scrub": true,
@@ -10,8 +11,9 @@
 	"sections": [
 		{
 			"kind": "layeredHero",
-			"heading": "",
-			"html": "",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
 			"fadeColour": "#180109",
 			"layers": [
 				{
@@ -38,12 +40,13 @@
 					"src": "{baseUrl}/images/scenes/space/6.png",
 					"depth": 700
 				}
-			]
+			],
+			"shadow": "soft"
 		},
 		{
 			"kind": "text",
-			"heading": "Your heading here",
-			"html": "<p>A few sentences about your post. Change this text, the fonts and the colours in the Scene editor.</p>",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
 			"colour": "#4a6239",
 			"gradient": "linear-gradient(180deg, #4a6239 0%, #28341f 100%)"
 		},
@@ -51,9 +54,9 @@
 			"kind": "imageSlide",
 			"heading": "And a picture",
 			"html": "<p>The picture moves slower than the page.</p>",
+			"align": "center",
 			"image": "{baseUrl}/images/parallax/galaxie/background/spiralBlueGalaxy.webp",
-			"imagePhone": "{baseUrl}/images/parallax/galaxie/background/spiralBlueGalaxy640.webp",
-			"align": "center"
+			"imagePhone": "{baseUrl}/images/parallax/galaxie/background/spiralBlueGalaxy640.webp"
 		}
 	]
 }

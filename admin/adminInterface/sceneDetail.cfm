@@ -281,9 +281,6 @@ $(document).ready(function () {
 		].concat(OVERLAY, [FADE]),
 		vantaHero: [
 			{ key: "effect", label: "Animation", type: "select", options: [["WAVES", "Waves"], ["NET", "Net"], ["FOG", "Fog"], ["CLOUDS", "Clouds"], ["CLOUDS2", "Clouds 2"], ["BIRDS", "Birds"], ["GLOBE", "Globe"], ["RINGS", "Rings"]] },
-			<!--- Vanta takes plain colours only, no transparency. --->
-			{ key: "options.color", label: "Animation colour", type: "colour", solid: true },
-			{ key: "options.backgroundColor", label: "Animation background", type: "colour", solid: true },
 			FADE
 		],
 		gradientHero: [{ key: "gradient", label: "Gradient", type: "gradient" }, FADE],
@@ -292,6 +289,28 @@ $(document).ready(function () {
 			{ key: "poster", label: "Picture shown before it plays", type: "image" }
 		].concat(OVERLAY, [FADE])
 	};
+
+	<!--- Each Vanta animation names its colours differently; these are the ones worth changing for each. Vanta takes plain colours
+	only, no transparency. --->
+	var VANTA_COLOURS = {
+		WAVES: [["color", "Water"]],
+		NET: [["color", "Lines"], ["backgroundColor", "Background"]],
+		FOG: [["highlightColor", "Highlights"], ["midtoneColor", "Middle tones"], ["lowlightColor", "Shadows"], ["baseColor", "Base"]],
+		CLOUDS: [["skyColor", "Sky"], ["cloudColor", "Clouds"], ["sunColor", "Sun"]],
+		CLOUDS2: [["skyColor", "Sky"], ["cloudColor", "Clouds"], ["lightColor", "Light"]],
+		BIRDS: [["backgroundColor", "Background"], ["color1", "Birds"], ["color2", "Birds, second colour"]],
+		GLOBE: [["color", "Lines"], ["color2", "Dots"], ["backgroundColor", "Background"]],
+		RINGS: [["color", "Rings"], ["backgroundColor", "Background"]]
+	};
+	function sectionFields(section) {
+		var fields = (FIELDS[section.kind] || []).slice();
+		if (section.kind === "vantaHero") {
+			var colours = $.map(VANTA_COLOURS[String(section.effect || "WAVES").toUpperCase()] || [], function (c) { return { key: "options." + c[0], label: c[1], type: "colour", solid: true }; });
+			fields.splice(1, 0, { group: "Animation colours" });
+			Array.prototype.splice.apply(fields, [2, 0].concat(colours));
+		}
+		return fields;
+	}
 
 	function target(key) {
 		if (key.charAt(0) === "@") { return { obj: scene, path: [key.substr(1)] }; }
@@ -575,6 +594,8 @@ $(document).ready(function () {
 			setValue(field.key, typed(field, $.trim($(this).val())));
 			if (field.key === "@name" && !aliasTyped && sceneId === 0) { $("#sceneAlias").val(aliasFrom(scene.name || "")); updateUseHint(); }
 			if (field.key === "heading") { renderList(); }
+			<!--- Another animation has other colours to set. --->
+			if (field.key === "effect") { setTimeout(renderSettings, 0); }
 			schedulePreview();
 		});
 		wrap.append(input);
@@ -659,7 +680,7 @@ $(document).ready(function () {
 			var section = scene.sections[selected];
 			top.append($('<h4 class="adminBlockHeading"></h4>').text(kindLabel(section.kind)));
 			top.append(fieldHtml(HEADING));
-			$.each((FIELDS[section.kind] || []).concat(LOOK), function (i, field) { rest.append(fieldHtml(field)); });
+			$.each(sectionFields(section).concat(LOOK), function (i, field) { rest.append(fieldHtml(field)); });
 		}
 		kendoSelects("#sceneSettingsTop, #sceneSettingsRest");
 		$.each(pending, function (i, fn) { fn(); });
