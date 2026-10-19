@@ -247,6 +247,8 @@ $(document).ready(function () {
 	var TEXT_SIZES = [["", "Theme default"], ["0.95rem", "Small"], ["1.15rem", "Medium"], ["1.35rem", "Large"], ["1.6rem", "Very large"]];
 	var TEXT_SIZES_PHONE = [["", "Same as on a computer"], ["0.9rem", "Small"], ["1rem", "Medium"], ["1.15rem", "Large"]];
 	var HEADING = { key: "heading", label: "Heading", type: "text" };
+	<!--- A picture can turn while scrolling (2026-10-19, owner): good for a galaxy, gears, a wheel. --->
+	var SPIN = { key: "spin", label: "Turn while scrolling", type: "select", options: [["", "No"], ["90", "A quarter turn"], ["180", "Half a turn"], ["360", "A full turn"], ["-90", "A quarter turn, the other way"], ["-180", "Half a turn, the other way"], ["-360", "A full turn, the other way"]], hint: "The picture is shown larger while it turns, so its corners never show." };
 	var LOOK = [
 		{ group: "Heading" },
 		{ key: "headingFont", idKey: "headingFontId", label: "Font", type: "font" },
@@ -290,13 +292,15 @@ $(document).ready(function () {
 		imageSlide: [
 			{ key: "image", phoneKey: "imagePhone", label: "Picture", type: "image" },
 			{ key: "imagePhone", label: "Smaller picture for phones", type: "image", hint: "Made for you when you upload a large picture." },
-			{ key: "alt", label: "Describe the picture (for screen readers)", type: "text" }
+			{ key: "alt", label: "Describe the picture (for screen readers)", type: "text" },
+			SPIN
 		],
 		layeredHero: [{ key: "#artStyle", type: "artStyle" }, { key: "#layers", type: "layers" }, FADE],
 		photoHero: [
 			{ key: "image", phoneKey: "imagePhone", label: "Photo", type: "image" },
 			{ key: "imagePhone", label: "Smaller photo for phones", type: "image", hint: "Made for you when you upload a large photo." },
-			{ key: "zoom", label: "Zoom while held (1 is none)", type: "number", min: 1, max: 2, step: 0.05, placeholder: "1.15" }
+			{ key: "zoom", label: "Zoom while held (1 is none)", type: "number", min: 1, max: 2, step: 0.05, placeholder: "1.15" },
+			SPIN
 		].concat(OVERLAY, [FADE]),
 		vantaHero: [
 			{ key: "effect", label: "Animation", type: "select", options: [["WAVES", "Waves"], ["NET", "Net"], ["FOG", "Fog"], ["CLOUDS", "Clouds"], ["CLOUDS2", "Clouds 2"], ["BIRDS", "Birds"], ["GLOBE", "Globe"], ["RINGS", "Rings"]] },

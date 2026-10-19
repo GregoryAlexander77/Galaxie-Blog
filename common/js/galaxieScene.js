@@ -136,6 +136,9 @@
 			".gScene .gs-layer{position:absolute;inset:0;will-change:transform}",
 			".gScene .gs-layer img,.gScene .gs-photo img{display:block;width:100%;height:100vh;object-fit:cover;object-position:50% 50%}",
 			".gScene .gs-photo{position:absolute;inset:0;will-change:transform}",
+			// A picture that turns while scrolling (section.spin, degrees): a square that covers the screen at any angle, centred.
+			".gScene .gs-photo.gs-spin,.gScene .gs-slideBack.gs-spin{left:50%;top:50%;right:auto;bottom:auto;width:150vmax;height:150vmax}",
+			".gScene .gs-photo.gs-spin img{height:100%}",
 			".gScene .gs-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}",
 			".gScene .gs-overlay{position:absolute;inset:0;pointer-events:none;z-index:2}",
 			".gScene .gs-heroText{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 8vw;z-index:3}",
@@ -215,6 +218,7 @@
 		var back = el("div", "gs-slideBack", root);
 		var image = isPhone() && section.imagePhone ? section.imagePhone : section.image;
 		if (image) { back.style.backgroundImage = 'url("' + image + '")'; }
+		if (+section.spin) { back.classList.add("gs-spin"); gsap.set(back, { xPercent: -50, yPercent: -50 }); }
 		addOverlay(section, root);
 		var holder = el("div", "gs-slideText", root);
 		if (!section.textColour) { root.style.color = "#ffffff"; }
@@ -247,6 +251,7 @@
 			var pimg = el("img", "", photo);
 			pimg.src = phone && section.imagePhone ? section.imagePhone : section.image;
 			pimg.alt = section.alt || ""; pimg.decoding = "async";
+			if (+section.spin) { photo.classList.add("gs-spin"); gsap.set(photo, { xPercent: -50, yPercent: -50 }); }
 		} else if (section.kind === "vantaHero") {
 			back.classList.add("gs-vanta");
 		} else if (section.kind === "gradientHero") {
@@ -367,7 +372,8 @@
 			});
 		} else {
 			if (section.kind === "photoHero") {
-				tl.fromTo(root.querySelector(".gs-photo"), { scale: 1 }, { scale: section.zoom || 1.15, ease: "none" }, 0);
+				// The slow zoom while held, and the turn when the photo has one.
+				tl.fromTo(root.querySelector(".gs-photo"), { scale: 1, rotation: 0 }, { scale: section.zoom || 1.15, rotation: +section.spin || 0, ease: "none" }, 0);
 			}
 			// Without moving layers, the fade climbs over the hero so it melts into the next section.
 			var fade = root.querySelector(".gs-fade");
@@ -386,10 +392,14 @@
 
 	function animateSlide(data, section, root) {
 		var back = root.querySelector(".gs-slideBack");
-		gsap.fromTo(back, { yPercent: -10 }, {
-			yPercent: 10, ease: "none",
-			scrollTrigger: { trigger: root, start: "top bottom", end: "bottom top", scrub: true, markers: !!setting(data, section, "guides") }
-		});
+		// A turning picture turns as it passes, instead of drifting up and down.
+		var spin = +section.spin || 0;
+		var trigger = { trigger: root, start: "top bottom", end: "bottom top", scrub: true, markers: !!setting(data, section, "guides") };
+		if (spin) {
+			gsap.fromTo(back, { rotation: 0 }, { rotation: spin, ease: "none", scrollTrigger: trigger });
+		} else {
+			gsap.fromTo(back, { yPercent: -10 }, { yPercent: 10, ease: "none", scrollTrigger: trigger });
+		}
 	}
 
 	function animateReveals(data, section, root, phoneFactor, splits) {
