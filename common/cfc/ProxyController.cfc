@@ -13508,6 +13508,9 @@
 		<cfargument name="sizePhone" type="string" default="" required="false">
 		<cfargument name="shadow" type="string" default="" required="false">
 		<cfargument name="shadowColour" type="string" default="" required="false">
+		<cfargument name="glowColour" type="string" default="" required="false" hint="Empty for no glow.">
+		<cfargument name="glowOpacity" type="string" default="" required="false" hint="10 to 100 (percent).">
+		<cfargument name="glowSoftness" type="string" default="" required="false" hint="4 to 60 (px).">
 
 		<cfset var response = { "success": false, "errorMessage": "" }>
 		<cfset var heroText = {}>
@@ -13528,7 +13531,10 @@
 				size = isNumeric(arguments.size) ? toString(min(max(int(arguments.size), 12), 120)) : "",
 				sizePhone = isNumeric(arguments.sizePhone) ? toString(min(max(int(arguments.sizePhone), 12), 120)) : "",
 				shadow = listFind("none,soft,strong,glow", arguments.shadow) ? arguments.shadow : "",
-				shadowColour = reFind(colourPattern, arguments.shadowColour) ? arguments.shadowColour : ""
+				shadowColour = reFind(colourPattern, arguments.shadowColour) ? arguments.shadowColour : "",
+				glowColour = reFind(colourPattern, arguments.glowColour) ? arguments.glowColour : "",
+				glowOpacity = isNumeric(arguments.glowOpacity) ? toString(min(max(int(arguments.glowOpacity), 10), 100)) : "",
+				glowSoftness = isNumeric(arguments.glowSoftness) ? toString(min(max(int(arguments.glowSoftness), 4), 60)) : ""
 			}>
 			<cftry>
 				<cfset application.blog.savePostHeroText(val(arguments.postId), heroText)>

@@ -90,13 +90,36 @@ and videos have none. --->
 		<td class="#blockClass#" align="right"><label for="heroTextShadow">Shadow:</label></td>
 		<td class="#blockClass#">
 			<select id="heroTextShadow" style="width: 220px;">
-				<cfloop list="none:None,soft:Soft,strong:Strong,glow:Glow" index="opt">
+				<cfloop list="none:None,soft:Soft,strong:Strong" index="opt">
 					<option value="#listFirst(opt, ':')#"<cfif (len(p["HeroOverlayShadow"] ?: "") ? p["HeroOverlayShadow"] : "soft") eq listFirst(opt, ':')> selected</cfif>>#listLast(opt, ':')#</option>
 				</cfloop>
 			</select>
 			<input id="heroTextShadowColour" value="#encodeForHtmlAttribute(len(p["HeroOverlayShadowColor"] ?: "") ? p["HeroOverlayShadowColor"] : "##000000")#">
-			<div class="k-form-hint">Makes the text stand out on a busy picture. Glow uses the colour as a halo; try it with a light colour on a dark hero.</div>
+			<div class="k-form-hint">Makes the text stand out on a busy picture.</div>
 		</td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<!--- The glow (owner, 10-19): on its own or with the shadow. An older "glow" shadow opens here as a glow in the shadow's colour. --->
+	<cfset glowColour = p["HeroOverlayGlowColor"] ?: "">
+	<cfif not len(glowColour) and (p["HeroOverlayShadow"] ?: "") eq "glow"><cfset glowColour = len(p["HeroOverlayShadowColor"] ?: "") ? p["HeroOverlayShadowColor"] : "##ffffff"></cfif>
+	<tr>
+		<td class="#blockClass#" align="right"><label for="heroTextGlowOn">Glow:</label></td>
+		<td class="#blockClass#">
+			<input type="checkbox" id="heroTextGlowOn" class="k-checkbox"<cfif len(glowColour)> checked</cfif>> <label for="heroTextGlowOn" class="k-checkbox-label">Glow around the text</label>
+			<input id="heroTextGlowColour" value="#encodeForHtmlAttribute(len(glowColour) ? glowColour : "##ffd27a")#">
+			<div class="k-form-hint">A halo in a colour of its own; try a light or bright colour on a dark hero.</div>
+		</td>
+	</tr>
+	<tr class="blockSpacer heroTextGlowRow"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr class="heroTextGlowRow">
+		<td class="#blockClass#" align="right"><label for="heroTextGlowOpacity">Glow opacity:</label></td>
+		<td class="#blockClass#"><input type="range" id="heroTextGlowOpacity" min="10" max="100" step="5" value="#val(p["HeroOverlayGlowOpacity"] ?: "") ? val(p["HeroOverlayGlowOpacity"]) : 80#" style="width: 60%;"> <span id="heroTextGlowOpacityValue"></span></td>
+	</tr>
+	<tr class="blockSpacer heroTextGlowRow"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr class="heroTextGlowRow">
+		<td class="#blockClass#" align="right"><label for="heroTextGlowSoftness">Glow softness:</label></td>
+		<td class="#blockClass#"><input type="range" id="heroTextGlowSoftness" min="4" max="60" step="1" value="#val(p["HeroOverlayGlowSoftness"] ?: "") ? val(p["HeroOverlayGlowSoftness"]) : 24#" style="width: 60%;"> <span id="heroTextGlowSoftnessValue"></span>
+			<div class="k-form-hint">Low is a tight, crisp glow; high spreads it wide and soft.</div></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
@@ -121,6 +144,17 @@ $(document).ready(function () {
 	$("#heroTextColour").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true, change: preview });
 	$("#heroTextShadowColour").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true, change: preview });
 	$("#heroTextShadow").kendoDropDownList({ change: preview });
+	$("#heroTextGlowColour").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true, change: preview });
+	$("#heroTextGlowOn").on("change", preview);
+	$("#heroTextGlowOpacity, #heroTextGlowSoftness").on("input", preview);
+	// The glow, the same as Renderer.cfc getGlowCss: a tight core and a wider, fainter halo.
+	function glowCss() {
+		if (!$("#heroTextGlowOn").is(":checked")) return "";
+		var c = $("#heroTextGlowColour").data("kendoColorPicker").value() || "#ffffff", a = $("#heroTextGlowOpacity").val() / 100, s = +$("#heroTextGlowSoftness").val();
+		return "0 0 " + Math.max(2, Math.round(s / 2.5)) + "px " + rgba(c, a) + ", 0 0 " + s + "px " + rgba(c, Math.round(a * 70) / 100);
+	}
+	// The window's preview is 60% of the real size, so the shadow and glow are scaled to match.
+	function scaled(css) { return css.replace(/(\d+)px/g, function (m, n) { return Math.round(n * 0.6 * 10) / 10 + "px"; }); }
 	$("#heroTextFont").kendoDropDownList({
 		dataSource: fonts, dataTextField: "name", dataValueField: "name", optionLabel: "Theme default",
 		template: '<span style="font-family:&quot;#: data.name #&quot;">#: data.name #</span>',
@@ -130,10 +164,15 @@ $(document).ready(function () {
 		var colour = $("#heroTextColour").data("kendoColorPicker").value() || "#ffffff";
 		var shadow = $("#heroTextShadow").val(), shadowColour = $("#heroTextShadowColour").data("kendoColorPicker").value() || "#000000";
 		var font = $("#heroTextFont").data("kendoDropDownList").value();
+		var textShadow = [shadows[shadow] ? shadows[shadow](shadowColour) : "", glowCss()].filter(Boolean).join(", ");
+		textShadow = textShadow ? scaled(textShadow) : "none";
+		$(".heroTextGlowRow").toggle($("#heroTextGlowOn").is(":checked"));
+		$("#heroTextGlowOpacityValue").text($("#heroTextGlowOpacity").val() + "%");
+		$("#heroTextGlowSoftnessValue").text($("#heroTextGlowSoftness").val() + "px");
 		$("#heroTextSizeValue").text($("#heroTextSize").val() + "px");
 		$("#heroTextSizePhoneValue").text($("#heroTextSizePhone").val() + "px");
-		$("#heroTextPreviewHeading").text($("#heroTextHeading").val() || "Your heading").css({ color: colour, fontSize: $("#heroTextSize").val() * 0.6 + "px", fontFamily: font ? '"' + font + '", sans-serif' : "", textShadow: shadows[shadow] ? shadows[shadow](shadowColour) : "none" });
-		$("#heroTextPreviewSub").text($("#heroTextSub").val()).css({ color: colour, fontSize: $("#heroTextSize").val() * 0.3 + "px", fontFamily: font ? '"' + font + '", sans-serif' : "", textShadow: shadows[shadow] ? shadows[shadow](shadowColour) : "none" });
+		$("#heroTextPreviewHeading").text($("#heroTextHeading").val() || "Your heading").css({ color: colour, fontSize: $("#heroTextSize").val() * 0.6 + "px", fontFamily: font ? '"' + font + '", sans-serif' : "", textShadow: textShadow });
+		$("#heroTextPreviewSub").text($("#heroTextSub").val()).css({ color: colour, fontSize: $("#heroTextSize").val() * 0.3 + "px", fontFamily: font ? '"' + font + '", sans-serif' : "", textShadow: textShadow });
 	}
 	$(".heroTextInput, #heroTextSize, #heroTextSizePhone").on("input", preview);
 	preview();
@@ -148,7 +187,9 @@ $(document).ready(function () {
 				heading: $.trim($("#heroTextHeading").val()), subText: $.trim($("#heroTextSub").val()),
 				colour: $("#heroTextColour").data("kendoColorPicker").value() || "", font: $("#heroTextFont").data("kendoDropDownList").value(),
 				size: $("#heroTextSize").val(), sizePhone: $("#heroTextSizePhone").val(),
-				shadow: $("#heroTextShadow").val(), shadowColour: $("#heroTextShadowColour").data("kendoColorPicker").value() || ""
+				shadow: $("#heroTextShadow").val(), shadowColour: $("#heroTextShadowColour").data("kendoColorPicker").value() || "",
+				glowColour: $("#heroTextGlowOn").is(":checked") ? ($("#heroTextGlowColour").data("kendoColorPicker").value() || "#ffffff") : "",
+				glowOpacity: $("#heroTextGlowOpacity").val(), glowSoftness: $("#heroTextGlowSoftness").val()
 			},
 			dataType: "json",
 			success: function (response) {

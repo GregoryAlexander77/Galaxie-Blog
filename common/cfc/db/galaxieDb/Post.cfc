@@ -42,6 +42,11 @@
 	<cfproperty name="HeroOverlayFontSizePhone" ormtype="string" length="10" default="">
 	<cfproperty name="HeroOverlayShadow" ormtype="string" length="20" default="">
 	<cfproperty name="HeroOverlayShadowColor" ormtype="string" length="20" default="">
+	<!--- 5.0 (2026-10-19, owner): a glow around the text, on its own or with the shadow above: its colour (empty = no glow),
+	opacity (10-100, percent) and softness (how far it spreads, 4-60 px). --->
+	<cfproperty name="HeroOverlayGlowColor" ormtype="string" length="20" default="">
+	<cfproperty name="HeroOverlayGlowOpacity" ormtype="string" length="10" default="">
+	<cfproperty name="HeroOverlayGlowSoftness" ormtype="string" length="10" default="">
 	<!--- A live animated background (currently rendered via Vanta.js, see heroAnimationEditor.cfm) as another
 	alternative hero/enclosure option, alongside EnclosureMedia/Map/Carousel and HeroGradient above. Named
 	generically (not after Vanta specifically) so the rendering library can change later without a column

@@ -65,6 +65,24 @@
 		<cfreturn "">
 	</cffunction>
 
+	<cffunction name="getGlowCss" access="public" returntype="string" output="false"
+			hint="The CSS text-shadow for a glow (5.0): a halo in a colour (##rrggbb), at an opacity (10-100 percent, 80 when empty) that spreads as far as its softness (4-60 px, 24 when empty). Empty when there is no colour. galaxieScene.js and the Hero text window's preview draw the same glow.">
+		<cfargument name="colour" type="string" required="true">
+		<cfargument name="opacity" type="string" required="false" default="">
+		<cfargument name="softness" type="string" required="false" default="">
+		<cfset var hex = "">
+		<cfset var rgb = "">
+		<cfset var alpha = (val(arguments.opacity) ? min(max(val(arguments.opacity), 10), 100) : 80) / 100>
+		<cfset var spread = val(arguments.softness) ? min(max(val(arguments.softness), 4), 60) : 24>
+		<cfif not reFind("^##[0-9A-Fa-f]{6}$", trim(arguments.colour))>
+			<cfreturn "">
+		</cfif>
+		<cfset hex = mid(trim(arguments.colour), 2, 6)>
+		<cfset rgb = inputBaseN(left(hex, 2), 16) & "," & inputBaseN(mid(hex, 3, 2), 16) & "," & inputBaseN(right(hex, 2), 16)>
+		<!--- A tight bright core and a wider, fainter halo. --->
+		<cfreturn "0 0 " & max(2, round(spread / 2.5)) & "px rgba(" & rgb & "," & alpha & "), 0 0 " & spread & "px rgba(" & rgb & "," & round(alpha * 70) / 100 & ")">
+	</cffunction>
+
 	<cffunction name="getHeroTextHtml" access="public" returntype="string" output="false"
 			hint="The text over a post's image, gradient or animated hero (5.0, from the Hero text window): the heading and a second line in its colour and font, the heading's size with a smaller one for phones, and a shadow or glow. Empty when there is no text. Positioned puts it in the middle of a relative box (images and animations); otherwise it sits in the gradient's own centred box. With no new settings it looks the same as before 5.0: bold, 16px unless sized, white, no shadow.">
 		<cfargument name="text" type="string" required="true">
@@ -75,15 +93,23 @@
 		<cfargument name="sizePhone" type="string" required="false" default="">
 		<cfargument name="shadow" type="string" required="false" default="">
 		<cfargument name="shadowColor" type="string" required="false" default="">
+		<cfargument name="glowColor" type="string" required="false" default="" hint="Empty for no glow.">
+		<cfargument name="glowOpacity" type="string" required="false" default="">
+		<cfargument name="glowSoftness" type="string" required="false" default="">
 		<cfargument name="positioned" type="boolean" required="false" default="false">
 		<cfset var headingSize = val(arguments.size) ? val(arguments.size) : 16>
 		<!--- Phones: the size set for them, or the heading scaled down (never below 16px, nor above the heading). --->
 		<cfset var phoneSize = val(arguments.sizePhone) ? val(arguments.sizePhone) : min(headingSize, max(16, round(headingSize * 0.7)))>
 		<cfset var shadowCss = getTextShadowCss(arguments.shadow, arguments.shadowColor)>
+		<cfset var glowCss = getGlowCss(arguments.glowColor, arguments.glowOpacity, arguments.glowSoftness)>
 		<cfset var style = "">
 		<cfset var html = "">
 		<cfif not len(trim(arguments.text)) and not len(trim(arguments.subText))>
 			<cfreturn "">
+		</cfif>
+		<!--- The shadow and the glow together, when both are set. --->
+		<cfif len(glowCss)>
+			<cfset shadowCss = (len(shadowCss) and shadowCss neq "none" ? shadowCss & ", " : "") & glowCss>
 		</cfif>
 		<!--- The font name goes in single quotes: the style attribute itself is double-quoted (see renderHeroGradientHtml). --->
 		<cfset style = "--gh-size:" & headingSize & "px;--gh-size-phone:" & phoneSize & "px;color:" & (reFind("^##[0-9A-Fa-f]{3,8}$", arguments.color) ? arguments.color : "##ffffff")
@@ -600,7 +626,9 @@
 						subText = getPost[arguments.currentRow]["HeroOverlaySubText"] ?: "", color = getPost[arguments.currentRow]["HeroOverlayTextColor"] ?: "",
 						font = getPost[arguments.currentRow]["HeroOverlayFont"] ?: "", size = getPost[arguments.currentRow]["HeroOverlayFontSize"] ?: "",
 						sizePhone = getPost[arguments.currentRow]["HeroOverlayFontSizePhone"] ?: "", shadow = getPost[arguments.currentRow]["HeroOverlayShadow"] ?: "",
-						shadowColor = getPost[arguments.currentRow]["HeroOverlayShadowColor"] ?: "", positioned = true) & '</div>'>
+						shadowColor = getPost[arguments.currentRow]["HeroOverlayShadowColor"] ?: "", glowColor = getPost[arguments.currentRow]["HeroOverlayGlowColor"] ?: "",
+						glowOpacity = getPost[arguments.currentRow]["HeroOverlayGlowOpacity"] ?: "", glowSoftness = getPost[arguments.currentRow]["HeroOverlayGlowSoftness"] ?: "",
+						positioned = true) & '</div>'>
 				</cfif>
 				
 			<!--- The media type string for video is Video - Large, Video - YouTube URL, etc. All of the video types start with 'Video' --->
@@ -624,7 +652,9 @@
 		<cfif not len(enclosureHtml) and len(getPost[arguments.currentRow]["HeroGradient"])>
 			<cfset enclosureHtml = this.renderHeroGradientHtml(heroGradient=getPost[arguments.currentRow]["HeroGradient"], heroOverlayText=getPost[arguments.currentRow]["HeroOverlayText"], heroOverlayTextColor=getPost[arguments.currentRow]["HeroOverlayTextColor"], heroOverlayFont=getPost[arguments.currentRow]["HeroOverlayFont"], heroOverlayFontSize=getPost[arguments.currentRow]["HeroOverlayFontSize"], fullSize=true,
 				heroOverlaySubText=getPost[arguments.currentRow]["HeroOverlaySubText"] ?: "", heroOverlayFontSizePhone=getPost[arguments.currentRow]["HeroOverlayFontSizePhone"] ?: "",
-				heroOverlayShadow=getPost[arguments.currentRow]["HeroOverlayShadow"] ?: "", heroOverlayShadowColor=getPost[arguments.currentRow]["HeroOverlayShadowColor"] ?: "")>
+				heroOverlayShadow=getPost[arguments.currentRow]["HeroOverlayShadow"] ?: "", heroOverlayShadowColor=getPost[arguments.currentRow]["HeroOverlayShadowColor"] ?: "",
+				heroOverlayGlowColor=getPost[arguments.currentRow]["HeroOverlayGlowColor"] ?: "", heroOverlayGlowOpacity=getPost[arguments.currentRow]["HeroOverlayGlowOpacity"] ?: "",
+				heroOverlayGlowSoftness=getPost[arguments.currentRow]["HeroOverlayGlowSoftness"] ?: "")>
 			<cfset local.heroKind = "gradient">
 		</cfif>
 
@@ -655,6 +685,9 @@
 				heroOverlayFontSizePhone = getPost[arguments.currentRow]["HeroOverlayFontSizePhone"] ?: "",
 				heroOverlayShadow = getPost[arguments.currentRow]["HeroOverlayShadow"] ?: "",
 				heroOverlayShadowColor = getPost[arguments.currentRow]["HeroOverlayShadowColor"] ?: "",
+				heroOverlayGlowColor = getPost[arguments.currentRow]["HeroOverlayGlowColor"] ?: "",
+				heroOverlayGlowOpacity = getPost[arguments.currentRow]["HeroOverlayGlowOpacity"] ?: "",
+				heroOverlayGlowSoftness = getPost[arguments.currentRow]["HeroOverlayGlowSoftness"] ?: "",
 				cardMode = false)>
 			<cfset local.heroKind = "animation">
 		</cfif>
@@ -974,6 +1007,9 @@
 		<cfargument name="heroOverlayFontSizePhone" type="string" required="false" default="" hint="5.0: the heading size on phones, digits only; empty scales the heading down.">
 		<cfargument name="heroOverlayShadow" type="string" required="false" default="" hint="5.0: none, soft, strong or glow; empty for no shadow, as before.">
 		<cfargument name="heroOverlayShadowColor" type="string" required="false" default="">
+		<cfargument name="heroOverlayGlowColor" type="string" required="false" default="" hint="5.0: the glow's colour; empty for none.">
+		<cfargument name="heroOverlayGlowOpacity" type="string" required="false" default="">
+		<cfargument name="heroOverlayGlowSoftness" type="string" required="false" default="">
 		<cfargument name="cardMode" type="boolean" required="false" default="false" hint="Pass true from the three public card-grid templates, whose own .k-card container already bounds width reliably (unlike postDetail.cfm's admin <td>) - sizes to match those cards' real image class (width:100%, height:150px, padding-bottom:5px, no internal padding) instead of the admin thumbnail's fixed 235x130.">
 
 		<cfargument name="fullSize" type="boolean" required="false" default="false" hint="2026-10-09: the hero on the post's own page. Until this existed the post page used the 235x130 admin-thumbnail box below, so a gradient hero never got bigger than a thumbnail. Full width, in the same 1200x630 shape as the generated hero art, capped at the animated hero's 564px height.">
@@ -998,7 +1034,8 @@
 			the shadow and the phone size. --->
 			<cfset html = html & getHeroTextHtml(text = arguments.heroOverlayText, subText = arguments.heroOverlaySubText, color = arguments.heroOverlayTextColor,
 				font = arguments.heroOverlayFont, size = arguments.heroOverlayFontSize, sizePhone = arguments.heroOverlayFontSizePhone,
-				shadow = arguments.heroOverlayShadow, shadowColor = arguments.heroOverlayShadowColor)>
+				shadow = arguments.heroOverlayShadow, shadowColor = arguments.heroOverlayShadowColor,
+				glowColor = arguments.heroOverlayGlowColor, glowOpacity = arguments.heroOverlayGlowOpacity, glowSoftness = arguments.heroOverlayGlowSoftness)>
 		</cfif>
 		<cfset html = html & '</div>'>
 		<cfreturn html>
@@ -1066,6 +1103,9 @@
 		<cfargument name="heroOverlayFontSizePhone" type="string" required="false" default="" hint="5.0: the heading size on phones, digits only; empty scales the heading down.">
 		<cfargument name="heroOverlayShadow" type="string" required="false" default="" hint="5.0: none, soft, strong or glow; empty for no shadow, as before.">
 		<cfargument name="heroOverlayShadowColor" type="string" required="false" default="">
+		<cfargument name="heroOverlayGlowColor" type="string" required="false" default="" hint="5.0: the glow's colour; empty for none.">
+		<cfargument name="heroOverlayGlowOpacity" type="string" required="false" default="">
+		<cfargument name="heroOverlayGlowSoftness" type="string" required="false" default="">
 		<cfargument name="cardMode" type="boolean" required="no" default="false">
 
 		<cfset var overlaySpan = ''>
@@ -1079,7 +1119,8 @@
 			identical span - see that function's own comment. 5.0: built by getHeroTextHtml. --->
 			<cfset overlaySpan = getHeroTextHtml(text = arguments.heroOverlayText, subText = arguments.heroOverlaySubText, color = arguments.heroOverlayTextColor,
 				font = arguments.heroOverlayFont, size = arguments.heroOverlayFontSize, sizePhone = arguments.heroOverlayFontSizePhone,
-				shadow = arguments.heroOverlayShadow, shadowColor = arguments.heroOverlayShadowColor, positioned = true)>
+				shadow = arguments.heroOverlayShadow, shadowColor = arguments.heroOverlayShadowColor,
+				glowColor = arguments.heroOverlayGlowColor, glowOpacity = arguments.heroOverlayGlowOpacity, glowSoftness = arguments.heroOverlayGlowSoftness, positioned = true)>
 		</cfif>
 
 		<cfreturn '<div class="entryAnimation" id="animation-' & arguments.postId & '" data-animation-effect="' & arguments.animationEffect & '" data-animation-options="' & encodeForHtmlAttribute(serializeJson(arguments.animationOptions)) & '">' & overlaySpan & '</div>'>

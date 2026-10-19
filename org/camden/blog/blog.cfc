@@ -6290,7 +6290,7 @@
 	<cffunction name="savePostHeroText" access="public" returnType="void" output="false"
 			hint="The text over a post's image, gradient or animated hero, from the Hero text window (109, 2026-10-19, Galaxie 5):
 			the heading and second line, colour, font (a font NAME), heading size and phone size (px digits), and a shadow
-			(none, soft, strong or glow) with its colour. Leaves the hero itself as it is. The values are checked by the caller
+			(none, soft, strong or glow) with its colour, and a glow (colour, opacity, softness). Leaves the hero itself as it is. The values are checked by the caller
 			(ProxyController.cfc savePostHeroText). Updates Post.Date (dateModified) and clears the post's cached page.">
 		<cfargument name="postId" type="numeric" required="true">
 		<cfargument name="heroText" type="struct" required="true">
@@ -6307,6 +6307,9 @@
 			<cfset post.setHeroOverlayFontSizePhone(arguments.heroText.sizePhone)>
 			<cfset post.setHeroOverlayShadow(arguments.heroText.shadow)>
 			<cfset post.setHeroOverlayShadowColor(arguments.heroText.shadowColour)>
+			<cfset post.setHeroOverlayGlowColor(arguments.heroText.glowColour)>
+			<cfset post.setHeroOverlayGlowOpacity(arguments.heroText.glowOpacity)>
+			<cfset post.setHeroOverlayGlowSoftness(arguments.heroText.glowSoftness)>
 			<cfset post.setDate(blogNow())>
 			<cfset entitySave(post)>
 		</cftransaction>
@@ -10576,6 +10579,9 @@
 				COALESCE(Post.HeroOverlayFontSizePhone, '') as HeroOverlayFontSizePhone,
 				COALESCE(Post.HeroOverlayShadow, '') as HeroOverlayShadow,
 				COALESCE(Post.HeroOverlayShadowColor, '') as HeroOverlayShadowColor,
+				COALESCE(Post.HeroOverlayGlowColor, '') as HeroOverlayGlowColor,
+				COALESCE(Post.HeroOverlayGlowOpacity, '') as HeroOverlayGlowOpacity,
+				COALESCE(Post.HeroOverlayGlowSoftness, '') as HeroOverlayGlowSoftness,
 				COALESCE(Post.HeroAnimationEffect, '') as HeroAnimationEffect,
 				COALESCE(Post.HeroAnimationOptions, '') as HeroAnimationOptions,
 				COALESCE(Post.HeroCoverImageUrl, '') as HeroCoverImageUrl,
@@ -10837,7 +10843,7 @@
 						<cfset PostStruct["HeroOverlayFontSize"] = "">
 					</cfif>
 					<!--- 5.0: the hero text's second line, phone size and shadow (same guard as above). --->
-					<cfloop list="HeroOverlaySubText,HeroOverlayFontSizePhone,HeroOverlayShadow,HeroOverlayShadowColor" index="heroField">
+					<cfloop list="HeroOverlaySubText,HeroOverlayFontSizePhone,HeroOverlayShadow,HeroOverlayShadowColor,HeroOverlayGlowColor,HeroOverlayGlowOpacity,HeroOverlayGlowSoftness" index="heroField">
 						<cfset PostStruct[heroField] = structKeyExists(postRow, heroField) ? Data[i][heroField] : "">
 					</cfloop>
 					<!--- HeroAnimationEffect/HeroAnimationOptions - same newly-added-column guard as HeroGradient
