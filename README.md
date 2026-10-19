@@ -9,7 +9,7 @@ The Galaxie Blog documentation is at https://www.galaxieblog.org. Gregory's Blog
 ## Installation
 
 You must have a ColdFusion installed on a server.
-Your web server must have ColdFusion installed. Galaxie Blog 4.8 has been tested on Adobe ColdFusion 2023 and 2025, and on Lucee 7. Earlier versions were tested on ColdFusion 2016, 2018 and 2021.
+Your web server must have ColdFusion installed. Galaxie Blog 4.9 has been tested on Adobe ColdFusion 2023 and 2025, and on Lucee 6 and 7. Earlier versions were tested on ColdFusion 2016, 2018 and 2021.
 
 Theoretically, the blog may support any ColdFusion edition starting from ColdFusion 9. However, your mileage may vary.
 We have successfully tested using Apache, TomCat and IIS.
@@ -62,7 +62,22 @@ Be sure to write down your chosen user name and password. You will need to retai
 - If the blog shows *This site is not available right now* while it starts, the reason is written to the `galaxieBlogStartup.log` file in the logs folder of ColdFusion or Lucee, and is shown when you add `?startupDebug=1` to the address.
 
 7. Once installed, you should see your new blog with a 'No Entries' message on the front page. You will not see any blog posts until you make them using the administrative site; see below.
+8. The first thing to do after signing in: open Blog Settings and fill in the Blog Email Address. The installer leaves it empty, and the blog sends no email until it is filled in (member sign-in links, comment notices, subscriber email and error summaries). If you leave the Mail Server empty, the blog uses the mail server set in the ColdFusion or Lucee administrator.
     
+## What's new in 4.9 (Join the Pack Edition)
+
+Galaxie Blog 4.9 turns the blog into a place where visitors can do things: send a form, sign up for an event, book a time with you, and pay. Everyone who does is brought together in one list, Members.
+
+- **Forms.** A dozen ready-made forms (Contact, Request a quote, Feedback, RSVP and more), placed with *Insert, Form* and used as they are, or changed with *Edit this form*. Ten field types, required fields, choice limits, public sign-up lists, and submissions exported to CSV.
+- **Events.** A post can be an event, with a date, time, time zone, location and host: an event card with Add to Google Calendar, sign-ups with capacity, guests and paid places, an Events page, a calendar feed and an Upcoming Events pod.
+- **Bookings.** Booking types, locations (in person, online or by phone), weekly hours and booking pages; approval, reminders, cancel and reschedule links, and a bookings calendar.
+- **Payments.** Paid bookings and paid events through your own Stripe account, with deposits, tax, test mode and automatic refunds.
+- **Members.** Everyone who books, signs up, subscribes or sends a form, in one list. Visitors can sign in with an emailed link, no passwords, to see their bookings and sign-ups.
+- **Error emails as a nightly summary,** with one email right away only when many errors happen at once.
+- A cleaner administrative site that reads properly on phones, and many fixes.
+
+The full list is in the [Release Notes: 4.9](https://galaxieblog.org/release-notes-49).
+
 ## What's new in 4.8 (Bella's Pawtrait Edition)
 
 - **Page Collections and a curated home page.** Group pages into collections, show them as card grids, and choose what the home page shows (featured pages, collections, recent blog posts) with *Configure Homepage*. Related pages are shown under each page of a collection.

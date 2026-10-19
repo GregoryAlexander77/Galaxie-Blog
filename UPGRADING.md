@@ -1,6 +1,6 @@
 # Updating Galaxie Blog
 
-This page explains how to update an existing Galaxie Blog to the current version (4.8). It works for any older version, including 4.32, 4.5 and 4.66. An older blog can go straight to 4.8 in one step: the update runs every database change that is missing, in order, and it is safe to run more than once.
+This page explains how to update an existing Galaxie Blog to the current version (4.9). It works for any older version, including 4.32, 4.5, 4.66 and 4.8. An older blog can go straight to 4.9 in one step: the update runs every database change that is missing, in order, and it is safe to run more than once.
 
 You do not need to run the installer again, and your posts, comments, users, settings and `blog.ini.cfm` are kept.
 
@@ -9,11 +9,12 @@ You do not need to run the installer again, and your posts, comments, users, set
 1. **Back up your database.**
 2. **Back up the `org/camden/blog/blog.ini.cfm` file** (the folder is `/org/camden/blog/`). It holds your datasource name and settings. The download contains an empty starter file with the same name. **Never upload it over your own**, or the blog forgets its settings and starts the installer again. If you upload the whole download, leave that file out.
 3. Make sure that your database user can create and alter tables. The update adds columns and tables.
-4. **Save your footer first (new in 4.8).** The footer that was built into the blog is now a neutral default. If your blog shows your own text in the footer, copy it into the administrative site under **Themes, Composite Footer** and save it *before* you upload the 4.8 files. The Composite Footer is shown instead of the default.
+4. **Save your footer first (new in 4.8).** The footer that was built into the blog is now a neutral default. If your blog shows your own text in the footer, copy it into the administrative site under **Themes, Composite Footer** and save it *before* you upload the new files. The Composite Footer is shown instead of the default.
+5. **On Adobe ColdFusion 2023 Update 26, ColdFusion 2025 Update 14, or later:** if your blog's own domain points to the server itself (for example in the server's hosts file), the new outbound network policy of these updates blocks the blog's scheduled tasks (scheduled post releases and booking reminders) without an error. Add the blog's `/common/services` address to `outboundNetwork.allowList` in `cfusion/lib/security-settings.json` and restart ColdFusion. See [ColdFusion's October Update Quietly Stopped My Scheduled Tasks](https://www.gregoryalexander.com/blog/2026/10/18/coldfusions-october-update-quietly-stopped-my-scheduled-tasks).
 
 ## Updating
 
-1. **Upload the new files** over the old ones, all of them, and keep your `blog.ini.cfm`. Do not upload only some of the folders, 4.8 changed files in many places.
+1. **Upload the new files** over the old ones, all of them, and keep your `blog.ini.cfm`. Do not upload only some of the folders, 4.8 and 4.9 changed files in many places.
 2. **Delete these two files** if they are still there (they are not used any more, and the update also removes them):
    * `/admin/Application.cfc`
    * `/admin/ApplicationProxyReference.cfc`
@@ -33,6 +34,7 @@ After this, the **Blog Updates** window of the administrative site shows when a 
 * The columns that hold long text (posts, comments) are set up automatically for the database type that the installer saved in `blog.ini.cfm`. The old manual step of copying database specific ORM files is gone.
 * The datasource is read from `blog.ini.cfm`. On Lucee you do not need to create a datasource with a special name, and you can run several blogs on one server, each in its own folder with its own `blog.ini.cfm`.
 * **4.8:** the update fills in the new settings, creates the tables that Page Collections use, and moves the old single *parent site* link of Blog Settings to the new **Configure Menu** window. The top menu is now built from Configure Menu (your own links), Categories and your Page Collections (mark a collection *Show in the top menu*). The footer is the neutral default unless you saved a Composite Footer (see *Before you start*).
+* **4.9:** the update creates the tables for Forms, Events, Bookings, Payments and Members, and adds the Upcoming Events pod. Everything starts empty and switched off until you set it up. **Member accounts start switched off** on an updated blog: turn them on in Blog Options, after the blog's email address is filled in under Blog Settings. To take payments, connect Stripe in Blog Options, Payments. **Error emails now come as one summary a night** (Blog Options, Error emails); the first page view after the update sends a summary of the last 24 hours.
 
 ## Tips for uploading the files
 
@@ -43,7 +45,7 @@ Most problems with an update come from the upload, not from the blog. These are 
 * **Do not trust an FTP program that says 'same' or 'not transferred'.** Some programs (Dreamweaver, for example) remember what they uploaded before, and skip a file that they believe is already on the server, even when it is not, or when it is an old version. Use the program's **Put** command on the files or folders to force the upload, or use the file manager of your hosting control panel. Afterwards, look at the size of a few files on the server (the file manager shows it) and compare it with the size on your computer.
 * **On Linux, upper and lower case letters count.** `latestVersionCheck.cfm` and `latestversioncheck.cfm` are two different files. Use the names exactly as they are in the download, and never rename a file to lower case, or let a program do it for you.
 * **Do not upload `org/camden/blog/blog.ini.cfm`.** The download has an empty starter copy of it, and your own copy holds your settings. Uploading the starter over yours makes the blog start the installer again.
-* **Upload everything.** Version 4.8 changed files in many places (the entities in `common/cfc/db/galaxieDb`, the templates, the libraries, the installer). If you only upload some of the files, the blog can start with a mix of old and new files, and stops with errors such as a field or a function that 'does not exist'. When you see an error like that, a file in that area is still the old version.
+* **Upload everything.** Versions 4.8 and 4.9 changed files in many places (the entities in `common/cfc/db/galaxieDb`, the templates, the libraries, the installer). If you only upload some of the files, the blog can start with a mix of old and new files, and stops with errors such as a field or a function that 'does not exist'. When you see an error like that, a file in that area is still the old version.
 * **Restart, or clear the caches, after moving or deleting files.** ColdFusion and Lucee remember where they found a component, and the database mapping (the entities) is read when the application starts. After you fix files on the server, restart the ColdFusion or Lucee service (or ask your host to), or at least clear the template cache in the administrator, and open `/?reinit=1` after you signed in.
 * **See the real error.** While the blog is starting, the error page only says that an error occurred. Add `?startupDebug=1` to the address (for example `https://yourdomain.com/?startupDebug=1`) and the real error is shown. It is also written to a log file named `galaxieBlogStartup.log` (errors while the blog starts) or `galaxieBlogErrors.log` in the logs folder of ColdFusion or Lucee. Please include that message when you ask for help.
 
