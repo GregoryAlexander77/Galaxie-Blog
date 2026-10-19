@@ -52,8 +52,8 @@ Note: the following logic should not be cached as each theme may return a differ
 		<li>Galaxie Blog can be downloaded from the <a title="Galaxie Blog Git Hub Repository" href="https://github.com/gregoryalexander77/Galaxie-Blog" target="_blank" rel="noopener">Galaxie Blog Git Hub Repository</a>.</li>
 	</ol>
 		
-	<button type="button" class="k-button k-primary" style="#kendoButtonStyle#">
-		<i class="fab fa-github" style="color:whitesmoke"></i>&nbsp;&nbsp;<a href="https://github.com/gregoryalexander77/gregorysBlog" style="color:whitesmoke">Github Project</a>
+	<button type="button" class="k-button k-primary" style="<cfoutput>#kendoButtonStyle#</cfoutput>">
+		<i class="fab fa-github" style="color:whitesmoke"></i>&nbsp;&nbsp;<a href="https://github.com/GregoryAlexander77/Galaxie-Blog" style="color:whitesmoke">Github Project</a>
 	</button>
 
 	<h2>Prerequisites</h2>
@@ -62,13 +62,14 @@ Note: the following logic should not be cached as each theme may return a differ
 			<ul>
 				<li>&nbsp;<strong>Lucee</strong>
 					<ul>
-						<li>Galaxie Blog has been tested using Lucee 6.031 through <span>Lucee 6.2.0.321. Due to ORM issues, Galaxie Blog does not work with versions below 6.0.</span></li>
+						<li>Galaxie Blog has been tested using Lucee 6.0.3.1 through <span>Lucee 7.1. Due to ORM issues, Galaxie Blog does not work with versions below 6.0.</span></li>
 						<li><span>You must have the following packages installed: <a href="https://www.ortussolutions.com/products/orm-extension">Ortus ORM Extension</a> 6.0+, Image Extension 2.0+, EHCache 2.0+, Mail, and the extensions for the database of your choice.&nbsp;</span></li>
 					</ul>
 				</li>
 				<li><strong>ColdFusion</strong>
 					<ul>
-						<li>Galaxie Blog has been tested on ColdFusion 2016, 2018, 2021, and 2023 (2023.0.07.330663).</li>
+						<li>Galaxie Blog has been tested on ColdFusion 2016, 2018, 2021, 2023, and 2025.</li>
+						<li>If you use ColdFusion 2023 Update 26, ColdFusion 2025 Update 14, or later, and your blog's domain points to the server itself (for example, in the server's hosts file), read <a href="https://www.gregoryalexander.com/blog/2026/10/18/coldfusions-october-update-quietly-stopped-my-scheduled-tasks">ColdFusion's October Update Quietly Stopped My Scheduled Tasks</a>. The new outbound network policy can block the blog's scheduled posts and booking reminders.</li>
 						<li>The blog may theoretically support any ColdFusion edition starting from ColdFusion 9; however, your mileage may vary.</li>
 						<li>The following packages must be installed: Cacheing, Feed, Image, Mail, ODBC, ORM, and the extensions for the database of your choice.</li>
 					</ul>
@@ -83,30 +84,17 @@ Note: the following logic should not be cached as each theme may return a differ
 				<li>You can use the root or a subfolder. I have tested the blog in the root ('/'), '/blog', and '/galaxie' folders.<br><br></li>
 			</ul>
 		</li>
-		<li><span>You must have a database that is accessible to the web server. The blog </span><strong><em>should</em></strong><span> support one of the following databases:</span><br><br>
+		<li><span>You must have a database that is accessible to the web server. The blog supports one of the following databases. I have tested it using Microsoft SQL Server, MySQL, and MariaDB:</span><br><br>
 			<ul>
 				<li>Microsoft SQL Server</li>
-				<li>DB2</li>
-				<li>DB2AS400</li>
-				<li>DB2OS390</li>
-				<li>Derby</li>
-				<li>Informix</li>
-				<li>MariaDB</li>
 				<li>MySQL</li>
-				<li>MySQLwithInnoDB</li>
-				<li>MySQLwithMyISAM</li>
-				<li>Oracle8i</li>
-				<li>Oracle9i</li>
-				<li>Oracle10g</li>
-				<li>PostgreSQL</li>
-				<li>Sybase</li>
-				<li>SybaseAnywhere<br><br></li>
+				<li>MariaDB</li>
+				<li>PostgreSQL<br><br></li>
 			</ul>
 		</li>
 		<li>Create the database.<br><br>
 			<ul>
-				<li>You may install Galaxie Blog using your current database. However, you must ensure that there are no table name conflicts.&nbsp;</li>
-				<li>We have tested Galaxie Blog using our original BlogCFC database with no conflicts.<br><br></li>
+				<li>Create a new, empty database for the blog. The installer will not install into a database that already contains a blog, so it can never overwrite an existing one.<br><br></li>
 			</ul>
 		</li>
 		<li>Create the Blogs ColdFusion DSN.
@@ -118,7 +106,7 @@ Note: the following logic should not be cached as each theme may return a differ
 	</ol>
 	<hr>
 	<h2 id="mcetoc_1htggj0er4"><a id="woff"></a>Enable Woff and Woff2 Font Support on the Webserver</h2>
-	<p>Galaxie Blog uses web fonts for typography and needs web font mime types set up on the web server. Most modern web servers already support these web font mime types, but you may need to set the following mime types need to be set up on some servers. Certain textual elements will not be displayed if the server does not support these mime types.&nbsp;</p>
+	<p>Galaxie Blog uses web fonts for typography and needs web font mime types set up on the web server. Most modern web servers already support these web font mime types, but you may need to set up the following mime types on some servers. Certain textual elements will not be displayed if the server does not support these mime types.&nbsp;</p>
 	<ol>
 		<li>.woff (use font/woff as the mime type).</li>
 		<li>.woff2 (use font/woff2 as the mime type).</li>
@@ -130,18 +118,20 @@ Note: the following logic should not be cached as each theme may return a differ
 		<li>Migrate to the URL of your uploaded blog, and the blog should automatically open the installer.
 			<ul>
 				<li>For example, if you uploaded the files to the root directory, go to <a href="http://yourdomain.com/">http://yourdomain.com/</a>.</li>
-				<li>If you uploaded to a blog directory in your root, go to <a href="http://yourdomain.com/blog/,">http://yourdomain.com/blog/,</a> etc.</li>
+				<li>If you uploaded to a blog directory in your root, go to <a href="http://yourdomain.com/blog/">http://yourdomain.com/blog/</a>, etc.</li>
 			</ul>
 		</li>
 		<li>The installer will guide you and ask you to enter your URL, blog name, and other information.&nbsp;</li>
-		<li>The installer is a seven-step process. Each screen may provide information and ask you to hit the next button or have multiple questions. It should not take more than five minutes to complete.</li>
-		<li>Be sure to write down your chosen username and password. You will need to retain this information. Galaxie Blog does not keep passwords—they are hashed using the strongest publicly available encryption process and cannot be recovered.</li>
+		<li>The installer is a four-step process. Each screen may provide information and ask you to hit the next button or have multiple questions. It should not take more than five minutes to complete.</li>
+		<li>Be sure to write down your chosen username and password. You will need to retain this information. Galaxie Blog does not keep passwords&mdash;they are hashed using the strongest publicly available encryption process and cannot be recovered.</li>
 		<li>Once you are done, the installer will automatically create the database and import the needed data. The final step may take a while for the software to install. If you receive a time-out error, refresh the browser, and the installation should continue.</li>
-		<li>Once installed, your new blog should have a 'No Entries' message on the front page. However, you will not see any blog posts until you create them using the administrative site; see below.</li>
+		<li>Once installed, your new blog should have a 'No Entries' message on the front page. However, you will not see any blog posts until you create them using the administrative site at /admin.</li>
+		<li>The first thing to do after signing in: open Blog Settings and fill in the Blog Email Address. The installer leaves it empty, and the blog sends no email until it is filled in. If you leave the Mail Server empty, the blog uses the mail server set in the ColdFusion or Lucee administrator.</li>
 	</ol>
+	<p>For the complete instructions, see <a href="https://galaxieblog.org/installing-galaxie-blog-466">Installing Galaxie Blog</a> in the Galaxie Blog documentation.</p>
 	<p>If you have any issues, don't hesitate to <a href="https://www.gregoryalexander.com/blog/">contact </a>me.</p>
 
-	<p>Copyright 2025 Gregory Alexander</p>
+	<p>Copyright <cfoutput>#year(now())#</cfoutput> Gregory Alexander</p>
 
-	<p>Version <cfoutput>#application.blog.getVersion()#</cfoutput> March 15th 2025.</p>
+	<p>Version <cfoutput>#application.blog.getVersion()#</cfoutput>.</p>
 </cfif>
