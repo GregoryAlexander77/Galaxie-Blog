@@ -125,6 +125,7 @@
 			".gScene{position:relative;overflow-x:hidden}",
 			".gScene *{box-sizing:border-box}",
 			".gScene .gs-section{position:relative;z-index:2}",
+			".gScene .gs-softTop{position:relative;z-index:2;pointer-events:none}",
 			".gScene .gs-text{padding:12vh 8vw;min-height:60vh;display:flex;flex-direction:column;justify-content:center}",
 			".gScene .gs-heading{font-size:clamp(1.4rem,3vw,2.4rem);margin:0 0 .6em;line-height:1.2}",
 			".gScene .gs-body{font-size:clamp(1rem,1.6vw,1.3rem);line-height:1.5}",
@@ -209,8 +210,19 @@
 		root.classList.add("gs-text");
 		if (section.gradient) { root.style.background = section.gradient; }
 		else if (section.background || section.colour) { root.style.background = section.background || section.colour; }
+		// No text colour of its own (2026-10-19): white on a dark background, near-black on a light one - never the theme's
+		// own text colour, which on a post is usually dark, and unreadable on a dark section.
+		if (!section.textColour) { root.style.color = isLight(section.colour || ((/(#[0-9a-f]{6})/i.exec(section.gradient || "") || [])[1]) || "") ? "#1f2328" : "#ffffff"; }
 		var t = addText(section, root);
 		applyLook(section, root, t.heading, t.body);
+	}
+
+	// Whether a #rrggbb colour is light (perceived brightness); anything else counts as dark.
+	function isLight(colour) {
+		var m = /^#([0-9a-f]{6})$/i.exec(String(colour).trim());
+		if (!m) { return false; }
+		var n = parseInt(m[1], 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+		return (0.299 * r + 0.587 * g + 0.114 * b) > 150;
 	}
 
 	function buildSlide(section, root) {
@@ -287,6 +299,13 @@
 			stops.push("rgba(" + rgb + "," + a.toFixed(3) + ") " + (t * 100) + "%");
 		}
 		return "linear-gradient(to bottom, " + stops.join(", ") + ")";
+	}
+
+	// A section's own colour at its top: its background colour, the first colour of its gradient, or the page colour.
+	function sectionColour(data, section) {
+		if (section.colour) { return section.colour; }
+		var m = /(#[0-9a-f]{6})/i.exec(section.gradient || "");
+		return m ? m[1] : (data.pageColour || "#000000");
 	}
 
 	function addFade(section, data, parent, joinColour) {
@@ -443,6 +462,19 @@
 			if (section._curtain) {
 				var spacer = el("div", "gs-curtainSpacer", container);
 				spacer.style.height = "calc(" + parseFloat(setting(data, section, "pinLength")) + "vh - 100vh)";
+			}
+			// A section sliding up over a hero gets a soft top edge (2026-10-19, owner): a band above it fading from clear into its
+			// own colour, so where it meets the hero - even before the hero's own fade is complete - there is no hard line.
+			var previous = data.sections[i - 1];
+			if (previous && previous._curtain) {
+				// Just before the section (heroes and slides clip what is outside them), pulled up over the hero by its own height.
+				var soft = document.createElement("div");
+				soft.className = "gs-softTop";
+				soft.style.height = setting(data, previous, "fadeHeight");
+				soft.style.marginTop = "calc(-1 * " + setting(data, previous, "fadeHeight") + ")";
+				soft.style.marginBottom = "-2px";
+				soft.style.background = easedFade(sectionColour(data, section));
+				container.insertBefore(soft, root);
 			}
 		});
 
