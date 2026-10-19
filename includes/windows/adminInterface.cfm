@@ -1181,6 +1181,15 @@ days off. See common/cfc/Bookings.cfc. --->
 	<cfinclude template="../../admin/adminInterface/memberSignIns.cfm">
 </cfcase>
 
+<!--- Scenes (2026-10-19, Galaxie 5): 106 every scene, 107 the Scene editor (optArgs = SceneId, 0 for a new scene). See
+admin/adminInterface/scenes.cfm, sceneDetail.cfm and common/cfc/Scenes.cfc. --->
+<cfcase value=106>
+	<cfinclude template="../../admin/adminInterface/scenes.cfm">
+</cfcase>
+<cfcase value=107>
+	<cfinclude template="../../admin/adminInterface/sceneDetail.cfm">
+</cfcase>
+
 </cfswitch>
 
 </html>

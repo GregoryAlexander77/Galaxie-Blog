@@ -113,6 +113,13 @@ Collections and before Configure Menu, so the homepage and menu settings sit tog
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(82);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/configureMenu.gif")>
 </cfif>
+<!--- Scenes (2026-10-19, Galaxie 5): the scrolling heroes for posts and pages. Used in posts, so the same capability as editing posts. --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditPost')>
+	<cfset iconList = listAppend(iconList, 'Scenes')>
+	<cfset titleList = listAppend(titleList, 'Scenes')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(106);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/scenes.gif")>
+</cfif>
 <!--- Forms (2026-10-13): forms the blog owner builds and places in posts. They collect visitors' personal details, so the
 same capability as Blog Settings. --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting')>

@@ -389,7 +389,8 @@
 		var mm = gsap.matchMedia();
 		mm.add({ phone: "(max-width: 768px)", desktop: "(min-width: 769px)", reduceMotion: "(prefers-reduced-motion: reduce)" }, function (context) {
 			var c = context.conditions;
-			if (c.reduceMotion) {
+			// settings.reducedMotion lets the editor's preview show what visitors who turned motion off will see.
+			if (c.reduceMotion || data.settings.reducedMotion) {
 				gsap.set(container.querySelectorAll(".gs-reveal"), { opacity: 1, y: 0 });
 				// Still start the hero animations that are on screen, but without scroll effects.
 				built.forEach(function (b) { if (HERO_KINDS[b.section.kind] && b.root.getBoundingClientRect().top < window.innerHeight) { startLive(data, b.section, b.root); } });
@@ -424,5 +425,5 @@
 		return loading.then(function () { if (callback) { callback(); } });
 	}
 
-	window.GalaxieScene = { build: build, ready: ready, version: "1.0.0-phase2" };
+	window.GalaxieScene = { build: build, ready: ready, version: "1.1.0-editor" };
 })(window, document);

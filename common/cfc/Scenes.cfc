@@ -1,4 +1,4 @@
-<cfcomponent displayName="Scenes" output="false" hint="Galaxie 5 scenes in the database (2026-10-19, phase 3): the scrolling heroes built by common/js/galaxieScene.js. Tables Scene, SceneSection and SceneLayer, created on first use (DatabaseUpdater.createTableIfMissing). Created on first use by blog.cfc getScenes() (application.scenes). A post shows a scene with <galaxieScene>alias</galaxieScene> in its header (Renderer.renderScene). Design: doc/aiDraftArticles/parallaxScenesDesign.cfm.">
+<cfcomponent displayName="Scenes" output="false" hint="Galaxie 5 scenes in the database (2026-10-19, phase 3): the scrolling heroes built by common/js/galaxieScene.js. Tables Scene, SceneSection and SceneLayer, created on first use (DatabaseUpdater.createTableIfMissing). Created on first use by blog.cfc getScenes(). A post shows a scene with <galaxieScene>alias</galaxieScene> in its header (Renderer.renderScene). Design: doc/aiDraftArticles/parallaxScenesDesign.cfm.">
 
 <!---
 	The scene JSON handed to the engine is put together as a string from the stored JSON, rather than with serializeJSON on a
@@ -21,6 +21,7 @@
 <cffunction name="getSceneJson" access="public" returntype="string" output="false"
 		hint="The scene with this alias as the JSON the engine reads, or an empty string when there is no such active scene.">
 	<cfargument name="alias" type="string" required="true">
+	<cfargument name="activeOnly" type="boolean" required="false" default="true" hint="False for the editor, which also opens inactive scenes.">
 	<cfset var scene = "">
 	<cfset var sections = "">
 	<cfset var layers = "">
@@ -32,7 +33,7 @@
 		<cfreturn "">
 	</cfif>
 	<cfset ensureTables()>
-	<cfset scene = queryExecute("SELECT SceneId, Name, PageColour, SettingsJson FROM Scene WHERE BlogRef = :blogId AND Alias = :alias AND Active = 1",
+	<cfset scene = queryExecute("SELECT SceneId, Name, PageColour, SettingsJson FROM Scene WHERE BlogRef = :blogId AND Alias = :alias" & (arguments.activeOnly ? " AND Active = 1" : ""),
 		{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, alias = { value = arguments.alias, cfsqltype = "cf_sql_varchar" } })>
 	<cfif not scene.recordCount>
 		<cfreturn "">
@@ -72,6 +73,59 @@
 		{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } })>
 </cffunction>
 
+<cffunction name="getScene" access="public" returntype="struct" output="false"
+		hint="One scene for the Scene editor (window 107): sceneId, name, alias, active and json (the engine's JSON, with {baseUrl} left in). An empty struct when there is no such scene.">
+	<cfargument name="sceneId" type="numeric" required="true">
+	<cfset var scene = "">
+	<cfset ensureTables()>
+	<cfset scene = queryExecute("SELECT SceneId, Name, Alias, Active FROM Scene WHERE SceneId = :sceneId AND BlogRef = :blogId",
+		{ sceneId = { value = arguments.sceneId, cfsqltype = "cf_sql_integer" }, blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } })>
+	<cfif not scene.recordCount>
+		<cfreturn {}>
+	</cfif>
+	<!--- getSceneJson only reads active scenes; the editor needs the scene either way. --->
+	<cfreturn { sceneId: scene.SceneId, name: scene.Name, alias: scene.Alias, active: (scene.Active eq 1), json: getSceneJson(scene.Alias, false) }>
+</cffunction>
+
+<cffunction name="aliasExists" access="public" returntype="boolean" output="false">
+	<cfargument name="alias" type="string" required="true">
+	<cfset ensureTables()>
+	<cfreturn queryExecute("SELECT SceneId FROM Scene WHERE BlogRef = :blogId AND Alias = :alias",
+		{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, alias = { value = arguments.alias, cfsqltype = "cf_sql_varchar" } }).recordCount gt 0>
+</cffunction>
+
+<cffunction name="getStarters" access="public" returntype="array" output="false"
+		hint="The ready-made scenes a new scene can start from: every includes/postContent/scenes/*.json file, as [{ key, name, json }], by name. The gallery in the Scene editor.">
+	<cfset var folder = expandPath(application.baseUrl & "/includes/postContent/scenes/")>
+	<cfset var files = "">
+	<cfset var starters = []>
+	<cfset var text = "">
+	<cfset var data = "">
+	<cfif not directoryExists(folder)>
+		<cfreturn starters>
+	</cfif>
+	<cfdirectory action="list" directory="#folder#" filter="*.json" name="files" sort="name asc">
+	<cfloop query="files">
+		<cfset text = fileRead(folder & files.name, "utf-8")>
+		<cfif isJSON(text) and reFind("^[A-Za-z0-9_-]{1,80}\.json$", files.name)>
+			<cfset data = deserializeJSON(text)>
+			<cfset arrayAppend(starters, { "key": listFirst(files.name, "."), "name": isStruct(data) and structKeyExists(data, "name") ? data.name : listFirst(files.name, "."), "json": text })>
+		</cfif>
+	</cfloop>
+	<cfreturn starters>
+</cffunction>
+
+<cffunction name="getPostIdsUsing" access="public" returntype="array" output="false" hint="The posts and pages that show this scene (their header has <galaxieScene>alias</galaxieScene>), so their cached pages can be cleared after a save.">
+	<cfargument name="alias" type="string" required="true">
+	<cfset var ids = []>
+	<cfset var rows = queryExecute("SELECT PostId FROM Post WHERE BlogRef = :blogId AND PostHeader LIKE :pattern",
+		{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, pattern = { value = "%<galaxieScene>" & arguments.alias & "</galaxieScene>%", cfsqltype = "cf_sql_varchar" } })>
+	<cfloop query="rows">
+		<cfset arrayAppend(ids, rows.PostId)>
+	</cfloop>
+	<cfreturn ids>
+</cffunction>
+
 <!---//*****************************************************************************************************
 		Writing
 //******************************************************************************************************--->
@@ -80,6 +134,7 @@
 		hint="Saves a scene given in the engine's own shape (the JSON text of { name, pageColour, settings, sections: [...] }) under an alias, replacing its sections and layers. Returns the SceneId. Used by importJson now and by the Scene editor later. Takes the JSON text rather than a struct so that key case is kept exactly as written on every engine.">
 	<cfargument name="alias" type="string" required="true">
 	<cfargument name="sceneJson" type="string" required="true">
+	<cfargument name="active" type="boolean" required="false" default="true" hint="An inactive scene isn't shown in posts (they show nothing, or the scene file of the same name).">
 	<cfset var data = "">
 	<cfset var sceneId = 0>
 	<cfset var existing = "">
@@ -102,19 +157,21 @@
 			{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, alias = { value = arguments.alias, cfsqltype = "cf_sql_varchar" } })>
 		<cfif existing.recordCount>
 			<cfset sceneId = existing.SceneId>
-			<cfset queryExecute("UPDATE Scene SET Name = :name, PageColour = :colour, SettingsJson = :settings, Updated = :now WHERE SceneId = :sceneId",
+			<cfset queryExecute("UPDATE Scene SET Name = :name, PageColour = :colour, SettingsJson = :settings, Active = :active, Updated = :now WHERE SceneId = :sceneId",
 				{ name = { value = left(data.name ?: arguments.alias, 125), cfsqltype = "cf_sql_varchar" },
 				  colour = { value = left(data.pageColour ?: "", 50), cfsqltype = "cf_sql_varchar" },
 				  settings = { value = jsonOf(data, "settings", "{}"), cfsqltype = "cf_sql_longvarchar" },
+				  active = { value = arguments.active ? 1 : 0, cfsqltype = "cf_sql_integer" },
 				  now = { value = nowStamp, cfsqltype = "cf_sql_timestamp" }, sceneId = { value = sceneId, cfsqltype = "cf_sql_integer" } })>
 			<!--- The sections and layers are replaced as a whole: the editor always saves the complete scene. --->
 			<cfset queryExecute("DELETE FROM SceneLayer WHERE SceneSectionRef IN (SELECT SceneSectionId FROM SceneSection WHERE SceneRef = :sceneId)", { sceneId = { value = sceneId, cfsqltype = "cf_sql_integer" } })>
 			<cfset queryExecute("DELETE FROM SceneSection WHERE SceneRef = :sceneId", { sceneId = { value = sceneId, cfsqltype = "cf_sql_integer" } })>
 		<cfelse>
-			<cfset queryExecute("INSERT INTO Scene (BlogRef, Name, Alias, PageColour, SettingsJson, Active, Created, Updated) VALUES (:blogId, :name, :alias, :colour, :settings, 1, :now, :now)",
+			<cfset queryExecute("INSERT INTO Scene (BlogRef, Name, Alias, PageColour, SettingsJson, Active, Created, Updated) VALUES (:blogId, :name, :alias, :colour, :settings, :active, :now, :now)",
 				{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, name = { value = left(data.name ?: arguments.alias, 125), cfsqltype = "cf_sql_varchar" },
 				  alias = { value = arguments.alias, cfsqltype = "cf_sql_varchar" }, colour = { value = left(data.pageColour ?: "", 50), cfsqltype = "cf_sql_varchar" },
-				  settings = { value = jsonOf(data, "settings", "{}"), cfsqltype = "cf_sql_longvarchar" }, now = { value = nowStamp, cfsqltype = "cf_sql_timestamp" } })>
+				  settings = { value = jsonOf(data, "settings", "{}"), cfsqltype = "cf_sql_longvarchar" }, active = { value = arguments.active ? 1 : 0, cfsqltype = "cf_sql_integer" },
+				  now = { value = nowStamp, cfsqltype = "cf_sql_timestamp" } })>
 			<cfset sceneId = queryExecute("SELECT SceneId FROM Scene WHERE BlogRef = :blogId AND Alias = :alias",
 				{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, alias = { value = arguments.alias, cfsqltype = "cf_sql_varchar" } }).SceneId>
 		</cfif>

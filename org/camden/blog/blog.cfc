@@ -1523,15 +1523,15 @@
 		<cfreturn application.errorDigest>
 	</cffunction>
 
-	<cffunction name="getScenes" access="public" returnType="any" output="false" hint="Galaxie 5 scenes in the database (common/cfc/Scenes.cfc, 2026-10-19), created on first use and kept in application.scenes.">
-		<cfif not structKeyExists(application, "scenes")>
+	<cffunction name="getScenes" access="public" returnType="any" output="false" hint="Galaxie 5 scenes in the database (common/cfc/Scenes.cfc, 2026-10-19), created on first use. Kept in this component rather than the application scope, so a reinit (which makes a new application.blog) picks up a changed Scenes.cfc.">
+		<cfif not structKeyExists(variables, "scenesObj")>
 			<cflock name="galaxieScenesCreate_#application.applicationName#" type="exclusive" timeout="10">
-				<cfif not structKeyExists(application, "scenes")>
-					<cfset application.scenes = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.Scenes" : "common.cfc.Scenes")>
+				<cfif not structKeyExists(variables, "scenesObj")>
+					<cfset variables.scenesObj = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.Scenes" : "common.cfc.Scenes")>
 				</cfif>
 			</cflock>
 		</cfif>
-		<cfreturn application.scenes>
+		<cfreturn variables.scenesObj>
 	</cffunction>
 
 	<cffunction name="errorEmailMode" access="public" returnType="string" output="false" hint="'daily' (one summary a night, the default) or 'immediate' (an email for each new error). Falls back to 'immediate' if the summary can't be read, so errors are never silently dropped.">

@@ -13397,6 +13397,83 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<!--- Scenes (2026-10-19, Galaxie 5): the Scenes window (106) and the Scene editor (107). The work is done by
+	application.blog.getScenes() (common/cfc/Scenes.cfc). --->
+	<cffunction name="saveScene" access="remote" returnformat="json" output="false"
+			hint="Saves a scene from the Scene editor (window 107), then clears the cached pages of the posts that show it.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="sceneId" default="0" required="false" hint="0 for a new scene.">
+		<cfargument name="alias" type="string" default="" required="false" hint="What posts use to show the scene. Only used for a new scene; an existing scene keeps its alias.">
+		<cfargument name="active" default="true" required="false">
+		<cfargument name="sceneJson" type="string" default="{}" required="false" hint="The scene in the engine's own shape: { name, pageColour, settings, sections: [...] }.">
+
+		<cfset var response = { "success": false, "errorMessage": "", "sceneId": 0 }>
+		<cfset var scenes = "">
+		<cfset var existing = {}>
+		<cfset var sceneAlias = trim(arguments.alias)>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset scenes = application.blog.getScenes()>
+				<cfif val(arguments.sceneId) gt 0>
+					<cfset existing = scenes.getScene(val(arguments.sceneId))>
+					<cfif structIsEmpty(existing)>
+						<cfthrow type="GalaxieBlog.Scenes" message="This scene no longer exists.">
+					</cfif>
+					<cfset sceneAlias = existing.alias>
+				<cfelseif not reFind("^[A-Za-z0-9_-]{1,80}$", sceneAlias)>
+					<cfthrow type="GalaxieBlog.Scenes" message="The name used in posts can only have letters, numbers, dashes and underscores.">
+				<cfelseif scenes.aliasExists(sceneAlias)>
+					<cfthrow type="GalaxieBlog.Scenes" message="Another scene already uses the name '#sceneAlias#' in posts. Pick another one.">
+				</cfif>
+				<cfset response[ "sceneId" ] = scenes.saveScene(sceneAlias, arguments.sceneJson, isBoolean(arguments.active) and arguments.active)>
+				<cfset flushWebFormPosts(scenes.getPostIdsUsing(sceneAlias))>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The scene could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="deleteScene" access="remote" returnformat="json" output="false" hint="Deletes a scene (Scenes window 106). Posts that showed it show nothing in its place.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="sceneId" default="0" required="true">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var scene = {}>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.sceneId)>
+			<cftry>
+				<cfset scene = application.blog.getScenes().getScene(val(arguments.sceneId))>
+				<cfif not structIsEmpty(scene)>
+					<cfset application.blog.getScenes().deleteScene(val(arguments.sceneId))>
+					<cfset flushWebFormPosts(application.blog.getScenes().getPostIdsUsing(scene.alias))>
+				</cfif>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The scene could not be deleted: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="flushWebFormPosts" access="private" returntype="void" output="false"
 			hint="Clears the cached pages of the posts a form was added to or removed from under 'Show on'.">
 		<cfargument name="postIds" type="array" required="true">

@@ -1028,6 +1028,19 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>70%</cfif>";
 				var windowTitle = "Member sign-ins";
+			} else if (Id == 106){
+				// Scenes (2026-10-19, Galaxie 5): every scene - see admin/adminInterface/scenes.cfm.
+				var windowName = "scenesWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>70%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>65%</cfif>";
+				var windowTitle = "Scenes";
+			} else if (Id == 107){
+				// Scene editor (2026-10-19, Galaxie 5) - optArgs is the SceneId, 0 for a new scene. Side by side with a live preview,
+				// so it is nearly full screen. See admin/adminInterface/sceneDetail.cfm.
+				var windowName = "sceneDetailWindow";
+				var windowHeight = "92%";
+				var windowWidth = "<cfif session.isMobile>98%<cfelse>96%</cfif>";
+				var windowTitle = "Scene";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";
