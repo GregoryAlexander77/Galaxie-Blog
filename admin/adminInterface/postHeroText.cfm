@@ -32,7 +32,7 @@ and videos have none. --->
 	<cfoutput>#heroFontCss#</cfoutput>
 	#heroTextPreview { position: relative; height: 220px; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 16px; box-sizing: border-box; }
 	#heroTextPreviewHeading { font-weight: bold; line-height: 1.15; }
-	#heroTextPreviewSub { margin-top: 8px; font-size: 18px; }
+	#heroTextPreviewSub { margin-top: .4em; }
 </style>
 
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>
@@ -133,7 +133,7 @@ $(document).ready(function () {
 		$("#heroTextSizeValue").text($("#heroTextSize").val() + "px");
 		$("#heroTextSizePhoneValue").text($("#heroTextSizePhone").val() + "px");
 		$("#heroTextPreviewHeading").text($("#heroTextHeading").val() || "Your heading").css({ color: colour, fontSize: $("#heroTextSize").val() * 0.6 + "px", fontFamily: font ? '"' + font + '", sans-serif' : "", textShadow: shadows[shadow] ? shadows[shadow](shadowColour) : "none" });
-		$("#heroTextPreviewSub").text($("#heroTextSub").val()).css({ color: colour, fontFamily: font ? '"' + font + '", sans-serif' : "", textShadow: shadows[shadow] ? shadows[shadow](shadowColour) : "none" });
+		$("#heroTextPreviewSub").text($("#heroTextSub").val()).css({ color: colour, fontSize: $("#heroTextSize").val() * 0.3 + "px", fontFamily: font ? '"' + font + '", sans-serif' : "", textShadow: shadows[shadow] ? shadows[shadow](shadowColour) : "none" });
 	}
 	$(".heroTextInput, #heroTextSize, #heroTextSizePhone").on("input", preview);
 	preview();

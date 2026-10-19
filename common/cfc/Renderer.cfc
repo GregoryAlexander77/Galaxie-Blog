@@ -65,6 +65,40 @@
 		<cfreturn "">
 	</cffunction>
 
+	<cffunction name="getHeroTextHtml" access="public" returntype="string" output="false"
+			hint="The text over a post's image, gradient or animated hero (5.0, from the Hero text window): the heading and a second line in its colour and font, the heading's size with a smaller one for phones, and a shadow or glow. Empty when there is no text. Positioned puts it in the middle of a relative box (images and animations); otherwise it sits in the gradient's own centred box. With no new settings it looks the same as before 5.0: bold, 16px unless sized, white, no shadow.">
+		<cfargument name="text" type="string" required="true">
+		<cfargument name="subText" type="string" required="false" default="">
+		<cfargument name="color" type="string" required="false" default="">
+		<cfargument name="font" type="string" required="false" default="">
+		<cfargument name="size" type="string" required="false" default="">
+		<cfargument name="sizePhone" type="string" required="false" default="">
+		<cfargument name="shadow" type="string" required="false" default="">
+		<cfargument name="shadowColor" type="string" required="false" default="">
+		<cfargument name="positioned" type="boolean" required="false" default="false">
+		<cfset var headingSize = val(arguments.size) ? val(arguments.size) : 16>
+		<!--- Phones: the size set for them, or the heading scaled down (never below 16px, nor above the heading). --->
+		<cfset var phoneSize = val(arguments.sizePhone) ? val(arguments.sizePhone) : min(headingSize, max(16, round(headingSize * 0.7)))>
+		<cfset var shadowCss = getTextShadowCss(arguments.shadow, arguments.shadowColor)>
+		<cfset var style = "">
+		<cfset var html = "">
+		<cfif not len(trim(arguments.text)) and not len(trim(arguments.subText))>
+			<cfreturn "">
+		</cfif>
+		<!--- The font name goes in single quotes: the style attribute itself is double-quoted (see renderHeroGradientHtml). --->
+		<cfset style = "--gh-size:" & headingSize & "px;--gh-size-phone:" & phoneSize & "px;color:" & (reFind("^##[0-9A-Fa-f]{3,8}$", arguments.color) ? arguments.color : "##ffffff")
+			& ";font-weight:bold;text-align:center;line-height:1.15;" & (len(arguments.font) ? "font-family:'" & replace(replace(arguments.font, "'", "", "all"), '"', '', 'all') & "';" : "")
+			& (len(shadowCss) ? "text-shadow:" & shadowCss & ";" : "")>
+		<cfif arguments.positioned>
+			<cfset style = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;width:90%;" & style>
+		</cfif>
+		<cfset html = getOverlayFontFaceStyle(arguments.font)
+			& '<style>.galaxieHeroText{font-size:var(--gh-size)}@media (max-width:600px){.galaxieHeroText{font-size:var(--gh-size-phone)}}.galaxieHeroSub{display:block;font-size:.5em;font-weight:normal;margin-top:.4em}</style>'
+			& '<span class="galaxieHeroText" style="' & style & '">' & encodeForHtml(arguments.text)
+			& (len(trim(arguments.subText)) ? '<span class="galaxieHeroSub">' & encodeForHtml(arguments.subText) & '</span>' : '') & '</span>'>
+		<cfreturn html>
+	</cffunction>
+
 	<cffunction name="renderScene" access="public" returnType="string" output="false"
 			hint="A Galaxie 5 scene (common/js/galaxieScene.js) as HTML: an empty container plus the script that builds it. The scene comes from the Scene tables (Scenes.cfc, phase 3), or else from includes/postContent/scenes/{name}.json. Returns an empty string when the name is not a plain name or the file is missing or not valid JSON, so a bad directive never breaks a post.">
 		<cfargument name="sceneName" type="string" required="true">
@@ -559,6 +593,15 @@
 					<cfinvokeargument name="useFadeClass" value="true">
 				</cfinvoke>
 				<cfset local.heroKind = "image">
+				<!--- Hero text over the picture (5.0, the Hero text window), on the post's own page only: on the cards and in the
+				listings the post's title is already beside the picture. --->
+				<cfif arguments.isSinglePostPage and len(getPost[arguments.currentRow]["HeroOverlayText"] ?: "")>
+					<cfset enclosureHtml = '<div style="position:relative;">' & enclosureHtml & getHeroTextHtml(text = getPost[arguments.currentRow]["HeroOverlayText"],
+						subText = getPost[arguments.currentRow]["HeroOverlaySubText"] ?: "", color = getPost[arguments.currentRow]["HeroOverlayTextColor"] ?: "",
+						font = getPost[arguments.currentRow]["HeroOverlayFont"] ?: "", size = getPost[arguments.currentRow]["HeroOverlayFontSize"] ?: "",
+						sizePhone = getPost[arguments.currentRow]["HeroOverlayFontSizePhone"] ?: "", shadow = getPost[arguments.currentRow]["HeroOverlayShadow"] ?: "",
+						shadowColor = getPost[arguments.currentRow]["HeroOverlayShadowColor"] ?: "", positioned = true) & '</div>'>
+				</cfif>
 				
 			<!--- The media type string for video is Video - Large, Video - YouTube URL, etc. All of the video types start with 'Video' --->
 			<cfelseif left(mediaType, 5) eq 'Video'>
@@ -579,7 +622,9 @@
 		kind" fallback tier (auto-generated art etc.) - an explicit Gradient the user picked is a real enclosure,
 		not a fallback. --->
 		<cfif not len(enclosureHtml) and len(getPost[arguments.currentRow]["HeroGradient"])>
-			<cfset enclosureHtml = this.renderHeroGradientHtml(heroGradient=getPost[arguments.currentRow]["HeroGradient"], heroOverlayText=getPost[arguments.currentRow]["HeroOverlayText"], heroOverlayTextColor=getPost[arguments.currentRow]["HeroOverlayTextColor"], heroOverlayFont=getPost[arguments.currentRow]["HeroOverlayFont"], heroOverlayFontSize=getPost[arguments.currentRow]["HeroOverlayFontSize"], fullSize=true)>
+			<cfset enclosureHtml = this.renderHeroGradientHtml(heroGradient=getPost[arguments.currentRow]["HeroGradient"], heroOverlayText=getPost[arguments.currentRow]["HeroOverlayText"], heroOverlayTextColor=getPost[arguments.currentRow]["HeroOverlayTextColor"], heroOverlayFont=getPost[arguments.currentRow]["HeroOverlayFont"], heroOverlayFontSize=getPost[arguments.currentRow]["HeroOverlayFontSize"], fullSize=true,
+				heroOverlaySubText=getPost[arguments.currentRow]["HeroOverlaySubText"] ?: "", heroOverlayFontSizePhone=getPost[arguments.currentRow]["HeroOverlayFontSizePhone"] ?: "",
+				heroOverlayShadow=getPost[arguments.currentRow]["HeroOverlayShadow"] ?: "", heroOverlayShadowColor=getPost[arguments.currentRow]["HeroOverlayShadowColor"] ?: "")>
 			<cfset local.heroKind = "gradient">
 		</cfif>
 
@@ -606,6 +651,10 @@
 				heroOverlayTextColor = getPost[arguments.currentRow]["HeroOverlayTextColor"],
 				heroOverlayFont = getPost[arguments.currentRow]["HeroOverlayFont"],
 				heroOverlayFontSize = getPost[arguments.currentRow]["HeroOverlayFontSize"],
+				heroOverlaySubText = getPost[arguments.currentRow]["HeroOverlaySubText"] ?: "",
+				heroOverlayFontSizePhone = getPost[arguments.currentRow]["HeroOverlayFontSizePhone"] ?: "",
+				heroOverlayShadow = getPost[arguments.currentRow]["HeroOverlayShadow"] ?: "",
+				heroOverlayShadowColor = getPost[arguments.currentRow]["HeroOverlayShadowColor"] ?: "",
 				cardMode = false)>
 			<cfset local.heroKind = "animation">
 		</cfif>
@@ -921,6 +970,10 @@
 		<cfargument name="heroOverlayTextColor" type="string" required="false" default="">
 		<cfargument name="heroOverlayFont" type="string" required="false" default="" hint="A font NAME matching a Font.Font value (see application.blog.getThemeFonts()), not a file path - 2026-10-01. Empty is fine and falls through to whatever font-family the surrounding CSS already specifies, same as every post before this existed.">
 		<cfargument name="heroOverlayFontSize" type="string" required="false" default="" hint="Pixel size, digits only (eg. '26') - 2026-10-03. Empty keeps the original fixed 16px every post before this existed already rendered at, so no pre-existing post changes size just from this argument existing.">
+		<cfargument name="heroOverlaySubText" type="string" required="false" default="" hint="5.0: the second line under the heading.">
+		<cfargument name="heroOverlayFontSizePhone" type="string" required="false" default="" hint="5.0: the heading size on phones, digits only; empty scales the heading down.">
+		<cfargument name="heroOverlayShadow" type="string" required="false" default="" hint="5.0: none, soft, strong or glow; empty for no shadow, as before.">
+		<cfargument name="heroOverlayShadowColor" type="string" required="false" default="">
 		<cfargument name="cardMode" type="boolean" required="false" default="false" hint="Pass true from the three public card-grid templates, whose own .k-card container already bounds width reliably (unlike postDetail.cfm's admin <td>) - sizes to match those cards' real image class (width:100%, height:150px, padding-bottom:5px, no internal padding) instead of the admin thumbnail's fixed 235x130.">
 
 		<cfargument name="fullSize" type="boolean" required="false" default="false" hint="2026-10-09: the hero on the post's own page. Until this existed the post page used the 235x130 admin-thumbnail box below, so a gradient hero never got bigger than a thumbnail. Full width, in the same 1200x630 shape as the generated hero art, capped at the animated hero's 564px height.">
@@ -941,8 +994,11 @@
 			inside a double-quoted style="..." attribute, so a double-quoted font name broke out of that
 			attribute early (confirmed live: the browser silently truncated the style and turned the rest of the
 			font name into bogus extra HTML attributes on the span). Single quotes are valid CSS and don't
-			conflict with the outer double-quoted attribute. --->
-			<cfset html = html & getOverlayFontFaceStyle(arguments.heroOverlayFont) & '<span style="color:' & (len(arguments.heroOverlayTextColor) ? arguments.heroOverlayTextColor : '##ffffff') & ';font-size:' & (len(arguments.heroOverlayFontSize) ? arguments.heroOverlayFontSize : '16') & 'px;font-weight:bold;text-align:center;' & (len(arguments.heroOverlayFont) ? "font-family:'" & arguments.heroOverlayFont & "';" : '') & '">' & arguments.heroOverlayText & '</span>'>
+			conflict with the outer double-quoted attribute. 5.0: built by getHeroTextHtml, with the second line,
+			the shadow and the phone size. --->
+			<cfset html = html & getHeroTextHtml(text = arguments.heroOverlayText, subText = arguments.heroOverlaySubText, color = arguments.heroOverlayTextColor,
+				font = arguments.heroOverlayFont, size = arguments.heroOverlayFontSize, sizePhone = arguments.heroOverlayFontSizePhone,
+				shadow = arguments.heroOverlayShadow, shadowColor = arguments.heroOverlayShadowColor)>
 		</cfif>
 		<cfset html = html & '</div>'>
 		<cfreturn html>
@@ -1006,6 +1062,10 @@
 		<cfargument name="heroOverlayTextColor" type="string" required="no" default="">
 		<cfargument name="heroOverlayFont" type="string" required="no" default="">
 		<cfargument name="heroOverlayFontSize" type="string" required="no" default="" hint="Pixel size, digits only - 2026-10-03, same empty-keeps-the-original-16px convention as renderHeroGradientHtml()'s own argument.">
+		<cfargument name="heroOverlaySubText" type="string" required="false" default="" hint="5.0: the second line under the heading.">
+		<cfargument name="heroOverlayFontSizePhone" type="string" required="false" default="" hint="5.0: the heading size on phones, digits only; empty scales the heading down.">
+		<cfargument name="heroOverlayShadow" type="string" required="false" default="" hint="5.0: none, soft, strong or glow; empty for no shadow, as before.">
+		<cfargument name="heroOverlayShadowColor" type="string" required="false" default="">
 		<cfargument name="cardMode" type="boolean" required="no" default="false">
 
 		<cfset var overlaySpan = ''>
@@ -1016,8 +1076,10 @@
 
 		<cfif len(arguments.heroOverlayText)>
 			<!--- 2026-10-01: single quotes around the font name, same fix/reasoning as renderHeroGradientHtml()'s
-			identical span - see that function's own comment. --->
-			<cfset overlaySpan = getOverlayFontFaceStyle(arguments.heroOverlayFont) & '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;color:' & (len(arguments.heroOverlayTextColor) ? arguments.heroOverlayTextColor : '##ffffff') & ';font-size:' & (len(arguments.heroOverlayFontSize) ? arguments.heroOverlayFontSize : '16') & 'px;font-weight:bold;text-align:center;' & (len(arguments.heroOverlayFont) ? "font-family:'" & arguments.heroOverlayFont & "';" : '') & '">' & arguments.heroOverlayText & '</span>'>
+			identical span - see that function's own comment. 5.0: built by getHeroTextHtml. --->
+			<cfset overlaySpan = getHeroTextHtml(text = arguments.heroOverlayText, subText = arguments.heroOverlaySubText, color = arguments.heroOverlayTextColor,
+				font = arguments.heroOverlayFont, size = arguments.heroOverlayFontSize, sizePhone = arguments.heroOverlayFontSizePhone,
+				shadow = arguments.heroOverlayShadow, shadowColor = arguments.heroOverlayShadowColor, positioned = true)>
 		</cfif>
 
 		<cfreturn '<div class="entryAnimation" id="animation-' & arguments.postId & '" data-animation-effect="' & arguments.animationEffect & '" data-animation-options="' & encodeForHtmlAttribute(serializeJson(arguments.animationOptions)) & '">' & overlaySpan & '</div>'>
