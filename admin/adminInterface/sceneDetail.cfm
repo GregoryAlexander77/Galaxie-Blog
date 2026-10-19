@@ -118,6 +118,10 @@ chose "this server only" (Scenes window settings). --->
 	<!--- Each band's colour is picked with the Band colour picker below the bar, not Grapick's own small input. --->
 	.sceneGradientBar .grp-handler-cp-c { display: none; }
 	.sceneGradient .sceneRow { margin-bottom: 8px; }
+	.sceneCardWrap { position: relative; }
+	.sceneCardRemove { position: absolute; top: 8px; left: 8px; z-index: 2; min-width: 0; padding: 0 6px; }
+	.sceneCardYours { position: absolute; bottom: 8px; left: 8px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; }
+	#sceneTemplateForm .sceneField { margin-bottom: 10px; }
 	.sceneSuggest { margin-top: 6px; padding: 8px; border: 1px solid rgba(128,128,128,.45); border-radius: 6px; }
 	.sceneSuggestItem { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px; margin: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 	.sceneSuggestItem:hover, .sceneSuggestItem:focus { background: rgba(128,128,128,.18); outline: none; }
@@ -145,6 +149,7 @@ chose "this server only" (Scenes window settings). --->
 		<input type="text" id="sceneAlias" class="k-textbox" maxlength="80" style="width: 220px;" value="<cfif not isNewScene>#encodeForHtmlAttribute(scene.alias)#</cfif>"<cfif not isNewScene> readonly title="A saved scene keeps its name, so the posts that show it keep working."</cfif>>
 		<label><input type="checkbox" id="sceneActive" class="k-checkbox"<cfif isNewScene or scene.active> checked</cfif>> Active</label>
 		<button id="sceneSave" type="button" class="k-button k-primary">Save</button>
+		<button id="sceneSaveTemplate" type="button" class="k-button" title="Keep this scene as a starting point in the New scene gallery">Save as ready-made</button>
 		<span id="sceneSaved" class="k-form-hint"></span>
 		<span class="k-form-hint" id="sceneUseHint"></span>
 	</div>
@@ -824,10 +829,16 @@ $(document).ready(function () {
 	function showGallery() {
 		var cards = $("#sceneGalleryCards").empty();
 		$.each(starters, function (i, st) {
-			var card = $('<button type="button" class="sceneCard"></button>').append(cardThumb(st.json),
+			var thumb = cardThumb(st.json);
+			var card = $('<button type="button" class="sceneCard"></button>').append(thumb,
 				$('<div class="sceneCardText"></div>').append($('<strong></strong>').text(st.name), $('<span></span>').text(st.json.description || "")));
 			card.on("click", function () { startFrom(st.json); });
-			cards.append(card);
+			if (!st.json.templateId) { cards.append(card); return; }
+			<!--- One of the owner's own ready-made scenes: marked as theirs, with a button to remove it from the gallery. --->
+			thumb.append('<span class="sceneCardYours">Yours</span>');
+			var remove = $('<button type="button" class="k-button sceneCardRemove" title="Remove from the gallery">&times;</button>').attr("aria-label", "Remove " + st.name + " from the gallery");
+			remove.on("click", function () { removeTemplate(st); });
+			cards.append($('<div class="sceneCardWrap"></div>').append(card, remove));
 		});
 		var empty = $('<button type="button" class="sceneCard sceneCardEmpty"></button>').append('<div class="sceneCardThumb">+</div>',
 			$('<div class="sceneCardText"></div>').append('<strong>Empty scene</strong>', '<span>Start from nothing and add your own sections.</span>'));
@@ -839,6 +850,62 @@ $(document).ready(function () {
 		$("#sceneGallery").show();
 	}
 	$("#sceneRestart").on("click", showGallery);
+
+	<!--- ---------- The owner's own ready-made scenes (2026-10-19): Save as ready-made keeps the scene as a starting point in the
+	New scene gallery (the SceneTemplate table, so blog updates never touch them). --->
+	function removeTemplate(st) {
+		$.when(kendo.ui.ExtYesNoDialog.show({ title: "Remove " + $("<div/>").text(st.name).html() + "?", message: "It will no longer be offered in the gallery. Scenes already made from it stay as they are.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function (answer) {
+			if (answer['button'] !== 'Yes') { return; }
+			jQuery.ajax({
+				type: "post", url: BASE_URL + "/common/cfc/ProxyController.cfc?method=deleteSceneTemplate",
+				data: { csrfToken: CSRF, templateId: st.json.templateId }, dataType: "json",
+				success: function (response) {
+					if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+					if (response && response.success) { starters = $.grep(starters, function (x) { return x !== st; }); showGallery(); }
+					else { alertBox("Could not remove it", (response && response.errorMessage) || "The ready-made scene could not be removed."); }
+				},
+				error: function (jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
+			});
+		});
+	}
+	$("#sceneSaveTemplate").on("click", function () {
+		var box = $('<div id="sceneTemplateWindow"></div>').appendTo("body");
+		var name = $('<input type="text" class="k-textbox" maxlength="125" style="width: 100%;">').val(scene.name || "");
+		var description = $('<textarea class="k-textbox" rows="3" maxlength="500" style="width: 100%;"></textarea>');
+		var saveIt = $('<button type="button" class="k-button k-primary">Save as ready-made</button>');
+		var cancel = $('<button type="button" class="k-button">Cancel</button>');
+		box.append($('<div id="sceneTemplateForm"></div>').append(
+			$('<div></div>').text("Keeps this scene, as it is now, as a starting point in the New scene gallery, marked Yours. Changing or deleting this scene later doesn't change it."),
+			$('<div class="sceneField" style="margin-top: 10px;"></div>').append('<label>Name in the gallery</label>', name),
+			$('<div class="sceneField"></div>').append('<label>Short description (optional)</label>', description),
+			$('<div class="sceneRow"></div>').append(saveIt, cancel)));
+		var win = box.kendoWindow({ title: "Save as ready-made", width: "<cfoutput>#session.isMobile ? '95%' : '440px'#</cfoutput>", modal: true, actions: ["Close"],
+			close: function () { setTimeout(function () { var w = box.data("kendoWindow"); if (w) { w.destroy(); } }, 0); } }).data("kendoWindow");
+		win.center().open();
+		cancel.on("click", function () { win.close(); });
+		saveIt.on("click", function () {
+			if (!$.trim(name.val()).length) { alertBox("Please check", "The ready-made scene needs a name."); return; }
+			saveIt.prop("disabled", true);
+			jQuery.ajax({
+				type: "post", url: BASE_URL + "/common/cfc/ProxyController.cfc?method=saveSceneTemplate",
+				data: { csrfToken: CSRF, name: $.trim(name.val()), description: $.trim(description.val()), sceneJson: JSON.stringify(scene) }, dataType: "json",
+				success: function (response) {
+					saveIt.prop("disabled", false);
+					if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+					if (response && response.success) {
+						var copy = JSON.parse(JSON.stringify(scene));
+						copy.name = $.trim(name.val()); copy.description = $.trim(description.val()); copy.templateId = response.templateId;
+						starters.push({ key: "template-" + response.templateId, name: copy.name, order: 10000, json: copy });
+						win.close();
+						$("#sceneSaved").text("Kept as a ready-made scene.");
+					} else {
+						alertBox("Could not save", (response && response.errorMessage) || "The ready-made scene could not be saved.");
+					}
+				},
+				error: function (jqXHR, textStatus, error) { saveIt.prop("disabled", false); if (jqXHR.status === 403) { createLoginWindow(); } else { alertBox("Error while saving", error, "k-ext-error"); } }
+			});
+		});
+	});
 
 	<!--- ---------- The layer builder (2026-10-19, layout B): a layered hero's pictures in a list, back to front, each with a depth
 	slider; Add layers; Even out depths; a check that the layers are the same size; and, on the preview, Hold the scroll and an

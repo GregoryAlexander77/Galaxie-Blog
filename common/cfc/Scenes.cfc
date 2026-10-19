@@ -176,9 +176,62 @@
 				"order": isStruct(data) and isNumeric(data.order ?: "") ? data.order : 999, "json": text })>
 		</cfif>
 	</cfloop>
+	<!--- The owner's own ready-made scenes follow the built-in ones, newest first. --->
+	<cfset arrayAppend(starters, getTemplateStarters(), true)>
 	<!--- In the order the files give ("order"), then by name. --->
 	<cfset arraySort(starters, function (a, b) { return a.order neq b.order ? (a.order lt b.order ? -1 : 1) : compareNoCase(a.name, b.name); })>
 	<cfreturn starters>
+</cffunction>
+
+<!---//*****************************************************************************************************
+		The owner's own ready-made scenes
+//******************************************************************************************************--->
+
+<cffunction name="getTemplateStarters" access="public" returntype="array" output="false"
+		hint="The owner's own ready-made scenes, shaped like getStarters' entries ({ key, name, order, json }). The stored scene JSON gets its name, description and templateId set at the end, so they win over any copy inside it.">
+	<cfset var rows = "">
+	<cfset var found = []>
+	<cfset var text = "">
+	<cfset var position = 0>
+	<cfset ensureTables()>
+	<cfset rows = queryExecute("SELECT SceneTemplateId, Name, Description, SceneJson FROM SceneTemplate WHERE BlogRef = :blogId ORDER BY Created DESC, SceneTemplateId DESC",
+		{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } })>
+	<cfloop query="rows">
+		<cfset position = position + 1>
+		<cfset text = trim(rows.SceneJson ?: "")>
+		<cfif isJSON(text) and right(text, 1) eq "}" and len(text) gt 2>
+			<cfset text = left(text, len(text) - 1) & ',"name":' & serializeJSON(toString(rows.Name)) & ',"description":' & serializeJSON(toString(rows.Description ?: "")) & ',"templateId":' & rows.SceneTemplateId & '}'>
+			<cfset arrayAppend(found, { "key": "template-" & rows.SceneTemplateId, "name": rows.Name, "order": 10000 + position, "json": text })>
+		</cfif>
+	</cfloop>
+	<cfreturn found>
+</cffunction>
+
+<cffunction name="saveTemplate" access="public" returntype="numeric" output="false"
+		hint="Keeps a scene as one of the owner's own ready-made scenes, shown in the New scene gallery. Takes the scene as JSON text, as the editor has it.">
+	<cfargument name="name" type="string" required="true">
+	<cfargument name="description" type="string" required="false" default="">
+	<cfargument name="sceneJson" type="string" required="true">
+	<cfset var nowStamp = now()>
+	<cfif not len(trim(arguments.name))>
+		<cfthrow type="GalaxieBlog.Scenes" message="The ready-made scene needs a name.">
+	</cfif>
+	<cfif not isJSON(arguments.sceneJson) or not isStruct(deserializeJSON(arguments.sceneJson)) or len(arguments.sceneJson) gt 500000>
+		<cfthrow type="GalaxieBlog.Scenes" message="The scene could not be read.">
+	</cfif>
+	<cfset ensureTables()>
+	<cfset queryExecute("INSERT INTO SceneTemplate (BlogRef, Name, Description, SceneJson, Created) VALUES (:blogId, :name, :description, :json, :created)", {
+		blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, name = { value = left(trim(arguments.name), 125), cfsqltype = "cf_sql_varchar" },
+		description = { value = left(trim(arguments.description), 500), cfsqltype = "cf_sql_varchar" }, json = { value = trim(arguments.sceneJson), cfsqltype = "cf_sql_longvarchar" },
+		created = { value = nowStamp, cfsqltype = "cf_sql_timestamp" } })>
+	<cfreturn queryExecute("SELECT MAX(SceneTemplateId) AS NewId FROM SceneTemplate WHERE BlogRef = :blogId", { blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } }).NewId>
+</cffunction>
+
+<cffunction name="deleteTemplate" access="public" returntype="void" output="false" hint="Removes one of the owner's own ready-made scenes from the gallery. Scenes already made from it are not touched.">
+	<cfargument name="templateId" type="numeric" required="true">
+	<cfset ensureTables()>
+	<cfset queryExecute("DELETE FROM SceneTemplate WHERE SceneTemplateId = :id AND BlogRef = :blogId",
+		{ id = { value = arguments.templateId, cfsqltype = "cf_sql_integer" }, blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } })>
 </cffunction>
 
 <cffunction name="getPostIdsUsing" access="public" returntype="array" output="false" hint="The posts and pages that show this scene (their header has <galaxieScene>alias</galaxieScene>), so their cached pages can be cleared after a save.">
@@ -522,6 +575,12 @@ key NAMES are taken from the original text, so their case survives on Adobe Cold
 				sqlServer: "CREATE TABLE SceneSetting (SceneSettingId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, BlogRef INT NOT NULL, SettingName NVARCHAR(80) NOT NULL, SettingValue NVARCHAR(500) NULL)",
 				mySql: "CREATE TABLE SceneSetting (SceneSettingId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, BlogRef INT NOT NULL, SettingName VARCHAR(80) NOT NULL, SettingValue VARCHAR(500) NULL) DEFAULT CHARSET=utf8mb4",
 				postgre: "CREATE TABLE SceneSetting (SceneSettingId SERIAL PRIMARY KEY, BlogRef INT NOT NULL, SettingName VARCHAR(80) NOT NULL, SettingValue VARCHAR(500) NULL)"
+			})>
+			<!--- The owner's own ready-made scenes (2026-10-19): kept in the database, so a blog update never touches them. --->
+			<cfset updater.createTableIfMissing("SceneTemplate", {
+				sqlServer: "CREATE TABLE SceneTemplate (SceneTemplateId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, BlogRef INT NOT NULL, Name NVARCHAR(125) NOT NULL, Description NVARCHAR(500) NULL, SceneJson NVARCHAR(MAX) NOT NULL, Created DATETIME NOT NULL)",
+				mySql: "CREATE TABLE SceneTemplate (SceneTemplateId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, BlogRef INT NOT NULL, Name VARCHAR(125) NOT NULL, Description VARCHAR(500) NULL, SceneJson LONGTEXT NOT NULL, Created DATETIME NOT NULL) DEFAULT CHARSET=utf8mb4",
+				postgre: "CREATE TABLE SceneTemplate (SceneTemplateId SERIAL PRIMARY KEY, BlogRef INT NOT NULL, Name VARCHAR(125) NOT NULL, Description VARCHAR(500) NULL, SceneJson TEXT NOT NULL, Created TIMESTAMP NOT NULL)"
 			})>
 			<cfset variables.tablesReady = true>
 		</cfif>

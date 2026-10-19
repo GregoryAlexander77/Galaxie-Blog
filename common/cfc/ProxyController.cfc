@@ -13537,6 +13537,59 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="saveSceneTemplate" access="remote" returnformat="json" output="false"
+			hint="Keeps the scene open in the Scene editor (107) as one of the owner's own ready-made scenes, for the New scene gallery.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="name" type="string" default="" required="false">
+		<cfargument name="description" type="string" default="" required="false">
+		<cfargument name="sceneJson" type="string" default="{}" required="false">
+
+		<cfset var response = { "success": false, "errorMessage": "", "templateId": 0 }>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset response[ "templateId" ] = application.blog.getScenes().saveTemplate(arguments.name, arguments.description, arguments.sceneJson)>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.Scenes" ? cfcatch.message : "The ready-made scene could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="deleteSceneTemplate" access="remote" returnformat="json" output="false" hint="Removes one of the owner's own ready-made scenes from the New scene gallery.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="templateId" default="0" required="true">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.templateId)>
+			<cftry>
+				<cfset application.blog.getScenes().deleteTemplate(val(arguments.templateId))>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The ready-made scene could not be removed: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="deleteScene" access="remote" returnformat="json" output="false" hint="Deletes a scene (Scenes window 106). Posts that showed it show nothing in its place.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="sceneId" default="0" required="true">
