@@ -3,12 +3,15 @@
 	plain data description, with GSAP 3 + ScrollTrigger. Replaces the 2019 ScrollMagic templates in includes/postContent/parallax/,
 	which keep working until each post is moved over. Design: doc/aiDraftArticles/parallaxScenesDesign.cfm.
 
-	Needs gsap.min.js and ScrollTrigger.min.js (common/libs/gsap3/) loaded first. Never load it on a page that still loads
-	TweenMax 2 / ScrollMagic: GSAP 3 defines the same global names.
+	GSAP is loaded from cdnjs (not included in Galaxie - see the GSAP licence question in the design doc), with Subresource
+	Integrity, so the browser refuses the files if they were ever changed. GalaxieScene.ready() loads it when the page doesn't
+	have it yet. Never use this on a page that still loads TweenMax 2 / ScrollMagic: GSAP 3 defines the same global names.
 
 	Usage:
-		var scene = GalaxieScene.build(document.getElementById("myScene"), sceneData);
-		scene.destroy();   // removes the animations (the markup stays)
+		GalaxieScene.ready(function () {
+			var scene = GalaxieScene.build(document.getElementById("myScene"), sceneData);
+			// scene.destroy() removes the animations (the markup stays)
+		});
 
 	sceneData:
 		{
@@ -52,6 +55,11 @@
 		glow: function (c) { return "0 0 10px " + rgba(c, 0.9) + ", 0 0 26px " + rgba(c, 0.7); }
 	};
 	var scriptPromises = {};
+	// GSAP 3.15.0 from cdnjs, with its published SHA-512 hashes.
+	var GSAP_FILES = [
+		{ src: "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/gsap.min.js", integrity: "sha512-oJ8QbaQThQoJZ7oEv+29jfPM6CcP+zUxh3PKJs1vyOhx0UraUrE7PQgeItu3dOuCJyrzWpoYMsVjkkPEBzbUqw==" },
+		{ src: "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/ScrollTrigger.min.js", integrity: "sha512-OaIE7ud4P04EhnBuhEcm0wQSceIxbi2pV03oBLS/+F6ampfxsnxcIxOp7H2eF9G7N0kEht0VAzOLG+dTLSo17Q==" }
+	];
 	var stylesAdded = false;
 
 	/* ---------- small helpers ---------- */
@@ -83,11 +91,12 @@
 
 	function isPhone() { return window.matchMedia("(max-width: 768px)").matches; }
 
-	function loadScript(src) {
+	function loadScript(src, integrity) {
 		if (!scriptPromises[src]) {
 			scriptPromises[src] = new Promise(function (resolve, reject) {
 				var tag = document.createElement("script");
-				tag.src = src; tag.async = true; tag.onload = resolve; tag.onerror = reject;
+				tag.src = src; tag.async = false; tag.onload = resolve; tag.onerror = reject;
+				if (integrity) { tag.integrity = integrity; tag.crossOrigin = "anonymous"; tag.referrerPolicy = "no-referrer"; }
 				document.head.appendChild(tag);
 			});
 		}
@@ -400,5 +409,14 @@
 		};
 	}
 
-	window.GalaxieScene = { build: build, version: "1.0.0-phase2" };
+	// Loads GSAP and ScrollTrigger from the CDN (in order) unless the page already has them, then calls back.
+	function ready(callback) {
+		var have = window.gsap && window.ScrollTrigger;
+		var loading = have ? Promise.resolve() : GSAP_FILES.reduce(function (chain, f) {
+			return chain.then(function () { return loadScript(f.src, f.integrity); });
+		}, Promise.resolve());
+		return loading.then(function () { if (callback) { callback(); } });
+	}
+
+	window.GalaxieScene = { build: build, ready: ready, version: "1.0.0-phase2" };
 })(window, document);
