@@ -26,8 +26,6 @@
 <!--- Generate the session Cross-Site Request Forgery (CSRF) token. This will be validated on the server prior to the login logic for security. --->
 <!--- The forceNew argument does not work for versions less than 2018, however, CF2021 needs this argument or the token will change every time causing errors. Note: while the forceNew argument was not introduced until 2018, having csrfGenerateToken on the page with a forceNew argument will cause an error with 2016, even if you put it in a catch block or have two logical branches depending upon the version. --->
 <cfset csrfToken = csrfGenerateToken("admin", false)><!---forceNew=false--->
-<!--- Drop a cookie with the token. On occassion with Chrome, the validation on the server during and Ajax request does not work and we need to compare the validated token with the cookie as a backup approach to secure our ajax transactions  --->
-<cfset cookie.csrfToken = { value="#csrfToken#", path="#application.baseUrl#", expires=30 }>
 
 <!--- Get the current theme --->
 <cfset selectedThemeAlias= trim(application.blog.getSelectedThemeAlias())>
@@ -85,7 +83,6 @@ If I place the tinymce scripts here, the setContent method does not work and the
 	<cfif isDefined("URL.otherArgs1")> URL.otherArgs1: #URL.otherArgs1#</cfif><br/>
 	
 	csrfToken: #csrfToken#<br/>
-	cookie.csrfToken: #cookie.csrfToken#<br/>
 	CSRFVerifyToken('admin', csrfToken): #CSRFVerifyToken(csrfToken, 'admin')#<br/>
 	validCsrf: #validCsrf#<br/>
 	screenHeight: #screenHeight#<br/>

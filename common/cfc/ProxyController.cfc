@@ -44,33 +44,10 @@
 		<!--- Trim the token --->
 		<cfset token = StringUtilsObj.trimStr(arguments.csrfToken)>
 			
-		<!--- Note: after one of the Chrome browser updates, my original logic that just used the csrfVerifyToken CF function stopped authenticating the token via AJAX requests when the browser was open for a long time and other tabs were opened with other sites. The workaround was to close the browser and reauthenticate, however, this was not per my original design and I don't want to have to close the browser everytime it fails. I have added logic here that the adminInterface page, used by the administrative site interfaces, creates a token and *then* creates a cookie and now I am also comparing if the cookie is the same as the passed in token to pass when the CSRFVerifyToken function is not working. This can be written in a much more concise way, however, I am making it verbose in order to understand the logic. ---> 
-		<cfif isdefined("arguments.csrfToken")>
-			<cfif CSRFVerifyToken(arguments.csrfToken, 'admin')>
-				<!--- The token passes- all is good. This is the original logic --->
-				<cfset tokenAuth = true>
-			<cfelse><!---<cfif CSRFVerifyToken(arguments.csrfToken, 'admin')>--->
-				<!--- This may sometimes fail if the browser has been opened and used with other sites. --->
-				<!--- Was the expected cookie set on the adminInterface.cfm template? --->
-				<!--- structKeyExists first (2026-10-19): without the cookie, isDefined(cookie.csrfToken) threw an error instead of refusing. --->
-				<cfif structKeyExists(cookie, "csrfToken") and isDefined(cookie.csrfToken)>
-					<cfif arguments.csrfToken eq cookie.csrfToken>
-						<!--- Pass the request if the token matches the current csrfToken stored in the cookie --->
-						<cfset tokenAuth = true>
-					<cfelse><!---<cfif arguments.csrfToken eq cookie.csrfToken>--->
-						<!--- Ok, something is wrong here- fail it. --->
-						<cfset tokenAuth = false>
-					</cfif><!---<cfif arguments.csrfToken eq cookie.csrfToken>--->
-				<cfelse><!---<cfif isDefined(cookie.csrfToken)>--->
-					<!--- Ok, the expected cookie is not present- fail it. --->
-					<cfset tokenAuth = false>
-				</cfif><!---<cfif isDefined(cookie.csrfToken)>--->
-			</cfif><!---<cfif isDefined(cookie.csrfToken)>--->
-		<cfelse><!---<cfif isdefined("arguments.csrfToken")>--->
-			<!--- Pass in the token dummy! --->
-			<cfset tokenAuth = false>
-		</cfif><!---<cfif isdefined("arguments.csrfToken")>--->
-			
+		<!--- The token must pass ColdFusion's own check (2026-10-19: a cookie comparison that was meant as a backup here never
+		took effect and has been removed, along with the cookie). --->
+		<cfset tokenAuth = isdefined("arguments.csrfToken") and len(token) and CSRFVerifyToken(token, 'admin')>
+
 		<!--- Return it --->
 		<cfreturn tokenAuth>
 			
