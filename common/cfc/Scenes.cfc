@@ -269,6 +269,9 @@
 	<cfif not isJSON(arguments.sceneJson)>
 		<cfthrow type="GalaxieBlog.Scenes" message="The scene is not valid JSON.">
 	</cfif>
+	<cfif len(arguments.sceneJson) gt 500000>
+		<cfthrow type="GalaxieBlog.Scenes" message="The scene is too large to save. Pictures are stored as addresses, so this usually means very long text in a section.">
+	</cfif>
 	<cfset data = deserializeJSON(arguments.sceneJson)>
 	<cfset ensureTables()>
 	<cftransaction>

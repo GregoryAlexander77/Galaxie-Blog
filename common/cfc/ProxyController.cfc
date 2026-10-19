@@ -52,7 +52,8 @@
 			<cfelse><!---<cfif CSRFVerifyToken(arguments.csrfToken, 'admin')>--->
 				<!--- This may sometimes fail if the browser has been opened and used with other sites. --->
 				<!--- Was the expected cookie set on the adminInterface.cfm template? --->
-				<cfif isDefined(cookie.csrfToken)>
+				<!--- structKeyExists first (2026-10-19): without the cookie, isDefined(cookie.csrfToken) threw an error instead of refusing. --->
+				<cfif structKeyExists(cookie, "csrfToken") and isDefined(cookie.csrfToken)>
 					<cfif arguments.csrfToken eq cookie.csrfToken>
 						<!--- Pass the request if the token matches the current csrfToken stored in the cookie --->
 						<cfset tokenAuth = true>

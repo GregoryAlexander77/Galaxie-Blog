@@ -31,8 +31,9 @@ Written as it is ("</" escaped so it can't end the script tag): serializeJSON wo
 	<cfset sceneJsonText = scene.json>
 	<cfset startersJsonText = "[]">
 </cfif>
-<cfset sceneJsonText = replace(sceneJsonText, "</", "<\/", "all")>
-<cfset startersJsonText = replace(startersJsonText, "</", "<\/", "all")>
+<!--- Nothing in the data can end the script ("</") or open an HTML comment in it ("<!--"). --->
+<cfset sceneJsonText = replace(replace(sceneJsonText, "</", "<\/", "all"), "<!--", "<\!--", "all")>
+<cfset startersJsonText = replace(replace(startersJsonText, "</", "<\/", "all"), "<!--", "<\!--", "all")>
 <!--- The blog's fonts, for the heading and text font dropdowns. Each self-hosted font is declared below under its own name, so the
 dropdown shows it in its own face, the way the public pages name it (includes/templates/font.cfm). --->
 <cfset sceneFonts = []>

@@ -13,7 +13,8 @@ Edit open the Scene editor (107); when it saves, this window reloads with that s
 	<cfset arrayAppend(postSceneParts, '{"id":' & postSceneList.SceneId & ',"name":' & serializeJSON(toString(postSceneList.Name)) & ',"alias":' & serializeJSON(toString(postSceneList.Alias))
 		& ',"active":' & (postSceneList.Active eq 1 ? 'true' : 'false') & ',"json":' & (isJSON(thisJson) ? thisJson : '{}') & '}')>
 </cfloop>
-<cfset postSceneJson = replace("[" & arrayToList(postSceneParts, ",") & "]", "</", "<\/", "all")>
+<!--- Nothing in the data can end the script ("</") or open an HTML comment in it ("<!--"). --->
+<cfset postSceneJson = replace(replace("[" & arrayToList(postSceneParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")>
 
 <!--- The card styles and thumbnails, shared with the Scene editor's gallery. --->
 <cfinclude template="sceneCards.cfm">
