@@ -1,7 +1,7 @@
 {
 	"name": "Sunset gradient",
 	"description": "Warm colours and a big heading. Quick to load, and easy to change to your own colours.",
-	"order": 14,
+	"order": 21,
 	"pageColour": "#2b1a2f",
 	"settings": {
 		"scrub": true,

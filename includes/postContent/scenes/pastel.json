@@ -1,7 +1,7 @@
 {
 	"name": "Soft pastels",
 	"description": "Still pastel colours and dark text. The lightest scene to load.",
-	"order": 12,
+	"order": 19,
 	"pageColour": "#eef3f6",
 	"settings": {
 		"scrub": true,

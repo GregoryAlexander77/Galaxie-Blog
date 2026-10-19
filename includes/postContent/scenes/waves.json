@@ -1,7 +1,7 @@
 {
 	"name": "Ocean waves",
 	"description": "A slow animated sea behind your heading. No pictures needed.",
-	"order": 13,
+	"order": 20,
 	"pageColour": "#0b1d2e",
 	"settings": {
 		"scrub": true,

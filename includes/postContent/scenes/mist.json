@@ -1,7 +1,7 @@
 {
 	"name": "Calm mist",
 	"description": "Slow drifting mist in soft colours. Calm and quiet, for wellness and services.",
-	"order": 10,
+	"order": 17,
 	"pageColour": "#f7f3f0",
 	"settings": {
 		"scrub": true,

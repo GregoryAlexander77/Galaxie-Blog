@@ -1,0 +1,61 @@
+{
+	"name": "Tropical palms",
+	"description": "Palm trees on low hills against a tropical sunset. Light to load.",
+	"order": 12,
+	"pageColour": "#1c0f26",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"fadeColour": "#1c0f26",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/palms/1.svg",
+					"depth": 60
+				},
+				{
+					"src": "{baseUrl}/images/scenes/palms/2.svg",
+					"depth": 160
+				},
+				{
+					"src": "{baseUrl}/images/scenes/palms/3.svg",
+					"depth": 280
+				},
+				{
+					"src": "{baseUrl}/images/scenes/palms/4.svg",
+					"depth": 420
+				},
+				{
+					"src": "{baseUrl}/images/scenes/palms/5.svg",
+					"depth": 560
+				},
+				{
+					"src": "{baseUrl}/images/scenes/palms/6.svg",
+					"depth": 700
+				}
+			],
+			"shadow": "soft"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#1c0f26",
+			"gradient": "linear-gradient(180deg, #1c0f26 0%, #371b40 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#371b40",
+			"gradient": "linear-gradient(180deg, #371b40 0%, #1c0f26 100%)"
+		}
+	]
+}

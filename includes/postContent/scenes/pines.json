@@ -1,0 +1,61 @@
+{
+	"name": "Pine forest",
+	"description": "Ridges of pine trees under a pale morning sky: small and dense far away, tall up close. Light to load.",
+	"order": 8,
+	"pageColour": "#1b3a2b",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"fadeColour": "#1b3a2b",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/pines/1.svg",
+					"depth": 60
+				},
+				{
+					"src": "{baseUrl}/images/scenes/pines/2.svg",
+					"depth": 160
+				},
+				{
+					"src": "{baseUrl}/images/scenes/pines/3.svg",
+					"depth": 280
+				},
+				{
+					"src": "{baseUrl}/images/scenes/pines/4.svg",
+					"depth": 420
+				},
+				{
+					"src": "{baseUrl}/images/scenes/pines/5.svg",
+					"depth": 560
+				},
+				{
+					"src": "{baseUrl}/images/scenes/pines/6.svg",
+					"depth": 700
+				}
+			],
+			"textColour": "#1b3a2b"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#1b3a2b",
+			"gradient": "linear-gradient(180deg, #1b3a2b 0%, #355b49 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#355b49",
+			"gradient": "linear-gradient(180deg, #355b49 0%, #1b3a2b 100%)"
+		}
+	]
+}

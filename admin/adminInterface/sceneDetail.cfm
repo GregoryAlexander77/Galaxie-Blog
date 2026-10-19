@@ -794,6 +794,16 @@ $(document).ready(function () {
 	function startFrom(data) {
 		scene = JSON.parse(JSON.stringify(data));
 		scene.settings = scene.settings || {}; scene.sections = scene.sections || [];
+		<!--- A ready-made scene names its fonts (ids differ from blog to blog): find this blog's font of that name. --->
+		$.each(scene.sections, function (i, s) {
+			$.each(["heading", "text"], function (j, part) {
+				var m = /^"([^"]+)"/.exec(s[part + "Font"] || "");
+				if (m && !s[part + "FontId"]) {
+					var f = $.grep(FONTS, function (font) { return font.name === m[1]; })[0];
+					if (f) { s[part + "FontId"] = parseInt(f.id, 10); }
+				}
+			});
+		});
 		delete scene.description; delete scene.thumbnail;
 		if (!aliasTyped) { $("#sceneAlias").val(aliasFrom(scene.name || "")); updateUseHint(); }
 		$("#sceneGallery").hide();

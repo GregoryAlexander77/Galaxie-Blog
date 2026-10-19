@@ -1,0 +1,72 @@
+{
+	"name": "Halloween",
+	"description": "A harvest moon, bats, bare twisted trees and glowing jack-o'-lanterns. For October.",
+	"order": 14,
+	"pageColour": "#0b0610",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Happy Halloween",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"fadeColour": "#0b0610",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/halloween/1.svg",
+					"depth": 60
+				},
+				{
+					"src": "{baseUrl}/images/scenes/halloween/2.svg",
+					"depth": 160
+				},
+				{
+					"src": "{baseUrl}/images/scenes/halloween/3.svg",
+					"depth": 280
+				},
+				{
+					"src": "{baseUrl}/images/scenes/halloween/4.svg",
+					"depth": 420
+				},
+				{
+					"src": "{baseUrl}/images/scenes/halloween/5.svg",
+					"depth": 560
+				},
+				{
+					"src": "{baseUrl}/images/scenes/halloween/6.svg",
+					"depth": 700
+				}
+			],
+			"headingFont": "\"Eagle Lake\", serif",
+			"headingSize": "4.5rem",
+			"headingSizePhone": "2.75rem",
+			"textColour": "#ffb347",
+			"shadow": "glow",
+			"shadowColour": "#000000"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#0b0610",
+			"gradient": "linear-gradient(180deg, #0b0610 0%, #4a1d0c 100%)",
+			"headingFont": "\"Eagle Lake\", serif",
+			"textColour": "#ffb347",
+			"align": "center"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#e8731c",
+			"gradient": "linear-gradient(180deg, #e8731c 0%, #b34a10 100%)",
+			"headingFont": "\"Eagle Lake\", serif",
+			"textColour": "#1a0b05",
+			"align": "center"
+		}
+	]
+}

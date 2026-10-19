@@ -1,0 +1,61 @@
+{
+	"name": "Joshua trees",
+	"description": "The desert at twilight: mountains behind, Joshua trees in front. Light to load.",
+	"order": 13,
+	"pageColour": "#3a2219",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"fadeColour": "#3a2219",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/joshua/1.svg",
+					"depth": 60
+				},
+				{
+					"src": "{baseUrl}/images/scenes/joshua/2.svg",
+					"depth": 160
+				},
+				{
+					"src": "{baseUrl}/images/scenes/joshua/3.svg",
+					"depth": 280
+				},
+				{
+					"src": "{baseUrl}/images/scenes/joshua/4.svg",
+					"depth": 420
+				},
+				{
+					"src": "{baseUrl}/images/scenes/joshua/5.svg",
+					"depth": 560
+				},
+				{
+					"src": "{baseUrl}/images/scenes/joshua/6.svg",
+					"depth": 700
+				}
+			],
+			"textColour": "#3a2219"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#3a2219",
+			"gradient": "linear-gradient(180deg, #3a2219 0%, #6e432f 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#6e432f",
+			"gradient": "linear-gradient(180deg, #6e432f 0%, #3a2219 100%)"
+		}
+	]
+}

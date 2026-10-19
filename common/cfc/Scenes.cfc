@@ -282,8 +282,19 @@
 	<cfset var css = "">
 	<cfset var ext = application.serverSupportsWoff2 ? "woff2" : "woff">
 	<cfset var found = reMatch('"(heading|text)FontId"\s*:\s*"?[0-9]+', arguments.sceneJson)>
+	<!--- Fonts named without an id (the ready-made scenes name their fonts, as ids differ from blog to blog): "headingFont": "\"Eagle Lake\", serif". --->
+	<cfset var named = reMatch('"(heading|text)Font"\s*:\s*"\\"[^"\\]+\\"', arguments.sceneJson)>
+	<cfset var fontName = "">
+	<cfset var candidate = "">
 	<cfloop array="#found#" index="m">
 		<cfset ids[reReplace(m, "[^0-9]", "", "all")] = true>
+	</cfloop>
+	<cfloop array="#named#" index="m">
+		<cfset fontName = reReplace(m, '^.*:\s*"\\"([^"\\]+)\\"$', "\1")>
+		<!--- getFont matches a name with LIKE, so only an exact match counts. --->
+		<cfloop array="#application.blog.getFont(font = fontName)#" index="candidate">
+			<cfif candidate["Font"] eq fontName><cfset ids[candidate["FontId"]] = true></cfif>
+		</cfloop>
 	</cfloop>
 	<cfloop collection="#ids#" item="m">
 		<cfset font = application.blog.getFont(fontId = m)>

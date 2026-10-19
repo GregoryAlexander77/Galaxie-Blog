@@ -1,7 +1,7 @@
 {
 	"name": "Abstract photo",
 	"description": "Flowing abstract colours as the hero, then text and a second picture. Upload your own photos in the Scene editor.",
-	"order": 9,
+	"order": 16,
 	"pageColour": "#101a3a",
 	"settings": {
 		"scrub": true,

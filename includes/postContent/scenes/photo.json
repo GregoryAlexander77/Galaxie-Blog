@@ -1,7 +1,7 @@
 {
 	"name": "Photo story",
 	"description": "A photo held in place with a slow zoom, then text and a second picture. Upload your own photos in the Scene editor.",
-	"order": 8,
+	"order": 15,
 	"pageColour": "#0b1630",
 	"settings": {
 		"scrub": true,

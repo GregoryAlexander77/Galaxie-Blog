@@ -1,0 +1,61 @@
+{
+	"name": "Summer trees",
+	"description": "Rounded leafy trees on green hills under a blue summer sky. Light to load.",
+	"order": 10,
+	"pageColour": "#22481f",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"fadeColour": "#22481f",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/summer/1.svg",
+					"depth": 60
+				},
+				{
+					"src": "{baseUrl}/images/scenes/summer/2.svg",
+					"depth": 160
+				},
+				{
+					"src": "{baseUrl}/images/scenes/summer/3.svg",
+					"depth": 280
+				},
+				{
+					"src": "{baseUrl}/images/scenes/summer/4.svg",
+					"depth": 420
+				},
+				{
+					"src": "{baseUrl}/images/scenes/summer/5.svg",
+					"depth": 560
+				},
+				{
+					"src": "{baseUrl}/images/scenes/summer/6.svg",
+					"depth": 700
+				}
+			],
+			"textColour": "#22481f"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"colour": "#22481f",
+			"gradient": "linear-gradient(180deg, #22481f 0%, #3d7238 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#3d7238",
+			"gradient": "linear-gradient(180deg, #3d7238 0%, #22481f 100%)"
+		}
+	]
+}
