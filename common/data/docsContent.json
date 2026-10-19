@@ -1,13 +1,13 @@
 {
   "HOMEPAGECOLLECTIONALIASES": [
-    "docs-homepage-and-page-collections",
     "docs-install-and-admin",
-    "docs-media-maps-and-animated-heroes",
-    "docs-releases-and-upgrades",
-    "docs-themes-and-grids",
-    "docs-visitors-and-safety",
     "docs-writing-and-editing-posts",
+    "docs-media-maps-and-animated-heroes",
+    "docs-themes-and-grids",
+    "docs-homepage-and-page-collections",
     "forms-events-bookings-and-members",
+    "docs-visitors-and-safety",
+    "docs-releases-and-upgrades",
     "docs-credits-and-licenses"
   ],
   "HOMEPAGESHOWCOLLECTIONS": true,
@@ -93,7 +93,7 @@
     {
       "TITLE": "Homepage and Page Collections",
       "ALIAS": "docs-homepage-and-page-collections",
-      "DESCRIPTION": "",
+      "DESCRIPTION": "Shape your front page and the menu: page collections, the homepage layout, the top menu, and the sidebar's calendar, archive, and popular posts.",
       "PAGES": [
         {
           "TITLE": "Pods, Calendar, and Archive",
@@ -156,7 +156,7 @@
     {
       "TITLE": "Install and Admin",
       "ALIAS": "docs-install-and-admin",
-      "DESCRIPTION": "",
+      "DESCRIPTION": "Get Galaxie Blog running and keep it that way: installing and updating, the admin site and users, settings and options, email, URL rewrites, search engines and feeds, and troubleshooting.",
       "PAGES": [
         {
           "TITLE": "Installing Galaxie Blog",
@@ -235,7 +235,7 @@
     {
       "TITLE": "Media, Maps, and Animated Heroes",
       "ALIAS": "docs-media-maps-and-animated-heroes",
-      "DESCRIPTION": "",
+      "DESCRIPTION": "Make your posts richer: images and WebP, galleries and carousels, video, maps and routes, hero pictures and fallbacks, and animated backgrounds.",
       "PAGES": [
         {
           "TITLE": "Maps in Posts",
@@ -306,7 +306,7 @@
     {
       "TITLE": "Releases and Upgrades",
       "ALIAS": "docs-releases-and-upgrades",
-      "DESCRIPTION": "",
+      "DESCRIPTION": "What's new in each version, why Galaxie Blog exists, and a guide to how these docs are organized.",
       "PAGES": [
         {
           "TITLE": "Why Galaxie Blog?",
@@ -345,7 +345,7 @@
     {
       "TITLE": "Themes and Grids",
       "ALIAS": "docs-themes-and-grids",
-      "DESCRIPTION": "",
+      "DESCRIPTION": "Make the blog look like yours: theme settings and fonts, custom Kendo themes, the sidebar pods, the navigation menu and windows, the footer, and the admin grids.",
       "PAGES": [
         {
           "TITLE": "Pods: Customizing the Sidebar",
@@ -416,7 +416,7 @@
     {
       "TITLE": "Visitors and Safety",
       "ALIAS": "docs-visitors-and-safety",
-      "DESCRIPTION": "",
+      "DESCRIPTION": "Look after your readers and your site: visitor tracking and bans, comments and moderation, reactions, search queries, subscribers, and taming the error log.",
       "PAGES": [
         {
           "TITLE": "Visitor Tracking and Banning in Galaxie Blog",
@@ -471,7 +471,7 @@
     {
       "TITLE": "Writing and Editing Posts",
       "ALIAS": "docs-writing-and-editing-posts",
-      "DESCRIPTION": "",
+      "DESCRIPTION": "Everything about writing a post, from the first draft to the live page: the post editor, formatting, images, categories and tags, dates, scheduling, addresses and redirects, and releasing, promoting, and removing a post.",
       "PAGES": [
         {
           "TITLE": "Scheduling a Post",
@@ -564,5 +564,5 @@
       ]
     }
   ],
-  "EXPORTED": "2026-10-19 00:47 from galaxieblog.org (9 collections, 61 pages)"
+  "EXPORTED": "2026-10-19 03:08 from galaxieblog.org (9 collections, 61 pages)"
 }
