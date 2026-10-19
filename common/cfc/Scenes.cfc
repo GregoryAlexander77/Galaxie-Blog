@@ -235,7 +235,7 @@
 </cffunction>
 
 <cffunction name="setPostScene" access="public" returntype="void" output="false"
-		hint="Shows a scene on a post (or none, with an empty alias): adds, replaces or removes the <galaxieScene> directive in the post's header and leaves the rest of the header, and the post's date, as they are. The Scene window (108) in the post editor.">
+		hint="Shows a scene on a post (or none, with an empty alias): adds, replaces or removes the <galaxieScene> directive in the post's header and leaves the rest of the header as it is. Updates the post's last-changed stamp (Post.Date, sent to search engines as dateModified), as saving the post's CSS or JavaScript does; the date visitors see (DatePosted) stays as it is. The Scene window (108) in the post editor.">
 	<cfargument name="postId" type="numeric" required="true">
 	<cfargument name="alias" type="string" required="true">
 	<cfset var post = "">
@@ -255,6 +255,7 @@
 			<cfset header = (len(header) ? header & chr(10) : "") & "<galaxieScene>" & sceneAlias & "</galaxieScene>">
 		</cfif>
 		<cfset post.setPostHeader(header)>
+		<cfset post.setDate(application.blog.blogNow())>
 		<cfset entitySave(post)>
 	</cftransaction>
 </cffunction>
