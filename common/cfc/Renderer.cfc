@@ -72,6 +72,11 @@
 			<cfset sceneJson = application.blog.getScenes().getSceneJson(name)>
 			<cfcatch type="any"><cfset sceneJson = ""></cfcatch>
 		</cftry>
+		<!--- An inactive scene shows nothing (2026-10-19, hardening) - not the ready-made file of the same name, which it may have
+		been made from. --->
+		<cfif not len(sceneJson) and application.blog.getScenes().aliasExists(name)>
+			<cfreturn "">
+		</cfif>
 		<cfif not len(sceneJson)>
 			<cfset filePath = expandPath(application.baseUrl & "/includes/postContent/scenes/" & name & ".json")>
 			<cfif not fileExists(filePath)>
@@ -96,7 +101,8 @@
 		<cfif isStruct(parsed) and reFind("^##[0-9A-Fa-f]{3,8}$", parsed.pageColour ?: "")>
 			<cfset hostStyle = hostStyle & "background-color:" & parsed.pageColour & ";">
 		</cfif>
-		<cfset sceneJson = replace(sceneJson, "</", "<\/", "all")>
+		<!--- Nothing in the scene can end the script ("</") or start an HTML comment inside it ("<!--"). --->
+		<cfset sceneJson = replace(replace(sceneJson, "</", "<\/", "all"), "<!--", "<\!--", "all")>
 		<!--- The blog fonts the scene's headings and text use. --->
 		<cftry>
 			<cfset fontCss = application.blog.getScenes().getFontFaceCss(sceneJson)>
@@ -108,7 +114,33 @@
 	var data = #sceneJson#;
 	data.settings = data.settings || {};
 	data.settings.baseUrl = data.settings.baseUrl || "#application.baseUrl#";
-	function go() { GalaxieScene.ready(function () { GalaxieScene.build(document.getElementById("#containerId#"), data); }, data); }
+	<!--- Full width (2026-10-19, owner): the scene reaches the edges of the blog's content area (##blogContent, which hides
+	anything wider), past the post's own padding - edge to edge on a phone, and up to the sidebar on a desktop theme that has one. --->
+	var host = document.getElementById("#containerId#");
+	function fit() {
+		var area = host.closest("##blogContent") || document.body;
+		host.style.width = ""; host.style.marginLeft = "";
+		var a = area.getBoundingClientRect(), border = parseFloat(getComputedStyle(area).borderLeftWidth) || 0;
+		host.style.width = area.clientWidth + "px";
+		host.style.marginLeft = (a.left + border - host.getBoundingClientRect().left) + "px";
+	}
+	fit();
+	<!--- Measured again whenever the content area changes size: the theme's styles settling, a window resize, a phone turning. --->
+	var resizeTimer, lastWidth = 0;
+	function refit() {
+		clearTimeout(resizeTimer);
+		resizeTimer = setTimeout(function () {
+			var area = host.closest("##blogContent") || document.body;
+			if (area.clientWidth === lastWidth) { return; }
+			lastWidth = area.clientWidth;
+			fit();
+			if (window.ScrollTrigger) { window.ScrollTrigger.refresh(); }
+		}, 100);
+	}
+	if (window.ResizeObserver) { new ResizeObserver(refit).observe(host.closest("##blogContent") || document.body); }
+	window.addEventListener("resize", refit);
+	window.addEventListener("load", refit);
+	function go() { GalaxieScene.ready(function () { GalaxieScene.build(host, data); }, data); }
 	if (window.GalaxieScene) { go(); return; }
 	var s = document.createElement("script");
 	s.src = "#application.blog.getScenes().getEngineUrl()#";
