@@ -57,6 +57,7 @@
 		<cfset var name = trim(arguments.sceneName)>
 		<cfset var filePath = "">
 		<cfset var sceneJson = "">
+		<cfset var fontCss = "">
 		<cfset var html = "">
 		<cfset var containerId = "galaxieScene" & reReplace(arguments.postId, "[^0-9]", "", "all")>
 		<!--- Only a plain name, and only files in the scenes folder: the directive can never read anything else. --->
@@ -84,7 +85,12 @@
 			<cfreturn "">
 		</cfif>
 		<cfset sceneJson = replace(sceneJson, "</", "<\/", "all")>
-		<cfsavecontent variable="html"><cfoutput><div class="galaxieSceneHost" id="#containerId#"></div>
+		<!--- The blog fonts the scene's headings and text use. --->
+		<cftry>
+			<cfset fontCss = application.blog.getScenes().getFontFaceCss(sceneJson)>
+			<cfcatch type="any"><cfset fontCss = ""></cfcatch>
+		</cftry>
+		<cfsavecontent variable="html"><cfoutput><cfif len(fontCss)><style>#fontCss#</style></cfif><div class="galaxieSceneHost" id="#containerId#"></div>
 <script>
 (function () {
 	var data = #sceneJson#;

@@ -3,7 +3,9 @@ sceneId); 0 makes a new scene. Side by side (owner's pick, layout A): the sectio
 in the middle, and a live preview on the right (admin/scenePreview.cfm in an iframe, sent the scene on every change). The scene
 is edited as the engine's own data ({ name, pageColour, settings, sections: [...] }, see common/js/galaxieScene.js), so keys
 this editor doesn't know yet are kept as they are. Saved by ProxyController.cfc's saveScene -> Scenes.cfc saveScene.
-To come: rich text, fonts, the picture uploader, colour helper, layer builder and the gallery (design doc, Galaxie 5). --->
+Step 3 (2026-10-19): rich text (one TinyMCE that stays put while sections are picked), the blog's fonts, picture upload
+(ProxyController uploadSceneImage), gradients (Grapick, as in the gradient editor) and Kendo colour pickers.
+To come: the colour helper, layer builder and the gallery (design doc, Galaxie 5). --->
 <cfset sceneId = val(URL.optArgs)>
 <cfset scene = sceneId gt 0 ? application.blog.getScenes().getScene(sceneId) : {}>
 <cfset isNewScene = structIsEmpty(scene)>
@@ -26,6 +28,33 @@ Written as it is ("</" escaped so it can't end the script tag): serializeJSON wo
 </cfif>
 <cfset sceneJsonText = replace(sceneJsonText, "</", "<\/", "all")>
 <cfset startersJsonText = replace(startersJsonText, "</", "<\/", "all")>
+<!--- The blog's fonts, for the heading and text font dropdowns. Each self-hosted font is declared below under its own name, so the
+dropdown shows it in its own face, the way the public pages name it (includes/templates/font.cfm). --->
+<cfset sceneFonts = []>
+<cfset sceneFontFaceCss = "">
+<cfset sceneFontExt = application.serverSupportsWoff2 ? "woff2" : "woff">
+<!--- getFont's rows are case-sensitive maps on Adobe ColdFusion (HQL "new Map"), so the keys are written exactly. --->
+<cfloop array="#application.blog.getFont()#" index="thisFont">
+	<cfset thisFileName = thisFont["FileName"] ?: "">
+	<cfset thisWebSafe = isBoolean(thisFont["WebSafeFont"] ?: "") and thisFont["WebSafeFont"]>
+	<cfset arrayAppend(sceneFonts, { "id": thisFont["FontId"], "name": thisFont["Font"], "fileName": thisFileName, "webSafe": thisWebSafe, "type": thisFont["FontType"] ?: "" })>
+	<cfif not thisWebSafe and len(thisFileName)>
+		<cfset sceneFontFaceCss = sceneFontFaceCss & '@font-face{font-family:"' & replace(thisFont["Font"], '"', '', 'all') & '";src:url(' & application.baseUrl & '/common/fonts/' & thisFileName & '.' & sceneFontExt & ') format("' & sceneFontExt & '");font-display:swap;}'>
+	</cfif>
+</cfloop>
+<cfset sceneFontsJson = replace(serializeJSON(sceneFonts), "</", "<\/", "all")>
+
+<!--- The rich text editor for a section's text: the blog's shared TinyMCE setup, without the menu bar (tinyMce.cfm, case sceneTextEditor). --->
+<cfset selectorId = "sceneTextEditor">
+<cfset editorHeight = "240">
+<cfset imageHandlerUrl = application.baseUrl & "/common/cfc/ProxyController.cfc?method=uploadSceneImage&csrfToken=" & csrfToken>
+<cfset contentVar = "">
+<cfset imageMediaIdField = "mediaId">
+<cfset imageClass = "entryImage">
+<cfset toolbarString = "undo redo | bold italic underline | forecolor | link | bullist numlist | alignleft aligncenter alignright | removeformat">
+<cfset includeMaps = false>
+<cfset includeCommonCss = false>
+<cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">
 
 <style>
 	#sceneEditor { display: flex; flex-direction: column; height: 100%; }
@@ -33,7 +62,7 @@ Written as it is ("</" escaped so it can't end the script tag): serializeJSON wo
 	#sceneEditorTop label { white-space: nowrap; }
 	#sceneEditorBody { flex: 1 1 auto; display: flex; min-height: 0; }
 	#sceneEditorList { flex: 0 0 21%; overflow: auto; padding: 8px; }
-	#sceneEditorSettings { flex: 0 0 29%; overflow: auto; padding: 8px 10px; }
+	#sceneEditorSettings { flex: 0 0 29%; overflow-y: auto; overflow-x: hidden; padding: 8px 10px; }
 	#sceneEditorPreview { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; padding: 8px; }
 	#scenePreviewBar { flex: 0 0 auto; padding-bottom: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 	#scenePreviewStage { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; background: #2b2b2b; border-radius: 4px; }
@@ -51,12 +80,21 @@ Written as it is ("</" escaped so it can't end the script tag): serializeJSON wo
 	.sceneColour { display: flex; gap: 6px; align-items: center; }
 	.sceneColour input[type=color] { width: 36px; height: 30px; padding: 0; border: 1px solid rgba(128,128,128,.5); background: none; flex: 0 0 36px; }
 	.sceneFieldGroup { margin: 16px 0 8px; }
+	.sceneRow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+	.sceneRow .k-textbox { flex: 1 1 auto; min-width: 0; }
+	.sceneRow > .k-button { flex: 0 0 auto; }
+	.sceneThumb { display: block; max-width: 100%; max-height: 90px; margin-top: 6px; border-radius: 3px; }
+	.sceneGradientBar { height: 26px; margin: 8px 6px 22px; }
+	<!--- Each band's colour is picked with the Band colour picker below the bar, not Grapick's own small input. --->
+	.sceneGradientBar .grp-handler-cp-c { display: none; }
+	.sceneGradient .sceneRow { margin-bottom: 8px; }
 	@media (max-width: 900px) {
 		#sceneEditorBody { flex-direction: column; overflow: auto; }
 		#sceneEditorList, #sceneEditorSettings { flex: 0 0 auto; overflow: visible; }
 		#sceneEditorPreview { flex: 0 0 70vh; }
 	}
 </style>
+<style><cfoutput>#sceneFontFaceCss#</cfoutput></style>
 
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 <cfset altClass = HtmlUtilsObj.getKendoClass(blockClass)>
@@ -87,7 +125,14 @@ Written as it is ("</" escaped so it can't end the script tag): serializeJSON wo
 				<button id="sceneAddSection" type="button" class="k-button" style="width: 100%;">Add section</button>
 			</div>
 		</div>
-		<div id="sceneEditorSettings" class="#blockClass#"></div>
+		<div id="sceneEditorSettings" class="#blockClass#">
+			<div id="sceneSettingsTop"></div>
+			<div id="sceneTextBlock" class="sceneField">
+				<label for="#selectorName#">Text</label>
+				<textarea id="#selectorName#" name="#selectorName#"></textarea>
+			</div>
+			<div id="sceneSettingsRest"></div>
+		</div>
 		<div id="sceneEditorPreview" class="#altClass#">
 			<div id="scenePreviewBar">
 				<span>
@@ -131,11 +176,33 @@ $(document).ready(function () {
 	scene.sections = scene.sections || [];
 
 	<!--- ---------- Fields. A field's key is a path into the scene ("settings.scrub") or into the section ("overlay.colour"). --->
+	var BASE_URL = "<cfoutput>#jsStringFormat(application.baseUrl)#</cfoutput>";
+	var CSRF = "<cfoutput>#csrfToken#</cfoutput>";
+	var FONT_EXT = "<cfoutput>#sceneFontExt#</cfoutput>";
+	var FONTS = $.map(<cfoutput>#sceneFontsJson#</cfoutput>, function (f) {
+		<!--- Adobe ColdFusion may send the keys in capitals. --->
+		return { id: String(f.id || f.ID), name: f.name || f.NAME, fileName: f.fileName || f.FILENAME || "", webSafe: (f.webSafe === true || f.WEBSAFE === true), type: String(f.type || f.TYPE || "").toLowerCase() };
+	});
+	var pending = [];             <!--- set-up that has to wait until a field is on the page (Kendo widgets, Grapick) --->
+
+	var HEADING_SIZES = [["", "Theme default"], ["2rem", "Small"], ["2.75rem", "Medium"], ["3.5rem", "Large"], ["4.5rem", "Very large"], ["6rem", "Huge"]];
+	var HEADING_SIZES_PHONE = [["", "Same as on a computer"], ["1.75rem", "Small"], ["2.25rem", "Medium"], ["2.75rem", "Large"], ["3.5rem", "Very large"]];
+	var TEXT_SIZES = [["", "Theme default"], ["0.95rem", "Small"], ["1.15rem", "Medium"], ["1.35rem", "Large"], ["1.6rem", "Very large"]];
+	var TEXT_SIZES_PHONE = [["", "Same as on a computer"], ["0.9rem", "Small"], ["1rem", "Medium"], ["1.15rem", "Large"]];
+	var HEADING = { key: "heading", label: "Heading", type: "text" };
 	var LOOK = [
+		{ group: "Heading" },
+		{ key: "headingFont", idKey: "headingFontId", label: "Font", type: "font" },
+		{ key: "headingSize", label: "Size", type: "select", options: HEADING_SIZES },
+		{ key: "headingSizePhone", label: "Size on phones", type: "select", options: HEADING_SIZES_PHONE },
 		{ group: "Text" },
-		{ key: "align", label: "Line up the text", type: "select", options: [["", "Theme default"], ["left", "Left"], ["center", "Centre"], ["right", "Right"]] },
-		{ key: "textColour", label: "Text colour", type: "colour" },
-		{ key: "shadow", label: "Shadow behind the text", type: "select", options: [["", "None"], ["soft", "Soft"], ["strong", "Strong"], ["glow", "Glow"]], hint: "Makes text stand out on a busy picture." },
+		{ key: "textFont", idKey: "textFontId", label: "Font", type: "font" },
+		{ key: "textSize", label: "Size", type: "select", options: TEXT_SIZES },
+		{ key: "textSizePhone", label: "Size on phones", type: "select", options: TEXT_SIZES_PHONE },
+		{ group: "Heading and text" },
+		{ key: "align", label: "Line up", type: "select", options: [["", "Theme default"], ["left", "Left"], ["center", "Centre"], ["right", "Right"]] },
+		{ key: "textColour", label: "Colour", type: "colour" },
+		{ key: "shadow", label: "Shadow behind them", type: "select", options: [["", "None"], ["soft", "Soft"], ["strong", "Strong"], ["glow", "Glow"]], hint: "Makes text stand out on a busy picture." },
 		{ key: "shadowColour", label: "Shadow colour", type: "colour" }
 	];
 	var FADE = { key: "fadeColour", label: "Fade into colour", type: "colour", hint: "The hero fades into this colour at the bottom. Pick the colour at the bottom of the picture, or of the next section." };
@@ -157,35 +224,32 @@ $(document).ready(function () {
 		],
 		text: [
 			{ key: "colour", label: "Background colour", type: "colour" },
-			{ key: "gradient", label: "Or a gradient (CSS)", type: "text", placeholder: "linear-gradient(to bottom, #9d5931 0%, #62371e 80%)" }
+			{ key: "gradient", label: "Or a gradient (used instead of the colour)", type: "gradient" }
 		],
 		imageSlide: [
-			{ key: "image", label: "Picture", type: "text", placeholder: "/images/...", hint: "The picture uploader comes in a later step." },
-			{ key: "imagePhone", label: "Smaller picture for phones (optional)", type: "text" },
+			{ key: "image", phoneKey: "imagePhone", label: "Picture", type: "image" },
+			{ key: "imagePhone", label: "Smaller picture for phones", type: "image", hint: "Made for you when you upload a large picture." },
 			{ key: "alt", label: "Describe the picture (for screen readers)", type: "text" }
 		],
 		layeredHero: [{ key: "#layers", type: "layers" }, FADE],
 		photoHero: [
-			{ key: "image", label: "Photo", type: "text", placeholder: "/images/...", hint: "The picture uploader comes in a later step." },
-			{ key: "imagePhone", label: "Smaller photo for phones (optional)", type: "text" },
+			{ key: "image", phoneKey: "imagePhone", label: "Photo", type: "image" },
+			{ key: "imagePhone", label: "Smaller photo for phones", type: "image", hint: "Made for you when you upload a large photo." },
 			{ key: "zoom", label: "Zoom while held (1 is none)", type: "number", min: 1, max: 2, step: 0.05, placeholder: "1.15" }
 		].concat(OVERLAY, [FADE]),
 		vantaHero: [
 			{ key: "effect", label: "Animation", type: "select", options: [["WAVES", "Waves"], ["NET", "Net"], ["FOG", "Fog"], ["CLOUDS", "Clouds"], ["CLOUDS2", "Clouds 2"], ["BIRDS", "Birds"], ["GLOBE", "Globe"], ["RINGS", "Rings"]] },
-			{ key: "options.color", label: "Animation colour", type: "colour" },
-			{ key: "options.backgroundColor", label: "Animation background", type: "colour" },
+			<!--- Vanta takes plain colours only, no transparency. --->
+			{ key: "options.color", label: "Animation colour", type: "colour", solid: true },
+			{ key: "options.backgroundColor", label: "Animation background", type: "colour", solid: true },
 			FADE
 		],
-		gradientHero: [{ key: "gradient", label: "Gradient (CSS)", type: "text", placeholder: "linear-gradient(135deg, #1d4350 0%, #a43931 100%)" }, FADE],
+		gradientHero: [{ key: "gradient", label: "Gradient", type: "gradient" }, FADE],
 		videoHero: [
-			{ key: "video", label: "Video file (.mp4)", type: "text", placeholder: "/images/..." },
-			{ key: "poster", label: "Picture shown before it plays", type: "text" }
+			{ key: "video", label: "Video file (.mp4)", type: "text", placeholder: "/images/...", hint: "Video upload comes later; type the address of an .mp4 file on this site." },
+			{ key: "poster", label: "Picture shown before it plays", type: "image" }
 		].concat(OVERLAY, [FADE])
 	};
-	var COMMON = [
-		{ key: "heading", label: "Heading", type: "text" },
-		{ key: "html", label: "Text (HTML for now; the rich text editor comes next)", type: "textarea" }
-	];
 
 	function target(key) {
 		if (key.charAt(0) === "@") { return { obj: scene, path: [key.substr(1)] }; }
@@ -211,12 +275,60 @@ $(document).ready(function () {
 		if (field.type === "number") { var n = parseFloat(raw); return isNaN(n) ? "" : n; }
 		return raw;
 	}
-	function hex(value) { return /^#[0-9a-f]{6}$/i.test(value) ? value : (/^#[0-9a-f]{3}$/i.test(value) ? "#" + value.charAt(1) + value.charAt(1) + value.charAt(2) + value.charAt(2) + value.charAt(3) + value.charAt(3) : "#000000"); }
+	function withBase(value) { return String(value || "").split("{baseUrl}").join(BASE_URL); }
+	function alertBox(title, message, icon) {
+		$.when(kendo.ui.ExtAlertDialog.show({ title: title, message: message, icon: icon || "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+	}
+
+	<!--- Fonts: the engine gets a CSS font-family; the font's id is kept next to it so its file can be loaded wherever the scene is shown. --->
+	function fontById(id) { for (var i = 0; i < FONTS.length; i++) { if (FONTS[i].id === String(id)) { return FONTS[i]; } } return null; }
+	function fontFamily(f) {
+		var fallback = f.type.indexOf("mono") >= 0 ? "monospace" : (f.type.indexOf("serif") >= 0 && f.type.indexOf("sans") < 0 ? "serif" : "sans-serif");
+		return '"' + f.name.replace(/"/g, "") + '", ' + fallback;
+	}
+	function sceneFontCss() {
+		var css = "", seen = {};
+		$.each(scene.sections, function (i, s) {
+			$.each([s.headingFontId, s.textFontId], function (j, id) {
+				var f = id ? fontById(id) : null;
+				if (f && !f.webSafe && f.fileName && !seen[f.id]) {
+					seen[f.id] = true;
+					css += '@font-face{font-family:"' + f.name.replace(/"/g, "") + '";src:url(' + BASE_URL + '/common/fonts/' + f.fileName + '.' + FONT_EXT + ') format("' + FONT_EXT + '");font-display:swap;}';
+				}
+			});
+		});
+		return css;
+	}
+
+	<!--- Pictures go to enclosures/scenes/ (ProxyController uploadSceneImage), which also makes a smaller copy for phones. --->
+	function uploadPicture(file, status, done) {
+		if (!file) { return; }
+		var data = new FormData();
+		data.append("csrfToken", CSRF);
+		data.append("file", file);
+		status.text("Uploading " + file.name + "...");
+		jQuery.ajax({
+			type: "post",
+			url: BASE_URL + "/common/cfc/ProxyController.cfc?method=uploadSceneImage",
+			data: data, processData: false, contentType: false, dataType: "json",
+			success: function (response) {
+				status.text("");
+				if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+				if (response && response.success) { done(response); }
+				else { alertBox("Could not upload the picture", (response && response.errorMessage) || "The picture could not be uploaded."); }
+			},
+			error: function (jqXHR, textStatus, error) {
+				status.text("");
+				if (jqXHR.status === 403) { createLoginWindow(); } else { alertBox("Error while uploading", error, "k-ext-error"); }
+			}
+		});
+	}
 
 	function fieldHtml(field) {
 		if (field.group) { return $('<h4 class="adminBlockHeading sceneFieldGroup"></h4>').text(field.group); }
 		var wrap = $('<div class="sceneField"></div>');
 		var id = "sceneField_" + field.key.replace(/[^A-Za-z0-9]/g, "_");
+		var value = getValue(field.key), input;
 		if (field.type === "layers") {
 			var layers = getValue("layers") || [];
 			wrap.append($('<label></label>').text("Layers"));
@@ -224,20 +336,73 @@ $(document).ready(function () {
 			return wrap;
 		}
 		wrap.append($('<label></label>').attr("for", id).text(field.label));
-		var value = getValue(field.key), input;
+		function hint() { if (field.hint) { wrap.append($('<div class="k-form-hint"></div>').text(field.hint)); } return wrap; }
+
+		if (field.type === "colour") {
+			<!--- Kendo's colour picker, with transparency unless the field takes plain colours only. None takes the colour away. --->
+			input = $('<input>').attr("id", id);
+			var none = $('<button type="button" class="k-button">None</button>');
+			wrap.append($('<div class="sceneRow"></div>').append(input, none));
+			pending.push(function () {
+				var picker = input.kendoColorPicker({
+					value: value || null, opacity: !field.solid, buttons: false, preview: true, input: true,
+					change: function () { setValue(field.key, this.value() || ""); schedulePreview(); }
+				}).data("kendoColorPicker");
+				none.on("click", function () { try { picker.value(null); } catch (e) {} setValue(field.key, ""); schedulePreview(); });
+			});
+			return hint();
+		}
+		if (field.type === "font") {
+			input = $('<input>').attr("id", id);
+			wrap.append(input);
+			pending.push(function () {
+				input.kendoDropDownList({
+					dataSource: FONTS, dataTextField: "name", dataValueField: "id", optionLabel: "Theme default",
+					template: '<span style="font-family:&quot;#: data.name #&quot;">#: data.name #</span>',
+					value: getValue(field.idKey) ? String(getValue(field.idKey)) : "",
+					change: function () {
+						var f = fontById(this.value());
+						setValue(field.key, f ? fontFamily(f) : "");
+						setValue(field.idKey, f ? parseInt(f.id, 10) : "");
+						schedulePreview();
+					}
+				});
+				input.data("kendoDropDownList").wrapper.css("width", "100%");
+			});
+			return hint();
+		}
+		if (field.type === "image") {
+			input = $('<input type="text" class="k-textbox" placeholder="Upload a picture, or type its address">').attr("id", id).val(value);
+			var upload = $('<button type="button" class="k-button">Upload</button>');
+			var file = $('<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" style="display: none;">').attr("aria-label", field.label);
+			var thumb = $('<img class="sceneThumb" alt="">');
+			var status = $('<div class="k-form-hint"></div>');
+			function showThumb(v) { if (v) { thumb.attr("src", withBase(v)).show(); } else { thumb.hide(); } }
+			showThumb(value);
+			upload.on("click", function () { file.trigger("click"); });
+			file.on("change", function () {
+				uploadPicture(this.files[0], status, function (response) {
+					setValue(field.key, response.location);
+					if (field.phoneKey) { setValue(field.phoneKey, response.phoneLocation || ""); }
+					renderSettings();
+					schedulePreview();
+				});
+				this.value = "";
+			});
+			input.on("input change", function () { setValue(field.key, $.trim($(this).val())); showThumb($.trim($(this).val())); schedulePreview(); });
+			wrap.append($('<div class="sceneRow"></div>').append(input, upload), file, thumb, status);
+			return hint();
+		}
+		if (field.type === "gradient") {
+			var box = $('<div class="sceneGradient"></div>');
+			wrap.append(box);
+			pending.push(function () { buildGradient(box, field); });
+			return hint();
+		}
 		if (field.type === "select") {
 			input = $('<select></select>').attr("id", id);
 			$.each(field.options, function (i, o) { input.append($('<option></option>').attr("value", o[0]).text(o[1])); });
 			input.val(String(value === "" ? field.options[0][0] : value));
-		} else if (field.type === "textarea") {
-			input = $('<textarea class="k-textbox" rows="6"></textarea>').attr("id", id).val(value);
-		} else if (field.type === "colour") {
-			var text = $('<input type="text" class="k-textbox" placeholder="#rrggbb">').attr("id", id).val(value);
-			var picker = $('<input type="color">').attr("aria-label", field.label + " picker").val(hex(String(value)));
-			picker.on("input", function () { text.val(this.value).trigger("input"); });
-			text.on("input", function () { if (/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(this.value)) { picker.val(hex(this.value)); } });
-			input = text;
-			wrap.append($('<div class="sceneColour"></div>').append(picker, text));
 		} else {
 			input = $('<input class="k-textbox">').attr({ id: id, type: field.type === "number" ? "number" : "text" }).val(value);
 			if (field.type === "number") { input.attr({ min: field.min, max: field.max, step: field.step }); }
@@ -249,25 +414,123 @@ $(document).ready(function () {
 			if (field.key === "heading") { renderList(); }
 			schedulePreview();
 		});
-		if (field.type !== "colour") { wrap.append(input); }
-		if (field.hint) { wrap.append($('<div class="k-form-hint"></div>').text(field.hint)); }
-		return wrap;
+		wrap.append(input);
+		return hint();
 	}
 
+	<!--- A gradient: Grapick's bar (the same library as the gradient editor) - click the bar to add a band, drag a band to move
+	it, and pick its colour below. The CSS box shows the result and takes a pasted gradient. --->
+	var gradientCount = 0;
+	function buildGradient(box, field) {
+		var value = getValue(field.key);
+		box.empty();
+		if (!value) {
+			box.append($('<button type="button" class="k-button">Use a gradient</button>').on("click", function () {
+				var from = getValue("colour") || scene.pageColour || "#392630";
+				setValue(field.key, "linear-gradient(180deg, " + from + " 0%, #1d1218 100%)");
+				buildGradient(box, field);
+				schedulePreview();
+			}));
+			return;
+		}
+		var barId = "sceneGradientBar" + (++gradientCount);
+		var bar = $('<div class="sceneGradientBar"></div>').attr("id", barId);
+		var shape = $('<select><option value="linear">Straight</option><option value="radial">Round</option></select>').attr("aria-label", "Gradient shape");
+		var angle = $('<input type="number" class="k-textbox" min="0" max="360" step="5" style="width: 80px; flex: 0 0 80px;">').attr("aria-label", "Gradient angle in degrees");
+		var band = $('<input>');
+		var css = $('<input type="text" class="k-textbox">').attr("aria-label", "Gradient as CSS").val(value);
+		var off = $('<button type="button" class="k-button">No gradient</button>');
+		box.append(bar,
+			$('<div class="sceneRow"></div>').append($('<span>Shape</span>'), $('<span style="flex: 1 1 auto;"></span>').append(shape), $('<span>Angle</span>'), angle),
+			$('<div class="sceneRow"></div>').append($('<span>Band colour</span>'), band),
+			$('<div class="sceneRow"></div>').append(css, off),
+			$('<div class="k-form-hint">Click the bar to add a colour band, drag a band to move it, and click the x above a band to remove it. You can also paste a CSS gradient into the box.</div>'));
+		off.on("click", function () { setValue(field.key, ""); buildGradient(box, field); schedulePreview(); });
+		galaxieLoader.grapickPickr(function () {
+			if (!document.getElementById(barId)) { return; }   <!--- another section was picked meanwhile --->
+			var loading = true;
+			var gp = new Grapick({ el: "#" + barId, direction: "right" });
+			gp.setValue(value);
+			var picker = band.kendoColorPicker({ opacity: true, buttons: false, preview: true, input: true,
+				change: function () { var h = selectedBand(); if (h) { h.setColor(this.value()); } } }).data("kendoColorPicker");
+			<!--- The band the colour picker changes: the one picked on the bar, or the first one (a loaded gradient has none picked). --->
+			function selectedBand() {
+				var h = gp.getSelected();
+				if (!h && gp.getHandlers().length) { h = gp.getHandlers()[0]; try { h.select(); } catch (e) {} }
+				return h;
+			}
+			function syncBand() { var h = selectedBand(); if (h) { try { picker.value(h.getColor()); } catch (e) {} } }
+			function readBack() {
+				shape.data("kendoDropDownList").value(gp.getType ? gp.getType() : (String(value).indexOf("radial") >= 0 ? "radial" : "linear"));
+				var m = /(-?[0-9.]+)deg/.exec(gp.getValue());
+				angle.val(m ? Math.round(parseFloat(m[1])) : 180).prop("disabled", shape.val() === "radial");
+			}
+			shape.kendoDropDownList({ change: function () { gp.setType(this.value()); readBack(); } });
+			gp.on("handler:select", syncBand);
+			gp.on("change", function () {
+				if (loading) { return; }
+				var v = gp.getValue();
+				setValue(field.key, v);
+				css.val(v);
+				schedulePreview();
+			});
+			angle.on("input", function () { if ($(this).val() !== "") { gp.setDirection($(this).val() + "deg"); } });
+			css.on("change", function () {
+				var v = $.trim($(this).val());
+				if (/gradient\(/.test(v)) { gp.setValue(v); readBack(); syncBand(); }
+			});
+			readBack();
+			syncBand();
+			loading = false;
+		});
+	}
+
+	<!--- The settings pane: the fields above the text, the text editor (kept in place, see the TinyMCE notes below), the rest. --->
 	function renderSettings() {
-		var pane = $("#sceneEditorSettings").empty();
-		var fields;
+		var top = $("#sceneSettingsTop").empty(), rest = $("#sceneSettingsRest").empty();
+		pending = [];
 		if (selected < 0) {
-			pane.append($('<h4 class="adminBlockHeading"></h4>').text("Scene"));
-			fields = FIELDS.scene;
+			top.append($('<h4 class="adminBlockHeading"></h4>').text("Scene"));
+			$.each(FIELDS.scene, function (i, field) { top.append(fieldHtml(field)); });
 		} else {
 			var section = scene.sections[selected];
-			pane.append($('<h4 class="adminBlockHeading"></h4>').text(kindLabel(section.kind)));
-			fields = COMMON.concat(FIELDS[section.kind] || [], LOOK);
+			top.append($('<h4 class="adminBlockHeading"></h4>').text(kindLabel(section.kind)));
+			top.append(fieldHtml(HEADING));
+			$.each((FIELDS[section.kind] || []).concat(LOOK), function (i, field) { rest.append(fieldHtml(field)); });
 		}
-		$.each(fields, function (i, field) { pane.append(fieldHtml(field)); });
-		kendoSelects(pane);
+		kendoSelects("#sceneSettingsTop, #sceneSettingsRest");
+		$.each(pending, function (i, fn) { fn(); });
+		pending = [];
+		showText();
 	}
+
+	<!--- The section's text, in one TinyMCE editor that stays where it is while sections are picked (a TinyMCE editor that is
+	moved around the page loses its content), filled with the picked section's text and hidden for the scene's own settings. --->
+	var textEditorId = "<cfoutput>#selectorName#</cfoutput>";
+	var textEditor = null;
+	var fillingText = false;
+	function showText() {
+		if (!textEditor) { return; }
+		$("#sceneTextBlock").toggle(selected >= 0);
+		fillingText = true;
+		textEditor.setContent(selected >= 0 ? (scene.sections[selected].html || "") : "");
+		fillingText = false;
+	}
+	(function waitForTextEditor(tries) {
+		var editor = window.tinymce ? tinymce.get(textEditorId) : null;
+		if (editor && editor.initialized) {
+			textEditor = editor;
+			editor.on("input change keyup undo redo ExecCommand", function () {
+				if (fillingText || selected < 0) { return; }
+				var html = editor.getContent();
+				if (scene.sections[selected].html !== html) { scene.sections[selected].html = html; schedulePreview(); }
+			});
+			showText();
+		} else if (tries < 200) {
+			setTimeout(function () { waitForTextEditor(tries + 1); }, 100);
+		}
+	})(0);
+
 	<!--- Kendo dropdowns, like the other admin windows. Their change is passed on to the select, where the field listens. --->
 	function kendoSelects(where) {
 		$(where).find("select").each(function () {
@@ -358,7 +621,7 @@ $(document).ready(function () {
 		var copy = JSON.parse(JSON.stringify(scene));
 		copy.settings.guides = $("#scenePreviewGuides").is(":checked");
 		copy.settings.reducedMotion = $("#scenePreviewReduced").is(":checked");
-		frame.contentWindow.postMessage({ type: "galaxieScenePreview", json: JSON.stringify(copy) }, origin);
+		frame.contentWindow.postMessage({ type: "galaxieScenePreview", json: JSON.stringify(copy), fontCss: sceneFontCss() }, origin);
 	}
 	function schedulePreview() { clearTimeout(previewTimer); previewTimer = setTimeout(sendPreview, 350); }
 	function onPreviewMessage(event) {

@@ -13444,6 +13444,36 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="uploadSceneImage" access="remote" returnformat="json" output="false"
+			hint="A picture uploaded from the Scene editor (window 107). Returns location and phoneLocation (with {baseUrl} in front, as scenes store them).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<!--- The uploaded file's form field. Declared so strict argument checking accepts it; cffile reads it from the form. --->
+		<cfargument name="file" required="false" default="">
+
+		<cfset var response = { "success": false, "errorMessage": "", "location": "", "phoneLocation": "" }>
+		<cfset var saved = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset saved = application.blog.getScenes().saveUploadedImage("file")>
+				<cfset response[ "location" ] = saved.location>
+				<cfset response[ "phoneLocation" ] = saved.phoneLocation>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.Scenes" ? cfcatch.message : "The picture could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="deleteScene" access="remote" returnformat="json" output="false" hint="Deletes a scene (Scenes window 106). Posts that showed it show nothing in its place.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="sceneId" default="0" required="true">

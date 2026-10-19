@@ -291,6 +291,11 @@
 				view: {title: 'View', items: 'code | visualaid | preview fullscreen'}
 			},
 		</cfcase>
+		<!--- Scene text (2026-10-19, Galaxie 5): the short text over a scene section (sceneDetail.cfm). Toolbar only - none of the
+		Insert menu's galleries, maps or forms belong in it. --->
+		<cfcase value="sceneTextEditor">
+			menubar: false,
+		</cfcase>
 		<cfdefaultcase>
 			<!--- Every custom toolbar button needs its menu item listed under Insert too (2026-10-13). Items an editor doesn't register, such as webForm outside the post editor, are skipped by TinyMCE. --->
 			menubar: 'file edit insert view format table ',

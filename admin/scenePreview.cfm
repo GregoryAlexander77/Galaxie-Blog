@@ -19,6 +19,7 @@ view, so the engine's phone settings apply as they would on a phone. In the admi
 </style>
 </head>
 <body>
+<style id="scenePreviewFonts"></style>
 <div id="scenePreviewEmpty">Loading the preview...</div>
 <div id="scenePreviewHost"></div>
 <div id="scenePreviewAfter">The post's own text starts here.</div>
@@ -58,6 +59,8 @@ view, so the engine's phone settings apply as they would on a phone. In the admi
 		<!--- {baseUrl} stands for the blog's address in saved scenes; the scene is sent as JSON text so it is copied exactly. --->
 		var data;
 		try { data = JSON.parse(String(event.data.json).split("{baseUrl}").join(baseUrl)); } catch (e) { return; }
+		<!--- The @font-face rules for the blog fonts the scene uses, from the editor. --->
+		document.getElementById("scenePreviewFonts").textContent = String(event.data.fontCss || "").replace(/<\//g, "");
 		if (ready) { show(data); } else { waiting = data; }
 	});
 

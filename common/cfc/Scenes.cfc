@@ -227,6 +227,73 @@
 	</cftransaction>
 </cffunction>
 
+<cffunction name="getFontFaceCss" access="public" returntype="string" output="false"
+		hint="The @font-face rules for the blog fonts a scene uses (its sections' headingFontId and textFontId), so a scene's fonts load wherever it is shown. Web-safe fonts need none.">
+	<cfargument name="sceneJson" type="string" required="true">
+	<cfset var ids = {}>
+	<cfset var m = "">
+	<cfset var font = "">
+	<cfset var css = "">
+	<cfset var ext = application.serverSupportsWoff2 ? "woff2" : "woff">
+	<cfset var found = reMatch('"(heading|text)FontId"\s*:\s*"?[0-9]+', arguments.sceneJson)>
+	<cfloop array="#found#" index="m">
+		<cfset ids[reReplace(m, "[^0-9]", "", "all")] = true>
+	</cfloop>
+	<cfloop collection="#ids#" item="m">
+		<cfset font = application.blog.getFont(fontId = m)>
+		<!--- getFont's rows are case-sensitive maps on Adobe ColdFusion (HQL "new Map"), so the keys are written exactly. --->
+		<cfif arrayLen(font) and len(font[1]["FileName"] ?: "") and not (isBoolean(font[1]["WebSafeFont"] ?: "") and font[1]["WebSafeFont"])>
+			<!--- The same family name as the public pages' own @font-face rules (includes/templates/font.cfm). --->
+			<cfset css = css & '@font-face{font-family:"' & replace(font[1]["Font"], '"', '', 'all') & '";src:url(' & application.baseUrl & '/common/fonts/' & font[1]["FileName"] & '.' & ext & ') format("' & ext & '");font-display:swap;}'>
+		</cfif>
+	</cfloop>
+	<cfreturn css>
+</cffunction>
+
+<cffunction name="saveUploadedImage" access="public" returntype="struct" output="false"
+		hint="Saves a picture uploaded from the Scene editor to enclosures/scenes/ under a new name, plus a smaller copy for phones when it is wide. Returns { location, phoneLocation } with {baseUrl} in front, as scenes store them.">
+	<cfargument name="fileField" type="string" required="true">
+	<cfset var folder = expandPath(application.baseUrl & "/enclosures/scenes/")>
+	<cfset var tempFolder = getTempDirectory()>
+	<cfset var uploaded = "">
+	<cfset var ext = "">
+	<cfset var baseName = "scene-" & dateTimeFormat(now(), "yyyymmdd-HHnnss") & "-" & lCase(left(hash(createUUID() & rand("SHA1PRNG")), 8))>
+	<cfset var img = "">
+	<cfset var result = { location: "", phoneLocation: "" }>
+	<cfif not directoryExists(folder)>
+		<cfdirectory action="create" directory="#folder#">
+	</cfif>
+	<cffile action="upload" fileField="#arguments.fileField#" destination="#tempFolder#" accept="image/jpeg,image/pjpeg,image/png,image/webp,image/gif" nameConflict="makeUnique" result="uploaded">
+	<cfset ext = lCase(uploaded.serverFileExt)>
+	<cftry>
+		<!--- Only pictures, checked by extension and by reading the file as an image. --->
+		<cfif not listFind("jpg,jpeg,png,webp,gif", ext) or uploaded.fileSize gt 15 * 1024 * 1024 or not isImageFile(uploaded.serverDirectory & "/" & uploaded.serverFile)>
+			<cfthrow type="GalaxieBlog.Scenes" message="Pick a JPG, PNG, WebP or GIF picture under 15 MB.">
+		</cfif>
+		<cffile action="move" source="#uploaded.serverDirectory#/#uploaded.serverFile#" destination="#folder##baseName#.#ext#">
+		<cfset result.location = "{baseUrl}/enclosures/scenes/" & baseName & "." & ext>
+		<!--- A copy 800 pixels wide for phones, when the picture is wider than that (not for GIFs, which may be animated). --->
+		<cfif ext neq "gif" and (ext neq "webp" or application.imageEngineSupportsWebP)>
+			<cftry>
+				<cfset img = imageRead(folder & baseName & "." & ext)>
+				<cfif img.width gt 1000>
+					<cfset imageResize(img, 800, "", "highestQuality")>
+					<cfset imageWrite(img, folder & baseName & "-phone." & ext, 0.85, true)>
+					<cfset result.phoneLocation = "{baseUrl}/enclosures/scenes/" & baseName & "-phone." & ext>
+				</cfif>
+				<cfcatch type="any"><!--- No phone copy; the full picture is used on phones too. ---></cfcatch>
+			</cftry>
+		</cfif>
+		<cfcatch type="any">
+			<cfif fileExists(uploaded.serverDirectory & "/" & uploaded.serverFile)>
+				<cffile action="delete" file="#uploaded.serverDirectory#/#uploaded.serverFile#">
+			</cfif>
+			<cfrethrow>
+		</cfcatch>
+	</cftry>
+	<cfreturn result>
+</cffunction>
+
 <!---//*****************************************************************************************************
 		Helpers
 //******************************************************************************************************--->
