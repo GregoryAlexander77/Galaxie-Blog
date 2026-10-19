@@ -48,6 +48,12 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 	</cfif>
 </cfloop>
 <cfset sceneFontsJson = replace(serializeJSON(sceneFonts), "</", "<\/", "all")>
+<!--- The drawn scenes that also come in a soft colour style (images/scenes/{name}-soft/), for the Flat / Soft switch. --->
+<cfdirectory action="list" directory="#expandPath(application.baseUrl & '/images/scenes/')#" type="dir" name="sceneArtFolders">
+<cfset sceneSoftSets = []>
+<cfloop query="sceneArtFolders">
+	<cfif reFindNoCase("^[a-z0-9]+-soft$", sceneArtFolders.name)><cfset arrayAppend(sceneSoftSets, lCase(listFirst(sceneArtFolders.name, "-")))></cfif>
+</cfloop>
 <!--- Plugin effects (2026-10-19) are offered only when their plugin can be loaded: from cdnjs, or from this server when the owner
 chose "this server only" (Scenes window settings). --->
 <cfset sceneSplitText = application.blog.getScenes().getSetting("librarySource", "cdn") neq "local" or arrayFind(application.blog.getScenes().getLocalLibraryFiles(), "SplitText.min.js")>
@@ -233,7 +239,8 @@ $(document).ready(function () {
 		<!--- Adobe ColdFusion may send the keys in capitals. --->
 		return { id: String(f.id || f.ID), name: f.name || f.NAME, fileName: f.fileName || f.FILENAME || "", webSafe: (f.webSafe === true || f.WEBSAFE === true), type: String(f.type || f.TYPE || "").toLowerCase() };
 	});
-	var pending = [];             <!--- set-up that has to wait until a field is on the page (Kendo widgets, Grapick) --->
+	var pending = [];
+	var SOFT_SETS = <cfoutput>#serializeJSON(sceneSoftSets)#</cfoutput>;             <!--- set-up that has to wait until a field is on the page (Kendo widgets, Grapick) --->
 
 	var HEADING_SIZES = [["", "Theme default"], ["2rem", "Small"], ["2.75rem", "Medium"], ["3.5rem", "Large"], ["4.5rem", "Very large"], ["6rem", "Huge"]];
 	var HEADING_SIZES_PHONE = [["", "Same as on a computer"], ["1.75rem", "Small"], ["2.25rem", "Medium"], ["2.75rem", "Large"], ["3.5rem", "Very large"]];
@@ -285,7 +292,7 @@ $(document).ready(function () {
 			{ key: "imagePhone", label: "Smaller picture for phones", type: "image", hint: "Made for you when you upload a large picture." },
 			{ key: "alt", label: "Describe the picture (for screen readers)", type: "text" }
 		],
-		layeredHero: [{ key: "#layers", type: "layers" }, FADE],
+		layeredHero: [{ key: "#artStyle", type: "artStyle" }, { key: "#layers", type: "layers" }, FADE],
 		photoHero: [
 			{ key: "image", phoneKey: "imagePhone", label: "Photo", type: "image" },
 			{ key: "imagePhone", label: "Smaller photo for phones", type: "image", hint: "Made for you when you upload a large photo." },
@@ -520,6 +527,22 @@ $(document).ready(function () {
 		var id = "sceneField_" + field.key.replace(/[^A-Za-z0-9]/g, "_");
 		var value = getValue(field.key), input;
 		if (field.type === "layers") { return layersField(wrap); }
+		if (field.type === "artStyle") {
+			<!--- Flat / Soft (2026-10-19, owner): for a drawn scene that comes in both colour styles, swaps every layer between
+			images/scenes/{name}/ and images/scenes/{name}-soft/. Not shown for other layers. --->
+			var artLayers = getValue("layers") || [];
+			var art = artLayers.length ? /\/images\/scenes\/([a-z0-9]+?)(-soft)?\/\d+\.svg$/i.exec(artLayers[0].src || "") : null;
+			if (!art || SOFT_SETS.indexOf(art[1].toLowerCase()) < 0) { return $(); }
+			var style = $('<select></select>').attr("id", id).append('<option value="flat">Flat colours</option><option value="soft">Soft (ridges blend into each other)</option>').val(art[2] ? "soft" : "flat");
+			style.on("change", function () {
+				var from = new RegExp("/images/scenes/" + art[1] + "(-soft)?/", "i"), to = "/images/scenes/" + art[1] + ($(this).val() === "soft" ? "-soft" : "") + "/";
+				$.each(artLayers, function (i, layer) { layer.src = String(layer.src).replace(from, to); if (layer.srcPhone) { layer.srcPhone = String(layer.srcPhone).replace(from, to); } });
+				schedulePreview();
+				setTimeout(renderSettings, 0);
+			});
+			wrap.append($('<label></label>').attr("for", id).text("Colour style"), style);
+			return wrap;
+		}
 		wrap.append($('<label></label>').attr("for", id).text(field.label));
 		function hint() { if (field.hint) { wrap.append($('<div class="k-form-hint"></div>').text(field.hint)); } return wrap; }
 
