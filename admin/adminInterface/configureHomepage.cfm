@@ -161,8 +161,19 @@
 	<td class="<cfoutput>#blockClass#</cfoutput>">
 		<input class="k-checkbox" type="checkbox" id="homepageShowPages" name="homepageShowPages" <cfif homepageSettings.showPages>checked</cfif>>
 		<div id="homepagePagePicker" style="margin: 6px 0 0 0;">
-			<select id="homepagePageId" name="homepagePageId" multiple="multiple" style="width: 250px">
+			<!--- The chosen pages first, in their saved order, then the rest (2026-10-18). The MultiSelect shows its tags in the
+			order of the options, so listing them alphabetically showed the picks in a different order from the homepage. --->
+			<cfset orderedPages = []>
+			<cfloop list="#homepageSettings.pageIdList#" index="savedPageId">
 				<cfloop array="#allPages#" index="pg">
+					<cfif pg.postId eq savedPageId><cfset arrayAppend(orderedPages, pg)></cfif>
+				</cfloop>
+			</cfloop>
+			<cfloop array="#allPages#" index="pg">
+				<cfif not listFind(homepageSettings.pageIdList, pg.postId)><cfset arrayAppend(orderedPages, pg)></cfif>
+			</cfloop>
+			<select id="homepagePageId" name="homepagePageId" multiple="multiple" style="width: 250px">
+				<cfloop array="#orderedPages#" index="pg">
 					<option value="<cfoutput>#pg.postId#</cfoutput>" <cfif listFind(homepageSettings.pageIdList, pg.postId)>selected</cfif>><cfoutput>#pg.title#</cfoutput></option>
 				</cfloop>
 			</select>			
@@ -186,8 +197,18 @@
 	<td class="<cfoutput>#blockClass#</cfoutput>">
 		<input class="k-checkbox" type="checkbox" id="homepageShowCollections" name="homepageShowCollections" <cfif homepageSettings.showCollections>checked</cfif>>
 		<div id="homepageCollectionPicker" style="margin: 6px 0 0 0;">
-			<select id="homepageCollectionId" name="homepageCollectionId" multiple="multiple" style="width: 60%">
+			<!--- The chosen collections first, in their saved order (the order on the homepage), then the rest - see the pages above. --->
+			<cfset orderedCollections = []>
+			<cfloop list="#homepageSettings.collectionIdList#" index="savedCollectionId">
 				<cfloop array="#eligibleCollections#" index="pc">
+					<cfif pc.pageCollectionId eq savedCollectionId><cfset arrayAppend(orderedCollections, pc)></cfif>
+				</cfloop>
+			</cfloop>
+			<cfloop array="#eligibleCollections#" index="pc">
+				<cfif not listFind(homepageSettings.collectionIdList, pc.pageCollectionId)><cfset arrayAppend(orderedCollections, pc)></cfif>
+			</cfloop>
+			<select id="homepageCollectionId" name="homepageCollectionId" multiple="multiple" style="width: 60%">
+				<cfloop array="#orderedCollections#" index="pc">
 					<option value="<cfoutput>#pc.pageCollectionId#</cfoutput>" <cfif listFind(homepageSettings.collectionIdList, pc.pageCollectionId)>selected</cfif>><cfoutput>#pc.title#</cfoutput></option>
 				</cfloop>
 			</select>			
