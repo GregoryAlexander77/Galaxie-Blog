@@ -1,0 +1,288 @@
+<cfcomponent displayName="Scenes" output="false" hint="Galaxie 5 scenes in the database (2026-10-19, phase 3): the scrolling heroes built by common/js/galaxieScene.js. Tables Scene, SceneSection and SceneLayer, created on first use (DatabaseUpdater.createTableIfMissing). Created on first use by blog.cfc getScenes() (application.scenes). A post shows a scene with <galaxieScene>alias</galaxieScene> in its header (Renderer.renderScene). Design: doc/aiDraftArticles/parallaxScenesDesign.cfm.">
+
+<!---
+	The scene JSON handed to the engine is put together as a string from the stored JSON, rather than with serializeJSON on a
+	struct: Adobe ColdFusion can upper-case struct keys when it serializes, and the engine needs "kind", "sections" and so on
+	exactly as written. Strings and numbers going in are still passed through serializeJSON, so they are always escaped.
+
+	Tables:
+	  Scene         SceneId, BlogRef, Name, Alias, PageColour, SettingsJson, Active, Created, Updated
+	  SceneSection  SceneSectionId, SceneRef, SortOrder, Kind, Heading, Html, DataJson (everything else about the section:
+	                colours, gradient, fonts, shadow, overlay, pictures, Vanta options... - new look options need no new column)
+	  SceneLayer    SceneLayerId, SceneSectionRef, SortOrder, Src, SrcPhone, Depth
+--->
+
+<cfset variables.kinds = "text,imageSlide,layeredHero,photoHero,vantaHero,gradientHero,videoHero">
+
+<!---//*****************************************************************************************************
+		Reading
+//******************************************************************************************************--->
+
+<cffunction name="getSceneJson" access="public" returntype="string" output="false"
+		hint="The scene with this alias as the JSON the engine reads, or an empty string when there is no such active scene.">
+	<cfargument name="alias" type="string" required="true">
+	<cfset var scene = "">
+	<cfset var sections = "">
+	<cfset var layers = "">
+	<cfset var parts = []>
+	<cfset var layerParts = []>
+	<cfset var sectionJson = "">
+	<cfset var extra = "">
+	<cfif not reFind("^[A-Za-z0-9_-]{1,80}$", arguments.alias)>
+		<cfreturn "">
+	</cfif>
+	<cfset ensureTables()>
+	<cfset scene = queryExecute("SELECT SceneId, Name, PageColour, SettingsJson FROM Scene WHERE BlogRef = :blogId AND Alias = :alias AND Active = 1",
+		{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, alias = { value = arguments.alias, cfsqltype = "cf_sql_varchar" } })>
+	<cfif not scene.recordCount>
+		<cfreturn "">
+	</cfif>
+	<cfset sections = queryExecute("SELECT SceneSectionId, Kind, Heading, Html, DataJson FROM SceneSection WHERE SceneRef = :sceneId ORDER BY SortOrder, SceneSectionId",
+		{ sceneId = { value = scene.SceneId, cfsqltype = "cf_sql_integer" } })>
+	<cfloop query="sections">
+		<cfset layerParts = []>
+		<cfif sections.Kind eq "layeredHero">
+			<cfset layers = queryExecute("SELECT Src, SrcPhone, Depth FROM SceneLayer WHERE SceneSectionRef = :sectionId ORDER BY SortOrder, SceneLayerId",
+				{ sectionId = { value = sections.SceneSectionId, cfsqltype = "cf_sql_integer" } })>
+			<cfloop query="layers">
+				<cfset arrayAppend(layerParts, '{"src":' & serializeJSON(toString(layers.Src))
+					& (len(layers.SrcPhone) ? ',"srcPhone":' & serializeJSON(toString(layers.SrcPhone)) : '')
+					& ',"depth":' & val(layers.Depth) & '}')>
+			</cfloop>
+		</cfif>
+		<!--- The stored DataJson object, with kind, heading, html (and layers) put in front of its own keys. --->
+		<cfset extra = trim(sections.DataJson ?: "")>
+		<cfset extra = (len(extra) gt 2 and isJSON(extra) and left(extra, 1) eq "{") ? mid(extra, 2, len(extra) - 2) : "">
+		<cfset sectionJson = '{"kind":' & serializeJSON(toString(sections.Kind))
+			& ',"heading":' & serializeJSON(toString(sections.Heading ?: ""))
+			& ',"html":' & serializeJSON(toString(sections.Html ?: ""))
+			& (sections.Kind eq "layeredHero" ? ',"layers":[' & arrayToList(layerParts, ",") & ']' : '')
+			& (len(trim(extra)) ? ',' & extra : '') & '}'>
+		<cfset arrayAppend(parts, sectionJson)>
+	</cfloop>
+	<cfreturn '{"name":' & serializeJSON(toString(scene.Name))
+		& ',"pageColour":' & serializeJSON(toString(scene.PageColour ?: ""))
+		& ',"settings":' & (isJSON(scene.SettingsJson ?: "") ? scene.SettingsJson : '{}')
+		& ',"sections":[' & arrayToList(parts, ",") & ']}'>
+</cffunction>
+
+<cffunction name="listScenes" access="public" returntype="query" output="false" hint="Every scene of this blog, for the Scenes window.">
+	<cfset ensureTables()>
+	<cfreturn queryExecute("SELECT SceneId, Name, Alias, Active, Updated FROM Scene WHERE BlogRef = :blogId ORDER BY Name",
+		{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } })>
+</cffunction>
+
+<!---//*****************************************************************************************************
+		Writing
+//******************************************************************************************************--->
+
+<cffunction name="saveScene" access="public" returntype="numeric" output="false"
+		hint="Saves a scene given in the engine's own shape (the JSON text of { name, pageColour, settings, sections: [...] }) under an alias, replacing its sections and layers. Returns the SceneId. Used by importJson now and by the Scene editor later. Takes the JSON text rather than a struct so that key case is kept exactly as written on every engine.">
+	<cfargument name="alias" type="string" required="true">
+	<cfargument name="sceneJson" type="string" required="true">
+	<cfset var data = "">
+	<cfset var sceneId = 0>
+	<cfset var existing = "">
+	<cfset var section = "">
+	<cfset var sectionId = 0>
+	<cfset var sortOrder = 0>
+	<cfset var layerOrder = 0>
+	<cfset var layer = "">
+	<cfset var nowStamp = now()>
+	<cfif not reFind("^[A-Za-z0-9_-]{1,80}$", arguments.alias)>
+		<cfthrow type="GalaxieBlog.Scenes" message="A scene alias can only have letters, numbers, dashes and underscores.">
+	</cfif>
+	<cfif not isJSON(arguments.sceneJson)>
+		<cfthrow type="GalaxieBlog.Scenes" message="The scene is not valid JSON.">
+	</cfif>
+	<cfset data = deserializeJSON(arguments.sceneJson)>
+	<cfset ensureTables()>
+	<cftransaction>
+		<cfset existing = queryExecute("SELECT SceneId FROM Scene WHERE BlogRef = :blogId AND Alias = :alias",
+			{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, alias = { value = arguments.alias, cfsqltype = "cf_sql_varchar" } })>
+		<cfif existing.recordCount>
+			<cfset sceneId = existing.SceneId>
+			<cfset queryExecute("UPDATE Scene SET Name = :name, PageColour = :colour, SettingsJson = :settings, Updated = :now WHERE SceneId = :sceneId",
+				{ name = { value = left(data.name ?: arguments.alias, 125), cfsqltype = "cf_sql_varchar" },
+				  colour = { value = left(data.pageColour ?: "", 50), cfsqltype = "cf_sql_varchar" },
+				  settings = { value = jsonOf(data, "settings", "{}"), cfsqltype = "cf_sql_longvarchar" },
+				  now = { value = nowStamp, cfsqltype = "cf_sql_timestamp" }, sceneId = { value = sceneId, cfsqltype = "cf_sql_integer" } })>
+			<!--- The sections and layers are replaced as a whole: the editor always saves the complete scene. --->
+			<cfset queryExecute("DELETE FROM SceneLayer WHERE SceneSectionRef IN (SELECT SceneSectionId FROM SceneSection WHERE SceneRef = :sceneId)", { sceneId = { value = sceneId, cfsqltype = "cf_sql_integer" } })>
+			<cfset queryExecute("DELETE FROM SceneSection WHERE SceneRef = :sceneId", { sceneId = { value = sceneId, cfsqltype = "cf_sql_integer" } })>
+		<cfelse>
+			<cfset queryExecute("INSERT INTO Scene (BlogRef, Name, Alias, PageColour, SettingsJson, Active, Created, Updated) VALUES (:blogId, :name, :alias, :colour, :settings, 1, :now, :now)",
+				{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, name = { value = left(data.name ?: arguments.alias, 125), cfsqltype = "cf_sql_varchar" },
+				  alias = { value = arguments.alias, cfsqltype = "cf_sql_varchar" }, colour = { value = left(data.pageColour ?: "", 50), cfsqltype = "cf_sql_varchar" },
+				  settings = { value = jsonOf(data, "settings", "{}"), cfsqltype = "cf_sql_longvarchar" }, now = { value = nowStamp, cfsqltype = "cf_sql_timestamp" } })>
+			<cfset sceneId = queryExecute("SELECT SceneId FROM Scene WHERE BlogRef = :blogId AND Alias = :alias",
+				{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, alias = { value = arguments.alias, cfsqltype = "cf_sql_varchar" } }).SceneId>
+		</cfif>
+
+		<cfloop array="#data.sections ?: []#" index="section">
+			<cfif not structKeyExists(section, "kind") or not listFind(variables.kinds, section.kind)>
+				<cfcontinue>
+			</cfif>
+			<cfset sortOrder = sortOrder + 1>
+			<cfset queryExecute("INSERT INTO SceneSection (SceneRef, SortOrder, Kind, Heading, Html, DataJson) VALUES (:sceneId, :sortOrder, :kind, :heading, :html, :dataJson)",
+				{ sceneId = { value = sceneId, cfsqltype = "cf_sql_integer" }, sortOrder = { value = sortOrder, cfsqltype = "cf_sql_integer" },
+				  kind = { value = section.kind, cfsqltype = "cf_sql_varchar" }, heading = { value = left(section.heading ?: "", 500), cfsqltype = "cf_sql_varchar" },
+				  html = { value = section.html ?: "", cfsqltype = "cf_sql_longvarchar" },
+				  dataJson = { value = sectionDataJson(arguments.sceneJson, sortOrder), cfsqltype = "cf_sql_longvarchar" } })>
+			<cfif section.kind eq "layeredHero">
+				<cfset sectionId = queryExecute("SELECT SceneSectionId FROM SceneSection WHERE SceneRef = :sceneId AND SortOrder = :sortOrder",
+					{ sceneId = { value = sceneId, cfsqltype = "cf_sql_integer" }, sortOrder = { value = sortOrder, cfsqltype = "cf_sql_integer" } }).SceneSectionId>
+				<cfset layerOrder = 0>
+				<cfloop array="#section.layers ?: []#" index="layer">
+					<cfset layerOrder = layerOrder + 1>
+					<cfset queryExecute("INSERT INTO SceneLayer (SceneSectionRef, SortOrder, Src, SrcPhone, Depth) VALUES (:sectionId, :sortOrder, :src, :srcPhone, :depth)",
+						{ sectionId = { value = sectionId, cfsqltype = "cf_sql_integer" }, sortOrder = { value = layerOrder, cfsqltype = "cf_sql_integer" },
+						  src = { value = left(layer.src ?: "", 500), cfsqltype = "cf_sql_varchar" }, srcPhone = { value = left(layer.srcPhone ?: "", 500), cfsqltype = "cf_sql_varchar" },
+						  depth = { value = val(layer.depth ?: layerOrder * 100), cfsqltype = "cf_sql_integer" } })>
+				</cfloop>
+			</cfif>
+		</cfloop>
+	</cftransaction>
+	<cfreturn sceneId>
+</cffunction>
+
+<cffunction name="importJson" access="public" returntype="numeric" output="false"
+		hint="Imports includes/postContent/scenes/{name}.json into the database under the same alias (how the ready-made scenes get into a blog). Returns the SceneId, or 0 when there is no such file.">
+	<cfargument name="name" type="string" required="true">
+	<cfset var filePath = "">
+	<cfif not reFind("^[A-Za-z0-9_-]{1,80}$", arguments.name)>
+		<cfreturn 0>
+	</cfif>
+	<cfset filePath = expandPath(application.baseUrl & "/includes/postContent/scenes/" & arguments.name & ".json")>
+	<cfif not fileExists(filePath)>
+		<cfreturn 0>
+	</cfif>
+	<cfreturn saveScene(arguments.name, fileRead(filePath, "utf-8"))>
+</cffunction>
+
+<cffunction name="deleteScene" access="public" returntype="void" output="false">
+	<cfargument name="sceneId" type="numeric" required="true">
+	<cfset ensureTables()>
+	<cftransaction>
+		<cfset queryExecute("DELETE FROM SceneLayer WHERE SceneSectionRef IN (SELECT SceneSectionId FROM SceneSection WHERE SceneRef = :sceneId)", { sceneId = { value = arguments.sceneId, cfsqltype = "cf_sql_integer" } })>
+		<cfset queryExecute("DELETE FROM SceneSection WHERE SceneRef = :sceneId", { sceneId = { value = arguments.sceneId, cfsqltype = "cf_sql_integer" } })>
+		<cfset queryExecute("DELETE FROM Scene WHERE SceneId = :sceneId AND BlogRef = :blogId", { sceneId = { value = arguments.sceneId, cfsqltype = "cf_sql_integer" }, blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } })>
+	</cftransaction>
+</cffunction>
+
+<!---//*****************************************************************************************************
+		Helpers
+//******************************************************************************************************--->
+
+<!--- The JSON text of everything in section number {position} except kind, heading, html and layers, cut straight out of the
+original text with Java's JSON-free approach below would be fragile, so it is rebuilt key by key from the parsed struct - but the
+key NAMES are taken from the original text, so their case survives on Adobe ColdFusion. --->
+<cffunction name="sectionDataJson" access="private" returntype="string" output="false">
+	<cfargument name="sceneJson" type="string" required="true">
+	<cfargument name="position" type="numeric" required="true">
+	<cfset var data = deserializeJSON(arguments.sceneJson)>
+	<cfset var section = "">
+	<cfset var parts = []>
+	<cfset var key = "">
+	<cfset var originalKeys = keysAsWritten(arguments.sceneJson)>
+	<cfset var count = 0>
+	<cfset var s = "">
+	<cfloop array="#data.sections#" index="s">
+		<cfif structKeyExists(s, "kind") and listFind(variables.kinds, s.kind)>
+			<cfset count = count + 1>
+			<cfif count eq arguments.position><cfset section = s><cfbreak></cfif>
+		</cfif>
+	</cfloop>
+	<cfif not isStruct(section)><cfreturn "{}"></cfif>
+	<cfloop collection="#section#" item="key">
+		<cfif not listFindNoCase("kind,heading,html,layers", key)>
+			<cfset arrayAppend(parts, serializeJSON(structKeyExists(originalKeys, lCase(key)) ? originalKeys[lCase(key)] : key) & ":" & jsonValue(section[key], originalKeys))>
+		</cfif>
+	</cfloop>
+	<cfreturn "{" & arrayToList(parts, ",") & "}">
+</cffunction>
+
+<!--- A value as JSON, keeping nested key names as they were written. --->
+<cffunction name="jsonValue" access="private" returntype="string" output="false">
+	<cfargument name="value" type="any" required="true">
+	<cfargument name="originalKeys" type="struct" required="true">
+	<cfset var parts = []>
+	<cfset var key = "">
+	<cfset var item = "">
+	<cfif isStruct(arguments.value)>
+		<cfloop collection="#arguments.value#" item="key">
+			<cfset arrayAppend(parts, serializeJSON(structKeyExists(arguments.originalKeys, lCase(key)) ? arguments.originalKeys[lCase(key)] : key) & ":" & jsonValue(arguments.value[key], arguments.originalKeys))>
+		</cfloop>
+		<cfreturn "{" & arrayToList(parts, ",") & "}">
+	<cfelseif isArray(arguments.value)>
+		<cfloop array="#arguments.value#" index="item">
+			<cfset arrayAppend(parts, jsonValue(item, arguments.originalKeys))>
+		</cfloop>
+		<cfreturn "[" & arrayToList(parts, ",") & "]">
+	<cfelseif isBoolean(arguments.value) and not isNumeric(arguments.value)>
+		<cfreturn arguments.value ? "true" : "false">
+	<cfelseif isNumeric(arguments.value) and reFind("^-?[0-9]+(\.[0-9]+)?$", arguments.value)>
+		<cfreturn arguments.value>
+	<cfelse>
+		<cfreturn serializeJSON(toString(arguments.value))>
+	</cfif>
+</cffunction>
+
+<!--- Every key name in a JSON text, as written, keyed by its lower case: { "pagecolour": "pageColour", ... }. --->
+<cffunction name="keysAsWritten" access="private" returntype="struct" output="false">
+	<cfargument name="json" type="string" required="true">
+	<cfset var found = {}>
+	<cfset var matches = reMatch('"([A-Za-z_][A-Za-z0-9_]*)"\s*:', arguments.json)>
+	<cfset var m = "">
+	<cfset var name = "">
+	<cfloop array="#matches#" index="m">
+		<cfset name = reReplace(m, '^"([^"]+)".*$', "\1")>
+		<cfset found[lCase(name)] = name>
+	</cfloop>
+	<cfreturn found>
+</cffunction>
+
+<cffunction name="jsonOf" access="private" returntype="string" output="false">
+	<cfargument name="data" type="struct" required="true">
+	<cfargument name="key" type="string" required="true">
+	<cfargument name="default" type="string" required="true">
+	<cfreturn structKeyExists(arguments.data, arguments.key) ? jsonValue(arguments.data[arguments.key], {}) : arguments.default>
+</cffunction>
+
+<cffunction name="blogId" access="private" returntype="numeric" output="false">
+	<cfreturn application.BlogDbObj.getBlogId()>
+</cffunction>
+
+<cffunction name="ensureTables" access="private" returntype="void" output="false" hint="Creates the three tables the first time they are needed, once per application start.">
+	<cfset var updater = "">
+	<cfif structKeyExists(variables, "tablesReady")>
+		<cfreturn>
+	</cfif>
+	<cflock name="galaxieSceneTables_#application.applicationName#" type="exclusive" timeout="30">
+		<cfif not structKeyExists(variables, "tablesReady")>
+			<cfset updater = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.DatabaseUpdater" : "common.cfc.DatabaseUpdater").init(application.rootDirectoryPath, application.blogIniPath)>
+			<!--- createTableIfMissing picks the SQL by application.databaseType, which only the updater sets (see People.cfc ensureTable). --->
+			<cfif not len(application.databaseType ?: "")>
+				<cfset application.databaseType = getProfileString(application.blogIniPath, "default", "databaseType")>
+			</cfif>
+			<cfset updater.createTableIfMissing("Scene", {
+				sqlServer: "CREATE TABLE Scene (SceneId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, BlogRef INT NOT NULL, Name NVARCHAR(125) NOT NULL, Alias NVARCHAR(80) NOT NULL, PageColour NVARCHAR(50) NULL, SettingsJson NVARCHAR(MAX) NULL, Active BIT NOT NULL DEFAULT 1, Created DATETIME NOT NULL, Updated DATETIME NOT NULL)",
+				mySql: "CREATE TABLE Scene (SceneId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, BlogRef INT NOT NULL, Name VARCHAR(125) NOT NULL, Alias VARCHAR(80) NOT NULL, PageColour VARCHAR(50) NULL, SettingsJson LONGTEXT NULL, Active TINYINT(1) NOT NULL DEFAULT 1, Created DATETIME NOT NULL, Updated DATETIME NOT NULL) DEFAULT CHARSET=utf8mb4",
+				postgre: "CREATE TABLE Scene (SceneId SERIAL PRIMARY KEY, BlogRef INT NOT NULL, Name VARCHAR(125) NOT NULL, Alias VARCHAR(80) NOT NULL, PageColour VARCHAR(50) NULL, SettingsJson TEXT NULL, Active SMALLINT NOT NULL DEFAULT 1, Created TIMESTAMP NOT NULL, Updated TIMESTAMP NOT NULL)"
+			})>
+			<cfset updater.createTableIfMissing("SceneSection", {
+				sqlServer: "CREATE TABLE SceneSection (SceneSectionId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, SceneRef INT NOT NULL, SortOrder INT NOT NULL, Kind NVARCHAR(30) NOT NULL, Heading NVARCHAR(500) NULL, Html NVARCHAR(MAX) NULL, DataJson NVARCHAR(MAX) NULL)",
+				mySql: "CREATE TABLE SceneSection (SceneSectionId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, SceneRef INT NOT NULL, SortOrder INT NOT NULL, Kind VARCHAR(30) NOT NULL, Heading VARCHAR(500) NULL, Html LONGTEXT NULL, DataJson LONGTEXT NULL) DEFAULT CHARSET=utf8mb4",
+				postgre: "CREATE TABLE SceneSection (SceneSectionId SERIAL PRIMARY KEY, SceneRef INT NOT NULL, SortOrder INT NOT NULL, Kind VARCHAR(30) NOT NULL, Heading VARCHAR(500) NULL, Html TEXT NULL, DataJson TEXT NULL)"
+			})>
+			<cfset updater.createTableIfMissing("SceneLayer", {
+				sqlServer: "CREATE TABLE SceneLayer (SceneLayerId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, SceneSectionRef INT NOT NULL, SortOrder INT NOT NULL, Src NVARCHAR(500) NOT NULL, SrcPhone NVARCHAR(500) NULL, Depth INT NOT NULL)",
+				mySql: "CREATE TABLE SceneLayer (SceneLayerId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, SceneSectionRef INT NOT NULL, SortOrder INT NOT NULL, Src VARCHAR(500) NOT NULL, SrcPhone VARCHAR(500) NULL, Depth INT NOT NULL) DEFAULT CHARSET=utf8mb4",
+				postgre: "CREATE TABLE SceneLayer (SceneLayerId SERIAL PRIMARY KEY, SceneSectionRef INT NOT NULL, SortOrder INT NOT NULL, Src VARCHAR(500) NOT NULL, SrcPhone VARCHAR(500) NULL, Depth INT NOT NULL)"
+			})>
+			<cfset variables.tablesReady = true>
+		</cfif>
+	</cflock>
+</cffunction>
+
+</cfcomponent>
