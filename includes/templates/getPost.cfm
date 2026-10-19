@@ -109,7 +109,7 @@ count here. --->
 			<cfset redirectType = getPost[1]["RedirectType"]>
 			<cfif len(redirectUrl)>
 				<!--- Redirect the URL with the status code --->
-				<cflocation url="#redirectUrl#" statusCode="#redirectType#">
+				<cflocation url="#redirectUrl#" statusCode="#redirectType#" addToken="false">
 			</cfif><!---<cfif len(redirectUrl)>--->
 		<cfcatch type="any">
 			<!--- Do nothing --->
@@ -126,7 +126,7 @@ count here. --->
 				<cfset redirectType = getPostRedirect[1]["RedirectType"]>
 				<cfif len(redirectUrl)>
 					<!--- Redirect the URL with the status code --->
-					<cflocation url="#redirectUrl#" statusCode="#redirectType#">
+					<cflocation url="#redirectUrl#" statusCode="#redirectType#" addToken="false">
 				</cfif><!---<cfif len(redirectUrl)>--->
 			</cfif><!---<cfif arrayLen(getPostRedirect)>--->
 		<cfcatch type="any">

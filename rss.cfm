@@ -99,7 +99,7 @@
 	<cfcatch>
 		<!--- Logic is - if they filtered incorrectly, revert to default, if not, abort --->
 		<cfif cgi.query_string neq "">
-			<cflocation url="rss.cfm">
+			<cflocation url="rss.cfm" addToken="false">
 		<cfelse>
 			<cfabort>
 		</cfif>

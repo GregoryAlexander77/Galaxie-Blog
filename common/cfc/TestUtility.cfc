@@ -1172,88 +1172,6 @@ Image.cfc's generateHeroArt()/generateAnimationDefault(). --->
 	</cfoutput>
 </cffunction>
 
-<!---
-	*************************************************************************************************************
-	applyPostCleanup
-
-	Redirects, deletes, or holds the posts listed in common/data/postCleanup.json, a JSON array keyed by postAlias:
-	{ "postAlias": "old-alias", "action": "redirect", "targetAlias": "new-docs-alias" }
-	{ "postAlias": "old-alias", "action": "delete" }
-	{ "postAlias": "old-alias", "action": "hold" }
-	A redirect removes the post and points its URL (301) at the target post's own link. A delete permanently
-	removes the post, using the same path as the editor's "delete it" link. A hold changes nothing. Defaults to
-	a dry run; pass confirm=true to apply.
-	*************************************************************************************************************
---->
-<cffunction name="applyPostCleanup" access="remote" returntype="void" output="yes">
-	<cfargument name="confirm" type="boolean" required="false" default="false">
-	<cfset requireEditSiteAccess()>
-	<cfset var filePath = getDirectoryFromPath(getCurrentTemplatePath()) & "../data/postCleanup.json">
-	<cfif not fileExists(filePath)>
-		<cfoutput>Missing #filePath#</cfoutput>
-		<cfreturn>
-	</cfif>
-	<cfset var items = deserializeJSON(fileRead(filePath))>
-	<cfset var log = []>
-	<cfset var item = "">
-	<cfset var postObj = "">
-	<cfset var targetObj = "">
-	<cfset var targetUrl = "">
-	<cfloop array="#items#" index="item">
-		<cfset postList = ormExecuteQuery("FROM Post WHERE PostAlias = :alias", { alias = item.postAlias })>
-		<cfif not arrayLen(postList)>
-			<cfset arrayAppend(log, "not found, skipped: " & item.postAlias)>
-			<cfcontinue>
-		</cfif>
-		<!--- Copy the values we need into plain variables, then clear the ORM session. Otherwise the entity loaded above stays managed, and deletePost changes the same row through its own copy, so the later flush tries to update a deleted row (OptimisticLockException). --->
-		<cfset thisPostId = postList[1].getPostId()>
-		<cfset thisTitle = postList[1].getTitle()>
-		<cfset thisDescription = postList[1].getDescription()>
-		<cfset thisBody = postList[1].getBody()>
-		<cfset thisAuthorId = postList[1].getUserRef().getUserId()>
-		<cfset thisIsPage = postList[1].getIsPage()>
-		<cfset ormClearSession()>
-		<cfif item.action eq "redirect">
-			<cfset targetList = ormExecuteQuery("FROM Post WHERE PostAlias = :alias", { alias = item.targetAlias })>
-			<cfif not arrayLen(targetList)>
-				<cfset arrayAppend(log, "target not found, skipped: " & thisTitle & " -> " & item.targetAlias)>
-				<cfcontinue>
-			</cfif>
-			<cfset targetUrl = application.blog.makeLink(postId = targetList[1].getPostId())>
-			<cfset ormClearSession()>
-			<cfset arrayAppend(log, "redirect: " & thisTitle & " -> " & targetUrl)>
-			<cfif arguments.confirm>
-				<cfset application.blog.savePost(
-					postId = thisPostId,
-					author = thisAuthorId,
-					postType = (thisIsPage ? "page" : "blogPost"),
-					title = thisTitle,
-					description = thisDescription,
-					post = thisBody,
-					released = true,
-					emailSubscriber = false,
-					remove = true,
-					redirectUrl = targetUrl,
-					redirectType = "301"
-				)>
-			</cfif>
-		<cfelseif item.action eq "delete">
-			<cfset arrayAppend(log, "delete: " & thisTitle)>
-			<cfif arguments.confirm>
-				<cfset application.blog.deletePost(thisPostId)>
-				<!--- deletePost loads the post again and leaves that copy dirty in the session. Clear it here, or the next lookup flushes the change to a deleted row. --->
-				<cfset ormClearSession()>
-			</cfif>
-		<cfelse>
-			<cfset arrayAppend(log, "hold, no change: " & thisTitle)>
-		</cfif>
-	</cfloop>
-
-	<cfoutput>
-	<h2>#(arguments.confirm ? "Applied" : "Dry run (add confirm=true to apply)")#</h2>
-	<cfloop array="#log#" index="line"><div>#line#</div></cfloop>
-	</cfoutput>
-</cffunction>
 	<!--- Sets the order of the docs collections in the Docs menu. Run once after the docs import. Lower numbers appear first. Only collections that exist are changed. --->
 	<cffunction name="setDocsMenuOrder" access="remote" returntype="void" output="yes">
 		<cfargument name="confirm" type="boolean" required="false" default="false">
@@ -1994,6 +1912,110 @@ END CATCH;
 		</cfif>
 	<cfelse>
 		<p>Every edit matched.</p>
+	</cfif>
+	</cfoutput>
+</cffunction>
+
+<!---
+	*************************************************************************************************************
+	applyPostCleanup (2026-10-18) - removes blog posts in bulk, each with an optional redirect, and sets page collection
+	descriptions. Made to retire galaxieblog.org's old how-to posts once the Docs page collections replaced them.
+	Reads common/data/postCleanup.json:
+	  { "POSTS": [ { "POSTALIAS": "galaxie-blog-options", "REDIRECTURL": "https://galaxieblog.org/settings-and-options-explained" }, ... ],
+	    "COLLECTIONS": [ { "TITLE": "Install and Admin", "DESCRIPTION": "..." }, ... ] }
+	A post is removed exactly the way the post editor removes it: Remove is set, and RedirectUrl/RedirectType (301,
+	permanent) when a REDIRECTURL is given, so the old address sends visitors to the new one (getPost.cfm). Nothing is
+	deleted - deleting a post would delete its redirect too. Only blog posts are touched, never pages, and a post that is
+	already removed is left alone, so running this twice is safe. Collections are found by their title.
+	Dry run by default (shows every change); add &confirm=true to save. Saving clears the caches.
+	Usage: /common/cfc/TestUtility.cfc?method=applyPostCleanup            (dry run)
+	       /common/cfc/TestUtility.cfc?method=applyPostCleanup&confirm=true
+	*************************************************************************************************************
+--->
+<cffunction name="applyPostCleanup" access="remote" returntype="void" output="yes">
+	<cfargument name="confirm" type="boolean" required="false" default="false">
+	<cfset requireEditSiteAccess()>
+	<!--- Send this as an HTML page - see fixDocsLinks for why (Lucee can send a remote method's output as XML). --->
+	<cfcontent type="text/html; charset=utf-8" reset="true">
+	<cfset var filePath = getDirectoryFromPath(getCurrentTemplatePath()) & "../data/postCleanup.json">
+	<cfset var cleanup = "">
+	<cfset var entry = "">
+	<cfset var found = "">
+	<cfset var post = "">
+	<cfset var redirectUrl = "">
+	<cfset var collection = "">
+	<cfset var warnings = []>
+	<cfset var removed = 0>
+	<cfset var described = 0>
+	<cfset var item = "">
+	<cfif not fileExists(filePath)>
+		<cfoutput>Missing #encodeForHtml(filePath)#</cfoutput>
+		<cfreturn>
+	</cfif>
+	<cfset cleanup = deserializeJSON(fileRead(filePath, "utf-8"))>
+	<cfoutput><h2>#arguments.confirm ? "Saved" : "Dry run (add &amp;confirm=true to the address to save)"#</h2><h3>Posts</h3></cfoutput>
+
+	<cfloop array="#structKeyExists(cleanup, 'POSTS') ? cleanup.POSTS : []#" index="entry">
+		<cfset found = ormExecuteQuery("FROM Post WHERE BlogRef = :blog AND PostAlias = :alias", { blog = application.BlogDbObj, alias = entry.POSTALIAS })>
+		<cfset redirectUrl = structKeyExists(entry, "REDIRECTURL") ? trim(entry.REDIRECTURL) : "">
+		<cfif not arrayLen(found)>
+			<cfset arrayAppend(warnings, "/" & entry.POSTALIAS & ": no post with this address - skipped")>
+			<cfcontinue>
+		</cfif>
+		<cfset post = found[1]>
+		<cfif post.getIsPage()>
+			<cfset arrayAppend(warnings, "/" & entry.POSTALIAS & ": this is a page, not a blog post - skipped")>
+			<cfcontinue>
+		</cfif>
+		<cfif post.getRemove()>
+			<cfoutput><div>already removed - #encodeForHtml(post.getTitle())#</div></cfoutput>
+			<cfcontinue>
+		</cfif>
+		<cfoutput><div><b>#arguments.confirm ? "removed" : "will remove"#</b> - #encodeForHtml(post.getTitle())# <small>/#encodeForHtml(entry.POSTALIAS)#</small><cfif len(redirectUrl)> &rarr; 301 to #encodeForHtml(redirectUrl)#<cfelse> (no redirect)</cfif></div></cfoutput>
+		<cfif arguments.confirm>
+			<cftransaction>
+				<cfset post.setRemove(true)>
+				<cfset post.setRedirectUrl(redirectUrl)>
+				<cfset post.setRedirectType(len(redirectUrl) ? "301" : "")>
+				<cfset entitySave(post)>
+			</cftransaction>
+		</cfif>
+		<cfset removed = removed + 1>
+	</cfloop>
+
+	<cfoutput><h3>Page collection descriptions</h3></cfoutput>
+	<cfloop array="#structKeyExists(cleanup, 'COLLECTIONS') ? cleanup.COLLECTIONS : []#" index="entry">
+		<cfset found = ormExecuteQuery("FROM PageCollection WHERE BlogRef = :blog AND lower(Title) = :title", { blog = application.BlogDbObj, title = lCase(trim(entry.TITLE)) })>
+		<cfif not arrayLen(found)>
+			<cfset arrayAppend(warnings, "Collection """ & entry.TITLE & """: not found - skipped")>
+			<cfcontinue>
+		</cfif>
+		<cfset collection = found[1]>
+		<cfif (isNull(collection.getDescription()) ? "" : collection.getDescription()) eq entry.DESCRIPTION>
+			<cfoutput><div>already done - #encodeForHtml(collection.getTitle())#</div></cfoutput>
+			<cfcontinue>
+		</cfif>
+		<cfoutput><div><b>#arguments.confirm ? "set" : "will set"#</b> - #encodeForHtml(collection.getTitle())#: #encodeForHtml(entry.DESCRIPTION)#</div></cfoutput>
+		<cfif arguments.confirm>
+			<cftransaction>
+				<cfset collection.setDescription(entry.DESCRIPTION)>
+				<cfset entitySave(collection)>
+			</cftransaction>
+		</cfif>
+		<cfset described = described + 1>
+	</cfloop>
+
+	<cfif arguments.confirm and (removed or described)>
+		<cfset ormFlush()>
+		<cfset application.blog.flushGalaxieCache('all')>
+	</cfif>
+	<cfoutput>
+	<h2>#removed# post(s) #arguments.confirm ? "removed" : "to remove"#, #described# collection description(s)#(arguments.confirm ? " saved, caches cleared" : "")#</h2>
+	<cfif arrayLen(warnings)>
+		<h3>Not changed - needs a look (#arrayLen(warnings)#)</h3>
+		<cfloop array="#warnings#" index="item"><div>#encodeForHtml(item)#</div></cfloop>
+	<cfelse>
+		<p>Everything matched.</p>
 	</cfif>
 	</cfoutput>
 </cffunction>

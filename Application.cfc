@@ -320,7 +320,7 @@
 			<!--- Stop the application --->
 			<cfset applicationStop()/>
 			<!--- Redirect to the home page and the application should start again --->
-			<cflocation url="#getBaseUrl()#">
+			<cflocation url="#getBaseUrl()#" addToken="false">
 		</cfif>
 			
 		<!--- Get the CF version. --->
