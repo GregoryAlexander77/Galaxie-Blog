@@ -7,7 +7,8 @@ Step 3 (2026-10-19): rich text (one TinyMCE that stays put while sections are pi
 (ProxyController uploadSceneImage), gradients (Grapick, as in the gradient editor) and Kendo colour pickers.
 Step 4 (2026-10-19): a new scene opens on a gallery of the ready-made scenes (includes/postContent/scenes/*.json), each card
 drawn from the scene itself (its layers, photo or gradient), or from the picture named in the file's "thumbnail".
-To come: the colour helper and the layer builder (design doc, Galaxie 5). --->
+Layer builder (2026-10-19, layout B): the layered hero's layers in a list with depth sliders, Add layers, Even out depths and a
+size check; on the preview, Hold the scroll, and an Exploded view in its own Kendo window (owner's request). To come: the colour helper (design doc, Galaxie 5). --->
 <cfset sceneId = val(URL.optArgs)>
 <cfset scene = sceneId gt 0 ? application.blog.getScenes().getScene(sceneId) : {}>
 <cfset isNewScene = structIsEmpty(scene)>
@@ -72,6 +73,26 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 	#scenePreviewStage { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; background: #2b2b2b; border-radius: 4px; }
 	#scenePreviewFrame { border: 0; width: 100%; height: 100%; background: #222; }
 	#scenePreviewStage.phone #scenePreviewFrame { width: 390px; max-width: 100%; }
+	#scenePreviewStage { position: relative; }
+	#sceneHold { width: 120px; vertical-align: middle; }
+	.sceneLayerRow { border: 1px solid rgba(128,128,128,.35); border-radius: 4px; padding: 5px 6px; margin-bottom: 6px; cursor: pointer; }
+	.sceneLayerRow.selected { border-color: currentColor; border-width: 2px; padding: 4px 5px; }
+	.sceneLayerTop { display: flex; align-items: center; gap: 6px; }
+	.sceneLayerTop + .sceneLayerTop { margin-top: 4px; }
+	.sceneLayerThumb { width: 56px; height: 32px; object-fit: cover; flex: 0 0 56px; border-radius: 2px; background: repeating-conic-gradient(#bbb 0% 25%, #eee 0% 50%) 0 0 / 10px 10px; }
+	.sceneLayerName { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.sceneLayerTools .k-button { padding: 0 4px; min-width: 0; }
+	.sceneLayerDepth { flex: 1 1 auto; min-width: 0; }
+	.sceneLayerDepthValue { flex: 0 0 36px; text-align: right; }
+	<!--- The exploded view, in its own Kendo window: the layers fanned out in 3D, with a checkerboard where a layer is see-through. --->
+	#sceneExplodedWindow { padding: 0; }
+	#sceneExploded { position: relative; width: 100%; height: 100%; min-height: 300px; background: #2b2b2b; overflow: hidden; perspective: 1400px; }
+	.sceneSheet { position: absolute; left: 42%; width: 52%; aspect-ratio: 16 / 9; padding: 0; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; background-size: cover, 16px 16px; background-position: center, 0 0; transform: translate(-50%, -50%) rotateX(58deg) rotateZ(-32deg); cursor: pointer; }
+	.sceneSheet:hover, .sceneSheet:focus { border-color: #fff; outline: none; }
+	.sceneSheet.selected { outline: 3px solid #4fa3ff; }
+	.sceneSheetLabel { position: absolute; left: 74%; right: 8px; transform: translateY(-50%); color: #ddd; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+	.sceneSheetLabel.selected { color: #8cc4f0; font-weight: bold; }
+	.sceneExplodedHint { position: absolute; left: 10px; bottom: 8px; color: #bbb; font-size: 12px; }
 	.sceneSectionItem { border: 1px solid rgba(128,128,128,.35); border-radius: 4px; padding: 6px 8px; margin-bottom: 6px; cursor: pointer; }
 	.sceneSectionItem.selected { border-color: currentColor; border-width: 2px; padding: 5px 7px; }
 	.sceneSectionItem .sceneSectionKind { font-weight: bold; }
@@ -145,6 +166,12 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 				<span>
 					<button type="button" class="k-button scenePreviewSize" data-size="desktop" aria-pressed="true">Desktop</button>
 					<button type="button" class="k-button scenePreviewSize" data-size="phone" aria-pressed="false">Phone</button>
+				</span>
+				<button type="button" class="k-button" id="sceneExplodedOpen" style="display: none;" title="The layers fanned out, back to front, in a window of their own. Click one to pick it.">Exploded view</button>
+				<span id="sceneHoldWrap" style="display: none;" title="Keeps the preview at one point of the hero's scroll, so you can watch a change in place.">
+					<label><input type="checkbox" id="sceneHoldOn" class="k-checkbox"> Hold the scroll at</label>
+					<input type="range" id="sceneHold" min="0" max="100" step="1" value="40" aria-label="Hold the scroll at this point of the hero">
+					<span id="sceneHoldValue">40%</span>
 				</span>
 				<label title="Shows where each animation starts and ends. Visitors never see them."><input type="checkbox" id="scenePreviewGuides" class="k-checkbox"> Guides</label>
 				<label title="What visitors see when they've asked their device for less motion."><input type="checkbox" id="scenePreviewReduced" class="k-checkbox"> Reduced motion</label>
@@ -336,12 +363,7 @@ $(document).ready(function () {
 		var wrap = $('<div class="sceneField"></div>');
 		var id = "sceneField_" + field.key.replace(/[^A-Za-z0-9]/g, "_");
 		var value = getValue(field.key), input;
-		if (field.type === "layers") {
-			var layers = getValue("layers") || [];
-			wrap.append($('<label></label>').text("Layers"));
-			wrap.append($('<div></div>').text(layers.length + " picture layer" + (layers.length === 1 ? "" : "s") + ", back to front. The layer builder (upload your own layers and set how far each one moves) comes in a later step."));
-			return wrap;
-		}
+		if (field.type === "layers") { return layersField(wrap); }
 		wrap.append($('<label></label>').attr("for", id).text(field.label));
 		function hint() { if (field.hint) { wrap.append($('<div class="k-form-hint"></div>').text(field.hint)); } return wrap; }
 
@@ -509,6 +531,7 @@ $(document).ready(function () {
 		$.each(pending, function (i, fn) { fn(); });
 		pending = [];
 		showText();
+		updatePreviewTools();
 	}
 
 	<!--- The section's text, in one TinyMCE editor that stays where it is while sections are picked (a TinyMCE editor that is
@@ -565,7 +588,7 @@ $(document).ready(function () {
 			list.append(it);
 		});
 	}
-	function select(i) { selected = i; renderList(); renderSettings(); }
+	function select(i) { if (i !== selected) { selectedLayer = -1; } selected = i; renderList(); renderSettings(); }
 	function move(i, by) {
 		var s = scene.sections.splice(i, 1)[0];
 		scene.sections.splice(i + by, 0, s);
@@ -645,6 +668,165 @@ $(document).ready(function () {
 	}
 	$("#sceneRestart").on("click", showGallery);
 
+	<!--- ---------- The layer builder (2026-10-19, layout B): a layered hero's pictures in a list, back to front, each with a depth
+	slider; Add layers; Even out depths; a check that the layers are the same size; and, on the preview, Hold the scroll and an
+	Exploded view of the layers. Depth: how far a layer moves while the hero is held - the deepest moves a full screen, the others
+	in proportion, and 0 stays still. --->
+	var selectedLayer = -1;
+	var explodedOn = false;
+	function fileName(src) { return String(src || "").split("/").pop().split("?")[0] || "Layer"; }
+	function sectionLayers() { var s = selected >= 0 ? scene.sections[selected] : null; return s && s.kind === "layeredHero" ? (s.layers = s.layers || []) : null; }
+	function evenDepths(layers) {
+		var n = layers.length;
+		$.each(layers, function (i, layer) { layer.depth = n === 1 ? 100 : Math.round((100 + 600 * i / (n - 1)) / 10) * 10; });
+	}
+	function layersChanged(rerenderList) {
+		if (rerenderList) { renderSettings(); }
+		renderExploded();
+		schedulePreview();
+	}
+	function selectLayer(i) {
+		selectedLayer = i;
+		$("#sceneLayerList .sceneLayerRow").removeClass("selected").eq(i).addClass("selected");
+		var row = $("#sceneLayerList .sceneLayerRow").eq(i)[0];
+		if (row && row.scrollIntoView) { row.scrollIntoView({ block: "nearest" }); }
+		renderExploded();
+	}
+
+	function layersField(wrap) {
+		var layers = sectionLayers() || [];
+		wrap.append($('<label></label>').text("Layers, back to front"));
+		var list = $('<div id="sceneLayerList"></div>');
+		if (!layers.length) { list.append($('<div class="k-form-hint"></div>').text("No layers yet. Add the pictures of a layered drawing: transparent PNG or WebP, all the same size.")); }
+		var sizes = [];
+		$.each(layers, function (i, layer) {
+			var row = $('<div class="sceneLayerRow"></div>').toggleClass("selected", i === selectedLayer);
+			var thumb = $('<img class="sceneLayerThumb" alt="">').attr("src", withBase(layer.src));
+			var name = $('<span class="sceneLayerName"></span>').text((i + 1) + ". " + fileName(layer.src)).attr("title", layer.src);
+			var warn = $('<div class="k-form-hint sceneLayerWarn"></div>').hide();
+			var tools = $('<span class="sceneLayerTools"></span>');
+			if (i > 0) { tools.append($('<button type="button" class="k-button" aria-label="Move back"><span class="k-icon k-i-arrow-60-up"></span></button>').on("click", function (e) { e.stopPropagation(); var l = layers.splice(i, 1)[0]; layers.splice(i - 1, 0, l); selectedLayer = i - 1; layersChanged(true); })); }
+			if (i < layers.length - 1) { tools.append($('<button type="button" class="k-button" aria-label="Move forward"><span class="k-icon k-i-arrow-60-down"></span></button>').on("click", function (e) { e.stopPropagation(); var l = layers.splice(i, 1)[0]; layers.splice(i + 1, 0, l); selectedLayer = i + 1; layersChanged(true); })); }
+			tools.append($('<button type="button" class="k-button" aria-label="Remove layer"><span class="k-icon k-i-close"></span></button>').on("click", function (e) { e.stopPropagation(); layers.splice(i, 1); selectedLayer = Math.min(selectedLayer, layers.length - 1); layersChanged(true); }));
+			var depth = $('<input type="range" class="sceneLayerDepth" min="0" max="1000" step="10">').attr("aria-label", "Depth of " + fileName(layer.src)).val(layer.depth === undefined ? (i + 1) * 100 : layer.depth);
+			var depthValue = $('<span class="sceneLayerDepthValue"></span>').text(depth.val());
+			depth.on("input", function () {
+				layer.depth = parseInt(this.value, 10);
+				depthValue.text(layer.depth === 0 ? "still" : layer.depth);
+				if (selectedLayer !== i) { selectLayer(i); } else { renderExploded(); }
+				schedulePreview();
+			});
+			if (+depth.val() === 0) { depthValue.text("still"); }
+			row.append($('<div class="sceneLayerTop"></div>').append(thumb, name, tools), $('<div class="sceneLayerTop"></div>').append($('<span>Depth</span>'), depth, depthValue), warn);
+			row.on("click", function () { selectLayer(i); });
+			list.append(row);
+			<!--- The size check: the layers sit exactly on top of each other, so they should all be the same size. --->
+			thumb.on("load", function () {
+				sizes[i] = this.naturalWidth + " x " + this.naturalHeight;
+				var counts = {}, common = "", loaded = 0;
+				$.each(sizes, function (j, size) { if (size) { loaded++; counts[size] = (counts[size] || 0) + 1; if (!common || counts[size] > counts[common]) { common = size; } } });
+				if (loaded < layers.length) { return; }
+				list.find(".sceneLayerWarn").each(function (j) {
+					$(this).toggle(sizes[j] !== common).text("This layer is " + sizes[j] + "; the others are " + common + ". Layers of different sizes won't line up.");
+				});
+			});
+		});
+		wrap.append(list);
+		var status = $('<div class="k-form-hint"></div>');
+		var file = $('<input type="file" multiple accept="image/png,image/webp" style="display: none;">').attr("aria-label", "Add layers");
+		var add = $('<button type="button" class="k-button">Add layers</button>').on("click", function () { file.trigger("click"); });
+		var even = $('<button type="button" class="k-button">Even out depths</button>').toggle(layers.length > 1)
+			.on("click", function () { evenDepths(layers); layersChanged(true); });
+		<!--- Several pictures at once, in back-to-front order by file name (1.png, 2.png ... 10.png). --->
+		file.on("change", function () {
+			var files = Array.prototype.slice.call(this.files).sort(function (a, b) { return a.name.localeCompare(b.name, undefined, { numeric: true }); });
+			var wasEmpty = !layers.length, done = 0;
+			this.value = "";
+			(function next() {
+				if (!files.length) {
+					status.text("");
+					if (wasEmpty) { evenDepths(layers); }
+					selectedLayer = layers.length - 1;
+					layersChanged(true);
+					return;
+				}
+				var f = files.shift();
+				uploadPicture(f, status, function (response) {
+					var last = layers.length ? (layers[layers.length - 1].depth || 0) : 0;
+					var layer = { src: response.location, depth: Math.min(1000, last + 100) };
+					if (response.phoneLocation) { layer.srcPhone = response.phoneLocation; }
+					layers.push(layer);
+					done++;
+					status.text(done + " added...");
+					next();
+				});
+			})();
+		});
+		wrap.append($('<div class="sceneRow" style="margin-top: 8px;"></div>').append(add, even), file, status,
+			$('<div class="k-form-hint"></div>').text("Depth is how far a layer moves while the hero is held: the deepest moves a full screen, the others in proportion, and 0 stays still. Hold the scroll on the preview to watch a layer while you change it."));
+		return wrap;
+	}
+
+	<!--- The exploded view, in its own Kendo window: the layers fanned out, back at the top and front at the bottom. It follows the
+	editor as depths and order change; click a layer to pick it. --->
+	function renderExploded() {
+		var box = $("#sceneExploded");
+		if (!explodedOn || !box.length) { return; }
+		var layers = sectionLayers();
+		box.empty();
+		if (!layers) { box.append('<div class="sceneExplodedHint">Pick a layered hero in the Scene editor to see its layers here.</div>'); return; }
+		var n = layers.length;
+		if (!n) { box.append('<div class="sceneExplodedHint">Add layers to see them here.</div>'); return; }
+		$.each(layers, function (i, layer) {
+			var t = n > 1 ? i / (n - 1) : 0.5;
+			var top = 14 + t * 62;
+			var sheet = $('<button type="button" class="sceneSheet"></button>').toggleClass("selected", i === selectedLayer)
+				.css({ top: top + "%", zIndex: i + 1, backgroundImage: 'url("' + withBase(layer.src).replace(/"/g, "%22") + '"), repeating-conic-gradient(#3a3a3a 0% 25%, #303030 0% 50%)' })
+				.attr("aria-label", "Layer " + (i + 1) + ", " + fileName(layer.src));
+			sheet.on("click", function () { selectLayer(i); });
+			var label = $('<span class="sceneSheetLabel"></span>').toggleClass("selected", i === selectedLayer).css("top", top + "%")
+				.text((i + 1) + ". " + fileName(layer.src) + " - " + (layer.depth === 0 ? "still" : "depth " + (layer.depth === undefined ? (i + 1) * 100 : layer.depth)));
+			box.append(sheet, label);
+		});
+		box.append('<div class="sceneExplodedHint">Back at the top, front at the bottom. Click a layer to pick it.</div>');
+	}
+	function openExploded() {
+		var existing = $("#sceneExplodedWindow").data("kendoWindow");
+		if (existing) { existing.toFront(); return; }
+		$('<div id="sceneExplodedWindow"><div id="sceneExploded"></div></div>').appendTo("body").kendoWindow({
+			title: "Exploded view", width: "<cfoutput>#session.isMobile ? '95%' : '45%'#</cfoutput>", height: "<cfoutput>#session.isMobile ? '60%' : '65%'#</cfoutput>",
+			modal: false, actions: ["Maximize", "Close"],
+			close: function () { explodedOn = false; setTimeout(function () { var w = $("#sceneExplodedWindow").data("kendoWindow"); if (w) { w.destroy(); } }, 0); }
+		}).data("kendoWindow").center().open();
+		explodedOn = true;
+		renderExploded();
+	}
+	function closeExploded() { var w = $("#sceneExplodedWindow").data("kendoWindow"); if (w) { w.close(); } }
+	$("#sceneExplodedOpen").on("click", openExploded);
+
+	<!--- Hold the scroll: for a hero, the preview stays at this point of the hero's pin. --->
+	function currentHold() {
+		var s = selected >= 0 ? scene.sections[selected] : null;
+		return ($("#sceneHoldOn").is(":checked") && s && HERO[s.kind]) ? { section: selected, progress: $("#sceneHold").val() / 100 } : null;
+	}
+	function sendHold() {
+		var frame = document.getElementById("scenePreviewFrame");
+		$("#sceneHoldValue").text($("#sceneHold").val() + "%");
+		if (previewReady && frame && frame.contentWindow) { frame.contentWindow.postMessage({ type: "galaxieScenePreviewHold", hold: currentHold() }, origin); }
+	}
+	$("#sceneHoldOn, #sceneHold").on("input change", function () {
+		if (this.id === "sceneHold" && !$("#sceneHoldOn").is(":checked")) { $("#sceneHoldOn").prop("checked", true); }
+		sendHold();
+	});
+	<!--- The preview tools that only make sense for some sections. --->
+	function updatePreviewTools() {
+		var s = selected >= 0 ? scene.sections[selected] : null;
+		$("#sceneHoldWrap").toggle(!!(s && HERO[s.kind]));
+		$("#sceneExplodedOpen").toggle(!!(s && s.kind === "layeredHero"));
+		renderExploded();
+		sendHold();
+	}
+
 	<!--- ---------- Preview --->
 	function sendPreview() {
 		var frame = document.getElementById("scenePreviewFrame");
@@ -652,7 +834,7 @@ $(document).ready(function () {
 		var copy = JSON.parse(JSON.stringify(scene));
 		copy.settings.guides = $("#scenePreviewGuides").is(":checked");
 		copy.settings.reducedMotion = $("#scenePreviewReduced").is(":checked");
-		frame.contentWindow.postMessage({ type: "galaxieScenePreview", json: JSON.stringify(copy), fontCss: sceneFontCss() }, origin);
+		frame.contentWindow.postMessage({ type: "galaxieScenePreview", json: JSON.stringify(copy), fontCss: sceneFontCss(), hold: currentHold() }, origin);
 	}
 	function schedulePreview() { clearTimeout(previewTimer); previewTimer = setTimeout(sendPreview, 350); }
 	function onPreviewMessage(event) {
@@ -682,7 +864,7 @@ $(document).ready(function () {
 	var kendoWindow = $("#sceneDetailWindow").data("kendoWindow");
 	if (kendoWindow) {
 		kendoWindow.bind("resize", fit);
-		kendoWindow.bind("close", function () { window.removeEventListener("message", onPreviewMessage); });
+		kendoWindow.bind("close", function () { window.removeEventListener("message", onPreviewMessage); closeExploded(); });
 	}
 
 	<!--- ---------- Save --->

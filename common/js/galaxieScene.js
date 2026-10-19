@@ -219,7 +219,9 @@
 		if (section.kind === "layeredHero") {
 			(section.layers || []).forEach(function (layer, i, all) {
 				var wrap = el("div", "gs-layer", back);
-				wrap.setAttribute("data-depth", layer.depth || (i + 1) * 100);
+				// A depth of 0 is a layer that stays still (2026-10-19, the layer builder); no depth at all is spread out by position.
+				var hasDepth = layer.depth !== undefined && layer.depth !== null && layer.depth !== "";
+				wrap.setAttribute("data-depth", hasDepth ? Math.max(0, +layer.depth || 0) : (i + 1) * 100);
 				var img = el("img", "", wrap);
 				img.src = phone && layer.srcPhone ? layer.srcPhone : layer.src;
 				img.alt = ""; img.decoding = "async";
@@ -314,7 +316,7 @@
 		if (section.kind === "layeredHero") {
 			// Travel relative to the screen: the deepest layer moves one screen x intensity over the whole pin.
 			var layers = root.querySelectorAll(".gs-layer");
-			var maxDepth = Math.max.apply(null, Array.prototype.map.call(layers, function (l) { return +l.getAttribute("data-depth"); }));
+			var maxDepth = Math.max(1, Math.max.apply(null, Array.prototype.map.call(layers, function (l) { return +l.getAttribute("data-depth"); })));
 			var intensity = setting(data, section, "intensity") * phoneFactor;
 			Array.prototype.forEach.call(layers, function (layer) {
 				tl.to(layer, { y: function () { return -(layer.getAttribute("data-depth") / maxDepth) * window.innerHeight * intensity; }, ease: "none" }, 0);

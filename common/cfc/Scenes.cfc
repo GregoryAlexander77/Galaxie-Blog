@@ -67,6 +67,16 @@
 		& ',"sections":[' & arrayToList(parts, ",") & ']}'>
 </cffunction>
 
+<cffunction name="getEngineUrl" access="public" returntype="string" output="false"
+		hint="The address of the scene engine (common/js/galaxieScene.js) with the file's last-changed time on it, so browsers fetch a changed engine instead of an old cached copy. Worked out once per application start.">
+	<cfset var filePath = "">
+	<cfif not structKeyExists(variables, "engineUrl")>
+		<cfset filePath = expandPath(application.baseUrl & "/common/js/galaxieScene.js")>
+		<cfset variables.engineUrl = application.baseUrl & "/common/js/galaxieScene.js" & (fileExists(filePath) ? "?v=" & dateTimeFormat(getFileInfo(filePath).lastModified, "yyyymmddHHnnss") : "")>
+	</cfif>
+	<cfreturn variables.engineUrl>
+</cffunction>
+
 <cffunction name="listScenes" access="public" returntype="query" output="false" hint="Every scene of this blog, for the Scenes window.">
 	<cfset ensureTables()>
 	<cfreturn queryExecute("SELECT SceneId, Name, Alias, Active, Updated FROM Scene WHERE BlogRef = :blogId ORDER BY Name",
@@ -290,7 +300,7 @@
 	<cfset var tempFolder = getTempDirectory()>
 	<cfset var uploaded = "">
 	<cfset var ext = "">
-	<cfset var baseName = "scene-" & dateTimeFormat(now(), "yyyymmdd-HHnnss") & "-" & lCase(left(hash(createUUID() & rand("SHA1PRNG")), 8))>
+	<cfset var baseName = "">
 	<cfset var img = "">
 	<cfset var result = { location: "", phoneLocation: "" }>
 	<cfif not directoryExists(folder)>
@@ -298,6 +308,9 @@
 	</cfif>
 	<cffile action="upload" fileField="#arguments.fileField#" destination="#tempFolder#" accept="image/jpeg,image/pjpeg,image/png,image/webp,image/gif" nameConflict="makeUnique" result="uploaded">
 	<cfset ext = lCase(uploaded.serverFileExt)>
+	<!--- The saved name keeps the picture's own name (made safe), so the layer builder can show "sky", "mountains"... --->
+	<cfset baseName = left(reReplace(reReplace(lCase(uploaded.clientFileName), "[^a-z0-9]+", "-", "all"), "^-+|-+$", "", "all"), 40)>
+	<cfset baseName = (len(baseName) ? baseName : "scene") & "-" & lCase(left(hash(createUUID() & rand("SHA1PRNG")), 8))>
 	<cftry>
 		<!--- Only pictures, checked by extension and by reading the file as an image. --->
 		<cfif not listFind("jpg,jpeg,png,webp,gif", ext) or uploaded.fileSize gt 15 * 1024 * 1024 or not isImageFile(uploaded.serverDirectory & "/" & uploaded.serverFile)>

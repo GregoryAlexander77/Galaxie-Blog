@@ -99,7 +99,7 @@
 	function go() { GalaxieScene.ready(function () { GalaxieScene.build(document.getElementById("#containerId#"), data); }); }
 	if (window.GalaxieScene) { go(); return; }
 	var s = document.createElement("script");
-	s.src = "#application.baseUrl#/common/js/galaxieScene.js";
+	s.src = "#application.blog.getScenes().getEngineUrl()#";
 	s.onload = go;
 	document.head.appendChild(s);
 })();

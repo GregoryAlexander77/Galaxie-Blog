@@ -23,15 +23,34 @@ view, so the engine's phone settings apply as they would on a phone. In the admi
 <div id="scenePreviewEmpty">Loading the preview...</div>
 <div id="scenePreviewHost"></div>
 <div id="scenePreviewAfter">The post's own text starts here.</div>
-<script src="#application.baseUrl#/common/js/galaxieScene.js"></script>
+<!--- With the engine's last-changed time on the address, so a changed engine is never an old cached copy (Scenes.cfc getEngineUrl). --->
+<script src="#application.blog.getScenes().getEngineUrl()#"></script>
 <script>
 (function () {
 	var baseUrl = "#jsStringFormat(application.baseUrl)#";
 	var current = null;
 	var waiting = null;
 	var ready = false;
+	var shown = null;
+	<!--- The layer builder's "hold the scroll" (2026-10-19): { section, progress } keeps the scene at one point of a section's scroll -
+	progress 0 to 1 through a pinned hero's pin, or through the section itself - so a depth can be changed and watched in place. --->
+	var hold = null;
+
+	function applyHold() {
+		if (!hold || !shown) { return; }
+		var section = (shown.sections || [])[hold.section];
+		var root = section && section._root;
+		if (!root) { return; }
+		var start = root.getBoundingClientRect().top + window.scrollY, length = root.offsetHeight;
+		window.ScrollTrigger.getAll().forEach(function (st) {
+			if (st.trigger === root && st.pin) { start = st.start; length = st.end - st.start; }
+		});
+		window.scrollTo(0, start + Math.max(0, Math.min(1, hold.progress)) * length);
+		window.ScrollTrigger.update();
+	}
 
 	function show(data) {
+		shown = data;
 		var host = document.getElementById("scenePreviewHost");
 		var y = window.scrollY;
 		if (current) { try { current.destroy(); } catch (e) {} current = null; }
@@ -49,13 +68,17 @@ view, so the engine's phone settings apply as they would on a phone. In the admi
 			host.innerHTML = '<div style="padding:20px;color:##f99">The preview could not be built: ' + String(e.message).replace(/</g, "&lt;") + '</div>';
 			return;
 		}
-		<!--- Back to where the user was, after the layout settles. --->
+		<!--- Back to where the user was (or to the held point), after the layout settles. --->
 		window.scrollTo(0, y);
-		setTimeout(function () { window.ScrollTrigger.refresh(); window.scrollTo(0, y); }, 50);
+		applyHold();
+		setTimeout(function () { window.ScrollTrigger.refresh(); window.scrollTo(0, y); applyHold(); }, 50);
 	}
 
 	window.addEventListener("message", function (event) {
-		if (event.origin !== window.location.origin || !event.data || event.data.type !== "galaxieScenePreview") { return; }
+		if (event.origin !== window.location.origin || !event.data) { return; }
+		if (event.data.type === "galaxieScenePreviewHold") { hold = event.data.hold || null; applyHold(); return; }
+		if (event.data.type !== "galaxieScenePreview") { return; }
+		if (event.data.hold !== undefined) { hold = event.data.hold || null; }
 		<!--- {baseUrl} stands for the blog's address in saved scenes; the scene is sent as JSON text so it is copied exactly. --->
 		var data;
 		try { data = JSON.parse(String(event.data.json).split("{baseUrl}").join(baseUrl)); } catch (e) { return; }
