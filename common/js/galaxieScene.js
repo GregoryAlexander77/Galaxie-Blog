@@ -141,7 +141,7 @@
 			".gScene .gs-heroText{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 8vw;z-index:3}",
 			".gScene .gs-heroText .gs-heading{font-size:clamp(2rem,6vw,4.5rem)}",
 			".gScene .gs-fade{position:absolute;left:0;width:100%;bottom:0;pointer-events:none;z-index:4}",
-			".gScene .gs-fadeSolid{position:absolute;left:0;width:100%;height:300vh;top:100%;pointer-events:none}",
+			".gScene .gs-fadeSolid{position:absolute;left:0;width:100%;height:300vh;top:calc(100% - 2px);pointer-events:none}",
 			".gScene .gs-slide{height:100vh;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:0 8vw}",
 			".gScene .gs-slideBack{position:absolute;left:0;right:0;top:-20%;height:140%;background-size:cover;background-position:center;will-change:transform}",
 			".gScene .gs-slide .gs-heading{font-size:clamp(1.6rem,4vw,3rem)}",
@@ -269,10 +269,25 @@
 		[t.heading, t.body].forEach(function (x) { if (x) { x.classList.remove("gs-reveal"); } });
 	}
 
+	// An eased fade (2026-10-19, owner: "you can't tell where the base ends"): the colour's opacity climbs slowly at first and
+	// faster near the bottom, over many stops, so there is no visible line where the fade starts - a plain two-stop
+	// transparent-to-colour gradient shows one. For a #rrggbb colour; anything else gets the plain gradient.
+	function easedFade(colour) {
+		var m = /^#([0-9a-f]{6})$/i.exec(String(colour || "").trim());
+		if (!m) { return "linear-gradient(to bottom, transparent 0%, " + colour + " 100%)"; }
+		var n = parseInt(m[1], 16), rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(",");
+		var stops = [];
+		for (var i = 0; i <= 10; i++) {
+			var t = i / 10, a = t * t * (3 - 2 * t);   // smoothstep: slow, faster, slow again at full colour
+			stops.push("rgba(" + rgb + "," + a.toFixed(3) + ") " + (t * 100) + "%");
+		}
+		return "linear-gradient(to bottom, " + stops.join(", ") + ")";
+	}
+
 	function addFade(section, data, parent, joinColour) {
 		var fade = el("div", "gs-fade", parent);
 		fade.style.height = setting(data, section, "fadeHeight");
-		fade.style.background = "linear-gradient(to bottom, transparent 0%, " + joinColour + " 100%)";
+		fade.style.background = easedFade(joinColour);
 		var solid = el("div", "gs-fadeSolid", parent === section._root ? null : parent);
 		if (solid.parentNode) { solid.style.backgroundColor = joinColour; } else { solid = null; }
 	}

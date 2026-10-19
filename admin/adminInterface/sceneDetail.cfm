@@ -267,7 +267,7 @@ $(document).ready(function () {
 			{ key: "settings.scrub", label: "Movement", type: "select", options: [["true", "Follows the scroll exactly"], ["0.5", "Smooth"], ["1", "Smoother"]] },
 			{ key: "settings.intensity", label: "Depth (how far the layers move)", type: "number", min: 0.25, max: 2, step: 0.05, placeholder: "1" },
 			{ key: "settings.pinLength", label: "How long a hero stays in place", type: "select", options: [["", "Default (twice the screen)"], ["150%", "1.5 screens"], ["200%", "2 screens"], ["250%", "2.5 screens"], ["300%", "3 screens"]] },
-			{ key: "settings.fadeHeight", label: "Fade height", type: "select", options: [["", "Default"], ["0vh", "No fade"], ["20vh", "Short"], ["35vh", "Medium"], ["50vh", "Tall"]] },
+			{ key: "settings.fadeHeight", label: "Fade height", type: "select", options: [["", "Default"], ["0vh", "No fade"], ["20vh", "Short"], ["35vh", "Medium"], ["50vh", "Tall"], ["70vh", "Very tall"]] },
 			{ key: "settings.rise", label: "How far the text rises (pixels)", type: "number", min: 0, max: 600, step: 10, placeholder: "160" },
 			{ key: "settings.phoneMotion", label: "On phones", type: "select", options: [["", "Full movement"], ["light", "Half the movement"]] }
 		],
@@ -1008,7 +1008,9 @@ $(document).ready(function () {
 		copy.settings.reducedMotion = $("#scenePreviewReduced").is(":checked");
 		frame.contentWindow.postMessage({ type: "galaxieScenePreview", json: JSON.stringify(copy), fontCss: sceneFontCss(), hold: currentHold() }, origin);
 	}
-	function schedulePreview() { clearTimeout(previewTimer); previewTimer = setTimeout(sendPreview, 350); }
+	<!--- Every change goes through here, so it also marks the scene as changed since it was last saved. --->
+	var unsaved = false;
+	function schedulePreview() { unsaved = true; clearTimeout(previewTimer); previewTimer = setTimeout(sendPreview, 350); }
 	function onPreviewMessage(event) {
 		if (event.origin !== origin || !event.data || event.data.type !== "galaxieScenePreviewReady") { return; }
 		previewReady = true;
@@ -1036,7 +1038,22 @@ $(document).ready(function () {
 	var kendoWindow = $("#sceneDetailWindow").data("kendoWindow");
 	if (kendoWindow) {
 		kendoWindow.bind("resize", fit);
-		kendoWindow.bind("close", function () { window.removeEventListener("message", onPreviewMessage); closeExploded(); });
+		<!--- Closing with unsaved changes asks first (2026-10-19, hardening): closing used to drop them without a word. The shared
+		window code (blogJsContent.cfm) destroys a window as soon as it starts closing, so its handler is replaced here and the
+		window is destroyed only once the close goes ahead. --->
+		kendoWindow.unbind("close");
+		kendoWindow.bind("close", function (e) {
+			if (unsaved) {
+				e.preventDefault();
+				$.when(kendo.ui.ExtYesNoDialog.show({ title: "Close without saving?", message: "Your changes to this scene haven't been saved.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function (answer) {
+					if (answer['button'] === 'Yes') { unsaved = false; kendoWindow.close(); }
+				});
+				return;
+			}
+			window.removeEventListener("message", onPreviewMessage);
+			closeExploded();
+			setTimeout(function () { var w = $("#sceneDetailWindow").data("kendoWindow"); if (w) { w.destroy(); } }, 0);
+		});
 	}
 
 	<!--- ---------- Save --->
@@ -1063,6 +1080,7 @@ $(document).ready(function () {
 					sceneId = response.sceneId;
 					$("#sceneAlias").prop("readonly", true).attr("title", "A saved scene keeps its name, so the posts that show it keep working.");
 					$("#sceneRestart").remove();
+					unsaved = false;
 					$("#sceneSaved").text("Saved at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
 					try { refreshScenesWindow(); } catch (e) {}
 					<!--- The post's Scene window (108), when it opened this editor, lists the new scene and picks it. --->

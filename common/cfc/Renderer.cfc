@@ -58,6 +58,8 @@
 		<cfset var filePath = "">
 		<cfset var sceneJson = "">
 		<cfset var fontCss = "">
+		<cfset var hostStyle = "">
+		<cfset var parsed = "">
 		<cfset var html = "">
 		<cfset var containerId = "galaxieScene" & reReplace(arguments.postId, "[^0-9]", "", "all")>
 		<!--- Only a plain name, and only files in the scenes folder: the directive can never read anything else. --->
@@ -84,13 +86,23 @@
 		<cfif not isJSON(sceneJson)>
 			<cfreturn "">
 		</cfif>
+		<!--- The scene's space is reserved before the script builds it (2026-10-19, hardening): an empty container that grows to a
+		few thousand pixels pushed the post's text down as it loaded (Lighthouse layout shift 0.53). A hero takes a full screen,
+		anything else half a screen, in the scene's page colour, so there is no flash or jump. --->
+		<cfset parsed = deserializeJSON(sceneJson)>
+		<cfif isStruct(parsed) and isArray(parsed.sections ?: "") and arrayLen(parsed.sections) and isStruct(parsed.sections[1])>
+			<cfset hostStyle = "min-height:" & (listFindNoCase("layeredHero,photoHero,vantaHero,gradientHero,videoHero", parsed.sections[1].kind ?: "") ? "100vh" : "50vh") & ";">
+		</cfif>
+		<cfif isStruct(parsed) and reFind("^##[0-9A-Fa-f]{3,8}$", parsed.pageColour ?: "")>
+			<cfset hostStyle = hostStyle & "background-color:" & parsed.pageColour & ";">
+		</cfif>
 		<cfset sceneJson = replace(sceneJson, "</", "<\/", "all")>
 		<!--- The blog fonts the scene's headings and text use. --->
 		<cftry>
 			<cfset fontCss = application.blog.getScenes().getFontFaceCss(sceneJson)>
 			<cfcatch type="any"><cfset fontCss = ""></cfcatch>
 		</cftry>
-		<cfsavecontent variable="html"><cfoutput><cfif len(fontCss)><style>#fontCss#</style></cfif>#application.blog.getScenes().getEngineConfigScript()#<div class="galaxieSceneHost" id="#containerId#"></div>
+		<cfsavecontent variable="html"><cfoutput><cfif len(fontCss)><style>#fontCss#</style></cfif>#application.blog.getScenes().getEngineConfigScript()#<div class="galaxieSceneHost" id="#containerId#"<cfif len(hostStyle)> style="#hostStyle#"</cfif>></div>
 <script>
 (function () {
 	var data = #sceneJson#;

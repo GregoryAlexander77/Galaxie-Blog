@@ -32,8 +32,11 @@ through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. -
 		});
 	}
 
-	function deleteScene(sceneId, sceneName) {
-		$.when(kendo.ui.ExtYesNoDialog.show({ title: "Delete " + sceneName + "?", message: "Posts that show this scene will show nothing in its place. This can't be undone.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
+	function deleteScene(sceneId, sceneName, usedBy) {
+		<!--- The name is shown as text, never as HTML. --->
+		var safeName = $("<div/>").text(sceneName).html();
+		var used = usedBy > 0 ? (usedBy === 1 ? "1 post shows this scene. It will show nothing in its place. " : usedBy + " posts show this scene. They will show nothing in its place. ") : "No posts show this scene. ";
+		$.when(kendo.ui.ExtYesNoDialog.show({ title: "Delete " + safeName + "?", message: used + "This can't be undone.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
 			if (answer['button'] !== 'Yes') { return; }
 			jQuery.ajax({
 				type: "post",
@@ -97,7 +100,7 @@ through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. -
 							<a href="javascript:createAdminInterfaceWindow(107, #sceneList.SceneId#);">#encodeForHtml(sceneList.Name)#</a><br>
 							#encodeForHtml(sceneList.Alias)#. #thisUsedText#. #thisStatus#<br>
 							<button type="button" class="k-button" onclick="createAdminInterfaceWindow(107, #sceneList.SceneId#);">Edit</button>
-							<button type="button" class="k-button" onclick="deleteScene(#sceneList.SceneId#, '#encodeForHtmlAttribute(thisJsName)#');">Delete</button>
+							<button type="button" class="k-button" onclick="deleteScene(#sceneList.SceneId#, '#encodeForHtmlAttribute(thisJsName)#', #thisUsedBy#);">Delete</button>
 						</td>
 					</tr>
 					<cfelse>
@@ -108,7 +111,7 @@ through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. -
 						<td style="border-top: 1px solid ##ddd;">#thisStatus#</td>
 						<td style="border-top: 1px solid ##ddd;" align="right" nowrap="nowrap">
 							<button type="button" class="k-button" onclick="createAdminInterfaceWindow(107, #sceneList.SceneId#);">Edit</button>
-							<button type="button" class="k-button" onclick="deleteScene(#sceneList.SceneId#, '#encodeForHtmlAttribute(thisJsName)#');">Delete</button>
+							<button type="button" class="k-button" onclick="deleteScene(#sceneList.SceneId#, '#encodeForHtmlAttribute(thisJsName)#', #thisUsedBy#);">Delete</button>
 						</td>
 					</tr>
 					</cfif>
