@@ -2797,6 +2797,11 @@
 			cheap to rebuild, and not worth tracking which collections this post belongs to. --->
 			<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/pageCollections','')>
 
+			<!--- The Events page and the Upcoming Events pod too (2026-10-19, for 5.0): they list event posts by title and link,
+			so editing, releasing, unreleasing or deleting a post (or a scheduled release) changes them. They were only cleared
+			when an event itself was saved, so they could be up to an hour out of date. --->
+			<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/events', '.cfm')>
+
 			<!--- Delete the post related html files in the cache folder --->
 			<cfset thisDirectory = application.baseUrl & '/cache/rss'>
 			<cfset thisFileNameOrFilter = 'postId=#arguments.postId#'>

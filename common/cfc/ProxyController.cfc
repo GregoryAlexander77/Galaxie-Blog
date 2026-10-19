@@ -11036,6 +11036,10 @@
 				<cfset saveResult = application.locations.saveLocation(locationData)>
 				<cfset response[ "success" ] = saveResult.success>
 				<cfset response[ "locationOptionId" ] = saveResult.locationOptionId>
+				<!--- The event posts showing this location have it in their cached pages (2026-10-19). --->
+				<cfif saveResult.success and val(saveResult.locationOptionId)>
+					<cfset application.events.flushEventPosts(application.events.getPostIdsForLocation(val(saveResult.locationOptionId)))>
+				</cfif>
 				<cfset response[ "errorMessage" ] = arrayToList(saveResult.errors, "<br/>")>
 				<cfcatch type="any">
 					<cfset response[ "errorMessage" ] = "The location could not be saved: " & cfcatch.message>
@@ -11843,8 +11847,8 @@
 				<cfset response[ "errorMessage" ] = arrayToList(result.errors, "<br/>")>
 				<cfset response[ "ref" ] = result.ref>
 				<cfset response[ "name" ] = structKeyExists(data, "displayName") ? trim(data.displayName) : "">
-				<!--- A card's name shows on cached event pages. --->
-				<cfif result.success><cfset application.events.flushListings()></cfif>
+				<!--- A card's name shows on cached event pages: the posts it hosts, and the listings. --->
+				<cfif result.success><cfset application.events.flushEventPosts(len(result.ref) ? application.events.getPostIdsForPerson(result.ref) : [])></cfif>
 				<cfcatch type="any">
 					<cfset response[ "errorMessage" ] = "The card could not be saved: " & cfcatch.message>
 				</cfcatch>
@@ -11912,7 +11916,10 @@
 		<cfset secureFunction('EditUser')>
 		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.personCardId)>
 			<!--- Copied into quoted keys: Adobe ColdFusion upper-cases unquoted keys in JSON. --->
+			<!--- The event posts this card hosts, found before it goes, so their cached pages stop showing it. --->
+			<cfset local.hostedPosts = application.events.getPostIdsForPerson("guest:" & val(arguments.personCardId))>
 			<cfset local.deleted = application.events.getPeople().deleteGuest(val(arguments.personCardId))>
+			<cfif local.deleted.success><cfset application.events.flushEventPosts(local.hostedPosts)></cfif>
 			<cfset response[ "success" ] = local.deleted.success>
 			<cfset response[ "errorMessage" ] = local.deleted.errorMessage>
 		</cfif>
@@ -13228,6 +13235,8 @@
 				<!--- The posts the form joined or left under "Show on" have cached pages without (or with) it. --->
 				<cfif saveResult.success>
 					<cfset flushWebFormPosts(saveResult.changedPostIds)>
+					<!--- And the event posts that use it for sign-ups: their cached card shows Sign up only while the form is active (2026-10-19). --->
+					<cfset application.events.flushEventPosts(application.events.getPostIdsForForm(val(saveResult.webFormId)))>
 				</cfif>
 				<cfset response[ "success" ] = saveResult.success>
 				<cfset response[ "webFormId" ] = saveResult.webFormId>
@@ -13257,6 +13266,8 @@
 		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.webFormId)>
 			<cftry>
 				<cfset local.shownOn = application.webForms.getShowOnPosts(val(arguments.webFormId))>
+				<!--- And the event posts using it for sign-ups (2026-10-19), found before it goes. --->
+				<cfset local.eventPosts = application.events.getPostIdsForForm(val(arguments.webFormId))>
 				<cfset response[ "success" ] = application.webForms.deleteForm(val(arguments.webFormId))>
 				<cfif not response.success>
 					<cfset response[ "errorMessage" ] = "That form no longer exists.">
@@ -13267,6 +13278,7 @@
 						<cfset arrayAppend(local.shownOnIds, local.shownOnPost.postId)>
 					</cfloop>
 					<cfset flushWebFormPosts(local.shownOnIds)>
+					<cfset application.events.flushEventPosts(local.eventPosts)>
 				</cfif>
 				<cfcatch type="any">
 					<cfset response[ "errorMessage" ] = "The form could not be deleted: " & cfcatch.message>

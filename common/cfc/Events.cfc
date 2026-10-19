@@ -973,6 +973,45 @@
 	</cftry>
 </cffunction>
 
+<!--- Which event posts show a location, a person (as host) or a form (for sign-ups) (2026-10-19, for 5.0): the cached page of
+each shows that location, name or Sign up button, so editing one of them has to clear those pages. --->
+<cffunction name="getPostIdsForLocation" access="public" returntype="array" output="false">
+	<cfargument name="locationOptionId" type="numeric" required="true">
+	<cfreturn postIdList(queryExecute("SELECT PostRef FROM LocationOptionLookup WHERE LocationOptionRef = :id AND PostRef > 0 AND BookingTypeRef = 0",
+		{ id = { value = arguments.locationOptionId, cfsqltype = "cf_sql_integer" } }))>
+</cffunction>
+
+<cffunction name="getPostIdsForPerson" access="public" returntype="array" output="false" hint="The ref is a person card's, eg. guest:3 or user:5.">
+	<cfargument name="ref" type="string" required="true">
+	<cfreturn postIdList(queryExecute("SELECT PostRef FROM BlogEvent WHERE BlogRef = :blogId AND OrganizerUrl = :url",
+		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, url = { value = "person:" & arguments.ref, cfsqltype = "cf_sql_varchar" } }))>
+</cffunction>
+
+<cffunction name="getPostIdsForForm" access="public" returntype="array" output="false">
+	<cfargument name="webFormId" type="numeric" required="true">
+	<cfreturn postIdList(queryExecute("SELECT PostRef FROM BlogEvent WHERE BlogRef = :blogId AND WebFormRef = :id",
+		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, id = { value = arguments.webFormId, cfsqltype = "cf_sql_integer" } }))>
+</cffunction>
+
+<cffunction name="postIdList" access="private" returntype="array" output="false">
+	<cfargument name="rows" type="query" required="true">
+	<cfset var ids = []>
+	<cfloop query="arguments.rows"><cfif val(arguments.rows.PostRef)><cfset arrayAppend(ids, arguments.rows.PostRef)></cfif></cfloop>
+	<cfreturn ids>
+</cffunction>
+
+<cffunction name="flushEventPosts" access="public" returntype="void" output="false" hint="Clears the cached pages of these event posts, and the Events page and Upcoming Events pod.">
+	<cfargument name="postIds" type="array" required="true">
+	<cfset var postId = "">
+	<cfloop array="#arguments.postIds#" index="postId">
+		<cftry>
+			<cfset application.blog.flushGalaxieCache(type = "post", postId = postId)>
+			<cfcatch type="any"><!--- A cache that can't be cleared now is rebuilt when it expires; it mustn't fail the save. ---></cfcatch>
+		</cftry>
+	</cfloop>
+	<cfset flushListings()>
+</cffunction>
+
 <cffunction name="flushListings" access="public" returntype="void" output="false" hint="Clears the cached Upcoming Events pod and Events page, so they show an event's changes at once.">
 	<cftry>
 		<cfset application.blog.flushGalaxieCacheFiles(application.baseUrl & "/cache/events", ".cfm")>
