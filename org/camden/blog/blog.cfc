@@ -12035,6 +12035,10 @@
 		</cfif>
 					
 		<!--- Kendo Commercial. Note: the next two keyword items are new and does not need support using the original directive format with the colon --->
+		<!--- A Galaxie 5 scene as the post's hero (2026-10-19, common/js/galaxieScene.js): <galaxieScene>name</galaxieScene>. --->
+		<cfif arguments.postContent contains "<galaxieScene>">
+			<cfset xmlKeyWords = listAppend(xmlKeyWords, "galaxieScene")>
+		</cfif>
 		<cfif arguments.postContent contains "<kendoCommercial>">
 			<!--- Get the social media image description if available. --->
 			<cfif xmlKeyWords eq "">
@@ -14696,7 +14700,7 @@
 		<cfset var directiveList = "">
 		
 		<!--- Galaxie Blog Directives. ---> 
-		<cfset directiveList = "postData,attachScript,cfincludeTemplate,titleMetaTagValue,descriptionMetaTagValue,socialMediaDescMetaTagValue,facebookImageMetaTagValue,twitterImageMetaTagValue,videoPosterImageUrl,smallVideoSourceUrl,mediumVideoSourceUrl,largeVideoSourceUrl,videoCaptionsUrl,videoWidthMetaData,videoHeightMetaData,youTubeUrl,vimeoVideoId">
+		<cfset directiveList = "postData,attachScript,cfincludeTemplate,galaxieScene,titleMetaTagValue,descriptionMetaTagValue,socialMediaDescMetaTagValue,facebookImageMetaTagValue,twitterImageMetaTagValue,videoPosterImageUrl,smallVideoSourceUrl,mediumVideoSourceUrl,largeVideoSourceUrl,videoCaptionsUrl,videoWidthMetaData,videoHeightMetaData,youTubeUrl,vimeoVideoId">
 		
 		<!--- Return it --->
 		<cfreturn directiveList>

@@ -279,6 +279,10 @@
 			.then(function () {
 				if (root._vanta !== "starting" || !window.VANTA || !window.VANTA[effect]) { return; }
 				var options = Object.assign({ el: root.querySelector(".gs-heroBack"), mouseControls: true, touchControls: true, gyroControls: false }, section.options || {});
+				// Scenes are stored as JSON, which has no 0x numbers: Vanta's colours can be written "#0e3b5c" and are turned into numbers here.
+				Object.keys(options).forEach(function (k) {
+					if (typeof options[k] === "string" && /^#[0-9a-f]{6}$/i.test(options[k]) && /colou?r/i.test(k)) { options[k] = parseInt(options[k].slice(1), 16); }
+				});
 				root._vanta = window.VANTA[effect](options);
 			})
 			.catch(function () { root._vanta = null; });
@@ -301,7 +305,7 @@
 		var tl = gsap.timeline({
 			scrollTrigger: {
 				trigger: root, start: "top top", end: "+=" + setting(data, section, "pinLength"),
-				pin: true, pinSpacing: false, anticipatePin: 1,
+				pin: true, pinSpacing: !section._curtain, anticipatePin: 1,
 				scrub: setting(data, section, "scrub"), markers: guides,
 				onToggle: function (self) { self.isActive ? startLive(data, section, root) : stopLive(section, root); }
 			}
@@ -372,8 +376,10 @@
 			else { root.style.display = "none"; return; }   // unknown kinds (map, event...) come in a later phase
 			built.push({ section: section, root: root });
 			// The curtain: a spacer as long as the pin minus one screen, so the next section rises over the pinned hero and
-			// covers it exactly when the pin ends.
-			if (HERO_KINDS[section.kind]) {
+			// covers it exactly when the pin ends. A hero that is the scene's last section (the usual post hero) has nothing to
+			// slide over it - the post's own text follows - so it pins normally and then scrolls away.
+			section._curtain = HERO_KINDS[section.kind] && !!next;
+			if (section._curtain) {
 				var spacer = el("div", "gs-curtainSpacer", container);
 				spacer.style.height = "calc(" + parseFloat(setting(data, section, "pinLength")) + "vh - 100vh)";
 			}

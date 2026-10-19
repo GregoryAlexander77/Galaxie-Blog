@@ -49,7 +49,49 @@
 	<!--- //************************************************************************************************
 		Composite post injection functions
 	//**************************************************************************************************--->
-			
+
+	<cffunction name="renderScene" access="public" returnType="string" output="false"
+			hint="A Galaxie 5 scene (common/js/galaxieScene.js) as HTML: an empty container plus the script that builds it. The scene is read from includes/postContent/scenes/{name}.json for now (2026-10-19); it moves to the Scene tables later. Returns an empty string when the name is not a plain name or the file is missing or not valid JSON, so a bad directive never breaks a post.">
+		<cfargument name="sceneName" type="string" required="true">
+		<cfargument name="postId" type="string" required="false" default="0">
+		<cfset var name = trim(arguments.sceneName)>
+		<cfset var filePath = "">
+		<cfset var sceneJson = "">
+		<cfset var html = "">
+		<cfset var containerId = "galaxieScene" & reReplace(arguments.postId, "[^0-9]", "", "all")>
+		<!--- Only a plain name, and only files in the scenes folder: the directive can never read anything else. --->
+		<cfif not reFind("^[A-Za-z0-9_-]{1,80}$", name)>
+			<cfreturn "">
+		</cfif>
+		<cfset filePath = expandPath(application.baseUrl & "/includes/postContent/scenes/" & name & ".json")>
+		<cfif not fileExists(filePath)>
+			<cfreturn "">
+		</cfif>
+		<!--- {baseUrl} in the file stands for the blog's base URL, so a scene works in a /blog folder or in the root. --->
+		<cfset sceneJson = replace(fileRead(filePath, "utf-8"), "{baseUrl}", application.baseUrl, "all")>
+		<!--- Must be valid JSON. It is written out as it is (serializeJSON would upper-case the keys on Adobe ColdFusion), with
+		"</" escaped so nothing in it can end the script tag. --->
+		<cfif not isJSON(sceneJson)>
+			<cfreturn "">
+		</cfif>
+		<cfset sceneJson = replace(sceneJson, "</", "<\/", "all")>
+		<cfsavecontent variable="html"><cfoutput><div class="galaxieSceneHost" id="#containerId#"></div>
+<script>
+(function () {
+	var data = #sceneJson#;
+	data.settings = data.settings || {};
+	data.settings.baseUrl = data.settings.baseUrl || "#application.baseUrl#";
+	function go() { GalaxieScene.ready(function () { GalaxieScene.build(document.getElementById("#containerId#"), data); }); }
+	if (window.GalaxieScene) { go(); return; }
+	var s = document.createElement("script");
+	s.src = "#application.baseUrl#/common/js/galaxieScene.js";
+	s.onload = go;
+	document.head.appendChild(s);
+})();
+</script></cfoutput></cfsavecontent>
+		<cfreturn html>
+	</cffunction>
+
 	<cffunction name="renderPost" access="public" returnType="string" output="false"
 			hint="Renders html for a post. This will also render the directives from the post header, the enclosure images and media, and the post.">
 		<cfargument name="kendoTheme" type="string" required="false" default="">
@@ -92,7 +134,13 @@
 				<!--- Inject the include. Note: there is no enclosure or body here. --->
 				<cfset cfincludePath = application.blog.getXmlKeywordValue(postHeader, 'cfincludeTemplate')>
 				<cfset post = injectCfinclude(cfincludePath)>
-				
+
+			<!--- A Galaxie 5 scene (2026-10-19): the scene is the post's hero, the post's own text follows. Only on the post's own
+			page - a listing shows the post's normal picture, so a listing can never mix GSAP 3 with the 2019 templates' TweenMax 2. --->
+			<cfelseif findNoCase("galaxieScene", xmlKeywords) gt 0 and arguments.isSinglePostPage>
+				<cfset post = renderScene(application.blog.getXmlKeywordValue(postHeader, 'galaxieScene'), getPost[currentRow]["PostId"])
+					& renderCssAndScript(css, javaScript) & renderBody(body)>
+
 			<cfelse><!---<cfif findNoCase("cfincludeTemplate", xmlKeywords) gt 0>--->
 				
 				<!--- Handle video directives. --->				
