@@ -8,7 +8,9 @@ Step 3 (2026-10-19): rich text (one TinyMCE that stays put while sections are pi
 Step 4 (2026-10-19): a new scene opens on a gallery of the ready-made scenes (includes/postContent/scenes/*.json), each card
 drawn from the scene itself (its layers, photo or gradient), or from the picture named in the file's "thumbnail".
 Layer builder (2026-10-19, layout B): the layered hero's layers in a list with depth sliders, Add layers, Even out depths and a
-size check; on the preview, Hold the scroll, and an Exploded view in its own Kendo window (owner's request). To come: the colour helper (design doc, Galaxie 5). --->
+size check; on the preview, Hold the scroll, and an Exploded view in its own Kendo window (owner's request).
+Colour helper (2026-10-19, option A): a Suggest button on each colour field, with colours read from the section's pictures and its
+neighbours, and the browser's eyedropper where there is one. --->
 <cfset sceneId = val(URL.optArgs)>
 <cfset scene = sceneId gt 0 ? application.blog.getScenes().getScene(sceneId) : {}>
 <cfset isNewScene = structIsEmpty(scene)>
@@ -113,6 +115,12 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 	<!--- Each band's colour is picked with the Band colour picker below the bar, not Grapick's own small input. --->
 	.sceneGradientBar .grp-handler-cp-c { display: none; }
 	.sceneGradient .sceneRow { margin-bottom: 8px; }
+	.sceneSuggest { margin-top: 6px; padding: 8px; border: 1px solid rgba(128,128,128,.45); border-radius: 6px; }
+	.sceneSuggestItem { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px; margin: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+	.sceneSuggestItem:hover, .sceneSuggestItem:focus { background: rgba(128,128,128,.18); outline: none; }
+	.sceneSuggestSwatch { flex: 0 0 40px; height: 22px; border: 1px solid rgba(128,128,128,.6); border-radius: 3px; }
+	.sceneSuggestItem > span:nth-child(2) { flex: 1 1 auto; }
+	.sceneSuggestValue { opacity: .7; font-size: 12px; }
 	#sceneGallery { flex: 1 1 auto; overflow: auto; padding: 14px 16px; }
 	@media (max-width: 900px) {
 		#sceneEditorBody { flex-direction: column; overflow: auto; }
@@ -358,6 +366,123 @@ $(document).ready(function () {
 		});
 	}
 
+	<!--- ---------- The colour helper (2026-10-19, option A): a Suggest button on every colour field, listing colours worked out in the
+	browser from the section's own pictures and its neighbours - above all the bottom edge of the front picture, which is what a
+	hero's fade has to melt into - and "Pick from the screen" with the browser's eyedropper where there is one (Chrome, Edge). --->
+	function toHex(r, g, b) { return "#" + [r, g, b].map(function (n) { return ("0" + Math.round(n).toString(16)).slice(-2); }).join(""); }
+	function loadPicture(src) {
+		return new Promise(function (resolve, reject) {
+			var img = new Image();
+			img.onload = function () { resolve(img); };
+			img.onerror = reject;
+			img.src = withBase(src);
+		});
+	}
+	<!--- A picture drawn small, to read its pixels quickly. --->
+	function pixelsOf(img) {
+		var w = Math.min(240, img.naturalWidth || 240), h = Math.max(1, Math.round(w * (img.naturalHeight || 1) / (img.naturalWidth || 1)));
+		var canvas = document.createElement("canvas");
+		canvas.width = w; canvas.height = h;
+		var ctx = canvas.getContext("2d");
+		ctx.drawImage(img, 0, 0, w, h);
+		return { data: ctx.getImageData(0, 0, w, h).data, w: w, h: h };
+	}
+	<!--- The average of the bottom few rows, leaving out see-through pixels. --->
+	function bottomColour(px) {
+		var r = 0, g = 0, b = 0, n = 0, rows = Math.max(2, Math.round(px.h * 0.04));
+		for (var y = px.h - rows; y < px.h; y++) {
+			for (var x = 0; x < px.w; x++) {
+				var i = (y * px.w + x) * 4;
+				if (px.data[i + 3] > 200) { r += px.data[i]; g += px.data[i + 1]; b += px.data[i + 2]; n++; }
+			}
+		}
+		return n ? toHex(r / n, g / n, b / n) : null;
+	}
+	<!--- The most common colour, in groups of near colours, averaged within the winning group. --->
+	function mainColour(px) {
+		var groups = {}, best = null;
+		for (var i = 0; i < px.data.length; i += 4) {
+			if (px.data[i + 3] < 200) { continue; }
+			var key = (px.data[i] >> 4) + "," + (px.data[i + 1] >> 4) + "," + (px.data[i + 2] >> 4);
+			var gr = groups[key] || (groups[key] = { n: 0, r: 0, g: 0, b: 0 });
+			gr.n++; gr.r += px.data[i]; gr.g += px.data[i + 1]; gr.b += px.data[i + 2];
+			if (!best || gr.n > best.n) { best = gr; }
+		}
+		return best ? toHex(best.r / best.n, best.g / best.n, best.b / best.n) : null;
+	}
+	<!--- A section's own colour: its background colour, or the first colour of its gradient. --->
+	function sectionColour(s) {
+		if (!s) { return null; }
+		if (s.colour) { return s.colour; }
+		var m = /(#[0-9a-f]{3,8}\b|rgba?\([^)]*\))/i.exec(s.gradient || "");
+		return m ? m[1] : (s.fadeColour || null);
+	}
+	<!--- The pictures to read for a section: a layered hero's front layer (and all its layers, drawn together, for the main colour);
+	otherwise its photo, picture or video poster. --->
+	function picturesOf(s) {
+		if (!s) { return []; }
+		if (s.kind === "layeredHero") { return $.map(s.layers || [], function (l) { return l.src; }); }
+		return $.grep([s.image || s.poster], function (v) { return !!v; });
+	}
+	function suggestColours() {
+		var s = selected >= 0 ? scene.sections[selected] : scene.sections[0];
+		var srcs = picturesOf(s);
+		var list = [];
+		function add(label, colour, note) {
+			if (!colour) { return; }
+			for (var i = 0; i < list.length; i++) { if (String(list[i].colour).toLowerCase() === String(colour).toLowerCase()) { return; } }
+			list.push({ label: label, colour: colour, note: note || "" });
+		}
+		var work = !srcs.length ? Promise.resolve() : Promise.all($.map(srcs, function (src) { return loadPicture(src).catch(function () { return null; }); })).then(function (imgs) {
+			imgs = $.grep(imgs, function (img) { return !!img; });
+			if (!imgs.length) { return; }
+			var front = imgs[imgs.length - 1];
+			add(s.kind === "layeredHero" ? "Bottom of the front layer" : "Bottom of the picture", bottomColour(pixelsOf(front)), "best match for the fade");
+			<!--- All the layers drawn together, as the visitor sees them. --->
+			var w = Math.min(240, front.naturalWidth || 240), h = Math.max(1, Math.round(w * (front.naturalHeight || 1) / (front.naturalWidth || 1)));
+			var canvas = document.createElement("canvas");
+			canvas.width = w; canvas.height = h;
+			var ctx = canvas.getContext("2d");
+			$.each(imgs, function (i, img) { ctx.drawImage(img, 0, 0, w, h); });
+			add("The picture's main colour", mainColour({ data: ctx.getImageData(0, 0, w, h).data, w: w, h: h }));
+		});
+		return work.catch(function () {}).then(function () {
+			var at = selected >= 0 ? selected : 0;
+			add("The next section's colour", sectionColour(scene.sections[at + 1]));
+			if (at > 0) { add("The section before", sectionColour(scene.sections[at - 1])); }
+			add("The page colour", scene.pageColour);
+			return list;
+		});
+	}
+	<!--- The Suggest list under a colour field; picking one sets the field (apply) and closes the list. --->
+	function showSuggestions(anchor, field, apply) {
+		$(".sceneSuggest").remove();
+		var box = $('<div class="sceneSuggest" role="listbox"></div>').text("Working out colours...");
+		anchor.after(box);
+		function close() { box.remove(); $(document).off(".sceneSuggest"); }
+		setTimeout(function () {
+			$(document).on("mousedown.sceneSuggest", function (e) { if (!$(e.target).closest(".sceneSuggest").length) { close(); } })
+				.on("keydown.sceneSuggest", function (e) { if (e.key === "Escape") { close(); } });
+		}, 0);
+		suggestColours().then(function (list) {
+			box.empty();
+			if (!list.length) { box.append($('<div class="k-form-hint"></div>').text("No colours to suggest yet: add a picture or a colour to this or the next section.")); }
+			$.each(list, function (i, item) {
+				var colour = field.solid && /^rgba?\(/i.test(item.colour) ? toHex.apply(null, (item.colour.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number)) : item.colour;
+				var pick = $('<button type="button" class="sceneSuggestItem" role="option"></button>')
+					.append($('<span class="sceneSuggestSwatch"></span>').css("background", colour), $('<span></span>').text(item.label + (item.note ? " (" + item.note + ")" : "")), $('<span class="sceneSuggestValue"></span>').text(colour));
+				pick.on("click", function () { apply(colour); close(); });
+				box.append(pick);
+			});
+			if (window.EyeDropper) {
+				box.append($('<button type="button" class="k-button" style="margin-top: 6px;">Pick from the screen</button>').on("click", function () {
+					close();
+					new window.EyeDropper().open().then(function (result) { apply(result.sRGBHex); }).catch(function () { <!--- cancelled ---> });
+				}), $('<span class="k-form-hint"> any colour you can see, the preview included</span>'));
+			}
+		});
+	}
+
 	function fieldHtml(field) {
 		if (field.group) { return $('<h4 class="adminBlockHeading sceneFieldGroup"></h4>').text(field.group); }
 		var wrap = $('<div class="sceneField"></div>');
@@ -371,13 +496,22 @@ $(document).ready(function () {
 			<!--- Kendo's colour picker, with transparency unless the field takes plain colours only. None takes the colour away. --->
 			input = $('<input>').attr("id", id);
 			var none = $('<button type="button" class="k-button">None</button>');
-			wrap.append($('<div class="sceneRow"></div>').append(input, none));
+			var suggest = $('<button type="button" class="k-button" title="Colours from the pictures of this section and the sections next to it">Suggest</button>');
+			var row = $('<div class="sceneRow"></div>').append(input, none, suggest);
+			wrap.append(row);
 			pending.push(function () {
 				var picker = input.kendoColorPicker({
 					value: value || null, opacity: !field.solid, buttons: false, preview: true, input: true,
 					change: function () { setValue(field.key, this.value() || ""); schedulePreview(); }
 				}).data("kendoColorPicker");
 				none.on("click", function () { try { picker.value(null); } catch (e) {} setValue(field.key, ""); schedulePreview(); });
+				suggest.on("click", function () {
+					showSuggestions(row, field, function (colour) {
+						try { picker.value(colour); } catch (e) {}
+						setValue(field.key, colour);
+						schedulePreview();
+					});
+				});
 			});
 			return hint();
 		}
