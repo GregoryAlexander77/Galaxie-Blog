@@ -692,6 +692,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			.adminHomeSuggestWrap { position: relative; }
 			.adminHomeSuggestWrap > .adminHomeTile { box-sizing: border-box; height: 100%; border-left: 4px solid #0969da; }
 			.adminHomeSuggestText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+			.adminHomeQuick .adminHomeGrid { grid-auto-rows: 1fr; }   <!--- every tile as tall as the tallest, also when the row wraps --->
 			.adminHomeQuick .adminHomeGrid > * { align-self: stretch; }
 			.adminHomeQuick .adminHomeGrid > a.adminHomeTile { box-sizing: border-box; height: 100%; }
 			.adminHomeHide { position: absolute; top: 4px; right: 6px; border: 0; background: none; color: inherit; opacity: .55; font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 4px; }
