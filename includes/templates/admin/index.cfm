@@ -439,7 +439,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 		<!-- Content --> 
 		<span id="iconNavMenu" class="postContent">	
 
-			<span style="text-align: center">Click on one of the categories below to continue.</span>
+			<span style="text-align: center">Pick a group, or one of the everyday actions.</span>
 
 			<!--- Until the owner finishes the Site Setup wizard (5.0): how many screens are done, and a button to carry on. --->
 			<!--- A brand new blog (5.0): the first visit to the administration page in a session opens the wizard, until the owner has
@@ -457,604 +457,142 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 				</div>
 			</cfif>
 
-				<table id="iconMenu" cellpadding="0" cellspacing="0" border="0" width="100%">
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>  
-						<td width="33%" style="text-align:center">
-							<!--- Note: we already know that this is the profile icon, but we need to append an additional argument to the list (the 3rd argument is otherArgs) for the link to know what type of user is being edited to change the window title. The link is hardcoded --->
-							<cfset i = 1>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
+				<!--- 5.0 (2026-10-19, owner's pick C): the everyday actions one click away, everything else in six groups, each group with
+				its own page of icons, and what needs the owner shown on the tiles. The icons, their permissions and links are the lists
+				above; this only lays them out. Room is left below the groups for charts of traffic and popular posts, some day. --->
+				<cfsilent>
+					<cfset homeGroups = [
+						{ key: "posts", name: "Posts and Pages", image: "/images/icons/posts.png", what: "Write and organise", icons: "addPost,Posts,CreatePage,Pages,Comments,CreatePageCollection,ConfigurePageCollections,Categories,Tags,ImportData" },
+						{ key: "look", name: "Look and Layout", image: "/images/icons/themes.png", what: "Themes, scenes, home page and menu", icons: "Themes,Scenes,Fonts,ConfigureHomepage,ConfigureMenu" },
+						{ key: "forms", name: "Forms and Bookings", image: "/images/icons/forms.gif", what: "Forms, bookings and events", icons: "Forms,Bookings,Events" },
+						{ key: "people", name: "People", image: "/images/icons/users.png", what: "Users, members and subscribers", icons: "Users,Members,Subscriber,userProfile,BanVisitors,BannedUsers" },
+						{ key: "logs", name: "Logs", image: "/images/icons/adminLog.gif", what: "What happened on the site", icons: "ErrorLog,AdminLog,MemberLog,VisitorLog,reactionLog,SearchQuery" },
+						{ key: "settings", name: "Settings", image: "/images/icons/settings.gif", what: "Set-up, settings and updates", icons: "SiteSetup,BlogSettings,BlogOptions,BlogUpdate,RefreshSite,ReloadOrm" }
+					]>
+					<cfset everyDay = "addPost,Posts,Comments,CreatePage">
+					<!--- What needs the owner, for the badges: comments waiting, errors in the last day, new sign-ups and bookings this week.
+					If the counts can't be read, the tiles simply show none. --->
+					<cfset homeStatus = { comments: 0, errors: 0, signUps: 0 }>
+					<cftry>
+						<cfset homeStatusQuery = queryExecute("
+							SELECT
+								(SELECT COUNT(*) FROM Comment WHERE BlogRef = :blogId AND (Approved = 0 OR Approved IS NULL) AND (Remove = 0 OR Remove IS NULL) AND (Spam = 0 OR Spam IS NULL)) AS CommentCount,
+								(SELECT COUNT(*) FROM ErrorLog WHERE Date >= :dayAgo AND (Resolved = 0 OR Resolved IS NULL)) AS ErrorCount,
+								(SELECT COUNT(*) FROM WebFormSubmission s JOIN WebForm f ON f.WebFormId = s.WebFormRef WHERE f.BlogRef = :blogId AND s.Created >= :weekAgo) AS SubmissionCount,
+								(SELECT COUNT(*) FROM Booking WHERE BlogRef = :blogId AND Created >= :weekAgo) AS BookingCount",
+							{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" },
+							  dayAgo = { value = dateAdd("d", -1, now()), cfsqltype = "cf_sql_timestamp" },
+							  weekAgo = { value = dateAdd("d", -7, now()), cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn })>
+						<cfset homeStatus = { comments: val(homeStatusQuery.CommentCount), errors: val(homeStatusQuery.ErrorCount), signUps: val(homeStatusQuery.SubmissionCount) + val(homeStatusQuery.BookingCount) }>
+						<cfcatch type="any"></cfcatch>
+					</cftry>
+					<cfset homeGroupStatus = {
+						forms: homeStatus.signUps ? homeStatus.signUps & " new this week" : "",
+						logs: homeStatus.errors ? homeStatus.errors & (homeStatus.errors eq 1 ? " new error" : " new errors") : "",
+						settings: listFindNoCase(titleList, "Blog Updates (update needed)") ? "Update needed" : "",
+						posts: homeStatus.comments ? homeStatus.comments & (homeStatus.comments eq 1 ? " comment waiting" : " comments waiting") : ""
+					}>
+				</cfsilent>
+				<cfoutput>
+				<div id="adminHome">
+					<div class="adminHomeSection adminHomeQuick">
+						<h5 class="adminHomeHeading">Every day</h5>
+						<div class="adminHomeGrid">
+						<cfloop list="#everyDay#" index="key">
+							<cfset i = listFindNoCase(iconList, key)>
+							<cfif i>
+							<a class="adminHomeTile k-content" id="#listGetAt(iconList, i)#" href="#listGetAt(linkList, i)#">
+								<img src="#application.baseUrl##listGetAt(imageList, i)#" alt="">
+								<span class="adminHomeName">#listGetAt(titleList, i)#</span>
+								<cfif key eq "Comments" and homeStatus.comments><span class="adminHomeBadge" title="#homeStatus.comments# waiting">#homeStatus.comments#</span></cfif>
+							</a>
 							</cfif>
-						</td>
-						<td width="33%" style="text-align:center">
-							<cfset i = 2>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
+						</cfloop>
+						</div>
+					</div>
+					<div class="adminHomeSection">
+						<h5 class="adminHomeHeading">Everything else</h5>
+						<div class="adminHomeGrid adminHomeGroups">
+						<cfloop array="#homeGroups#" index="group">
+							<cfset groupCount = 0>
+							<cfloop list="#group.icons#" index="key"><cfif listFindNoCase(iconList, key)><cfset groupCount++></cfif></cfloop>
+							<cfif groupCount>
+							<button type="button" class="adminHomeTile adminHomeGroup k-content" data-group="#group.key#">
+								<img src="#application.baseUrl##group.image#" alt="">
+								<span class="adminHomeName">#group.name#</span>
+								<span class="adminHomeWhat">#group.what#</span>
+								<cfif len(homeGroupStatus[group.key] ?: "")><span class="adminHomeStatus<cfif group.key eq 'forms'> adminHomeInfo</cfif>">#homeGroupStatus[group.key]#</span></cfif>
+							</button>
 							</cfif>
-						</td>
-						<td width="33%" style="text-align:center">
-							<cfset i = 3>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-				<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 4>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 5>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 6>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-					<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 7>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 8>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 9>
-							<cfif listLen(iconList) gte i>
-							<!--- The ninth icon, the edit profile link, is hardcorded with an extra argument in the link structure --->
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-				<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 10>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 11>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 12>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-				<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 13>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 14>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 15>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-					<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-				<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 16>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 17>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 18>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-					<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 19>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 20>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 21>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-
-							</span>
-							</cfif>
-						</td>
-					</tr>
-					<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 22>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 23>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 24>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-
-							</span>
-							</cfif>
-						</td>
-					</tr>
-					<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<!--- Was missing entirely - iconList grew to 27 entries (BlogUpdate/RefreshSite/ReloadOrm added
-					after this table's rows were last extended) but the markup stopped at i=24 (ImportData), so
-					everything past it silently never rendered instead of erroring. --->
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 25>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 26>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 27>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-					<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<!--- Inserting Create Page Collection near the top pushed iconList to 28 entries - Reload ORM
-					Objects (now i=28) lands alone in this new row on its own, same "add a row, don't cram it into
-					an existing one" approach as the i=25-27 row above. --->
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 28>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 29>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 30>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-				<!--- Slots 31-39 (2026-10-15): the icons are listed above and placed here by number, so a slot has to exist for every icon.
-				With Forms, Bookings, Configure Menu and Events there were more than 30, and the last ones (Refresh Site, Reload ORM
-				Objects) silently didn't show. Add another row of three here when the list grows past 39. --->
-				<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 31>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 32>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 33>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-				<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 34>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 35>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 36>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-				<!--- Provide extra space for mobile clients otherwise the icons are squished together --->
-				<cfif session.isMobile>
-					<tr>
-						<td colspan="3" style="height: 20px">&nbsp;</td>
-					</tr>
-				</cfif>
-					<tr>
-						<td colspan="3">&nbsp;</td>
-					</tr>
-					<tr>
-						<td style="text-align:center">
-							<cfset i = 37>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 38>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-						<td style="text-align:center">
-							<cfset i = 39>
-							<cfif listLen(iconList) gte i>
-							<span id="<cfoutput>#listGetAt(iconList, i)#</cfoutput>" title="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" data-desc="<cfoutput>#listGetAt(titleList, i)#</cfoutput>" class="iconTopRow icon">
-								<a href="<cfoutput>#listGetAt(linkList, i)#</cfoutput>">
-								<img src="<cfoutput>#application.baseUrl##listGetAt(imageList, i)#</cfoutput>">
-								<span class="caption"><cfoutput>#listGetAt(titleList, i)#</cfoutput></span>
-								</a>
-							</span>
-							</cfif>
-						</td>
-					</tr>
-				</table>
+						</cfloop>
+						</div>
+					</div>
+					<!--- Later: charts of traffic and the most popular posts go here. --->
+				</div>
+				<cfloop array="#homeGroups#" index="group">
+				<div class="adminGroupPage" id="adminGroup-#group.key#" style="display: none;">
+					<div class="adminHomeCrumb"><a href="##" class="adminHomeBack">Blog Administration</a> &rsaquo; #group.name#</div>
+					<h5 class="adminHomeHeading">#group.name#</h5>
+					<div class="adminHomeGrid">
+					<cfloop list="#group.icons#" index="key">
+						<cfset i = listFindNoCase(iconList, key)>
+						<cfif i>
+						<a class="adminHomeTile adminHomeIcon k-content" id="#listGetAt(iconList, i)#" href="#listGetAt(linkList, i)#">
+							<img src="#application.baseUrl##listGetAt(imageList, i)#" alt="">
+							<span class="adminHomeName">#listGetAt(titleList, i)#</span>
+							<cfif key eq "Comments" and homeStatus.comments><span class="adminHomeBadge">#homeStatus.comments#</span></cfif>
+						</a>
+						</cfif>
+					</cfloop>
+					</div>
+				</div>
+				</cfloop>
+				</cfoutput>
+				<script>
+					<!--- A group's page in place of the home; the address carries it (group-logs), so Back and a refresh keep it. --->
+					(function () {
+						function show() {
+							var m = /^#group-([a-z]+)$/.exec(window.location.hash), page = m ? document.getElementById("adminGroup-" + m[1]) : null;
+							document.getElementById("adminHome").style.display = page ? "none" : "";
+							Array.prototype.forEach.call(document.querySelectorAll(".adminGroupPage"), function (p) { p.style.display = p === page ? "" : "none"; });
+						}
+						<!--- No page loads: a group is shown in place, and the address changes only after the #, so the browser's Back
+						button returns to the home view and a refresh keeps the group open. --->
+						Array.prototype.forEach.call(document.querySelectorAll(".adminHomeGroup"), function (b) {
+							b.addEventListener("click", function () { window.history.pushState(null, "", "#group-" + b.getAttribute("data-group")); show(); window.scrollTo(0, 0); });
+						});
+						Array.prototype.forEach.call(document.querySelectorAll(".adminHomeBack"), function (a) {
+							a.addEventListener("click", function (e) { e.preventDefault(); window.history.replaceState(null, "", window.location.pathname + window.location.search); show(); });
+						});
+						window.addEventListener("popstate", show);
+						window.addEventListener("hashchange", show);
+						show();
+					})();
+				</script>
 
 			</span>
 		</div>
 
 		<!--- Stylesheet for the icon and tooltips. --->
 		<style>
+			<!--- The regrouped home (5.0). --->
+			#adminHome, .adminGroupPage { max-width: 980px; margin: 0 auto; }
+			.adminHomeSection { margin-top: 14px; }
+			.adminHomeHeading { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; opacity: .75; margin: 18px 0 10px; text-align: left; }
+			.adminHomeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>130<cfelse>150</cfif>px, 1fr)); gap: 14px; }
+			.adminHomeTile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 8px 12px; border: 1px solid rgba(128,128,128,.35); border-radius: 8px; text-align: center; text-decoration: none; color: inherit; cursor: pointer; font: inherit; }
+			.adminHomeTile:hover, .adminHomeTile:focus { box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5); }
+			.adminHomeTile img { width: <cfif session.isMobile>56<cfelse>72</cfif>px; height: <cfif session.isMobile>56<cfelse>72</cfif>px; object-fit: contain; }
+			.adminHomeName { font-weight: bold; }
+			.adminHomeWhat { font-size: 13px; opacity: .75; line-height: 1.3; }
+			.adminHomeStatus { font-size: 13px; font-weight: bold; color: #d1242f; }
+			.adminHomeStatus.adminHomeInfo { color: #0969da; }
+			.adminHomeBadge { position: absolute; top: 8px; right: 8px; background: #d1242f; color: #ffffff; font-size: 12px; font-weight: bold; border-radius: 10px; padding: 2px 7px; }
+			.adminHomeQuick .adminHomeGrid { grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>150<cfelse>200</cfif>px, 1fr)); }
+			.adminHomeQuick .adminHomeTile { flex-direction: row; justify-content: flex-start; padding: 10px 12px; text-align: left; }
+			.adminHomeQuick .adminHomeTile img { width: 40px; height: 40px; }
+			.adminHomeCrumb { text-align: left; margin: 10px 0 0; }
+			.adminHomeCrumb a { text-decoration: underline; }
 
 			span.icon {
 				<!--- To correctly align image, regardless of content height: --->
