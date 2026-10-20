@@ -580,7 +580,12 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 				</div>
 				<cfloop array="#homeGroups#" index="group">
 				<div class="adminGroupPage" id="adminGroup-#group.key#" style="display: none;">
-					<div class="adminHomeCrumb"><a href="##" class="adminHomeBack">Blog Administration</a> &rsaquo; #group.name#</div>
+					<!--- The blog's own breadcrumb (owner, 10-20; cd-breadcrumb in blogContentCss.cfm): the site, the administration home, this group. --->
+					<div class="adminHomeCrumb k-content"><nav><ol class="cd-breadcrumb triangle">
+						<li><a href="#application.blogHostUrl#" aria-label="Your site"><i class="fas fa-house" style="alignment-baseline:middle;"></i></a></li>
+						<li><a href="##" class="adminHomeBack">Administration</a></li>
+						<li class="current"><a href="##group-#group.key#" class="k-content">#group.name#</a></li>
+					</ol></nav></div>
 					<h5 class="adminHomeHeading">#group.name#</h5>
 					<div class="adminHomeGrid">
 					<cfloop list="#group.icons#" index="key">
@@ -724,8 +729,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			.adminTrafficStack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(128,128,128,.2); margin-bottom: 4px; }
 			.adminTrafficDot { width: 10px; height: 10px; border-radius: 50%; }
 			.adminTrafficPart0 { background: var(--homeAccent); } .adminTrafficPart1 { background: color-mix(in srgb, var(--homeAccent) 55%, #ffffff); } .adminTrafficPart2 { background: color-mix(in srgb, var(--homeAccent) 60%, #000000); } .adminTrafficPart3 { background: #9aa4ae; }
-			.adminHomeCrumb { text-align: left; margin: 10px 0 0; }
-			.adminHomeCrumb a { text-decoration: underline; }
+			.adminHomeCrumb { text-align: left; margin: 10px 0 0; padding: 5px; }
 
 			span.icon {
 				<!--- To correctly align image, regardless of content height: --->
