@@ -546,6 +546,19 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 						</cfloop>
 						</div>
 					</div>
+					<!--- Traffic this week (owner, 2026-10-20): four cards drawn by the page itself (no chart library), filled after the page
+					shows from ProxyController getAdminTraffic -> AdminHome.cfc getTraffic. Only for someone who may open the Visitor Log. --->
+					<cfif listFindNoCase(iconList, "VisitorLog")>
+					<div class="adminHomeSection" id="adminTraffic">
+						<h5 class="adminHomeHeading">This week</h5>
+						<div class="adminTrafficGrid">
+							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Visitors</div><div id="trafficVisitors" class="adminTrafficBody">Loading...</div></div>
+							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Most read</div><div id="trafficTop" class="adminTrafficBody"></div></div>
+							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Where they came from</div><div id="trafficSources" class="adminTrafficBody"></div></div>
+							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Reading now</div><div id="trafficNow" class="adminTrafficBody"></div></div>
+						</div>
+					</div>
+					</cfif>
 					<div class="adminHomeSection">
 						<h5 class="adminHomeHeading">Everything else</h5>
 						<div class="adminHomeGrid adminHomeGroups">
@@ -585,6 +598,46 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 				</cfloop>
 				</cfoutput>
 				<script>
+					<!--- Traffic cards: drawn here from the numbers (a trend line, bars), so no chart library is downloaded. --->
+					(function () {
+						if (!document.getElementById("adminTraffic")) { return; }
+						var esc = function (t) { return $("<div/>").text(t).html(); };
+						jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getAdminTraffic",
+							data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>" }, dataType: "json" }).done(function (response) {
+							if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+							if (!response || !response.success) { $("#trafficVisitors").text("The visitor numbers couldn't be read."); return; }
+							var t = response.traffic, n = function (x) { return Math.round(+x || 0); };
+							// Visitors: this week, the change on last week, a 30-day line.
+							var change = "";
+							if (n(t.peopleLastWeek) > 0) {
+								var pct = Math.round((n(t.peopleThisWeek) - n(t.peopleLastWeek)) / n(t.peopleLastWeek) * 100);
+								change = (pct >= 0 ? "\u25B2 " : "\u25BC ") + Math.abs(pct) + "% on last week";
+							} else if (n(t.peopleThisWeek) > 0) { change = "None last week"; }
+							var points = (t.days || []).map(function (d) { return n(d.people); }), max = Math.max.apply(null, points.concat([1]));
+							var line = points.map(function (v, i) { return (i * (300 / Math.max(1, points.length - 1))).toFixed(1) + "," + (56 - v / max * 50).toFixed(1); }).join(" ");
+							$("#trafficVisitors").html('<div class="adminTrafficBig">' + n(t.peopleThisWeek) + '</div><div class="adminTrafficNote">' + esc(change || "people this week") + '</div>'
+								+ '<svg class="adminTrafficLine" viewBox="0 0 300 60" preserveAspectRatio="none" aria-label="Visitors a day, the last 30 days"><polyline points="' + line + '" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>'
+								+ '<div class="adminTrafficNote">Last 30 days' + (n(t.botsThisWeek) ? ', plus ' + n(t.botsThisWeek) + ' bots this week (not counted)' : '') + '</div>');
+							// Most read.
+							var top = t.topPosts || [], most = top.length ? Math.max.apply(null, top.map(function (p) { return n(p.reads); })) : 1;
+							$("#trafficTop").html(top.length ? top.map(function (p) {
+								return '<div class="adminTrafficRow"><span class="adminTrafficLabel" title="' + esc(p.title) + '">' + esc(p.title) + '</span><span class="adminTrafficCount">' + n(p.reads) + '</span>'
+									+ '<span class="adminTrafficBar"><span style="width:' + Math.max(4, n(p.reads) / most * 100) + '%"></span></span></div>';
+							}).join("") : '<div class="adminTrafficNote">No reads yet this week.</div>');
+							// Where they came from.
+							var s = t.sources || {}, parts = [["search", "Search engines"], ["social", "Social media"], ["sites", "Other sites"], ["direct", "Straight in"]];
+							var total = parts.reduce(function (a, p) { return a + n(s[p[0]]); }, 0);
+							$("#trafficSources").html(total ? '<div class="adminTrafficStack">' + parts.map(function (p, i) {
+								return n(s[p[0]]) ? '<span class="adminTrafficPart' + i + '" style="width:' + (n(s[p[0]]) / total * 100) + '%" title="' + p[1] + '"></span>' : "";
+							}).join("") + '</div>' + parts.map(function (p, i) {
+								return '<div class="adminTrafficRow"><span class="adminTrafficDot adminTrafficPart' + i + '"></span><span class="adminTrafficLabel">' + p[1] + '</span><span class="adminTrafficCount">' + n(s[p[0]]) + '</span></div>';
+							}).join("") : '<div class="adminTrafficNote">No visitors yet this week.</div>');
+							// Reading now.
+							var now = t.now || [];
+							$("#trafficNow").html('<div class="adminTrafficBig">' + n(t.nowCount) + '</div><div class="adminTrafficNote">' + (n(t.nowCount) === 1 ? "person" : "people") + ' in the last 15 minutes</div>'
+								+ now.map(function (r) { return '<div class="adminTrafficRow"><span class="adminTrafficLabel">' + esc(r.page) + '</span><span class="adminTrafficCount">' + (n(r.minutesAgo) ? n(r.minutesAgo) + " min" : "now") + '</span></div>'; }).join(""));
+						}).fail(function () { $("#trafficVisitors").text("The visitor numbers couldn't be read."); });
+					})();
 					<!--- Up next: the x hides a suggestion until something new happens (AdminHome.cfc hide). --->
 					$(document).on("click", ".adminHomeHide", function () {
 						var button = $(this), wrap = button.closest(".adminHomeSuggestWrap");
@@ -637,12 +690,29 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			.adminHomeQuick .adminHomeTile img { width: 40px; height: 40px; }
 			<!--- Up next suggestions: a blue line down the left (the color of the info notes on the group tiles), the x at the top right. --->
 			.adminHomeSuggestWrap { position: relative; }
-			.adminHomeSuggestWrap > .adminHomeTile { height: 100%; border-left: 4px solid #0969da; }
+			.adminHomeSuggestWrap > .adminHomeTile { box-sizing: border-box; height: 100%; border-left: 4px solid #0969da; }
 			.adminHomeSuggestText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-			.adminHomeSuggestText .adminHomeWhat { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+			.adminHomeQuick .adminHomeGrid > * { align-self: stretch; }
+			.adminHomeQuick .adminHomeGrid > a.adminHomeTile { box-sizing: border-box; height: 100%; }
 			.adminHomeHide { position: absolute; top: 4px; right: 6px; border: 0; background: none; color: inherit; opacity: .55; font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 4px; }
 			.adminHomeHide:hover, .adminHomeHide:focus { opacity: 1; }
 			.adminHomeCaughtUp { text-align: left; margin: -4px 0 10px; opacity: .8; }
+			<!--- Traffic cards (5.0). --->
+			.adminTrafficGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>220<cfelse>210</cfif>px, 1fr)); gap: 14px; text-align: left; }
+			.adminTrafficCard { border: 1px solid rgba(128,128,128,.35); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+			.adminTrafficTitle { font-weight: bold; margin-bottom: 8px; }
+			.adminTrafficBig { font-size: 30px; font-weight: bold; line-height: 1.1; }
+			.adminTrafficNote { font-size: 13px; opacity: .75; margin-top: 2px; }
+			.adminTrafficLine { display: block; width: 100%; height: 56px; margin-top: 8px; color: #0969da; }
+			.adminTrafficRow { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 8px; align-items: center; font-size: 13px; margin-top: 6px; }
+			.adminTrafficRow .adminTrafficLabel { grid-column: 1 / 3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+			.adminTrafficRow .adminTrafficDot + .adminTrafficLabel { grid-column: 2 / 3; }
+			.adminTrafficCount { font-weight: bold; }
+			.adminTrafficBar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: rgba(128,128,128,.2); overflow: hidden; }
+			.adminTrafficBar > span { display: block; height: 100%; background: #0969da; }
+			.adminTrafficStack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(128,128,128,.2); margin-bottom: 4px; }
+			.adminTrafficDot { width: 10px; height: 10px; border-radius: 50%; }
+			.adminTrafficPart0 { background: #0969da; } .adminTrafficPart1 { background: #54aeff; } .adminTrafficPart2 { background: #8250df; } .adminTrafficPart3 { background: #9aa4ae; }
 			.adminHomeCrumb { text-align: left; margin: 10px 0 0; }
 			.adminHomeCrumb a { text-decoration: underline; }
 

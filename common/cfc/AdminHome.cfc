@@ -186,4 +186,106 @@
 </cffunction>
 
 
+<!---//*****************************************************************************************************
+		Traffic (owner, 2026-10-20): the four cards on the admin home
+//******************************************************************************************************--->
+
+<cffunction name="getTraffic" access="public" returntype="struct" output="false"
+		hint="The admin home's traffic cards, from the visitor log: people (not bots) this week and last week, a 30-day line, the bots this week, the five most-read posts this week, where people came from this week, and who is reading now (the last 15 minutes). Kept for five minutes. Times are the blog's (VisitorLog.Date is blogNow()).">
+	<cfset var cacheKey = "galaxieAdminTraffic" & application.BlogDbObj.getBlogId()>
+	<cfset var nowTime = application.blog.blogNow()>
+	<cfset var result = {}>
+	<cfset var q = "">
+	<cfset var days = {}>
+	<cfset var day = "">
+	<cfset var i = 0>
+	<cfset var sources = { "search": 0, "social": 0, "sites": 0, "direct": 0 }>
+	<cfset var host = "">
+	<cfset var ownHost = lCase(cgi.server_name)>
+	<cfset var seen = {}>
+	<cfset var weekAgo = dateAdd("d", -7, nowTime)>
+	<cfset var people = "(a.IsBot = 0 OR a.IsBot IS NULL)">
+	<cfif structKeyExists(application, cacheKey) and dateDiff("n", application[cacheKey].made, now()) lt 5>
+		<cfreturn application[cacheKey].data>
+	</cfif>
+	<cfset result = { "peopleThisWeek": 0, "peopleLastWeek": 0, "botsThisWeek": 0, "days": [], "topPosts": [], "sources": sources, "nowCount": 0, "now": [] }>
+
+	<!--- This week and last week: each visitor counted once. --->
+	<cfset q = queryExecute("
+		SELECT
+			COUNT(DISTINCT CASE WHEN v.Date >= :weekAgo AND #people# THEN v.AnonymousUserRef END) AS PeopleThisWeek,
+			COUNT(DISTINCT CASE WHEN v.Date < :weekAgo AND #people# THEN v.AnonymousUserRef END) AS PeopleLastWeek,
+			COUNT(DISTINCT CASE WHEN v.Date >= :weekAgo AND a.IsBot = 1 THEN v.AnonymousUserRef END) AS BotsThisWeek
+		FROM VisitorLog v LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+		WHERE v.Date >= :twoWeeksAgo",
+		{ weekAgo = { value = weekAgo, cfsqltype = "cf_sql_timestamp" }, twoWeeksAgo = { value = dateAdd("d", -14, nowTime), cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn })>
+	<cfset result.peopleThisWeek = val(q.PeopleThisWeek)>
+	<cfset result.peopleLastWeek = val(q.PeopleLastWeek)>
+	<cfset result.botsThisWeek = val(q.BotsThisWeek)>
+
+	<!--- The last 30 days, a point a day (days with no visits are 0). --->
+	<cfset q = queryExecute("
+		SELECT CAST(v.Date AS DATE) AS VisitDay, COUNT(DISTINCT v.AnonymousUserRef) AS People
+		FROM VisitorLog v LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+		WHERE v.Date >= :since AND #people#
+		GROUP BY CAST(v.Date AS DATE)",
+		{ since = { value = dateAdd("d", -29, dateFormat(nowTime, "yyyy-mm-dd")), cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn })>
+	<cfloop query="q"><cfset days[dateFormat(q.VisitDay, "yyyy-mm-dd")] = val(q.People)></cfloop>
+	<cfloop from="29" to="0" step="-1" index="i">
+		<cfset day = dateFormat(dateAdd("d", -i, nowTime), "yyyy-mm-dd")>
+		<cfset arrayAppend(result.days, { "day": day, "people": days[day] ?: 0 })>
+	</cfloop>
+
+	<!--- The five most-read posts this week (people only). --->
+	<cfset q = queryExecute("
+		SELECT p.PostId, p.Title, COUNT(*) AS ReadCount
+		FROM VisitorLog v JOIN Post p ON p.PostId = v.PostRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+		WHERE v.Date >= :weekAgo AND #people#
+		GROUP BY p.PostId, p.Title
+		ORDER BY COUNT(*) DESC",
+		{ weekAgo = { value = weekAgo, cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn, maxrows = 5 })>
+	<cfloop query="q"><cfset arrayAppend(result.topPosts, { "postId": q.PostId, "title": toString(q.Title), "reads": val(q.ReadCount) })></cfloop>
+
+	<!--- Where people came from this week: search engines, social media, other sites, or straight in (no referrer, or this site). --->
+	<cfset q = queryExecute("
+		SELECT h.HttpReferrer, COUNT(DISTINCT v.AnonymousUserRef) AS People
+		FROM VisitorLog v LEFT JOIN HttpReferrer h ON h.HttpReferrerId = v.HttpReferrerRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+		WHERE v.Date >= :weekAgo AND #people#
+		GROUP BY h.HttpReferrer",
+		{ weekAgo = { value = weekAgo, cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn })>
+	<cfloop query="q">
+		<cfset host = lCase(reReplace(reReplace(toString(q.HttpReferrer), "^[a-z]+://", ""), "[/:?##].*$", ""))>
+		<cfif not len(host) or host eq ownHost or right(host, len(ownHost) + 1) eq "." & ownHost>
+			<cfset sources.direct = sources.direct + val(q.People)>
+		<cfelseif reFind("(^|\.)(google|bing|duckduckgo|yahoo|baidu|yandex|ecosia|startpage|brave|qwant)\.", host)>
+			<cfset sources.search = sources.search + val(q.People)>
+		<cfelseif reFind("(^|\.)(facebook|fb|t\.co|twitter|x\.com|linkedin|lnkd|reddit|instagram|pinterest|youtube|mastodon|threads|bsky)", host)>
+			<cfset sources.social = sources.social + val(q.People)>
+		<cfelse>
+			<cfset sources.sites = sources.sites + val(q.People)>
+		</cfif>
+	</cfloop>
+	<cfset result.sources = sources>
+
+	<!--- Reading now: people in the last 15 minutes, each with the newest page they opened. --->
+	<cfset q = queryExecute("
+		SELECT v.AnonymousUserRef, v.Date, p.Title, v.VisitingHomePage
+		FROM VisitorLog v LEFT JOIN Post p ON p.PostId = v.PostRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+		WHERE v.Date >= :since AND #people#
+		ORDER BY v.Date DESC",
+		{ since = { value = dateAdd("n", -15, nowTime), cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn, maxrows = 200 })>
+	<cfloop query="q">
+		<cfif not structKeyExists(seen, q.AnonymousUserRef)>
+			<cfset seen[q.AnonymousUserRef] = true>
+			<cfif arrayLen(result.now) lt 8>
+				<cfset arrayAppend(result.now, { "page": len(toString(q.Title)) ? toString(q.Title) : "The home page", "minutesAgo": max(0, dateDiff("n", q.Date, nowTime)) })>
+			</cfif>
+		</cfif>
+	</cfloop>
+	<cfset result.nowCount = structCount(seen)>
+
+	<cfset application[cacheKey] = { made = now(), data = result }>
+	<cfreturn result>
+</cffunction>
+
 </cfcomponent>

@@ -11607,6 +11607,24 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="getAdminTraffic" access="remote" returnformat="json" output="false"
+			hint="The admin home's traffic cards (5.0): AdminHome.cfc getTraffic, for someone signed in who may open the Visitor Log.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfset var response = { "success": false, "traffic": {} }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset response[ "traffic" ] = application.blog.getAdminHome().getTraffic()>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any"><cfset response[ "message" ] = cfcatch.message></cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="hideUpNext" access="remote" returnformat="json" output="false"
 			hint="The admin home's Up next row (5.0): hides one suggestion (its x) until something new happens (AdminHome.cfc hide).">
 		<cfargument name="csrfToken" type="string" default="" required="true">
