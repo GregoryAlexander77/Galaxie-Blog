@@ -63,6 +63,10 @@
 	<cfreturn count>
 </cffunction>
 
+<cffunction name="shouldAutoOpen" access="public" returntype="boolean" output="false" hint="True on a blog installed with 5.0 or later (the installer's 'new' mark) whose owner hasn't started setup yet: the admin home then opens the wizard once per session. Blogs updated from older versions never have the mark, so they are never sent there.">
+	<cfreturn isStepDone("new") and stepsDoneCount() eq 0 and not isFinished()>
+</cffunction>
+
 <cffunction name="isFinished" access="public" returntype="boolean" output="false" hint="True once the owner pressed Done. The admin home shows the Finish setting up banner until then.">
 	<cfreturn len(application.BlogOptionDbObj.getSetupFinished() ?: "") gt 0>
 </cffunction>
@@ -129,7 +133,11 @@
 <cffunction name="sendTestEmail" access="public" returntype="void" output="false" hint="A short test message to the blog email, so the owner knows mail works before visitors depend on it.">
 	<cfargument name="email" type="string" required="true">
 	<cfif not isValid("email", arguments.email)><cfset fail("That email address doesn't look right.")></cfif>
-	<cfmail to="#arguments.email#" from="#arguments.email#" subject="Your Galaxie Blog can send email" type="text">Good news: #application.BlogDbObj.getBlogTitle()# can send email. Sign-in links, comment notices and subscriber emails will reach you and your visitors.</cfmail>
+	<!--- Through the blog's own mail function, which uses the mail server in Blog Settings (or the server's default when that is
+	empty), as every other email the blog sends does. --->
+	<cfset createObject("component", application.utilsComponentPath).mail(to = arguments.email, from = arguments.email,
+		subject = "Your Galaxie Blog can send email", type = "text",
+		body = "Good news: " & application.BlogDbObj.getBlogTitle() & " can send email. Sign-in links, comment notices and subscriber emails will reach you and your visitors.")>
 </cffunction>
 
 <!---//*****************************************************************************************************
@@ -191,9 +199,10 @@
 
 <cffunction name="decodeDataUrl" access="private" returntype="struct" output="false" hint="A base64 data URL as { ext, bytes }; ext is empty for a type that isn't a picture.">
 	<cfargument name="dataUrl" type="string" required="true">
+	<cfargument name="what" type="string" required="false" default="The logo">
 	<cfset var m = reFind("^data:(image/(svg\+xml|png|gif|jpeg|webp));base64,(.+)$", trim(arguments.dataUrl), 1, true)>
 	<cfset var types = { "svg+xml" = "svg", "png" = "png", "gif" = "gif", "jpeg" = "jpg", "webp" = "webp" }>
-	<cfif not m.pos[1]><cfset fail("The logo didn't arrive as a picture.")></cfif>
+	<cfif not m.pos[1]><cfset fail(arguments.what & " didn't arrive as a picture.")></cfif>
 	<cfreturn { ext = types[mid(trim(arguments.dataUrl), m.pos[3], m.len[3])], bytes = binaryDecode(mid(trim(arguments.dataUrl), m.pos[4], m.len[4]), "base64") }>
 </cffunction>
 
@@ -218,7 +227,12 @@
 	<cfargument name="linkedInUrl" type="string" required="false" default="">
 	<cfargument name="instagramUrl" type="string" required="false" default="">
 	<cfargument name="twitterUrl" type="string" required="false" default="">
+	<cfargument name="photo" type="string" required="false" default="" hint="A new profile photo as a data URL (PNG, JPG, GIF or WebP); empty keeps the current one.">
 	<cfset var owner = getOwner()>
+	<cfset var photoData = "">
+	<cfset var photoFile = "">
+	<cfset var photoFolder = expandPath(application.baseUrl & "/images/photo")>
+	<cfset var photoImage = "">
 	<cfset var fullName = trim(trim(arguments.firstName) & " " & trim(arguments.lastName))>
 	<cfset var aboutHtml = "">
 	<cfset var link = "">
@@ -229,6 +243,26 @@
 			<cfset fail("Links must start with https:// (check the " & replaceNoCase(link, "Url", "") & " link).")>
 		</cfif>
 	</cfloop>
+	<!--- The photo: saved in images/photo/, as profile pictures uploaded in the profile are; a large one is made 600 pixels wide
+	(the Bio window shows it at 135). A GIF is kept as it is, so an animated one stays animated. --->
+	<cfif len(arguments.photo)>
+		<cfset photoData = decodeDataUrl(arguments.photo, "The photo")>
+		<cfif not listFind("png,jpg,gif,webp", photoData.ext)><cfset fail("A photo must be a PNG, JPG, GIF or WebP picture.")></cfif>
+		<cfif arrayLen(photoData.bytes) gt 8 * 1024 * 1024><cfset fail("That photo is larger than 8 MB. Please choose a smaller one.")></cfif>
+		<cfif not directoryExists(photoFolder)><cfdirectory action="create" directory="#photoFolder#"></cfif>
+		<cfset photoFile = "profile-" & owner.getUserId() & "-" & dateTimeFormat(now(), "yyyymmddHHnnss") & "." & photoData.ext>
+		<cffile action="write" file="#photoFolder#/#photoFile#" output="#photoData.bytes#">
+		<cfif photoData.ext neq "gif">
+			<cftry>
+				<cfset photoImage = imageRead(photoFolder & "/" & photoFile)>
+				<cfif imageGetWidth(photoImage) gt 600>
+					<cfset imageResize(photoImage, 600, "")>
+					<cfset imageWrite(photoImage, photoFolder & "/" & photoFile, 0.85, true)>
+				</cfif>
+				<cfcatch type="any"><!--- A picture the server can't resize is kept at its own size. ---></cfcatch>
+			</cftry>
+		</cfif>
+	</cfif>
 	<cftransaction>
 		<cfset owner.setFirstName(left(trim(arguments.firstName), 125))>
 		<cfset owner.setLastName(left(trim(arguments.lastName), 125))>
@@ -239,6 +273,7 @@
 		<cfset owner.setLinkedInUrl(trim(arguments.linkedInUrl))>
 		<cfset owner.setInstagramUrl(trim(arguments.instagramUrl))>
 		<cfset owner.setTwitterUrl(trim(arguments.twitterUrl))>
+		<cfif len(photoFile)><cfset owner.setProfilePicture(application.baseUrl & "/images/photo/" & photoFile)></cfif>
 		<cfset entitySave(owner)>
 	</cftransaction>
 	<!--- The About window: the owner's own words, signed with their name, for every theme and both layouts. --->
@@ -296,12 +331,14 @@
 	<cfif arguments.welcomePost>
 		<cfset made.welcomePostId = makePost("blogPost", owner.getUserId(), "Welcome to " & blogTitle,
 			"The first post on " & blogTitle & ".",
-			"<p>Welcome to " & encodeForHtml(blogTitle) & "! This is the first post. Edit it to say hello in your own words, or delete it once you have written your own.</p><p>To write a new post, sign in and choose Create Post on the administration page.</p>")>
+			"<p>Welcome to " & encodeForHtml(blogTitle) & "! This is the first post. Edit it to say hello in your own words, or delete it once you have written your own.</p><p>To write a new post, sign in and choose Create Post on the administration page.</p>",
+			"linear-gradient(135deg, ##1d4350 0%, ##a43931 100%)")>
 	</cfif>
 	<cfif arguments.aboutPage>
 		<cfset made.aboutPageId = makePost("page", owner.getUserId(), "About",
 			"About " & blogTitle & ".",
-			len(owner.getBiography() ?: "") ? owner.getBiography() : "<p>Tell your visitors who you are and what this site is about. Edit this page to make it yours.</p>")>
+			len(owner.getBiography() ?: "") ? owner.getBiography() : "<p>Tell your visitors who you are and what this site is about. Edit this page to make it yours.</p>",
+			"linear-gradient(135deg, ##355c7d 0%, ##6c5b7b 50%, ##c06c84 100%)")>
 	</cfif>
 	<cfset markDone("starter")>
 	<cfreturn made>
@@ -313,6 +350,7 @@
 	<cfargument name="title" type="string" required="true">
 	<cfargument name="description" type="string" required="true">
 	<cfargument name="body" type="string" required="true">
+	<cfargument name="gradient" type="string" required="false" default="" hint="A CSS gradient for the post's picture, so the home page and cards show colour rather than the no-picture image. Change it with the post's picture like any other.">
 	<cfset var existing = ormExecuteQuery("SELECT PostId, Released FROM Post WHERE Title = :title AND Remove = :removed ORDER BY PostId", { title = arguments.title, removed = false })>
 	<cfset var postId = 0>
 	<!--- Made by an earlier run: kept as it is once released; one an interrupted run left unreleased is finished now. --->
@@ -325,6 +363,10 @@
 	<!--- savePost reads the author without declaring it as an argument, so it is passed by name. --->
 	<cfset application.blog.savePost(postId = postId, postType = arguments.postType, author = arguments.authorId, title = arguments.title, description = arguments.description,
 		post = arguments.body, released = true, emailSubscriber = false)>
+	<cfif len(arguments.gradient)>
+		<cfset application.blog.savePostHeroGradient(postId = postId, heroGradient = arguments.gradient)>
+		<cfset application.blog.flushGalaxieCache(type = "post", postId = postId)>
+	</cfif>
 	<cfreturn postId>
 </cffunction>
 

@@ -237,6 +237,10 @@ loaded on this page only. In the admin folder, so only a signed-in user reaches 
 	</div>
 	<div id="stepAbout">
 		<p class="lead">Who is behind the site. This fills your About and Bio windows; change it any time in your profile.</p>
+		<div class="fieldRow"><label for="aboutPhoto">Photo</label><div class="control">
+			<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><img id="aboutPhotoPreview" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;background:#eef1f4">
+			<input type="file" id="aboutPhoto" accept="image/png,image/jpeg,image/gif,image/webp"></div>
+			<div class="hint">Shown in your Bio window. A square photo works best.</div></div></div>
 		<div class="fieldRow"><label for="aboutFirst">First name</label><div class="control"><input id="aboutFirst" class="k-textbox" maxlength="125"></div></div>
 		<div class="fieldRow"><label for="aboutLast">Last name</label><div class="control"><input id="aboutLast" class="k-textbox" maxlength="125"></div></div>
 		<div class="fieldRow"><label for="aboutBio">About you</label><div class="control"><textarea id="aboutBio" placeholder="A few lines about yourself"></textarea><div class="hint">Shown in the Bio window. Leave a blank line to start a new paragraph.</div></div></div>
@@ -285,7 +289,7 @@ $(function () {
 		timeZone: #serializeJSON(setupState.timeZone)#, theme: #serializeJSON(setupState.theme)#, stepsDone: #serializeJSON(setupState.stepsDone)#,
 		homeLayout: #serializeJSON(setupState.homeLayout)#, heroStyle: #serializeJSON(setupState.heroStyle)#,
 		firstName: #serializeJSON(setupState.firstName)#, lastName: #serializeJSON(setupState.lastName)#,
-		biography: #serializeJSON(setupState.biography)#, facebookUrl: #serializeJSON(setupState.facebookUrl)#, linkedInUrl: #serializeJSON(setupState.linkedInUrl)#,
+		biography: #serializeJSON(setupState.biography)#, profilePicture: #serializeJSON(setupState.profilePicture)#, facebookUrl: #serializeJSON(setupState.facebookUrl)#, linkedInUrl: #serializeJSON(setupState.linkedInUrl)#,
 		instagramUrl: #serializeJSON(setupState.instagramUrl)#, twitterUrl: #serializeJSON(setupState.twitterUrl)#
 	};
 	var userMarks = [#arrayToList(sampleParts, ",")#];
@@ -549,6 +553,14 @@ $(function () {
 	$("#aboutBio").val($("<div>").html((saved.biography || "").replace(/<\/p>\s*<p>/gi, "\n\n").replace(/<br\s*\/?>/gi, "\n")).text());
 	$("#aboutFacebook").val(saved.facebookUrl); $("#aboutInstagram").val(saved.instagramUrl); $("#aboutLinkedIn").val(saved.linkedInUrl); $("#aboutTwitter").val(saved.twitterUrl);
 	$("#stepAbout").on("input", "input, textarea", function () { dirty.about = true; });
+	$("#aboutPhotoPreview").attr("src", saved.profilePicture || baseUrl + "/images/defaultAvatar.jpg");
+	$("#aboutPhoto").on("change", function () {
+		var file = this.files && this.files[0]; if (!file) { return; }
+		if (file.size > 8 * 1024 * 1024) { kendo.alert("That photo is larger than 8 MB. Please choose a smaller one."); return; }
+		var reader = new FileReader();
+		reader.onload = function () { state.photo = reader.result; dirty.about = true; $("#aboutPhotoPreview").attr("src", reader.result); };
+		reader.readAsDataURL(file);
+	});
 
 	// ---------- screen 5: home page ----------
 	$("input[name=homeLayout][value=" + (saved.homeLayout || "posts") + "]").prop("checked", true);
@@ -582,7 +594,8 @@ $(function () {
 		function () { return buildLogo().then(function (b) { return socialPng(b.logo).then(function (png) { return save("logo", { logo: b.logo, social: png, hasName: b.hasName }); }); })
 			.then(function () { previewLogo = false; }); },
 		function () { return save("about", { firstName: $.trim($("#aboutFirst").val()), lastName: $.trim($("#aboutLast").val()), biography: $("#aboutBio").val(), aboutSite: $("#aboutSite").val(),
-			facebookUrl: $.trim($("#aboutFacebook").val()), instagramUrl: $.trim($("#aboutInstagram").val()), linkedInUrl: $.trim($("#aboutLinkedIn").val()), twitterUrl: $.trim($("#aboutTwitter").val()) }); },
+			facebookUrl: $.trim($("#aboutFacebook").val()), instagramUrl: $.trim($("#aboutInstagram").val()), linkedInUrl: $.trim($("#aboutLinkedIn").val()), twitterUrl: $.trim($("#aboutTwitter").val()),
+			photo: state.photo || "" }).then(function () { state.photo = ""; }); },
 		function () { return save("home", { layout: $("input[name=homeLayout]:checked").val() || "posts", heroStyle: $("#heroStyle").data("kendoDropDownList").value() }); },
 		function () { return save("starter", { welcomePost: $("#starterWelcome").is(":checked"), aboutPage: $("#starterAbout").is(":checked") }); }
 	];

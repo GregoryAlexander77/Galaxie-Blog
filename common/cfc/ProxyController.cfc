@@ -13530,6 +13530,7 @@
 		<cfargument name="heroStyle" type="string" default="classic" required="false">
 		<cfargument name="welcomePost" type="string" default="false" required="false">
 		<cfargument name="aboutPage" type="string" default="false" required="false">
+		<cfargument name="photo" type="string" default="" required="false" hint="A new profile photo as a data URL.">
 
 		<cfset var response = { "success": false, "errorMessage": "" }>
 		<cfset var setup = "">
@@ -13554,7 +13555,7 @@
 					</cfcase>
 					<cfcase value="about">
 						<cfset setup.saveAbout(arguments.firstName, arguments.lastName, arguments.biography, arguments.aboutSite,
-							arguments.facebookUrl, arguments.linkedInUrl, arguments.instagramUrl, arguments.twitterUrl)>
+							arguments.facebookUrl, arguments.linkedInUrl, arguments.instagramUrl, arguments.twitterUrl, arguments.photo)>
 					</cfcase>
 					<cfcase value="home"><cfset setup.saveHome(arguments.layout, arguments.heroStyle)></cfcase>
 					<cfcase value="starter">

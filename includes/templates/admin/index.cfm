@@ -442,6 +442,13 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			<span style="text-align: center">Click on one of the categories below to continue.</span>
 
 			<!--- Until the owner finishes the Site Setup wizard (5.0): how many screens are done, and a button to carry on. --->
+			<!--- A brand new blog (5.0): the first visit to the administration page in a session opens the wizard, until the owner has
+			saved its first screen. Blogs updated from older versions are never sent there (Setup.cfc shouldAutoOpen). --->
+			<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') and application.blog.getSetup().shouldAutoOpen()
+					and not (structKeyExists(session, "setupAutoOpened") and session.setupAutoOpened)>
+				<cfset session.setupAutoOpened = true>
+				<script>window.location.replace("<cfoutput>#application.baseUrl#</cfoutput>/admin/setup.cfm");</script>
+			</cfif>
 			<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') and not application.blog.getSetup().isFinished()>
 				<cfset setupDone = application.blog.getSetup().stepsDoneCount()>
 				<div class="k-alt" style="margin: 14px auto 4px; padding: 14px 16px; border-radius: 6px; max-width: 760px; display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
