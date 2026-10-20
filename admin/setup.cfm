@@ -2,7 +2,10 @@
 logo, about you, home page, starter content, done - with a live preview of the site beside them. Each screen is saved when the
 owner moves on (ProxyController.cfc saveSetup -> common/cfc/Setup.cfc), so leaving half way loses nothing, and the admin home
 shows a "Finish setting up your site" banner until Done. Uses Kendo UI 2021 R1 (its Wizard; the rest of the admin uses 2019),
-loaded on this page only. In the admin folder, so only a signed-in user reaches it; saving also needs EditServerSetting. --->
+loaded on this page only. In the admin folder, so only a signed-in user reaches it; saving also needs EditServerSetting.
+2026-10-20: Kendo's Wizard is only in Kendo UI Professional, which Galaxie can't ship, so this page failed on blogs installed from
+GitHub. It now runs on the free Kendo UI Core that Galaxie includes, with Galaxie's own wizard (common/js/galaxieWizard.js), which
+takes the same options and events. --->
 <cfsetting showdebugoutput="false">
 <cfcontent type="text/html; charset=utf-8">
 <cfset canSetup = application.blog.isCapabilityAuthorized(session.capabilityList ?: "", "EditServerSetting")>
@@ -90,9 +93,10 @@ loaded on this page only. In the admin folder, so only a signed-in user reaches 
 <meta name="robots" content="noindex, nofollow">
 <title>Set up your site</title>
 <cfoutput>
-<link rel="stylesheet" href="#application.baseUrl#/common/libs/kendo/2021R1/styles/kendo.bootstrap-v4.min.css">
-<script src="#application.baseUrl#/common/libs/kendo/2021R1/js/jquery.min.js"></script>
-<script src="#application.baseUrl#/common/libs/kendo/2021R1/js/kendo.all.min.js"></script>
+<link rel="stylesheet" href="#application.baseUrl#/common/libs/kendoCore/styles/kendo.bootstrap-v4.min.css">
+<script src="#application.baseUrl#/common/libs/kendoCore/js/jquery.min.js"></script>
+<script src="#application.baseUrl#/common/libs/kendoCore/js/kendo.ui.core.min.js"></script>
+<script src="#application.baseUrl#/common/js/galaxieWizard.js"></script>
 #fontFaces#
 </cfoutput>
 <style>
@@ -105,7 +109,7 @@ loaded on this page only. In the admin folder, so only a signed-in user reaches 
 	.stepSide .sub { margin: 0 22px 10px; color: var(--muted); font-size: 14px; }
 	.stepSide .sub a { color: var(--accent); }
 	#wizard { flex: 1; min-height: 0; padding: 0 12px 12px; }
-	#wizard .k-wizard-content { overflow: auto; }
+	#wizard .gw-content { overflow: auto; }
 	.lead { font-size: 15px; margin: 4px 0 14px; color: var(--muted); }
 	.fieldRow { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 14px; font-size: 14px; }
 	.fieldRow > label { width: 25%; text-align: right; color: var(--muted); padding-top: 7px; flex: none; }
@@ -130,7 +134,7 @@ loaded on this page only. In the admin folder, so only a signed-in user reaches 
 	.chips button { border: 1px solid var(--line); background: #fff; border-radius: 14px; padding: 4px 11px; font-size: 13px; cursor: pointer; }
 	.chips button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
 	/* Logo */
-	.ways { margin-bottom: 14px; }
+	.ways { margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
 	.wayPanel { display: none; }
 	.wayPanel.on { display: block; }
 	.logoGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
@@ -464,13 +468,15 @@ $(function () {
 	$("#logoColour").kendoColorPicker({ palette: palette, columns: 10, value: state.colour, change: colourChange("colour") });
 	$("#sampleColour").kendoColorPicker({ palette: palette, columns: 10, value: state.sampleColour, change: colourChange("sampleColour") });
 	function syncColours() { $("#logoColour").data("kendoColorPicker").value(state.colour); $("#sampleColour").data("kendoColorPicker").value(state.sampleColour); }
-	$("#logoWays").kendoButtonGroup({
-		items: [{ text: "Your name as a logo" }, { text: "Sample logos" }, { text: "Upload your own" }], index: 0,
-		select: function (e) {
-			state.way = ["name", "sample", "upload"][e.indices[0]];
+	// The three ways, as buttons (Kendo UI Core has no ButtonGroup); the one chosen is the primary button.
+	$.each([["name", "Your name as a logo"], ["sample", "Sample logos"], ["upload", "Upload your own"]], function (i, way) {
+		$("#logoWays").append($('<button type="button" class="k-button"></button>').toggleClass("k-primary", i === 0).attr("aria-pressed", i === 0 ? "true" : "false").text(way[1]).on("click", function () {
+			state.way = way[0];
+			$("#logoWays button").removeClass("k-primary").attr("aria-pressed", "false");
+			$(this).addClass("k-primary").attr("aria-pressed", "true");
 			$(".wayPanel").removeClass("on"); $("#way" + { name: "Name", sample: "Sample", upload: "Upload" }[state.way]).addClass("on");
 			drawLogos(); applyLogo();
-		}
+		}));
 	});
 	$("#logoFile").on("change", function () {
 		var file = this.files && this.files[0]; if (!file) { return; }
@@ -608,7 +614,7 @@ $(function () {
 		{ title: "Home page", id: "stepHome" }, { title: "Starter content", id: "stepStarter" }, { title: "Done", id: "stepDone" }
 	];
 	var busy = false;
-	var wizard = $("#wizard").kendoWizard({
+	var wizard = $("#wizard").galaxieWizard({
 		steps: screens.map(function (s, i) {
 			return { title: s.title, content: '<div class="stepHolder" data-id="' + s.id + '"></div><p class="saveNote" data-note="' + i + '"></p>',
 				buttons: i === 0 ? ["next"] : i === screens.length - 1 ? ["previous", "done"] : ["previous", "next"] };
@@ -641,7 +647,7 @@ $(function () {
 			e.preventDefault();
 			save("finish", {}).then(function () { window.location.href = baseUrl + "/"; }, function (message) { $("[data-note=6]").css("color", "#b00020").text(message); });
 		}
-	}).data("kendoWizard");
+	}).data("galaxieWizard");
 	function fillHolders() { $("#wizard .stepHolder").each(function () { if (!$(this).children().length) { $(this).append($("#" + $(this).data("id"))); } }); }
 	function drawSummary() {
 		var done = stepsDone();
