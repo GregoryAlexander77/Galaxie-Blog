@@ -167,6 +167,17 @@ takes the same options and events. --->
 	.previewStage.mobile iframe { width: 100%; height: 100%; transform: none; }
 	.loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.7); font-size: 14px; color: var(--muted); z-index: 2; }
 	.denied { max-width: 560px; margin: 80px auto; background: #fff; padding: 24px; border-radius: 8px; font-size: 15px; }
+	/* The admin's alternating blocks (owner, 10-20): the first k-content, then k-alt, with a line between rows and between blocks. */
+	.block { padding: 10px 14px; }
+	.block.k-alt { background-color: #f4f5f7; }
+	.block + .block { border-top: 1px solid #c8c8c8; }
+	.block > * + * { border-top: 1px solid #c8c8c8; padding-top: 10px; margin-top: 10px; }
+	.block > * { margin-top: 0; margin-bottom: 0; }
+	.block .wayPanel > * + * { border-top: 1px solid #c8c8c8; padding-top: 10px; margin-top: 10px; }
+	.block .wayPanel > .fieldRow { margin-bottom: 0; }
+	.block > .fieldRow, .block .wayPanel > .fieldRow { margin-bottom: 0; }
+	.block h4 { margin: 2px 0; font-size: 15px; }
+	.block .summary li:last-child { border-bottom: 0; }
 	@media (max-width: 900px) {
 		.shell { flex-direction: column; height: auto; }
 		.stepSide { width: 100%; min-width: 0; }
@@ -198,84 +209,111 @@ takes the same options and events. --->
 <!--- The screens. They are moved into the wizard as live elements, so their widgets keep working. --->
 <div style="display:none">
 	<div id="stepSite">
-		<p class="lead">The basics: what your site is called and how to reach you.</p>
-		<div class="fieldRow"><label for="siteTitle">Site name</label><div class="control"><input id="siteTitle" class="k-textbox" maxlength="125"></div></div>
-		<div class="fieldRow"><label for="siteDescription">Description</label><div class="control"><input id="siteDescription" class="k-textbox" maxlength="500" placeholder="One line about your site"><div class="hint">Shown to search engines and when your site is shared.</div></div></div>
-		<div class="fieldRow"><label for="siteEmail">Email</label><div class="control"><input id="siteEmail" class="k-textbox" type="email" placeholder="you@example.com">
-			<div class="hint">Comment notices, sign-in links and subscriber emails come from this address. <a href="#" id="sendTestEmail">Send a test email</a> <span id="testEmailResult"></span></div></div></div>
-		<div class="fieldRow"><label for="siteTimeZone">Time zone</label><div class="control"><input id="siteTimeZone" style="width:100%"><div class="hint">Post dates and scheduled posts use this time.</div></div></div>
+		<div class="block k-content"><p class="lead">The basics: what your site is called and how to reach you.</p></div>
+		<div class="block k-alt">
+			<h4>Your site</h4>
+			<div class="fieldRow"><label for="siteTitle">Site name</label><div class="control"><input id="siteTitle" class="k-textbox" maxlength="125"></div></div>
+			<div class="fieldRow"><label for="siteDescription">Description</label><div class="control"><input id="siteDescription" class="k-textbox" maxlength="500" placeholder="One line about your site"><div class="hint">Shown to search engines and when your site is shared.</div></div></div>
+		</div>
+		<div class="block k-content">
+			<h4>Email and time</h4>
+			<div class="fieldRow"><label for="siteEmail">Email</label><div class="control"><input id="siteEmail" class="k-textbox" type="email" placeholder="you@example.com">
+				<div class="hint">Comment notices, sign-in links and subscriber emails come from this address. <a href="#" id="sendTestEmail">Send a test email</a> <span id="testEmailResult"></span></div></div></div>
+			<div class="fieldRow"><label for="siteTimeZone">Time zone</label><div class="control"><input id="siteTimeZone" style="width:100%"><div class="hint">Post dates and scheduled posts use this time.</div></div></div>
+		</div>
 	</div>
 	<div id="stepLook">
-		<p class="lead">Pick how your site looks. You can change it any time.</p>
-		<div class="chips" id="themeFilter">
-			<span>Show:</span>
-			<button type="button" data-f="all" aria-pressed="true">All</button>
-			<button type="button" data-f="photo" aria-pressed="false">Photos</button>
-			<button type="button" data-f="pattern" aria-pressed="false">Patterns and color</button>
-			<button type="button" data-f="dark" aria-pressed="false">Dark</button>
+		<div class="block k-content"><p class="lead">Pick how your site looks. You can change it any time.</p></div>
+		<div class="block k-alt">
+			<div class="chips" id="themeFilter">
+				<span>Show:</span>
+				<button type="button" data-f="all" aria-pressed="true">All</button>
+				<button type="button" data-f="photo" aria-pressed="false">Photos</button>
+				<button type="button" data-f="pattern" aria-pressed="false">Patterns and color</button>
+				<button type="button" data-f="dark" aria-pressed="false">Dark</button>
+			</div>
+			<div class="themeGrid" id="themeGrid"></div>
 		</div>
-		<div class="themeGrid" id="themeGrid"></div>
 	</div>
 	<div id="stepLogo">
-		<p class="lead">Your logo appears at the top of every page, in every theme.</p>
-		<div class="ways" id="logoWays"></div>
-		<div class="wayPanel on" id="wayName">
-			<div class="fieldRow"><label for="logoName">Name</label><div class="control"><input id="logoName" class="k-textbox" maxlength="60"></div></div>
-			<div class="fieldRow"><label for="logoColour">Color</label><div class="control"><input id="logoColour"></div></div>
-			<div class="logoGrid" id="nameGrid"></div>
-		</div>
-		<div class="wayPanel" id="waySample">
-			<div class="chips" id="sampleFilter"></div>
-			<div class="fieldRow"><label for="sampleColour">Color</label><div class="control"><input id="sampleColour"></div></div>
-			<div class="logoGrid" id="sampleGrid"></div>
-			<p class="hint">Your site name is set beside each mark.</p>
-		</div>
-		<div class="wayPanel" id="wayUpload">
-			<div class="uploadBox">
-				<p>Choose a picture of your logo: PNG, SVG, JPG, GIF or WebP, up to 2 MB. A wide logo about 300 by 80 pixels works best.</p>
-				<input type="file" id="logoFile" accept="image/png,image/svg+xml,image/jpeg,image/gif,image/webp">
-				<img id="uploadPreview" alt="" hidden>
+		<div class="block k-content"><p class="lead">Your logo appears at the top of every page, in every theme.</p></div>
+		<div class="block k-alt">
+			<div class="ways" id="logoWays"></div>
+			<div class="wayPanel on" id="wayName">
+				<div class="fieldRow"><label for="logoName">Name</label><div class="control"><input id="logoName" class="k-textbox" maxlength="60"></div></div>
+				<div class="fieldRow"><label for="logoColour">Color</label><div class="control"><input id="logoColour"></div></div>
+				<div class="logoGrid" id="nameGrid"></div>
+			</div>
+			<div class="wayPanel" id="waySample">
+				<div class="chips" id="sampleFilter"></div>
+				<div class="fieldRow"><label for="sampleColour">Color</label><div class="control"><input id="sampleColour"></div></div>
+				<div class="logoGrid" id="sampleGrid"></div>
+				<p class="hint">Your site name is set beside each mark.</p>
+			</div>
+			<div class="wayPanel" id="wayUpload">
+				<div class="uploadBox">
+					<p>Choose a picture of your logo: PNG, SVG, JPG, GIF or WebP, up to 2 MB. A wide logo about 300 by 80 pixels works best.</p>
+					<input type="file" id="logoFile" accept="image/png,image/svg+xml,image/jpeg,image/gif,image/webp">
+					<img id="uploadPreview" alt="" hidden>
+				</div>
 			</div>
 		</div>
-		<p class="hint">We also make the smaller logo for mobile and the picture used when your posts are shared on social media.</p>
+		<div class="block k-content"><p class="hint">We also make the smaller logo for mobile and the picture used when your posts are shared on social media.</p></div>
 	</div>
 	<div id="stepAbout">
-		<p class="lead">Who is behind the site. This fills your About and Bio windows; change it any time in your profile.</p>
-		<div class="fieldRow"><label for="aboutPhoto">Photo</label><div class="control">
-			<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><img id="aboutPhotoPreview" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;background:#eef1f4">
-			<input type="file" id="aboutPhoto" accept="image/png,image/jpeg,image/gif,image/webp"></div>
-			<div class="hint">Shown in your Bio window. A square photo works best.</div></div></div>
-		<div class="fieldRow"><label for="aboutFirst">First name</label><div class="control"><input id="aboutFirst" class="k-textbox" maxlength="125"></div></div>
-		<div class="fieldRow"><label for="aboutLast">Last name</label><div class="control"><input id="aboutLast" class="k-textbox" maxlength="125"></div></div>
-		<div class="fieldRow"><label for="aboutBio">About you</label><div class="control"><textarea id="aboutBio" placeholder="A few lines about yourself"></textarea><div class="hint">Shown in the Bio window. Leave a blank line to start a new paragraph.</div></div></div>
-		<div class="fieldRow"><label for="aboutSite">About the site</label><div class="control"><textarea id="aboutSite" placeholder="What your site is about, and who it is for"></textarea><div class="hint">Shown in the About window.</div></div></div>
-		<div class="fieldRow"><label for="aboutFacebook">Facebook</label><div class="control"><input id="aboutFacebook" class="k-textbox" placeholder="https://"></div></div>
-		<div class="fieldRow"><label for="aboutInstagram">Instagram</label><div class="control"><input id="aboutInstagram" class="k-textbox" placeholder="https://"></div></div>
-		<div class="fieldRow"><label for="aboutLinkedIn">LinkedIn</label><div class="control"><input id="aboutLinkedIn" class="k-textbox" placeholder="https://"></div></div>
-		<div class="fieldRow"><label for="aboutTwitter">X (Twitter)</label><div class="control"><input id="aboutTwitter" class="k-textbox" placeholder="https://"></div></div>
+		<div class="block k-content"><p class="lead">Who is behind the site. This fills your About and Bio windows; change it any time in your profile.</p></div>
+		<div class="block k-alt">
+			<h4>You</h4>
+			<div class="fieldRow"><label for="aboutPhoto">Photo</label><div class="control">
+				<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><img id="aboutPhotoPreview" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;background:#eef1f4">
+				<input type="file" id="aboutPhoto" accept="image/png,image/jpeg,image/gif,image/webp"></div>
+				<div class="hint">Shown in your Bio window. A square photo works best.</div></div></div>
+			<div class="fieldRow"><label for="aboutFirst">First name</label><div class="control"><input id="aboutFirst" class="k-textbox" maxlength="125"></div></div>
+			<div class="fieldRow"><label for="aboutLast">Last name</label><div class="control"><input id="aboutLast" class="k-textbox" maxlength="125"></div></div>
+		</div>
+		<div class="block k-content">
+			<h4>In your words</h4>
+			<div class="fieldRow"><label for="aboutBio">About you</label><div class="control"><textarea id="aboutBio" placeholder="A few lines about yourself"></textarea><div class="hint">Shown in the Bio window. Leave a blank line to start a new paragraph.</div></div></div>
+			<div class="fieldRow"><label for="aboutSite">About the site</label><div class="control"><textarea id="aboutSite" placeholder="What your site is about, and who it is for"></textarea><div class="hint">Shown in the About window.</div></div></div>
+		</div>
+		<div class="block k-alt">
+			<h4>Where to find you</h4>
+			<div class="fieldRow"><label for="aboutFacebook">Facebook</label><div class="control"><input id="aboutFacebook" class="k-textbox" placeholder="https://"></div></div>
+			<div class="fieldRow"><label for="aboutInstagram">Instagram</label><div class="control"><input id="aboutInstagram" class="k-textbox" placeholder="https://"></div></div>
+			<div class="fieldRow"><label for="aboutLinkedIn">LinkedIn</label><div class="control"><input id="aboutLinkedIn" class="k-textbox" placeholder="https://"></div></div>
+			<div class="fieldRow"><label for="aboutTwitter">X (Twitter)</label><div class="control"><input id="aboutTwitter" class="k-textbox" placeholder="https://"></div></div>
+		</div>
 	</div>
 	<div id="stepHome">
-		<p class="lead">What visitors see first.</p>
-		<div class="choiceList" id="homeChoices">
-			<label class="choice"><input type="radio" name="homeLayout" value="posts"><div><strong>Latest posts</strong><span>A blog: your newest posts first.</span></div></label>
-			<label class="choice"><input type="radio" name="homeLayout" value="featured"><div><strong>Your About page, then your latest posts</strong><span>Introduce yourself at the top, with posts below.</span></div></label>
-			<label class="choice"><input type="radio" name="homeLayout" value="about"><div><strong>Just your About page</strong><span>A one-page site; posts are still in the menu.</span></div></label>
+		<div class="block k-content"><p class="lead">What visitors see first.</p></div>
+		<div class="block k-alt">
+			<h4>Home page</h4>
+			<div class="choiceList" id="homeChoices">
+				<label class="choice"><input type="radio" name="homeLayout" value="posts"><div><strong>Latest posts</strong><span>A blog: your newest posts first.</span></div></label>
+				<label class="choice"><input type="radio" name="homeLayout" value="featured"><div><strong>Your About page, then your latest posts</strong><span>Introduce yourself at the top, with posts below.</span></div></label>
+				<label class="choice"><input type="radio" name="homeLayout" value="about"><div><strong>Just your About page</strong><span>A one-page site; posts are still in the menu.</span></div></label>
+			</div>
 		</div>
-		<div class="fieldRow" style="margin-top:18px"><label for="heroStyle">Post pictures</label><div class="control"><input id="heroStyle" style="width:100%">
-			<div class="hint">How the picture at the top of each post shows on the post's own page.</div></div></div>
+		<div class="block k-content">
+			<h4>Posts</h4>
+			<div class="fieldRow"><label for="heroStyle">Post pictures</label><div class="control"><input id="heroStyle" style="width:100%">
+				<div class="hint">How the picture at the top of each post shows on the post's own page.</div></div></div>
+		</div>
 	</div>
 	<div id="stepStarter">
-		<p class="lead">A few things to start with, so the site doesn't look empty. Each is an ordinary post or page you can edit or delete.</p>
-		<div class="choiceList">
-			<label class="choice"><input type="checkbox" id="starterWelcome" checked><div><strong>A welcome post</strong><span>Your first post, ready to edit.</span></div></label>
-			<label class="choice"><input type="checkbox" id="starterAbout" checked><div><strong>An About page</strong><span>Made from what you wrote about yourself. Needed for an About home page.</span></div></label>
-			<label class="choice"><input type="checkbox" id="starterContact" checked><div><strong>A contact form</strong><span>At the end of your About page, so visitors can reach you. Their messages come to your email. Change its questions any time in Forms.</span></div></label>
+		<div class="block k-content"><p class="lead">A few things to start with, so the site doesn't look empty. Each is an ordinary post or page you can edit or delete.</p></div>
+		<div class="block k-alt">
+			<div class="choiceList">
+				<label class="choice"><input type="checkbox" id="starterWelcome" checked><div><strong>A welcome post</strong><span>Your first post, ready to edit.</span></div></label>
+				<label class="choice"><input type="checkbox" id="starterAbout" checked><div><strong>An About page</strong><span>Made from what you wrote about yourself. Needed for an About home page.</span></div></label>
+				<label class="choice"><input type="checkbox" id="starterContact" checked><div><strong>A contact form</strong><span>At the end of your About page, so visitors can reach you. Their messages come to your email. Change its questions any time in Forms.</span></div></label>
+			</div>
 		</div>
 	</div>
 	<div id="stepDone">
-		<p class="lead">That's it. Here is what you set up; change anything with its link.</p>
-		<ul class="summary" id="doneSummary"></ul>
-		<p class="hint">Press Done to finish and open your site.</p>
+		<div class="block k-content"><p class="lead">That's it. Here is what you set up; change anything with its link.</p></div>
+		<div class="block k-alt"><ul class="summary" id="doneSummary"></ul></div>
+		<div class="block k-content"><p class="hint">Press Done to finish and open your site.</p></div>
 	</div>
 </div>
 
