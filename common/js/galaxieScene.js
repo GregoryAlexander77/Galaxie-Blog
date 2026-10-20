@@ -293,6 +293,12 @@
 		if (section.kind !== "layeredHero") { addFade(section, data, root, joinColour); }
 
 		var textBox = el("div", "gs-heroText" + (section.textPosition === "bottom" ? " gs-textBottom" : ""), root);
+		// Text low on the left, for a hero that starts part way down the page (a post hero under the post's title): raised by
+		// that distance, so the heading sits near the bottom of the first screen the visitor sees, not below it.
+		if (section.textPosition === "bottom") {
+			var heroTop = root.getBoundingClientRect().top + (window.pageYOffset || 0);
+			if (heroTop > 0) { textBox.style.paddingBottom = "calc(16vh + " + Math.round(Math.min(heroTop, window.innerHeight * 0.5)) + "px)"; }
+		}
 		if (!section.textColour) { root.style.color = "#ffffff"; }
 		if (!section.shadow) { section.shadow = "soft"; }
 		var t = addText(section, textBox, section.headingTag || "h1");
