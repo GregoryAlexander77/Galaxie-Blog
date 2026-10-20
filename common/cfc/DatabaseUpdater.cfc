@@ -330,6 +330,79 @@
 
 	</cffunction>
 
+	<cffunction name="ensureColumns" access="public" returnType="void" output="false"
+			hint="Adds text columns that a release added to an entity, if they are missing (5.0, 2026-10-19). ORM adds them by itself when the application starts with the new entity files, but until it does every page that reads them fails; this makes the update itself certain. Each column is added as a nullable VARCHAR of its length, as ORM makes them. Safe to run more than once.">
+		<cfargument name="tableName" type="string" required="true">
+		<cfargument name="columns" type="array" required="true" hint="An array of { name, length } structs, eg. [ { name: 'HeroStyle', length: 20 } ].">
+
+		<cfset var column = "">
+		<cfset var flavorName = "">
+		<cfset var databaseOrmTypesObj = "">
+		<cfset var quote = "">
+		<cfset var alterSql = "">
+
+		<cfif not reFind("^[A-Za-z][A-Za-z0-9_]*$", arguments.tableName) or not tableExists(arguments.tableName)>
+			<cfset addToLog("Skipped the columns of '#arguments.tableName#': there is no such table.")>
+			<cfreturn>
+		</cfif>
+		<cfif not len(application.databaseType ?: "")>
+			<cfset application.databaseType = getProfileString(variables.iniPath, "default", "databaseType")>
+		</cfif>
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset databaseOrmTypesObj = createObject("component", application.baseComponentPath & ".common.cfc.DatabaseOrmTypes")>
+		<cfelse>
+			<cfset databaseOrmTypesObj = createObject("component", "common.cfc.DatabaseOrmTypes")>
+		</cfif>
+		<cfset flavorName = databaseOrmTypesObj.getFlavorName(application.databaseType)>
+		<!--- PostgreSQL keeps the mixed-case names ORM made only inside double quotes (globally_quoted_identifiers). --->
+		<cfset quote = flavorName eq "postgre" ? '"' : "">
+
+		<cfloop array="#arguments.columns#" index="column">
+			<cfif not reFind("^[A-Za-z][A-Za-z0-9_]*$", column.name) or not isNumeric(column.length)>
+				<cfset addToLog("Skipped the column '#column.name#': not a valid column.")>
+				<cfcontinue>
+			</cfif>
+			<cfif columnExists(arguments.tableName, column.name, quote)>
+				<cfcontinue>
+			</cfif>
+			<cfswitch expression="#flavorName#">
+				<cfcase value="sqlServer"><cfset alterSql = "ALTER TABLE #arguments.tableName# ADD #column.name# VARCHAR(#int(column.length)#) NULL"></cfcase>
+				<cfcase value="mySql"><cfset alterSql = "ALTER TABLE #arguments.tableName# ADD COLUMN #column.name# VARCHAR(#int(column.length)#) NULL"></cfcase>
+				<cfcase value="postgre"><cfset alterSql = 'ALTER TABLE "#arguments.tableName#" ADD COLUMN "#column.name#" VARCHAR(#int(column.length)#) NULL'></cfcase>
+				<cfdefaultcase>
+					<cfset addToLog("Could not add #arguments.tableName#.#column.name# on this database (#application.databaseType#); restarting the blog lets ORM add it.")>
+					<cfcontinue>
+				</cfdefaultcase>
+			</cfswitch>
+			<cftry>
+				<cfquery datasource="#application.dsn#">#alterSql#</cfquery>
+				<cfset addToLog("Added the column #arguments.tableName#.#column.name#.")>
+				<cfcatch type="database">
+					<!--- Another request (or ORM, on an application start) may have added it in the meantime. --->
+					<cfif not columnExists(arguments.tableName, column.name, quote)>
+						<cfrethrow>
+					</cfif>
+				</cfcatch>
+			</cftry>
+		</cfloop>
+
+	</cffunction>
+
+	<cffunction name="columnExists" access="private" returnType="boolean" output="false" hint="Whether a column exists: selecting it from no rows succeeds if it does.">
+		<cfargument name="tableName" type="string" required="true">
+		<cfargument name="columnName" type="string" required="true">
+		<cfargument name="quote" type="string" required="false" default="">
+		<cftry>
+			<cfquery datasource="#application.dsn#">
+				SELECT #arguments.quote##arguments.columnName##arguments.quote# FROM #arguments.quote##arguments.tableName##arguments.quote# WHERE 1 = 0
+			</cfquery>
+			<cfreturn true>
+			<cfcatch type="database">
+				<cfreturn false>
+			</cfcatch>
+		</cftry>
+	</cffunction>
+
 	<cffunction name="tableExists" access="private" returnType="boolean" output="false"
 			hint="Whether a table exists in the blog's own database: selecting nothing from it succeeds if it does. (INFORMATION_SCHEMA is not used, as on MySQL and MariaDB it lists the tables of every database on the server - see createTableIfMissing.)">
 		<cfargument name="tableName" type="string" required="true">
