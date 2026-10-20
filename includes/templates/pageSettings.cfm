@@ -194,10 +194,18 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <!--- Top menu alignment. This affects the menu placement *within* the header. The top menu contains the logo as well as the menu scripts and search button. Accepted values are left, center, and right. Unlike the alignBlogMenuWithBlogContent argument, this affects the outer container which will be aligned. --->
 <cfset topMenuAlign = getTheme[1]["TopMenuAlign"]><!---Either left, center, or right--->
 <!--- The header background image. You can also leave this blank if you want the blogBackgroundImage to be shown instead of a colored banner on the header. If you choose to leave this blank and not display a colored banner, also leave the menuBackgroundImage blank, otherwise, a colored bar will be displayed. Note: I put a gradient on the banner image, however, the top of the image, which is darker than the bottom, can't be used for the menu as it will look off. So I am separating the background images for the banner and the menu. --->
-<cfset headerBackgroundImage = application.baseUrl & getTheme[1]["HeaderBackgroundImage"]>
+<!--- A theme picture's address (5.0, 2026-10-19): a path stored from /images/ on gets the blog's base URL in front; a full web
+address (a picture set by its URL) or a path that already starts with the base URL (saved that way by older uploads) is used as
+it is - adding the base URL to them gave addresses like /blog/https://... and /blog/blog/images/... --->
+<cfset themeImageUrl = function (path) {
+	var p = trim(arguments.path);
+	if (!len(p) or reFindNoCase("^(https?:)?//", p) or (len(application.baseUrl) and left(p, len(application.baseUrl) + 1) eq application.baseUrl & "/")) { return p; }
+	return application.baseUrl & p;
+}>
+<cfset headerBackgroundImage = themeImageUrl(getTheme[1]["HeaderBackgroundImage"])>
 <!--- The background image for the top menu. This should be a consistent color and not gradiated. --->
 <cfif getTheme[1]["MenuBackgroundImage"] neq "">
-	<cfset menuBackgroundImage = application.baseUrl & getTheme[1]["MenuBackgroundImage"]>
+	<cfset menuBackgroundImage = themeImageUrl(getTheme[1]["MenuBackgroundImage"])>
 <cfelse>
 	<cfset menuBackgroundImage = "">
 </cfif>
@@ -207,9 +215,9 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <!--- This setting determines if the whole image should be shown on screen, or if the image should be captured from the left until the image is cut off at the end of the screen. Essentially, setting this to true set the image width t0 be 100%, whereas setting this to false will left justify the image and cut off any overflow. The resolution is quite high, so setting this to false will cut off the right part of most of the images. --->
 <cfset coverKendoMenuWithMenuBackgroundImage = getTheme[1]["CoverKendoMenuWithMenuBackgroundImage"]>
 <!--- Both desktop and mobile logos. The mobile logo should be smaller than the desktop obviously. --->
-<cfset logoImageMobile = application.baseUrl & getTheme[1]["LogoImageMobile"]>
+<cfset logoImageMobile = themeImageUrl(getTheme[1]["LogoImageMobile"])>
 <cfset logoMobileWidth = getTheme[1]["LogoMobileWidth"]>
-<cfset logoImage = application.baseUrl & getTheme[1]["LogoImage"]>
+<cfset logoImage = themeImageUrl(getTheme[1]["LogoImage"])>
 
 <!--- Generic Logo Properties.--->
 <!--- Padding. The most important setting here is logoPaddingLeft which gives space between the logo and the blog text and menu. I have designed the logo image with padding on the left to take care of this without applying this setting. Padding right and bottom can be used to fine tune the placement of the logo but I am not using them currently in my theme designs. --->
@@ -254,7 +262,7 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 </cfif>
 	
 <!--- The divider between the header and body --->
-<cfset headerBodyDividerImage = application.baseUrl & getTheme[1]["HeaderBodyDividerImage"]>
+<cfset headerBodyDividerImage = themeImageUrl(getTheme[1]["HeaderBodyDividerImage"])>
 <!--- Footer image --->
 <cfset footerImage = trim(getTheme[1]["FooterImage"])>
 	

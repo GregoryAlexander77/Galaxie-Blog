@@ -281,8 +281,8 @@
 								<a href="<cfoutput>#authorData[1]['InstagramUrl']#</cfoutput>" aria-label="<cfoutput>#authorData[1]['InstagramUrl']#</cfoutput>" class="k-content"><button id="instagramUrl" aria-label="instagram" class="k-button" style="#kendoIconButtonStyle#">
 									&nbsp;<i class="fa-brands fa-instagram"></i>&nbsp;
 								</button></a>
-							</cfif><cfif structKeyExists(authorData[1], "TwitterUrl") and len(authorData[1]['InstagramUrl'])>
-								<a href="<cfoutput>#authorData[1]['TwitterUrl']#</cfoutput>" aria-label="<cfoutput>#authorData[1]['InstagramUrl']#</cfoutput>" class="k-content"><button id="twitterUrl" aria-label="twitter" class="k-button" style="#kendoIconButtonStyle#">
+							</cfif><cfif structKeyExists(authorData[1], "TwitterUrl") and len(authorData[1]['TwitterUrl'])>
+								<a href="<cfoutput>#authorData[1]['TwitterUrl']#</cfoutput>" aria-label="<cfoutput>#authorData[1]['TwitterUrl']#</cfoutput>" class="k-content"><button id="twitterUrl" aria-label="twitter" class="k-button" style="#kendoIconButtonStyle#">
 									&nbsp;<i class="fa-brands fa-twitter"></i>&nbsp;
 								</button></a>
 							</cfif><cfif structKeyExists(authorData[1], "DisplayEmailOnBio") and authorData[1]["DisplayEmailOnBio"]>

@@ -501,6 +501,7 @@
 		<cfargument name="contentTemplate" required="yes" default="">
 		<cfargument name="isMobile" required="yes" default="">
 		<cfargument name="themeId" required="no" default="">
+		<cfargument name="themeRef" required="no" default="" hint="Another name for themeId: the content templates (pods, windows, header and footer) pass themeRef. 5.0 (2026-10-19): it was not declared, so the theme was ignored.">
 		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
 		<cfset var contentOutputData = "">
 		<cfset var getOutputContent = "">
@@ -508,12 +509,13 @@
 		<!--- Note: the following function should not be cached as each theme may return a different content template and it would overwhelm the cache memory. Instead, I am caching the content output which is the same for most themes. --->
 		<!--- Reset the contentOutputData var --->
 		<cfset contentOutputData = "">
+		<cfif not len(arguments.themeId)><cfset arguments.themeId = arguments.themeRef></cfif>
 		<!--- This template drives the navigation menu and is a unordered HTML list. This template uses the getPageContent function to determine the content. It will display custom content that is in the database or use the default code below if no custom code exists  --->
 		<cfinvoke component="#application.blog#" method="getContentOutputByContentTemplate" returnvariable="getOutputContent">
 			<cfinvokeargument name="pageId" value="2"><!--- Note: pageId 1 is the landing blog page, 2 is a blog post --->
 			<cfinvokeargument name="contentTemplate" value="#arguments.contentTemplate#">
 			<cfif len(arguments.themeId)>
-				<cfinvokeargument name="themeRef" value="#arguments.themeId#">
+				<cfinvokeargument name="themeId" value="#arguments.themeId#">
 			</cfif>
 		</cfinvoke>
 		<!--- Set a content output var --->
@@ -545,11 +547,14 @@
 		<cfargument name="contentTemplate" type="string" required="false" default="">
 		<cfargument name="device" type="string" required="false" default="">
 		<cfargument name="themeId" type="string" required="false" default="">
+		<cfargument name="themeRef" type="string" required="false" default="" hint="Another name for themeId (5.0, 2026-10-19).">
+		<cfargument name="exactTheme" type="boolean" required="false" default="false" hint="True to find only the rows saved for exactly this theme (or, with no theme, only the rows for all themes) - for saving. False (reading) returns this theme's rows and the all-theme rows, this theme's first.">
 		<cfargument name="active" type="string" required="false" default="">
 		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
 		<cfset var Data = "">
 			
 		<!--- Initialize our data object.--->
+		<cfif not len(arguments.themeId)><cfset arguments.themeId = arguments.themeRef></cfif>
 		<cfset Data = [] />
 			
 		<!--- We need the contentTemplateId or the contentTemplate --->
@@ -590,12 +595,21 @@
 				AND ContentTemplate.ContentTemplateName = <cfqueryparam value="#arguments.contentTemplate#">
 			</cfif>
 			<!--- I am using a null to assign content to all themes --->
-			<cfif len(arguments.themeId)>
+			<cfif arguments.exactTheme>
+				<cfif len(arguments.themeId) and arguments.themeId neq 0>
+					AND ContentOutput.ThemeRef = <cfqueryparam value="#arguments.themeId#">
+				<cfelse>
+					AND ContentOutput.ThemeRef IS NULL
+				</cfif>
+			<cfelseif len(arguments.themeId)>
 				AND ( ContentOutput.ThemeRef = <cfqueryparam value="#arguments.themeId#"> OR ContentOutput.ThemeRef IS NULL )
 			</cfif>
 			<cfif len(arguments.active)>
 				AND ContentOutput.Active = <cfqueryparam value="#arguments.active#">
 			</cfif>
+				<!--- The theme's own content before the content for all themes (descending puts null last on SQL Server, MySQL and
+				PostgreSQL); then the oldest row first, as before. --->
+				ORDER BY <cfif len(arguments.themeId) and not arguments.exactTheme>ContentOutput.ThemeRef DESC, </cfif>ContentOutput.ContentOutputId
 			</cfquery>
 			
 		</cfif><!---<cfif len(arguments.contentTemplateId) or len(arguments.contentTemplate)>--->
@@ -679,10 +693,14 @@
 						<cfelseif len(arguments.contentTemplate)>
 							<cfinvokeargument name="contentTemplate" value="#arguments.contentTemplate#">
 						</cfif>
-						<!--- A themeId of 0 may be sent when the user selected 'All'. If this is the case, don't pass the themeId --->
+						<!--- A themeId of 0 may be sent when the user selected 'All'. If this is the case, don't pass the themeId. 5.0
+						(2026-10-19): the theme went in as the words "arguments.themeId" under a name the lookup didn't take, so a save
+						updated whichever row came first, whatever its theme; it now finds the row for exactly this theme (or for all
+						themes) and adds one when there is none. --->
 						<cfif len(arguments.themeId) and arguments.themeId neq 0>
-							<cfinvokeargument name="themeRef" value="arguments.themeId">
+							<cfinvokeargument name="themeId" value="#arguments.themeId#">
 						</cfif>
+						<cfinvokeargument name="exactTheme" value="true">
 					</cfinvoke>
 
 					<!--- Load the content template entity --->
@@ -720,7 +738,9 @@
 		</cftransaction>
 						
 		<!--- Refresh the Galaxie Cache post objects --->
-		<cfset flushGalaxieCache(type='contentTemplatte', themeId='#arguments.themeId#', contentTemplate="#arguments.contentTemplate#")>
+		<!--- 5.0 (2026-10-19): the type was misspelled 'contentTemplatte', which matches nothing, so a saved footer, menu or pod kept
+		showing its cached copy. --->
+		<cfset flushGalaxieCache(type='content', themeId='#arguments.themeId#', contentTemplate="#arguments.contentTemplate#")>
 						
 		<cfreturn status>
 
@@ -2934,6 +2954,10 @@
 					<!--- Delete the files --->
 					<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
 				</cfcase>
+				<!--- 5.0 (2026-10-19): the About and Bio windows' own text. --->
+				<cfcase value="aboutWindow,bioWindow">
+					<cfset flushGalaxieCache('bio')>
+				</cfcase>
 			</cfswitch>
 				
 		<cfelseif arguments.type eq 'font'>
@@ -4958,46 +4982,17 @@
 			
 	</cffunction>
 			
-	<cffunction name="saveThemeSettingImage" access="public" returntype="numeric" 
-		hint="Saves a theme oriented image">	
-		<cfargument name="themeId" type="string" required="true" default="">
-		<cfargument name="image" type="string" required="true" default="" hint="For the sake of readability, the image argument should match the column in the theme setting table that is being updated">
-		
-		<cftransaction>
-			<!--- Load the theme setting entity. --->
-			<cfset ThemeSettingDbObj = entityLoadByPk("ThemeSetting", arguments.themeId)>
-			<cfif arguments.image eq 'blogBackgroundImage'>
-				<cfset ThemeSettingDbObj.setBlogBackgroundImage(arguments.image)>
-			</cfif>
-			<cfif arguments.image eq 'blogBackgroundImageLogo'>
-				<cfset ThemeSettingDbObj.setBlogBackgroundImageMobile(arguments.image)>
-			</cfif>
-			<cfif arguments.image eq 'headerBlogBackgroundImage'>
-				<cfset ThemeSettingDbObj.setHeaderBackgroundImage(arguments.image)>
-			</cfif>
-			<cfif arguments.image eq 'HeaderBodyDividerImage'>
-				<cfset ThemeSettingDbObj.setHeaderBodyDividerImage(arguments.image)>
-			</cfif>
-			<cfif arguments.image eq 'menuBackgroundImage'>
-				<cfset ThemeSettingDbObj.setMenuBackgroundImage(arguments.image)>
-			</cfif>
-			<cfif arguments.image eq 'logoImage'>
-				<cfset ThemeSettingDbObj.setLogoImage(arguments.image)>
-			</cfif>
-			<cfif arguments.image eq 'logoImageMobile'>
-				<cfset ThemeSettingDbObj.setLogoImageMobile(arguments.image)>
-			</cfif>
-			<cfif arguments.image eq 'footerImage'>
-				<cfset ThemeSettingDbObj.setFooterImage(arguments.image)>
-			</cfif>
-			<cfif arguments.image eq 'defaultLogoImageForSocialMediaShare'>
-				<cfset ThemeSettingDbObj.setDefaultLogoImageForSocialMediaShare(arguments.image)>
-			</cfif>
-			<cfset EntitySave(ThemeSettingDbObj)>
-		</cftransaction>
-				
-		<cfreturn 1>
-		
+	<cffunction name="saveThemeSettingImage" access="public" returntype="numeric"
+		hint="Sets one of a theme's pictures to a web address (a picture set by its URL in the image uploader, window 35). imageType is the theme setting's name - blogBackgroundImage, blogBackgroundImageMobile, headerBackgroundImage, headerBodyDividerImage, menuBackgroundImage, logoImage, logoImageMobile, footerImage or defaultLogoImageForSocialMediaShare. 5.0 (2026-10-19): this took (themeId, image), loaded the theme setting by the theme's id and compared the image to itself, so it never saved anything; it now saves through saveTheme, like an uploaded picture.">
+		<cfargument name="themeId" type="numeric" required="true">
+		<cfargument name="imageType" type="string" required="true">
+		<cfargument name="externalUrl" type="string" required="true">
+		<cfset var args = { themeId = arguments.themeId }>
+		<cfif not listFindNoCase("blogBackgroundImage,blogBackgroundImageMobile,headerBackgroundImage,headerBodyDividerImage,menuBackgroundImage,logoImage,logoImageMobile,footerImage,defaultLogoImageForSocialMediaShare", arguments.imageType)>
+			<cfthrow type="GalaxieBlog.Theme" message="A theme has no picture called '#arguments.imageType#'.">
+		</cfif>
+		<cfset args[arguments.imageType] = trim(arguments.externalUrl)>
+		<cfreturn this.saveTheme(argumentCollection = args)>
 	</cffunction>
 		
 				

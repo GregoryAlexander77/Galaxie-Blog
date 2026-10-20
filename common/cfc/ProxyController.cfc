@@ -2170,8 +2170,9 @@
 			<!--- Load the theme setting entity --->
 			<cfset ThemeSettingDbObj = entityLoad("ThemeSetting", { ThemeSettingId = arguments.themeSettingId }, "true" )>
 
-			<!--- Set the values --->
-			<cfif arguments.modernThemeStyle>
+			<!--- Set the values. 5.0 (2026-10-19): modernThemeStyle and useTheme are optional - a grid that leaves one out no longer
+			fails the save ("Element MODERNTHEMESTYLE is undefined"); a value that isn't sent is left as it is. --->
+			<cfif structKeyExists(arguments, "modernThemeStyle") and isBoolean(arguments.modernThemeStyle) and arguments.modernThemeStyle>
 				<cfset ThemeSettingDbObj.setBreakpoint(0)>
 				<!--- Set the content width to 50 if it was not already been changed. The Kendo grid does not send the contentWidth. --->
 				<cfif structKeyExists(arguments, "contentWidth") and arguments.contentWidth eq '66'>
@@ -2179,7 +2180,9 @@
 				</cfif>
 			</cfif>
 			<cfset ThemeDbObj.setSelectedTheme(isSelectedTheme)>
-			<cfset ThemeDbObj.setUseTheme(arguments.useTheme)>				
+			<cfif structKeyExists(arguments, "useTheme") and isBoolean(arguments.useTheme)>
+				<cfset ThemeDbObj.setUseTheme(arguments.useTheme)>
+			</cfif>				
 			<!--- Save the entities --->
 			<cfset EntitySave(ThemeSettingDbObj)>
 			<cfset EntitySave(ThemeDbObj)>
@@ -2414,7 +2417,7 @@
 			</cfif>
 			<cfif len(arguments.customHeaderHtmlCode)>
 				<!--- Sanitize the custom header --->
-				<cfset sanitizedCustomHeaderHtml = StringUtilsObj.sanitizeStrForDb(arguments.CustomHeaderHtml)>
+				<cfset sanitizedCustomHeaderHtml = StringUtilsObj.sanitizeStrForDb(arguments.customHeaderHtmlCode)>
 			</cfif>
 			<!--- If the applyCustomHeaderHtmlToAllThemes argument is set, apply the custom header HTML string across all themes. --->
 			<cfif applyCustomHeaderHtmlAcrossThemes and len(arguments.customHeaderHtmlCode)>
@@ -8041,11 +8044,15 @@
 					<!--- B Save images to the database --->
 					<!--- There are three separate logical branches here: 1) update the theme setting, 2) update the video cover with an image in the database, and 3) to insert or update a media record. --->
 					
-					<!--- B1) Update the theme setting table. --->
-					<cfif arguments.mediaProcessType contains 'Background' or arguments.mediaProcessType eq 'footerImage'>
+					<!--- B1) Update the theme setting table. 5.0 (2026-10-19): the logos too (logoImage, logoImageMobile and
+					defaultLogoImageForSocialMediaShare) - a logo uploaded in Theme Settings was saved as a file but never set on the
+					theme, so it was gone when Theme Settings reloaded. Theme pictures are stored from /images/ on, without the blog's
+					base URL (as Theme Settings' own save does); with it, a blog in a folder showed /blog/blog/images/... --->
+					<cfif arguments.mediaProcessType contains 'Background' or arguments.mediaProcessType eq 'footerImage'
+							or listFindNoCase("logoImage,logoImageMobile,defaultLogoImageForSocialMediaShare", arguments.mediaProcessType)>
 						<cfinvoke component="#application.blog#" method="saveTheme" returnvariable="themeId">
 							<cfinvokeargument name="themeId" value="#arguments.themeId#" />
-							<cfinvokeargument name="#arguments.mediaProcessType#" value="#imageUrl#" />
+							<cfinvokeargument name="#arguments.mediaProcessType#" value="#StringUtilsObj.setThemeFilePath(imageUrl)#" />
 						</cfinvoke>
 					<!--- B2) We only want to update the MediaVideoCoverUrl column when updating the video cover. We don't  need to insert a new media record here. --->
 					<cfelseif arguments.mediaProcessType eq 'mediaVideoCoverUrl'>
