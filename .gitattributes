@@ -1,0 +1,2 @@
+# GSAP files are checked by their SHA-512 hash in the browser (common/js/galaxieScene.js), so their bytes must never change.
+common/libs/gsap3/*.js -text
