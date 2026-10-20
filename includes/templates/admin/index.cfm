@@ -457,12 +457,14 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 				above; this only lays them out. Room is left below the groups for charts of traffic and popular posts, some day. --->
 				<cfsilent>
 					<cfset homeGroups = [
-						{ key: "posts", name: "Posts and Pages", image: "/images/icons/posts.png", what: "Write and organise", icons: "addPost,Posts,CreatePage,Pages,Comments,CreatePageCollection,ConfigurePageCollections,Categories,Tags,ImportData" },
+						{ key: "posts", name: "Posts and Pages", image: "/images/icons/posts.png", what: "Write and organise", icons: "addPost,Posts,CreatePage,Pages,Comments,CreatePageCollection,ConfigurePageCollections,Categories,Tags" },
 						{ key: "look", name: "Look and Layout", image: "/images/icons/themes.png", what: "Themes, scenes, home page and menu", icons: "Themes,Scenes,Fonts,ConfigureHomepage,ConfigureMenu" },
 						{ key: "forms", name: "Forms and Bookings", image: "/images/icons/forms.gif", what: "Forms, bookings and events", icons: "Forms,Bookings,Events" },
 						{ key: "people", name: "People", image: "/images/icons/users.png", what: "Users, members and subscribers", icons: "Users,Members,Subscriber,userProfile,BanVisitors,BannedUsers" },
 						{ key: "logs", name: "Logs", image: "/images/icons/adminLog.gif", what: "What happened on the site", icons: "ErrorLog,AdminLog,MemberLog,VisitorLog,reactionLog,SearchQuery" },
-						{ key: "settings", name: "Settings", image: "/images/icons/settings.gif", what: "Set-up, settings and updates", icons: "SiteSetup,BlogSettings,BlogOptions,BlogUpdate,RefreshSite,ReloadOrm" }
+						{ key: "settings", name: "Settings", image: "/images/icons/settings.gif", what: "Set-up, settings and updates", icons: "SiteSetup,BlogSettings,BlogOptions,BlogUpdate" },
+						<!--- Tools (owner, 2026-10-20): the upkeep that isn't a setting, out of Posts and Settings. --->
+						{ key: "tools", name: "Tools", image: "/images/icons/tools.svg", what: "Import, refresh and other upkeep", icons: "ImportData,RefreshSite,ReloadOrm" }
 					]>
 					<!--- Up next (owner, 2026-10-20): Create Post, then up to three things that need this person now, most important first
 					(AdminHome.cfc getSuggestions), each with an x to hide it until something new happens. With fewer than three, the rest
