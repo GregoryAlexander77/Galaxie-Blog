@@ -196,6 +196,14 @@ details). --->
 <cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(7);")>
 <cfset imageList = listAppend(imageList, "/images/icons/userProfile.gif")>
 	
+<!--- Site Setup (5.0, 2026-10-19): the wizard that makes a new install the owner's own site - a full page, not a window.
+The icon is a placeholder (a copy of settings.gif) until the owner makes one. --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
+	<cfset iconList = listAppend(iconList, 'SiteSetup')>
+	<cfset titleList = listAppend(titleList, 'Site Setup')>
+	<cfset linkList = listAppend(linkList, application.baseUrl & "/admin/setup.cfm")>
+	<cfset imageList = listAppend(imageList, "/images/icons/siteSetup.gif")>
+</cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
 	<cfset iconList = listAppend(iconList, 'BlogSettings')>
 	<cfset titleList = listAppend(titleList, 'Blog Settings')>
@@ -432,6 +440,15 @@ details). --->
 		<span id="iconNavMenu" class="postContent">	
 
 			<span style="text-align: center">Click on one of the categories below to continue.</span>
+
+			<!--- Until the owner finishes the Site Setup wizard (5.0): how many screens are done, and a button to carry on. --->
+			<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') and not application.blog.getSetup().isFinished()>
+				<cfset setupDone = application.blog.getSetup().stepsDoneCount()>
+				<div class="k-alt" style="margin: 14px auto 4px; padding: 14px 16px; border-radius: 6px; max-width: 760px; display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+					<span><strong>Finish setting up your site</strong><cfif setupDone>, <cfoutput>#setupDone# of 6 steps done.</cfoutput><cfelse>: your name, look, logo and a few pages, in about five minutes.</cfif></span>
+					<a class="k-button k-primary" href="<cfoutput>#application.baseUrl#</cfoutput>/admin/setup.cfm"><cfif setupDone>Carry on<cfelse>Start</cfif></a>
+				</div>
+			</cfif>
 
 				<table id="iconMenu" cellpadding="0" cellspacing="0" border="0" width="100%">
 					<tr>

@@ -64,6 +64,11 @@ Note: the following logic should not be cached as each theme may return a differ
 		</tr>
 		<tr>
 			<td colspan="2">
+			<!--- The owner's own biography (5.0): after the Site Setup wizard's About screen, or on a blog installed with 5.0 or
+			later; empty until they write one. A blog updated from an older version keeps the text below, as before. --->
+			<cfif application.blog.getSetup().usesOwnText()>
+				<cfoutput>#authorData[1]["Biography"] ?: ""#</cfoutput>
+			<cfelse>
 				<p>I have over 23 years of web development experience. After serving in the Navy- I went to college in the mid-90s and obtained several degrees in computer graphics and multimedia authoring. My timing was terrific; as soon as I had graduated, the web exploded onto the scene.</p>
 
 				<p>I started developing with ColdFusion 2.5, which was the original middle-ware tool to drive database-driven websites. Later, I also learned classic ASP. Soon, I became the lead web developer at Boeing’s Everett site and helped to build the largest intranet site in the world at the time.</p>
@@ -75,7 +80,7 @@ Note: the following logic should not be cached as each theme may return a differ
 				<p>Currently, I am working at the University of Washington Medical developing web applications used at various hospitals. I am working on developing this application for the open-source community in my off time.</p>
 
 				<p>My passions include photography, cooking, building and engineering mountain trail systems (I started building trail systems as a kid), long road trips, and hiking!</p>
-
+			</cfif>
 			</td>
 		</tr>
 	</table>

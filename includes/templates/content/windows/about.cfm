@@ -24,6 +24,14 @@ Note: the following logic should not be cached as each theme may return a differ
 <cfif displayContentOutputData>
 	<!--- Include the content template for the navigation script --->
 	<cfoutput>#contentOutputData#</cfoutput>
+<cfelseif application.blog.getSetup().usesOwnText()>
+	<!--- A blog installed with 5.0 or later whose owner hasn't written an About text yet (the Site Setup wizard saves one): the
+	site's own description and the owner's name, not the built-in text below. --->
+	<cfset aboutOwner = application.blog.getBlogOwner()>
+	<cfoutput>
+	<p>#encodeForHtml(application.BlogDbObj.getBlogDescription() ?: "")#</p>
+	<cfif arrayLen(aboutOwner)><p>#encodeForHtml(aboutOwner[1]["FullName"] ?: "")#</p></cfif>
+	</cfoutput>
 <cfelse>
 	<img src="<cfoutput><cfif session.isMobile>#application.baseUrl#/images/logo/gregorysBlogMobile.png<cfelse>#application.baseUrl#/images/logo/gregorysBlogLogo.gif</cfif></cfoutput>" id="about" align="left" alt="Gregory Alexander" style="margin: 15px;"/>
 

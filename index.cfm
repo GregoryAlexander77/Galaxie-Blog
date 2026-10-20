@@ -10,6 +10,11 @@
 Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/2018) --->
 <!--- When developing for Lucee you may want to place to following code on the first line to flush the cache. --->
 <!---<cfset pagePoolClear()>--->
+<!--- Straight after a new install (5.0): on to the Site Setup wizard, which asks the new owner to sign in first. Only the one
+request that finished the install has this flag (Application.cfc), so every other visit is unaffected. --->
+<cfif isDefined("request.blogJustInstalled") and request.blogJustInstalled>
+	<cflocation url="#application.baseUrl#/admin/setup.cfm" addToken="false">
+</cfif>
 	
 <!--- //******************************************************************************************************************
 			Page settings.
@@ -217,7 +222,8 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 	
 </cfsilent>
 <!---<cfdump var="#URL#">--->
-<body onload="if(top != self) top.location.replace(self.location.href);" onresize="setScreenProperties()">
+<!--- Breaks out of a frame on another site; the blog's own pages may frame it (the Site Setup wizard's live preview, 2026-10-19). --->
+<body onload="if (top != self) { var ownSite = false; try { ownSite = top.location.host === self.location.host; } catch (e) {} if (!ownSite) top.location.replace(self.location.href); }" onresize="setScreenProperties()">
 <cfsilent>
 <!---//*******************************************************************************************************************
 			Font .css

@@ -13499,6 +13499,74 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="saveSetup" access="remote" returnformat="json" output="false"
+			hint="The Site Setup wizard (admin/setup.cfm, 5.0): saves one screen - step = site, testEmail, look, logo, about, home, starter or finish - through common/cfc/Setup.cfc. Only for someone who may change the blog's settings (EditServerSetting).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="step" type="string" default="" required="true">
+		<cfargument name="title" type="string" default="" required="false">
+		<cfargument name="description" type="string" default="" required="false">
+		<cfargument name="email" type="string" default="" required="false">
+		<cfargument name="timeZone" type="string" default="" required="false">
+		<cfargument name="themeAlias" type="string" default="" required="false">
+		<cfargument name="logo" type="string" default="" required="false">
+		<cfargument name="social" type="string" default="" required="false">
+		<cfargument name="hasName" type="string" default="true" required="false">
+		<cfargument name="firstName" type="string" default="" required="false">
+		<cfargument name="lastName" type="string" default="" required="false">
+		<cfargument name="biography" type="string" default="" required="false">
+		<cfargument name="aboutSite" type="string" default="" required="false">
+		<cfargument name="facebookUrl" type="string" default="" required="false">
+		<cfargument name="linkedInUrl" type="string" default="" required="false">
+		<cfargument name="instagramUrl" type="string" default="" required="false">
+		<cfargument name="twitterUrl" type="string" default="" required="false">
+		<cfargument name="layout" type="string" default="" required="false">
+		<cfargument name="heroStyle" type="string" default="classic" required="false">
+		<cfargument name="welcomePost" type="string" default="false" required="false">
+		<cfargument name="aboutPage" type="string" default="false" required="false">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var setup = "">
+		<cfset var result = "">
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cfset setup = application.blog.getSetup()>
+			<cftry>
+				<cfswitch expression="#arguments.step#">
+					<cfcase value="site"><cfset setup.saveSite(arguments.title, arguments.description, arguments.email, arguments.timeZone)></cfcase>
+					<cfcase value="testEmail"><cfset setup.sendTestEmail(arguments.email)></cfcase>
+					<cfcase value="look"><cfset setup.saveLook(arguments.themeAlias)></cfcase>
+					<cfcase value="logo">
+						<cfset result = setup.saveLogo(arguments.logo, arguments.social, isBoolean(arguments.hasName) and arguments.hasName)>
+						<cfset response[ "logo" ] = result.logo>
+					</cfcase>
+					<cfcase value="about">
+						<cfset setup.saveAbout(arguments.firstName, arguments.lastName, arguments.biography, arguments.aboutSite,
+							arguments.facebookUrl, arguments.linkedInUrl, arguments.instagramUrl, arguments.twitterUrl)>
+					</cfcase>
+					<cfcase value="home"><cfset setup.saveHome(arguments.layout, arguments.heroStyle)></cfcase>
+					<cfcase value="starter">
+						<cfset setup.saveStarter(isBoolean(arguments.welcomePost) and arguments.welcomePost, isBoolean(arguments.aboutPage) and arguments.aboutPage)>
+					</cfcase>
+					<cfcase value="finish"><cfset setup.finish()></cfcase>
+					<cfdefaultcase><cfthrow type="GalaxieBlog.Setup" message="Unknown setup step."></cfdefaultcase>
+				</cfswitch>
+				<cfset response[ "success" ] = true>
+				<cfset response[ "stepsDone" ] = application.BlogOptionDbObj.getSetupStepsDone() ?: "">
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.Setup" ? cfcatch.message : "This step could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="savePostHeroText" access="remote" returnformat="json" output="false"
 			hint="The text over a post's image, gradient or animated hero, from the Hero text window (109, 2026-10-19, Galaxie 5). Anything out of range is dropped rather than refused: an unknown colour or shadow becomes empty (the default), a size is kept between 12 and 120 px.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

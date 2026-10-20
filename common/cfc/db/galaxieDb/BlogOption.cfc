@@ -69,6 +69,12 @@
 	'magazine' (full screen, a large heading low on the left). A post can pick its own (Post.HeroStyle). Carousels, maps and
 	videos are the same in every style. See Renderer.cfc getPostHeroStyle. --->
 	<cfproperty name="PostHeroStyle" ormtype="string" length="20" default="classic">
+	<!--- 5.0 (2026-10-19): the Site Setup wizard (admin/setup.cfm, common/cfc/Setup.cfc). SetupStepsDone lists the screens saved
+	(site, look, logo, about, home, starter); SetupFinished is when the owner pressed Done. A blog that has been through the
+	About screen shows the owner's own biography in the Bio window instead of the built-in text. --->
+	<cfproperty name="SetupStepsDone" ormtype="string" length="200" default="">
+	<cfproperty name="SetupFinished" ormtype="string" length="30" default="">
+	<cfproperty name="SetupHomeLayout" ormtype="string" length="20" default="">
 	<cfproperty name="AnimationOptions" ormtype="string" length="1000" default="">
 	<!--- 2026-10-10 (4.8): top menu labels, set in the admin site's Configure Menu window. Blank uses the default.
 	CollectionsMenuLabel names the dropdown listing the Page Collections marked Show in Menu (default "Collections").

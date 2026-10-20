@@ -1523,6 +1523,17 @@
 		<cfreturn application.errorDigest>
 	</cffunction>
 
+	<cffunction name="getSetup" access="public" returnType="any" output="false" hint="The Site Setup wizard's saves (common/cfc/Setup.cfc, 5.0), created on first use - kept here like getScenes, so a reinit picks up a changed Setup.cfc.">
+		<cfif not structKeyExists(variables, "setupObj")>
+			<cflock name="galaxieSetupCreate_#application.applicationName#" type="exclusive" timeout="10">
+				<cfif not structKeyExists(variables, "setupObj")>
+					<cfset variables.setupObj = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.Setup" : "common.cfc.Setup")>
+				</cfif>
+			</cflock>
+		</cfif>
+		<cfreturn variables.setupObj>
+	</cffunction>
+
 	<cffunction name="getScenes" access="public" returnType="any" output="false" hint="Galaxie 5 scenes in the database (common/cfc/Scenes.cfc, 2026-10-19), created on first use. Kept in this component rather than the application scope, so a reinit (which makes a new application.blog) picks up a changed Scenes.cfc.">
 		<cfif not structKeyExists(variables, "scenesObj")>
 			<cflock name="galaxieScenesCreate_#application.applicationName#" type="exclusive" timeout="10">
