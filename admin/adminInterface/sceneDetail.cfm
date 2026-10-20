@@ -891,6 +891,21 @@ $(document).ready(function () {
 			it.on("click", function () { select(i); });
 			list.append(it);
 		});
+		<!--- Drag a section to move it (owner, 10-19). Scene settings stays at the top; the arrows still work. --->
+		var old = list.data("kendoSortable"); if (old) { old.destroy(); }
+		list.kendoSortable({
+			filter: ".sceneSectionItem[data-index]", ignore: "button, .k-icon", cursor: "move", holdToDrag: false,
+			placeholder: function (element) { return element.clone().css({ opacity: 0.35 }); },
+			hint: function (element) { return element.clone().css({ width: element.width(), background: "#ffffff", boxShadow: "0 4px 14px rgba(0,0,0,.25)" }); },
+			change: function (e) {
+				var from = e.oldIndex, to = e.newIndex;
+				var s = scene.sections.splice(from, 1)[0];
+				scene.sections.splice(to, 0, s);
+				selected = to;
+				setTimeout(function () { renderList(); renderSettings(); }, 0);
+				schedulePreview();
+			}
+		});
 	}
 	function select(i) { if (i !== selected) { selectedLayer = -1; } selected = i; renderList(); renderSettings(); }
 	function move(i, by) {
