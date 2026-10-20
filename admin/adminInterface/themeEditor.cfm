@@ -14,7 +14,7 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 </cfquery>
 
 <!--- The data for the script, with bracket keys so Adobe ColdFusion keeps their case. --->
-<cfset themeKeys = "ThemeId,ThemeAlias,ThemeName,SelectedTheme,KendoThemeId,Breakpoint,ContentWidth,MainContainerWidth,SideBarContainerWidth,SiteOpacity,AlignBlogMenuWithBlogContent,StretchHeaderAcrossPage,FontId,FontSize,FontSizeMobile,MenuFontId,BlogNameFontId,BlogNameFontSize,BlogNameFontSizeMobile,BlogNameTextColor,DisplayBlogName,IncludeBackgroundImages,BlogBackgroundImage,BlogBackgroundImageMobile,BlogBackgroundColor,BlogBackgroundImagePosition,BlogBackgroundImageRepeat,HeaderBackgroundImage,HeaderBodyDividerImage,MenuBackgroundImage,TopMenuAlign,CoverKendoMenuWithMenuBackgroundImage,LogoImage,LogoImageMobile,DefaultLogoImageForSocialMediaShare,FooterImage">
+<cfset themeKeys = "ThemeId,ThemeAlias,ThemeName,SelectedTheme,KendoThemeId,Breakpoint,ContentWidth,MainContainerWidth,SideBarContainerWidth,SiteOpacity,AlignBlogMenuWithBlogContent,StretchHeaderAcrossPage,FontId,FontSize,FontSizeMobile,MenuFontId,BlogNameFontId,BlogNameFontSize,BlogNameFontSizeMobile,BlogNameTextColor,DisplayBlogName,IncludeBackgroundImages,BlogBackgroundImage,BlogBackgroundImageMobile,BlogBackgroundColor,BlogBackgroundImagePosition,BlogBackgroundImageRepeat,HeaderBackgroundImage,HeaderBodyDividerImage,MenuBackgroundImage,TopMenuAlign,CoverKendoMenuWithMenuBackgroundImage,LogoImage,LogoImageMobile,DefaultLogoImageForSocialMediaShare,FooterImage,Font,FontType,MenuFont,MenuFontType,BlogNameFont,BlogNameFontType,DarkTheme">
 <cfset themeData = []>
 <cfloop array="#editorThemes#" index="thisTheme">
 	<cfset row = {}>
@@ -28,6 +28,19 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 <cfset kendoData = []>
 <cfloop query="editorKendoThemes">
 	<cfset arrayAppend(kendoData, { "id" = toString(editorKendoThemes.KendoThemeId), "name" = toString(editorKendoThemes.KendoTheme), "dark" = editorKendoThemes.DarkTheme eq 1 })>
+</cfloop>
+<!--- The fonts the themes use, so each card shows its own site name, menu and text fonts. --->
+<cfset cardRenderer = createObject("component", application.rendererComponentPath)>
+<cfset cardFontFaces = "">
+<cfset cardFontsDone = {}>
+<cfloop array="#editorThemes#" index="thisTheme">
+	<cfloop list="Font,MenuFont,BlogNameFont" index="thisKey">
+		<cfset thisValue = thisTheme[thisKey] ?: "">
+		<cfif len(thisValue) and not structKeyExists(cardFontsDone, thisValue)>
+			<cfset cardFontsDone[thisValue] = true>
+			<cfset cardFontFaces = cardFontFaces & cardRenderer.getOverlayFontFaceStyle(thisValue)>
+		</cfif>
+	</cfloop>
 </cfloop>
 <cfset fontData = []>
 <cfloop array="#editorFonts#" index="thisFont">
@@ -46,15 +59,25 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 	#themeEditorView-customize.selected { display: flex; overflow: hidden; padding: 0; }
 	.themeEditorLead { margin: 0 0 12px; max-width: 900px; }
 	.themeEditorNote { border: 1px solid rgba(128,128,128,.5); border-radius: 6px; padding: 8px 12px; margin: 0 0 14px; max-width: 900px; }
-	.themeEditorGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>160<cfelse>230</cfif>px, 1fr)); gap: 14px; }
+	.themeEditorGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>220<cfelse>280</cfif>px, 1fr)); gap: 14px; }
 	.themeCard { border: 1px solid rgba(128,128,128,.35); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
 	.themeCard.inUse { border: 3px solid currentColor; }
-	.themeCardPicture { height: 120px; background-size: cover; background-position: center; position: relative; background-color: #888; }
-	.themeCardHeader { height: 26px; background-size: cover; background-position: center; display: flex; align-items: center; gap: 6px; padding: 0 8px; }
-	.themeCardHeader img { max-height: 20px; max-width: 70%; }
-	.themeCardBody { position: absolute; left: 14%; right: 14%; top: 34px; bottom: 0; background: rgba(255,255,255,.88); border-radius: 3px 3px 0 0; }
-	.themeCard.dark .themeCardBody { background: rgba(30,32,36,.88); }
-	.themeCardPill { position: absolute; top: 34px; right: 8px; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.65); color: #fff; font-size: 12px; font-weight: bold; }
+	.themeCardPicture { height: 230px; background-size: cover; background-position: center; position: relative; background-color: #888; overflow: hidden; }
+	.themeCardHeader { height: 34px; margin: 0 auto; background-size: cover; background-position: center; display: flex; align-items: center; gap: 6px; padding: 0 8px; overflow: hidden; white-space: nowrap; }
+	.themeCardHeader img { max-height: 24px; max-width: 30%; }
+	.themeCardName { font-size: 15px; line-height: 1; overflow: hidden; text-overflow: ellipsis; }
+	.themeCardMenu { margin-left: auto; font-size: 10px; opacity: .9; }
+	.themeCardBody { position: absolute; top: 34px; bottom: 0; display: flex; gap: 6px; }
+	.themeCardPosts, .themeCardSide { background: #fff; color: #222; padding: 7px 8px; overflow: hidden; }
+	.themeCard.dark .themeCardPosts, .themeCard.dark .themeCardSide { background: #24262a; color: #e6e6e6; }
+	.themeCardPosts { flex: 1 1 auto; }
+	.themeCardSide { flex: 0 0 auto; }
+	.themeCardFonts { margin-top: -4px; }
+	.themeCardTitle { font-weight: bold; font-size: 13px; line-height: 1.2; margin-bottom: 4px; }
+	.themeCardText1 { font-size: 10px; line-height: 1.4; }
+	.themeCardPod { font-size: 9px; line-height: 1.35; margin-bottom: 6px; }
+	.themeCardPod b { display: block; font-size: 10px; margin-bottom: 2px; }
+	.themeCardPill { position: absolute; top: 40px; right: 8px; z-index: 2; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.65); color: #fff; font-size: 12px; font-weight: bold; }
 	.themeCardText { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
 	.themeCardButtons { display: flex; gap: 6px; }
 	.themeCardButtons .k-button { flex: 1 1 auto; min-width: 0; white-space: nowrap; padding-left: 6px; padding-right: 6px; }
@@ -82,6 +105,7 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 		#themeLookPreview { flex: 0 0 70vh; }
 	}
 </style>
+<cfoutput>#cardFontFaces#</cfoutput>
 
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 <cfset altClass = HtmlUtilsObj.getKendoClass(blockClass)>
@@ -243,17 +267,42 @@ $(function () {
 		$.each(THEMES, function (i, t) {
 			var isUsed = used && used.ThemeId === t.ThemeId, kendoTheme = kendoById(t.KendoThemeId);
 			var card = $('<div class="themeCard"></div>').toggleClass("inUse", !!isUsed).toggleClass("dark", !!(kendoTheme && kendoTheme.dark));
-			var header = $('<div class="themeCardHeader"></div>').css("background-image", t.HeaderBackgroundImage ? 'url("' + img(t.HeaderBackgroundImage) + '")' : "none");
-			if (t.LogoImage) { header.append($('<img alt="">').attr("src", img(t.LogoImage))); }
-			var picture = $('<div class="themeCardPicture"></div>').css("background-image", t.BlogBackgroundImage ? 'url("' + img(t.BlogBackgroundImage) + '")' : "none")
-				.css("background-color", t.BlogBackgroundColor || "#888").append(header, '<div class="themeCardBody"></div>');
+			var picture = $('<div class="themeCardPicture"></div>').css("background-image", bool(t.IncludeBackgroundImages) && t.BlogBackgroundImage ? 'url("' + img(t.BlogBackgroundImage) + '")' : "none")
+				.css("background-color", t.BlogBackgroundColor || "#888").append(themeCardPage(t));
 			if (isUsed) { picture.append('<span class="themeCardPill">In use</span>'); }
 			var buttons = $('<div class="themeCardButtons"></div>');
 			buttons.append($('<button type="button" class="k-button"></button>').text(isUsed ? "In use" : "Use this theme").prop("disabled", !!isUsed).on("click", function () { useTheme(t); }));
 			buttons.append($('<button type="button" class="k-button">Customize</button>').on("click", function () { startCustomize(t.ThemeId); showView("customize"); }));
-			card.append(picture, $('<div class="themeCardText"></div>').append($("<b></b>").text(t.ThemeName), buttons));
+			var fonts = $('<div class="themeCardFonts k-form-hint"></div>').append(
+				$("<span></span>").text("Header: " + (t.BlogNameFont || "default")).css("font-family", fontCss(t.BlogNameFont, t.BlogNameFontType)), " · ",
+				$("<span></span>").text("Body: " + (t.Font || "default")).css("font-family", fontCss(t.Font, t.FontType)));
+			card.append(picture, $('<div class="themeCardText"></div>').append($("<b></b>").text(t.ThemeName), fonts, buttons));
 			box.append(card);
 		});
+	}
+	// A small picture of a page in the theme: the header ribbon with the logo, site name (in its font and colour) and menu, then
+	// the content box straight under it - a post in the text font, and the sidebar on a classic (not modern) theme.
+	var SITE_NAME = "<cfoutput>#jsStringFormat(application.BlogDbObj.getBlogTitle())#</cfoutput>";
+	function fontCss(name, type) { return name ? "'" + name.replace(/'/g, "") + "'" + (type ? ", " + type : "") : "inherit"; }
+	function themeCardPage(t) {
+		var width = Math.max(40, Math.min(100, parseInt(t.ContentWidth, 10) || 60)), classic = String(t.Breakpoint) !== "0";
+		if (classic) { width = Math.max(width, 80); }
+		var left = (100 - width) / 2, opacity = Math.max(0.5, Math.min(1, (parseInt(t.SiteOpacity, 10) || 99) / 100));
+		var header = $('<div class="themeCardHeader"></div>').css({ "background-image": t.HeaderBackgroundImage ? 'url("' + img(t.HeaderBackgroundImage) + '")' : "none", width: bool(t.StretchHeaderAcrossPage) ? "100%" : width + "%" });
+		if (t.LogoImage) { header.append($('<img alt="">').attr("src", img(t.LogoImage))); }
+		if (bool(t.DisplayBlogName)) { header.append($('<span class="themeCardName"></span>').text(SITE_NAME).css({ "font-family": fontCss(t.BlogNameFont, t.BlogNameFontType), color: t.BlogNameTextColor || "#fff" })); }
+		header.append($('<span class="themeCardMenu">Menu &nbsp; About &nbsp; Themes</span>').css({ "font-family": fontCss(t.MenuFont, t.MenuFontType), color: t.BlogNameTextColor || "#fff" }));
+		var body = $('<div class="themeCardBody"></div>').css({ left: left + "%", right: left + "%", opacity: opacity, "font-family": fontCss(t.Font, t.FontType) });
+		body.append($('<div class="themeCardPosts"></div>').append(
+			$('<div class="themeCardTitle">Lorem ipsum dolor sit amet</div>').css("font-family", fontCss(t.BlogNameFont, t.BlogNameFontType)),
+			$('<div class="themeCardText1">Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</div>')));
+		if (classic) {
+			var side = Math.max(20, Math.min(45, parseInt(t.SideBarContainerWidth, 10) || 35));
+			body.append($('<div class="themeCardSide"></div>').css("width", side + "%").append(
+				'<div class="themeCardPod"><b>Categories</b>Lorem<br>Ipsum<br>Dolor</div>',
+				'<div class="themeCardPod"><b>Recent posts</b>Sit amet<br>Consectetur</div>'));
+		}
+		return [header, body];
 	}
 	function setInUse(themeId) { $.each(THEMES, function (i, t) { t.SelectedTheme = String(t.ThemeId) === String(themeId) ? "1" : "0"; }); drawGallery(); drawBranding(); }
 	function useTheme(t) {
