@@ -11589,9 +11589,10 @@
 	</cffunction>
 
 	<cffunction name="useReadyMadeForm" access="remote" returnformat="json" output="false"
-			hint="Insert Form (window 86, 2026-10-17): the form for a ready-made choice, made from its starter the first time (WebForms.cfc useReadyMade). Returns { success, webFormId, alias, title, publicList, errors }.">
+			hint="Insert Form (window 86, 2026-10-17) and a scene's Form section: a new form made from a ready-made choice - each use its own copy (WebForms.cfc useReadyMade, 2026-10-20). Returns { success, webFormId, alias, title, publicList, errors }.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="key" type="string" required="false" default="">
+		<cfargument name="usedFor" type="string" required="false" default="" hint="The post, page or scene it's for; the new form is named after it.">
 		<cfset var response = { "success": false, "webFormId": 0, "alias": "", "title": "", "publicList": false, "errors": [] }>
 		<cfset var result = {}>
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
@@ -11600,8 +11601,60 @@
 		</cfif>
 		<cfset secureFunction('EditServerSetting')>
 		<cfif application.Udf.isLoggedIn()>
-			<cfset result = application.webForms.useReadyMade(left(trim(arguments.key), 40))>
+			<cfset result = application.webForms.useReadyMade(left(trim(arguments.key), 40), left(trim(arguments.usedFor), 80))>
 			<cfset response = { "success": result.success, "webFormId": result.webFormId, "alias": result.alias, "title": result.title, "publicList": result.publicList, "errors": result.errors }>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getWebFormQuickEdit" access="remote" returnformat="json" output="false"
+			hint="A scene's Form section (2026-10-20): the form's quick-edit view (WebForms.cfc getQuickEdit). Returns { success, form }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="webFormId" required="false" default="0">
+		<cfset var response = { "success": false, "form": {} }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.webFormId)>
+			<cfset response[ "form" ] = application.webForms.getQuickEdit(val(arguments.webFormId))>
+			<cfset response[ "success" ] = not structIsEmpty(response.form)>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="saveWebFormQuickEdit" access="remote" returnformat="json" output="false"
+			hint="A scene's Form section (2026-10-20): saves the quick edit (WebForms.cfc saveQuickEdit). fieldsJson = [{ webFormFieldId, label, required }]. Returns { success, errorMessage }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="webFormId" required="false" default="0">
+		<cfargument name="description" type="string" required="false" default="">
+		<cfargument name="buttonLabel" type="string" required="false" default="">
+		<cfargument name="notifyEmails" type="string" required="false" default="">
+		<cfargument name="fieldsJson" type="string" required="false" default="[]">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var fieldList = []>
+		<cfset var saveResult = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.webFormId)>
+			<cftry>
+				<cfset fieldList = isJSON(arguments.fieldsJson) ? deserializeJSON(arguments.fieldsJson) : []>
+				<cfif not isArray(fieldList)><cfset fieldList = []></cfif>
+				<cfset saveResult = application.webForms.saveQuickEdit(val(arguments.webFormId), arguments.description, arguments.buttonLabel, arguments.notifyEmails, fieldList)>
+				<cfif saveResult.success>
+					<cfset flushWebFormPosts(saveResult.changedPostIds)>
+					<cfset application.events.flushEventPosts(application.events.getPostIdsForForm(val(saveResult.webFormId)))>
+				</cfif>
+				<cfset response[ "success" ] = saveResult.success>
+				<cfset response[ "errorMessage" ] = arrayToList(saveResult.errors, " ")>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The form could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
@@ -13531,6 +13584,7 @@
 		<cfargument name="heroStyle" type="string" default="classic" required="false">
 		<cfargument name="welcomePost" type="string" default="false" required="false">
 		<cfargument name="aboutPage" type="string" default="false" required="false">
+		<cfargument name="contactForm" type="string" default="false" required="false">
 		<cfargument name="photo" type="string" default="" required="false" hint="A new profile photo as a data URL.">
 
 		<cfset var response = { "success": false, "errorMessage": "" }>
@@ -13560,7 +13614,7 @@
 					</cfcase>
 					<cfcase value="home"><cfset setup.saveHome(arguments.layout, arguments.heroStyle)></cfcase>
 					<cfcase value="starter">
-						<cfset setup.saveStarter(isBoolean(arguments.welcomePost) and arguments.welcomePost, isBoolean(arguments.aboutPage) and arguments.aboutPage)>
+						<cfset setup.saveStarter(isBoolean(arguments.welcomePost) and arguments.welcomePost, isBoolean(arguments.aboutPage) and arguments.aboutPage, isBoolean(arguments.contactForm) and arguments.contactForm)>
 					</cfcase>
 					<cfcase value="finish"><cfset setup.finish()></cfcase>
 					<cfdefaultcase><cfthrow type="GalaxieBlog.Setup" message="Unknown setup step."></cfdefaultcase>

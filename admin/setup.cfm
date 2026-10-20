@@ -265,6 +265,7 @@ loaded on this page only. In the admin folder, so only a signed-in user reaches 
 		<div class="choiceList">
 			<label class="choice"><input type="checkbox" id="starterWelcome" checked><div><strong>A welcome post</strong><span>Your first post, ready to edit.</span></div></label>
 			<label class="choice"><input type="checkbox" id="starterAbout" checked><div><strong>An About page</strong><span>Made from what you wrote about yourself. Needed for an About home page.</span></div></label>
+			<label class="choice"><input type="checkbox" id="starterContact" checked><div><strong>A contact form</strong><span>At the end of your About page, so visitors can reach you. Their messages come to your email. Change its questions any time in Forms.</span></div></label>
 		</div>
 	</div>
 	<div id="stepDone">
@@ -597,7 +598,7 @@ $(function () {
 			facebookUrl: $.trim($("#aboutFacebook").val()), instagramUrl: $.trim($("#aboutInstagram").val()), linkedInUrl: $.trim($("#aboutLinkedIn").val()), twitterUrl: $.trim($("#aboutTwitter").val()),
 			photo: state.photo || "" }).then(function () { state.photo = ""; }); },
 		function () { return save("home", { layout: $("input[name=homeLayout]:checked").val() || "posts", heroStyle: $("#heroStyle").data("kendoDropDownList").value() }); },
-		function () { return save("starter", { welcomePost: $("#starterWelcome").is(":checked"), aboutPage: $("#starterAbout").is(":checked") }); }
+		function () { return save("starter", { welcomePost: $("#starterWelcome").is(":checked"), aboutPage: $("#starterAbout").is(":checked"), contactForm: $("#starterContact").is(":checked") }); }
 	];
 	var stepKeys = ["site", "look", "logo", "about", "home", "starter"];
 

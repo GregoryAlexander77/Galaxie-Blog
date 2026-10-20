@@ -321,12 +321,16 @@
 		Screen 6: starter content
 //******************************************************************************************************--->
 
-<cffunction name="saveStarter" access="public" returntype="struct" output="false" hint="Creates a welcome post and an About page, each only once (a second run finds the first by its title). Both are ordinary posts the owner edits or deletes.">
+<cffunction name="saveStarter" access="public" returntype="struct" output="false" hint="Creates a welcome post, an About page and a contact form, each only once (a second run finds the first by its title). The posts are ordinary posts the owner edits or deletes; the contact form (5.0, owner 10-20) is a ready-made Contact form named 'Contact (About page)', placed at the end of a new About page, and answers go to the blog's email.">
 	<cfargument name="welcomePost" type="boolean" required="false" default="false">
 	<cfargument name="aboutPage" type="boolean" required="false" default="false">
+	<cfargument name="contactForm" type="boolean" required="false" default="false">
 	<cfset var owner = getOwner()>
-	<cfset var made = { welcomePostId = 0, aboutPageId = 0 }>
+	<cfset var made = { welcomePostId = 0, aboutPageId = 0, contactFormId = 0 }>
 	<cfset var blogTitle = application.BlogDbObj.getBlogTitle()>
+	<cfset var aboutBody = "">
+	<cfset var contact = {}>
+	<cfset var existingForm = {}>
 	<cfif isNull(owner)><cfset fail("The blog owner's account couldn't be found.")></cfif>
 	<cfif arguments.welcomePost>
 		<cfset made.welcomePostId = makePost("blogPost", owner.getUserId(), "Welcome to " & blogTitle,
@@ -334,10 +338,23 @@
 			"<p>Welcome to " & encodeForHtml(blogTitle) & "! This is the first post. Edit it to say hello in your own words, or delete it once you have written your own.</p><p>To write a new post, sign in and choose Create Post on the administration page.</p>",
 			"linear-gradient(135deg, ##1d4350 0%, ##a43931 100%)")>
 	</cfif>
+	<cfif arguments.contactForm and structKeyExists(application, "webForms")>
+		<cfloop array="#application.webForms.getForms()#" index="existingForm">
+			<cfif existingForm.title eq "Contact (About page)"><cfset contact = { webFormId = existingForm.webFormId, alias = existingForm.alias }></cfif>
+		</cfloop>
+		<cfif structIsEmpty(contact)>
+			<cfset contact = application.webForms.useReadyMade("contact", "About page")>
+			<cfif not contact.success><cfset fail("The contact form couldn't be made: " & arrayToList(contact.errors, " "))></cfif>
+		</cfif>
+		<cfset made.contactFormId = contact.webFormId>
+	</cfif>
 	<cfif arguments.aboutPage>
-		<cfset made.aboutPageId = makePost("page", owner.getUserId(), "About",
-			"About " & blogTitle & ".",
-			len(owner.getBiography() ?: "") ? owner.getBiography() : "<p>Tell your visitors who you are and what this site is about. Edit this page to make it yours.</p>",
+		<cfset aboutBody = len(owner.getBiography() ?: "") ? owner.getBiography() : "<p>Tell your visitors who you are and what this site is about. Edit this page to make it yours.</p>">
+		<!--- The contact form at the end, as Insert Form places one. --->
+		<cfif not structIsEmpty(contact)>
+			<cfset aboutBody = aboutBody & '<h2>Get in touch</h2><div class="galaxieWebForm" data-webform="' & encodeForHtmlAttribute(contact.alias) & '">[Form: Contact]</div>'>
+		</cfif>
+		<cfset made.aboutPageId = makePost("page", owner.getUserId(), "About", "About " & blogTitle & ".", aboutBody,
 			"linear-gradient(135deg, ##355c7d 0%, ##6c5b7b 50%, ##c06c84 100%)")>
 	</cfif>
 	<cfset markDone("starter")>

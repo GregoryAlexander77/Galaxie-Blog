@@ -51,6 +51,16 @@ this scene. Drafts are listed too (a scene can go on a post before it is release
 	<cfset arrayAppend(sceneLinkParts, '{"id":' & sceneLinkRows.PostId & ',"title":' & serializeJSON(toString(sceneLinkRows.Title)) & ',"page":' & (sceneLinkRows.IsPage eq 1 ? 'true' : 'false')
 		& ',"released":' & (sceneLinkRows.Released eq 1 ? 'true' : 'false') & ',"url":' & serializeJSON(toString(thisLinkUrl)) & '}')>
 </cfloop>
+<!--- The ready-made forms (owner, 10-20): picking one makes this scene its own copy (WebForms.cfc useReadyMade). --->
+<cfset sceneReadyParts = []>
+<cfif structKeyExists(application, "webForms")>
+	<cftry>
+		<cfloop array="#application.webForms.getReadyMadeChoices()#" index="thisReady">
+			<cfset arrayAppend(sceneReadyParts, '{"key":' & serializeJSON(toString(thisReady.key)) & ',"name":' & serializeJSON(toString(thisReady.name)) & '}')>
+		</cfloop>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+</cfif>
 <!--- The blog's maps (owner, 10-20), for a Map section: made in a post's editor (Insert > Map), shown here by title or place. --->
 <cfset sceneMapParts = []>
 <cftry>
@@ -71,7 +81,7 @@ this scene. Drafts are listed too (a scene can go on a post before it is release
 <cfif structKeyExists(application, "webForms")>
 	<cftry>
 		<cfloop array="#application.webForms.getForms()#" index="thisSceneForm">
-			<cfset arrayAppend(sceneFormParts, '{"alias":' & serializeJSON(toString(thisSceneForm.alias)) & ',"title":' & serializeJSON(toString(thisSceneForm.title)) & ',"active":' & (thisSceneForm.active ? 'true' : 'false') & '}')>
+			<cfset arrayAppend(sceneFormParts, '{"id":' & val(thisSceneForm.webFormId) & ',"alias":' & serializeJSON(toString(thisSceneForm.alias)) & ',"title":' & serializeJSON(toString(thisSceneForm.title)) & ',"active":' & (thisSceneForm.active ? 'true' : 'false') & '}')>
 		</cfloop>
 		<cfcatch type="any"></cfcatch>
 	</cftry>
@@ -272,6 +282,7 @@ $(document).ready(function () {
 	var starters = <cfoutput>#startersJsonText#</cfoutput>;
 	var LINKS = <cfoutput>#sceneLinksJsonText#</cfoutput>;
 	var SHOWN_ON = <cfoutput>#serializeJSON(sceneShownOn)#</cfoutput>;
+	var READY_FORMS = <cfoutput>#replace("[" & arrayToList(sceneReadyParts, ",") & "]", "</", "<\/", "all")#</cfoutput>;   <!--- { key, name } --->
 	var MAPS = <cfoutput>#replace(replace("[" & arrayToList(sceneMapParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- { id, title, routes } --->
 	var FORMS = <cfoutput>#replace(replace("[" & arrayToList(sceneFormParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- { alias, title, active } --->   <!--- the post ids that show this scene now --->   <!--- the blog's posts and pages: { id, title, page, released, url } --->
 	var selected = -1;            <!--- -1 is the scene's own settings; 0... a section --->
@@ -667,21 +678,33 @@ $(document).ready(function () {
 			return wrap;
 		}
 		if (field.type === "form") {
-			<!--- Which form (owner, 10-19); with none yet, a button to make one. --->
-			if (!FORMS.length) {
-				wrap.append($('<div class="k-form-hint"></div>').text("You haven't made a form yet."),
-					$('<button type="button" class="k-button">Make a form</button>').on("click", function () { createAdminInterfaceWindow(84, 0); }),
-					$('<div class="k-form-hint"></div>').text("Save the form, then close and reopen this scene to pick it."));
-				return wrap;
-			}
+			<!--- Which form (owner, 10-19), from the blog's forms or the ready-made ones (owner, 10-20: non-technical owners shouldn't
+			have to build a form). A ready-made one becomes this scene's own copy, named after the scene, the moment it's picked. --->
 			var formPick = $('<select></select>').attr("id", id);
-			$.each(FORMS, function (i, f) { formPick.append($('<option></option>').attr("value", f.alias).text(f.title + (f.active ? "" : " (turned off)"))); });
-			formPick.val(value || FORMS[0].alias);
+			if (FORMS.length) {
+				var yours = $('<optgroup label="Your forms"></optgroup>').appendTo(formPick);
+				$.each(FORMS, function (i, f) { yours.append($('<option></option>').attr("value", f.alias).text(f.title + (f.active ? "" : " (turned off)"))); });
+			}
+			if (READY_FORMS.length) {
+				var ready = $('<optgroup label="Ready-made (a copy is made for this scene)"></optgroup>').appendTo(formPick);
+				$.each(READY_FORMS, function (i, r) { ready.append($('<option></option>').attr("value", "ready:" + r.key).text(r.name)); });
+			}
+			if (!value) { formPick.prepend('<option value="">Choose a form...</option>'); }
+			formPick.val(value || "");
 			formPick.on("change", function () {
-				var f = $.grep(FORMS, function (x) { return x.alias === formPick.val(); })[0];
-				setValue("form", f.alias); setValue("formTitle", f.title); schedulePreview();
+				var v = formPick.val();
+				if (!v) { return; }
+				if (v.indexOf("ready:") === 0) {
+					makeReadyForm(v.substr(6), function (f) { setValue("form", f.alias); setValue("formTitle", f.title); renderSettings(); schedulePreview(); },
+						function () { formPick.val(value || ""); });
+					return;
+				}
+				var f = $.grep(FORMS, function (x) { return x.alias === v; })[0];
+				setValue("form", f.alias); setValue("formTitle", f.title); renderSettings(); schedulePreview();
 			});
-			wrap.append(formPick, $('<div class="k-form-hint"></div>').text("Visitors fill it in right in the scene. Its answers arrive like the form's answers anywhere else; change the form itself in Forms."));
+			wrap.append(formPick, $('<div class="k-form-hint"></div>').text("Visitors fill it in right in the scene, and you get each answer by email."));
+			var picked = $.grep(FORMS, function (x) { return x.alias === value; })[0];
+			if (picked) { wrap.append(quickEditForm(picked)); }
 			return wrap;
 		}
 		if (field.type === "link") {
@@ -980,7 +1003,7 @@ $(document).ready(function () {
 		var s = { kind: kind, heading: "", html: "" };
 		if (kind === "text") { s.heading = "A new heading"; s.html = "<p>Your text.</p>"; s.colour = scene.pageColour || "#392630"; }
 		if (kind === "vantaHero") { s.effect = "WAVES"; s.options = { color: "#0e3b5c" }; }
-		if (kind === "form") { s.heading = "Get in touch"; s.html = "<p>Send us a note and we'll get back to you.</p>"; s.colour = scene.pageColour || "#392630"; if (FORMS.length) { s.form = FORMS[0].alias; s.formTitle = FORMS[0].title; } }
+		if (kind === "form") { s.heading = "Get in touch"; s.html = "<p>Send us a note and we'll get back to you.</p>"; s.colour = scene.pageColour || "#392630";  }
 		if (kind === "slideshow") { s.slides = []; s.colour = "#111111"; delete s.html; }
 		if (kind === "map") { s.heading = "Where to find us"; s.html = ""; s.colour = scene.pageColour || "#392630"; s.mapHeight = "70"; if (MAPS.length) { s.mapId = MAPS[0].id; s.mapType = MAPS[0].routes ? "route" : "static"; } }
 		if (kind === "gradientHero") { s.gradient = "linear-gradient(135deg, #1d4350 0%, #a43931 100%)"; }
@@ -998,10 +1021,100 @@ $(document).ready(function () {
 	kendoSelects("#sceneEditorTop");
 	$("#sceneAddSection").on("click", function () {
 		var at = selected < 0 ? scene.sections.length : selected + 1;
-		scene.sections.splice(at, 0, newSection($("#sceneAddKind").val()));
+		var section = newSection($("#sceneAddKind").val());
+		scene.sections.splice(at, 0, section);
 		select(at);
 		schedulePreview();
+		<!--- A new Form section starts with a Contact form of its own (owner, 10-20), so it works without any setup. --->
+		if (section.kind === "form" && !section.form && $.grep(READY_FORMS, function (r) { return r.key === "contact"; }).length) {
+			makeReadyForm("contact", function (f) { section.form = f.alias; section.formTitle = f.title; if (scene.sections[selected] === section) { renderSettings(); } schedulePreview(); });
+		}
 	});
+
+	<!--- ---------- Forms (owner, 10-20): a ready-made form as this scene's own copy, and a quick edit of the picked form ---------- --->
+	function sceneLabel() { return $.trim(scene.name || $("#sceneAlias").val() || "") ? $.trim(scene.name || $("#sceneAlias").val()) + " scene" : "scene"; }
+	function makeReadyForm(key, done, failed) {
+		jQuery.ajax({
+			type: "post", url: BASE_URL + "/common/cfc/ProxyController.cfc?method=useReadyMadeForm",
+			data: { csrfToken: CSRF, key: key, usedFor: sceneLabel() }, dataType: "json",
+			success: function (response) {
+				if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+				if (response && response.success) {
+					var f = { id: response.webFormId, alias: response.alias, title: response.title, active: true };
+					FORMS.unshift(f);
+					done(f);
+				} else {
+					if (failed) { failed(); }
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "Form not ready", message: $("<div/>").text(((response && response.errors) || ["The form could not be made."]).join(" ")).html(), icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+				}
+			},
+			error: function (jqXHR) { if (failed) { failed(); } if (jqXHR.status === 403) { createLoginWindow(); } }
+		});
+	}
+	<!--- The quick edit: the words above the form, each question's wording and whether it must be answered (or remove it), the
+	button and where answers go. Anything more (choices, new questions) is in the full form editor, a click away. --->
+	function quickEditForm(f) {
+		var box = $('<div class="sceneQuickEdit"></div>');
+		var open = $('<button type="button" class="k-button" style="margin-top: 6px;">Change the questions</button>');
+		var full = $('<a href="#" style="margin-left: 10px;">Full form editor</a>').on("click", function (e) { e.preventDefault(); createAdminInterfaceWindow(84, f.id); });
+		var panel = $('<div style="display: none; margin-top: 8px;"></div>');
+		box.append(open, full, panel);
+		open.on("click", function () {
+			if (panel.is(":visible")) { panel.hide(); return; }
+			panel.show().text("Loading the form...");
+			jQuery.ajax({
+				type: "post", url: BASE_URL + "/common/cfc/ProxyController.cfc?method=getWebFormQuickEdit",
+				data: { csrfToken: CSRF, webFormId: f.id }, dataType: "json",
+				success: function (response) {
+					if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+					if (!response || !response.success) { panel.text("This form can't be opened here. Use the full form editor."); return; }
+					drawQuickEdit(panel, response.form, f);
+				},
+				error: function (jqXHR) { panel.text("This form can't be opened here."); if (jqXHR.status === 403) { createLoginWindow(); } }
+			});
+		});
+		return box;
+	}
+	function drawQuickEdit(panel, form, f) {
+		panel.empty();
+		var words = $('<textarea class="k-textbox" rows="2" style="width: 100%;"></textarea>').val(form.description);
+		panel.append($("<label>Words above the form</label>"), words);
+		var list = $('<div style="margin-top: 8px;"></div>');
+		panel.append($('<label style="display: block; margin-top: 8px;">Questions</label>'), list);
+		$.each(form.fields, function (i, q) {
+			var row = $('<div class="sceneRow" style="margin-bottom: 6px;"></div>').data("id", q.webFormFieldId);
+			var must = $('<input type="checkbox" class="k-checkbox">').prop("checked", q.required).attr("id", "sceneQuickMust" + q.webFormFieldId);
+			row.append($('<input type="text" class="k-textbox sceneQuickLabel">').val(q.label),
+				$("<label></label>").attr("title", "Must be answered").append(must, " Must answer"),
+				$('<button type="button" class="k-button" title="Remove this question">x</button>').on("click", function () { row.remove(); }));
+			list.append(row);
+		});
+		var button = $('<input type="text" class="k-textbox" style="width: 100%;">').val(form.buttonLabel);
+		var emails = $('<input type="text" class="k-textbox" style="width: 100%;">').val(form.notifyEmails).attr("placeholder", form.blogEmail || "The blog's email address");
+		var status = $('<span class="k-form-hint"></span>');
+		var save = $('<button type="button" class="k-button k-primary">Save the form</button>');
+		panel.append($('<label style="display: block; margin-top: 8px;">Button</label>'), button,
+			$('<label style="display: block; margin-top: 8px;">Send answers to</label>'), emails,
+			$('<div class="k-form-hint"></div>').text("Leave it empty to send them to the blog's email address. Separate more than one with commas."),
+			$('<div style="margin-top: 8px;"></div>').append(save, " ", status));
+		save.on("click", function () {
+			var fields = list.children().map(function () {
+				return { webFormFieldId: $(this).data("id"), label: $.trim($(this).find(".sceneQuickLabel").val()), required: $(this).find("input[type=checkbox]").is(":checked") };
+			}).get();
+			if (!fields.length) { status.text("A form needs at least one question."); return; }
+			save.prop("disabled", true); status.text("Saving...");
+			jQuery.ajax({
+				type: "post", url: BASE_URL + "/common/cfc/ProxyController.cfc?method=saveWebFormQuickEdit",
+				data: { csrfToken: CSRF, webFormId: f.id, description: words.val(), buttonLabel: button.val(), notifyEmails: emails.val(), fieldsJson: JSON.stringify(fields) }, dataType: "json",
+				success: function (response) {
+					save.prop("disabled", false);
+					if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+					status.text(response && response.success ? "Saved." : ((response && response.errorMessage) || "The form could not be saved."));
+				},
+				error: function (jqXHR) { save.prop("disabled", false); status.text("The form could not be saved."); if (jqXHR.status === 403) { createLoginWindow(); } }
+			});
+		});
+	}
 
 	<!--- ---------- Name in posts --->
 	function aliasFrom(text) { return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").substr(0, 80); }

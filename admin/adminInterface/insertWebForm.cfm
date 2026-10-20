@@ -5,9 +5,9 @@ On the site, common/js/webForms.js replaces them with the real form and list; in
 The dropdown is searchable. When nothing matches, its Build Form button opens the form editor (window 84) with the typed
 text as the new form's title; saving there calls refreshInsertWebFormWindow (below), which reloads this window and selects
 the new form - the same "not found, add it?" pattern as the Author dropdown on a new post.
-Ready-made forms (2026-10-17, owner): the dropdown also lists every starter form not used yet, under "Ready-made forms", so a
-form can be placed as it is without the form editor; it's made the first time it's placed (ProxyController.cfc useReadyMadeForm
--> WebForms.cfc useReadyMade). Edit this form opens the form editor (window 84) for the one chosen. --->
+Ready-made forms (2026-10-17, owner): the dropdown also lists every starter form, under "Ready-made forms", so a form can be
+placed as it is without the form editor. Each time one is placed it is made as a new form of its own, named after the post
+(2026-10-20, owner: "a copy for each use"; ProxyController.cfc useReadyMadeForm -> WebForms.cfc useReadyMade). Edit this form opens the form editor (window 84) for the one chosen. --->
 <cfset insertableWebForms = []>
 <cfloop array="#application.webForms.getForms()#" index="thisWebForm">
 	<cfif thisWebForm.active>
@@ -76,7 +76,7 @@ form can be placed as it is without the form editor; it's made the first time it
 			jQuery.ajax({
 				type: "post",
 				url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=useReadyMadeForm",
-				data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", key: item.readyMade },
+				data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", key: item.readyMade, usedFor: $.trim($("#title").val() || "") },
 				dataType: "json",
 				success: function(response) {
 					if (response && response.success) {

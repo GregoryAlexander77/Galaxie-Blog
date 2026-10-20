@@ -205,6 +205,32 @@
 			starterField("Agreement", "consent", true, "", "", "I agree to be emailed about this, and know I can ask to be removed at any time.")
 		]
 	})>
+	<!--- Booking request and Newsletter with interests (owner, 2026-10-20). A booking request is a plain form - the owner replies to
+	set the time; the calendar that takes bookings itself is Bookings. --->
+	<cfset arrayAppend(templates, {
+		"key": "bookingRequest", "name": "Booking request",
+		"title": "Request a booking", "description": "Tell us when suits you and we'll confirm the time.", "buttonLabel": "Send request",
+		"confirmationMessage": "Thanks! We'll be in touch to confirm your booking.", "offerSubscribe": false,
+		"fields": [
+			starterField("Name", "text", true),
+			starterField("Email address", "email", true),
+			starterField("Phone", "phone", false, "", "In case we need to reach you quickly."),
+			starterField("Preferred date", "date", true),
+			starterField("Preferred time", "select", false, "", "", "Morning#chr(10)#Afternoon#chr(10)#Evening#chr(10)#Any time"),
+			starterField("What is it for?", "textarea", false)
+		]
+	})>
+	<cfset arrayAppend(templates, {
+		"key": "newsletterInterests", "name": "Newsletter with interests",
+		"title": "Newsletter signup", "description": "Choose what you'd like to hear about.", "buttonLabel": "Sign up",
+		"confirmationMessage": "Thanks for signing up!", "offerSubscribe": false,
+		"fields": [
+			starterField("First name", "text", false),
+			starterField("Email address", "email", true),
+			starterField("I'd like to hear about", "checkboxes", false, "", "", "New posts#chr(10)#Events#chr(10)#News and updates#chr(10)#Offers"),
+			starterField("Agreement", "consent", true, "", "", "I agree to receive emails, and know I can unsubscribe at any time.")
+		]
+	})>
 	<!--- On the site: every template starts private (no public list, form only), except RSVP and Potluck, which show who's
 	coming / who's bringing what. Email and phone are never public. --->
 	<cfloop array="#templates#" index="local.starter">
@@ -234,55 +260,60 @@
 </cffunction>
 
 <!--- ********************************************************************************************************************
-	Ready-made forms (2026-10-17, owner: "my customers are not tech at all"): every starter can be placed in a post or page
-	straight from Insert Form, as it is - no form editor. The form is made the first time it's used (so the Forms window only
-	lists forms that are on the site), remembered in the setting 'readyMadeForm:<key>' (Events.cfc, post 0, like the event
-	sign-up form), and can be changed later with Edit this form. Replies go to the blog's email address and the spam check is
-	on, the saveForm defaults.
+	Ready-made forms (2026-10-17, owner: "my customers are not tech at all"): every starter can be placed in a post, a page or a
+	scene straight away, as it is - no form editor. Picking one makes a form from it then (so the Forms window only lists forms
+	that are on the site), which can be changed later with Edit this form. 2026-10-20 (owner: "a copy for each use"): every pick
+	makes its own copy - Contact, Contact 2... - so changing the form in one place never changes another; a form already made
+	is reused by picking it under Your forms. Replies go to the blog's email address and the spam check is on, the saveForm
+	defaults.
 ********************************************************************************************************************* --->
 
 <cffunction name="getReadyMadeChoices" access="public" returntype="array" output="false"
-		hint="The ready-made forms Insert Form offers: every starter except the blank form and the event sign-up form (events make their own), and except one already made or with the same title as one of the blog's forms. [{ key, name, description, publicList }].">
+		hint="The ready-made forms Insert Form and a scene's Form section offer: every starter except the blank form and the event sign-up form (events make their own). Each is always offered; picking one makes a new copy. [{ key, name, description, publicList }].">
 	<cfset var choices = []>
 	<cfset var starter = {}>
-	<cfset var titles = {}>
-	<cfset var existing = {}>
-	<cfloop array="#getForms()#" index="existing">
-		<cfset titles[lCase(trim(existing.title))] = true>
-	</cfloop>
 	<cfloop array="#getStarterTemplates()#" index="starter">
 		<cfif listFindNoCase("blank,eventSignup", starter.key)><cfcontinue></cfif>
-		<cfif structKeyExists(titles, lCase(trim(starter.title))) or structKeyExists(titles, lCase(trim(starter.name)))><cfcontinue></cfif>
-		<cfif readyMadeFormId(starter.key) gt 0><cfcontinue></cfif>
 		<cfset arrayAppend(choices, { "key": starter.key, "name": starter.name, "description": starter.description, "publicList": structKeyExists(starter, "publicList") and isTrue(starter.publicList) })>
 	</cfloop>
 	<cfreturn choices>
 </cffunction>
 
 <cffunction name="useReadyMade" access="public" returntype="struct" output="false"
-		hint="The form for a ready-made choice: made from its starter the first time, then the same form every time. Returns { success, webFormId, alias, title, publicList, errors[] }.">
+		hint="A new form made from a ready-made choice - its own copy, named after where it's used so it's easy to tell apart in Forms and in the emails: Contact (About us). A name already taken gets a number: Contact (About us) 2. Visitors don't see the name. Returns { success, webFormId, alias, title, publicList, errors[] }.">
 	<cfargument name="key" type="string" required="true">
+	<cfargument name="usedFor" type="string" required="false" default="" hint="The post, page or scene it's for.">
 	<cfset var result = { success: false, webFormId: 0, alias: "", title: "", publicList: false, errors: [] }>
-	<cfset var formId = readyMadeFormId(arguments.key)>
+	<cfset var formId = 0>
 	<cfset var starter = {}>
 	<cfset var saved = {}>
 	<cfset var made = {}>
-	<cfif formId eq 0>
-		<cfloop array="#getStarterTemplates()#" index="starter">
-			<cfif starter.key eq arguments.key and not listFindNoCase("blank,eventSignup", starter.key)>
-				<cfset starter["webFormId"] = 0>
-				<cfset starter["active"] = true>
-				<cfset saved = saveForm(starter)>
-				<cfif saved.success>
-					<cfset formId = saved.webFormId>
-					<cfset application.events.setSetting(0, "readyMadeForm:" & arguments.key, formId)>
-				<cfelse>
-					<cfset result.errors = saved.errors>
-				</cfif>
-				<cfbreak>
+	<cfset var titles = {}>
+	<cfset var existing = {}>
+	<cfset var number = 1>
+	<cfset var title = "">
+	<cfloop array="#getForms()#" index="existing">
+		<cfset titles[lCase(trim(existing.title))] = true>
+	</cfloop>
+	<cfloop array="#getStarterTemplates()#" index="starter">
+		<cfif starter.key eq arguments.key and not listFindNoCase("blank,eventSignup", starter.key)>
+			<cfset title = len(trim(starter.title)) ? trim(starter.title) : starter.name>
+			<cfif len(trim(arguments.usedFor))><cfset title = title & " (" & left(trim(arguments.usedFor), 80) & ")"></cfif>
+			<cfloop condition="structKeyExists(titles, lCase(number gt 1 ? title & ' ' & number : title))">
+				<cfset number++>
+			</cfloop>
+			<cfset starter["title"] = number gt 1 ? title & " " & number : title>
+			<cfset starter["webFormId"] = 0>
+			<cfset starter["active"] = true>
+			<cfset saved = saveForm(starter)>
+			<cfif saved.success>
+				<cfset formId = saved.webFormId>
+			<cfelse>
+				<cfset result.errors = saved.errors>
 			</cfif>
-		</cfloop>
-	</cfif>
+			<cfbreak>
+		</cfif>
+	</cfloop>
 	<cfif formId gt 0>
 		<cfset made = getForm(webFormId = formId)>
 		<cfif not structIsEmpty(made)>
@@ -294,17 +325,54 @@
 	<cfreturn result>
 </cffunction>
 
-<cffunction name="readyMadeFormId" access="private" returntype="numeric" output="false" hint="The form already made for a ready-made choice, or 0 (also when it was deleted since).">
-	<cfargument name="key" type="string" required="true">
-	<cfset var formId = 0>
-	<cftry>
-		<cfset formId = val(application.events.getSetting(0, "readyMadeForm:" & arguments.key, "0"))>
-		<cfcatch type="any"><cfreturn 0></cfcatch>
-	</cftry>
-	<cfif formId gt 0 and structIsEmpty(getForm(webFormId = formId))>
-		<cfreturn 0>
+<cffunction name="getQuickEdit" access="public" returntype="struct" output="false"
+		hint="What the scene editor's quick edit shows (2026-10-20, owner: non-technical owners shouldn't need the form editor): the words above the form, the button, where answers go and each question's label and whether it must be answered. Empty when there's no such form.">
+	<cfargument name="webFormId" type="numeric" required="true">
+	<cfset var data = getForm(webFormId = arguments.webFormId)>
+	<cfset var result = {}>
+	<cfset var field = {}>
+	<cfif structIsEmpty(data)><cfreturn result></cfif>
+	<cfset result = { "webFormId": data.webFormId, "title": data.title, "description": data.description, "buttonLabel": data.buttonLabel,
+		"notifyEmails": data.notifyEmails, "blogEmail": application.BlogDbObj.getBlogEmail() ?: "", "fields": [] }>
+	<cfloop array="#data.fields#" index="field">
+		<cfset arrayAppend(result.fields, { "webFormFieldId": field.webFormFieldId, "label": field.label, "fieldType": field.fieldType, "required": field.required ? true : false })>
+	</cfloop>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="saveQuickEdit" access="public" returntype="struct" output="false"
+		hint="Saves the scene editor's quick edit: changes only what it shows - the words above the form, the button label, where answers go, and each question's label and must-answer switch; a question left out is removed. Everything else (choices, limits, the posts it's shown on, the public list) stays as it was. Returns saveForm's result.">
+	<cfargument name="webFormId" type="numeric" required="true">
+	<cfargument name="description" type="string" required="true">
+	<cfargument name="buttonLabel" type="string" required="true">
+	<cfargument name="notifyEmails" type="string" required="true">
+	<cfargument name="fields" type="array" required="true" hint="[{ webFormFieldId, label, required }] in the order to keep.">
+	<cfset var data = getForm(webFormId = arguments.webFormId)>
+	<cfset var byId = {}>
+	<cfset var kept = []>
+	<cfset var field = {}>
+	<cfset var change = {}>
+	<cfset var post = {}>
+	<cfif structIsEmpty(data)>
+		<cfreturn { success: false, webFormId: 0, errors: ["That form isn't there any more."], changedPostIds: [] }>
 	</cfif>
-	<cfreturn formId>
+	<cfloop array="#data.fields#" index="field"><cfset byId[field.webFormFieldId] = field></cfloop>
+	<cfloop array="#arguments.fields#" index="change">
+		<cfif isStruct(change) and structKeyExists(change, "webFormFieldId") and structKeyExists(byId, change.webFormFieldId)>
+			<cfset field = byId[change.webFormFieldId]>
+			<cfif len(trim(change.label ?: ""))><cfset field.label = left(trim(change.label), 250)></cfif>
+			<cfset field.required = isTrue(change.required ?: false)>
+			<cfset arrayAppend(kept, field)>
+		</cfif>
+	</cfloop>
+	<cfset data.fields = kept>
+	<cfset data.description = arguments.description>
+	<cfset data.buttonLabel = arguments.buttonLabel>
+	<cfset data.notifyEmails = arguments.notifyEmails>
+	<!--- saveForm takes the posts it's shown on as ids; without them it would take the form off those posts. --->
+	<cfset data.showOnPostIds = []>
+	<cfloop array="#data.showOnPosts#" index="post"><cfset arrayAppend(data.showOnPostIds, post.postId)></cfloop>
+	<cfreturn saveForm(data)>
 </cffunction>
 
 <cffunction name="starterField" access="private" returntype="struct" output="false"
