@@ -27,8 +27,8 @@ var galaxieMembers = (function($) {
 			".galaxieMemberForm .galaxieMemberField > label { display: block; margin-bottom: 0.3em; }" +
 			".galaxieMemberForm .k-textbox, .galaxieMemberForm .k-dropdown { width: 100%; box-sizing: border-box; }" +
 			".galaxieMemberHp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }" +
-			// The signed-in member in the menu (2026-10-17): a small circle with their initials, coloured by the Kendo theme's own
-			// selected colour (k-state-selected) so it suits every theme. Their picture will go in the same circle.
+			// The signed-in member in the menu (2026-10-17): a small circle with their initials, colored by the Kendo theme's own
+			// selected color (k-state-selected) so it suits every theme. Their picture will go in the same circle.
 			".galaxieMemberAvatar { display: inline-flex; align-items: center; justify-content: center; width: 2em; height: 2em; border-radius: 50%; overflow: hidden; font-size: 0.8em; font-weight: bold; line-height: 1; vertical-align: middle; letter-spacing: 0.02em; }" +
 			".galaxieMemberAvatar img { width: 100%; height: 100%; object-fit: cover; }" +
 			".galaxieMemberAvatarLarge { width: 3.5em; height: 3.5em; font-size: 1.1em; }" +

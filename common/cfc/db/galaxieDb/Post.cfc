@@ -37,12 +37,12 @@
 	<cfproperty name="HeroOverlayFontSize" ormtype="string" length="10" default="">
 	<!--- 5.0 (2026-10-19, owner): more for the hero's text, on image, gradient and animated heroes alike. A second line under
 	the heading; the heading size on phones (digits, like HeroOverlayFontSize; empty = scaled down from it); and a shadow
-	behind the text - none, soft, strong or glow - in a colour of its own (empty = black, or the text colour for glow). --->
+	behind the text - none, soft, strong or glow - in a color of its own (empty = black, or the text color for glow). --->
 	<cfproperty name="HeroOverlaySubText" ormtype="string" length="500" default="">
 	<cfproperty name="HeroOverlayFontSizePhone" ormtype="string" length="10" default="">
 	<cfproperty name="HeroOverlayShadow" ormtype="string" length="20" default="">
 	<cfproperty name="HeroOverlayShadowColor" ormtype="string" length="20" default="">
-	<!--- 5.0 (2026-10-19, owner): a glow around the text, on its own or with the shadow above: its colour (empty = no glow),
+	<!--- 5.0 (2026-10-19, owner): a glow around the text, on its own or with the shadow above: its color (empty = no glow),
 	opacity (10-100, percent) and softness (how far it spreads, 4-60 px). --->
 	<cfproperty name="HeroOverlayGlowColor" ormtype="string" length="20" default="">
 	<cfproperty name="HeroOverlayGlowOpacity" ormtype="string" length="10" default="">

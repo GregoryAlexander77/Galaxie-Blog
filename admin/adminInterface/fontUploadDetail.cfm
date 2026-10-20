@@ -86,7 +86,7 @@
 				src: url('<cfoutput>#application.baseUrl#/common/fonts/#fileName#</cfoutput>');
 			}
 		</style>
-		<!--- Each font is its own block in the alternating colour. --->
+		<!--- Each font is its own block in the alternating color. --->
 		<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 		<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>

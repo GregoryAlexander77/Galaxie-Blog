@@ -350,7 +350,7 @@
 	<cfargument name="title" type="string" required="true">
 	<cfargument name="description" type="string" required="true">
 	<cfargument name="body" type="string" required="true">
-	<cfargument name="gradient" type="string" required="false" default="" hint="A CSS gradient for the post's picture, so the home page and cards show colour rather than the no-picture image. Change it with the post's picture like any other.">
+	<cfargument name="gradient" type="string" required="false" default="" hint="A CSS gradient for the post's picture, so the home page and cards show color rather than the no-picture image. Change it with the post's picture like any other.">
 	<cfset var existing = ormExecuteQuery("SELECT PostId, Released FROM Post WHERE Title = :title AND Remove = :removed ORDER BY PostId", { title = arguments.title, removed = false })>
 	<cfset var postId = 0>
 	<!--- Made by an earlier run: kept as it is once released; one an interrupted run left unreleased is finished now. --->

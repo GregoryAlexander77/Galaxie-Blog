@@ -21,7 +21,7 @@
 
 	sceneData:
 		{
-			pageColour: "#392630",                 // the colour around the scene
+			pageColour: "#392630",                 // the color around the scene
 			settings: {                             // defaults for every section; a section can override any of them
 				scrub: true,                        // true = exactly with the scroll, 0.5 = glides half a second behind
 				intensity: 1,                       // how far layered heroes move (1 = the deepest layer travels one screen)
@@ -36,7 +36,7 @@
 		}
 
 	Every section can have: heading, html (rich text), a button (buttonText, buttonUrl - a web address or a path on the site -,
-	buttonColour, buttonTextColour), colour (its top colour - the next hero's fade uses it), gradient or
+	buttonColour, buttonTextColour), colour (its top color - the next hero's fade uses it), gradient or
 	background, textColour, headingFont, textFont, headingSize, textSize, headingSizePhone, textSizePhone, align
 	("left"|"center"|"right"), shadow ("none"|"soft"|"strong"|"glow"), shadowColour, glow ({ colour, opacity 0-1, softness px },
 	on its own or with the shadow), overlay ({ colour, opacity }).
@@ -45,9 +45,9 @@
 	heading low on the left).
 
 	Kinds:
-		text          a heading and rich text on a gradient or colour
+		text          a heading and rich text on a gradient or color
 		imageSlide    a full-screen picture whose background moves slower than the page: image, imagePhone
-		form          one of the blog's forms (2026-10-19, owner), with a heading and text, on a colour or gradient like a text block:
+		form          one of the blog's forms (2026-10-19, owner), with a heading and text, on a color or gradient like a text block:
 		              form (its alias), formTitle. Shown on the blog by common/js/webForms.js, as a form placed in a post is.
 		slideshow     pictures with captions, held in place while each scroll brings in the next (2026-10-19, owner): slides
 		              [{ image, imagePhone, heading, caption }], colour (behind the pictures)
@@ -56,7 +56,7 @@
 		vantaHero     a Vanta animation: effect ("WAVES", "NET", "BIRDS"...), options ({ color: 0x..., ... })
 		gradientHero  a pinned gradient
 		videoHero     a muted looping background video: video, poster
-	All heroes pin, let their heading rise and fade, fade into the next section's colour, and let the next section rise over
+	All heroes pin, let their heading rise and fade, fade into the next section's color, and let the next section rise over
 	them (the curtain).
 */
 (function (window, document) {
@@ -257,14 +257,14 @@
 		root.classList.add("gs-text");
 		if (section.gradient) { root.style.background = section.gradient; }
 		else if (section.background || section.colour) { root.style.background = section.background || section.colour; }
-		// No text colour of its own (2026-10-19): white on a dark background, near-black on a light one - never the theme's
-		// own text colour, which on a post is usually dark, and unreadable on a dark section.
+		// No text color of its own (2026-10-19): white on a dark background, near-black on a light one - never the theme's
+		// own text color, which on a post is usually dark, and unreadable on a dark section.
 		if (!section.textColour) { root.style.color = isLight(section.colour || ((/(#[0-9a-f]{6})/i.exec(section.gradient || "") || [])[1]) || "") ? "#1f2328" : "#ffffff"; }
 		var t = addText(section, root);
 		applyLook(section, root, t.heading, t.body);
 	}
 
-	// Whether a #rrggbb colour is light (perceived brightness); anything else counts as dark.
+	// Whether a #rrggbb color is light (perceived brightness); anything else counts as dark.
 	function isLight(colour) {
 		var m = /^#([0-9a-f]{6})$/i.exec(String(colour).trim());
 		if (!m) { return false; }
@@ -407,22 +407,22 @@
 		[t.heading, t.body, t.button].forEach(function (x) { if (x) { x.classList.remove("gs-reveal"); } });
 	}
 
-	// An eased fade (2026-10-19, owner: "you can't tell where the base ends"): the colour's opacity climbs slowly at first and
+	// An eased fade (2026-10-19, owner: "you can't tell where the base ends"): the color's opacity climbs slowly at first and
 	// faster near the bottom, over many stops, so there is no visible line where the fade starts - a plain two-stop
-	// transparent-to-colour gradient shows one. For a #rrggbb colour; anything else gets the plain gradient.
+	// transparent-to-color gradient shows one. For a #rrggbb color; anything else gets the plain gradient.
 	function easedFade(colour) {
 		var m = /^#([0-9a-f]{6})$/i.exec(String(colour || "").trim());
 		if (!m) { return "linear-gradient(to bottom, transparent 0%, " + colour + " 100%)"; }
 		var n = parseInt(m[1], 16), rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(",");
 		var stops = [];
 		for (var i = 0; i <= 10; i++) {
-			var t = i / 10, a = t * t * (3 - 2 * t);   // smoothstep: slow, faster, slow again at full colour
+			var t = i / 10, a = t * t * (3 - 2 * t);   // smoothstep: slow, faster, slow again at full color
 			stops.push("rgba(" + rgb + "," + a.toFixed(3) + ") " + (t * 100) + "%");
 		}
 		return "linear-gradient(to bottom, " + stops.join(", ") + ")";
 	}
 
-	// A section's own colour at its top: its background colour, the first colour of its gradient, or the page colour.
+	// A section's own color at its top: its background color, the first color of its gradient, or the page color.
 	function sectionColour(data, section) {
 		if (section.colour) { return section.colour; }
 		var m = /(#[0-9a-f]{6})/i.exec(section.gradient || "");
@@ -455,7 +455,7 @@
 			.then(function () {
 				if (root._vanta !== "starting" || !window.VANTA || !window.VANTA[effect]) { return; }
 				var options = Object.assign({ el: root.querySelector(".gs-heroBack"), mouseControls: true, touchControls: true, gyroControls: false }, section.options || {});
-				// Scenes are stored as JSON, which has no 0x numbers: Vanta's colours can be written "#0e3b5c" and are turned into numbers here.
+				// Scenes are stored as JSON, which has no 0x numbers: Vanta's colors can be written "#0e3b5c" and are turned into numbers here.
 				Object.keys(options).forEach(function (k) {
 					if (typeof options[k] === "string" && /^#[0-9a-f]{6}$/i.test(options[k]) && /colou?r/i.test(k)) { options[k] = parseInt(options[k].slice(1), 16); }
 				});
@@ -589,7 +589,7 @@
 				spacer.style.height = "calc(" + parseFloat(setting(data, section, "pinLength")) + "vh - 100vh)";
 			}
 			// A section sliding up over a hero gets a soft top edge (2026-10-19, owner): a band above it fading from clear into its
-			// own colour, so where it meets the hero - even before the hero's own fade is complete - there is no hard line.
+			// own color, so where it meets the hero - even before the hero's own fade is complete - there is no hard line.
 			var previous = data.sections[i - 1];
 			if (previous && previous._curtain) {
 				// Just before the section (heroes and slides clip what is outside them), pulled up over the hero by its own height.

@@ -1,5 +1,5 @@
 <!--- A post's hero text (window 109, 2026-10-19, Galaxie 5): the heading and second line over the post's image, gradient or
-animated hero, with its colour, font, sizes and a shadow or glow. Opened with the Hero text button in the post editor:
+animated hero, with its color, font, sizes and a shadow or glow. Opened with the Hero text button in the post editor:
 createAdminInterfaceWindow(109, postId). Saved by ProxyController.cfc savePostHeroText -> blog.cfc savePostHeroText. The same
 text shows in both post hero styles (Blog Options: classic or scene). Carousels have their own text (carousel window); maps
 and videos have none. --->
@@ -41,7 +41,7 @@ and videos have none. --->
 	<colgroup><col style="width: 20%"><col></colgroup>
 	<tr><td colspan="2" class="#blockClass#">
 	<cfswitch expression="#heroKind#">
-		<cfcase value="carousel">This post's hero is a carousel. Its text (titles, fonts, colours and shadow) is set in the carousel window instead; the text below is kept for if the hero changes.</cfcase>
+		<cfcase value="carousel">This post's hero is a carousel. Its text (titles, fonts, colors and shadow) is set in the carousel window instead; the text below is kept for if the hero changes.</cfcase>
 		<cfcase value="map">This post's hero is a map, which doesn't show text. The text below is kept for if the hero changes.</cfcase>
 		<cfcase value="video">This post's hero is a video, which doesn't show text. The text below is kept for if the hero changes.</cfcase>
 		<cfcase value="none">This post has no hero picture, gradient or animation yet. The text shows once it has one (or over the generated hero, when Blog Options shows one).</cfcase>
@@ -95,7 +95,7 @@ and videos have none. --->
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Look</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="#blockClass#" align="right"><label for="heroTextColour">Colour:</label></td>
+		<td class="#blockClass#" align="right"><label for="heroTextColour">Color:</label></td>
 		<td class="#blockClass#"><input id="heroTextColour" value="#encodeForHtmlAttribute(len(p["HeroOverlayTextColor"] ?: "") ? p["HeroOverlayTextColor"] : "##ffffff")#"></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
@@ -131,7 +131,7 @@ and videos have none. --->
 		</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<!--- The glow (owner, 10-19): on its own or with the shadow. An older "glow" shadow opens here as a glow in the shadow's colour. --->
+	<!--- The glow (owner, 10-19): on its own or with the shadow. An older "glow" shadow opens here as a glow in the shadow's color. --->
 	<cfset glowColour = p["HeroOverlayGlowColor"] ?: "">
 	<cfif not len(glowColour) and (p["HeroOverlayShadow"] ?: "") eq "glow"><cfset glowColour = len(p["HeroOverlayShadowColor"] ?: "") ? p["HeroOverlayShadowColor"] : "##ffffff"></cfif>
 	<tr>
@@ -139,7 +139,7 @@ and videos have none. --->
 		<td class="#blockClass#">
 			<input type="checkbox" id="heroTextGlowOn" class="k-checkbox"<cfif len(glowColour)> checked</cfif>> <label for="heroTextGlowOn" class="k-checkbox-label">Glow around the text</label>
 			<input id="heroTextGlowColour" value="#encodeForHtmlAttribute(len(glowColour) ? glowColour : "##ffd27a")#">
-			<div class="k-form-hint">A halo in a colour of its own; try a light or bright colour on a dark hero.</div>
+			<div class="k-form-hint">A halo in a color of its own; try a light or bright color on a dark hero.</div>
 		</td>
 	</tr>
 	<tr class="blockSpacer heroTextGlowRow"><td colspan="2" class="border #blockClass#"></td></tr>

@@ -29,7 +29,7 @@ gallery (sceneDetail.cfm, window 107) and the post's Scene window (postScene.cfm
 		} else if (s.gradient) {
 			box.css("background", s.gradient);
 		} else if (s.kind === "vantaHero") {
-			<!--- The animation's own colours: each Vanta effect names them differently (color, highlightColor, skyColor...). --->
+			<!--- The animation's own colors: each Vanta effect names them differently (color, highlightColor, skyColor...). --->
 			var o = s.options || {};
 			var c1 = o.color || o.highlightColor || o.skyColor || o.midtoneColor || "#0e3b5c";
 			var c2 = o.baseColor || o.cloudColor || o.lowlightColor || o.backgroundColor || data.pageColour || "#0b1d2e";

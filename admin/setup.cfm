@@ -50,7 +50,7 @@ loaded on this page only. In the admin folder, so only a signed-in user reaches 
 		& ',"header":' & serializeJSON(application.baseUrl & themes.HeaderBackgroundImage) & '}')>
 </cfloop>
 
-<!--- Sample logos: files in images/logo/samples/, named category-name.ext. SVGs drawn in currentColor take the colour picked. --->
+<!--- Sample logos: files in images/logo/samples/, named category-name.ext. SVGs drawn in currentColor take the color picked. --->
 <cfset sampleFolder = expandPath(application.baseUrl & "/images/logo/samples")>
 <cfset sampleParts = []>
 <cfif directoryExists(sampleFolder)>
@@ -207,7 +207,7 @@ loaded on this page only. In the admin folder, so only a signed-in user reaches 
 			<span>Show:</span>
 			<button type="button" data-f="all" aria-pressed="true">All</button>
 			<button type="button" data-f="photo" aria-pressed="false">Photos</button>
-			<button type="button" data-f="pattern" aria-pressed="false">Patterns and colour</button>
+			<button type="button" data-f="pattern" aria-pressed="false">Patterns and color</button>
 			<button type="button" data-f="dark" aria-pressed="false">Dark</button>
 		</div>
 		<div class="themeGrid" id="themeGrid"></div>
@@ -217,12 +217,12 @@ loaded on this page only. In the admin folder, so only a signed-in user reaches 
 		<div class="ways" id="logoWays"></div>
 		<div class="wayPanel on" id="wayName">
 			<div class="fieldRow"><label for="logoName">Name</label><div class="control"><input id="logoName" class="k-textbox" maxlength="60"></div></div>
-			<div class="fieldRow"><label for="logoColour">Colour</label><div class="control"><input id="logoColour"></div></div>
+			<div class="fieldRow"><label for="logoColour">Color</label><div class="control"><input id="logoColour"></div></div>
 			<div class="logoGrid" id="nameGrid"></div>
 		</div>
 		<div class="wayPanel" id="waySample">
 			<div class="chips" id="sampleFilter"></div>
-			<div class="fieldRow"><label for="sampleColour">Colour</label><div class="control"><input id="sampleColour"></div></div>
+			<div class="fieldRow"><label for="sampleColour">Color</label><div class="control"><input id="sampleColour"></div></div>
 			<div class="logoGrid" id="sampleGrid"></div>
 			<p class="hint">Your site name is set beside each mark.</p>
 		</div>
@@ -319,7 +319,7 @@ $(function () {
 	function currentTheme() { return themes.filter(function (t) { return t.alias === state.theme; })[0] || themes[0]; }
 	function lightHeader(t) { return /white|ice/i.test(t.header); }
 	function initial() { return esc((state.name || "?").trim().charAt(0).toUpperCase()); }
-	// A mark's own SVG markup (inner shapes, in a 48 x 48 box), with the letter or cut-out in a shade that shows on its colour.
+	// A mark's own SVG markup (inner shapes, in a 48 x 48 box), with the letter or cut-out in a shade that shows on its color.
 	function markInner(m) {
 		return m.svg.replace("{initial}", initial()).replace(/#ffffff/g, isLightColour(state.sampleColour) ? "#1f2328" : "#ffffff");
 	}

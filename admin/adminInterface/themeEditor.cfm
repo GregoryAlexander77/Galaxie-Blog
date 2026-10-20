@@ -280,7 +280,7 @@ $(function () {
 			box.append(card);
 		});
 	}
-	// A small picture of a page in the theme: the header ribbon with the logo, site name (in its font and colour) and menu, then
+	// A small picture of a page in the theme: the header ribbon with the logo, site name (in its font and color) and menu, then
 	// the content box straight under it - a post in the text font, and the sidebar on a classic (not modern) theme.
 	var SITE_NAME = "<cfoutput>#jsStringFormat(application.BlogDbObj.getBlogTitle())#</cfoutput>";
 	function fontCss(name, type) { return name ? "'" + name.replace(/'/g, "") + "'" + (type ? ", " + type : "") : "inherit"; }
@@ -495,7 +495,7 @@ $(function () {
 		if (section === "layout") {
 			heading("Style");
 			row("Kendo style", choice("KendoThemeId", $.map(KENDO, function (k) { return [[k.id, kendoLabel(k)]]; })));
-			note("The colours of the buttons, windows and menus. A dark style suits a dark background.");
+			note("The colors of the buttons, windows and menus. A dark style suits a dark background.");
 			heading("Layout");
 			row("Layout", choice("Breakpoint", [["0", "Modern: no sidebar (it opens from the menu)"], ["1300", "Classic: a sidebar on the right"]], function (v) { $(".themeLookColumns").toggle(v !== "0"); }));
 			row("Content width", number("ContentWidth", 30, 100, "%"), "Aimed at screens 1700 to 1920 pixels wide.");
@@ -516,7 +516,7 @@ $(function () {
 			row("Font", fontChoice("BlogNameFontId"));
 			row("Size", number("BlogNameFontSize", 12, 80, "px"));
 			row("Size on mobile", number("BlogNameFontSizeMobile", 10, 60, "px"));
-			row("Colour", colour("BlogNameTextColor", false), "The menu text uses it too.");
+			row("Color", colour("BlogNameTextColor", false), "The menu text uses it too.");
 		} else if (section === "backgrounds") {
 			heading("Background");
 			row("", checkbox("IncludeBackgroundImages", "Show a background picture"));
@@ -524,7 +524,7 @@ $(function () {
 			row("On mobile", pictures("BlogBackgroundImageMobile", false));
 			row("Position", choice("BlogBackgroundImagePosition", [["center center", "Centre"], ["50% 25%", "A little above the centre"], ["center top", "Top"], ["center bottom", "Bottom"], ["left top", "Top left"], ["left bottom", "Bottom left"]]));
 			row("Repeat", choice("BlogBackgroundImageRepeat", [["no-repeat", "Don't repeat (fill the page)"], ["repeat", "Tile it"], ["repeat-x", "Repeat across"], ["repeat-y", "Repeat down"]]));
-			row("Colour", colour("BlogBackgroundColor", true), "Used when there's no background picture.");
+			row("Color", colour("BlogBackgroundColor", true), "Used when there's no background picture.");
 		} else {
 			heading("Header");
 			row("Picture", pictures("HeaderBackgroundImage", true));

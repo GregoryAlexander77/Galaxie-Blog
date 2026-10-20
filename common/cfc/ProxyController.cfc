@@ -13629,7 +13629,7 @@
 	</cffunction>
 
 	<cffunction name="savePostHeroText" access="remote" returnformat="json" output="false"
-			hint="The text over a post's image, gradient or animated hero, from the Hero text window (109, 2026-10-19, Galaxie 5). Anything out of range is dropped rather than refused: an unknown colour or shadow becomes empty (the default), a size is kept between 12 and 120 px.">
+			hint="The text over a post's image, gradient or animated hero, from the Hero text window (109, 2026-10-19, Galaxie 5). Anything out of range is dropped rather than refused: an unknown color or shadow becomes empty (the default), a size is kept between 12 and 120 px.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="postId" default="0" required="true">
 		<cfargument name="heading" type="string" default="" required="false">

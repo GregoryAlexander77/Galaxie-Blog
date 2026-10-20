@@ -115,7 +115,7 @@ which checks everything again on the server and keeps only the details for the c
 		<td class="#blockClass#"><input type="text" id="locationLabel" class="k-textbox" maxlength="125" placeholder="eg. In person (my office)" value="#encodeForHtmlAttribute(bookingLocation.label)#" style="width: 95%;"></td>
 	</tr>
 
-	<!--- Only one of the in person / online / phone blocks shows (the JavaScript shows the rows for the chosen kind), so they share one colour. --->
+	<!--- Only one of the in person / online / phone blocks shows (the JavaScript shows the rows for the chosen kind), so they share one color. --->
 	<cfset kindBlockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<cfloop list="inPerson,online,phone" index="thisKindBlock">
 	<tr class="blockSpacer locationKindRow locationKind_#thisKindBlock#"><td colspan="2" class="#blockClass#"></td></tr>

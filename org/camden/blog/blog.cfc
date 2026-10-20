@@ -6319,7 +6319,7 @@
 	<cffunction name="savePostHeroText" access="public" returnType="void" output="false"
 			hint="The text over a post's image, gradient or animated hero, from the Hero text window (109, 2026-10-19, Galaxie 5):
 			the heading and second line, colour, font (a font NAME), heading size and phone size (px digits), and a shadow
-			(none, soft, strong or glow) with its colour, a glow (colour, opacity, softness), and the hero's style (empty = the blog's). Leaves the hero itself as it is. The values are checked by the caller
+			(none, soft, strong or glow) with its color, a glow (colour, opacity, softness), and the hero's style (empty = the blog's). Leaves the hero itself as it is. The values are checked by the caller
 			(ProxyController.cfc savePostHeroText). Updates Post.Date (dateModified) and clears the post's cached page.">
 		<cfargument name="postId" type="numeric" required="true">
 		<cfargument name="heroText" type="struct" required="true">

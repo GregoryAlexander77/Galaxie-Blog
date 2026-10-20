@@ -51,7 +51,7 @@
 	//**************************************************************************************************--->
 
 	<cffunction name="getTextShadowCss" access="public" returntype="string" output="false"
-			hint="The CSS text-shadow for a shadow setting (5.0): soft, strong or glow in a colour (##rrggbb; black when empty), 'none', or an empty string when no shadow is set (the caller keeps its own default). The same shadows as the scene engine (galaxieScene.js SHADOWS).">
+			hint="The CSS text-shadow for a shadow setting (5.0): soft, strong or glow in a color (##rrggbb; black when empty), 'none', or an empty string when no shadow is set (the caller keeps its own default). The same shadows as the scene engine (galaxieScene.js SHADOWS).">
 		<cfargument name="kind" type="string" required="true">
 		<cfargument name="colour" type="string" required="false" default="">
 		<cfset var hex = reFind("^##[0-9A-Fa-f]{6}$", trim(arguments.colour)) ? mid(trim(arguments.colour), 2, 6) : "000000">
@@ -66,7 +66,7 @@
 	</cffunction>
 
 	<cffunction name="getGlowCss" access="public" returntype="string" output="false"
-			hint="The CSS text-shadow for a glow (5.0): a halo in a colour (##rrggbb), at an opacity (10-100 percent, 80 when empty) that spreads as far as its softness (4-60 px, 24 when empty). Empty when there is no colour. galaxieScene.js and the Hero text window's preview draw the same glow.">
+			hint="The CSS text-shadow for a glow (5.0): a halo in a color (##rrggbb), at an opacity (10-100 percent, 80 when empty) that spreads as far as its softness (4-60 px, 24 when empty). Empty when there is no color. galaxieScene.js and the Hero text window's preview draw the same glow.">
 		<cfargument name="colour" type="string" required="true">
 		<cfargument name="opacity" type="string" required="false" default="">
 		<cfargument name="softness" type="string" required="false" default="">
@@ -84,7 +84,7 @@
 	</cffunction>
 
 	<cffunction name="getHeroTextHtml" access="public" returntype="string" output="false"
-			hint="The text over a post's image, gradient or animated hero (5.0, from the Hero text window): the heading and a second line in its colour and font, the heading's size with a smaller one for phones, and a shadow or glow. Empty when there is no text. Positioned puts it in the middle of a relative box (images and animations); otherwise it sits in the gradient's own centred box. With no new settings it looks the same as before 5.0: bold, 16px unless sized, white, no shadow.">
+			hint="The text over a post's image, gradient or animated hero (5.0, from the Hero text window): the heading and a second line in its color and font, the heading's size with a smaller one for phones, and a shadow or glow. Empty when there is no text. Positioned puts it in the middle of a relative box (images and animations); otherwise it sits in the gradient's own centred box. With no new settings it looks the same as before 5.0: bold, 16px unless sized, white, no shadow.">
 		<cfargument name="text" type="string" required="true">
 		<cfargument name="subText" type="string" required="false" default="">
 		<cfargument name="color" type="string" required="false" default="">
@@ -181,7 +181,7 @@
 		</cfif>
 		<!--- The scene's space is reserved before the script builds it (2026-10-19, hardening): an empty container that grows to a
 		few thousand pixels pushed the post's text down as it loaded (Lighthouse layout shift 0.53). A hero takes a full screen,
-		anything else half a screen, in the scene's page colour, so there is no flash or jump. --->
+		anything else half a screen, in the scene's page color, so there is no flash or jump. --->
 		<cfset parsed = deserializeJSON(sceneJson)>
 		<cfif isStruct(parsed) and isArray(parsed.sections ?: "") and arrayLen(parsed.sections) and isStruct(parsed.sections[1])>
 			<cfset hostStyle = "min-height:" & (listFindNoCase("layeredHero,photoHero,vantaHero,gradientHero,videoHero,slideshow", parsed.sections[1].kind ?: "") ? "100vh" : "50vh") & ";">
@@ -232,7 +232,7 @@
 	if (window.ResizeObserver) { new ResizeObserver(refit).observe(host.closest("##blogContent") || document.body); }
 	window.addEventListener("resize", refit);
 	window.addEventListener("load", refit);
-	<!--- pageColour "auto" (post heroes, 2026-10-19): the colour behind the post, so the hero fades into the theme's own page. --->
+	<!--- pageColour "auto" (post heroes, 2026-10-19): the color behind the post, so the hero fades into the theme's own page. --->
 	function pageColourOf(node) {
 		for (var n = node.parentElement; n; n = n.parentElement) {
 			var m = /rgba?\(([0-9]+),\s*([0-9]+),\s*([0-9]+)(?:,\s*([0-9.]+))?\)/.exec(getComputedStyle(n).backgroundColor);
@@ -265,7 +265,7 @@
 	</cffunction>
 
 	<cffunction name="getPostHeroSceneJson" access="public" returnType="string" output="false"
-			hint="A post's image, gradient or animated hero as scene data (a JSON string) for the scene engine, in one of the scene styles (held, band or magazine - see getPostHeroStyle), with the hero text from the Hero text window. Written as text so the keys keep their case on Adobe ColdFusion. The hero fades into the colour behind the post (pageColour auto).">
+			hint="A post's image, gradient or animated hero as scene data (a JSON string) for the scene engine, in one of the scene styles (held, band or magazine - see getPostHeroStyle), with the hero text from the Hero text window. Written as text so the keys keep their case on Adobe ColdFusion. The hero fades into the color behind the post (pageColour auto).">
 		<cfargument name="getPost" type="any" required="true">
 		<cfargument name="currentRow" type="numeric" required="true">
 		<cfargument name="heroKind" type="string" required="true" hint="image, gradient or animation">
@@ -1123,7 +1123,7 @@
 		<cfargument name="heroOverlayFontSizePhone" type="string" required="false" default="" hint="5.0: the heading size on phones, digits only; empty scales the heading down.">
 		<cfargument name="heroOverlayShadow" type="string" required="false" default="" hint="5.0: none, soft, strong or glow; empty for no shadow, as before.">
 		<cfargument name="heroOverlayShadowColor" type="string" required="false" default="">
-		<cfargument name="heroOverlayGlowColor" type="string" required="false" default="" hint="5.0: the glow's colour; empty for none.">
+		<cfargument name="heroOverlayGlowColor" type="string" required="false" default="" hint="5.0: the glow's color; empty for none.">
 		<cfargument name="heroOverlayGlowOpacity" type="string" required="false" default="">
 		<cfargument name="heroOverlayGlowSoftness" type="string" required="false" default="">
 		<cfargument name="cardMode" type="boolean" required="false" default="false" hint="Pass true from the three public card-grid templates, whose own .k-card container already bounds width reliably (unlike postDetail.cfm's admin <td>) - sizes to match those cards' real image class (width:100%, height:150px, padding-bottom:5px, no internal padding) instead of the admin thumbnail's fixed 235x130.">
@@ -1219,7 +1219,7 @@
 		<cfargument name="heroOverlayFontSizePhone" type="string" required="false" default="" hint="5.0: the heading size on phones, digits only; empty scales the heading down.">
 		<cfargument name="heroOverlayShadow" type="string" required="false" default="" hint="5.0: none, soft, strong or glow; empty for no shadow, as before.">
 		<cfargument name="heroOverlayShadowColor" type="string" required="false" default="">
-		<cfargument name="heroOverlayGlowColor" type="string" required="false" default="" hint="5.0: the glow's colour; empty for none.">
+		<cfargument name="heroOverlayGlowColor" type="string" required="false" default="" hint="5.0: the glow's color; empty for none.">
 		<cfargument name="heroOverlayGlowOpacity" type="string" required="false" default="">
 		<cfargument name="heroOverlayGlowSoftness" type="string" required="false" default="">
 		<cfargument name="cardMode" type="boolean" required="no" default="false">

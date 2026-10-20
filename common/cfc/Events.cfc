@@ -1612,7 +1612,7 @@ each shows that location, name or Sign up button, so editing one of them has to 
 	<cfset var timeLine = "">
 	<cfset var tileClass = arguments.large ? "galaxieEventTile galaxieEventTileLarge" : "galaxieEventTile">
 	<!--- Behind the calendar page: always the post's own generated art (owner, 10-16: design A, whatever the no-picture choice
-	in Blog Options is - it briefly followed that choice, which put the page on a plain header colour). The theme's header
+	in Blog Options is - it briefly followed that choice, which put the page on a plain header color). The theme's header
 	colour only if the art can't be made. --->
 	<cftry>
 		<cfif not structKeyExists(variables, "imageObj")>

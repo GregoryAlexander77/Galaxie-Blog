@@ -4,12 +4,12 @@ in the middle, and a live preview on the right (admin/scenePreview.cfm in an ifr
 is edited as the engine's own data ({ name, pageColour, settings, sections: [...] }, see common/js/galaxieScene.js), so keys
 this editor doesn't know yet are kept as they are. Saved by ProxyController.cfc's saveScene -> Scenes.cfc saveScene.
 Step 3 (2026-10-19): rich text (one TinyMCE that stays put while sections are picked), the blog's fonts, picture upload
-(ProxyController uploadSceneImage), gradients (Grapick, as in the gradient editor) and Kendo colour pickers.
+(ProxyController uploadSceneImage), gradients (Grapick, as in the gradient editor) and Kendo color pickers.
 Step 4 (2026-10-19): a new scene opens on a gallery of the ready-made scenes (includes/postContent/scenes/*.json), each card
 drawn from the scene itself (its layers, photo or gradient), or from the picture named in the file's "thumbnail".
 Layer builder (2026-10-19, layout B): the layered hero's layers in a list with depth sliders, Add layers, Even out depths and a
 size check; on the preview, Hold the scroll, and an Exploded view in its own Kendo window (owner's request).
-Colour helper (2026-10-19, option A): a Suggest button on each colour field, with colours read from the section's pictures and its
+Color helper (2026-10-19, option A): a Suggest button on each color field, with colors read from the section's pictures and its
 neighbours, and the browser's eyedropper where there is one. --->
 <cfset sceneId = val(URL.optArgs)>
 <cfset scene = sceneId gt 0 ? application.blog.getScenes().getScene(sceneId) : {}>
@@ -78,7 +78,7 @@ dropdown shows it in its own face, the way the public pages name it (includes/te
 	</cfif>
 </cfloop>
 <cfset sceneFontsJson = replace(serializeJSON(sceneFonts), "</", "<\/", "all")>
-<!--- The drawn scenes that also come in a soft colour style (images/scenes/{name}-soft/), for the Flat / Soft switch. --->
+<!--- The drawn scenes that also come in a soft color style (images/scenes/{name}-soft/), for the Flat / Soft switch. --->
 <cfdirectory action="list" directory="#expandPath(application.baseUrl & '/images/scenes/')#" type="dir" name="sceneArtFolders">
 <cfset sceneSoftSets = []>
 <cfloop query="sceneArtFolders">
@@ -155,7 +155,7 @@ chose "this server only" (Scenes window settings). --->
 	.sceneRow > .k-button { flex: 0 0 auto; }
 	.sceneThumb { display: block; max-width: 100%; max-height: 90px; margin-top: 6px; border-radius: 3px; }
 	.sceneGradientBar { height: 26px; margin: 8px 6px 22px; }
-	<!--- Each band's colour is picked with the Band colour picker below the bar, not Grapick's own small input. --->
+	<!--- Each band's color is picked with the Band color picker below the bar, not Grapick's own small input. --->
 	.sceneGradientBar .grp-handler-cp-c { display: none; }
 	.sceneGradient .sceneRow { margin-bottom: 8px; }
 	.sceneCardWrap { position: relative; }
@@ -208,7 +208,7 @@ chose "this server only" (Scenes window settings). --->
 	<!--- New scene: the gallery comes first; the editor below shows once a starting point is picked. --->
 	<div id="sceneGallery" class="#altClass#">
 		<h4 class="adminBlockHeading">Pick a starting point</h4>
-		<div>Every part of it can be changed: the words, pictures, fonts, colours and motion. You can also start from nothing.</div>
+		<div>Every part of it can be changed: the words, pictures, fonts, colors and motion. You can also start from nothing.</div>
 		<div id="sceneGalleryCards" class="sceneCards"></div>
 	</div>
 </cfif>
@@ -268,9 +268,9 @@ $(document).ready(function () {
 		{ kind: "layeredHero", label: "Layered hero", hint: "Layers of a picture that move at different speeds." },
 		{ kind: "photoHero", label: "Photo hero", hint: "One photo, held in place with a slow zoom." },
 		{ kind: "vantaHero", label: "Animated hero", hint: "A Vanta animation behind the text." },
-		{ kind: "gradientHero", label: "Gradient hero", hint: "Colours, no pictures." },
+		{ kind: "gradientHero", label: "Gradient hero", hint: "Colors, no pictures." },
 		{ kind: "videoHero", label: "Video hero", hint: "A silent looping video." },
-		{ kind: "text", label: "Text block", hint: "Heading and text on a colour." },
+		{ kind: "text", label: "Text block", hint: "Heading and text on a color." },
 		{ kind: "imageSlide", label: "Image slide", hint: "A picture that moves slower than the page." },
 		{ kind: "slideshow", label: "Slideshow", hint: "Pictures with captions; each scroll brings in the next." },
 		{ kind: "form", label: "Form", hint: "One of your forms, with a heading and text." }
@@ -316,12 +316,12 @@ $(document).ready(function () {
 		{ key: "textSizePhone", label: "Size on mobile", type: "select", options: TEXT_SIZES_PHONE },
 		{ group: "Heading and text" },
 		{ key: "align", label: "Line up", type: "select", options: [["", "Theme default"], ["left", "Left"], ["center", "Centre"], ["right", "Right"]] },
-		{ key: "textColour", label: "Colour", type: "colour" },
+		{ key: "textColour", label: "Color", type: "colour" },
 		{ key: "shadow", label: "Shadow behind them", type: "select", options: [["", "None"], ["soft", "Soft"], ["strong", "Strong"], ["glow", "Glow"]], hint: "Makes text stand out on a busy picture." },
-		{ key: "shadowColour", label: "Shadow colour", type: "colour" },
+		{ key: "shadowColour", label: "Shadow color", type: "colour" },
 		<!--- A glow of its own (owner, 10-19), on its own or with the shadow - the same as the post Hero text window's. --->
 		{ group: "Glow" },
-		{ key: "glow.colour", label: "Glow colour", type: "colour", hint: "A halo around the heading and text. Leave it empty for no glow; try a light or bright colour on a dark picture." },
+		{ key: "glow.colour", label: "Glow color", type: "colour", hint: "A halo around the heading and text. Leave it empty for no glow; try a light or bright color on a dark picture." },
 		{ key: "glow.opacity", label: "Glow opacity (0.1 to 1)", type: "number", min: 0.1, max: 1, step: 0.05, placeholder: "0.8" },
 		{ key: "glow.softness", label: "Glow softness (pixels)", type: "number", min: 4, max: 60, step: 1, placeholder: "24", hint: "Low is a tight, crisp glow; high spreads it wide and soft." }
 	];
@@ -330,10 +330,10 @@ $(document).ready(function () {
 		{ group: "Button" },
 		{ key: "buttonText", label: "Button words", type: "text", placeholder: "eg. Read the story", hint: "Leave it empty for no button." },
 		{ key: "buttonUrl", label: "Goes to", type: "link" },
-		{ key: "buttonColour", label: "Button colour", type: "colour" },
-		{ key: "buttonTextColour", label: "Button text colour", type: "colour" }
+		{ key: "buttonColour", label: "Button color", type: "colour" },
+		{ key: "buttonTextColour", label: "Button text color", type: "colour" }
 	];
-	var FADE = { key: "fadeColour", label: "Fade into colour", type: "colour", hint: "The hero fades into this colour at the bottom. Pick the colour at the bottom of the picture, or of the next section." };
+	var FADE = { key: "fadeColour", label: "Fade into color", type: "colour", hint: "The hero fades into this color at the bottom. Pick the color at the bottom of the picture, or of the next section." };
 	var OVERLAY = [
 		{ key: "overlay.colour", label: "Tint over the picture", type: "colour" },
 		{ key: "overlay.opacity", label: "Tint strength (0 to 1)", type: "number", min: 0, max: 1, step: 0.05 }
@@ -341,7 +341,7 @@ $(document).ready(function () {
 	var FIELDS = {
 		scene: [
 			{ key: "@name", label: "Title", type: "text", hint: "Only you see this, in the Scenes window." },
-			{ key: "@pageColour", label: "Page colour", type: "colour", hint: "Behind the scene and between its sections." },
+			{ key: "@pageColour", label: "Page color", type: "colour", hint: "Behind the scene and between its sections." },
 			{ group: "Motion" },
 			{ key: "settings.scrub", label: "Movement", type: "select", options: [["true", "Follows the scroll exactly"], ["0.5", "Smooth"], ["1", "Smoother"]] },
 			{ key: "settings.intensity", label: "Depth (how far the layers move)", type: "number", min: 0.25, max: 2, step: 0.05, placeholder: "1" },
@@ -351,8 +351,8 @@ $(document).ready(function () {
 			{ key: "settings.phoneMotion", label: "On mobile", type: "select", options: [["", "Full movement"], ["light", "Half the movement"]] }
 		],
 		text: [
-			{ key: "colour", label: "Background colour", type: "colour" },
-			{ key: "gradient", label: "Or a gradient (used instead of the colour)", type: "gradient" }
+			{ key: "colour", label: "Background color", type: "colour" },
+			{ key: "gradient", label: "Or a gradient (used instead of the color)", type: "gradient" }
 		],
 		imageSlide: [
 			{ key: "image", phoneKey: "imagePhone", label: "Picture", type: "image" },
@@ -374,12 +374,12 @@ $(document).ready(function () {
 		gradientHero: [{ key: "gradient", label: "Gradient", type: "gradient" }, FADE],
 		form: [
 			{ key: "form", label: "Form", type: "form" },
-			{ key: "colour", label: "Background colour", type: "colour" },
-			{ key: "gradient", label: "Or a gradient (used instead of the colour)", type: "gradient" }
+			{ key: "colour", label: "Background color", type: "colour" },
+			{ key: "gradient", label: "Or a gradient (used instead of the color)", type: "gradient" }
 		],
 		slideshow: [
 			{ key: "#slides", type: "slides" },
-			{ key: "colour", label: "Colour behind the pictures", type: "colour", hint: "Shows while a picture loads, and the hero before it fades into it." }
+			{ key: "colour", label: "Color behind the pictures", type: "colour", hint: "Shows while a picture loads, and the hero before it fades into it." }
 		],
 		videoHero: [
 			{ key: "video", label: "Video file (.mp4)", type: "text", placeholder: "/images/...", hint: "Video upload comes later; type the address of an .mp4 file on this site." },
@@ -387,7 +387,7 @@ $(document).ready(function () {
 		].concat(OVERLAY, [FADE])
 	};
 
-	<!--- Each Vanta animation names its colours differently; these are the ones worth changing for each. Vanta takes plain colours
+	<!--- Each Vanta animation names its colors differently; these are the ones worth changing for each. Vanta takes plain colors
 	only, no transparency. --->
 	var VANTA_COLOURS = {
 		WAVES: [["color", "Water"]],
@@ -395,7 +395,7 @@ $(document).ready(function () {
 		FOG: [["highlightColor", "Highlights"], ["midtoneColor", "Middle tones"], ["lowlightColor", "Shadows"], ["baseColor", "Base"]],
 		CLOUDS: [["skyColor", "Sky"], ["cloudColor", "Clouds"], ["sunColor", "Sun"]],
 		CLOUDS2: [["skyColor", "Sky"], ["cloudColor", "Clouds"], ["lightColor", "Light"]],
-		BIRDS: [["backgroundColor", "Background"], ["color1", "Birds"], ["color2", "Birds, second colour"]],
+		BIRDS: [["backgroundColor", "Background"], ["color1", "Birds"], ["color2", "Birds, second color"]],
 		GLOBE: [["color", "Lines"], ["color2", "Dots"], ["backgroundColor", "Background"]],
 		RINGS: [["color", "Rings"], ["backgroundColor", "Background"]]
 	};
@@ -403,7 +403,7 @@ $(document).ready(function () {
 		var fields = (FIELDS[section.kind] || []).slice();
 		if (section.kind === "vantaHero") {
 			var colours = $.map(VANTA_COLOURS[String(section.effect || "WAVES").toUpperCase()] || [], function (c) { return { key: "options." + c[0], label: c[1], type: "colour", solid: true }; });
-			fields.splice(1, 0, { group: "Animation colours" });
+			fields.splice(1, 0, { group: "Animation colors" });
 			Array.prototype.splice.apply(fields, [2, 0].concat(colours));
 		}
 		<!--- Every section with a heading and text can have a button. --->
@@ -484,7 +484,7 @@ $(document).ready(function () {
 		});
 	}
 
-	<!--- ---------- The colour helper (2026-10-19, option A): a Suggest button on every colour field, listing colours worked out in the
+	<!--- ---------- The color helper (2026-10-19, option A): a Suggest button on every color field, listing colors worked out in the
 	browser from the section's own pictures and its neighbours - above all the bottom edge of the front picture, which is what a
 	hero's fade has to melt into - and "Pick from the screen" with the browser's eyedropper where there is one (Chrome, Edge). --->
 	function toHex(r, g, b) { return "#" + [r, g, b].map(function (n) { return ("0" + Math.round(n).toString(16)).slice(-2); }).join(""); }
@@ -516,7 +516,7 @@ $(document).ready(function () {
 		}
 		return n ? toHex(r / n, g / n, b / n) : null;
 	}
-	<!--- The most common colour, in groups of near colours, averaged within the winning group. --->
+	<!--- The most common color, in groups of near colors, averaged within the winning group. --->
 	function mainColour(px) {
 		var groups = {}, best = null;
 		for (var i = 0; i < px.data.length; i += 4) {
@@ -528,14 +528,14 @@ $(document).ready(function () {
 		}
 		return best ? toHex(best.r / best.n, best.g / best.n, best.b / best.n) : null;
 	}
-	<!--- A section's own colour: its background colour, or the first colour of its gradient. --->
+	<!--- A section's own color: its background color, or the first color of its gradient. --->
 	function sectionColour(s) {
 		if (!s) { return null; }
 		if (s.colour) { return s.colour; }
 		var m = /(#[0-9a-f]{3,8}\b|rgba?\([^)]*\))/i.exec(s.gradient || "");
 		return m ? m[1] : (s.fadeColour || null);
 	}
-	<!--- The pictures to read for a section: a layered hero's front layer (and all its layers, drawn together, for the main colour);
+	<!--- The pictures to read for a section: a layered hero's front layer (and all its layers, drawn together, for the main color);
 	otherwise its photo, picture or video poster. --->
 	function picturesOf(s) {
 		if (!s) { return []; }
@@ -562,20 +562,20 @@ $(document).ready(function () {
 			canvas.width = w; canvas.height = h;
 			var ctx = canvas.getContext("2d");
 			$.each(imgs, function (i, img) { ctx.drawImage(img, 0, 0, w, h); });
-			add("The picture's main colour", mainColour({ data: ctx.getImageData(0, 0, w, h).data, w: w, h: h }));
+			add("The picture's main color", mainColour({ data: ctx.getImageData(0, 0, w, h).data, w: w, h: h }));
 		});
 		return work.catch(function () {}).then(function () {
 			var at = selected >= 0 ? selected : 0;
-			add("The next section's colour", sectionColour(scene.sections[at + 1]));
+			add("The next section's color", sectionColour(scene.sections[at + 1]));
 			if (at > 0) { add("The section before", sectionColour(scene.sections[at - 1])); }
-			add("The page colour", scene.pageColour);
+			add("The page color", scene.pageColour);
 			return list;
 		});
 	}
-	<!--- The Suggest list under a colour field; picking one sets the field (apply) and closes the list. --->
+	<!--- The Suggest list under a color field; picking one sets the field (apply) and closes the list. --->
 	function showSuggestions(anchor, field, apply) {
 		$(".sceneSuggest").remove();
-		var box = $('<div class="sceneSuggest" role="listbox"></div>').text("Working out colours...");
+		var box = $('<div class="sceneSuggest" role="listbox"></div>').text("Working out colors...");
 		anchor.after(box);
 		function close() { box.remove(); $(document).off(".sceneSuggest"); }
 		setTimeout(function () {
@@ -584,7 +584,7 @@ $(document).ready(function () {
 		}, 0);
 		suggestColours().then(function (list) {
 			box.empty();
-			if (!list.length) { box.append($('<div class="k-form-hint"></div>').text("No colours to suggest yet: add a picture or a colour to this or the next section.")); }
+			if (!list.length) { box.append($('<div class="k-form-hint"></div>').text("No colors to suggest yet: add a picture or a color to this or the next section.")); }
 			$.each(list, function (i, item) {
 				var colour = field.solid && /^rgba?\(/i.test(item.colour) ? toHex.apply(null, (item.colour.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number)) : item.colour;
 				var pick = $('<button type="button" class="sceneSuggestItem" role="option"></button>')
@@ -596,7 +596,7 @@ $(document).ready(function () {
 				box.append($('<button type="button" class="k-button" style="margin-top: 6px;">Pick from the screen</button>').on("click", function () {
 					close();
 					new window.EyeDropper().open().then(function (result) { apply(result.sRGBHex); }).catch(function () { <!--- cancelled ---> });
-				}), $('<span class="k-form-hint"> any colour you can see, the preview included</span>'));
+				}), $('<span class="k-form-hint"> any color you can see, the preview included</span>'));
 			}
 		});
 	}
@@ -609,19 +609,19 @@ $(document).ready(function () {
 		if (field.type === "layers") { return layersField(wrap); }
 		if (field.type === "slides") { return slidesField(wrap); }
 		if (field.type === "artStyle") {
-			<!--- Flat / Soft (2026-10-19, owner): for a drawn scene that comes in both colour styles, swaps every layer between
+			<!--- Flat / Soft (2026-10-19, owner): for a drawn scene that comes in both color styles, swaps every layer between
 			images/scenes/{name}/ and images/scenes/{name}-soft/. Not shown for other layers. --->
 			var artLayers = getValue("layers") || [];
 			var art = artLayers.length ? /\/images\/scenes\/([a-z0-9]+?)(-soft)?\/\d+\.svg$/i.exec(artLayers[0].src || "") : null;
 			if (!art || SOFT_SETS.indexOf(art[1].toLowerCase()) < 0) { return $(); }
-			var style = $('<select></select>').attr("id", id).append('<option value="flat">Flat colours</option><option value="soft">Soft (ridges blend into each other)</option>').val(art[2] ? "soft" : "flat");
+			var style = $('<select></select>').attr("id", id).append('<option value="flat">Flat colors</option><option value="soft">Soft (ridges blend into each other)</option>').val(art[2] ? "soft" : "flat");
 			style.on("change", function () {
 				var from = new RegExp("/images/scenes/" + art[1] + "(-soft)?/", "i"), to = "/images/scenes/" + art[1] + ($(this).val() === "soft" ? "-soft" : "") + "/";
 				$.each(artLayers, function (i, layer) { layer.src = String(layer.src).replace(from, to); if (layer.srcPhone) { layer.srcPhone = String(layer.srcPhone).replace(from, to); } });
 				schedulePreview();
 				setTimeout(renderSettings, 0);
 			});
-			wrap.append($('<label></label>').attr("for", id).text("Colour style"), style);
+			wrap.append($('<label></label>').attr("for", id).text("Color style"), style);
 			return wrap;
 		}
 		wrap.append($('<label></label>').attr("for", id).text(field.label));
@@ -665,10 +665,10 @@ $(document).ready(function () {
 			return hint();
 		}
 		if (field.type === "colour") {
-			<!--- Kendo's colour picker, with transparency unless the field takes plain colours only. None takes the colour away. --->
+			<!--- Kendo's color picker, with transparency unless the field takes plain colors only. None takes the color away. --->
 			input = $('<input>').attr("id", id);
 			var none = $('<button type="button" class="k-button">None</button>');
-			var suggest = $('<button type="button" class="k-button" title="Colours from the pictures of this section and the sections next to it">Suggest</button>');
+			var suggest = $('<button type="button" class="k-button" title="Colors from the pictures of this section and the sections next to it">Suggest</button>');
 			var row = $('<div class="sceneRow"></div>').append(input, none, suggest);
 			wrap.append(row);
 			pending.push(function () {
@@ -747,7 +747,7 @@ $(document).ready(function () {
 			setValue(field.key, typed(field, $.trim($(this).val())));
 			if (field.key === "@name" && !aliasTyped && sceneId === 0) { $("#sceneAlias").val(aliasFrom(scene.name || "")); updateUseHint(); }
 			if (field.key === "heading") { renderList(); }
-			<!--- Another animation has other colours to set. --->
+			<!--- Another animation has other colors to set. --->
 			if (field.key === "effect") { setTimeout(renderSettings, 0); }
 			schedulePreview();
 		});
@@ -756,7 +756,7 @@ $(document).ready(function () {
 	}
 
 	<!--- A gradient: Grapick's bar (the same library as the gradient editor) - click the bar to add a band, drag a band to move
-	it, and pick its colour below. The CSS box shows the result and takes a pasted gradient. --->
+	it, and pick its color below. The CSS box shows the result and takes a pasted gradient. --->
 	var gradientCount = 0;
 	function buildGradient(box, field) {
 		var value = getValue(field.key);
@@ -779,9 +779,9 @@ $(document).ready(function () {
 		var off = $('<button type="button" class="k-button">No gradient</button>');
 		box.append(bar,
 			$('<div class="sceneRow"></div>').append($('<span>Shape</span>'), $('<span style="flex: 1 1 auto;"></span>').append(shape), $('<span>Angle</span>'), angle),
-			$('<div class="sceneRow"></div>').append($('<span>Band colour</span>'), band),
+			$('<div class="sceneRow"></div>').append($('<span>Band color</span>'), band),
 			$('<div class="sceneRow"></div>').append(css, off),
-			$('<div class="k-form-hint">Click the bar to add a colour band, drag a band to move it, and click the x above a band to remove it. You can also paste a CSS gradient into the box.</div>'));
+			$('<div class="k-form-hint">Click the bar to add a color band, drag a band to move it, and click the x above a band to remove it. You can also paste a CSS gradient into the box.</div>'));
 		off.on("click", function () { setValue(field.key, ""); buildGradient(box, field); schedulePreview(); });
 		galaxieLoader.grapickPickr(function () {
 			if (!document.getElementById(barId)) { return; }   <!--- another section was picked meanwhile --->
@@ -790,7 +790,7 @@ $(document).ready(function () {
 			gp.setValue(value);
 			var picker = band.kendoColorPicker({ opacity: true, buttons: false, preview: true, input: true,
 				change: function () { var h = selectedBand(); if (h) { h.setColor(this.value()); } } }).data("kendoColorPicker");
-			<!--- The band the colour picker changes: the one picked on the bar, or the first one (a loaded gradient has none picked). --->
+			<!--- The band the color picker changes: the one picked on the bar, or the first one (a loaded gradient has none picked). --->
 			function selectedBand() {
 				var h = gp.getSelected();
 				if (!h && gp.getHandlers().length) { h = gp.getHandlers()[0]; try { h.select(); } catch (e) {} }
@@ -823,7 +823,7 @@ $(document).ready(function () {
 	}
 
 	<!--- The settings in the owner's admin blocks: the fields above the text and the text in the first block, then a new block, in the
-	other colour, at each group heading (Look, Motion...). --->
+	other color, at each group heading (Look, Motion...). --->
 	var SETTINGS_CLASSES = ["<cfoutput>#blockClass#</cfoutput>", "<cfoutput>#altClass#</cfoutput>"];
 	function blockSettings() {
 		$("#sceneSettingsTop, #sceneTextBlock").attr("class", function () { return (this.id === "sceneTextBlock" ? "sceneField " : "") + "adminDivBlock " + SETTINGS_CLASSES[0]; });
@@ -894,7 +894,7 @@ $(document).ready(function () {
 	function renderList() {
 		var list = $("#sceneSectionList").empty();
 		var item = $('<div class="sceneSectionItem"></div>').toggleClass("selected", selected < 0);
-		item.append('<span class="sceneSectionKind">Scene settings</span><span class="sceneSectionHeading">Colours and motion</span>');
+		item.append('<span class="sceneSectionKind">Scene settings</span><span class="sceneSectionHeading">Colors and motion</span>');
 		item.on("click", function () { select(-1); });
 		list.append(item);
 		$.each(scene.sections, function (i, section) {

@@ -1012,7 +1012,7 @@
 			border-top: 1px solid #ddd;
 		}
 
-		<!--- The event card at the top of an event post (2026-10-15, common/cfc/Events.cfc renderCard): a date block on the left, the details on the right. Colours come from the theme (k-content, k-header). --->
+		<!--- The event card at the top of an event post (2026-10-15, common/cfc/Events.cfc renderCard): a date block on the left, the details on the right. Colors come from the theme (k-content, k-header). --->
 		.galaxieEventCard { display: flex; gap: 14px; align-items: flex-start; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin: 0 0 16px 0; }
 		<!--- Events page: every other event is k-alt; the same tint as the admin blocks, as some themes draw k-alt like k-content. --->
 		.galaxieEventsItem.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
@@ -1101,7 +1101,7 @@
 		}
 
 		<!--- Admin windows (2026-10-15): one look for every form table with the adminBlocks class. Blocks alternate k-content /
-		k-alt (HtmlUtils.cfc getKendoClass); a blockSpacer row in the old colour, then one with the 'border' line in the new colour,
+		k-alt (HtmlUtils.cfc getKendoClass); a blockSpacer row in the old color, then one with the 'border' line in the new color,
 		divides blocks; a thin 'border' row divides rows inside a block. Long descriptions get their own row at the top of a block;
 		short hints (k-form-hint) sit under their field. Section titles are h4.adminBlockHeading. --->
 		table.adminBlocks > tbody > tr > td { padding: 5px 10px; }
@@ -1118,8 +1118,8 @@
 		.k-window-content table.k-content > tbody > tr > td.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
 		<!--- Hub windows (eg. Bookings) list sections side by side; a clearer line marks where each one starts. --->
 		table.adminHub td.border { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.35)<cfelse>#b3b3b3</cfif> !important; }
-		<!--- Some themes draw k-alt the same colour as k-content (uniform, office365, highcontrast) or barely different, so the
-		blocks would not show. A light tint over the theme's own colour makes every other block visible in any theme. --->
+		<!--- Some themes draw k-alt the same color as k-content (uniform, office365, highcontrast) or barely different, so the
+		blocks would not show. A light tint over the theme's own color makes every other block visible in any theme. --->
 		table.adminBlocks > tbody > tr > td.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
 		<!--- The same blocks for a narrow column with labels above the fields (5.0, 2026-10-20: the scene editor's settings, the Themes
 		window's Customize panel): div.adminDivBlock alternates k-content / k-alt, with the same line between its rows and between blocks. --->

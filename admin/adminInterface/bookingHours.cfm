@@ -31,7 +31,7 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 <script>
-	<!--- The colour of the block the day rows sit in (HtmlUtils getKendoClass). --->
+	<!--- The color of the block the day rows sit in (HtmlUtils getKendoClass). --->
 	var hoursDaysClass = "<cfoutput>#blockClass#</cfoutput>";
 	$(document).ready(function() {
 
