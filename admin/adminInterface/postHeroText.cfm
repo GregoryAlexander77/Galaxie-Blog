@@ -55,6 +55,10 @@ and videos have none. --->
 			<div id="heroTextPreviewSub"></div>
 		</div>
 	</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Style</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<!--- The hero's style (owner, 10-19: "keep them all"): the blog's choice (Blog Options), or one of its own. --->
 	<cfset heroStyleNames = { "classic": "Classic (inside the post)", "held": "Full screen, held", "band": "Tall band (scrolls away)", "magazine": "Magazine (large heading, low left)" }>
@@ -71,6 +75,10 @@ and videos have none. --->
 			<div class="k-form-hint">How the hero shows on the post's own page. Full screen, Tall band and Magazine are full width and fade into the post; the blog's choice is in Blog Options. Carousels, maps and videos always show as they are.</div>
 		</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Text</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="heroTextHeading">Heading:</label></td>
@@ -81,6 +89,10 @@ and videos have none. --->
 		<td class="#blockClass#" align="right"><label for="heroTextSub">Second line:</label></td>
 		<td class="#blockClass#"><input type="text" id="heroTextSub" class="k-textbox heroTextInput" maxlength="500" style="width: 95%;" placeholder="Optional" value="#encodeForHtmlAttribute(p["HeroOverlaySubText"] ?: "")#"></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Look</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="heroTextColour">Colour:</label></td>
@@ -101,6 +113,10 @@ and videos have none. --->
 		<td class="#blockClass#" align="right"><label for="heroTextSizePhone">On mobile:</label></td>
 		<td class="#blockClass#"><input type="range" id="heroTextSizePhone" min="14" max="64" step="1" value="#val(p["HeroOverlayFontSizePhone"] ?: "") ? val(p["HeroOverlayFontSizePhone"]) : 28#" style="width: 60%;"> <span id="heroTextSizePhoneValue"></span></td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Shadow and glow</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="heroTextShadow">Shadow:</label></td>

@@ -1121,6 +1121,13 @@
 		<!--- Some themes draw k-alt the same colour as k-content (uniform, office365, highcontrast) or barely different, so the
 		blocks would not show. A light tint over the theme's own colour makes every other block visible in any theme. --->
 		table.adminBlocks > tbody > tr > td.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
+		<!--- The same blocks for a narrow column with labels above the fields (5.0, 2026-10-20: the scene editor's settings, the Themes
+		window's Customize panel): div.adminDivBlock alternates k-content / k-alt, with the same line between its rows and between blocks. --->
+		.adminDivBlock { padding: 6px 10px; }
+		.adminDivBlock.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
+		.adminDivBlock + .adminDivBlock { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif>; }
+		.adminDivBlock > * + * { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif>; padding-top: 8px; margin-top: 8px; }
+		.adminDivBlock:empty { display: none; }
 		<!--- Kendo before 2020 (eg. Kendo UI Professional 2019) hides input.k-checkbox and input.k-radio and draws the box on a
 		label.k-checkbox-label / k-radio-label right after them. Galaxie's checkboxes and radios have no such label, so with an old
 		Kendo they vanished. head.cfm adds galaxieLegacyKendoInputs to the html tag for those versions; show the browser's own

@@ -93,6 +93,10 @@ $(document).ready(function () {
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<tr><td class="#blockClass#">A scene is shown at the top of this post's own page, above its text. Lists of posts still show the post's picture. Scenes look best with a modern theme and the sidebar hidden.</td></tr>
+	<tr class="blockSpacer"><td class="#blockClass#"></td></tr>
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td class="border #blockClass#"></td></tr>
+	<tr><td class="#blockClass#"><h4 class="adminBlockHeading">Pick a scene</h4></td></tr>
 	<tr class="blockSpacer"><td class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#">

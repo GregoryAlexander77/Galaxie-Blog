@@ -108,7 +108,11 @@ chose "this server only" (Scenes window settings). --->
 	#sceneEditorTop label { white-space: nowrap; }
 	#sceneEditorBody { flex: 1 1 auto; display: flex; min-height: 0; }
 	#sceneEditorList { flex: 0 0 21%; overflow: auto; padding: 8px; }
-	#sceneEditorSettings { flex: 0 0 29%; overflow-y: auto; overflow-x: hidden; padding: 8px 10px; }
+	#sceneEditorSettings { flex: 0 0 29%; overflow-y: auto; overflow-x: hidden; padding: 0; }
+	<!--- The settings in alternating blocks with lines between the fields (owner's admin look; shared .adminDivBlock in blogContentCss.cfm). --->
+	#sceneEditorSettings .adminDivBlock > .sceneField, #sceneEditorSettings .adminDivBlock > .sceneFieldGroup { margin: 0; }
+	#sceneEditorSettings .adminDivBlock > .sceneField + .sceneField { margin-top: 8px; }
+	#sceneSettingsRest > .adminDivBlock:first-child { border-top: 1px solid rgba(128,128,128,.45); }
 	#sceneEditorPreview { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; padding: 8px; }
 	#scenePreviewBar { flex: 0 0 auto; padding-bottom: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 	#scenePreviewStage { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; background: #2b2b2b; border-radius: 4px; }
@@ -818,6 +822,19 @@ $(document).ready(function () {
 		});
 	}
 
+	<!--- The settings in the owner's admin blocks: the fields above the text and the text in the first block, then a new block, in the
+	other colour, at each group heading (Look, Motion...). --->
+	var SETTINGS_CLASSES = ["<cfoutput>#blockClass#</cfoutput>", "<cfoutput>#altClass#</cfoutput>"];
+	function blockSettings() {
+		$("#sceneSettingsTop, #sceneTextBlock").attr("class", function () { return (this.id === "sceneTextBlock" ? "sceneField " : "") + "adminDivBlock " + SETTINGS_CLASSES[0]; });
+		var rest = $("#sceneSettingsRest"), items = rest.children().detach(), n = 0;
+		var block = $('<div class="adminDivBlock"></div>').addClass(SETTINGS_CLASSES[0]).appendTo(rest);
+		items.each(function () {
+			if ($(this).hasClass("sceneFieldGroup")) { n++; block = $('<div class="adminDivBlock"></div>').addClass(SETTINGS_CLASSES[n % 2]).appendTo(rest); }
+			block.append(this);
+		});
+	}
+
 	<!--- The settings pane: the fields above the text, the text editor (kept in place, see the TinyMCE notes below), the rest. --->
 	function renderSettings() {
 		var top = $("#sceneSettingsTop").empty(), rest = $("#sceneSettingsRest").empty();
@@ -831,6 +848,7 @@ $(document).ready(function () {
 			if (!OWN_TEXT[section.kind]) { top.append(fieldHtml(HEADING)); }
 			$.each(sectionFields(section).concat(LOOK), function (i, field) { rest.append(fieldHtml(field)); });
 		}
+		blockSettings();
 		kendoSelects("#sceneSettingsTop, #sceneSettingsRest");
 		$.each(pending, function (i, fn) { fn(); });
 		pending = [];
