@@ -685,7 +685,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			#adminHome, .adminGroupPage { max-width: 980px; margin: 0 auto; }
 			.adminHomeSection { margin-top: 14px; }
 			.adminHomeHeading { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; opacity: .75; margin: 18px 0 10px; text-align: left; }
-			.adminHomeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>130<cfelse>150</cfif>px, 1fr)); gap: 14px; }
+			.adminHomeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>130<cfelse>150</cfif>px, 1fr)); gap: 14px;  grid-auto-rows: 1fr; }
 			.adminHomeTile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 8px 12px; border: 1px solid rgba(128,128,128,.35); border-radius: 8px; text-align: center; text-decoration: none; color: inherit; cursor: pointer; font: inherit; }
 			.adminHomeTile:hover, .adminHomeTile:focus { box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5); }
 			.adminHomeTile img { width: <cfif session.isMobile>56<cfelse>72</cfif>px; height: <cfif session.isMobile>56<cfelse>72</cfif>px; object-fit: contain; }
