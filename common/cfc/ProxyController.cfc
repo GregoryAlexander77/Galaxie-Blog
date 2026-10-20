@@ -11607,6 +11607,23 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="hideUpNext" access="remote" returnformat="json" output="false"
+			hint="The admin home's Up next row (5.0): hides one suggestion (its x) until something new happens (AdminHome.cfc hide).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="kind" type="string" default="" required="false">
+		<cfargument name="signature" type="string" default="" required="false">
+		<cfset var response = { "success": false }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfif application.Udf.isLoggedIn() and len(arguments.kind)>
+			<cfset application.blog.getAdminHome().hide(arguments.kind, arguments.signature)>
+			<cfset response[ "success" ] = true>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="getWebFormQuickEdit" access="remote" returnformat="json" output="false"
 			hint="A scene's Form section (2026-10-20): the form's quick-edit view (WebForms.cfc getQuickEdit). Returns { success, form }.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

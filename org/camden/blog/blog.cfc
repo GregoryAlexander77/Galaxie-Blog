@@ -1554,6 +1554,17 @@
 		<cfreturn variables.setupObj>
 	</cffunction>
 
+	<cffunction name="getAdminHome" access="public" returnType="any" output="false" hint="The admin home's Up next suggestions (common/cfc/AdminHome.cfc, 5.0), created on first use - kept here like getSetup.">
+		<cfif not structKeyExists(variables, "adminHomeObj")>
+			<cflock name="galaxieAdminHomeCreate_#application.applicationName#" type="exclusive" timeout="10">
+				<cfif not structKeyExists(variables, "adminHomeObj")>
+					<cfset variables.adminHomeObj = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.AdminHome" : "common.cfc.AdminHome")>
+				</cfif>
+			</cflock>
+		</cfif>
+		<cfreturn variables.adminHomeObj>
+	</cffunction>
+
 	<cffunction name="getThemeEditor" access="public" returnType="any" output="false" hint="The Themes window's saves and the preview draft (common/cfc/ThemeEditor.cfc, 5.0), created on first use - kept here like getSetup, so a reinit picks up a changed ThemeEditor.cfc.">
 		<cfif not structKeyExists(variables, "themeEditorObj")>
 			<cflock name="galaxieThemeEditorCreate_#application.applicationName#" type="exclusive" timeout="10">

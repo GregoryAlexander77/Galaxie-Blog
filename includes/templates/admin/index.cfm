@@ -440,7 +440,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 		<!-- Content --> 
 		<span id="iconNavMenu" class="postContent">	
 
-			<span style="text-align: center">Pick a group, or one of the everyday actions.</span>
+			<span style="text-align: center">What's up next, then everything else in groups.</span>
 
 			<!--- Until the owner finishes the Site Setup wizard (5.0): how many screens are done, and a button to carry on. --->
 			<!--- A brand new blog (5.0): the first visit to the administration page in a session opens the wizard, until the owner has
@@ -450,13 +450,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 				<cfset session.setupAutoOpened = true>
 				<script>window.location.replace("<cfoutput>#application.baseUrl#</cfoutput>/admin/setup.cfm");</script>
 			</cfif>
-			<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') and not application.blog.getSetup().isFinished()>
-				<cfset setupDone = application.blog.getSetup().stepsDoneCount()>
-				<div class="k-alt" style="margin: 14px auto 4px; padding: 14px 16px; border-radius: 6px; max-width: 760px; display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
-					<span><strong>Finish setting up your site</strong><cfif setupDone>, <cfoutput>#setupDone# of 6 steps done.</cfoutput><cfelse>: your name, look, logo and a few pages, in about five minutes.</cfif></span>
-					<a class="k-button k-primary" href="<cfoutput>#application.baseUrl#</cfoutput>/admin/setup.cfm"><cfif setupDone>Carry on<cfelse>Start</cfif></a>
-				</div>
-			</cfif>
+			<!--- Finish setting up your site is the first of the Up next suggestions below (5.0, 2026-10-20); it was a banner here. --->
 
 				<!--- 5.0 (2026-10-19, owner's pick C): the everyday actions one click away, everything else in six groups, each group with
 				its own page of icons, and what needs the owner shown on the tiles. The icons, their permissions and links are the lists
@@ -470,7 +464,27 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 						{ key: "logs", name: "Logs", image: "/images/icons/adminLog.gif", what: "What happened on the site", icons: "ErrorLog,AdminLog,MemberLog,VisitorLog,reactionLog,SearchQuery" },
 						{ key: "settings", name: "Settings", image: "/images/icons/settings.gif", what: "Set-up, settings and updates", icons: "SiteSetup,BlogSettings,BlogOptions,BlogUpdate,RefreshSite,ReloadOrm" }
 					]>
-					<cfset everyDay = "addPost,Posts,Comments,CreatePage">
+					<!--- Up next (owner, 2026-10-20): Create Post, then up to three things that need this person now, most important first
+					(AdminHome.cfc getSuggestions), each with an x to hide it until something new happens. With fewer than three, the rest
+					are Create Page, Posts and Comments. --->
+					<cfset upNext = []>
+					<cftry>
+						<cfset upNext = application.blog.getAdminHome().getSuggestions(iconList, linkList, listFindNoCase(currentUserCapabilityList, "EditServerSetting") gt 0, listFindNoCase(titleList, "Blog Updates (update needed)") gt 0)>
+						<cfcatch type="any"><cfset upNext = []></cfcatch>
+					</cftry>
+					<cfset upNextIcons = { setup: "SiteSetup", bookings: "Bookings", comments: "Comments", update: "BlogUpdate", signups: "Forms", errors: "ErrorLog", draft: "Posts", scheduled: "Posts" }>
+					<cfset upNextShown = []>
+					<cfloop array="#upNext#" index="suggestion">
+						<cfif arrayLen(upNextShown) lt 3><cfset arrayAppend(upNextShown, suggestion)></cfif>
+					</cfloop>
+					<cfset upNextKinds = "">
+					<cfloop array="#upNextShown#" index="suggestion"><cfset upNextKinds = listAppend(upNextKinds, suggestion.kind)></cfloop>
+					<cfset upNextFallback = "">
+					<cfloop list="CreatePage,Posts,Comments" index="key">
+						<cfif listLen(upNextFallback) + arrayLen(upNextShown) lt 3 and listFindNoCase(iconList, key) and not (key eq "Comments" and listFind(upNextKinds, "comments"))>
+							<cfset upNextFallback = listAppend(upNextFallback, key)>
+						</cfif>
+					</cfloop>
 					<!--- What needs the owner, for the badges: comments waiting, errors in the last day, new sign-ups and bookings this week.
 					If the counts can't be read, the tiles simply show none. --->
 					<cfset homeStatus = { comments: 0, errors: 0, signUps: 0 }>
@@ -497,17 +511,36 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 				<cfoutput>
 				<div id="adminHome">
 					<div class="adminHomeSection adminHomeQuick">
-						<h5 class="adminHomeHeading">Every day</h5>
+						<h5 class="adminHomeHeading">Up next</h5>
+						<cfif not arrayLen(upNextShown)><p class="adminHomeCaughtUp">All caught up. Here are some things to do.</p></cfif>
 						<div class="adminHomeGrid">
-						<cfloop list="#everyDay#" index="key">
+						<cfset i = listFindNoCase(iconList, "addPost")>
+						<cfif i>
+							<a class="adminHomeTile k-content" id="addPost" href="#listGetAt(linkList, i)#">
+								<img src="#application.baseUrl##listGetAt(imageList, i)#" alt="">
+								<span class="adminHomeName">#listGetAt(titleList, i)#</span>
+							</a>
+						</cfif>
+						<cfloop array="#upNextShown#" index="suggestion">
+							<cfset i = listFindNoCase(iconList, upNextIcons[suggestion.kind] ?: "")>
+							<div class="adminHomeSuggestWrap">
+								<a class="adminHomeTile adminHomeSuggest k-content" href="#encodeForHtmlAttribute(suggestion.link)#">
+									<cfif i><img src="#application.baseUrl##listGetAt(imageList, i)#" alt=""></cfif>
+									<span class="adminHomeSuggestText">
+										<span class="adminHomeName">#encodeForHtml(suggestion.label)#</span>
+										<span class="adminHomeWhat">#encodeForHtml(suggestion.detail)#</span>
+									</span>
+								</a>
+								<button type="button" class="adminHomeHide" title="Hide until something new happens" aria-label="Hide #encodeForHtmlAttribute(suggestion.label)#"
+									data-kind="#encodeForHtmlAttribute(suggestion.kind)#" data-signature="#encodeForHtmlAttribute(suggestion.signature)#">&times;</button>
+							</div>
+						</cfloop>
+						<cfloop list="#upNextFallback#" index="key">
 							<cfset i = listFindNoCase(iconList, key)>
-							<cfif i>
 							<a class="adminHomeTile k-content" id="#listGetAt(iconList, i)#" href="#listGetAt(linkList, i)#">
 								<img src="#application.baseUrl##listGetAt(imageList, i)#" alt="">
 								<span class="adminHomeName">#listGetAt(titleList, i)#</span>
-								<cfif key eq "Comments" and homeStatus.comments><span class="adminHomeBadge" title="#homeStatus.comments# waiting">#homeStatus.comments#</span></cfif>
 							</a>
-							</cfif>
 						</cfloop>
 						</div>
 					</div>
@@ -550,6 +583,14 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 				</cfloop>
 				</cfoutput>
 				<script>
+					<!--- Up next: the x hides a suggestion until something new happens (AdminHome.cfc hide). --->
+					$(document).on("click", ".adminHomeHide", function () {
+						var button = $(this), wrap = button.closest(".adminHomeSuggestWrap");
+						wrap.fadeTo(150, .3);
+						jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=hideUpNext",
+							data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", kind: button.data("kind"), signature: String(button.data("signature")) }, dataType: "json" })
+							.done(function () { wrap.remove(); }).fail(function () { wrap.fadeTo(150, 1); });
+					});
 					<!--- A group's page in place of the home; the address carries it (group-logs), so Back and a refresh keep it. --->
 					(function () {
 						function show() {
@@ -592,6 +633,14 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			.adminHomeQuick .adminHomeGrid { grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>150<cfelse>200</cfif>px, 1fr)); }
 			.adminHomeQuick .adminHomeTile { flex-direction: row; justify-content: flex-start; padding: 10px 12px; text-align: left; }
 			.adminHomeQuick .adminHomeTile img { width: 40px; height: 40px; }
+			<!--- Up next suggestions: a blue line down the left (the color of the info notes on the group tiles), the x at the top right. --->
+			.adminHomeSuggestWrap { position: relative; }
+			.adminHomeSuggestWrap > .adminHomeTile { height: 100%; border-left: 4px solid #0969da; }
+			.adminHomeSuggestText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+			.adminHomeSuggestText .adminHomeWhat { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+			.adminHomeHide { position: absolute; top: 4px; right: 6px; border: 0; background: none; color: inherit; opacity: .55; font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 4px; }
+			.adminHomeHide:hover, .adminHomeHide:focus { opacity: 1; }
+			.adminHomeCaughtUp { text-align: left; margin: -4px 0 10px; opacity: .8; }
 			.adminHomeCrumb { text-align: left; margin: 10px 0 0; }
 			.adminHomeCrumb a { text-decoration: underline; }
 

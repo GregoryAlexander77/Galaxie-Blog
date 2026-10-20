@@ -812,6 +812,8 @@ TinyMce styles
 				Error Grid
 //********************************************************************************************************************--->
 <cfcase value=59>
+	<!--- Opening the Error Log: the errors so far are no longer new for the admin home's Up next row (5.0). --->
+	<cftry><cfset application.blog.getAdminHome().markErrorsSeen()><cfcatch type="any"></cfcatch></cftry>
 	
 	<cfif application.kendoCommercial>
 		<!---//***********************************************************************************************
