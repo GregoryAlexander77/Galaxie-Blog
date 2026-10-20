@@ -19,7 +19,7 @@
 	<cfset debug = false>
 		
 	<!--- Used for testing purposes only. Setting this var to true will allow you to re-run the 7 part initial in. Note: if you want to run the entire install process, change the installed variable to an empty string in the ini file.  --->
-	<cfset reinstallIni = false> 
+	<cfset reinstallIni = false>
 	<!--- Reinstalls the database from the installer files. Note: this allows you to recover from a partially installed database if there are data errors, timeouts, or database issues, such as too many connections when using MySql. Open the insertData.cfm template in the installer folder to see your available recovery options. When you're done, make sure that you change this back to false! --->
 	<cfset reinstallDb = false>
 		
@@ -573,6 +573,11 @@
 		<cfelse>
 			<cfset application.eventsComponentPath = "common.cfc.Events">
 		</cfif>
+		<cfif len(application.baseProxyUrl) gt 0>
+			<cfset application.shopComponentPath = application.baseComponentPath & ".common.cfc.Shop">
+		<cfelse>
+			<cfset application.shopComponentPath = "common.cfc.Shop">
+		</cfif>
 
 		<cfif debug>
 			<cfoutput>
@@ -633,6 +638,8 @@
 		<cfset application.payments = createObject("component", application.paymentsComponentPath).init()>
 		<cfset application.members = createObject("component", application.membersComponentPath).init()>
 		<cfset application.events = createObject("component", application.eventsComponentPath).init()>
+		<!--- The shop (2026-10-20): products, cart, orders and downloads, on top of payments. --->
+		<cfset application.shop = createObject("component", application.shopComponentPath).init()>
 		
 		<!---//****************************************************************************************
 				Initialize the application and set core application vars.

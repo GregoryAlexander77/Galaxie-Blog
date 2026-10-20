@@ -14,6 +14,7 @@
 		"CustomWindowContent": ["Content"],
 		"ErrorLog": ["Stacktrace"],
 		"Post": ["JsonLd", "PostHeader", "CSS", "JavaScript", "Body", "MoreBody"],
+		"Product": ["Description"],
 		"Users": ["Biography"],
 		"WebFormSubmission": ["ValuesJson"]
 	}>

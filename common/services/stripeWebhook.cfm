@@ -4,7 +4,8 @@
 	Stripe dashboard (Developers > Webhooks) with the events checkout.session.completed, checkout.session.expired and
 	charge.refunded; Blog Options > Payments shows it. For local testing: stripe listen --forward-to <this address>.
 
-	This is the only place a booking or a paid event sign-up (2026-10-15) is marked as paid. The message is checked with the signing secret (Payments.cfc
+	This is the only place a booking or a paid event sign-up (2026-10-15) is marked as paid (a shop order, 2026-10-20, is also
+	confirmed when the buyer comes back and the blog asks Stripe itself: Shop.cfc confirmFromStripe). The message is checked with the signing secret (Payments.cfc
 	verifyStripeSignature), recorded by its event id so a repeated delivery is acted on once (PaymentWebhookLog), and answered
 	quickly: anything but a 2xx makes Stripe send it again later.
 --->
@@ -93,6 +94,13 @@
 					<cfelse>
 						<cfset webhookResult = "event sign-up " & webhookPayment.submissionId & " paid; it was already confirmed or cancelled">
 					</cfif>
+				<cfelseif webhookPayment.shopOrderId gt 0>
+					<!--- A shop order (2026-10-20): paid, the shipping address and amounts kept, stock taken off, download links made, emails sent. --->
+					<cfif application.shop.confirmPaidOrder(webhookPayment.shopOrderId, webhookObject)>
+						<cfset webhookResult = "shop order " & webhookPayment.shopOrderId & " paid">
+					<cfelse>
+						<cfset webhookResult = "shop order " & webhookPayment.shopOrderId & " paid; it was already confirmed">
+					</cfif>
 				</cfif>
 			</cfif>
 		</cfcase>
@@ -108,6 +116,9 @@
 				<cfelseif webhookRefs.submissionId gt 0>
 					<cfset application.events.refreshRsvpPaymentStatus(webhookRefs.submissionId)>
 					<cfset webhookResult = "event sign-up " & webhookRefs.submissionId & " refund recorded">
+				<cfelseif webhookRefs.shopOrderId gt 0>
+					<cfset application.shop.applyRefund(webhookRefs.shopOrderId)>
+					<cfset webhookResult = "shop order " & webhookRefs.shopOrderId & " refund recorded">
 				<cfelse>
 					<cfset webhookResult = "refund for a payment this blog didn't take">
 				</cfif>
@@ -122,6 +133,9 @@
 					<cfset webhookResult = "booking " & webhookPayment.bookingId & " released (checkout expired)">
 				<cfelseif webhookPayment.submissionId gt 0 and application.events.expireHeldRsvp(webhookPayment.submissionId)>
 					<cfset webhookResult = "event sign-up " & webhookPayment.submissionId & " released (checkout expired)">
+				<cfelseif webhookPayment.shopOrderId gt 0>
+					<cfset application.shop.expireOrder(webhookPayment.shopOrderId)>
+					<cfset webhookResult = "shop order " & webhookPayment.shopOrderId & " closed (checkout expired)">
 				<cfelse>
 					<cfset webhookResult = "checkout expired">
 				</cfif>

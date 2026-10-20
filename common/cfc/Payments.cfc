@@ -339,6 +339,7 @@
 		<cfset entity.setBlogRef(javacast("int", application.BlogDbObj.getBlogId()))>
 		<cfset entity.setBookingRef(javacast("int", arguments.refKind eq "booking" ? arguments.refId : 0))>
 		<cfset entity.setWebFormSubmissionRef(javacast("int", arguments.refKind eq "rsvp" ? arguments.refId : 0))>
+		<cfset entity.setShopOrderRef(javacast("int", 0))>
 		<cfset entity.setProvider("stripe")>
 		<cfset entity.setProviderSessionId(answer.data.id)>
 		<cfset entity.setProviderPaymentId("")>
@@ -360,6 +361,138 @@
 	<cfreturn result>
 </cffunction>
 
+<cffunction name="createShopCheckout" access="public" returntype="struct" output="false"
+		hint="A Stripe Checkout Session for a shop order (2026-10-20): one line per product, a shipping line, the blog's tax on the products, and Stripe's shipping-address form when something is shipped. Recorded as a pending Payment for the order. Returns { success, url, sessionId, message }.">
+	<cfargument name="shopOrderId" type="numeric" required="true">
+	<cfargument name="lines" type="array" required="true" hint="[{ name, description, unitPrice, quantity }], prices before tax.">
+	<cfargument name="shippingAmount" required="false" default="0">
+	<cfargument name="collectShipping" type="boolean" required="false" default="false">
+	<cfargument name="allowPromotionCodes" type="boolean" required="false" default="false">
+	<cfargument name="currencyCode" type="string" required="true">
+	<cfargument name="email" type="string" required="false" default="">
+	<cfargument name="successUrl" type="string" required="true" hint="May contain {CHECKOUT_SESSION_ID}.">
+	<cfargument name="cancelUrl" type="string" required="true">
+	<cfset var result = { success: false, url: "", sessionId: "", message: "" }>
+	<cfset var keys = getStripeKeys()>
+	<cfset var fields = []>
+	<cfset var answer = "">
+	<cfset var entity = "">
+	<cfset var line = "">
+	<cfset var i = 0>
+	<cfset var subtotal = 0>
+	<cfset var tax = "">
+	<cfset var cur = lCase(arguments.currencyCode)>
+	<cfset var nowSeconds = int(createObject("java", "java.lang.System").currentTimeMillis() / 1000)>
+	<cfif not len(keys.secretKey)>
+		<cfset result.message = "Online payment isn't set up yet.">
+		<cfreturn result>
+	</cfif>
+	<cfif not arrayLen(arguments.lines)>
+		<cfset result.message = "The cart is empty.">
+		<cfreturn result>
+	</cfif>
+	<cfset arrayAppend(fields, ["mode", "payment"])>
+	<cfset arrayAppend(fields, ["client_reference_id", "shop-" & arguments.shopOrderId])>
+	<cfif isValid("email", arguments.email)><cfset arrayAppend(fields, ["customer_email", arguments.email])></cfif>
+	<cfset arrayAppend(fields, ["success_url", arguments.successUrl])>
+	<cfset arrayAppend(fields, ["cancel_url", arguments.cancelUrl])>
+	<!--- An unpaid checkout closes after an hour; the order is then dropped (stripeWebhook.cfm, checkout.session.expired). --->
+	<cfset arrayAppend(fields, ["expires_at", numberFormat(nowSeconds + 61 * 60, "0")])>
+	<cfif arguments.allowPromotionCodes><cfset arrayAppend(fields, ["allow_promotion_codes", "true"])></cfif>
+	<cfset arrayAppend(fields, ["metadata[shopOrderId]", arguments.shopOrderId])>
+	<cfset arrayAppend(fields, ["payment_intent_data[metadata][shopOrderId]", arguments.shopOrderId])>
+	<cfloop array="#arguments.lines#" index="line">
+		<cfset arrayAppend(fields, ["line_items[#i#][quantity]", int(line.quantity)])>
+		<cfset arrayAppend(fields, ["line_items[#i#][price_data][currency]", cur])>
+		<cfset arrayAppend(fields, ["line_items[#i#][price_data][unit_amount]", toMinorUnits(line.unitPrice, arguments.currencyCode)])>
+		<cfset arrayAppend(fields, ["line_items[#i#][price_data][product_data][name]", left(line.name, 250)])>
+		<cfif structKeyExists(line, "description") and len(trim(line.description))>
+			<cfset arrayAppend(fields, ["line_items[#i#][price_data][product_data][description]", left(trim(line.description), 500)])>
+		</cfif>
+		<cfset subtotal = subtotal + val(line.unitPrice) * int(line.quantity)>
+		<cfset i = i + 1>
+	</cfloop>
+	<cfif val(arguments.shippingAmount) gt 0>
+		<cfset arrayAppend(fields, ["line_items[#i#][quantity]", "1"])>
+		<cfset arrayAppend(fields, ["line_items[#i#][price_data][currency]", cur])>
+		<cfset arrayAppend(fields, ["line_items[#i#][price_data][unit_amount]", toMinorUnits(arguments.shippingAmount, arguments.currencyCode)])>
+		<cfset arrayAppend(fields, ["line_items[#i#][price_data][product_data][name]", "Shipping"])>
+		<cfset i = i + 1>
+	</cfif>
+	<cfset tax = getTax(subtotal)>
+	<cfif tax.amount gt 0>
+		<cfset arrayAppend(fields, ["line_items[#i#][quantity]", "1"])>
+		<cfset arrayAppend(fields, ["line_items[#i#][price_data][currency]", cur])>
+		<cfset arrayAppend(fields, ["line_items[#i#][price_data][unit_amount]", toMinorUnits(tax.amount, arguments.currencyCode)])>
+		<cfset arrayAppend(fields, ["line_items[#i#][price_data][product_data][name]", tax.label])>
+	</cfif>
+	<cfif arguments.collectShipping>
+		<!--- Stripe needs the countries it may ship to; the owner's dashboard can't set this for Checkout. The common ones
+		(the full list can be set in Blog Options later). --->
+		<cfloop list="US,CA,GB,IE,AU,NZ,DE,FR,ES,IT,NL,BE,AT,CH,SE,NO,DK,FI,PT,PL,CZ,JP,SG,HK,MX" index="line">
+			<cfset arrayAppend(fields, ["shipping_address_collection[allowed_countries][]", line])>
+		</cfloop>
+	</cfif>
+	<cfset answer = stripeRequest("POST", "/v1/checkout/sessions", fields, "shop-" & arguments.shopOrderId & "-" & hash(createUUID()))>
+	<cfif not answer.success or not structKeyExists(answer.data, "id") or not structKeyExists(answer.data, "url")>
+		<cfset result.message = "The payment page couldn't be opened. Please try again in a moment.">
+		<cflog file="galaxieBlogErrors" type="error" text="Shop order #arguments.shopOrderId#: Stripe checkout failed (#answer.status#): #answer.message#">
+		<cfreturn result>
+	</cfif>
+	<cftransaction>
+		<cfset entity = entityNew("Payment")>
+		<cfset entity.setBlogRef(javacast("int", application.BlogDbObj.getBlogId()))>
+		<cfset entity.setBookingRef(javacast("int", 0))>
+		<cfset entity.setWebFormSubmissionRef(javacast("int", 0))>
+		<cfset entity.setShopOrderRef(javacast("int", arguments.shopOrderId))>
+		<cfset entity.setProvider("stripe")>
+		<cfset entity.setProviderSessionId(answer.data.id)>
+		<cfset entity.setProviderPaymentId("")>
+		<cfset entity.setPurpose("full")>
+		<cfset entity.setAmount(javacast("bigdecimal", subtotal + val(arguments.shippingAmount)))>
+		<cfset entity.setTaxAmount(javacast("bigdecimal", tax.amount))>
+		<cfset entity.setAmountPaid(javacast("bigdecimal", 0))>
+		<cfset entity.setRefundedAmount(javacast("bigdecimal", 0))>
+		<cfset entity.setCurrency(uCase(arguments.currencyCode))>
+		<cfset entity.setStatus("pending")>
+		<cfset entity.setTestMode(keys.testMode)>
+		<cfset entity.setCreated(now())>
+		<cfset entity.setDate(now())>
+		<cfset entitySave(entity)>
+	</cftransaction>
+	<cfset result.success = true>
+	<cfset result.url = answer.data.url>
+	<cfset result.sessionId = answer.data.id>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="getCheckoutSession" access="public" returntype="struct" output="false"
+		hint="A Checkout Session as Stripe holds it (2026-10-20, for the shop's shipping address and the amounts after a promotion code), or an empty struct.">
+	<cfargument name="sessionId" type="string" required="true">
+	<cfset var answer = "">
+	<cfif not reFind("^cs_[A-Za-z0-9_]+$", arguments.sessionId)>
+		<cfreturn {}>
+	</cfif>
+	<cfset answer = stripeRequest("GET", "/v1/checkout/sessions/" & arguments.sessionId, [], "")>
+	<cfreturn answer.success and isStruct(answer.data) ? answer.data : {}>
+</cffunction>
+
+<cffunction name="getPaymentsForShopOrder" access="public" returntype="array" output="false" hint="A shop order's payments that went through (2026-10-20), as getPaymentsForBooking.">
+	<cfargument name="shopOrderId" type="numeric" required="true">
+	<cfreturn paymentsFor("ShopOrderRef", arguments.shopOrderId)>
+</cffunction>
+
+<cffunction name="getShopOrderPaymentTotals" access="public" returntype="struct" output="false" hint="What a shop order's payments add up to: { paid, refunded, refundable }.">
+	<cfargument name="shopOrderId" type="numeric" required="true">
+	<cfreturn totalsOf(getPaymentsForShopOrder(arguments.shopOrderId))>
+</cffunction>
+
+<cffunction name="refundShopOrder" access="public" returntype="struct" output="false" hint="Refunds a shop order's online payments (2026-10-20), as refundBooking.">
+	<cfargument name="shopOrderId" type="numeric" required="true">
+	<cfargument name="amount" required="false" default="0">
+	<cfreturn refundPayments(getPaymentsForShopOrder(arguments.shopOrderId), "shopOrderId", arguments.shopOrderId, arguments.amount)>
+</cffunction>
+
 <cffunction name="expireCheckout" access="public" returntype="boolean" output="false"
 		hint="Closes an open Checkout Session so it can no longer be paid (the visitor went back without paying).">
 	<cfargument name="sessionId" type="string" required="true">
@@ -372,7 +505,7 @@
 </cffunction>
 
 <cffunction name="getPaymentBySession" access="public" returntype="struct" output="false"
-		hint="A recorded payment by its Checkout Session id: { paymentId, bookingId, submissionId (an event sign-up), purpose, amount, taxAmount, amountPaid, currency, status, testMode }, or an empty struct.">
+		hint="A recorded payment by its Checkout Session id: { paymentId, bookingId, submissionId (an event sign-up), shopOrderId, purpose, amount, taxAmount, amountPaid, currency, status, testMode }, or an empty struct.">
 	<cfargument name="sessionId" type="string" required="true">
 	<cfset var found = []>
 	<cfif reFind("^cs_[A-Za-z0-9_]+$", arguments.sessionId)>
@@ -385,6 +518,7 @@
 		paymentId: found[1].getPaymentId(),
 		bookingId: val(valueOrEmpty(found[1].getBookingRef())),
 		submissionId: val(valueOrEmpty(found[1].getWebFormSubmissionRef())),
+		shopOrderId: val(valueOrEmpty(found[1].getShopOrderRef())),
 		purpose: valueOrEmpty(found[1].getPurpose()),
 		amount: val(valueOrEmpty(found[1].getAmount())),
 		taxAmount: val(valueOrEmpty(found[1].getTaxAmount())),
@@ -407,11 +541,11 @@
 </cffunction>
 
 <cffunction name="paymentsFor" access="private" returntype="array" output="false">
-	<cfargument name="column" type="string" required="true" hint="BookingRef or WebFormSubmissionRef">
+	<cfargument name="column" type="string" required="true" hint="BookingRef, WebFormSubmissionRef or ShopOrderRef">
 	<cfargument name="id" type="numeric" required="true">
 	<cfset var payments = []>
 	<cfset var e = "">
-	<cfset var found = ormExecuteQuery("FROM Payment WHERE #arguments.column eq 'BookingRef' ? 'BookingRef' : 'WebFormSubmissionRef'# = :refId AND BlogRef = :blogId AND Status IN ('paid', 'partlyRefunded', 'refunded') ORDER BY PaymentId DESC", { refId = javacast("int", arguments.id), blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
+	<cfset var found = ormExecuteQuery("FROM Payment WHERE #listFindNoCase('BookingRef,ShopOrderRef', arguments.column) ? arguments.column : 'WebFormSubmissionRef'# = :refId AND BlogRef = :blogId AND Status IN ('paid', 'partlyRefunded', 'refunded') ORDER BY PaymentId DESC", { refId = javacast("int", arguments.id), blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
 	<cfloop array="#found#" index="e">
 		<cfset arrayAppend(payments, {
 			paymentId: e.getPaymentId(),
@@ -513,13 +647,13 @@
 	<cfreturn val(valueOrEmpty(found[1].getBookingRef()))>
 </cffunction>
 
-<cffunction name="getRefsByPaymentIntent" access="public" returntype="struct" output="false" hint="What a Stripe payment was for: { bookingId, submissionId } (0 when not this blog's).">
+<cffunction name="getRefsByPaymentIntent" access="public" returntype="struct" output="false" hint="What a Stripe payment was for: { bookingId, submissionId, shopOrderId } (0 when not this blog's).">
 	<cfargument name="paymentIntentId" type="string" required="true">
 	<cfset var found = ormExecuteQuery("FROM Payment WHERE ProviderPaymentId = :pi AND BlogRef = :blogId", { pi = arguments.paymentIntentId, blogId = javacast("int", application.BlogDbObj.getBlogId()) })>
 	<cfif not arrayLen(found)>
-		<cfreturn { bookingId: 0, submissionId: 0 }>
+		<cfreturn { bookingId: 0, submissionId: 0, shopOrderId: 0 }>
 	</cfif>
-	<cfreturn { bookingId: val(valueOrEmpty(found[1].getBookingRef())), submissionId: val(valueOrEmpty(found[1].getWebFormSubmissionRef())) }>
+	<cfreturn { bookingId: val(valueOrEmpty(found[1].getBookingRef())), submissionId: val(valueOrEmpty(found[1].getWebFormSubmissionRef())), shopOrderId: val(valueOrEmpty(found[1].getShopOrderRef())) }>
 </cffunction>
 
 <cffunction name="getOpenSessionForRsvp" access="public" returntype="string" output="false" hint="The Checkout Session id of a sign-up's payment that is still open (pending), or an empty string.">

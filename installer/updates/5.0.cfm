@@ -1,4 +1,4 @@
-<!--- description: Galaxie 5.0: adds the columns for the post hero text, glow and hero styles, the carousel text shadow, the post hero style in Blog Options and the Site Setup wizard, creates the Scenes tables, and turns background pictures back on for themes that have one. --->
+<!--- description: Galaxie 5.0: adds the columns for the post hero text, glow and hero styles, the carousel text shadow, the post hero style in Blog Options and the Site Setup wizard, creates the Scenes and shop tables, and turns background pictures back on for themes that have one. --->
 <!--- The work is done by DatabaseUpdater.cfc's ensureColumns(), which adds only the columns that are missing (ORM may already have
 added them when the blog restarted with the new files). --->
 <cfset ensureColumns("Post", [
@@ -25,6 +25,9 @@ added them when the blog restarted with the new files). --->
 used, so listing the scenes makes sure they exist now. --->
 <cfset application.blog.getScenes().listScenes()>
 <cfset addToLog("The Scenes tables are in place.")>
+<!--- The shop (2026-10-20): Product, ShopOrder and ShopOrderItem. ORM also adds Payment.ShopOrderRef when it creates them. The shop
+stays closed until the owner switches it on in Blog Options. --->
+<cfset ensureOrmTables("Product,ShopOrder,ShopOrderItem")>
 <!--- Background pictures (2026-10-20): a theme with no background picture, or with "show background pictures" switched off,
 shows a plain page, and nothing on the old Themes screen made that easy to spot (the owner found Snow like this on
 galaxieblog.org: switched off while testing, and its picture gone). Every built-in theme ships with its picture on, so:

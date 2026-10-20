@@ -5,6 +5,8 @@
 	<cfproperty name="BlogRef" ormtype="int" default="0">
 	<cfproperty name="BookingRef" ormtype="int" default="0">
 	<cfproperty name="WebFormSubmissionRef" ormtype="int" default="0">
+	<!--- A shop order (common/cfc/Shop.cfc, 2026-10-20). --->
+	<cfproperty name="ShopOrderRef" ormtype="int" default="0">
 	<!--- stripe (paypal later) --->
 	<cfproperty name="Provider" ormtype="string" length="20" default="stripe">
 	<!--- The Checkout Session id (cs_...) and, once paid, the PaymentIntent id (pi_...). --->
