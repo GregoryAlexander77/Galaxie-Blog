@@ -132,7 +132,21 @@ chose "this server only" (Scenes window settings). --->
 	#sceneEditorTop { flex: 0 0 auto; padding: 6px 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 	#sceneEditorTop label { white-space: nowrap; }
 	#sceneEditorBody { flex: 1 1 auto; display: flex; min-height: 0; }
-	#sceneEditorList { flex: 0 0 21%; overflow: auto; padding: 8px; }
+	#sceneEditorList { flex: 0 0 21%; overflow: auto; padding: 0; }
+	<!--- The section list (k-content), then Add a section in a block of its own (k-alt) - owner, 10-20. --->
+	#sceneEditorList > .adminDivBlock { padding: 8px; }
+	#sceneEditorList .sceneAddHeading { margin: 0 0 8px; }
+	#sceneAddSection { width: 100%; }
+	<!--- The Add a section window: a card for each kind of section, in two groups. --->
+	.sceneKindCards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+	.sceneKindGroup { grid-column: 1 / -1; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: .05em; opacity: .75; margin: 6px 0 -4px; }
+	.sceneKindGroup:first-child { margin-top: 0; }
+	.sceneKindCard { border: 2px solid rgba(128,128,128,.35); border-radius: 8px; background: transparent; color: inherit; padding: 0; text-align: left; cursor: pointer; font: inherit; overflow: hidden; display: flex; flex-direction: column; }
+	.sceneKindCard:hover, .sceneKindCard:focus { border-color: currentColor; outline: none; }
+	.sceneKindCard svg { display: block; width: 100%; height: 96px; }
+	.sceneKindText { padding: 8px 10px 10px; }
+	.sceneKindText b { display: block; margin-bottom: 3px; }
+	.sceneKindText span { font-size: 13px; opacity: .8; line-height: 1.35; }
 	#sceneEditorSettings { flex: 0 0 29%; overflow-y: auto; overflow-x: hidden; padding: 0; }
 	<!--- The settings in alternating blocks with lines between the fields (owner's admin look; shared .adminDivBlock in blogContentCss.cfm). --->
 	#sceneEditorSettings .adminDivBlock > .sceneField, #sceneEditorSettings .adminDivBlock > .sceneFieldGroup { margin: 0; }
@@ -239,11 +253,12 @@ chose "this server only" (Scenes window settings). --->
 	</div>
 </cfif>
 	<div id="sceneEditorBody"<cfif isNewScene> style="display: none;"</cfif>>
-		<div id="sceneEditorList" class="#altClass#">
-			<div id="sceneSectionList"></div>
-			<div style="margin-top: 10px;">
-				<select id="sceneAddKind" aria-label="Kind of section to add" style="width: 100%; margin-bottom: 6px;"></select>
-				<button id="sceneAddSection" type="button" class="k-button" style="width: 100%;">Add section</button>
+		<div id="sceneEditorList">
+			<div class="adminDivBlock #blockClass#"><div id="sceneSectionList"></div></div>
+			<div class="adminDivBlock #altClass#">
+				<h4 class="adminBlockHeading sceneAddHeading">Add a section</h4>
+				<button id="sceneAddSection" type="button" class="k-button k-primary">Add section...</button>
+				<div class="k-form-hint">It goes after the selected section.</div>
 			</div>
 		</div>
 		<div id="sceneEditorSettings" class="#blockClass#">
@@ -1028,17 +1043,62 @@ $(document).ready(function () {
 		if (HERO[kind]) { s.heading = "A new hero"; }
 		return s;
 	}
-	$.each(KINDS, function (i, k) { $("#sceneAddKind").append($('<option></option>').attr("value", k.kind).text(k.label + " - " + k.hint)); });
-	$("#sceneAddKind").val("text");
-	kendoSelects("#sceneEditorList");
 	kendoSelects("#sceneEditorTop");
-	$("#sceneAddSection").on("click", function () {
+	<!--- Add a section (owner, 10-20, option B): a window of cards, one per kind, in two groups, each with a small drawing of what
+	it looks like. The new section goes after the selected one, or at the end when Scene settings is selected. --->
+	var KIND_GROUPS = [["Heroes - the big picture at the top", ["layeredHero", "photoHero", "vantaHero", "gradientHero", "videoHero"]],
+		["Content", ["text", "imageSlide", "slideshow", "form", "map"]]];
+	var KIND_SKETCHES = {
+		layeredHero: '<rect width="200" height="96" fill="#9fc3e6"/><path d="M0 70 L40 40 L80 62 L120 30 L160 58 L200 38 V96 H0Z" fill="#6c8fb3"/><path d="M0 80 L50 58 L100 76 L150 52 L200 72 V96 H0Z" fill="#3f5f80"/><path d="M0 90 L70 74 L130 88 L200 80 V96 H0Z" fill="#26384d"/>',
+		photoHero: '<defs><linearGradient id="kindPhoto" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6c38b"/><stop offset="1" stop-color="#c0603b"/></linearGradient></defs><rect width="200" height="96" fill="url(#kindPhoto)"/><circle cx="150" cy="34" r="14" fill="#fff3c4"/><path d="M0 96 L60 60 L110 80 L160 56 L200 72 V96Z" fill="#5b3424"/><rect x="18" y="34" width="70" height="8" rx="2" fill="#fff"/>',
+		vantaHero: '<rect width="200" height="96" fill="#0e3b5c"/><path d="M0 50 Q25 30 50 50 T100 50 T150 50 T200 50" stroke="#4fa3d9" stroke-width="3" fill="none"/><path d="M0 66 Q25 46 50 66 T100 66 T150 66 T200 66" stroke="#2e7bb0" stroke-width="3" fill="none"/><path d="M0 34 Q25 14 50 34 T100 34 T150 34 T200 34" stroke="#7cc4f0" stroke-width="2" fill="none"/>',
+		gradientHero: '<defs><linearGradient id="kindGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d4350"/><stop offset="1" stop-color="#a43931"/></linearGradient></defs><rect width="200" height="96" fill="url(#kindGradient)"/><rect x="18" y="38" width="80" height="8" rx="2" fill="#fff"/><rect x="18" y="52" width="56" height="5" rx="2" fill="#fff" opacity=".7"/>',
+		videoHero: '<rect width="200" height="96" fill="#2b2b2b"/><circle cx="100" cy="48" r="20" fill="#fff" opacity=".9"/><path d="M94 38 L94 58 L112 48Z" fill="#2b2b2b"/>',
+		text: '<rect width="200" height="96" fill="#392630"/><rect x="24" y="22" width="110" height="10" rx="2" fill="#fff"/><rect x="24" y="42" width="150" height="5" rx="2" fill="#fff" opacity=".6"/><rect x="24" y="53" width="140" height="5" rx="2" fill="#fff" opacity=".6"/><rect x="24" y="64" width="120" height="5" rx="2" fill="#fff" opacity=".6"/>',
+		imageSlide: '<rect width="200" height="96" fill="#e8ecef"/><rect x="30" y="14" width="140" height="68" rx="3" fill="#7aa874"/><path d="M30 82 L80 46 L120 70 L150 52 L170 64 V82Z" fill="#4c7a47"/><circle cx="140" cy="30" r="8" fill="#f3e9a2"/>',
+		slideshow: '<rect width="200" height="96" fill="#111"/><rect x="40" y="12" width="120" height="58" rx="3" fill="#6a7fa8"/><rect x="18" y="20" width="16" height="42" rx="2" fill="#3c4a66"/><rect x="166" y="20" width="16" height="42" rx="2" fill="#3c4a66"/><circle cx="88" cy="82" r="3" fill="#fff"/><circle cx="100" cy="82" r="3" fill="#fff" opacity=".4"/><circle cx="112" cy="82" r="3" fill="#fff" opacity=".4"/>',
+		form: '<rect width="200" height="96" fill="#392630"/><rect x="30" y="12" width="90" height="8" rx="2" fill="#fff"/><rect x="30" y="28" width="140" height="12" rx="3" fill="#fff" opacity=".9"/><rect x="30" y="46" width="140" height="12" rx="3" fill="#fff" opacity=".9"/><rect x="30" y="66" width="44" height="14" rx="3" fill="#007bff"/>',
+		map: '<rect width="200" height="96" fill="#e6efe0"/><path d="M0 30 H200 M0 64 H200 M60 0 V96 M140 0 V96" stroke="#fff" stroke-width="6"/><path d="M0 80 Q60 60 100 70 T200 40" stroke="#9ec2e8" stroke-width="8" fill="none"/><path d="M100 22 a10 10 0 1 1 0.1 0 Z" fill="#d1242f"/><path d="M92 30 L100 46 L108 30Z" fill="#d1242f"/><circle cx="100" cy="28" r="4" fill="#fff"/>'
+	};
+	var KIND_TEXT = {
+		layeredHero: "Layers of a picture that move at different speeds as you scroll.", photoHero: "One photo, held in place with a slow zoom.",
+		vantaHero: "A moving animation behind the text: waves, fog, clouds, birds...", gradientHero: "Colors that blend, no pictures.", videoHero: "A silent looping video.",
+		text: "A heading and text on a color or gradient.", imageSlide: "A picture that moves slower than the page.", slideshow: "Pictures with captions; each scroll brings in the next.",
+		form: "A contact form, or one of yours, right in the scene.", map: "One of your Azure maps, live, with a heading and text."
+	};
+	function addSection(kind) {
 		var at = selected < 0 ? scene.sections.length : selected + 1;
-		var section = newSection($("#sceneAddKind").val());
+		var section = newSection(kind);
 		scene.sections.splice(at, 0, section);
 		select(at);
 		schedulePreview();
-	});
+	}
+	function openSectionPicker() {
+		$("#sceneKindWindow").closest(".k-window").remove();
+		var box = $('<div id="sceneKindWindow"></div>').appendTo(document.body);
+		var after = selected < 0 || !scene.sections[selected] ? "at the end" : "after " + (selected + 1) + ". " + kindLabel(scene.sections[selected].kind);
+		box.append($('<p style="margin: 0 0 12px;"></p>').text("Pick what to add. It goes " + after + "; you can drag it somewhere else later."));
+		var cards = $('<div class="sceneKindCards"></div>').appendTo(box);
+		$.each(KIND_GROUPS, function (g, group) {
+			cards.append($('<div class="sceneKindGroup"></div>').text(group[0]));
+			$.each(group[1], function (i, kind) {
+				var known = $.grep(KINDS, function (k) { return k.kind === kind; })[0];
+				if (!known) { return; }
+				cards.append($('<button type="button" class="sceneKindCard"></button>')
+					.append('<svg viewBox="0 0 200 96" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + KIND_SKETCHES[kind] + '</svg>',
+						$('<div class="sceneKindText"></div>').append($("<b></b>").text(known.label), $("<span></span>").text(KIND_TEXT[kind] || known.hint)))
+					.on("click", function () { win.close(); addSection(kind); }));
+			});
+		});
+		var win = box.kendoWindow({
+			title: "Add a section", modal: true, resizable: false, actions: ["Close"],
+			width: Math.min(800, $(window).width() - 30), maxHeight: Math.max(300, $(window).height() - 60),
+			close: function () { setTimeout(function () { win.destroy(); }, 0); }
+		}).data("kendoWindow");
+		win.center().open();
+		box.find(".sceneKindCard").first().trigger("focus");
+	}
+	$("#sceneAddSection").on("click", openSectionPicker);
 
 	<!--- ---------- Forms (owner, 10-20): a ready-made form as this scene's own copy, and a quick edit of the picked form ---------- --->
 	function sceneLabel() { return $.trim(scene.name || $("#sceneAlias").val() || "") ? $.trim(scene.name || $("#sceneAlias").val()) + " scene" : "scene"; }
