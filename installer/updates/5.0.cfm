@@ -63,3 +63,16 @@ Either can be changed again in Themes > Customize > Background. HQL, so the bool
 </cfif>
 <cfif backgroundsRestored or backgroundsOff><cfset application.blog.flushGalaxieCache(type = "all")></cfif>
 <cfset addToLog("Background pictures: #backgroundsRestored# put back, #backgroundsOff# switched back on.")>
+<!--- The settings file (2026-10-20): blogs installed before 4.9 kept the installer's copy of the administrator's password and
+security answers in blog.ini.cfm. The administrator is saved with a hashed password, so the copies are emptied here (the
+installer has done this itself since 2026-10-12). --->
+<cfif structKeyExists(application, "blogIniPath") and fileExists(application.blogIniPath)>
+	<cfset clearedIniKeys = 0>
+	<cfloop list="password,securityAnswer1,securityAnswer2,securityAnswer3" index="iniKey">
+		<cfif len(getProfileString(application.blogIniPath, "default", iniKey))>
+			<cfset setProfileString(application.blogIniPath, "default", iniKey, "")>
+			<cfset clearedIniKeys++>
+		</cfif>
+	</cfloop>
+	<cfset addToLog("Settings file: #clearedIniKeys# leftover installer value(s) cleared.")>
+</cfif>
