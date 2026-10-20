@@ -670,9 +670,18 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			</span>
 		</div>
 
+		<!--- The Kendo theme's primary color (owner, 10-20), as its primary buttons use it (blog.cfc getPrimaryColorsByTheme): the
+		edge of an Up next suggestion, the new-this-week note on the groups, and the This week line and bars. Blue if it can't be read. --->
+		<cftry>
+			<cfset homeAccent = application.blog.getPrimaryColorsByTheme(kendoTheme: kendoTheme, setting: "accentColor")>
+			<cfcatch type="any"><cfset homeAccent = ""></cfcatch>
+		</cftry>
+		<cfif not reFindNoCase("^##?[0-9a-f]{3,8}$|^rgba?\(", trim(homeAccent))><cfset homeAccent = "##0969da"></cfif>
+		<cfif reFindNoCase("^[0-9a-f]{3,8}$", trim(homeAccent))><cfset homeAccent = "##" & trim(homeAccent)></cfif>
 		<!--- Stylesheet for the icon and tooltips. --->
 		<style>
 			<!--- The regrouped home (5.0). --->
+			#adminHome, .adminGroupPage { --homeAccent: <cfoutput>#homeAccent#</cfoutput>; }
 			#adminHome, .adminGroupPage { max-width: 980px; margin: 0 auto; }
 			.adminHomeSection { margin-top: 14px; }
 			.adminHomeHeading { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; opacity: .75; margin: 18px 0 10px; text-align: left; }
@@ -683,14 +692,15 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			.adminHomeName { font-weight: bold; }
 			.adminHomeWhat { font-size: 13px; opacity: .75; line-height: 1.3; }
 			.adminHomeStatus { font-size: 13px; font-weight: bold; color: #d1242f; }
-			.adminHomeStatus.adminHomeInfo { color: #0969da; }
+			.adminHomeStatus.adminHomeInfo { color: var(--homeAccent); }
 			.adminHomeBadge { position: absolute; top: 8px; right: 8px; background: #d1242f; color: #ffffff; font-size: 12px; font-weight: bold; border-radius: 10px; padding: 2px 7px; }
 			.adminHomeQuick .adminHomeGrid { grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>150<cfelse>200</cfif>px, 1fr)); }
 			.adminHomeQuick .adminHomeTile { flex-direction: row; justify-content: flex-start; padding: 10px 12px; text-align: left; }
 			.adminHomeQuick .adminHomeTile img { width: 40px; height: 40px; }
-			<!--- Up next suggestions: a blue line down the left (the color of the info notes on the group tiles), the x at the top right. --->
+			<!--- Up next suggestions (things that need the owner now) have a line in the theme's primary color down the left, and an x at the
+			top right; the always-there shortcuts (Create Post, Create Page...) have neither. --->
 			.adminHomeSuggestWrap { position: relative; }
-			.adminHomeSuggestWrap > .adminHomeTile { box-sizing: border-box; height: 100%; border-left: 4px solid #0969da; }
+			.adminHomeSuggestWrap > .adminHomeTile { box-sizing: border-box; height: 100%; border-left: 4px solid var(--homeAccent); }
 			.adminHomeSuggestText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 			.adminHomeQuick .adminHomeGrid { grid-auto-rows: 1fr; }   <!--- every tile as tall as the tallest, also when the row wraps --->
 			.adminHomeQuick .adminHomeGrid > * { align-self: stretch; }
@@ -704,16 +714,16 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			.adminTrafficTitle { font-weight: bold; margin-bottom: 8px; }
 			.adminTrafficBig { font-size: 30px; font-weight: bold; line-height: 1.1; }
 			.adminTrafficNote { font-size: 13px; opacity: .75; margin-top: 2px; }
-			.adminTrafficLine { display: block; width: 100%; height: 56px; margin-top: 8px; color: #0969da; }
+			.adminTrafficLine { display: block; width: 100%; height: 56px; margin-top: 8px; color: var(--homeAccent); }
 			.adminTrafficRow { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 8px; align-items: center; font-size: 13px; margin-top: 6px; }
 			.adminTrafficRow .adminTrafficLabel { grid-column: 1 / 3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 			.adminTrafficRow .adminTrafficDot + .adminTrafficLabel { grid-column: 2 / 3; }
 			.adminTrafficCount { font-weight: bold; }
 			.adminTrafficBar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: rgba(128,128,128,.2); overflow: hidden; }
-			.adminTrafficBar > span { display: block; height: 100%; background: #0969da; }
+			.adminTrafficBar > span { display: block; height: 100%; background: var(--homeAccent); }
 			.adminTrafficStack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(128,128,128,.2); margin-bottom: 4px; }
 			.adminTrafficDot { width: 10px; height: 10px; border-radius: 50%; }
-			.adminTrafficPart0 { background: #0969da; } .adminTrafficPart1 { background: #54aeff; } .adminTrafficPart2 { background: #8250df; } .adminTrafficPart3 { background: #9aa4ae; }
+			.adminTrafficPart0 { background: var(--homeAccent); } .adminTrafficPart1 { background: color-mix(in srgb, var(--homeAccent) 55%, #ffffff); } .adminTrafficPart2 { background: color-mix(in srgb, var(--homeAccent) 60%, #000000); } .adminTrafficPart3 { background: #9aa4ae; }
 			.adminHomeCrumb { text-align: left; margin: 10px 0 0; }
 			.adminHomeCrumb a { text-decoration: underline; }
 
