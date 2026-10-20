@@ -485,7 +485,7 @@ $(function () {
 				}, function () { $("#themeLookLoading").text("Updating the preview...").hide(); });
 			});
 		});
-		var upload = $('<button type="button" class="k-button" style="margin-top: 6px;">Upload your own...</button>').on("click", function () { file.trigger("click"); });
+		var upload = $('<button type="button" class="k-button k-primary" style="margin-top: 6px;">Upload your own...</button>').on("click", function () { file.trigger("click"); });
 		return $("<div></div>").append(box, file, upload);
 	}
 

@@ -51,6 +51,21 @@ this scene. Drafts are listed too (a scene can go on a post before it is release
 	<cfset arrayAppend(sceneLinkParts, '{"id":' & sceneLinkRows.PostId & ',"title":' & serializeJSON(toString(sceneLinkRows.Title)) & ',"page":' & (sceneLinkRows.IsPage eq 1 ? 'true' : 'false')
 		& ',"released":' & (sceneLinkRows.Released eq 1 ? 'true' : 'false') & ',"url":' & serializeJSON(toString(thisLinkUrl)) & '}')>
 </cfloop>
+<!--- The blog's maps (owner, 10-20), for a Map section: made in a post's editor (Insert > Map), shown here by title or place. --->
+<cfset sceneMapParts = []>
+<cftry>
+	<cfquery name="sceneMapRows" datasource="#application.dsn#">
+		SELECT m.MapId, m.MapTitle, m.MapName, m.Location, m.HasMapRoutes, p.Title AS PostTitle
+		FROM Map m LEFT JOIN Post p ON p.PostId = m.PostRef
+		ORDER BY m.MapId DESC
+	</cfquery>
+	<cfloop query="sceneMapRows">
+		<cfset thisMapName = len(trim(sceneMapRows.MapTitle)) ? sceneMapRows.MapTitle : (len(trim(sceneMapRows.Location)) ? sceneMapRows.Location : (len(trim(sceneMapRows.MapName)) ? sceneMapRows.MapName : "Map " & sceneMapRows.MapId))>
+		<cfif len(trim(sceneMapRows.PostTitle))><cfset thisMapName = thisMapName & " (in " & sceneMapRows.PostTitle & ")"></cfif>
+		<cfset arrayAppend(sceneMapParts, '{"id":' & sceneMapRows.MapId & ',"title":' & serializeJSON(toString(left(thisMapName, 150))) & ',"routes":' & (sceneMapRows.HasMapRoutes eq 1 ? 'true' : 'false') & '}')>
+	</cfloop>
+	<cfcatch type="any"></cfcatch>
+</cftry>
 <!--- The blog's forms (owner, 10-19), for a Form section. --->
 <cfset sceneFormParts = []>
 <cfif structKeyExists(application, "webForms")>
@@ -257,6 +272,7 @@ $(document).ready(function () {
 	var starters = <cfoutput>#startersJsonText#</cfoutput>;
 	var LINKS = <cfoutput>#sceneLinksJsonText#</cfoutput>;
 	var SHOWN_ON = <cfoutput>#serializeJSON(sceneShownOn)#</cfoutput>;
+	var MAPS = <cfoutput>#replace(replace("[" & arrayToList(sceneMapParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- { id, title, routes } --->
 	var FORMS = <cfoutput>#replace(replace("[" & arrayToList(sceneFormParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- { alias, title, active } --->   <!--- the post ids that show this scene now --->   <!--- the blog's posts and pages: { id, title, page, released, url } --->
 	var selected = -1;            <!--- -1 is the scene's own settings; 0... a section --->
 	var aliasTyped = sceneId > 0; <!--- a new scene's name in posts follows its title until it is typed in --->
@@ -273,7 +289,8 @@ $(document).ready(function () {
 		{ kind: "text", label: "Text block", hint: "Heading and text on a color." },
 		{ kind: "imageSlide", label: "Image slide", hint: "A picture that moves slower than the page." },
 		{ kind: "slideshow", label: "Slideshow", hint: "Pictures with captions; each scroll brings in the next." },
-		{ kind: "form", label: "Form", hint: "One of your forms, with a heading and text." }
+		{ kind: "form", label: "Form", hint: "One of your forms, with a heading and text." },
+		{ kind: "map", label: "Map", hint: "One of your Azure maps, live, with a heading and text." }
 	];
 	<!--- Kinds whose words are their own (each slide's heading and caption), not the section's heading and text. --->
 	var OWN_TEXT = { slideshow: 1 };
@@ -372,6 +389,12 @@ $(document).ready(function () {
 			FADE
 		],
 		gradientHero: [{ key: "gradient", label: "Gradient", type: "gradient" }, FADE],
+		map: [
+			{ key: "mapId", label: "Map", type: "map" },
+			{ key: "mapHeight", label: "Map height", type: "select", options: [["50", "Half the screen"], ["70", "Most of the screen"], ["100", "The whole screen"]] },
+			{ key: "colour", label: "Background color", type: "colour" },
+			{ key: "gradient", label: "Or a gradient (used instead of the color)", type: "gradient" }
+		],
 		form: [
 			{ key: "form", label: "Form", type: "form" },
 			{ key: "colour", label: "Background color", type: "colour" },
@@ -627,6 +650,22 @@ $(document).ready(function () {
 		wrap.append($('<label></label>').attr("for", id).text(field.label));
 		function hint() { if (field.hint) { wrap.append($('<div class="k-form-hint"></div>').text(field.hint)); } return wrap; }
 
+		if (field.type === "map") {
+			<!--- Which map (owner, 10-20). Maps are made in a post's editor, so with none yet this says where. --->
+			if (!MAPS.length) {
+				wrap.append($('<div class="k-form-hint"></div>').text("You haven't made a map yet. Make one in a post's editor (Insert, then Map), save the post, then close and reopen this scene to pick it."));
+				return wrap;
+			}
+			var mapPick = $('<select></select>').attr("id", id);
+			$.each(MAPS, function (i, m) { mapPick.append($('<option></option>').attr("value", m.id).text(m.title + (m.routes ? " - route" : ""))); });
+			mapPick.val(String(value || MAPS[0].id));
+			mapPick.on("change", function () {
+				var m = $.grep(MAPS, function (x) { return String(x.id) === mapPick.val(); })[0];
+				setValue("mapId", m.id); setValue("mapType", m.routes ? "route" : "static"); schedulePreview();
+			});
+			wrap.append(mapPick, $('<div class="k-form-hint"></div>').text("The map is live: visitors can move and zoom it. Change the map itself in the post it was made in."));
+			return wrap;
+		}
 		if (field.type === "form") {
 			<!--- Which form (owner, 10-19); with none yet, a button to make one. --->
 			if (!FORMS.length) {
@@ -708,7 +747,7 @@ $(document).ready(function () {
 		}
 		if (field.type === "image") {
 			input = $('<input type="text" class="k-textbox" placeholder="Upload a picture, or type its address">').attr("id", id).val(value);
-			var upload = $('<button type="button" class="k-button">Upload</button>');
+			var upload = $('<button type="button" class="k-button k-primary">Upload</button>');
 			var file = $('<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" style="display: none;">').attr("aria-label", field.label);
 			var thumb = $('<img class="sceneThumb" alt="">');
 			var status = $('<div class="k-form-hint"></div>');
@@ -943,6 +982,7 @@ $(document).ready(function () {
 		if (kind === "vantaHero") { s.effect = "WAVES"; s.options = { color: "#0e3b5c" }; }
 		if (kind === "form") { s.heading = "Get in touch"; s.html = "<p>Send us a note and we'll get back to you.</p>"; s.colour = scene.pageColour || "#392630"; if (FORMS.length) { s.form = FORMS[0].alias; s.formTitle = FORMS[0].title; } }
 		if (kind === "slideshow") { s.slides = []; s.colour = "#111111"; delete s.html; }
+		if (kind === "map") { s.heading = "Where to find us"; s.html = ""; s.colour = scene.pageColour || "#392630"; s.mapHeight = "70"; if (MAPS.length) { s.mapId = MAPS[0].id; s.mapType = MAPS[0].routes ? "route" : "static"; } }
 		if (kind === "gradientHero") { s.gradient = "linear-gradient(135deg, #1d4350 0%, #a43931 100%)"; }
 		if (kind === "layeredHero") {
 			<!--- Until the layer builder: the layers of the first ready-made layered scene. --->
@@ -1129,7 +1169,7 @@ $(document).ready(function () {
 		});
 		if (!slides.length) { list.append($('<div class="k-form-hint"></div>').text("No slides yet. Add two or more pictures; each scroll brings in the next.")); }
 		var file = $('<input type="file" accept="image/*" multiple style="display: none;">');
-		var add = $('<button type="button" class="k-button" style="margin-top: 8px;">Add pictures</button>').on("click", function () { file.trigger("click"); });
+		var add = $('<button type="button" class="k-button k-primary" style="margin-top: 8px;">Add pictures</button>').on("click", function () { file.trigger("click"); });
 		file.on("change", function () {
 			var files = Array.prototype.slice.call(this.files).sort(function (a, b) { return a.name.localeCompare(b.name, undefined, { numeric: true }); });
 			(function next() {
@@ -1188,7 +1228,7 @@ $(document).ready(function () {
 		wrap.append(list);
 		var status = $('<div class="k-form-hint"></div>');
 		var file = $('<input type="file" multiple accept="image/png,image/webp" style="display: none;">').attr("aria-label", "Add layers");
-		var add = $('<button type="button" class="k-button">Add layers</button>').on("click", function () { file.trigger("click"); });
+		var add = $('<button type="button" class="k-button k-primary">Add layers</button>').on("click", function () { file.trigger("click"); });
 		var even = $('<button type="button" class="k-button">Even out depths</button>').toggle(layers.length > 1)
 			.on("click", function () { evenDepths(layers); layersChanged(true); });
 		<!--- Several pictures at once, in back-to-front order by file name (1.png, 2.png ... 10.png). --->

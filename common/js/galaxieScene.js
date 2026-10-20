@@ -47,6 +47,9 @@
 	Kinds:
 		text          a heading and rich text on a gradient or color
 		imageSlide    a full-screen picture whose background moves slower than the page: image, imagePhone
+		map           one of the blog's Azure maps, live (2026-10-20, owner), with a heading and text, on a color or gradient like a
+		              text block: mapId, mapType (static or route), mapHeight (percent of the screen: 50, 70 or 100). Drawn by
+		              preview/maps.cfm in a frame, as a map in a post is.
 		form          one of the blog's forms (2026-10-19, owner), with a heading and text, on a color or gradient like a text block:
 		              form (its alias), formTitle. Shown on the blog by common/js/webForms.js, as a form placed in a post is.
 		slideshow     pictures with captions, held in place while each scroll brings in the next (2026-10-19, owner): slides
@@ -179,6 +182,8 @@
 			// A form (2026-10-19): as wide as a comfortable form; the note is replaced by the form itself once it loads.
 			".gScene .gs-formHolder{margin-top:1.2em;max-width:640px;width:100%}.gScene .gs-align-center .gs-formHolder{margin-left:auto;margin-right:auto}.gScene .gs-align-right .gs-formHolder{margin-left:auto}",
 			".gScene .gs-formNote{display:block;padding:18px;border:2px dashed currentColor;border-radius:8px;opacity:.75;text-align:center}",
+			// A map (2026-10-20): as wide as the section, rounded, its height a share of the screen.
+			".gScene .gs-mapHolder{margin-top:1.2em;width:100%}.gScene .gs-mapHolder iframe{display:block;width:100%;border:0;border-radius:8px;background:rgba(128,128,128,.2)}",
 			".gScene .gs-reveal{opacity:0}",
 			"@media (prefers-reduced-motion: reduce){.gScene .gs-reveal{opacity:1}}"
 		].join("\n");
@@ -295,6 +300,21 @@
 		placeholder.setAttribute("data-webform", section.form);
 		var note = el("span", "gs-formNote", placeholder);
 		note.textContent = "[Form: " + (section.formTitle || section.form) + "]";
+	}
+
+	// A map: a text block, then the map, live, in a frame - the same page (preview/maps.cfm) a map in a post shows.
+	function buildMap(data, section, root) {
+		buildText(section, root);
+		var mapId = parseInt(section.mapId, 10);
+		if (!(mapId > 0)) { return; }
+		var holder = el("div", "gs-mapHolder gs-reveal", root);
+		var frame = el("iframe", "", holder);
+		var height = { "50": 50, "70": 70, "100": 100 }[String(section.mapHeight || "70")] || 70;
+		frame.style.height = height + "vh";
+		frame.setAttribute("title", section.heading || "Map");
+		frame.setAttribute("loading", "lazy");
+		frame.setAttribute("allowfullscreen", "allowfullscreen");
+		frame.src = setting(data, section, "baseUrl") + "/preview/maps.cfm?mapId=" + mapId + "&mapType=" + (section.mapType === "route" ? "route" : "static") + "&thumbnail=false";
 	}
 
 	// Forms load after the page does (common/js/webForms.js), and a scene's content comes later still, so the scene starts the form
@@ -459,6 +479,8 @@
 				Object.keys(options).forEach(function (k) {
 					if (typeof options[k] === "string" && /^#[0-9a-f]{6}$/i.test(options[k]) && /colou?r/i.test(k)) { options[k] = parseInt(options[k].slice(1), 16); }
 				});
+				// Clouds 2 draws its clouds from a noise picture, which Vanta looks for beside the page unless told where it is.
+				if (effect === "CLOUDS2" && !options.texturePath) { options.texturePath = base + "/common/libs/vanta/noise.png"; }
 				root._vanta = window.VANTA[effect](options);
 			})
 			.catch(function () { root._vanta = null; });
@@ -530,6 +552,16 @@
 		}
 		// A hero at the top of the page is already on screen before any scrolling.
 		if (root.getBoundingClientRect().top < window.innerHeight) { startLive(data, section, root); }
+		// A hero further down starts as soon as it comes up the screen (2026-10-20, owner: Fog and Clouds 2 "do not seem to work"):
+		// the timeline above only turns it on once its top reaches the top of the screen, so until then its background was empty.
+		if (section.kind === "vantaHero" || section.kind === "videoHero") {
+			ScrollTrigger.create({
+				trigger: root, start: "top bottom", end: "top top",
+				onEnter: function () { startLive(data, section, root); },
+				onEnterBack: function () { startLive(data, section, root); },
+				onLeaveBack: function () { stopLive(section, root); }
+			});
+		}
 	}
 
 	function animateSlide(data, section, root) {
@@ -577,6 +609,7 @@
 			else if (section.kind === "imageSlide") { buildSlide(section, root); }
 			else if (section.kind === "slideshow") { buildSlideshow(section, root); }
 			else if (section.kind === "form") { buildForm(section, root); }
+			else if (section.kind === "map") { buildMap(data, section, root); }
 			else if (HERO_KINDS[section.kind]) { buildHero(data, section, root, next); }
 			else { root.style.display = "none"; return; }   // unknown kinds (map, event...) come in a later phase
 			built.push({ section: section, root: root });
