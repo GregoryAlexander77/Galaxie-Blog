@@ -37,7 +37,11 @@
 
 	Every section can have: heading, html (rich text), colour (its top colour - the next hero's fade uses it), gradient or
 	background, textColour, headingFont, textFont, headingSize, textSize, headingSizePhone, textSizePhone, align
-	("left"|"center"|"right"), shadow ("none"|"soft"|"strong"|"glow"), shadowColour, overlay ({ colour, opacity }).
+	("left"|"center"|"right"), shadow ("none"|"soft"|"strong"|"glow"), shadowColour, glow ({ colour, opacity 0-1, softness px },
+	on its own or with the shadow), overlay ({ colour, opacity }).
+	Heroes can also have (2026-10-19, post heroes): height ("75vh"; a full screen when not set), pin (false: no hold - the hero
+	scrolls away with the page while its picture zooms and its text fades) and textPosition ("center", or "bottom" for a large
+	heading low on the left).
 
 	Kinds:
 		text          a heading and rich text on a gradient or colour
@@ -144,6 +148,8 @@
 			".gScene .gs-overlay{position:absolute;inset:0;pointer-events:none;z-index:2}",
 			".gScene .gs-heroText{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 8vw;z-index:3}",
 			".gScene .gs-heroText .gs-heading{font-size:clamp(2rem,6vw,4.5rem)}",
+			".gScene .gs-heroText.gs-textBottom{justify-content:flex-end;padding-bottom:16vh;text-align:left;align-items:flex-start}",
+			".gScene .gs-hero.gs-sized .gs-photo img{height:100%}",
 			".gScene .gs-fade{position:absolute;left:0;width:100%;bottom:0;pointer-events:none;z-index:4}",
 			".gScene .gs-fadeSolid{position:absolute;left:0;width:100%;height:300vh;top:calc(100% - 2px);pointer-events:none}",
 			".gScene .gs-slide{height:100vh;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:0 8vw}",
@@ -176,8 +182,16 @@
 			if (ts) { bodyEl.style.fontSize = ts; }
 		}
 		var shadow = SHADOWS[section.shadow];
-		if (shadow) {
-			var value = shadow(section.shadowColour || "#000000");
+		var parts = [];
+		if (shadow) { parts.push(shadow(section.shadowColour || "#000000")); }
+		// A glow of its own, with or without the shadow - the same as Renderer.cfc getGlowCss: a tight core and a wider halo.
+		if (section.glow && section.glow.colour) {
+			var a = section.glow.opacity !== undefined && section.glow.opacity !== "" ? Math.min(1, Math.max(0.1, +section.glow.opacity)) : 0.8;
+			var soft = Math.min(60, Math.max(4, +section.glow.softness || 24));
+			parts.push("0 0 " + Math.max(2, Math.round(soft / 2.5)) + "px " + rgba(section.glow.colour, a) + ", 0 0 " + soft + "px " + rgba(section.glow.colour, Math.round(a * 70) / 100));
+		}
+		if (parts.length) {
+			var value = parts.join(", ");
 			if (headingEl) { headingEl.style.textShadow = value; }
 			if (bodyEl) { bodyEl.style.textShadow = value; }
 		}
@@ -241,6 +255,7 @@
 
 	function buildHero(data, section, root, nextSection) {
 		root.classList.add("gs-hero");
+		if (section.height) { root.style.height = section.height; root.classList.add("gs-sized"); }
 		var joinColour = section.fadeColour || (nextSection && nextSection.colour) || data.pageColour || "#000000";
 		root.style.backgroundColor = joinColour;
 		var back = el("div", "gs-heroBack", root);
@@ -277,7 +292,7 @@
 		addOverlay(section, root);
 		if (section.kind !== "layeredHero") { addFade(section, data, root, joinColour); }
 
-		var textBox = el("div", "gs-heroText", root);
+		var textBox = el("div", "gs-heroText" + (section.textPosition === "bottom" ? " gs-textBottom" : ""), root);
 		if (!section.textColour) { root.style.color = "#ffffff"; }
 		if (!section.shadow) { section.shadow = "soft"; }
 		var t = addText(section, textBox, section.headingTag || "h1");
@@ -372,10 +387,12 @@
 
 	function animateHero(data, section, root, phoneFactor, splits) {
 		var guides = !!setting(data, section, "guides");
+		// No hold (section.pin false): the same changes, spread over the hero scrolling off the top of the screen.
+		var held = section.pin !== false;
 		var tl = gsap.timeline({
 			scrollTrigger: {
-				trigger: root, start: "top top", end: "+=" + setting(data, section, "pinLength"),
-				pin: true, pinSpacing: !section._curtain, anticipatePin: 1,
+				trigger: root, start: "top top", end: held ? "+=" + setting(data, section, "pinLength") : "bottom top",
+				pin: held, pinSpacing: held && !section._curtain, anticipatePin: held ? 1 : 0,
 				scrub: setting(data, section, "scrub"), markers: guides,
 				onToggle: function (self) { self.isActive ? startLive(data, section, root) : stopLive(section, root); }
 			}
@@ -396,7 +413,7 @@
 			}
 			// Without moving layers, the fade climbs over the hero so it melts into the next section.
 			var fade = root.querySelector(".gs-fade");
-			if (fade) { tl.to(fade, { height: "100vh", ease: "none" }, 0); }
+			if (fade) { tl.to(fade, { height: held ? "100vh" : "100%", ease: "none" }, 0); }
 		}
 		var text = root.querySelector(".gs-heroText");
 		// The heading's entrance, when the hero has a heading effect: plays as the hero comes on screen (at once, for a hero at the top).

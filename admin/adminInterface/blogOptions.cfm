@@ -36,6 +36,8 @@
 	<cfset defaultImageQuality = application.BlogOptionDbObj.getDefaultImageQuality()>
 	<cfset videoMaxFileSizeMB = application.BlogOptionDbObj.getVideoMaxFileSizeMB()>
 	<cfset noImageFallbackMode = application.BlogOptionDbObj.getNoImageFallbackMode()>
+	<!--- 5.0: how post heroes are shown; an older 'scene' means held (Renderer.cfc getPostHeroStyle). --->
+	<cfset postHeroStyle = createObject("component", application.rendererComponentPath).getPostHeroStyle("")>
 	<cfset heroCarouselImageCount = application.BlogOptionDbObj.getHeroCarouselImageCount()>
 	<cfset heroPoolDisplayMode = application.BlogOptionDbObj.getHeroPoolDisplayMode()>
 	<cfset releasedPostEmailMode = application.blog.getReleasedPostEmailMode()>
@@ -1006,6 +1008,63 @@
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
 				<input id="heroCarouselImageCount" name="heroCarouselImageCount" value="<cfoutput>#heroCarouselImageCount#</cfoutput>" /><div class="k-form-hint">How many pool pictures each post shows.</div>
+			</td>
+		  </tr>
+		</cfif>
+		  <!-- Border -->
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfsilent>
+		<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		</cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<!--- 5.0 (2026-10-19): Post Hero Style - how a post's image, gradient or animated hero shows on its own page. A post can
+		pick its own in its Hero text window. --->
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<p>How a post's picture, gradient or animated hero shows on the post's own page. "Classic" keeps it inside the post, below the title. The other three are drawn by the scene engine, full width, with the hero text over them and a gentle fade into the post: "Full screen, held" stays in place while the text rises and fades; "Tall band" takes three quarters of the screen and scrolls away normally; "Magazine" puts a large heading low on the left. Any post can choose its own style in its Hero text window. Carousels, maps and videos show as they are in every style.</p>
+			</td>
+		  </tr>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<cfif session.isMobile>
+		  <tr valign="middle">
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+				<label for="postHeroStyle">Post Hero Style:</label>
+			</td>
+		   </tr>
+		   <tr>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
+				<script>
+					$("#postHeroStyle").kendoDropDownList({}).data("kendoDropDownList").wrapper.css("width", "95%");
+				</script>
+				<select name="postHeroStyle" id="postHeroStyle">
+					<option value="classic" <cfif postHeroStyle eq "classic">selected</cfif>>Classic (inside the post)</option>
+					<option value="held" <cfif postHeroStyle eq "held">selected</cfif>>Full screen, held</option>
+					<option value="band" <cfif postHeroStyle eq "band">selected</cfif>>Tall band (scrolls away)</option>
+					<option value="magazine" <cfif postHeroStyle eq "magazine">selected</cfif>>Magazine (large heading, low left)</option>
+				</select>
+			</td>
+		  </tr>
+		<cfelse><!---<cfif session.isMobile>--->
+		  <tr>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+				<label for="postHeroStyle">Post Hero Style:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 40px 8px 12px;">
+				<script>
+					$("#postHeroStyle").kendoDropDownList({}).data("kendoDropDownList").wrapper.css("width", "60%");
+				</script>
+				<select name="postHeroStyle" id="postHeroStyle">
+					<option value="classic" <cfif postHeroStyle eq "classic">selected</cfif>>Classic (inside the post)</option>
+					<option value="held" <cfif postHeroStyle eq "held">selected</cfif>>Full screen, held</option>
+					<option value="band" <cfif postHeroStyle eq "band">selected</cfif>>Tall band (scrolls away)</option>
+					<option value="magazine" <cfif postHeroStyle eq "magazine">selected</cfif>>Magazine (large heading, low left)</option>
+				</select>
 			</td>
 		  </tr>
 		</cfif>

@@ -64,8 +64,10 @@
 	2026-10-03: renamed from VantaEffect/VantaOptions while still dev-only/unmigrated. --->
 	<cfproperty name="AnimationEffect" ormtype="string" length="20" default="">
 	<!--- 5.0 (2026-10-19): how a post's image, gradient and animated hero is shown on its own page. 'classic' as in 4.8 (inside
-	the post, below the title); 'scene' drawn by the scene engine (common/js/galaxieScene.js): full width, the hero text
-	rising over it, fading into the post. Carousels, maps and videos are the same either way. --->
+	the post, below the title), or drawn by the scene engine (common/js/galaxieScene.js), full width and fading into the post:
+	'held' (full screen, held while the text rises and fades), 'band' (three quarters of the screen, scrolls away) or
+	'magazine' (full screen, a large heading low on the left). A post can pick its own (Post.HeroStyle). Carousels, maps and
+	videos are the same in every style. See Renderer.cfc getPostHeroStyle. --->
 	<cfproperty name="PostHeroStyle" ormtype="string" length="20" default="classic">
 	<cfproperty name="AnimationOptions" ormtype="string" length="1000" default="">
 	<!--- 2026-10-10 (4.8): top menu labels, set in the admin site's Configure Menu window. Blank uses the default.

@@ -56,6 +56,22 @@ and videos have none. --->
 		</div>
 	</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<!--- The hero's style (owner, 10-19: "keep them all"): the blog's choice (Blog Options), or one of its own. --->
+	<cfset heroStyleNames = { "classic": "Classic (inside the post)", "held": "Full screen, held", "band": "Tall band (scrolls away)", "magazine": "Magazine (large heading, low left)" }>
+	<cfset blogHeroStyle = createObject("component", application.rendererComponentPath).getPostHeroStyle("")>
+	<tr>
+		<td class="#blockClass#" align="right"><label for="heroTextStyle">Style:</label></td>
+		<td class="#blockClass#">
+			<select id="heroTextStyle" style="width: 60%;">
+				<option value="">Same as the blog: #heroStyleNames[blogHeroStyle]#</option>
+				<cfloop list="classic,held,band,magazine" index="hs">
+					<option value="#hs#"<cfif (p["HeroStyle"] ?: "") eq hs> selected</cfif>>#heroStyleNames[hs]#</option>
+				</cfloop>
+			</select>
+			<div class="k-form-hint">How the hero shows on the post's own page. Full screen, Tall band and Magazine are full width and fade into the post; the blog's choice is in Blog Options. Carousels, maps and videos always show as they are.</div>
+		</td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="heroTextHeading">Heading:</label></td>
 		<td class="#blockClass#"><input type="text" id="heroTextHeading" class="k-textbox heroTextInput" maxlength="500" style="width: 95%;" value="#encodeForHtmlAttribute(p["HeroOverlayText"] ?: "")#"></td>
@@ -82,7 +98,7 @@ and videos have none. --->
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="#blockClass#" align="right"><label for="heroTextSizePhone">On phones:</label></td>
+		<td class="#blockClass#" align="right"><label for="heroTextSizePhone">On mobile:</label></td>
 		<td class="#blockClass#"><input type="range" id="heroTextSizePhone" min="14" max="64" step="1" value="#val(p["HeroOverlayFontSizePhone"] ?: "") ? val(p["HeroOverlayFontSizePhone"]) : 28#" style="width: 60%;"> <span id="heroTextSizePhoneValue"></span></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
@@ -144,6 +160,7 @@ $(document).ready(function () {
 	$("#heroTextColour").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true, change: preview });
 	$("#heroTextShadowColour").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true, change: preview });
 	$("#heroTextShadow").kendoDropDownList({ change: preview });
+	$("#heroTextStyle").kendoDropDownList();
 	$("#heroTextGlowColour").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true, change: preview });
 	$("#heroTextGlowOn").on("change", preview);
 	$("#heroTextGlowOpacity, #heroTextGlowSoftness").on("input", preview);
@@ -189,7 +206,8 @@ $(document).ready(function () {
 				size: $("#heroTextSize").val(), sizePhone: $("#heroTextSizePhone").val(),
 				shadow: $("#heroTextShadow").val(), shadowColour: $("#heroTextShadowColour").data("kendoColorPicker").value() || "",
 				glowColour: $("#heroTextGlowOn").is(":checked") ? ($("#heroTextGlowColour").data("kendoColorPicker").value() || "#ffffff") : "",
-				glowOpacity: $("#heroTextGlowOpacity").val(), glowSoftness: $("#heroTextGlowSoftness").val()
+				glowOpacity: $("#heroTextGlowOpacity").val(), glowSoftness: $("#heroTextGlowSoftness").val(),
+				heroStyle: $("#heroTextStyle").val()
 			},
 			dataType: "json",
 			success: function (response) {

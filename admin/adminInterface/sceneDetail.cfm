@@ -188,7 +188,7 @@ chose "this server only" (Scenes window settings). --->
 			<div id="scenePreviewBar">
 				<span>
 					<button type="button" class="k-button scenePreviewSize" data-size="desktop" aria-pressed="true">Desktop</button>
-					<button type="button" class="k-button scenePreviewSize" data-size="phone" aria-pressed="false">Phone</button>
+					<button type="button" class="k-button scenePreviewSize" data-size="phone" aria-pressed="false">Mobile</button>
 				</span>
 				<button type="button" class="k-button" id="sceneExplodedOpen" style="display: none;" title="The layers fanned out, back to front, in a window of their own. Click one to pick it.">Exploded view</button>
 				<span id="sceneHoldWrap" style="display: none;" title="Keeps the preview at one point of the hero's scroll, so you can watch a change in place.">
@@ -254,7 +254,7 @@ $(document).ready(function () {
 		{ group: "Heading" },
 		{ key: "headingFont", idKey: "headingFontId", label: "Font", type: "font" },
 		{ key: "headingSize", label: "Size", type: "select", options: HEADING_SIZES },
-		{ key: "headingSizePhone", label: "Size on phones", type: "select", options: HEADING_SIZES_PHONE },
+		{ key: "headingSizePhone", label: "Size on mobile", type: "select", options: HEADING_SIZES_PHONE },
 	<cfif sceneSplitText>
 		<!--- Needs the SplitText plugin; without it the heading simply rises in. --->
 		{ key: "headingEffect", label: "How it comes in", type: "select", options: [["", "Rises into place"], ["words", "Word by word"], ["letters", "Letter by letter"]] },
@@ -262,7 +262,7 @@ $(document).ready(function () {
 		{ group: "Text" },
 		{ key: "textFont", idKey: "textFontId", label: "Font", type: "font" },
 		{ key: "textSize", label: "Size", type: "select", options: TEXT_SIZES },
-		{ key: "textSizePhone", label: "Size on phones", type: "select", options: TEXT_SIZES_PHONE },
+		{ key: "textSizePhone", label: "Size on mobile", type: "select", options: TEXT_SIZES_PHONE },
 		{ group: "Heading and text" },
 		{ key: "align", label: "Line up", type: "select", options: [["", "Theme default"], ["left", "Left"], ["center", "Centre"], ["right", "Right"]] },
 		{ key: "textColour", label: "Colour", type: "colour" },
@@ -284,7 +284,7 @@ $(document).ready(function () {
 			{ key: "settings.pinLength", label: "How long a hero stays in place", type: "select", options: [["", "Default (twice the screen)"], ["150%", "1.5 screens"], ["200%", "2 screens"], ["250%", "2.5 screens"], ["300%", "3 screens"]] },
 			{ key: "settings.fadeHeight", label: "Fade height", type: "select", options: [["", "Default"], ["0vh", "No fade"], ["20vh", "Short"], ["35vh", "Medium"], ["50vh", "Tall"], ["70vh", "Very tall"]] },
 			{ key: "settings.rise", label: "How far the text rises (pixels)", type: "number", min: 0, max: 600, step: 10, placeholder: "160" },
-			{ key: "settings.phoneMotion", label: "On phones", type: "select", options: [["", "Full movement"], ["light", "Half the movement"]] }
+			{ key: "settings.phoneMotion", label: "On mobile", type: "select", options: [["", "Full movement"], ["light", "Half the movement"]] }
 		],
 		text: [
 			{ key: "colour", label: "Background colour", type: "colour" },
@@ -292,14 +292,14 @@ $(document).ready(function () {
 		],
 		imageSlide: [
 			{ key: "image", phoneKey: "imagePhone", label: "Picture", type: "image" },
-			{ key: "imagePhone", label: "Smaller picture for phones", type: "image", hint: "Made for you when you upload a large picture." },
+			{ key: "imagePhone", label: "Smaller picture for mobile", type: "image", hint: "Made for you when you upload a large picture." },
 			{ key: "alt", label: "Describe the picture (for screen readers)", type: "text" },
 			SPIN
 		],
 		layeredHero: [{ key: "#artStyle", type: "artStyle" }, { key: "#layers", type: "layers" }, FADE],
 		photoHero: [
 			{ key: "image", phoneKey: "imagePhone", label: "Photo", type: "image" },
-			{ key: "imagePhone", label: "Smaller photo for phones", type: "image", hint: "Made for you when you upload a large photo." },
+			{ key: "imagePhone", label: "Smaller photo for mobile", type: "image", hint: "Made for you when you upload a large photo." },
 			{ key: "zoom", label: "Zoom while held (1 is none)", type: "number", min: 1, max: 2, step: 0.05, placeholder: "1.15" },
 			SPIN
 		].concat(OVERLAY, [FADE]),

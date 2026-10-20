@@ -47,6 +47,9 @@
 	<cfproperty name="HeroOverlayGlowColor" ormtype="string" length="20" default="">
 	<cfproperty name="HeroOverlayGlowOpacity" ormtype="string" length="10" default="">
 	<cfproperty name="HeroOverlayGlowSoftness" ormtype="string" length="10" default="">
+	<!--- 5.0 (2026-10-19, owner): how this post's image, gradient or animated hero is shown on its own page - classic, held,
+	band or magazine (Renderer.cfc getPostHeroStyle); empty uses the blog's choice (BlogOption.PostHeroStyle). --->
+	<cfproperty name="HeroStyle" ormtype="string" length="20" default="">
 	<!--- A live animated background (currently rendered via Vanta.js, see heroAnimationEditor.cfm) as another
 	alternative hero/enclosure option, alongside EnclosureMedia/Map/Carousel and HeroGradient above. Named
 	generically (not after Vanta specifically) so the rendering library can change later without a column

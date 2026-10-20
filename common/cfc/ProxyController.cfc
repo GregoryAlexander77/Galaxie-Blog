@@ -9650,6 +9650,7 @@
 		<cfargument name="disqusAuthTokenUrl" default="" required="false">
 		<cfargument name="defaultImageQuality" default="0.8" required="false" hint="Site-wide default for the image-upload compression slider, 0.1-1.0.">
 		<cfargument name="videoMaxFileSizeMB" default="100" required="false" hint="Rejects an enclosure video upload over this size (see uploadVideo).">
+		<cfargument name="postHeroStyle" default="classic" required="false" hint="5.0: classic, held, band or magazine - how a post's image, gradient or animated hero is shown on its own page.">
 		<cfargument name="noImageFallbackMode" default="generic" required="false" hint="What shows in place of noImage.jpg for a post with no enclosure - 'generic', 'generated', 'pool', or 'none'. See Renderer.cfc's getHeroFallbackHtml().">
 		<cfargument name="heroCarouselImageCount" default="1" required="false" hint="How many pool images the carousel shows per post when noImageFallbackMode='pool' and heroPoolDisplayMode='carousel'.">
 		<cfargument name="heroPoolDisplayMode" default="carousel" required="false" hint="'carousel' or 'single' - see BlogOption.cfc's HeroPoolDisplayMode.">
@@ -9825,6 +9826,8 @@
 				<cfset OptionDbObj.setDefaultImageQuality(val(arguments.defaultImageQuality))>
 				<cfset OptionDbObj.setVideoMaxFileSizeMB(val(arguments.videoMaxFileSizeMB))>
 				<cfset OptionDbObj.setNoImageFallbackMode(arguments.noImageFallbackMode)>
+				<!--- 5.0: how post heroes are shown (Renderer.cfc getPostHeroStyle). The post pages are cleared below. --->
+				<cfset OptionDbObj.setPostHeroStyle(listFind("classic,held,band,magazine", arguments.postHeroStyle) ? arguments.postHeroStyle : "classic")>
 				<cfset OptionDbObj.setHeroCarouselImageCount(val(arguments.heroCarouselImageCount))>
 				<cfset OptionDbObj.setHeroPoolDisplayMode(arguments.heroPoolDisplayMode)>
 				<cfset OptionDbObj.setReleasedPostEmailMode(arguments.releasedPostEmailMode eq "auto" ? "auto" : "prompt")>
@@ -13511,6 +13514,7 @@
 		<cfargument name="glowColour" type="string" default="" required="false" hint="Empty for no glow.">
 		<cfargument name="glowOpacity" type="string" default="" required="false" hint="10 to 100 (percent).">
 		<cfargument name="glowSoftness" type="string" default="" required="false" hint="4 to 60 (px).">
+		<cfargument name="heroStyle" type="string" default="" required="false" hint="classic, held, band or magazine; empty for the blog's choice.">
 
 		<cfset var response = { "success": false, "errorMessage": "" }>
 		<cfset var heroText = {}>
@@ -13534,7 +13538,8 @@
 				shadowColour = reFind(colourPattern, arguments.shadowColour) ? arguments.shadowColour : "",
 				glowColour = reFind(colourPattern, arguments.glowColour) ? arguments.glowColour : "",
 				glowOpacity = isNumeric(arguments.glowOpacity) ? toString(min(max(int(arguments.glowOpacity), 10), 100)) : "",
-				glowSoftness = isNumeric(arguments.glowSoftness) ? toString(min(max(int(arguments.glowSoftness), 4), 60)) : ""
+				glowSoftness = isNumeric(arguments.glowSoftness) ? toString(min(max(int(arguments.glowSoftness), 4), 60)) : "",
+				heroStyle = listFind("classic,held,band,magazine", arguments.heroStyle) ? arguments.heroStyle : ""
 			}>
 			<cftry>
 				<cfset application.blog.savePostHeroText(val(arguments.postId), heroText)>

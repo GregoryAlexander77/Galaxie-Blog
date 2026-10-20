@@ -159,6 +159,19 @@
 			</cfif>
 			<cfset sceneJson = fileRead(filePath, "utf-8")>
 		</cfif>
+		<cfreturn renderSceneJson(sceneJson, arguments.postId)>
+	</cffunction>
+
+	<cffunction name="renderSceneJson" access="public" returnType="string" output="false"
+			hint="A scene from its data (a JSON string) as HTML: an empty container plus the script that builds it. Used by renderScene (a named scene) and by post heroes drawn in a scene style (getPostHeroSceneJson). Returns an empty string when the data is not valid JSON.">
+		<cfargument name="json" type="string" required="true" hint="The scene data.">
+		<cfargument name="postId" type="string" required="false" default="0">
+		<cfset var sceneJson = arguments.json>
+		<cfset var fontCss = "">
+		<cfset var hostStyle = "">
+		<cfset var parsed = "">
+		<cfset var html = "">
+		<cfset var containerId = "galaxieScene" & reReplace(arguments.postId, "[^0-9]", "", "all")>
 		<!--- {baseUrl} stands for the blog's base URL, so a scene works in a /blog folder or in the root. --->
 		<cfset sceneJson = replace(sceneJson, "{baseUrl}", application.baseUrl, "all")>
 		<!--- Must be valid JSON. It is written out as it is (serializeJSON would upper-case the keys on Adobe ColdFusion), with
@@ -172,6 +185,10 @@
 		<cfset parsed = deserializeJSON(sceneJson)>
 		<cfif isStruct(parsed) and isArray(parsed.sections ?: "") and arrayLen(parsed.sections) and isStruct(parsed.sections[1])>
 			<cfset hostStyle = "min-height:" & (listFindNoCase("layeredHero,photoHero,vantaHero,gradientHero,videoHero", parsed.sections[1].kind ?: "") ? "100vh" : "50vh") & ";">
+			<!--- A hero with a height of its own (the Tall band post hero style, 75vh). --->
+			<cfif reFind("^[0-9]{1,3}vh$", parsed.sections[1].height ?: "")>
+				<cfset hostStyle = "min-height:" & parsed.sections[1].height & ";">
+			</cfif>
 		</cfif>
 		<cfif isStruct(parsed) and reFind("^##[0-9A-Fa-f]{3,8}$", parsed.pageColour ?: "")>
 			<cfset hostStyle = hostStyle & "background-color:" & parsed.pageColour & ";">
@@ -215,7 +232,17 @@
 	if (window.ResizeObserver) { new ResizeObserver(refit).observe(host.closest("##blogContent") || document.body); }
 	window.addEventListener("resize", refit);
 	window.addEventListener("load", refit);
-	function go() { GalaxieScene.ready(function () { GalaxieScene.build(host, data); }, data); }
+	<!--- pageColour "auto" (post heroes, 2026-10-19): the colour behind the post, so the hero fades into the theme's own page. --->
+	function pageColourOf(node) {
+		for (var n = node.parentElement; n; n = n.parentElement) {
+			var m = /rgba?\(([0-9]+),\s*([0-9]+),\s*([0-9]+)(?:,\s*([0-9.]+))?\)/.exec(getComputedStyle(n).backgroundColor);
+			if (m && (m[4] === undefined || +m[4] > 0.5)) {
+				return "##" + [m[1], m[2], m[3]].map(function (x) { return ("0" + (+x).toString(16)).slice(-2); }).join("");
+			}
+		}
+		return "##ffffff";
+	}
+	function go() { if (data.pageColour === "auto") { data.pageColour = pageColourOf(host); } GalaxieScene.ready(function () { GalaxieScene.build(host, data); }, data); }
 	if (window.GalaxieScene) { go(); return; }
 	var s = document.createElement("script");
 	s.src = "#application.blog.getScenes().getEngineUrl()#";
@@ -224,6 +251,78 @@
 })();
 </script></cfoutput></cfsavecontent>
 		<cfreturn html>
+	</cffunction>
+
+	<cffunction name="getPostHeroStyle" access="public" returnType="string" output="false"
+			hint="How a post's image, gradient or animated hero is shown on its own page (5.0): the post's own choice (Hero text window), or else the blog's (Blog Options, Post Hero Style). classic (inside the post, as in 4.8), held (full screen, held while the text rises and fades), band (a tall band, three quarters of the screen, that scrolls away) or magazine (full screen, a large heading low on the left). An older 'scene' setting means held.">
+		<cfargument name="postHeroStyle" type="string" required="false" default="" hint="The post's own HeroStyle; empty for the blog's.">
+		<cfset var heroStyle = lCase(trim(arguments.postHeroStyle))>
+		<cfif not listFind("classic,held,band,magazine", heroStyle)>
+			<cfset heroStyle = lCase(trim(application.BlogOptionDbObj.getPostHeroStyle() ?: ""))>
+		</cfif>
+		<cfif heroStyle eq "scene"><cfset heroStyle = "held"></cfif>
+		<cfreturn listFind("held,band,magazine", heroStyle) ? heroStyle : "classic">
+	</cffunction>
+
+	<cffunction name="getPostHeroSceneJson" access="public" returnType="string" output="false"
+			hint="A post's image, gradient or animated hero as scene data (a JSON string) for the scene engine, in one of the scene styles (held, band or magazine - see getPostHeroStyle), with the hero text from the Hero text window. Written as text so the keys keep their case on Adobe ColdFusion. The hero fades into the colour behind the post (pageColour auto).">
+		<cfargument name="getPost" type="any" required="true">
+		<cfargument name="currentRow" type="numeric" required="true">
+		<cfargument name="heroKind" type="string" required="true" hint="image, gradient or animation">
+		<cfargument name="heroStyle" type="string" required="true" hint="held, band or magazine">
+		<cfset var row = arguments.getPost[arguments.currentRow]>
+		<cfset var parts = []>
+		<cfset var size = val(row["HeroOverlayFontSize"] ?: "")>
+		<cfset var phone = val(row["HeroOverlayFontSizePhone"] ?: "")>
+		<cfset var scale = arguments.heroStyle eq "magazine" ? 1.6 : 1.4>
+		<cfset var font = "">
+		<cfset var options = trim(row["HeroAnimationOptions"] ?: "")>
+		<cfset var glowOpacity = 0>
+		<cfif arguments.heroKind eq "image">
+			<cfset arrayAppend(parts, '"kind":"photoHero","image":' & jsonText(row["MediaUrl"] ?: "") & ',"zoom":1.12')>
+		<cfelseif arguments.heroKind eq "gradient">
+			<cfset arrayAppend(parts, '"kind":"gradientHero","gradient":' & jsonText(row["HeroGradient"] ?: ""))>
+		<cfelse>
+			<cfset arrayAppend(parts, '"kind":"vantaHero","effect":' & jsonText(row["HeroAnimationEffect"] ?: "WAVES")
+				& (len(options) and left(options, 1) eq "{" and isJSON(options) ? ',"options":' & options : ''))>
+		</cfif>
+		<!--- The hero text. The heading is a second-level heading: the post's title is the page's main one. --->
+		<cfset arrayAppend(parts, '"headingTag":"h2"')>
+		<cfif len(row["HeroOverlayText"] ?: "")><cfset arrayAppend(parts, '"heading":' & jsonText(row["HeroOverlayText"]))></cfif>
+		<cfif len(row["HeroOverlaySubText"] ?: "")><cfset arrayAppend(parts, '"html":' & jsonText("<p>" & encodeForHtml(row["HeroOverlaySubText"]) & "</p>"))></cfif>
+		<cfif reFind("^##[0-9A-Fa-f]{3,8}$", row["HeroOverlayTextColor"] ?: "")><cfset arrayAppend(parts, '"textColour":' & jsonText(row["HeroOverlayTextColor"]))></cfif>
+		<cfif len(row["HeroOverlayFont"] ?: "")>
+			<!--- "Name", sans-serif - the form getFontFaceCss looks for, so the font's file is loaded with the scene. --->
+			<cfset font = '"' & replace(replace(row["HeroOverlayFont"], '"', '', 'all'), "\", "", "all") & '", sans-serif'>
+			<cfset arrayAppend(parts, '"headingFont":' & jsonText(font) & ',"textFont":' & jsonText(font))>
+		</cfif>
+		<!--- Sizes: the Hero text window's sizes are for the classic hero, so a full-screen hero's heading is larger. Phones get the
+		phone size as it is, or the heading scaled down as on the classic hero. The second line is half the heading. --->
+		<cfif size>
+			<cfset phone = phone ? phone : min(size, max(16, round(size * 0.7)))>
+			<cfset arrayAppend(parts, '"headingSize":"' & round(size * scale) & 'px","headingSizePhone":"' & phone & 'px","textSize":"' & round(size * scale / 2) & 'px","textSizePhone":"' & max(14, round(phone / 2)) & 'px"')>
+		<cfelseif phone>
+			<cfset arrayAppend(parts, '"headingSizePhone":"' & phone & 'px"')>
+		</cfif>
+		<cfif listFind("none,soft,strong,glow", row["HeroOverlayShadow"] ?: "")><cfset arrayAppend(parts, '"shadow":"' & row["HeroOverlayShadow"] & '"')></cfif>
+		<cfif reFind("^##[0-9A-Fa-f]{6}$", row["HeroOverlayShadowColor"] ?: "")><cfset arrayAppend(parts, '"shadowColour":"' & row["HeroOverlayShadowColor"] & '"')></cfif>
+		<cfif reFind("^##[0-9A-Fa-f]{6}$", row["HeroOverlayGlowColor"] ?: "")>
+			<cfset glowOpacity = val(row["HeroOverlayGlowOpacity"] ?: "") ? min(max(val(row["HeroOverlayGlowOpacity"]), 10), 100) : 80>
+			<cfset arrayAppend(parts, '"glow":{"colour":"' & row["HeroOverlayGlowColor"] & '","opacity":' & glowOpacity / 100
+				& ',"softness":' & (val(row["HeroOverlayGlowSoftness"] ?: "") ? min(max(val(row["HeroOverlayGlowSoftness"]), 4), 60) : 24) & '}')>
+		</cfif>
+		<!--- The style. --->
+		<cfswitch expression="#arguments.heroStyle#">
+			<cfcase value="band"><cfset arrayAppend(parts, '"align":"center","height":"75vh","pin":false')></cfcase>
+			<cfcase value="magazine"><cfset arrayAppend(parts, '"textPosition":"bottom","pinLength":"130%"')></cfcase>
+			<cfdefaultcase><cfset arrayAppend(parts, '"align":"center","pinLength":"160%"')></cfdefaultcase>
+		</cfswitch>
+		<cfreturn '{"pageColour":"auto","settings":{"fadeHeight":"30vh"},"sections":[{' & arrayToList(parts, ",") & '}]}'>
+	</cffunction>
+
+	<cffunction name="jsonText" access="private" returnType="string" output="false" hint="A string as a JSON string, quotes and all.">
+		<cfargument name="value" type="string" required="true">
+		<cfreturn '"' & replace(replace(replace(replace(replace(replace(arguments.value, "\", "\\", "all"), '"', '\"', "all"), chr(13), "\r", "all"), chr(10), "\n", "all"), chr(9), "\t", "all"), "/", "\/", "all") & '"'>
 	</cffunction>
 
 	<cffunction name="renderPost" access="public" returnType="string" output="false"
@@ -696,6 +795,23 @@
 		no image area at all, by design. Every other mode should show something, matching the card views
 		(renderKendoCardGrid.cfm/popularPosts.cfm) - including 'generic', which falls through to renderEnclosureImage's
 		own empty-mediaUrl default (noImage.jpg), the same default those card views already show for 'generic'. --->
+		<!--- Post hero styles (5.0): on the post's own page, its own image, gradient or animated hero is drawn by the scene engine
+		when the post (Hero text window) or the blog (Blog Options) picks a scene style - full width, fading into the post. Carousels,
+		maps and videos stay as they are. If the scene can't be made, the classic hero above stays. --->
+		<cfif arguments.isSinglePostPage and listFind("image,gradient,animation", local.heroKind ?: "")>
+			<cfset local.heroStyle = getPostHeroStyle(getPost[arguments.currentRow]["HeroStyle"] ?: "")>
+			<cfif local.heroStyle neq "classic">
+				<cftry>
+					<cfset local.sceneHero = renderSceneJson(getPostHeroSceneJson(getPost, arguments.currentRow, local.heroKind, local.heroStyle), getPost[arguments.currentRow]["PostId"])>
+					<cfif len(local.sceneHero)>
+						<cfset enclosureHtml = local.sceneHero>
+						<cfset local.heroKind = "scene">
+					</cfif>
+					<cfcatch type="any"></cfcatch>
+				</cftry>
+			</cfif>
+		</cfif>
+
 		<!--- An event with no picture of its own (2026-10-17, owner): on its own page, the large calendar tile (design A, the same
 		calendar page as on the cards) instead of the no-picture choice. The event card follows below it. --->
 		<cfif not len(enclosureHtml) and arguments.isSinglePostPage and structKeyExists(application, "events")>
