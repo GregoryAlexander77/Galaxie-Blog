@@ -51,6 +51,7 @@ this scene. Drafts are listed too (a scene can go on a post before it is release
 	<cfset arrayAppend(sceneLinkParts, '{"id":' & sceneLinkRows.PostId & ',"title":' & serializeJSON(toString(sceneLinkRows.Title)) & ',"page":' & (sceneLinkRows.IsPage eq 1 ? 'true' : 'false')
 		& ',"released":' & (sceneLinkRows.Released eq 1 ? 'true' : 'false') & ',"url":' & serializeJSON(toString(thisLinkUrl)) & '}')>
 </cfloop>
+<cfset sceneShownOn = isNewScene ? [] : application.blog.getScenes().getPostIdsUsing(scene.alias)>
 <cfset sceneLinksJsonText = replace(replace("[" & arrayToList(sceneLinkParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")>
 <!--- The blog's fonts, for the heading and text font dropdowns. Each self-hosted font is declared below under its own name, so the
 dropdown shows it in its own face, the way the public pages name it (includes/templates/font.cfm). --->
@@ -178,6 +179,16 @@ chose "this server only" (Scenes window settings). --->
 		<button id="sceneSaveTemplate" type="button" class="k-button" title="Keep this scene as a starting point in the New scene gallery">Save as ready-made</button>
 		<span id="sceneSaved" class="k-form-hint"></span>
 		<span class="k-form-hint" id="sceneUseHint"></span>
+		<!--- Where the scene shows (owner, 10-19): pick a post or a page, show it there, then preview that post or page. With no
+		posts (or pages) yet, the list offers to make one. --->
+		<div id="sceneShowOn" style="flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+			<strong>Show this scene on</strong>
+			<label for="sceneShowPost">a post</label><input id="sceneShowPost" style="width: 260px;">
+			<label for="sceneShowPage">or a page</label><input id="sceneShowPage" style="width: 220px;">
+			<button id="sceneShowApply" type="button" class="k-button" disabled>Show it there</button>
+			<a id="sceneShowPreview" class="k-button" target="_blank" rel="noopener" style="display: none;">Preview</a>
+			<span id="sceneShownOn" class="k-form-hint"></span>
+		</div>
 	</div>
 <cfif isNewScene>
 	<!--- New scene: the gallery comes first; the editor below shows once a starting point is picked. --->
@@ -230,7 +241,8 @@ $(document).ready(function () {
 	var sceneId = <cfoutput>#isNewScene ? 0 : scene.sceneId#</cfoutput>;
 	var scene = <cfoutput>#sceneJsonText#</cfoutput>;
 	var starters = <cfoutput>#startersJsonText#</cfoutput>;
-	var LINKS = <cfoutput>#sceneLinksJsonText#</cfoutput>;   <!--- the blog's posts and pages: { id, title, page, released, url } --->
+	var LINKS = <cfoutput>#sceneLinksJsonText#</cfoutput>;
+	var SHOWN_ON = <cfoutput>#serializeJSON(sceneShownOn)#</cfoutput>;   <!--- the post ids that show this scene now --->   <!--- the blog's posts and pages: { id, title, page, released, url } --->
 	var selected = -1;            <!--- -1 is the scene's own settings; 0... a section --->
 	var aliasTyped = sceneId > 0; <!--- a new scene's name in posts follows its title until it is typed in --->
 	var previewReady = false;
@@ -1207,6 +1219,69 @@ $(document).ready(function () {
 			setTimeout(function () { var w = $("#sceneDetailWindow").data("kendoWindow"); if (w) { w.destroy(); } }, 0);
 		});
 	}
+
+	<!--- ---------- Show on a post or page (owner, 10-19) --->
+	var showTarget = null;
+	function linkById(id) { return $.grep(LINKS, function (l) { return l.id === +id; })[0]; }
+	function drawShownOn() {
+		var box = $("#sceneShownOn").empty();
+		if (!SHOWN_ON.length) { box.text("Not shown anywhere yet."); return; }
+		box.append(document.createTextNode("Shown on: "));
+		$.each(SHOWN_ON, function (i, id) {
+			var l = linkById(id); if (!l) { return; }
+			if (i) { box.append(document.createTextNode(", ")); }
+			box.append($('<a target="_blank" rel="noopener"></a>').attr("href", l.url).text(l.title));
+			box.append(" ", $('<a href="#" title="Stop showing the scene there">(remove)</a>').on("click", function (e) { e.preventDefault(); showOn(l, ""); }));
+		});
+	}
+	function newItemTemplate(kind) {
+		<!--- Kendo's no-data template: shown when there are no posts (or pages), or none match what was typed. --->
+		return function () {
+			return '<div style="padding: 8px;">No ' + kind + 's found. <button type="button" class="k-button sceneNewItem" data-kind="' + kind + '">' + (kind === "post" ? "Write a new post" : "Make a new page") + '</button></div>';
+		};
+	}
+	$.each([["#sceneShowPost", false, "post"], ["#sceneShowPage", true, "page"]], function (i, def) {
+		$(def[0]).kendoDropDownList({
+			dataSource: $.grep(LINKS, function (l) { return l.page === def[1]; }), dataTextField: "title", dataValueField: "id",
+			optionLabel: "Choose a " + def[2] + "...", filter: "contains", noDataTemplate: newItemTemplate(def[2]),
+			template: function (l) { return $("<div>").text(l.title + (l.released ? "" : " (not released yet)")).html(); },
+			change: function () {
+				var other = $(i ? "#sceneShowPost" : "#sceneShowPage").data("kendoDropDownList");
+				if (this.value()) { other.value(""); }
+				showTarget = this.value() ? linkById(this.value()) : null;
+				$("#sceneShowApply").prop("disabled", !showTarget);
+				$("#sceneShowPreview").toggle(!!showTarget).attr("href", showTarget ? showTarget.url : "#");
+			}
+		});
+	});
+	$(document).on("click", ".sceneNewItem", function () {
+		$("#sceneShowPost, #sceneShowPage").each(function () { var d = $(this).data("kendoDropDownList"); if (d) { d.close(); } });
+		if ($(this).data("kind") === "post") { createAdminInterfaceWindow(24); } else { createAdminInterfaceWindow(24, "newPage"); }
+		$("#sceneShownOn").text("Save the new " + $(this).data("kind") + ", then close and reopen this scene to pick it.");
+	});
+	function showOn(link, alias) {
+		if (alias && sceneId === 0) { alertBox("Save the scene first", "A scene shows on a post or page once it has been saved.", "k-ext-information"); return; }
+		jQuery.ajax({
+			type: "post", url: BASE_URL + "/common/cfc/ProxyController.cfc?method=setPostScene", dataType: "json",
+			data: { csrfToken: CSRF, postId: link.id, alias: alias },
+			success: function (response) {
+				if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+				if (response && response.success) {
+					SHOWN_ON = $.grep(SHOWN_ON, function (id) { return id !== link.id; });
+					if (alias) { SHOWN_ON.push(link.id); }
+					drawShownOn();
+					if (alias) { $("#sceneShownOn").prepend($("<strong></strong>").text("Done. ")); }
+				} else { alertBox("Could not change it", (response && response.errorMessage) || "The post could not be changed.", "k-ext-warning"); }
+			},
+			error: function (jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
+		});
+	}
+	$("#sceneShowApply").on("click", function () {
+		if (!showTarget) { return; }
+		if (unsaved) { alertBox("Save first", "Save your changes, so the " + (showTarget.page ? "page" : "post") + " shows this scene as it is now.", "k-ext-information"); return; }
+		showOn(showTarget, $.trim($("#sceneAlias").val()));
+	});
+	drawShownOn();
 
 	<!--- ---------- Reset: back to the scene as it was last saved (owner, 10-19). --->
 	$("#sceneReset").on("click", function () {
