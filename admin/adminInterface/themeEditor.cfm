@@ -396,7 +396,7 @@ $(function () {
 	// Field builders: a row in the owner's admin table layout - label on the left, the control, an optional hint.
 	var table, rowClass;
 	function startTable() {
-		rowClass = ALT;
+		rowClass = BLOCK;   // the first block k-content, then k-alt (owner, 10-20)
 		table = $('<table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed"><colgroup><col style="width: 30%"><col></colgroup></table>');
 		$("#themeLookFields").empty().append(table);
 	}
