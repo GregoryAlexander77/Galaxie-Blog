@@ -1,5 +1,5 @@
 <!---
-	Datasource check for the installer (2026-10-12). Included by step5SaveDatabase.cfm, step6UserProfile.cfm and step7Post.cfm.
+	Datasource check for the installer (2026-10-12). Included by save.cfm (the installer wizard, 5.0) for its Database and Your account steps.
 
 	getInstallDsnProblem(dsn) returns an empty string when the datasource can be used to install a new blog, otherwise a
 	message saying why not. A datasource can only be used when:
