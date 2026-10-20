@@ -206,3 +206,5 @@ galaxieLoader.vantaEngine() while still dev-only/unmigrated. --->
 <cfif application.includeDisqus and pageTypeId eq 1>
 <script id="dsq-count-scr" type="<cfoutput>#scriptTypeString#</cfoutput>" src="//<cfoutput>#application.disqusBlogIdentifier#</cfoutput>.disqus.com/count.js" async></script>
 </cfif>
+<!--- The site's custom code for the end of the page (Themes window, Custom code), set in pageSettings.cfm. --->
+<cfif includeCustomCode and len(trim(tailEndScripts))><cfoutput>#tailEndScripts#</cfoutput></cfif>

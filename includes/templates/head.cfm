@@ -71,6 +71,10 @@
 <!-- FavIcons --> 
 #favIconHtml#
 </cfif>
+<cfif includeCustomCode and len(trim(customHeaderHtml))>
+<!-- Custom code -->
+#customHeaderHtml#
+</cfif>
 <cfif postFound>
 <meta name="description" content="#descriptionMetaTagValue#" />
 <link rel="canonical" href="#canonicalUrl#" />

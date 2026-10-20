@@ -307,6 +307,15 @@ it is - adding the base URL to them gave addresses like /blog/https://... and /b
 </cfcatch>
 </cftry>
 
+<!--- The site's custom header code (Themes window, Custom code). 5.0, 2026-10-20: this and tailEndScripts were saved by the
+Themes screen but never written into the page; head.cfm and tailEndScripts.cfm now add them on the blog's own pages. --->
+<cftry>
+	<cfset customHeaderHtml = getTheme[1]["CustomHeaderHtml"] ?: "">
+	<cfcatch type="any"><cfset customHeaderHtml = ""></cfcatch>
+</cftry>
+<!--- Not in the admin, and not in the Themes window's preview (so an analytics snippet doesn't count the owner's previews). --->
+<cfset includeCustomCode = pageTypeId neq 2 and not isDefined("url.previewTheme")>
+
 <!--- //******************************************************************************************************
 			Logic to set vars for the client
 //********************************************************************************************************--->

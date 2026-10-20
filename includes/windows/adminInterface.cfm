@@ -1194,6 +1194,11 @@ admin/adminInterface/scenes.cfm, sceneDetail.cfm and common/cfc/Scenes.cfc. --->
 <cfcase value=109>
 	<cfinclude template="../../admin/adminInterface/postHeroText.cfm">
 </cfcase>
+<!--- 110 Themes (5.0): pick the theme in use, customize a theme with a live preview, the site's pictures, content and custom code.
+See admin/adminInterface/themeEditor.cfm. The old Themes grid (29) and settings (30) stay for the settings not moved yet. --->
+<cfcase value=110>
+	<cfinclude template="../../admin/adminInterface/themeEditor.cfm">
+</cfcase>
 
 </cfswitch>
 

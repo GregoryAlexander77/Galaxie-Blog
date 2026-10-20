@@ -13575,6 +13575,58 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="saveThemeEditor" access="remote" returnformat="json" output="false"
+			hint="The Themes window (110, admin/adminInterface/themeEditor.cfm, 5.0) - through common/cfc/ThemeEditor.cfc. action = use (the theme in use; themeId 0 for none), look (save a theme's look), draft (the look being edited, for the preview), picture (upload a theme picture), brand (the site's logo, mobile logo, social or footer picture, in every theme), shown (show or hide a window, pod, the menu or the footer) or code (the site's custom code). Only for someone who may edit themes (EditTheme).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="action" type="string" default="" required="true">
+		<cfargument name="themeId" type="string" default="0" required="false">
+		<cfargument name="look" type="string" default="{}" required="false" hint="The look as JSON, keyed like blog.cfc getTheme().">
+		<cfargument name="field" type="string" default="" required="false" hint="picture: the theme picture's name, such as BlogBackgroundImage.">
+		<cfargument name="kind" type="string" default="" required="false" hint="brand: logo, logoMobile, social or footer.">
+		<cfargument name="dataUrl" type="string" default="" required="false" hint="picture and brand: the picture as a data URL. Empty clears a brand picture.">
+		<cfargument name="name" type="string" default="" required="false" hint="shown: the content template's name.">
+		<cfargument name="shown" type="string" default="true" required="false">
+		<cfargument name="head" type="string" default="" required="false">
+		<cfargument name="tail" type="string" default="" required="false">
+		<cfargument name="favicon" type="string" default="" required="false">
+
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var editor = "">
+		<cfset var lookStruct = {}>
+
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditTheme')>
+
+		<cfif application.Udf.isLoggedIn()>
+			<cfset editor = application.blog.getThemeEditor()>
+			<cftry>
+				<cfif listFind("look,draft", arguments.action)>
+					<cfset lookStruct = isJSON(arguments.look) ? deserializeJSON(arguments.look) : {}>
+					<cfif not isStruct(lookStruct)><cfset lookStruct = {}></cfif>
+				</cfif>
+				<cfswitch expression="#arguments.action#">
+					<cfcase value="use"><cfset editor.useTheme(val(arguments.themeId))></cfcase>
+					<cfcase value="look"><cfset editor.saveLook(val(arguments.themeId), lookStruct)></cfcase>
+					<cfcase value="draft"><cfset editor.saveDraft(val(arguments.themeId), lookStruct)></cfcase>
+					<cfcase value="picture"><cfset response[ "path" ] = editor.saveThemePicture(arguments.field, arguments.dataUrl)></cfcase>
+					<cfcase value="brand"><cfset response[ "url" ] = editor.saveBrandPicture(arguments.kind, arguments.dataUrl)></cfcase>
+					<cfcase value="shown"><cfset editor.setContentShown(arguments.name, isBoolean(arguments.shown) and arguments.shown)></cfcase>
+					<cfcase value="code"><cfset editor.saveCustomCode(arguments.head, arguments.tail, arguments.favicon)></cfcase>
+					<cfdefaultcase><cfthrow type="GalaxieBlog.ThemeEditor" message="Unknown action."></cfdefaultcase>
+				</cfswitch>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.ThemeEditor" ? cfcatch.message : "This could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="savePostHeroText" access="remote" returnformat="json" output="false"
 			hint="The text over a post's image, gradient or animated hero, from the Hero text window (109, 2026-10-19, Galaxie 5). Anything out of range is dropped rather than refused: an unknown colour or shadow becomes empty (the default), a size is kept between 12 and 120 px.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

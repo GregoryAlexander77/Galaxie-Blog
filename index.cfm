@@ -190,6 +190,10 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 	
 <!--- Determine whether we should disable the cache. --->
 <cfset disableCache = application.blog.getDisableCache()>	
+<!--- The Themes window's preview frame (5.0) is drawn fresh each time, with the look being edited. --->
+<cfif isDefined("url.previewTheme") and application.blog.getThemeEditor().isPreviewRequest()>
+	<cfset disableCache = true>
+</cfif>
 <!--- We need to differentiate material and non-material themes to apply the right settings to the buttons. Computed once here instead of twice further down (sidebar div and sidebar panel both need it). --->
 <cfif kendoTheme contains 'material'>
 	<cfset materialTheme = true>

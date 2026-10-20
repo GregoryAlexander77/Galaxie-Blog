@@ -1055,6 +1055,13 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
 				var windowTitle = "Hero text";
+			} else if (Id == 110){
+				// Themes (2026-10-20, Galaxie 5): the theme in use, a theme's look beside a live preview of the site, the site's
+				// pictures, content and custom code. Nearly full screen for the preview. See admin/adminInterface/themeEditor.cfm.
+				var windowName = "themeEditorWindow";
+				var windowHeight = "92%";
+				var windowWidth = "<cfif session.isMobile>98%<cfelse>96%</cfif>";
+				var windowTitle = "Themes";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

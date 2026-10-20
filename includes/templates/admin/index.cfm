@@ -219,7 +219,8 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 <cfif listFindNoCase(currentUserCapabilityList, 'EditTheme') gt 0>
 	<cfset iconList = listAppend(iconList, 'Themes')>
 	<cfset titleList = listAppend(titleList, 'Themes & Content')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(29);")>
+	<!--- 5.0: the Themes window (110) - themes, branding, content and custom code. It links to the old screen (29) for the rest. --->
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(110);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/themes.png")>
 </cfif>
 <!--- There are occassional ORM lock issues on occassion since the logging requires capturing data for each visitor ---> 

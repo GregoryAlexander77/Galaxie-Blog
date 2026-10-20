@@ -1554,6 +1554,17 @@
 		<cfreturn variables.setupObj>
 	</cffunction>
 
+	<cffunction name="getThemeEditor" access="public" returnType="any" output="false" hint="The Themes window's saves and the preview draft (common/cfc/ThemeEditor.cfc, 5.0), created on first use - kept here like getSetup, so a reinit picks up a changed ThemeEditor.cfc.">
+		<cfif not structKeyExists(variables, "themeEditorObj")>
+			<cflock name="galaxieThemeEditorCreate_#application.applicationName#" type="exclusive" timeout="10">
+				<cfif not structKeyExists(variables, "themeEditorObj")>
+					<cfset variables.themeEditorObj = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.ThemeEditor" : "common.cfc.ThemeEditor")>
+				</cfif>
+			</cflock>
+		</cfif>
+		<cfreturn variables.themeEditorObj>
+	</cffunction>
+
 	<cffunction name="getScenes" access="public" returnType="any" output="false" hint="Galaxie 5 scenes in the database (common/cfc/Scenes.cfc, 2026-10-19), created on first use. Kept in this component rather than the application scope, so a reinit (which makes a new application.blog) picks up a changed Scenes.cfc.">
 		<cfif not structKeyExists(variables, "scenesObj")>
 			<cflock name="galaxieScenesCreate_#application.applicationName#" type="exclusive" timeout="10">
@@ -3987,6 +3998,11 @@
 		<cfset var getSelectedThemeAlias = "">
 		<cfset var theme = "">
 		
+		<!--- The Themes window's preview frame (5.0): a signed-in user sees the theme named in previewTheme, whichever theme is in use. --->
+		<cfif isDefined("url.previewTheme") and getThemeEditor().isPreviewRequest()>
+			<cfreturn url.previewTheme>
+		</cfif>
+
 		<!--- Get the selected theme. --->
 		<cfquery name="getSelectedThemeAlias" dbtype="hql">
 			SELECT new Map (
@@ -4289,6 +4305,11 @@
 				<cfset Data[i]["ModernThemeStyle"] = 1>
 			</cfif>	
 		</cfloop>
+				
+		<!--- The Themes window's preview frame (5.0): the look being edited, laid over the saved one. --->
+		<cfif isDefined("url.previewLook")>
+			<cfset Data = getThemeEditor().applyDraft(Data)>
+		</cfif>
 				
 		<cfreturn Data>
 			
