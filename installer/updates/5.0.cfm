@@ -1,4 +1,4 @@
-<!--- description: Galaxie 5.0: adds the columns for the post hero text, glow and hero styles, the carousel text shadow, the post hero style in Blog Options and the Site Setup wizard, and creates the Scenes tables. --->
+<!--- description: Galaxie 5.0: adds the columns for the post hero text, glow and hero styles, the carousel text shadow, the post hero style in Blog Options and the Site Setup wizard, creates the Scenes tables, and turns background pictures back on for themes that have one. --->
 <!--- The work is done by DatabaseUpdater.cfc's ensureColumns(), which adds only the columns that are missing (ORM may already have
 added them when the blog restarted with the new files). --->
 <cfset ensureColumns("Post", [
@@ -25,3 +25,41 @@ added them when the blog restarted with the new files). --->
 used, so listing the scenes makes sure they exist now. --->
 <cfset application.blog.getScenes().listScenes()>
 <cfset addToLog("The Scenes tables are in place.")>
+<!--- Background pictures (2026-10-20): a theme with no background picture, or with "show background pictures" switched off,
+shows a plain page, and nothing on the old Themes screen made that easy to spot (the owner found Snow like this on
+galaxieblog.org: switched off while testing, and its picture gone). Every built-in theme ships with its picture on, so:
+1. a built-in theme with no background picture gets the one it was installed with (installer/dataFiles/getThemeSetting.txt),
+   as WebP when the server serves WebP and the file is there, as the installer does;
+2. every theme with a background picture has pictures switched on.
+Either can be changed again in Themes > Customize > Background. HQL, so the boolean is right on every database. --->
+<cfset backgroundsRestored = 0>
+<cftry>
+	<cffile action="read" file="#expandPath(application.baseUrl & '/installer/dataFiles/getThemeSetting.txt')#" variable="themeSettingWddx">
+	<cfwddx action="wddx2cfml" input="#themeSettingWddx#" output="shippedThemeSettings">
+	<cfloop query="shippedThemeSettings">
+		<cfset shippedPicture = shippedThemeSettings.BlogBackgroundImage>
+		<cfset shippedMobile = shippedThemeSettings.BlogBackgroundImageMobile>
+		<cfif len(shippedPicture)>
+			<cfif isDefined("application.serverSupportsWebP") and application.serverSupportsWebP>
+				<cfset webpPicture = reReplaceNoCase(shippedPicture, "\.(png|jpg)$", ".webp")>
+				<cfset webpMobile = reReplaceNoCase(shippedMobile, "\.(png|jpg)$", ".webp")>
+				<cfif fileExists(expandPath(application.baseUrl & webpPicture))><cfset shippedPicture = webpPicture></cfif>
+				<cfif len(shippedMobile) and fileExists(expandPath(application.baseUrl & webpMobile))><cfset shippedMobile = webpMobile></cfif>
+			</cfif>
+			<cfset missing = ormExecuteQuery("SELECT t.ThemeSettingRef.ThemeSettingId FROM Theme t WHERE t.ThemeName = :name AND (t.ThemeSettingRef.BlogBackgroundImage IS NULL OR t.ThemeSettingRef.BlogBackgroundImage = '')", { name = shippedThemeSettings.ThemeName })>
+			<cfif arrayLen(missing)>
+				<cfset ormExecuteQuery("UPDATE ThemeSetting SET BlogBackgroundImage = :picture, BlogBackgroundImageMobile = :mobile WHERE ThemeSettingId = :id", { picture = shippedPicture, mobile = len(shippedMobile) ? shippedMobile : shippedPicture, id = missing[1] })>
+				<cfset backgroundsRestored++>
+			</cfif>
+		</cfif>
+	</cfloop>
+	<cfcatch type="any">
+		<cfset addToLog("The built-in background pictures couldn't be read, so none were put back: " & cfcatch.message)>
+	</cfcatch>
+</cftry>
+<cfset backgroundsOff = ormExecuteQuery("SELECT count(*) FROM ThemeSetting WHERE IncludeBackgroundImages = :off AND BlogBackgroundImage IS NOT NULL AND BlogBackgroundImage <> ''", { off = false }, true)>
+<cfif backgroundsOff gt 0>
+	<cfset ormExecuteQuery("UPDATE ThemeSetting SET IncludeBackgroundImages = :on WHERE IncludeBackgroundImages = :off AND BlogBackgroundImage IS NOT NULL AND BlogBackgroundImage <> ''", { on = true, off = false })>
+</cfif>
+<cfif backgroundsRestored or backgroundsOff><cfset application.blog.flushGalaxieCache(type = "all")></cfif>
+<cfset addToLog("Background pictures: #backgroundsRestored# put back, #backgroundsOff# switched back on.")>
