@@ -9,7 +9,7 @@
 	bump the suffix (don't revert it) every time a new ORM entity property needs picking up this way.
 	See troubleshooting-stale-app-scope-tip memory - TestUtility.cfc?method=reloadOrm is the preferred tool now,
 	this file edit is only needed when not logged in to call it. --->
-	<cfset this.name = "GalaxieBlog4_65_" & left(hash(getDirectoryFromPath(getCurrentTemplatePath())), 10) & "_ormfix4" />
+	<cfset this.name = "GalaxieBlog4_65_" & left(hash(getDirectoryFromPath(getCurrentTemplatePath())), 10) & "_ormfix5" />
 	<!--- Preserve the case for database columns --->
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->
