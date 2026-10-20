@@ -214,6 +214,7 @@ chose "this server only" (Scenes window settings). --->
 		<input type="text" id="sceneAlias" class="k-textbox" maxlength="80" style="width: 220px;" value="<cfif not isNewScene>#encodeForHtmlAttribute(scene.alias)#</cfif>"<cfif not isNewScene> readonly title="A saved scene keeps its name, so the posts that show it keep working."</cfif>>
 		<label><input type="checkbox" id="sceneActive" class="k-checkbox"<cfif isNewScene or scene.active> checked</cfif>> Active</label>
 		<button id="sceneSave" type="button" class="k-button k-primary">Save</button>
+		<button id="scenePreviewFull" type="button" class="k-button" title="The scene as it is here, saved or not, full size in a new tab">Preview</button>
 		<button id="sceneReset" type="button" class="k-button" title="Throw away the changes since the scene was last saved">Reset</button>
 		<button id="sceneSaveTemplate" type="button" class="k-button" title="Keep this scene as a starting point in the New scene gallery">Save as ready-made</button>
 		<span id="sceneSaved" class="k-form-hint"></span>
@@ -225,7 +226,7 @@ chose "this server only" (Scenes window settings). --->
 			<label for="sceneShowPost">a post</label><input id="sceneShowPost" style="width: 260px;">
 			<label for="sceneShowPage">or a page</label><input id="sceneShowPage" style="width: 220px;">
 			<button id="sceneShowApply" type="button" class="k-button" disabled>Show it there</button>
-			<a id="sceneShowPreview" class="k-button" target="_blank" rel="noopener" style="display: none;">Preview</a>
+			<a id="sceneShowPreview" class="k-button" target="_blank" rel="noopener" style="display: none;" title="The post or page as visitors see it - with the scene as last saved">View the post</a>
 			<span id="sceneShownOn" class="k-form-hint"></span>
 		</div>
 	</div>
@@ -689,20 +690,28 @@ $(document).ready(function () {
 				var ready = $('<optgroup label="Ready-made (a copy is made for this scene)"></optgroup>').appendTo(formPick);
 				$.each(READY_FORMS, function (i, r) { ready.append($('<option></option>').attr("value", "ready:" + r.key).text(r.name)); });
 			}
-			if (!value) { formPick.prepend('<option value="">Choose a form...</option>'); }
-			formPick.val(value || "");
+			<!--- A ready-made pick is remembered (pendingReadyMade) and the form is made when the scene is saved (owner, 10-20), so a
+			scene that is never saved leaves no form behind. --->
+			var readyPending = getValue("pendingReadyMade");
+			if (!value && !readyPending) { formPick.prepend('<option value="">Choose a form...</option>'); }
+			formPick.val(readyPending ? "ready:" + readyPending : (value || ""));
 			formPick.on("change", function () {
 				var v = formPick.val();
 				if (!v) { return; }
 				if (v.indexOf("ready:") === 0) {
-					makeReadyForm(v.substr(6), function (f) { setValue("form", f.alias); setValue("formTitle", f.title); renderSettings(); schedulePreview(); },
-						function () { formPick.val(value || ""); });
-					return;
+					var r = $.grep(READY_FORMS, function (x) { return x.key === v.substr(6); })[0];
+					setValue("form", ""); setValue("pendingReadyMade", r.key); setValue("formTitle", r.name);
+				} else {
+					var f = $.grep(FORMS, function (x) { return x.alias === v; })[0];
+					setValue("pendingReadyMade", ""); setValue("form", f.alias); setValue("formTitle", f.title);
 				}
-				var f = $.grep(FORMS, function (x) { return x.alias === v; })[0];
-				setValue("form", f.alias); setValue("formTitle", f.title); renderSettings(); schedulePreview();
+				renderSettings(); schedulePreview();
 			});
 			wrap.append(formPick, $('<div class="k-form-hint"></div>').text("Visitors fill it in right in the scene, and you get each answer by email."));
+			if (readyPending) {
+				wrap.append($('<div class="k-form-hint"></div>').text("This ready-made form is made for this scene when you save the scene. Then you can change its questions here."));
+				return wrap;
+			}
 			var picked = $.grep(FORMS, function (x) { return x.alias === value; })[0];
 			if (picked) { wrap.append(quickEditForm(picked)); }
 			return wrap;
@@ -1003,7 +1012,11 @@ $(document).ready(function () {
 		var s = { kind: kind, heading: "", html: "" };
 		if (kind === "text") { s.heading = "A new heading"; s.html = "<p>Your text.</p>"; s.colour = scene.pageColour || "#392630"; }
 		if (kind === "vantaHero") { s.effect = "WAVES"; s.options = { color: "#0e3b5c" }; }
-		if (kind === "form") { s.heading = "Get in touch"; s.html = "<p>Send us a note and we'll get back to you.</p>"; s.colour = scene.pageColour || "#392630";  }
+		if (kind === "form") {
+			s.heading = "Get in touch"; s.html = "<p>Send us a note and we'll get back to you.</p>"; s.colour = scene.pageColour || "#392630";
+			<!--- A Contact form of its own (owner, 10-20), so the section works without any setup; made when the scene is saved. --->
+			if ($.grep(READY_FORMS, function (r) { return r.key === "contact"; }).length) { s.pendingReadyMade = "contact"; s.formTitle = "Contact"; }
+		}
 		if (kind === "slideshow") { s.slides = []; s.colour = "#111111"; delete s.html; }
 		if (kind === "map") { s.heading = "Where to find us"; s.html = ""; s.colour = scene.pageColour || "#392630"; s.mapHeight = "70"; if (MAPS.length) { s.mapId = MAPS[0].id; s.mapType = MAPS[0].routes ? "route" : "static"; } }
 		if (kind === "gradientHero") { s.gradient = "linear-gradient(135deg, #1d4350 0%, #a43931 100%)"; }
@@ -1025,10 +1038,6 @@ $(document).ready(function () {
 		scene.sections.splice(at, 0, section);
 		select(at);
 		schedulePreview();
-		<!--- A new Form section starts with a Contact form of its own (owner, 10-20), so it works without any setup. --->
-		if (section.kind === "form" && !section.form && $.grep(READY_FORMS, function (r) { return r.key === "contact"; }).length) {
-			makeReadyForm("contact", function (f) { section.form = f.alias; section.formTitle = f.title; if (scene.sections[selected] === section) { renderSettings(); } schedulePreview(); });
-		}
 	});
 
 	<!--- ---------- Forms (owner, 10-20): a ready-made form as this scene's own copy, and a quick edit of the picked form ---------- --->
@@ -1443,6 +1452,21 @@ $(document).ready(function () {
 		copy.settings.reducedMotion = $("#scenePreviewReduced").is(":checked");
 		frame.contentWindow.postMessage({ type: "galaxieScenePreview", json: JSON.stringify(copy), fontCss: sceneFontCss(), hold: currentHold() }, origin);
 	}
+	<!--- Preview (owner, 10-20: "we need a preview button"): the scene as it is in the editor, full size in a new tab. The preview page
+	reads it from this browser's storage (admin/scenePreview.cfm?full=1). --->
+	$("#scenePreviewFull").on("click", function () {
+		var copy = JSON.parse(JSON.stringify(scene));
+		copy.settings = copy.settings || {};
+		copy.settings.guides = false;
+		copy.settings.reducedMotion = false;
+		try {
+			localStorage.setItem("galaxieSceneFullPreview", JSON.stringify({ json: JSON.stringify(copy), fontCss: sceneFontCss() }));
+		} catch (e) {
+			$.when(kendo.ui.ExtAlertDialog.show({ title: "Preview", message: "This browser won't let the preview be passed to a new tab. Use the preview beside the settings.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+			return;
+		}
+		window.open(BASE_URL + "/admin/scenePreview.cfm?full=1", "galaxieSceneFullPreview");
+	});
 	<!--- Every change goes through here, so it also marks the scene as changed since it was last saved. --->
 	var unsaved = false;
 	<!--- The scene as last saved (or, for a new scene, as its starting point was picked), for Reset (owner, 10-19). --->
@@ -1582,6 +1606,18 @@ $(document).ready(function () {
 		}
 		$("#sceneSave").prop("disabled", true);
 		$("#sceneSaved").text("Saving...");
+		<!--- The ready-made forms picked since the last save are made now, one by one, each named after this scene; then the scene
+		is saved with them in place. If one can't be made, the scene isn't saved, so nothing points at a missing form. --->
+		var waiting = $.grep(scene.sections, function (s) { return s.kind === "form" && s.pendingReadyMade; });
+		(function makeNext() {
+			var s = waiting.shift();
+			if (!s) { saveNow(); return; }
+			makeReadyForm(s.pendingReadyMade, function (f) { s.form = f.alias; s.formTitle = f.title; delete s.pendingReadyMade; makeNext(); },
+				function () { $("#sceneSave").prop("disabled", false); $("#sceneSaved").text(""); });
+		})();
+	});
+	function saveNow() {
+		var alias = $.trim($("#sceneAlias").val());
 		jQuery.ajax({
 			type: "post",
 			url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveScene",
@@ -1600,6 +1636,8 @@ $(document).ready(function () {
 					try { refreshScenesWindow(); } catch (e) {}
 					<!--- The post's Scene window (108), when it opened this editor, lists the new scene and picks it. --->
 					$(document).trigger("galaxieSceneSaved", [{ sceneId: sceneId, alias: alias }]);
+					<!--- A form just made for this scene can now be changed here (its quick edit). --->
+					renderSettings();
 				} else {
 					$("#sceneSaved").text("");
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The scene could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
@@ -1612,7 +1650,7 @@ $(document).ready(function () {
 				else { $.when(kendo.ui.ExtAlertDialog.show({ title: "Error while saving the scene", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); }
 			}
 		});
-	});
+	}
 
 	select(-1);
 	if (sceneId === 0) { showGallery(); }

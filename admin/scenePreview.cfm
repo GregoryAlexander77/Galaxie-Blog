@@ -102,6 +102,17 @@ view, so the engine's phone settings apply as they would on a phone. In the admi
 
 	GalaxieScene.ready(function () {
 		ready = true;
+		<!--- Full-size preview in its own tab (the editor's Preview button, 2026-10-20): the scene comes from this browser's storage. --->
+		if (/[?&]full=1\b/.test(window.location.search)) {
+			try {
+				var stored = JSON.parse(localStorage.getItem("galaxieSceneFullPreview") || "null");
+				if (stored) {
+					document.getElementById("scenePreviewFonts").textContent = String(stored.fontCss || "").replace(/<\//g, "");
+					waiting = JSON.parse(String(stored.json).split("{baseUrl}").join(baseUrl));
+				}
+			} catch (e) {}
+			if (!waiting) { document.getElementById("scenePreviewEmpty").textContent = "Open the preview with the Preview button in the scene editor."; }
+		}
 		if (waiting) { show(waiting); waiting = null; }
 		if (window.parent && window.parent !== window) { window.parent.postMessage({ type: "galaxieScenePreviewReady" }, window.location.origin); }
 	});

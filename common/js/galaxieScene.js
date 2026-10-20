@@ -294,6 +294,11 @@
 	// A form: a text block, then the form's placeholder, the same markup a form placed in a post has.
 	function buildForm(section, root) {
 		buildText(section, root);
+		// In the editor, a ready-made form picked but not made yet (it's made when the scene is saved) shows by its name.
+		if (!section.form && section.pendingReadyMade) {
+			el("span", "gs-formNote", el("div", "gs-formHolder gs-reveal", root)).textContent = "[Form: " + (section.formTitle || "ready-made form") + ", made when you save]";
+			return;
+		}
 		if (!/^[a-z0-9-]{1,100}$/i.test(String(section.form || ""))) { return; }
 		var holder = el("div", "gs-formHolder gs-reveal", root);
 		var placeholder = el("div", "galaxieWebForm", holder);
