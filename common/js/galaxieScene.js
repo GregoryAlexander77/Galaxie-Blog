@@ -35,7 +35,8 @@
 			sections: [ { kind: ..., ... }, ... ]
 		}
 
-	Every section can have: heading, html (rich text), colour (its top colour - the next hero's fade uses it), gradient or
+	Every section can have: heading, html (rich text), a button (buttonText, buttonUrl - a web address or a path on the site -,
+	buttonColour, buttonTextColour), colour (its top colour - the next hero's fade uses it), gradient or
 	background, textColour, headingFont, textFont, headingSize, textSize, headingSizePhone, textSizePhone, align
 	("left"|"center"|"right"), shadow ("none"|"soft"|"strong"|"glow"), shadowColour, glow ({ colour, opacity 0-1, softness px },
 	on its own or with the shadow), overlay ({ colour, opacity }).
@@ -156,6 +157,10 @@
 			".gScene .gs-slideBack{position:absolute;left:0;right:0;top:-20%;height:140%;background-size:cover;background-position:center;will-change:transform}",
 			".gScene .gs-slide .gs-heading{font-size:clamp(1.6rem,4vw,3rem)}",
 			".gScene .gs-slideText{position:relative;z-index:3}",
+			// A button under the heading and text (2026-10-19, owner): to another page, post or site.
+			".gScene .gs-button{display:inline-block;align-self:flex-start;margin-top:1.4em;padding:.75em 1.6em;border-radius:999px;background:#ffffff;color:#1f2328;font-weight:bold;text-decoration:none;font-size:clamp(1rem,1.4vw,1.15rem);line-height:1.2;box-shadow:0 4px 14px rgba(0,0,0,.25);text-shadow:none;transition:transform .15s ease}",
+			".gScene .gs-button:hover,.gScene .gs-button:focus{transform:translateY(-2px)}",
+			".gScene .gs-align-center .gs-button{align-self:center}.gScene .gs-align-right .gs-button{align-self:flex-end}",
 			".gScene .gs-reveal{opacity:0}",
 			"@media (prefers-reduced-motion: reduce){.gScene .gs-reveal{opacity:1}}"
 		].join("\n");
@@ -204,8 +209,11 @@
 		o.style.opacity = section.overlay.opacity;
 	}
 
+	// A button's address: a web address or a path on this site, nothing that could run script.
+	function safeUrl(url) { url = String(url || "").trim(); return /^(https?:\/\/|\/(?!\/))/i.test(url) ? url : ""; }
+
 	function addText(section, parent, headingTag) {
-		var heading = null, body = null;
+		var heading = null, body = null, button = null;
 		if (section.heading) {
 			heading = el(headingTag || "h2", "gs-heading gs-reveal", parent);
 			heading.textContent = section.heading;
@@ -215,7 +223,14 @@
 			// Rich text written by the blog owner in the editor (TinyMCE) - the same trust as a post's body.
 			body.innerHTML = section.html;
 		}
-		return { heading: heading, body: body };
+		if (section.buttonText && safeUrl(section.buttonUrl)) {
+			button = el("a", "gs-button gs-reveal", parent);
+			button.textContent = section.buttonText;
+			button.href = safeUrl(section.buttonUrl);
+			if (section.buttonColour) { button.style.backgroundColor = section.buttonColour; }
+			if (section.buttonTextColour) { button.style.color = section.buttonTextColour; }
+		}
+		return { heading: heading, body: body, button: button };
 	}
 
 	/* ---------- markup for each kind ---------- */
@@ -304,7 +319,7 @@
 		var t = addText(section, textBox, section.headingTag || "h1");
 		applyLook(section, textBox, t.heading, t.body);
 		// Hero text is visible from the start (it is the first thing on the page); it rises and fades while pinned instead.
-		[t.heading, t.body].forEach(function (x) { if (x) { x.classList.remove("gs-reveal"); } });
+		[t.heading, t.body, t.button].forEach(function (x) { if (x) { x.classList.remove("gs-reveal"); } });
 	}
 
 	// An eased fade (2026-10-19, owner: "you can't tell where the base ends"): the colour's opacity climbs slowly at first and

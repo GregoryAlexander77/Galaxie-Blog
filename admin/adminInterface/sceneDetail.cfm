@@ -34,6 +34,24 @@ Written as it is ("</" escaped so it can't end the script tag): serializeJSON wo
 <!--- Nothing in the data can end the script ("</") or open an HTML comment in it ("<!--"). --->
 <cfset sceneJsonText = replace(replace(sceneJsonText, "</", "<\/", "all"), "<!--", "<\!--", "all")>
 <cfset startersJsonText = replace(replace(startersJsonText, "</", "<\/", "all"), "<!--", "<\!--", "all")>
+<!--- The blog's posts and pages (owner, 10-19): for a hero button's "Goes to" list, and for picking the posts and pages that show
+this scene. Drafts are listed too (a scene can go on a post before it is released); a button can only go to a released one. --->
+<cfquery name="sceneLinkRows" datasource="#application.dsn#">
+	SELECT PostId, Title, PostAlias, DatePosted, IsPage, Released
+	FROM Post
+	WHERE BlogRef = <cfqueryparam value="#application.BlogDbObj.getBlogId()#" cfsqltype="cf_sql_integer">
+	AND (Remove IS NULL OR Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">)
+	AND Title IS NOT NULL AND DatePosted IS NOT NULL
+	ORDER BY Title
+</cfquery>
+<cfset sceneLinkParts = []>
+<cfloop query="sceneLinkRows">
+	<cfset thisLinkUrl = application.blog.makeLink(postId = sceneLinkRows.PostId, isPage = sceneLinkRows.IsPage eq 1, postAlias = sceneLinkRows.PostAlias, datePosted = sceneLinkRows.DatePosted)>
+	<cfif application.serverRewriteRuleInPlace><cfset thisLinkUrl = replaceNoCase(thisLinkUrl, "/index.cfm", "")></cfif>
+	<cfset arrayAppend(sceneLinkParts, '{"id":' & sceneLinkRows.PostId & ',"title":' & serializeJSON(toString(sceneLinkRows.Title)) & ',"page":' & (sceneLinkRows.IsPage eq 1 ? 'true' : 'false')
+		& ',"released":' & (sceneLinkRows.Released eq 1 ? 'true' : 'false') & ',"url":' & serializeJSON(toString(thisLinkUrl)) & '}')>
+</cfloop>
+<cfset sceneLinksJsonText = replace(replace("[" & arrayToList(sceneLinkParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")>
 <!--- The blog's fonts, for the heading and text font dropdowns. Each self-hosted font is declared below under its own name, so the
 dropdown shows it in its own face, the way the public pages name it (includes/templates/font.cfm). --->
 <cfset sceneFonts = []>
@@ -156,6 +174,7 @@ chose "this server only" (Scenes window settings). --->
 		<input type="text" id="sceneAlias" class="k-textbox" maxlength="80" style="width: 220px;" value="<cfif not isNewScene>#encodeForHtmlAttribute(scene.alias)#</cfif>"<cfif not isNewScene> readonly title="A saved scene keeps its name, so the posts that show it keep working."</cfif>>
 		<label><input type="checkbox" id="sceneActive" class="k-checkbox"<cfif isNewScene or scene.active> checked</cfif>> Active</label>
 		<button id="sceneSave" type="button" class="k-button k-primary">Save</button>
+		<button id="sceneReset" type="button" class="k-button" title="Throw away the changes since the scene was last saved">Reset</button>
 		<button id="sceneSaveTemplate" type="button" class="k-button" title="Keep this scene as a starting point in the New scene gallery">Save as ready-made</button>
 		<span id="sceneSaved" class="k-form-hint"></span>
 		<span class="k-form-hint" id="sceneUseHint"></span>
@@ -211,6 +230,7 @@ $(document).ready(function () {
 	var sceneId = <cfoutput>#isNewScene ? 0 : scene.sceneId#</cfoutput>;
 	var scene = <cfoutput>#sceneJsonText#</cfoutput>;
 	var starters = <cfoutput>#startersJsonText#</cfoutput>;
+	var LINKS = <cfoutput>#sceneLinksJsonText#</cfoutput>;   <!--- the blog's posts and pages: { id, title, page, released, url } --->
 	var selected = -1;            <!--- -1 is the scene's own settings; 0... a section --->
 	var aliasTyped = sceneId > 0; <!--- a new scene's name in posts follows its title until it is typed in --->
 	var previewReady = false;
@@ -267,7 +287,20 @@ $(document).ready(function () {
 		{ key: "align", label: "Line up", type: "select", options: [["", "Theme default"], ["left", "Left"], ["center", "Centre"], ["right", "Right"]] },
 		{ key: "textColour", label: "Colour", type: "colour" },
 		{ key: "shadow", label: "Shadow behind them", type: "select", options: [["", "None"], ["soft", "Soft"], ["strong", "Strong"], ["glow", "Glow"]], hint: "Makes text stand out on a busy picture." },
-		{ key: "shadowColour", label: "Shadow colour", type: "colour" }
+		{ key: "shadowColour", label: "Shadow colour", type: "colour" },
+		<!--- A glow of its own (owner, 10-19), on its own or with the shadow - the same as the post Hero text window's. --->
+		{ group: "Glow" },
+		{ key: "glow.colour", label: "Glow colour", type: "colour", hint: "A halo around the heading and text. Leave it empty for no glow; try a light or bright colour on a dark picture." },
+		{ key: "glow.opacity", label: "Glow opacity (0.1 to 1)", type: "number", min: 0.1, max: 1, step: 0.05, placeholder: "0.8" },
+		{ key: "glow.softness", label: "Glow softness (pixels)", type: "number", min: 4, max: 60, step: 1, placeholder: "24", hint: "Low is a tight, crisp glow; high spreads it wide and soft." }
+	];
+	<!--- A button under the heading and text (owner, 10-19), on heroes and text blocks. --->
+	var BUTTON = [
+		{ group: "Button" },
+		{ key: "buttonText", label: "Button words", type: "text", placeholder: "eg. Read the story", hint: "Leave it empty for no button." },
+		{ key: "buttonUrl", label: "Goes to", type: "link" },
+		{ key: "buttonColour", label: "Button colour", type: "colour" },
+		{ key: "buttonTextColour", label: "Button text colour", type: "colour" }
 	];
 	var FADE = { key: "fadeColour", label: "Fade into colour", type: "colour", hint: "The hero fades into this colour at the bottom. Pick the colour at the bottom of the picture, or of the next section." };
 	var OVERLAY = [
@@ -333,6 +366,8 @@ $(document).ready(function () {
 			fields.splice(1, 0, { group: "Animation colours" });
 			Array.prototype.splice.apply(fields, [2, 0].concat(colours));
 		}
+		<!--- Every section with a heading and text can have a button. --->
+		if (HERO[section.kind] || section.kind === "text" || section.kind === "imageSlide") { fields = fields.concat(BUTTON); }
 		return fields;
 	}
 
@@ -551,6 +586,25 @@ $(document).ready(function () {
 		wrap.append($('<label></label>').attr("for", id).text(field.label));
 		function hint() { if (field.hint) { wrap.append($('<div class="k-form-hint"></div>').text(field.hint)); } return wrap; }
 
+		if (field.type === "link") {
+			<!--- Where a button goes (owner, 10-19): one of the blog's released posts or pages, or any address typed in. --->
+			var pick = $('<select></select>').attr("id", id), other = $('<input class="k-textbox" placeholder="https://... or /a-path-on-this-site">').css({ width: "100%", marginTop: "6px" });
+			pick.append('<option value="">Choose a post or page...</option>');
+			var pagesGroup = $('<optgroup label="Pages"></optgroup>'), postsGroup = $('<optgroup label="Posts"></optgroup>');
+			$.each(LINKS, function (i, l) { if (l.released) { (l.page ? pagesGroup : postsGroup).append($('<option></option>').attr("value", l.url).text(l.title)); } });
+			pick.append(pagesGroup, postsGroup, '<option value="#other">Another address...</option>');
+			var known = $.grep(LINKS, function (l) { return l.released && l.url === value; }).length > 0;
+			pick.val(!value ? "" : known ? value : "#other");
+			other.val(known ? "" : value).toggle(!!value && !known);
+			pick.on("change", function () {
+				var v = $(this).val();
+				other.toggle(v === "#other");
+				if (v !== "#other") { setValue(field.key, v); schedulePreview(); } else { setValue(field.key, $.trim(other.val())); other.trigger("focus"); }
+			});
+			other.on("input change", function () { setValue(field.key, $.trim($(this).val())); schedulePreview(); });
+			wrap.append(pick, other);
+			return hint();
+		}
 		if (field.type === "colour") {
 			<!--- Kendo's colour picker, with transparency unless the field takes plain colours only. None takes the colour away. --->
 			input = $('<input>').attr("id", id);
@@ -845,6 +899,7 @@ $(document).ready(function () {
 			});
 		});
 		delete scene.description; delete scene.thumbnail;
+		savedScene = JSON.stringify(scene);
 		if (!aliasTyped) { $("#sceneAlias").val(aliasFrom(scene.name || "")); updateUseHint(); }
 		$("#sceneGallery").hide();
 		$("#sceneEditorTop").css("display", "");
@@ -1105,6 +1160,8 @@ $(document).ready(function () {
 	}
 	<!--- Every change goes through here, so it also marks the scene as changed since it was last saved. --->
 	var unsaved = false;
+	<!--- The scene as last saved (or, for a new scene, as its starting point was picked), for Reset (owner, 10-19). --->
+	var savedScene = JSON.stringify(scene);
 	function schedulePreview() { unsaved = true; clearTimeout(previewTimer); previewTimer = setTimeout(sendPreview, 350); }
 	function onPreviewMessage(event) {
 		if (event.origin !== origin || !event.data || event.data.type !== "galaxieScenePreviewReady") { return; }
@@ -1151,6 +1208,20 @@ $(document).ready(function () {
 		});
 	}
 
+	<!--- ---------- Reset: back to the scene as it was last saved (owner, 10-19). --->
+	$("#sceneReset").on("click", function () {
+		if (!unsaved || JSON.stringify(scene) === savedScene) { $("#sceneSaved").text("Nothing to reset: no changes since the last save."); return; }
+		$.when(kendo.ui.ExtYesNoDialog.show({ title: "Reset this scene?", message: "Your changes since the last save will be lost.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function (answer) {
+			if (answer['button'] !== 'Yes') { return; }
+			scene = JSON.parse(savedScene);
+			scene.settings = scene.settings || {}; scene.sections = scene.sections || [];
+			unsaved = false;
+			select(-1);
+			sendPreview();
+			$("#sceneSaved").text("Back to the last save.");
+		});
+	});
+
 	<!--- ---------- Save --->
 	$("#sceneSave").on("click", function () {
 		var alias = $.trim($("#sceneAlias").val());
@@ -1176,6 +1247,7 @@ $(document).ready(function () {
 					$("#sceneAlias").prop("readonly", true).attr("title", "A saved scene keeps its name, so the posts that show it keep working.");
 					$("#sceneRestart").remove();
 					unsaved = false;
+					savedScene = JSON.stringify(scene);
 					$("#sceneSaved").text("Saved at " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
 					try { refreshScenesWindow(); } catch (e) {}
 					<!--- The post's Scene window (108), when it opened this editor, lists the new scene and picks it. --->
