@@ -156,6 +156,8 @@ On mobile devices, the blog content width is set at 95% and the side bar is a re
 <cfelse>
 	<cfset siteOpacity = 99>
 </cfif>
+<!--- The CSS value (5.0, 2026-10-20): the stylesheet wrote "0." in front of the setting, so 100 became 0.100 - nearly see-through. --->
+<cfset siteOpacityCss = numberFormat(min(max(val(siteOpacity), 0), 100) / 100, "0.00")>
 	
 <!--- Are the webp image formats included? This is only relevant for the distribution package of the blog. Users that have donloaded the blog are recommended to use the webp format if the server supports it. --->
 <cfset webPImagesIncluded = getTheme[1]["WebPImagesIncluded"]>

@@ -17,7 +17,7 @@
 	"ContentWidth" = { kind = "int", min = 30, max = 100 },
 	"MainContainerWidth" = { kind = "int", min = 40, max = 85 },
 	"SideBarContainerWidth" = { kind = "int", min = 15, max = 60 },
-	"SiteOpacity" = { kind = "int", min = 75, max = 99 },
+	"SiteOpacity" = { kind = "int", min = 75, max = 100 },
 	"AlignBlogMenuWithBlogContent" = { kind = "bool" },
 	"StretchHeaderAcrossPage" = { kind = "bool" },
 	"FontId" = { kind = "font" },

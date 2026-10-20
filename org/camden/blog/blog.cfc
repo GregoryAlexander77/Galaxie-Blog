@@ -4825,7 +4825,9 @@
 				<!--- Load the Kendo Theme entity ---> 
 				<cfif len(arguments.kendoThemeId)>
 					<!--- Change the Kendo theme ref column if the kendoThemeId was send in --->
-					<cfset ThemeDbObj.setKendoThemeRef = arguments.kendoThemeId>					
+					<!--- 5.0 (2026-10-20): this was "setKendoThemeRef = arguments.kendoThemeId", an assignment rather than a call, so a new
+					Kendo theme was never saved. --->
+					<cfset ThemeDbObj.setKendoThemeRef(entityLoadByPK("KendoTheme", arguments.kendoThemeId))>					
 				</cfif>
 				<!--- And load the KendoTheme entity. Note: the getKendoThemeRef() will retrive the KendoTheme object, and the getKendoThemeId() is a method in this object to get its Id. --->
 				<cfset KendoThemeDbObj = entityLoadByPK("KendoTheme", ThemeDbObj.getKendoThemeRef().getKendoThemeId())>

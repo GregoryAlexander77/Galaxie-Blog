@@ -2649,8 +2649,9 @@
 				<cfinvokeargument name="kendoThemeId" value="#Data[i]['KendoThemeId']#">
 				<cfinvokeargument name="theme" value="#arguments.themeName#">
 				<cfinvokeargument name="useTheme" value="#Data[i]['UseTheme']#">
-				<!--- This is going to be set to false. The user must select this option to set it --->
-				<cfinvokeargument name="selectedTheme" value="0">
+				<!--- The copy isn't the theme in use; the user picks it to use it. 5.0 (2026-10-20): this sent "0", and blog.saveTheme
+				selects the theme whenever selectedTheme has any value, so every copy became the site's theme. Empty leaves it unselected. --->
+				<cfinvokeargument name="selectedTheme" value="">
 				<!--- Kendo Theme settings --->
 				<cfinvokeargument name="kendoCommonCssFileLocation" value="#Data[i]['KendoCommonCssFileLocation']#">
 				<cfinvokeargument name="kendoThemeCssFileLocation" value="#Data[i]['KendoThemeCssFileLocation']#">

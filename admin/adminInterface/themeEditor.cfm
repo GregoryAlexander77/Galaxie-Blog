@@ -453,7 +453,7 @@ $(function () {
 			row("Posts column", number("MainContainerWidth", 40, 85, "%"), "", "themeLookColumns");
 			row("Sidebar column", number("SideBarContainerWidth", 15, 60, "%"), "", "themeLookColumns");
 			$(".themeLookColumns").toggle(String(current.Breakpoint) !== "0");
-			row("Opacity", number("SiteOpacity", 75, 99, "%"), "99 is solid. Lower lets the background show through.");
+			row("Opacity", number("SiteOpacity", 75, 100, "%"), "100 is solid. Lower lets the background show through.");
 			row("", checkbox("AlignBlogMenuWithBlogContent", "Line the menu up with the posts"));
 		} else if (section === "fonts") {
 			heading("Text");

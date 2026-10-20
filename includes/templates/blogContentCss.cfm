@@ -114,7 +114,7 @@
 			<cfelseif len(blogBackgroundColor)>background-color: <cfoutput>#blogBackgroundColor#</cfoutput>;</cfif>
 			<!--- Opacity trick --->
 			filter: alpha(Opacity=<cfoutput>#siteOpacity#</cfoutput>);
-			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
+			opacity: <cfoutput>#siteOpacityCss#</cfoutput>;
 			<!--- Set the global font properties. --->
 			font-family: <cfoutput>'#font#', #fontType#</cfoutput>;
 			font-size: <cfoutput>#fontSize#</cfoutput>pt;
@@ -446,7 +446,7 @@
 			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 		<cfif session.isMobile>
 			<!--- Opacity for iOs --->
-			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
+			opacity: <cfoutput>#siteOpacityCss#</cfoutput>;
 			visibility: visible;
 		</cfif>
 		}
@@ -457,7 +457,7 @@
 			width: var(--contentWidth); 
 		<cfif session.isMobile>
 			<!--- Opacity for iOs --->
-			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
+			opacity: <cfoutput>#siteOpacityCss#</cfoutput>;
 			visibility: visible;
 		</cfif>
 		}
@@ -476,7 +476,7 @@
 			padding-bottom: 10px;
 			padding-left: 10px;
 			<!--- Opacity for iOs --->
-			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
+			opacity: <cfoutput>#siteOpacityCss#</cfoutput>;
 			visibility: visible;
 		<cfelse>
 			width: <cfoutput>#mainContainerWidth#</cfoutput>%;
@@ -651,7 +651,7 @@
 			padding-bottom: 10px;
 			padding-left: 10px;
 			<!--- Opacity for iOs --->
-			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
+			opacity: <cfoutput>#siteOpacityCss#</cfoutput>;
 			visibility: visible;
 		<cfelse>
 			<!--- On mobile, apply less padding on the right to keep things uniform. Otherwise, keep the padding consistent. --->
@@ -1378,7 +1378,7 @@
 			z-index: 0;
 		<cfif session.isMobile>
 			<!--- Opacity for iOs --->
-			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
+			opacity: <cfoutput>#siteOpacityCss#</cfoutput>;
 			visibility: visible;
 		<cfelse>
 			<!--- Apply a min width of 600 pixels. We are making an assumption that the minimum display resolution will be 800 pixels and apply the 200 pixels to the outer container. --->
@@ -1448,7 +1448,7 @@
 			z-index: 0;
 		<cfif session.isMobile>
 			<!--- Opacity for iOs --->
-			opacity: 0.<cfoutput>#siteOpacity#</cfoutput>;
+			opacity: <cfoutput>#siteOpacityCss#</cfoutput>;
 			visibility: visible;
 		<cfelse>
 			<!--- Apply a min width of 600 pixels. We are making an assumption that the minimum display resolution will be 800 pixels and apply the 200 pixels to the outer container. --->
