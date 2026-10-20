@@ -184,7 +184,7 @@
 		anything else half a screen, in the scene's page colour, so there is no flash or jump. --->
 		<cfset parsed = deserializeJSON(sceneJson)>
 		<cfif isStruct(parsed) and isArray(parsed.sections ?: "") and arrayLen(parsed.sections) and isStruct(parsed.sections[1])>
-			<cfset hostStyle = "min-height:" & (listFindNoCase("layeredHero,photoHero,vantaHero,gradientHero,videoHero", parsed.sections[1].kind ?: "") ? "100vh" : "50vh") & ";">
+			<cfset hostStyle = "min-height:" & (listFindNoCase("layeredHero,photoHero,vantaHero,gradientHero,videoHero,slideshow", parsed.sections[1].kind ?: "") ? "100vh" : "50vh") & ";">
 			<!--- A hero with a height of its own (the Tall band post hero style, 75vh). --->
 			<cfif reFind("^[0-9]{1,3}vh$", parsed.sections[1].height ?: "")>
 				<cfset hostStyle = "min-height:" & parsed.sections[1].height & ";">

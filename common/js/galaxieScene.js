@@ -47,6 +47,8 @@
 	Kinds:
 		text          a heading and rich text on a gradient or colour
 		imageSlide    a full-screen picture whose background moves slower than the page: image, imagePhone
+		slideshow     pictures with captions, held in place while each scroll brings in the next (2026-10-19, owner): slides
+		              [{ image, imagePhone, heading, caption }], colour (behind the pictures)
 		layeredHero   pinned image layers moving at different depths: layers [{ src, srcPhone, depth }]
 		photoHero     one pinned photo with a slow zoom: image, imagePhone, zoom (1.15)
 		vantaHero     a Vanta animation: effect ("WAVES", "NET", "BIRDS"...), options ({ color: 0x..., ... })
@@ -161,6 +163,17 @@
 			".gScene .gs-button{display:inline-block;align-self:flex-start;margin-top:1.4em;padding:.75em 1.6em;border-radius:999px;background:#ffffff;color:#1f2328;font-weight:bold;text-decoration:none;font-size:clamp(1rem,1.4vw,1.15rem);line-height:1.2;box-shadow:0 4px 14px rgba(0,0,0,.25);text-shadow:none;transition:transform .15s ease}",
 			".gScene .gs-button:hover,.gScene .gs-button:focus{transform:translateY(-2px)}",
 			".gScene .gs-align-center .gs-button{align-self:center}.gScene .gs-align-right .gs-button{align-self:flex-end}",
+			// The slideshow (2026-10-19): the slides on top of each other, each fading in over the one before.
+			".gScene .gs-slideshow{position:relative;height:100vh;overflow:hidden}",
+			".gScene .gs-showSlide{position:absolute;inset:0}",
+			".gScene .gs-showPic{position:absolute;inset:0;background-size:cover;background-position:center;will-change:transform}",
+			".gScene .gs-showText{position:absolute;left:0;right:0;bottom:0;padding:14vh 8vw 9vh;display:flex;flex-direction:column;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.55))}",
+			".gScene .gs-showText .gs-heading{font-size:clamp(1.6rem,4vw,3rem);margin-bottom:.3em}",
+			".gScene .gs-showDots{position:absolute;right:18px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:3}",
+			".gScene .gs-showDots span{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.45);box-shadow:0 0 3px rgba(0,0,0,.5);transition:background .2s}",
+			".gScene .gs-showDots span.gs-on{background:#ffffff}",
+			// With motion turned off: the pictures one after another, nothing held.
+			".gScene .gs-slideshow.gs-static{height:auto}.gScene .gs-static .gs-showSlide{position:relative;height:80vh;opacity:1!important}.gScene .gs-static .gs-showDots{display:none}",
 			".gScene .gs-reveal{opacity:0}",
 			"@media (prefers-reduced-motion: reduce){.gScene .gs-reveal{opacity:1}}"
 		].join("\n");
@@ -266,6 +279,53 @@
 		if (!section.shadow) { section.shadow = "soft"; }
 		var t = addText(section, holder);
 		applyLook(section, root, t.heading, t.body);
+	}
+
+	function buildSlideshow(section, root) {
+		root.classList.add("gs-slideshow");
+		root.style.background = section.colour || "#111111";
+		if (!section.textColour) { root.style.color = "#ffffff"; }
+		if (!section.shadow) { section.shadow = "soft"; }
+		var phone = isPhone(), slides = section.slides || [], dots = slides.length > 1 ? el("div", "gs-showDots") : null;
+		slides.forEach(function (slide, i) {
+			var box = el("div", "gs-showSlide", root);
+			if (i) { box.style.opacity = 0; }
+			var pic = el("div", "gs-showPic", box);
+			var image = phone && slide.imagePhone ? slide.imagePhone : slide.image;
+			if (image) { pic.style.backgroundImage = 'url("' + String(image).replace(/"/g, "%22") + '")'; }
+			if (slide.alt) { pic.setAttribute("role", "img"); pic.setAttribute("aria-label", slide.alt); }
+			if (slide.heading || slide.caption) {
+				var text = el("div", "gs-showText", box), heading = null, body = null;
+				if (slide.heading) { heading = el("h2", "gs-heading", text); heading.textContent = slide.heading; }
+				if (slide.caption) { body = el("div", "gs-body", text); body.textContent = slide.caption; }
+				applyLook(section, text, heading, body);
+			}
+			if (dots) { el("span", i ? "" : "gs-on", dots); }
+		});
+		if (dots) { root.appendChild(dots); }
+	}
+
+	function animateSlideshow(data, section, root) {
+		var slides = root.querySelectorAll(".gs-showSlide"), n = slides.length;
+		if (n < 2) { return; }
+		var dots = root.querySelectorAll(".gs-showDots span");
+		var tl = gsap.timeline({
+			scrollTrigger: {
+				trigger: root, start: "top top", end: "+=" + ((n - 1) * 100) + "%", pin: true,
+				scrub: setting(data, section, "scrub"), markers: !!setting(data, section, "guides"),
+				onUpdate: function (self) {
+					var on = Math.round(self.progress * (n - 1));
+					Array.prototype.forEach.call(dots, function (d, i) { d.classList.toggle("gs-on", i === on); });
+				}
+			}
+		});
+		for (var i = 1; i < n; i++) {
+			// Each scroll: the next picture fades in over the last and settles from a slight zoom; its caption rises in.
+			tl.fromTo(slides[i], { opacity: 0 }, { opacity: 1, duration: 1, ease: "none" }, i - 1);
+			tl.fromTo(slides[i].querySelector(".gs-showPic"), { scale: 1.08 }, { scale: 1, duration: 1, ease: "none" }, i - 1);
+			var text = slides[i].querySelector(".gs-showText");
+			if (text) { tl.fromTo(text, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "none" }, i - 0.45); }
+		}
 	}
 
 	function buildHero(data, section, root, nextSection) {
@@ -490,6 +550,7 @@
 			var next = data.sections[i + 1];
 			if (section.kind === "text") { buildText(section, root); }
 			else if (section.kind === "imageSlide") { buildSlide(section, root); }
+			else if (section.kind === "slideshow") { buildSlideshow(section, root); }
 			else if (HERO_KINDS[section.kind]) { buildHero(data, section, root, next); }
 			else { root.style.display = "none"; return; }   // unknown kinds (map, event...) come in a later phase
 			built.push({ section: section, root: root });
@@ -523,6 +584,7 @@
 			// settings.reducedMotion lets the editor's preview show what visitors who turned motion off will see.
 			if (c.reduceMotion || data.settings.reducedMotion) {
 				gsap.set(container.querySelectorAll(".gs-reveal"), { opacity: 1, y: 0 });
+				Array.prototype.forEach.call(container.querySelectorAll(".gs-slideshow"), function (x) { x.classList.add("gs-static"); });
 				// Still start the hero animations that are on screen, but without scroll effects.
 				built.forEach(function (b) { if (HERO_KINDS[b.section.kind] && b.root.getBoundingClientRect().top < window.innerHeight) { startLive(data, b.section, b.root); } });
 				return;
@@ -532,6 +594,7 @@
 				var factor = c.phone && setting(data, b.section, "phoneMotion") === "light" ? 0.5 : 1;
 				if (HERO_KINDS[b.section.kind]) { animateHero(data, b.section, b.root, factor, splits); }
 				if (b.section.kind === "imageSlide") { animateSlide(data, b.section, b.root); }
+				if (b.section.kind === "slideshow") { b.root.classList.remove("gs-static"); animateSlideshow(data, b.section, b.root); }
 				animateReveals(data, b.section, b.root, factor, splits);
 			});
 			return function () {

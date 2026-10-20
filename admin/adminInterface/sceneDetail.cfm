@@ -256,8 +256,11 @@ $(document).ready(function () {
 		{ kind: "gradientHero", label: "Gradient hero", hint: "Colours, no pictures." },
 		{ kind: "videoHero", label: "Video hero", hint: "A silent looping video." },
 		{ kind: "text", label: "Text block", hint: "Heading and text on a colour." },
-		{ kind: "imageSlide", label: "Image slide", hint: "A picture that moves slower than the page." }
+		{ kind: "imageSlide", label: "Image slide", hint: "A picture that moves slower than the page." },
+		{ kind: "slideshow", label: "Slideshow", hint: "Pictures with captions; each scroll brings in the next." }
 	];
+	<!--- Kinds whose words are their own (each slide's heading and caption), not the section's heading and text. --->
+	var OWN_TEXT = { slideshow: 1 };
 	var HERO = { layeredHero: 1, photoHero: 1, vantaHero: 1, gradientHero: 1, videoHero: 1 };
 	function kindLabel(kind) { for (var i = 0; i < KINDS.length; i++) { if (KINDS[i].kind === kind) { return KINDS[i].label; } } return kind; }
 
@@ -353,6 +356,10 @@ $(document).ready(function () {
 			FADE
 		],
 		gradientHero: [{ key: "gradient", label: "Gradient", type: "gradient" }, FADE],
+		slideshow: [
+			{ key: "#slides", type: "slides" },
+			{ key: "colour", label: "Colour behind the pictures", type: "colour", hint: "Shows while a picture loads, and the hero before it fades into it." }
+		],
 		videoHero: [
 			{ key: "video", label: "Video file (.mp4)", type: "text", placeholder: "/images/...", hint: "Video upload comes later; type the address of an .mp4 file on this site." },
 			{ key: "poster", label: "Picture shown before it plays", type: "image" }
@@ -579,6 +586,7 @@ $(document).ready(function () {
 		var id = "sceneField_" + field.key.replace(/[^A-Za-z0-9]/g, "_");
 		var value = getValue(field.key), input;
 		if (field.type === "layers") { return layersField(wrap); }
+		if (field.type === "slides") { return slidesField(wrap); }
 		if (field.type === "artStyle") {
 			<!--- Flat / Soft (2026-10-19, owner): for a drawn scene that comes in both colour styles, swaps every layer between
 			images/scenes/{name}/ and images/scenes/{name}-soft/. Not shown for other layers. --->
@@ -785,7 +793,7 @@ $(document).ready(function () {
 		} else {
 			var section = scene.sections[selected];
 			top.append($('<h4 class="adminBlockHeading"></h4>').text(kindLabel(section.kind)));
-			top.append(fieldHtml(HEADING));
+			if (!OWN_TEXT[section.kind]) { top.append(fieldHtml(HEADING)); }
 			$.each(sectionFields(section).concat(LOOK), function (i, field) { rest.append(fieldHtml(field)); });
 		}
 		kendoSelects("#sceneSettingsTop, #sceneSettingsRest");
@@ -802,7 +810,7 @@ $(document).ready(function () {
 	var fillingText = false;
 	function showText() {
 		if (!textEditor) { return; }
-		$("#sceneTextBlock").toggle(selected >= 0);
+		$("#sceneTextBlock").toggle(selected >= 0 && !OWN_TEXT[scene.sections[selected].kind]);
 		fillingText = true;
 		textEditor.setContent(selected >= 0 ? (scene.sections[selected].html || "") : "");
 		fillingText = false;
@@ -865,6 +873,7 @@ $(document).ready(function () {
 		var s = { kind: kind, heading: "", html: "" };
 		if (kind === "text") { s.heading = "A new heading"; s.html = "<p>Your text.</p>"; s.colour = scene.pageColour || "#392630"; }
 		if (kind === "vantaHero") { s.effect = "WAVES"; s.options = { color: "#0e3b5c" }; }
+		if (kind === "slideshow") { s.slides = []; s.colour = "#111111"; delete s.html; }
 		if (kind === "gradientHero") { s.gradient = "linear-gradient(135deg, #1d4350 0%, #a43931 100%)"; }
 		if (kind === "layeredHero") {
 			<!--- Until the layer builder: the layers of the first ready-made layered scene. --->
@@ -1025,6 +1034,48 @@ $(document).ready(function () {
 		var row = $("#sceneLayerList .sceneLayerRow").eq(i)[0];
 		if (row && row.scrollIntoView) { row.scrollIntoView({ block: "nearest" }); }
 		renderExploded();
+	}
+
+	<!--- The slideshow's slides (owner, 10-19): each with its picture, heading and caption; up, down and remove; Add pictures takes
+	several at once, in file-name order. --->
+	function slidesField(wrap) {
+		var section = scene.sections[selected];
+		var slides = section.slides = section.slides || [];
+		var list = $('<div class="sceneSlideList"></div>'), status = $('<span class="k-form-hint"></span>');
+		wrap.append($('<label></label>').text("Slides"));
+		$.each(slides, function (i, slide) {
+			var row = $('<div class="sceneSlideRow" style="display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid rgba(128,128,128,.25);"></div>');
+			var thumb = $('<img alt="" style="width: 72px; height: 48px; object-fit: cover; border-radius: 4px; flex: none;">').attr("src", withBase(slide.image || ""));
+			var fields = $('<div style="flex: 1; min-width: 0;"></div>');
+			var heading = $('<input class="k-textbox" placeholder="Heading (optional)" style="width: 100%; margin-bottom: 4px;">').val(slide.heading || "");
+			var caption = $('<input class="k-textbox" placeholder="Caption (optional)" style="width: 100%;">').val(slide.caption || "");
+			heading.on("input", function () { slide.heading = $(this).val(); if (!slide.heading) { delete slide.heading; } schedulePreview(); });
+			caption.on("input", function () { slide.caption = $(this).val(); if (!slide.caption) { delete slide.caption; } schedulePreview(); });
+			var tools = $('<div style="display: flex; flex-direction: column; gap: 2px;"></div>');
+			if (i > 0) { tools.append($('<button type="button" class="k-button" aria-label="Move up"><span class="k-icon k-i-arrow-60-up"></span></button>').on("click", function () { slides.splice(i - 1, 0, slides.splice(i, 1)[0]); schedulePreview(); renderSettings(); })); }
+			if (i < slides.length - 1) { tools.append($('<button type="button" class="k-button" aria-label="Move down"><span class="k-icon k-i-arrow-60-down"></span></button>').on("click", function () { slides.splice(i + 1, 0, slides.splice(i, 1)[0]); schedulePreview(); renderSettings(); })); }
+			tools.append($('<button type="button" class="k-button" aria-label="Remove slide"><span class="k-icon k-i-close"></span></button>').on("click", function () { slides.splice(i, 1); schedulePreview(); renderSettings(); }));
+			row.append(thumb, fields.append(heading, caption), tools);
+			list.append(row);
+		});
+		if (!slides.length) { list.append($('<div class="k-form-hint"></div>').text("No slides yet. Add two or more pictures; each scroll brings in the next.")); }
+		var file = $('<input type="file" accept="image/*" multiple style="display: none;">');
+		var add = $('<button type="button" class="k-button" style="margin-top: 8px;">Add pictures</button>').on("click", function () { file.trigger("click"); });
+		file.on("change", function () {
+			var files = Array.prototype.slice.call(this.files).sort(function (a, b) { return a.name.localeCompare(b.name, undefined, { numeric: true }); });
+			(function next() {
+				var f = files.shift();
+				if (!f) { schedulePreview(); renderSettings(); return; }
+				uploadPicture(f, status, function (response) {
+					var slide = { image: response.location };
+					if (response.phoneLocation) { slide.imagePhone = response.phoneLocation; }
+					slides.push(slide);
+					next();
+				});
+			})();
+		});
+		wrap.append(list, add, file, status);
+		return wrap;
 	}
 
 	function layersField(wrap) {
