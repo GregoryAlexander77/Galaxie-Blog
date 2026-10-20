@@ -47,6 +47,8 @@
 	Kinds:
 		text          a heading and rich text on a gradient or colour
 		imageSlide    a full-screen picture whose background moves slower than the page: image, imagePhone
+		form          one of the blog's forms (2026-10-19, owner), with a heading and text, on a colour or gradient like a text block:
+		              form (its alias), formTitle. Shown on the blog by common/js/webForms.js, as a form placed in a post is.
 		slideshow     pictures with captions, held in place while each scroll brings in the next (2026-10-19, owner): slides
 		              [{ image, imagePhone, heading, caption }], colour (behind the pictures)
 		layeredHero   pinned image layers moving at different depths: layers [{ src, srcPhone, depth }]
@@ -174,6 +176,9 @@
 			".gScene .gs-showDots span.gs-on{background:#ffffff}",
 			// With motion turned off: the pictures one after another, nothing held.
 			".gScene .gs-slideshow.gs-static{height:auto}.gScene .gs-static .gs-showSlide{position:relative;height:80vh;opacity:1!important}.gScene .gs-static .gs-showDots{display:none}",
+			// A form (2026-10-19): as wide as a comfortable form; the note is replaced by the form itself once it loads.
+			".gScene .gs-formHolder{margin-top:1.2em;max-width:640px;width:100%}.gScene .gs-align-center .gs-formHolder{margin-left:auto;margin-right:auto}.gScene .gs-align-right .gs-formHolder{margin-left:auto}",
+			".gScene .gs-formNote{display:block;padding:18px;border:2px dashed currentColor;border-radius:8px;opacity:.75;text-align:center}",
 			".gScene .gs-reveal{opacity:0}",
 			"@media (prefers-reduced-motion: reduce){.gScene .gs-reveal{opacity:1}}"
 		].join("\n");
@@ -279,6 +284,26 @@
 		if (!section.shadow) { section.shadow = "soft"; }
 		var t = addText(section, holder);
 		applyLook(section, root, t.heading, t.body);
+	}
+
+	// A form: a text block, then the form's placeholder, the same markup a form placed in a post has.
+	function buildForm(section, root) {
+		buildText(section, root);
+		if (!/^[a-z0-9-]{1,100}$/i.test(String(section.form || ""))) { return; }
+		var holder = el("div", "gs-formHolder gs-reveal", root);
+		var placeholder = el("div", "galaxieWebForm", holder);
+		placeholder.setAttribute("data-webform", section.form);
+		var note = el("span", "gs-formNote", placeholder);
+		note.textContent = "[Form: " + (section.formTitle || section.form) + "]";
+	}
+
+	// Forms load after the page does (common/js/webForms.js), and a scene's content comes later still, so the scene starts the form
+	// loader itself. Where there is none (the editor's preview), the placeholder shows the form's name.
+	function startForms(container, data) {
+		if (!container.querySelector(".galaxieWebForm[data-webform]") || !window.galaxieLoader || !window.galaxieLoader.webForms) { return; }
+		window.galaxieLoader.webForms(function () {
+			if (window.galaxieWebForms) { window.galaxieWebForms.init({ baseUrl: setting(data, null, "baseUrl") }); }
+		});
 	}
 
 	function buildSlideshow(section, root) {
@@ -551,6 +576,7 @@
 			if (section.kind === "text") { buildText(section, root); }
 			else if (section.kind === "imageSlide") { buildSlide(section, root); }
 			else if (section.kind === "slideshow") { buildSlideshow(section, root); }
+			else if (section.kind === "form") { buildForm(section, root); }
 			else if (HERO_KINDS[section.kind]) { buildHero(data, section, root, next); }
 			else { root.style.display = "none"; return; }   // unknown kinds (map, event...) come in a later phase
 			built.push({ section: section, root: root });
@@ -576,6 +602,8 @@
 				container.insertBefore(soft, root);
 			}
 		});
+
+		startForms(container, data);
 
 		// 2. Animations, set up per screen size and motion preference (and undone/redone when they change).
 		var mm = gsap.matchMedia();

@@ -12,7 +12,7 @@
 	  SceneLayer    SceneLayerId, SceneSectionRef, SortOrder, Src, SrcPhone, Depth
 --->
 
-<cfset variables.kinds = "text,imageSlide,layeredHero,photoHero,vantaHero,gradientHero,videoHero">
+<cfset variables.kinds = "text,imageSlide,layeredHero,photoHero,vantaHero,gradientHero,videoHero,slideshow,form">
 
 <!---//*****************************************************************************************************
 		Reading

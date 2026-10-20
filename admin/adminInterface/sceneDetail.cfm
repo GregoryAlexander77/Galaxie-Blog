@@ -51,6 +51,16 @@ this scene. Drafts are listed too (a scene can go on a post before it is release
 	<cfset arrayAppend(sceneLinkParts, '{"id":' & sceneLinkRows.PostId & ',"title":' & serializeJSON(toString(sceneLinkRows.Title)) & ',"page":' & (sceneLinkRows.IsPage eq 1 ? 'true' : 'false')
 		& ',"released":' & (sceneLinkRows.Released eq 1 ? 'true' : 'false') & ',"url":' & serializeJSON(toString(thisLinkUrl)) & '}')>
 </cfloop>
+<!--- The blog's forms (owner, 10-19), for a Form section. --->
+<cfset sceneFormParts = []>
+<cfif structKeyExists(application, "webForms")>
+	<cftry>
+		<cfloop array="#application.webForms.getForms()#" index="thisSceneForm">
+			<cfset arrayAppend(sceneFormParts, '{"alias":' & serializeJSON(toString(thisSceneForm.alias)) & ',"title":' & serializeJSON(toString(thisSceneForm.title)) & ',"active":' & (thisSceneForm.active ? 'true' : 'false') & '}')>
+		</cfloop>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+</cfif>
 <cfset sceneShownOn = isNewScene ? [] : application.blog.getScenes().getPostIdsUsing(scene.alias)>
 <cfset sceneLinksJsonText = replace(replace("[" & arrayToList(sceneLinkParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")>
 <!--- The blog's fonts, for the heading and text font dropdowns. Each self-hosted font is declared below under its own name, so the
@@ -242,7 +252,8 @@ $(document).ready(function () {
 	var scene = <cfoutput>#sceneJsonText#</cfoutput>;
 	var starters = <cfoutput>#startersJsonText#</cfoutput>;
 	var LINKS = <cfoutput>#sceneLinksJsonText#</cfoutput>;
-	var SHOWN_ON = <cfoutput>#serializeJSON(sceneShownOn)#</cfoutput>;   <!--- the post ids that show this scene now --->   <!--- the blog's posts and pages: { id, title, page, released, url } --->
+	var SHOWN_ON = <cfoutput>#serializeJSON(sceneShownOn)#</cfoutput>;
+	var FORMS = <cfoutput>#replace(replace("[" & arrayToList(sceneFormParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- { alias, title, active } --->   <!--- the post ids that show this scene now --->   <!--- the blog's posts and pages: { id, title, page, released, url } --->
 	var selected = -1;            <!--- -1 is the scene's own settings; 0... a section --->
 	var aliasTyped = sceneId > 0; <!--- a new scene's name in posts follows its title until it is typed in --->
 	var previewReady = false;
@@ -257,7 +268,8 @@ $(document).ready(function () {
 		{ kind: "videoHero", label: "Video hero", hint: "A silent looping video." },
 		{ kind: "text", label: "Text block", hint: "Heading and text on a colour." },
 		{ kind: "imageSlide", label: "Image slide", hint: "A picture that moves slower than the page." },
-		{ kind: "slideshow", label: "Slideshow", hint: "Pictures with captions; each scroll brings in the next." }
+		{ kind: "slideshow", label: "Slideshow", hint: "Pictures with captions; each scroll brings in the next." },
+		{ kind: "form", label: "Form", hint: "One of your forms, with a heading and text." }
 	];
 	<!--- Kinds whose words are their own (each slide's heading and caption), not the section's heading and text. --->
 	var OWN_TEXT = { slideshow: 1 };
@@ -356,6 +368,11 @@ $(document).ready(function () {
 			FADE
 		],
 		gradientHero: [{ key: "gradient", label: "Gradient", type: "gradient" }, FADE],
+		form: [
+			{ key: "form", label: "Form", type: "form" },
+			{ key: "colour", label: "Background colour", type: "colour" },
+			{ key: "gradient", label: "Or a gradient (used instead of the colour)", type: "gradient" }
+		],
 		slideshow: [
 			{ key: "#slides", type: "slides" },
 			{ key: "colour", label: "Colour behind the pictures", type: "colour", hint: "Shows while a picture loads, and the hero before it fades into it." }
@@ -606,6 +623,24 @@ $(document).ready(function () {
 		wrap.append($('<label></label>').attr("for", id).text(field.label));
 		function hint() { if (field.hint) { wrap.append($('<div class="k-form-hint"></div>').text(field.hint)); } return wrap; }
 
+		if (field.type === "form") {
+			<!--- Which form (owner, 10-19); with none yet, a button to make one. --->
+			if (!FORMS.length) {
+				wrap.append($('<div class="k-form-hint"></div>').text("You haven't made a form yet."),
+					$('<button type="button" class="k-button">Make a form</button>').on("click", function () { createAdminInterfaceWindow(84, 0); }),
+					$('<div class="k-form-hint"></div>').text("Save the form, then close and reopen this scene to pick it."));
+				return wrap;
+			}
+			var formPick = $('<select></select>').attr("id", id);
+			$.each(FORMS, function (i, f) { formPick.append($('<option></option>').attr("value", f.alias).text(f.title + (f.active ? "" : " (turned off)"))); });
+			formPick.val(value || FORMS[0].alias);
+			formPick.on("change", function () {
+				var f = $.grep(FORMS, function (x) { return x.alias === formPick.val(); })[0];
+				setValue("form", f.alias); setValue("formTitle", f.title); schedulePreview();
+			});
+			wrap.append(formPick, $('<div class="k-form-hint"></div>').text("Visitors fill it in right in the scene. Its answers arrive like the form's answers anywhere else; change the form itself in Forms."));
+			return wrap;
+		}
 		if (field.type === "link") {
 			<!--- Where a button goes (owner, 10-19): one of the blog's released posts or pages, or any address typed in. --->
 			var pick = $('<select></select>').attr("id", id), other = $('<input class="k-textbox" placeholder="https://... or /a-path-on-this-site">').css({ width: "100%", marginTop: "6px" });
@@ -873,6 +908,7 @@ $(document).ready(function () {
 		var s = { kind: kind, heading: "", html: "" };
 		if (kind === "text") { s.heading = "A new heading"; s.html = "<p>Your text.</p>"; s.colour = scene.pageColour || "#392630"; }
 		if (kind === "vantaHero") { s.effect = "WAVES"; s.options = { color: "#0e3b5c" }; }
+		if (kind === "form") { s.heading = "Get in touch"; s.html = "<p>Send us a note and we'll get back to you.</p>"; s.colour = scene.pageColour || "#392630"; if (FORMS.length) { s.form = FORMS[0].alias; s.formTitle = FORMS[0].title; } }
 		if (kind === "slideshow") { s.slides = []; s.colour = "#111111"; delete s.html; }
 		if (kind === "gradientHero") { s.gradient = "linear-gradient(135deg, #1d4350 0%, #a43931 100%)"; }
 		if (kind === "layeredHero") {
