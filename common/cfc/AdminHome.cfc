@@ -111,14 +111,24 @@
 			count: 0, link: linkOf("BlogUpdate"), signature: "update" & application.blog.getVersion() })>
 	</cfif>
 
-	<!--- 5. New sign-ups and form answers (this week) --->
+	<!--- 5. New sign-ups and form answers (this week). From one form, the tile opens that form's answers (window 85, owner
+	10-20); from several, the Forms list, which shows each form's count. --->
 	<cfif listFindNoCase(arguments.iconList, "Forms")>
 		<cftry>
-			<cfset q = queryExecute("SELECT COUNT(*) AS N, MAX(s.WebFormSubmissionId) AS Newest FROM WebFormSubmission s JOIN WebForm f ON f.WebFormId = s.WebFormRef WHERE f.BlogRef = :blogId AND s.Created >= :weekAgo",
+			<cfset q = queryExecute("
+				SELECT f.WebFormId, f.Title, COUNT(*) AS N, MAX(s.WebFormSubmissionId) AS Newest
+				FROM WebFormSubmission s JOIN WebForm f ON f.WebFormId = s.WebFormRef
+				WHERE f.BlogRef = :blogId AND s.Created >= :weekAgo
+				GROUP BY f.WebFormId, f.Title
+				ORDER BY COUNT(*) DESC",
 				{ blogId = { value = blogId, cfsqltype = "cf_sql_integer" }, weekAgo = { value = dateAdd("d", -7, now()), cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn })>
-			<cfif val(q.N)>
-				<cfset arrayAppend(list, { kind: "signups", label: "See " & q.N & (q.N eq 1 ? " new answer" : " new answers"), detail: "Sign-ups and forms, this week",
-					count: val(q.N), link: linkOf("Forms"), signature: q.N & "-" & q.Newest })>
+			<cfif q.recordCount>
+				<cfset item = { total: 0, newest: 0 }>
+				<cfloop query="q"><cfset item.total = item.total + val(q.N)><cfset item.newest = max(item.newest, val(q.Newest))></cfloop>
+				<cfset arrayAppend(list, { kind: "signups", label: "See " & item.total & (item.total eq 1 ? " new answer" : " new answers"),
+					detail: q.recordCount eq 1 ? left(q.Title, 50) & ", this week" : "In " & q.recordCount & " forms, this week",
+					count: item.total, link: q.recordCount eq 1 ? "javascript:createAdminInterfaceWindow(85, " & q.WebFormId & ");" : linkOf("Forms"),
+					signature: item.total & "-" & item.newest })>
 			</cfif>
 			<cfcatch type="any"></cfcatch>
 		</cftry>
