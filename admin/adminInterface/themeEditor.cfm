@@ -63,15 +63,15 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 	.themeCard { border: 1px solid rgba(128,128,128,.35); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
 	.themeCard.inUse { border: 3px solid currentColor; }
 	.themeCardPicture { height: 230px; background-size: cover; background-position: center; position: relative; background-color: #888; overflow: hidden; }
-	.themeCardHeader { height: 34px; margin: 0 auto; background-size: cover; background-position: center; display: flex; align-items: center; gap: 6px; padding: 0 8px; overflow: hidden; white-space: nowrap; }
+	.themeCardHeader { box-sizing: border-box; height: 34px; margin: 0 auto; background-size: cover; background-position: center; display: flex; align-items: center; gap: 6px; padding: 0 8px; overflow: hidden; white-space: nowrap; }
 	.themeCardHeader img { max-height: 24px; max-width: 30%; }
 	.themeCardName { font-size: 15px; line-height: 1; overflow: hidden; text-overflow: ellipsis; }
 	.themeCardMenu { margin-left: auto; font-size: 10px; opacity: .9; }
-	.themeCardBody { position: absolute; top: 34px; bottom: 0; display: flex; gap: 6px; }
+	.themeCardBody { position: absolute; top: 34px; bottom: 0; display: flex; }
 	.themeCardPosts, .themeCardSide { background: #fff; color: #222; padding: 7px 8px; overflow: hidden; }
 	.themeCard.dark .themeCardPosts, .themeCard.dark .themeCardSide { background: #24262a; color: #e6e6e6; }
 	.themeCardPosts { flex: 1 1 auto; }
-	.themeCardSide { flex: 0 0 auto; }
+	.themeCardSide { flex: 0 0 auto; border-left: 1px solid rgba(128,128,128,.25); }
 	.themeCardFonts { margin-top: -4px; }
 	.themeCardTitle { font-weight: bold; font-size: 13px; line-height: 1.2; margin-bottom: 4px; }
 	.themeCardText1 { font-size: 10px; line-height: 1.4; }
@@ -288,7 +288,7 @@ $(function () {
 		var width = Math.max(40, Math.min(100, parseInt(t.ContentWidth, 10) || 60)), classic = String(t.Breakpoint) !== "0";
 		if (classic) { width = Math.max(width, 80); }
 		var left = (100 - width) / 2, opacity = Math.max(0.5, Math.min(1, (parseInt(t.SiteOpacity, 10) || 99) / 100));
-		var header = $('<div class="themeCardHeader"></div>').css({ "background-image": t.HeaderBackgroundImage ? 'url("' + img(t.HeaderBackgroundImage) + '")' : "none", width: bool(t.StretchHeaderAcrossPage) ? "100%" : width + "%" });
+		var header = $('<div class="themeCardHeader"></div>').css({ "background-image": t.HeaderBackgroundImage ? 'url("' + img(t.HeaderBackgroundImage) + '")' : "none", width: width + "%" });
 		if (t.LogoImage) { header.append($('<img alt="">').attr("src", img(t.LogoImage))); }
 		if (bool(t.DisplayBlogName)) { header.append($('<span class="themeCardName"></span>').text(SITE_NAME).css({ "font-family": fontCss(t.BlogNameFont, t.BlogNameFontType), color: t.BlogNameTextColor || "#fff" })); }
 		header.append($('<span class="themeCardMenu">Menu &nbsp; About &nbsp; Themes</span>').css({ "font-family": fontCss(t.MenuFont, t.MenuFontType), color: t.BlogNameTextColor || "#fff" }));
