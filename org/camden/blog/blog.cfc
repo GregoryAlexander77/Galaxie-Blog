@@ -1716,11 +1716,20 @@
 		<cfparam name="exemptIpAddressList" default="">
 		<cfparam name="exemptUserAgentList" default="">
 
-		<!--- Delete from HttpReferrer. This does not have a constraint on the IP address --->
-		<cfquery name="deleteHttpReferrer" dbtype="hql">
-			DELETE FROM HttpReferrer
-			WHERE Date >= <cfqueryparam value="#adminLogRetentionDate#" cfsqltype="cf_sql_timestamp">
-		</cfquery>
+		<!--- Delete from HttpReferrer (2026-10-20): referring addresses older than the visitor log is kept for, that no visit uses any more.
+		This said Date >= (it deleted the NEWEST) and ignored the visits pointing at them; nothing was ever saved, so it went unnoticed
+		until saveHttpReferrer was fixed, and then the visit rows' foreign key stopped the delete and the admin errored at sign-in. In a
+		try block: tidying the logs must never stop anyone signing in. --->
+		<cftry>
+			<cfquery name="deleteHttpReferrer" dbtype="hql">
+				DELETE FROM HttpReferrer
+				WHERE Date < <cfqueryparam value="#visitorLogRetentionDate#" cfsqltype="cf_sql_timestamp">
+				AND HttpReferrerId NOT IN (SELECT v.HttpReferrerRef.HttpReferrerId FROM VisitorLog v WHERE v.HttpReferrerRef IS NOT NULL)
+			</cfquery>
+			<cfcatch type="any">
+				<cflog file="galaxieBlogErrors" type="warning" text="cleanUpLogs: the old referring addresses could not be tidied: #cfcatch.message#">
+			</cfcatch>
+		</cftry>
 
 		<cfquery name="deleteAdminLog" dbtype="hql">
 			DELETE FROM AdminLog

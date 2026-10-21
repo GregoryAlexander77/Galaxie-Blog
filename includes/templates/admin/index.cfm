@@ -10,7 +10,8 @@
 <cfset csrfToken = csrfGenerateToken("admin", false)>
 
 <!--- Clean up the logs. This will delete records that fall outside of the specified retention period. --->
-<cfset logCleanup = application.blog.cleanUpLogs()>
+<!--- Tidying the logs must never stop the admin home from opening (2026-10-20). --->
+<cftry><cfset logCleanup = application.blog.cleanUpLogs()><cfcatch type="any"><cflog file="galaxieBlogErrors" type="warning" text="cleanUpLogs failed: #cfcatch.message#"></cfcatch></cftry>
 	
 <!--- Get roles and capabilities. This is used to determine what to display depending upon the permissions --->
 <!--- Get the list of roles (a user should only be one role at in V2). We can either extract a roleId list, or a role list. Here, we want to get the actual role name (roleList) --->
