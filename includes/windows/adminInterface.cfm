@@ -1199,6 +1199,20 @@ admin/adminInterface/scenes.cfm, sceneDetail.cfm and common/cfc/Scenes.cfc. --->
 <cfcase value=109>
 	<cfinclude template="../../admin/adminInterface/postHeroText.cfm">
 </cfcase>
+<!--- The shop (2026-10-21): 111 Products and the shop's settings, 112 a product (optArgs = ProductId, 0 for a new one), 113 Orders
+(optArgs = paid, toShip or all), 114 an order (optArgs = ShopOrderId). See common/cfc/Shop.cfc. --->
+<cfcase value=111>
+	<cfinclude template="../../admin/adminInterface/products.cfm">
+</cfcase>
+<cfcase value=112>
+	<cfinclude template="../../admin/adminInterface/productDetail.cfm">
+</cfcase>
+<cfcase value=113>
+	<cfinclude template="../../admin/adminInterface/shopOrders.cfm">
+</cfcase>
+<cfcase value=114>
+	<cfinclude template="../../admin/adminInterface/shopOrderDetail.cfm">
+</cfcase>
 <!--- 110 Themes (5.0): pick the theme in use, customize a theme with a live preview, the site's pictures, content and custom code.
 See admin/adminInterface/themeEditor.cfm. The old Themes grid (29) and settings (30) stay for the settings not moved yet. --->
 <cfcase value=110>

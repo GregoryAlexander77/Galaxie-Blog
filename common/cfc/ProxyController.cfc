@@ -14534,5 +14534,192 @@
 
 	</cffunction>
 						
+	<!--- ********************************************************************************************************************
+		The shop's admin windows (2026-10-21): Products (111), a product (112), Orders (113) and an order (114). The work is
+		done by application.shop (common/cfc/Shop.cfc), which checks everything again. Same capability as Forms and Bookings,
+		since orders hold buyers' names, emails and addresses.
+	********************************************************************************************************************* --->
+
+	<cffunction name="saveShopSettings" access="remote" returnformat="json" output="false" hint="The shop's switches, from the Products window.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="enabled" default="false" required="false">
+		<cfargument name="promotionCodes" default="false" required="false">
+		<cfargument name="downloadDays" default="7" required="false">
+		<cfargument name="downloadLimit" default="5" required="false">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfset application.shop.saveSettings(isBoolean(arguments.enabled) and arguments.enabled, isBoolean(arguments.promotionCodes) and arguments.promotionCodes, arguments.downloadDays, arguments.downloadLimit)>
+			<cfset response[ "success" ] = true>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="saveShopProduct" access="remote" returnformat="json" output="false" hint="Adds or changes a product (window 112).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="productJson" type="string" default="{}" required="false" hint="JSON: productId, name, description, imageUrl, kind, price, shippingPrice, trackStock, stock, active.">
+		<cfset var response = { "success": false, "errorMessage": "", "productId": 0 }>
+		<cfset var saved = "">
+		<cfset var key = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfif not isJSON(arguments.productJson) or not isStruct(deserializeJSON(arguments.productJson))>
+				<cfset response[ "errorMessage" ] = "The product couldn't be read. Please try again.">
+			<cfelse>
+				<cfset saved = application.shop.saveProduct(deserializeJSON(arguments.productJson))>
+				<cfset response[ "success" ] = saved.success>
+				<cfset response[ "productId" ] = saved.productId>
+				<cfloop collection="#saved.errors#" item="key">
+					<cfset response[ "errorMessage" ] = listAppend(response.errorMessage, saved.errors[key], chr(10))>
+				</cfloop>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="deleteShopProduct" access="remote" returnformat="json" output="false" hint="Deletes a product, or switches it off when it has orders.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="productId" default="0" required="false">
+		<cfset var response = { "success": false, "errorMessage": "", "message": "" }>
+		<cfset var result = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.productId)>
+			<cfset result = application.shop.deleteProduct(val(arguments.productId))>
+			<cfset response[ "success" ] = result.success>
+			<cfset response[ "message" ] = result.message>
+			<cfif not result.success><cfset response[ "errorMessage" ] = result.message></cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="uploadShopProductImage" access="remote" returnformat="json" output="false" hint="A product's picture (window 112). Returns url.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<!--- The uploaded file's form field. Declared so strict argument checking accepts it; cffile reads it from the form. --->
+		<cfargument name="file" required="false" default="">
+		<cfset var response = { "success": false, "errorMessage": "", "url": "" }>
+		<cfset var uploaded = "">
+		<cfset var saved = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cffile action="upload" fileField="file" destination="#getTempDirectory()#" nameConflict="makeUnique" result="uploaded">
+				<cfif uploaded.fileSize gt 15 * 1024 * 1024>
+					<cffile action="delete" file="#uploaded.serverDirectory#/#uploaded.serverFile#">
+					<cfset response[ "errorMessage" ] = "The picture is larger than 15 MB. Please make it smaller.">
+				<cfelse>
+					<cfset saved = application.shop.saveProductImage(uploaded.serverDirectory & "/" & uploaded.serverFile, uploaded.clientFile)>
+					<cfif not saved.success and fileExists(uploaded.serverDirectory & "/" & uploaded.serverFile)>
+						<cffile action="delete" file="#uploaded.serverDirectory#/#uploaded.serverFile#">
+					</cfif>
+					<cfset response[ "success" ] = saved.success>
+					<cfset response[ "url" ] = saved.url>
+					<cfset response[ "errorMessage" ] = saved.message>
+				</cfif>
+				<!--- The server itself refuses some files (eg. .cfm) before Shop.cfc sees them. --->
+				<cfcatch type="any"><cfset response[ "errorMessage" ] = cfcatch.message contains "not accepted" ? "Please choose a picture (jpg, png, webp or gif)." : "The picture could not be saved: " & cfcatch.message></cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="uploadShopProductFile" access="remote" returnformat="json" output="false" hint="A download product's file (window 112), kept in the shop's private folder.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="productId" default="0" required="false">
+		<cfargument name="file" required="false" default="">
+		<cfset var response = { "success": false, "errorMessage": "", "displayName": "" }>
+		<cfset var uploaded = "">
+		<cfset var saved = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.productId)>
+			<cftry>
+				<cffile action="upload" fileField="file" destination="#getTempDirectory()#" nameConflict="makeUnique" result="uploaded">
+				<cfset saved = application.shop.saveProductFile(val(arguments.productId), uploaded.serverDirectory & "/" & uploaded.serverFile, uploaded.clientFile)>
+				<cfif not saved.success and fileExists(uploaded.serverDirectory & "/" & uploaded.serverFile)>
+					<cffile action="delete" file="#uploaded.serverDirectory#/#uploaded.serverFile#">
+				</cfif>
+				<cfset response[ "success" ] = saved.success>
+				<cfset response[ "displayName" ] = saved.displayName>
+				<cfset response[ "errorMessage" ] = saved.message>
+				<cfcatch type="any"><cfset response[ "errorMessage" ] = cfcatch.message contains "not accepted" ? "This kind of file can't be sold as a download. Zip it first." : "The file could not be saved: " & cfcatch.message></cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="markShopOrderShipped" access="remote" returnformat="json" output="false" hint="Marks a paid order as shipped (emails the buyer the first time), or back to paid.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="shopOrderId" default="0" required="false">
+		<cfargument name="shipped" default="true" required="false">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var result = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.shopOrderId)>
+			<cfset result = application.shop.markShipped(val(arguments.shopOrderId), isBoolean(arguments.shipped) and arguments.shipped)>
+			<cfset response[ "success" ] = result.success>
+			<cfset response[ "errorMessage" ] = result.message>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="refundShopOrderPayment" access="remote" returnformat="json" output="false" hint="Refunds an order through Stripe: all of it (amount 0) or up to amount.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="shopOrderId" default="0" required="false">
+		<cfargument name="amount" default="0" required="false">
+		<cfset var response = { "success": false, "errorMessage": "", "message": "" }>
+		<cfset var result = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.shopOrderId) and isNumeric(arguments.amount) and arguments.amount gte 0>
+			<cfset result = application.shop.refundOrder(val(arguments.shopOrderId), val(arguments.amount))>
+			<cfset response[ "success" ] = result.success>
+			<cfset response[ "message" ] = result.message>
+			<cfif not result.success><cfset response[ "errorMessage" ] = len(result.message) ? result.message : "The refund couldn't be made."></cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="exportShopOrders" access="remote" returntype="void" output="true" hint="Downloads the paid orders as a CSV file (Orders window 113).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfheader statuscode="403">
+			<cfcontent type="text/plain" reset="true"><cfoutput>Invalid token</cfoutput><cfabort>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif not application.Udf.isLoggedIn()>
+			<cfheader statuscode="403">
+			<cfcontent type="text/plain" reset="true"><cfoutput>Access denied</cfoutput><cfabort>
+		</cfif>
+		<cfheader name="Content-Disposition" value="attachment; filename=orders-#dateFormat(now(), 'yyyy-mm-dd')#.csv">
+		<!--- The byte order mark makes Excel open the file as UTF-8. --->
+		<cfcontent type="text/csv; charset=utf-8" reset="true"><cfoutput>#chr(65279)##application.shop.getOrdersCsv()#</cfoutput><cfabort>
+	</cffunction>
+
 </cfcomponent>
 	

@@ -1091,6 +1091,28 @@
 				var windowHeight = "92%";
 				var windowWidth = "<cfif session.isMobile>98%<cfelse>96%</cfif>";
 				var windowTitle = "Themes";
+			} else if (Id == 111){
+				// The shop (2026-10-21): 111 Products and the shop's settings, 112 a product (optArgs = ProductId, 0 for a new one),
+				// 113 Orders (optArgs = paid, toShip or all), 114 an order (optArgs = ShopOrderId). See common/cfc/Shop.cfc.
+				var windowName = "productsWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>65%</cfif>";
+				var windowTitle = "Products";
+			} else if (Id == 112){
+				var windowName = "productDetailWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+				var windowTitle = "Product";
+			} else if (Id == 113){
+				var windowName = "shopOrdersWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Orders";
+			} else if (Id == 114){
+				var windowName = "shopOrderDetailWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
+				var windowTitle = "Order";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

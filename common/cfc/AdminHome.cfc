@@ -204,6 +204,18 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 		</cftry>
 	</cfif>
 
+	<!--- 2c. Paid shop orders waiting to be shipped (2026-10-21). --->
+	<cfif listFindNoCase(arguments.iconList, "Orders")>
+		<cftry>
+			<cfset local.toShip = application.shop.getAdminCounts().toShip>
+			<cfif local.toShip>
+				<cfset arrayAppend(list, { kind: "shipOrders", label: "Ship " & local.toShip & (local.toShip eq 1 ? " order" : " orders"), detail: "Paid and waiting to be shipped",
+					count: local.toShip, link: "javascript:createAdminInterfaceWindow(113, 'toShip');", signature: "ship" & local.toShip })>
+			</cfif>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+	</cfif>
+
 	<!--- 3. Comments waiting --->
 	<cfif listFindNoCase(arguments.iconList, "Comments")>
 		<cftry>
@@ -292,7 +304,7 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 
 	<!--- In the owner's order; an error that keeps happening first. --->
 	<cfset arraySort(list, function (a, b) {
-		var order = "setup,bookings,newBookings,comments,update,signups,errors,draft,scheduled";
+		var order = "setup,bookings,newBookings,shipOrders,comments,update,signups,errors,draft,scheduled";
 		var rankA = (a.kind eq "errors" and a.signature contains "broken") ? 0 : listFind(order, a.kind);
 		var rankB = (b.kind eq "errors" and b.signature contains "broken") ? 0 : listFind(order, b.kind);
 		return rankA lt rankB ? -1 : (rankA gt rankB ? 1 : 0);

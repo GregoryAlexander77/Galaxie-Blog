@@ -137,6 +137,17 @@ details). --->
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(87);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/bookings.gif")>
 </cfif>
+<!--- The shop (2026-10-21): products and orders. Orders hold buyers' names, emails and addresses, so the same capability as Forms. --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting')>
+	<cfset iconList = listAppend(iconList, 'Products')>
+	<cfset titleList = listAppend(titleList, 'Products')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(111);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/shopProducts.svg")>
+	<cfset iconList = listAppend(iconList, 'Orders')>
+	<cfset titleList = listAppend(titleList, 'Orders')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(113&##44;'paid');")>
+	<cfset imageList = listAppend(imageList, "/images/icons/shopOrders.svg")>
+</cfif>
 <!--- Events (2026-10-15): posts that are events, and who signed up. Made from a post, so the same capability as editing posts. --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditPost')>
 	<cfset iconList = listAppend(iconList, 'Events')>
@@ -460,7 +471,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 					<cfset homeGroups = [
 						{ key: "posts", name: "Posts and Pages", image: "/images/icons/posts.png", what: "Write and organize", icons: "addPost,Posts,CreatePage,Pages,Comments,CreatePageCollection,ConfigurePageCollections,Categories,Tags" },
 						{ key: "look", name: "Look and Layout", image: "/images/icons/themes.png", what: "Themes, scenes, home page and menu", icons: "Themes,Scenes,Fonts,ConfigureHomepage,ConfigureMenu" },
-						{ key: "forms", name: "Forms and Bookings", image: "/images/icons/forms.gif", what: "Forms, bookings and events", icons: "Forms,Bookings,Events" },
+						{ key: "forms", name: "Forms, Bookings and Shop", image: "/images/icons/forms.gif", what: "Forms, bookings, events and the shop", icons: "Forms,Bookings,Events,Products,Orders" },
 						{ key: "people", name: "People", image: "/images/icons/users.png", what: "Users, members and subscribers", icons: "Users,Members,Subscriber,userProfile,BanVisitors,BannedUsers" },
 						{ key: "settings", name: "Settings", image: "/images/icons/settings.gif", what: "Set-up, settings and updates", icons: "SiteSetup,BlogSettings,BlogOptions,BlogUpdate" },
 						<!--- Tools (owner, 2026-10-20): the upkeep that isn't a setting, out of Posts and Settings. --->
@@ -477,7 +488,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 						<cfset upNext = application.blog.getAdminHome().getSuggestions(iconList, linkList, listFindNoCase(currentUserCapabilityList, "EditServerSetting") gt 0, listFindNoCase(titleList, "Blog Updates (update needed)") gt 0)>
 						<cfcatch type="any"><cfset upNext = []></cfcatch>
 					</cftry>
-					<cfset upNextIcons = { setup: "SiteSetup", bookings: "Bookings", newBookings: "Bookings", comments:"Comments", update: "BlogUpdate", signups: "Forms", errors: "ErrorLog", draft: "Posts", scheduled: "Posts" }>
+					<cfset upNextIcons = { setup: "SiteSetup", bookings: "Bookings", newBookings: "Bookings", shipOrders: "Orders", comments:"Comments", update: "BlogUpdate", signups: "Forms", errors: "ErrorLog", draft: "Posts", scheduled: "Posts" }>
 					<cfset upNextShown = []>
 					<cfloop array="#upNext#" index="suggestion">
 						<cfif arrayLen(upNextShown) lt 2><cfset arrayAppend(upNextShown, suggestion)></cfif>
@@ -514,6 +525,11 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 							<cfcatch type="any"></cfcatch>
 						</cftry>
 					</cfif>
+					<!--- Paid shop orders this week count with the sign-ups (2026-10-21). --->
+					<cftry>
+						<cfif listFindNoCase(iconList, "Orders")><cfset homeStatus.signUps = homeStatus.signUps + application.shop.getAdminCounts().newThisWeek></cfif>
+						<cfcatch type="any"></cfcatch>
+					</cftry>
 					<cfset homeGroupStatus = {
 						forms: homeStatus.signUps ? homeStatus.signUps & " new this week" : "",
 						logs: homeStatus.errors ? homeStatus.errors & (homeStatus.errors eq 1 ? " new error" : " new errors") : "",
