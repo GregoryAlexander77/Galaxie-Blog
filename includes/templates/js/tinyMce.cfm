@@ -95,6 +95,7 @@
 	<cfparam name="includeCustomWindow" default="false">
 	<cfparam name="includeWebForm" default="false">
 <cfparam name="includeBooking" default="false">
+<cfparam name="includeProduct" default="false">
 	<cfparam name="includeVideoUpload" default="false">
 	<cfparam name="includeGradient" default="false">
 	<cfparam name="includeHeroAnimation" default="false">
@@ -309,7 +310,7 @@
 				edit: { title: 'Edit', items: 'undo redo | cut copy paste | selectall | searchreplace' },
 				view: { title: 'View', items: 'code | visualaid visualchars visualblocks | spellchecker | preview fullscreen' },
 				<!--- Same order as the toolbar buttons (owner, 10-16): link, pictures, video and art, maps, interactive, writing extras, small bits, page structure. --->
-				insert: { title: 'Insert', items: 'link | image fancyBoxGallery carousel | media gradient heroAnimation | map mapRouting | webForm booking customWindow | codesample inserttable template | hr emoticons charmap | toc anchor pagebreak nonbreaking insertdatetime' },
+				insert: { title: 'Insert', items: 'link | image fancyBoxGallery carousel | media gradient heroAnimation | map mapRouting | webForm booking product customWindow | codesample inserttable template | hr emoticons charmap | toc anchor pagebreak nonbreaking insertdatetime' },
 				format: { title: 'Format', items: 'bold italic underline strikethrough superscript subscript codeformat | formats blockformats fontformats fontsizes align lineheight | forecolor backcolor | removeformat' },
 				table: { title: 'Table', items: 'inserttable | cell row column | tableprops deletetable' }
 			},
@@ -889,6 +890,32 @@
 					}
 				});
 			</cfif>				
+			<cfif includeProduct>
+				<!--- The shop (2026-10-21): places a product card in the post. Opens the Insert Product window (115), which inserts
+				<div class="galaxieProduct" data-product="alias or *">[Product: Name]</div>; common/js/shop.js shows it there. --->
+				editor.ui.registry.addIcon(
+					'product',
+					'<svg><span data-fa-symbol="product" class="fontAwesomeIcon fa-solid fa-cart-shopping">&nbsp;</span></svg>'
+				);
+				editor.ui.registry.addButton('product', {
+					text: '<i class="fontAwesomeIcon fa-solid fa-cart-shopping"></i>',
+					tooltip: 'Insert Product',
+					onAction: function (_) {
+						createAdminInterfaceWindow(115);
+					}
+				});
+				editor.ui.registry.addMenuItem('product', {
+					text: 'Product',
+					icon: 'product',
+					onAction: function () {
+						createAdminInterfaceWindow(115);
+					}
+				});
+				<!--- The placeholder stands out in the editor as a dashed box, like a booking's. --->
+				editor.on("init", function() {
+					editor.dom.addStyle(".galaxieProduct { border: 1px dashed #bbb; border-radius: 6px; padding: 10px 14px; margin: 1em 0; }");
+				});
+			</cfif>
 			<cfif includeVideoUpload>
 				<!--- Create the icon --->
 				editor.ui.registry.addIcon(

@@ -1217,23 +1217,26 @@
 	<cfset var title = "">
 	<cfset var replacement = "">
 	<cfset var position = 1>
-	<cfif not findNoCase("galaxieWebForm", result) and not findNoCase("galaxieBooking", result)>
+	<cfif not findNoCase("galaxieWebForm", result) and not findNoCase("galaxieBooking", result) and not findNoCase("galaxieProduct", result)>
 		<cfreturn result>
 	</cfif>
 	<cfloop condition="true">
 		<!--- Our own markup, written by the Insert Form window; the class may sit anywhere among the attributes. --->
 		<!--- Both kinds: the form (galaxieWebForm) and its sign-up list (galaxieWebFormList). --->
-		<cfset match = reFindNoCase('<div[^>]*class="[^"]*\bgalaxie(WebForm|WebFormList|Booking)\b[^"]*"[^>]*>(.*?)</div>', result, position, true)>
+		<cfset match = reFindNoCase('<div[^>]*class="[^"]*\bgalaxie(WebForm|WebFormList|Booking|Product)\b[^"]*"[^>]*>(.*?)</div>', result, position, true)>
 		<cfif not match.pos[1]>
 			<cfbreak>
 		</cfif>
 		<!--- The text inside reads "[Form: Title]" or "[Sign-up list: Title]", already HTML encoded. The quotes around it below are
 		plain ones, not &quot;: the feeds strip the tags but not the entities, so &quot; would reach feed readers as text. --->
 		<cfset title = trim(reReplace(mid(result, match.pos[3], match.len[3]), "<[^>]*>", "", "all"))>
-		<cfset title = trim(reReplaceNoCase(title, "^\[(Form|Sign-up list|Booking):\s*(.*)\]$", "\2"))>
+		<cfset title = trim(reReplaceNoCase(title, "^\[(Form|Sign-up list|Booking|Product):\s*(.*)\]$", "\2"))>
 		<cfif mid(result, match.pos[2], match.len[2]) eq "Booking">
 			<!--- A booking widget (Bookings, 2026-10-14). --->
 			<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) and title neq "All bookings" ? 'Book "' & title & '" on the website' : 'Book a time on the website') & '</a></p>'>
+		<cfelseif mid(result, match.pos[2], match.len[2]) eq "Product">
+			<!--- A product card (the shop, 2026-10-21). --->
+			<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) and title neq "All products" ? 'Buy "' & title & '" on the website' : 'See what''s for sale on the website') & '</a></p>'>
 		<cfelseif mid(result, match.pos[2], match.len[2]) eq "WebFormList">
 			<cfset replacement = '<p><a href="' & encodeForHtmlAttribute(arguments.linkUrl) & '">' & (len(title) ? 'See the sign-up list "' & title & '" on the website' : 'See the sign-up list on the website') & '</a></p>'>
 		<cfelse>

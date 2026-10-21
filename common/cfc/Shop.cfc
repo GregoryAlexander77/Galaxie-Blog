@@ -188,17 +188,25 @@
 
 <cffunction name="getProductsForPage" access="public" returntype="array" output="false"
 		hint="What a visitor's page needs to show products (by alias): name, picture, price and whether it can be bought. Nothing private (no file names, no stock count).">
-	<cfargument name="aliases" type="string" required="true" hint="A comma-separated list.">
+	<cfargument name="aliases" type="string" required="true" hint="A comma-separated list, or * for every product shown on the site (a shop page).">
 	<cfset var list = []>
 	<cfset var a = "">
 	<cfset var p = "">
 	<cfset var settings = getSettings()>
-	<cfloop list="#arguments.aliases#" index="a">
-		<cfset p = getProduct(alias = left(trim(a), 100))>
+	<cfset var found = []>
+	<cfif trim(arguments.aliases) eq "*">
+		<cfset found = listProducts(activeOnly = true)>
+	<cfelse>
+		<cfloop list="#arguments.aliases#" index="a">
+			<cfset arrayAppend(found, getProduct(alias = left(trim(a), 100)))>
+		</cfloop>
+	</cfif>
+	<cfloop array="#found#" index="p">
 		<cfif not structIsEmpty(p) and p.active>
 			<cfset arrayAppend(list, {
 				"alias": p.alias, "name": p.name, "description": p.description, "imageUrl": p.imageUrl, "kind": p.kind,
 				"price": p.price, "priceText": p.priceText, "soldOut": p.soldOut,
+				"shippingText": p.kind eq "physical" ? (p.shippingPrice gt 0 ? money(p.shippingPrice) : "Free") : "",
 				"available": settings.enabled and settings.paymentsReady and not p.soldOut
 			})>
 		</cfif>
@@ -368,7 +376,10 @@
 	<cfset result[ "email" ] = order.email>
 	<cfif result.paid>
 		<cfset result[ "itemsHtml" ] = order.itemsHtml>
-		<cfset result[ "downloads" ] = order.downloads>
+		<!--- Quoted keys: Adobe ColdFusion sends unquoted ones in capitals (NAME, URL), which the page wouldn't find. --->
+		<cfloop array="#order.downloads#" index="local.download">
+			<cfset arrayAppend(result.downloads, { "name": local.download.name, "url": local.download.url, "expires": local.download.expires })>
+		</cfloop>
 	</cfif>
 	<cfreturn result>
 </cffunction>

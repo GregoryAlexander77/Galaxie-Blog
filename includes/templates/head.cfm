@@ -445,6 +445,16 @@ var galaxieLoader = (function() {
 				});
 			}, callback);
 		},
+		<!--- The shop (2026-10-21) - see common/js/shop.js. Versioned by the file's date, like webForms above. --->
+		<cftry>
+			<cfset application.shopJsVersion = dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/shop.js")).lastModified, "yyyymmddHHnnss")>
+			<cfcatch type="any"><cfset application.shopJsVersion = application.blog.getVersion()></cfcatch>
+		</cftry>
+		shop: function(callback) {
+			whenReady('shop', function(ready) {
+				getScript('#application.baseUrl#/common/js/shop.js?v=#encodeForUrl(application.shopJsVersion)#').done(ready);
+			}, callback);
+		},
 		<!--- Member accounts (2026-10-15) - see common/js/members.js. Only downloaded when the owner has turned member accounts on. --->
 		<cftry>
 			<cfset application.membersJsVersion = dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/members.js")).lastModified, "yyyymmddHHnnss")>

@@ -1113,6 +1113,12 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
 				var windowTitle = "Order";
+			} else if (Id == 115){
+				// Insert Product (2026-10-21), from the post editor's Insert Product button - see admin/adminInterface/insertProduct.cfm.
+				var windowName = "insertProductWindow";
+				var windowHeight = "<cfif session.isMobile>50%<cfelse>35%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>40%</cfif>";
+				var windowTitle = "Insert Product";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

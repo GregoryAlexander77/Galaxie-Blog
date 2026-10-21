@@ -150,7 +150,7 @@
 	<cfif smallScreen>
 		<cfset toolbarString = "undo redo | bold italic | link | image media fancyBoxGallery">
 	<cfelse>
-		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link | image editimage fancyBoxGallery | media | map mapRouting | webForm booking customWindow | hr emoticons">
+		<cfset toolbarString = "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link | image editimage fancyBoxGallery | media | map mapRouting | webForm booking product customWindow | hr emoticons">
 	</cfif>
 	<cfset includeGallery = true>
 	<cfset includeCustomWindow = true>
@@ -159,6 +159,8 @@
 	<!--- Booking (2026-10-17): only on pages. A blog post can't hold a booking - a booking stays available, so it belongs on a page. --->
 	<!--- Not on a booking page either (2026-10-17): it adds its own booking form under the text (Booking details sets what it offers). --->
 	<cfset includeBooking = arrayLen(getPost) and getPost[1]['IsPage'] and not postIsBooking>
+	<!--- The shop (2026-10-21): a product card goes in a post or a page. --->
+	<cfset includeProduct = true>
 	</cfsilent>
 	<!--- Include the tinymce js template --->
 	<cfinclude template="#application.baseUrl#/includes/templates/js/tinyMce.cfm">

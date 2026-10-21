@@ -110,6 +110,22 @@ JavaScript the link still goes to their posts or website. --->
 			});
 		}
 	})();
+	// The shop (2026-10-21): only downloaded when the page has a product, the visitor's cart has something in it (its button then
+	// shows on every page), or they come back from Stripe (?shopCheckout=<session> after paying, ?shopCancelled=<token> after
+	// going back). See common/js/shop.js.
+	(function() {
+		var paid = /[?&]shopCheckout=(cs_[A-Za-z0-9_]+)/.exec(window.location.search);
+		var cancelled = /[?&]shopCancelled=([a-f0-9]{64})/.exec(window.location.search);
+		var hasCart = false;
+		try { hasCart = (window.localStorage.getItem("galaxieShopCart") || "[]").length > 2; } catch (e) {}
+		if (!paid && !cancelled && !hasCart && !$('.galaxieProduct[data-product]').length) { return; }
+		galaxieLoader.shop(function() {
+			galaxieShop.init({ baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
+			if (paid || cancelled) {
+				galaxieShop.checkoutReturn({ session: paid ? paid[1] : "", cancelled: cancelled ? cancelled[1] : "" }, { baseUrl: '<cfoutput>#application.baseUrl#</cfoutput>' });
+			}
+		});
+	})();
 	// A visitor's "Cancel or change this booking" link (?manageBooking=<token>) opens their booking on whatever page it lands.
 	(function() {
 		var match = /[?&]manageBooking=([a-f0-9]{64})/.exec(window.location.search);

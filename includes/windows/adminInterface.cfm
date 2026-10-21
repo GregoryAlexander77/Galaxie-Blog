@@ -1213,6 +1213,10 @@ admin/adminInterface/scenes.cfm, sceneDetail.cfm and common/cfc/Scenes.cfc. --->
 <cfcase value=114>
 	<cfinclude template="../../admin/adminInterface/shopOrderDetail.cfm">
 </cfcase>
+<!--- 115 Insert Product, from the post editor's Insert Product button. See admin/adminInterface/insertProduct.cfm. --->
+<cfcase value=115>
+	<cfinclude template="../../admin/adminInterface/insertProduct.cfm">
+</cfcase>
 <!--- 110 Themes (5.0): pick the theme in use, customize a theme with a live preview, the site's pictures, content and custom code.
 See admin/adminInterface/themeEditor.cfm. The old Themes grid (29) and settings (30) stay for the settings not moved yet. --->
 <cfcase value=110>

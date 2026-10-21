@@ -14721,5 +14721,99 @@
 		<cfcontent type="text/csv; charset=utf-8" reset="true"><cfoutput>#chr(65279)##application.shop.getOrdersCsv()#</cfoutput><cfabort>
 	</cffunction>
 
+	<!--- ********************************************************************************************************************
+		The shop on the site (2026-10-21) - used by visitors, so no login and no admin CSRF token. Prices, stock and totals are
+		always worked out again here from the products as they are now (Shop.cfc priceCart); the cart in the visitor's browser
+		only says which products and how many. Nothing is paid or confirmed from the browser: Stripe's webhook (or the blog asking
+		Stripe itself) does that. See common/js/shop.js.
+	********************************************************************************************************************* --->
+
+	<cffunction name="getShopProducts" access="remote" returnformat="json" output="false" hint="The products for the product cards on a page: a comma-separated list of aliases, or * for every product.">
+		<cfargument name="aliases" type="string" required="false" default="">
+		<cfset var response = { "success": true, "products": [], "currency": "" }>
+		<cfset var settings = application.shop.getSettings()>
+		<cfset response[ "products" ] = application.shop.getProductsForPage(left(trim(arguments.aliases), 2000))>
+		<cfset response[ "currency" ] = settings.currency>
+		<cfset response[ "open" ] = settings.enabled and settings.paymentsReady>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="priceShopCart" access="remote" returnformat="json" output="false" hint="The visitor's cart, checked and priced: lines, shipping, tax and total, and why anything changed.">
+		<cfargument name="itemsJson" type="string" required="false" default="[]" hint="JSON: [{ alias, quantity }].">
+		<cfset var response = { "success": false }>
+		<cfset var cart = "">
+		<cfset var items = isJSON(arguments.itemsJson) ? deserializeJSON(arguments.itemsJson) : []>
+		<cfif isArray(items) and arrayLen(items) lte 50>
+			<cfset cart = application.shop.priceCart(items)>
+			<cfset response = {
+				"success": true, "lines": cart.lines, "errors": cart.errors, "needsShipping": cart.needsShipping,
+				"subtotalText": cart.subtotalText, "shippingText": cart.shippingText, "taxText": cart.taxText, "taxLabel": cart.taxLabel,
+				"totalText": cart.totalText, "open": application.shop.getSettings().enabled and application.shop.getSettings().paymentsReady
+			}>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="startShopCheckout" access="remote" returnformat="json" output="false" hint="Makes a pending order from the visitor's cart and returns Stripe's checkout address.">
+		<cfargument name="itemsJson" type="string" required="false" default="[]">
+		<cfargument name="returnUrl" type="string" required="false" default="" hint="The page the visitor checks out from; they come back to it from Stripe.">
+		<cfset var response = { "success": false, "checkoutUrl": "", "message": "" }>
+		<cfset var items = isJSON(arguments.itemsJson) ? deserializeJSON(arguments.itemsJson) : []>
+		<cfset var backTo = listFirst(trim(arguments.returnUrl), "?##")>
+		<cfset var ip = cgi.remote_addr>
+		<cfset var key = "">
+		<cfset var stamp = "">
+		<cfset var recent = []>
+		<cfset var started = "">
+		<cfif not isArray(items) or not arrayLen(items) or arrayLen(items) gt 50>
+			<cfset response[ "message" ] = "Your cart is empty.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<!--- At most 20 checkouts an hour from one address: each makes a pending order and a Stripe checkout. --->
+		<cflock name="galaxieShopCheckoutRateLimit" type="exclusive" timeout="10">
+			<cfif not structKeyExists(application, "shopCheckoutRateLimit") or not isStruct(application.shopCheckoutRateLimit)>
+				<cfset application.shopCheckoutRateLimit = {}>
+			</cfif>
+			<cfloop collection="#application.shopCheckoutRateLimit#" item="key">
+				<cfset recent = []>
+				<cfloop array="#application.shopCheckoutRateLimit[key]#" index="stamp">
+					<cfif dateDiff("n", stamp, now()) lt 60><cfset arrayAppend(recent, stamp)></cfif>
+				</cfloop>
+				<cfif arrayLen(recent)><cfset application.shopCheckoutRateLimit[key] = recent><cfelse><cfset structDelete(application.shopCheckoutRateLimit, key)></cfif>
+			</cfloop>
+			<cfset recent = structKeyExists(application.shopCheckoutRateLimit, ip) ? application.shopCheckoutRateLimit[ip] : []>
+			<cfif arrayLen(recent) gte 20>
+				<cfset response[ "message" ] = "Too many checkouts have been started from your connection in the last hour. Please try again later.">
+				<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+			</cfif>
+			<cfif not structKeyExists(application.shopCheckoutRateLimit, ip)><cfset application.shopCheckoutRateLimit[ip] = []></cfif>
+			<cfset arrayAppend(application.shopCheckoutRateLimit[ip], now())>
+		</cflock>
+		<!--- Back to the same page on this blog only. --->
+		<cfif not len(backTo) or left(backTo, len(application.blogHostUrl)) neq application.blogHostUrl or reFind("[\s<>""']", backTo)>
+			<cfset backTo = application.blogHostUrl & "/">
+		</cfif>
+		<cfset started = application.shop.startCheckout(items = items, returnUrl = backTo)>
+		<cfset response[ "success" ] = started.success>
+		<cfset response[ "checkoutUrl" ] = started.checkoutUrl>
+		<cfset response[ "message" ] = started.message>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getShopCheckoutResult" access="remote" returnformat="json" output="false" hint="When a buyer comes back from Stripe: whether the order is paid, what they bought and their download links.">
+		<cfargument name="sessionId" type="string" required="false" default="">
+		<cfset var response = { "success": false, "paid": false }>
+		<cfif reFind("^cs_[A-Za-z0-9_]+$", trim(arguments.sessionId))>
+			<cfset response = application.shop.getCheckoutResult(trim(arguments.sessionId))>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="cancelShopCheckout" access="remote" returnformat="json" output="false" hint="The buyer came back from Stripe without paying: closes the checkout and drops the pending order.">
+		<cfargument name="token" type="string" required="false" default="">
+		<cfset var response = { "success": application.shop.cancelCheckout(trim(arguments.token)) }>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 </cfcomponent>
 	
