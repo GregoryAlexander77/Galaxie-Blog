@@ -1119,6 +1119,12 @@
 				var windowHeight = "<cfif session.isMobile>50%<cfelse>35%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>40%</cfif>";
 				var windowTitle = "Insert Product";
+			} else if (Id == 116){
+				// A shop page (2026-10-21): what the page offers - see admin/adminInterface/shopPageDetail.cfm. optArgs is the PostId.
+				var windowName = "shopPageWindow";
+				var windowHeight = "<cfif session.isMobile>80%<cfelse>60%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>45%</cfif>";
+				var windowTitle = "Shop page";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

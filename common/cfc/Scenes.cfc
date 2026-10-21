@@ -12,7 +12,8 @@
 	  SceneLayer    SceneLayerId, SceneSectionRef, SortOrder, Src, SrcPhone, Depth
 --->
 
-<cfset variables.kinds = "text,imageSlide,layeredHero,photoHero,vantaHero,gradientHero,videoHero,slideshow,form,map">
+<!--- product (2026-10-21): a product from the shop, with a heading and text. --->
+<cfset variables.kinds = "text,imageSlide,layeredHero,photoHero,vantaHero,gradientHero,videoHero,slideshow,form,map,product">
 
 <!---//*****************************************************************************************************
 		Reading

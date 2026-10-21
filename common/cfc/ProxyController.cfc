@@ -11533,7 +11533,9 @@
 					"success": true,
 					"bookings": application.members.getAccountBookings(member),
 					"signups": application.members.getAccountSignups(member),
-					"subscriptions": application.members.getAccountSubscriptions(member)
+					"subscriptions": application.members.getAccountSubscriptions(member),
+					<!--- Shop orders (2026-10-21): paid orders and the download links that still work. --->
+					"orders": structKeyExists(application, "shop") ? application.shop.getMemberOrders(member) : []
 				}>
 			</cfif>
 		</cfif>
@@ -14812,6 +14814,48 @@
 	<cffunction name="cancelShopCheckout" access="remote" returnformat="json" output="false" hint="The buyer came back from Stripe without paying: closes the checkout and drops the pending order.">
 		<cfargument name="token" type="string" required="false" default="">
 		<cfset var response = { "success": application.shop.cancelCheckout(trim(arguments.token)) }>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="saveShopPage" access="remote" returnformat="json" output="false"
+			hint="Makes a page a shop page, or changes what it offers (2026-10-21, the Shop page window, 116). Returns { success, errorMessage, label }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" required="false" default="0">
+		<cfargument name="offer" type="string" required="false" default="">
+		<cfset var response = { "success": false, "errorMessage": "", "label": "" }>
+		<cfset var result = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId) and arguments.postId gt 0>
+			<cfset result = application.shop.setPageOffer(val(arguments.postId), arguments.offer)>
+			<cfset response[ "success" ] = result.success>
+			<cfset response[ "errorMessage" ] = arrayToList(result.errors, " ")>
+			<cfif result.success>
+				<cfset response[ "label" ] = application.shop.offerLabel(application.shop.getPageOffer(val(arguments.postId)))>
+				<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="removeShopPage" access="remote" returnformat="json" output="false"
+			hint="Makes a shop page an ordinary page again: the products come off, the page and its text stay (2026-10-21). Returns { success }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" required="false" default="0">
+		<cfset var response = { "success": false }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId) and arguments.postId gt 0>
+			<cfset application.shop.removePage(val(arguments.postId))>
+			<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
+			<cfset response[ "success" ] = true>
+		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 

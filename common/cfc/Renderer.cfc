@@ -828,7 +828,20 @@
 				<cfcatch type="any"></cfcatch>
 			</cftry>
 		</cfif>
-		<cfif not len(enclosureHtml)>
+		<!--- A booking or shop page with no picture of its own (2026-10-21, owner): no picture area at all on its own page, instead
+		of the no-picture stand-in, so the page's text and its booking form or products start at the top. A picture the owner adds
+		still shows. --->
+		<cfif not len(enclosureHtml) and arguments.isSinglePostPage and isBoolean(getPost[arguments.currentRow]["IsPage"] ?: "") and getPost[arguments.currentRow]["IsPage"]>
+			<cftry>
+				<cfset local.servicePageId = getPost[arguments.currentRow]["PostId"]>
+				<cfif (structKeyExists(application, "bookings") and len(application.bookings.getPageOffer(local.servicePageId)))
+					or (structKeyExists(application, "shop") and len(application.shop.getPageOffer(local.servicePageId)))>
+					<cfset local.heroKind = "none">
+				</cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+		</cfif>
+		<cfif not len(enclosureHtml) and (local.heroKind ?: "") neq "none">
 			<cfset heroFallback = this.getHeroFallbackHtml(postId=getPost[arguments.currentRow]["PostId"], cardMode=false, isSinglePostPage=arguments.isSinglePostPage)>
 			<cfif heroFallback.isHtml>
 				<cfset enclosureHtml = heroFallback.content>

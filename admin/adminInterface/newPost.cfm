@@ -138,7 +138,7 @@
 					$('.field-dateAuthor').hide();
 					$('.field-heroImage').show();
 					$('#newPostSubmit').text('Next');
-				} else if (postType === 'page' || postType === 'booking') {
+				} else if (postType === 'page' || postType === 'booking' || postType === 'shop') {
 					$('.field-dateAuthor').hide();
 					$('.field-heroImage').hide();
 					$('#newPostSubmit').text('Next');
@@ -157,6 +157,8 @@
 						$("#newPostWindow").data("kendoWindow").title("Create Event");
 					} else if (postType === 'booking') {
 						$("#newPostWindow").data("kendoWindow").title("Create Booking Page");
+					} else if (postType === 'shop') {
+						$("#newPostWindow").data("kendoWindow").title("Create Shop Page");
 					} else {
 						$("#newPostWindow").data("kendoWindow").title("Create Post");
 					}
@@ -245,6 +247,8 @@
 				if ($("input[name='postType']:checked").val() === 'event') { createAdminInterfaceWindow(99, response.postId); }
 				<!--- A booking page (2026-10-17): the booking page window opens on top, to choose what it offers. --->
 				if ($("input[name='postType']:checked").val() === 'booking') { createAdminInterfaceWindow(104, response.postId); }
+				<!--- A shop page (2026-10-21): the shop page window opens on top, to choose what it shows. --->
+				if ($("input[name='postType']:checked").val() === 'shop') { createAdminInterfaceWindow(116, response.postId); }
 				<!--- Close this window --->
 				jQuery('#newPostWindow').kendoWindow('destroy');
 			} else {
@@ -330,13 +334,13 @@
 		<!--- Labels are h4.adminBlockHeading (owner, 2026-10-17). Post type in rows (owner, 2026-10-17): Blog post, Page and Collection each on their own row, with a few words on what it is. --->
 		<cfif session.isMobile>
 		  <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Blog post:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label> <div class="k-form-hint">Dated and listed newest first on your blog, in the RSS feed and in subscriber emails, and can have comments. An <b>event</b> is an article with a date, time and place that visitors can add to their calendar or sign up for.</div></td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Blog post:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking,newShop", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label> <div class="k-form-hint">Dated and listed newest first on your blog, in the RSS feed and in subscriber emails, and can have comments. An <b>event</b> is an article with a date, time and place that visitors can add to their calendar or sign up for.</div></td>
 		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Page:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label> <div class="k-form-hint">Stays up as it is: no date, no comments, not in the RSS feed, and linked from your menu. A <b>booking</b> page adds a booking form, so visitors can book a time with you.</div></td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Page:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="shop" value="shop" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newShop'>checked</cfif> /> Shop</label> <div class="k-form-hint">Stays up as it is: no date, no comments, not in the RSS feed, and linked from your menu. A <b>booking</b> page adds a booking form, so visitors can book a time with you, and a <b>shop</b> page lists products to buy.</div></td>
 		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -348,7 +352,7 @@
 		  <tr valign="middle">
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<!--- Trimmed (owner, 2026-10-17): each choice below now has a few words of its own. --->
-			Blog posts are dated, listed newest first in your blog and RSS feed, and can have comments. Pages stay put, are linked from your menu, and have no date or comments. After Next, an event or a booking page opens its own window so you can set it up.
+			Blog posts are dated, listed newest first in your blog and RSS feed, and can have comments. Pages stay put, are linked from your menu, and have no date or comments. After Next, an event, a booking page or a shop page opens its own window so you can set it up.
 			</td>
 		  </tr>
 		  <tr height="2px">
@@ -356,14 +360,14 @@
 		  </tr>
 		  <tr valign="middle" height="35">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Blog post:</h4></td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label> <div class="k-form-hint">Dated and listed newest first on your blog, in the RSS feed and in subscriber emails, and can have comments. An <b>event</b> is an article with a date, time and place that visitors can add to their calendar or sign up for.</div></td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking,newShop", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label> <div class="k-form-hint">Dated and listed newest first on your blog, in the RSS feed and in subscriber emails, and can have comments. An <b>event</b> is an article with a date, time and place that visitors can add to their calendar or sign up for.</div></td>
 		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr valign="middle" height="35">
 			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Page:</h4></td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label> <div class="k-form-hint">Stays up as it is: no date, no comments, not in the RSS feed, and linked from your menu. A <b>booking</b> page adds a booking form, so visitors can book a time with you.</div></td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="shop" value="shop" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newShop'>checked</cfif> /> Shop</label> <div class="k-form-hint">Stays up as it is: no date, no comments, not in the RSS feed, and linked from your menu. A <b>booking</b> page adds a booking form, so visitors can book a time with you, and a <b>shop</b> page lists products to buy.</div></td>
 		  </tr>
 		  <tr height="1px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>

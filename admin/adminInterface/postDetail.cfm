@@ -20,6 +20,11 @@
 	<cfset postBookingOffer = arrayLen(getPost) and getPost[1]['IsPage'] ? application.bookings.getPageOffer(getPost[1]['PostId']) : "">
 	<cfset postIsBooking = len(postBookingOffer) gt 0>
 	<cfset postBookingLabel = postIsBooking ? application.bookings.offerLabel(postBookingOffer) : "">
+	<!--- Is this page a shop page? Shop is a Post Type beside Booking (2026-10-21): a page whose text is followed by products
+	(admin/adminInterface/shopPageDetail.cfm, window 116; common/cfc/Shop.cfc, Shop pages). --->
+	<cfset postShopOffer = arrayLen(getPost) and getPost[1]['IsPage'] ? application.shop.getPageOffer(getPost[1]['PostId']) : "">
+	<cfset postIsShop = len(postShopOffer) gt 0>
+	<cfset postShopLabel = postIsShop ? application.shop.offerLabel(postShopOffer) : "">
 	<!---<cfdump var="#getPost#">--->
 		
 	<!--- Get the Body --->
@@ -1109,7 +1114,7 @@
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 	  <tr>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><b>Page:</b> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking>checked</cfif>/> Page</label><cfif getPost[1]['IsPage']><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label></cfif> <span class="k-form-hint">stays put, on your menu</span> <span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span></td>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><b>Page:</b> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking and not postIsShop>checked</cfif>/> Page</label><cfif getPost[1]['IsPage']><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="shop" <cfif postIsShop>checked</cfif>/> Shop</label></cfif> <span class="k-form-hint">stays put, on your menu</span> <span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span> <span class="postShopRow"><button type="button" class="k-button" id="postShopDetails">Shop details</button> <span class="k-form-hint" id="postShopSummary"><cfoutput>#encodeForHtml(postShopLabel)#</cfoutput></span></span></td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
@@ -1121,7 +1126,7 @@
 	  </tr>
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">Page:</td>
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking>checked</cfif>/> Page</label><cfif getPost[1]['IsPage']><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label></cfif> <span class="k-form-hint">stays put, on your menu</span> <span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span></td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking and not postIsShop>checked</cfif>/> Page</label><cfif getPost[1]['IsPage']><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="shop" <cfif postIsShop>checked</cfif>/> Shop</label></cfif> <span class="k-form-hint">stays put, on your menu</span> <span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span> <span class="postShopRow"><button type="button" class="k-button" id="postShopDetails">Shop details</button> <span class="k-form-hint" id="postShopSummary"><cfoutput>#encodeForHtml(postShopLabel)#</cfoutput></span></span></td>
 	  </tr>
 	</cfif>
 	<!--- Event preview (owner, 10-16): the event card exactly as visitors see it at the top of the post - the same
@@ -1732,11 +1737,13 @@ opens it again. Leaving Event takes the event details off the post after asking 
 		var postId = <cfoutput>#getPost[1]['PostId']#</cfoutput>;
 		var isEvent = <cfoutput>#postIsEvent ? "true" : "false"#</cfoutput>;
 		var isBooking = <cfoutput>#postIsBooking ? "true" : "false"#</cfoutput>;
+		var isShop = <cfoutput>#postIsShop ? "true" : "false"#</cfoutput>;
 
 		function chosenType() { return $("input[name=postType]:checked").val(); }
 		function refreshEventRow() {
 			$(".postEventRow").toggle(chosenType() === "event");
 			$(".postBookingRow").toggle(chosenType() === "booking");
+			$(".postShopRow").toggle(chosenType() === "shop");
 			$("tr.postEventRow").toggle(chosenType() === "event" && isEvent);
 		}
 		<!--- The card as visitors see it, from the server (ProxyController getEventCardPreview). --->
@@ -1753,6 +1760,7 @@ opens it again. Leaving Event takes the event details off the post after asking 
 
 		$("#postEventDetails").on("click", function() { createAdminInterfaceWindow(99, postId); });
 		$("#postBookingDetails").on("click", function() { createAdminInterfaceWindow(104, postId); });
+		$("#postShopDetails").on("click", function() { createAdminInterfaceWindow(116, postId); });
 
 		<!--- The line beside the Hero button (2026-10-20): the post's scene or hero text. The Scene and Hero text windows call this after
 		saving, since their buttons moved into the Hero editor. --->
@@ -1772,6 +1780,33 @@ opens it again. Leaving Event takes the event details off the post after asking 
 
 		$("input[name=postType]").on("change", function() {
 			var chosen = $(this).val();
+			<!--- Shop (2026-10-21): a shop page is a page with products under its text, like a booking page. Choosing it opens the
+			shop page window; leaving it takes the products off after asking (the page and its text stay). --->
+			if (chosen === "shop") {
+				refreshEventRow();
+				if (!isShop) {
+					$("#postShopSummary").text("Not set up yet: choose what it shows.");
+					createAdminInterfaceWindow(116, postId);
+				}
+				return;
+			}
+			if (isShop) {
+				$.when(kendo.ui.ExtYesNoDialog.show({ title: "Take the products off?", message: "This page stops being a shop page: the products come off. The page and its text stay.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
+					if (answer['button'] !== 'Yes') { setType("shop"); return; }
+					jQuery.ajax({
+						type: "post",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removeShopPage",
+						data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId },
+						dataType: "json",
+						success: function(result) {
+							if (typeof result === "string") { try { result = JSON.parse(result); } catch (e) {} }
+							if (result && result.success) { isShop = false; $("#postShopSummary").text(""); setType(chosen); $("input[name=postType][value=" + chosen + "]").trigger("change"); } else { setType("shop"); }
+						},
+						error: function(jqXHR) { setType("shop"); if (jqXHR.status === 403) { createLoginWindow(); } }
+					});
+				});
+				return;
+			}
 			<!--- Booking (2026-10-17): a booking page is a page with a booking form. Choosing it opens the booking page window;
 			leaving it takes the form off after asking (the page and its text stay). --->
 			if (chosen === "booking") {
@@ -1862,6 +1897,20 @@ opens it again. Leaving Event takes the event details off the post after asking 
 			$("#postEventSummary").text("");
 			setType("blogPost");
 			$("#postEventPreview").empty();
+		});
+
+		<!--- The shop page window (116) reports saves and removals. --->
+		$(document).off("galaxieShopPageSaved.postEditor").on("galaxieShopPageSaved.postEditor", function(e, info) {
+			if (!info || info.postId != postId) { return; }
+			isShop = true;
+			$("#postShopSummary").text(info.label || "");
+			setType("shop");
+		});
+		$(document).off("galaxieShopPageRemoved.postEditor").on("galaxieShopPageRemoved.postEditor", function(e, info) {
+			if (!info || info.postId != postId) { return; }
+			isShop = false;
+			$("#postShopSummary").text("");
+			setType("page");
 		});
 
 		<!--- The booking page window (104) reports saves and removals. --->

@@ -110,7 +110,9 @@ var galaxieShop = (function($) {
 					var byAlias = {};
 					var all = (result && result.products) || [];
 					$.each(all, function(i, p) { byAlias[p.alias] = p; });
-					boxes.each(function() {
+					// Looked up again now, not the boxes found before the request: a scene can rebuild its sections in the meantime,
+					// and a card added to a box that left the page would never show.
+					$(".galaxieProduct[data-product]").each(function() {
 						var box = $(this).empty();
 						var aliases = String(box.attr("data-product")) === "*" ? all.map(function(p) { return p.alias; }) : String(box.attr("data-product")).split(",");
 						var shown = 0;

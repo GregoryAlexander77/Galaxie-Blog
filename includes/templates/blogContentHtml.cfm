@@ -210,6 +210,10 @@
 				<!--- A booking page (2026-10-17, owner): reads like a service page - no byline, author box, reactions, comments,
 				Subscribe or "posted on" line, as a booking isn't dated or discussed (common/cfc/Bookings.cfc, Booking pages). --->
 				<cfset postIsBookingPage = postIsPage and getPageMode() eq 'post' and structKeyExists(application, "bookings") and len(application.bookings.getPageOffer(postId)) gt 0>
+				<!--- A shop page (2026-10-21) reads the same way (common/cfc/Shop.cfc, Shop pages). --->
+				<cfif not postIsBookingPage and postIsPage and getPageMode() eq 'post' and structKeyExists(application, "shop")>
+					<cfset postIsBookingPage = len(application.shop.getPageOffer(postId)) gt 0>
+				</cfif>
 				<cfset postAlias = getPost[i]["PostAlias"]>
 				<cfset postUuid = getPost[i]["PostUuid"]>
 				<cfset themeId = getPost[i]["ThemeRef"]>
@@ -474,6 +478,8 @@
 								<!--- A booking page (2026-10-17): the booking form under the page's text (Bookings.cfc renderPageWidgetHtml). --->
 								<!--- Not when the text already has a booking placed with Insert > Booking (2026-10-17), so it's never shown twice. --->
 								<cfif getPageMode() eq 'post' and structKeyExists(application, "bookings") and not reFindNoCase('class="galaxieBooking["[:space:]]', post)>#application.bookings.renderPageWidgetHtml(postId)#</cfif>
+								<!--- A shop page (2026-10-21): the products under the page's text (Shop.cfc renderPageWidgetHtml). --->
+								<cfif getPageMode() eq 'post' and postIsPage and structKeyExists(application, "shop") and not findNoCase('data-product="*"', post)>#application.shop.renderPageWidgetHtml(postId)#</cfif>
 								<!--- If the more tag exists and we are not looking at a page, summarize the content (done when we set the postContent in logic above) and render a button to get to the full post. --->
 							<cfif len(morebody)>
 								<!--- Show a button in single page mode --->

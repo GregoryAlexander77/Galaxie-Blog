@@ -3,6 +3,7 @@ switches are saved by ProxyController.cfc's saveShopSettings -> application.shop
 not a grid: a small shop has a handful of products. --->
 <cfset shopSettings = application.shop.getSettings()>
 <cfset shopProducts = application.shop.listProducts()>
+<cfset shopPages = application.shop.getShopPages()>
 <cfset kindLabels = { physical: "Shipped", digital: "Download", service: "Service" }>
 
 <script>
@@ -56,6 +57,15 @@ not a grid: a small shop has a handful of products. --->
 			<button type="button" class="k-button k-primary" onclick="createAdminInterfaceWindow(112, 0);">Add a product</button>
 			<button type="button" class="k-button" onclick="createAdminInterfaceWindow(113, 'paid');">Orders</button>
 		</td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+
+	<!--- Shop pages (2026-10-21): pages with your text and the products under it, like booking pages. --->
+	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#"><button type="button" class="k-button k-primary" style="width: 100%;" onclick="createAdminInterfaceWindow(24, 'newShop');">New shop page</button></td>
+		<td class="#blockClass#">Where visitors shop: a page with your text and the products under it. It stays up, isn't dated and isn't in your RSS feed.<cfloop array="#shopPages#" index="thisShopPage"><br/><a href="#encodeForHtmlAttribute(thisShopPage.url)#" target="_blank" rel="noopener">#encodeForHtml(thisShopPage.title)#</a> (#encodeForHtml(thisShopPage.label)#<cfif not thisShopPage.released>, not published yet</cfif>) <a href="javascript:createAdminInterfaceWindow(116, #thisShopPage.postId#);">Change</a></cfloop></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 

@@ -307,6 +307,19 @@
 		note.textContent = "[Form: " + (section.formTitle || section.form) + "]";
 	}
 
+	// A product from the shop (2026-10-21): a text block, then the product's card with its Add to cart button (common/js/shop.js),
+	// or every product for "*". Where the shop script can't run (the editor's preview), the placeholder shows the product's name.
+	function buildProduct(section, root) {
+		buildText(section, root);
+		var alias = String(section.product || "");
+		if (alias !== "*" && !/^[a-z0-9-]{1,100}$/i.test(alias)) { return; }
+		var holder = el("div", "gs-formHolder gs-reveal", root);
+		var placeholder = el("div", "galaxieProduct", holder);
+		placeholder.setAttribute("data-product", alias);
+		var note = el("span", "gs-formNote", placeholder);
+		note.textContent = "[Product: " + (section.productName || (alias === "*" ? "All products" : alias)) + "]";
+	}
+
 	// A map: a text block, then the map, live, in a frame - the same page (preview/maps.cfm) a map in a post shows.
 	function buildMap(data, section, root) {
 		buildText(section, root);
@@ -324,6 +337,14 @@
 
 	// Forms load after the page does (common/js/webForms.js), and a scene's content comes later still, so the scene starts the form
 	// loader itself. Where there is none (the editor's preview), the placeholder shows the form's name.
+	// Products the same way (2026-10-21): the shop script is downloaded when the scene has one.
+	function startShop(container, data) {
+		if (!container.querySelector(".galaxieProduct[data-product]") || !window.galaxieLoader || !window.galaxieLoader.shop) { return; }
+		window.galaxieLoader.shop(function () {
+			if (window.galaxieShop) { window.galaxieShop.init({ baseUrl: setting(data, null, "baseUrl") }); }
+		});
+	}
+
 	function startForms(container, data) {
 		if (!container.querySelector(".galaxieWebForm[data-webform]") || !window.galaxieLoader || !window.galaxieLoader.webForms) { return; }
 		window.galaxieLoader.webForms(function () {
@@ -620,6 +641,7 @@
 			else if (section.kind === "slideshow") { buildSlideshow(section, root); }
 			else if (section.kind === "form") { buildForm(section, root); }
 			else if (section.kind === "map") { buildMap(data, section, root); }
+			else if (section.kind === "product") { buildProduct(section, root); }
 			else if (HERO_KINDS[section.kind]) { buildHero(data, section, root, next); }
 			else { root.style.display = "none"; return; }   // unknown kinds (map, event...) come in a later phase
 			built.push({ section: section, root: root });
@@ -647,6 +669,7 @@
 		});
 
 		startForms(container, data);
+		startShop(container, data);
 
 		if (still) {
 			container.classList.add("gs-still");

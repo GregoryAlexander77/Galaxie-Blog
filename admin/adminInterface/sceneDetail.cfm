@@ -77,6 +77,16 @@ this scene. Drafts are listed too (a scene can go on a post before it is release
 	<cfcatch type="any"></cfcatch>
 </cftry>
 <!--- The blog's forms (owner, 10-19), for a Form section. --->
+<!--- The shop's products (2026-10-21), for a Product section: { alias, name, price }. --->
+<cfset sceneProductParts = []>
+<cfif structKeyExists(application, "shop")>
+	<cftry>
+		<cfloop array="#application.shop.listProducts(activeOnly = true)#" index="thisSceneProduct">
+			<cfset arrayAppend(sceneProductParts, '{"alias":' & serializeJSON(toString(thisSceneProduct.alias)) & ',"name":' & serializeJSON(toString(thisSceneProduct.name)) & ',"price":' & serializeJSON(toString(thisSceneProduct.priceText)) & '}')>
+		</cfloop>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+</cfif>
 <cfset sceneFormParts = []>
 <cfif structKeyExists(application, "webForms")>
 	<cftry>
@@ -300,6 +310,7 @@ $(document).ready(function () {
 	var SHOWN_ON = <cfoutput>#serializeJSON(sceneShownOn)#</cfoutput>;
 	var READY_FORMS = <cfoutput>#replace("[" & arrayToList(sceneReadyParts, ",") & "]", "</", "<\/", "all")#</cfoutput>;   <!--- { key, name } --->
 	var MAPS = <cfoutput>#replace(replace("[" & arrayToList(sceneMapParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- { id, title, routes } --->
+	var PRODUCTS = <cfoutput>#replace(replace("[" & arrayToList(sceneProductParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;
 	var FORMS = <cfoutput>#replace(replace("[" & arrayToList(sceneFormParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- { alias, title, active } --->   <!--- the post ids that show this scene now --->   <!--- the blog's posts and pages: { id, title, page, released, url } --->
 	var selected = -1;            <!--- -1 is the scene's own settings; 0... a section --->
 	var aliasTyped = sceneId > 0; <!--- a new scene's name in posts follows its title until it is typed in --->
@@ -317,7 +328,8 @@ $(document).ready(function () {
 		{ kind: "imageSlide", label: "Image slide", hint: "A picture that moves slower than the page." },
 		{ kind: "slideshow", label: "Slideshow", hint: "Pictures with captions; each scroll brings in the next." },
 		{ kind: "form", label: "Form", hint: "One of your forms, with a heading and text." },
-		{ kind: "map", label: "Map", hint: "One of your Azure maps, live, with a heading and text." }
+		{ kind: "map", label: "Map", hint: "One of your Azure maps, live, with a heading and text." },
+		{ kind: "product", label: "Product", hint: "Something from your shop, with an Add to cart button." }
 	];
 	<!--- Kinds whose words are their own (each slide's heading and caption), not the section's heading and text. --->
 	var OWN_TEXT = { slideshow: 1 };
@@ -419,6 +431,11 @@ $(document).ready(function () {
 		map: [
 			{ key: "mapId", label: "Map", type: "map" },
 			{ key: "mapHeight", label: "Map height", type: "select", options: [["50", "Half the screen"], ["70", "Most of the screen"], ["100", "The whole screen"]] },
+			{ key: "colour", label: "Background color", type: "colour" },
+			{ key: "gradient", label: "Or a gradient (used instead of the color)", type: "gradient" }
+		],
+		product: [
+			{ key: "product", label: "Product", type: "product" },
 			{ key: "colour", label: "Background color", type: "colour" },
 			{ key: "gradient", label: "Or a gradient (used instead of the color)", type: "gradient" }
 		],
@@ -691,6 +708,23 @@ $(document).ready(function () {
 				setValue("mapId", m.id); setValue("mapType", m.routes ? "route" : "static"); schedulePreview();
 			});
 			wrap.append(mapPick, $('<div class="k-form-hint"></div>').text("The map is live: visitors can move and zoom it. Change the map itself in the post it was made in."));
+			return wrap;
+		}
+		if (field.type === "product") {
+			<!--- Which product (2026-10-21), or every product for a small shop right in the scene. --->
+			var productPick = $('<select></select>').attr("id", id);
+			if (!value) { productPick.append('<option value="">Choose a product...</option>'); }
+			productPick.append($('<option></option>').attr("value", "*").text("All products"));
+			$.each(PRODUCTS, function (i, p) { productPick.append($('<option></option>').attr("value", p.alias).text(p.name + " (" + p.price + ")")); });
+			productPick.val(value || "");
+			productPick.on("change", function () {
+				var v = productPick.val();
+				if (!v) { return; }
+				var p = $.grep(PRODUCTS, function (x) { return x.alias === v; })[0];
+				setValue("product", v); setValue("productName", v === "*" ? "All products" : (p ? p.name : v));
+				schedulePreview();
+			});
+			wrap.append(productPick, $('<div class="k-form-hint"></div>').text(PRODUCTS.length ? "Visitors add it to their cart right in the scene. The preview here shows its name; the site shows the card." : "You have no products shown on the site yet. Add one under Forms, Bookings and Shop > Products."));
 			return wrap;
 		}
 		if (field.type === "form") {
@@ -1033,6 +1067,10 @@ $(document).ready(function () {
 			if ($.grep(READY_FORMS, function (r) { return r.key === "contact"; }).length) { s.pendingReadyMade = "contact"; s.formTitle = "Contact"; }
 		}
 		if (kind === "slideshow") { s.slides = []; s.colour = "#111111"; delete s.html; }
+		if (kind === "product") {
+			s.heading = "From the shop"; s.html = ""; s.colour = scene.pageColour || "#392630";
+			if (PRODUCTS.length) { s.product = PRODUCTS[0].alias; s.productName = PRODUCTS[0].name; }
+		}
 		if (kind === "map") { s.heading = "Where to find us"; s.html = ""; s.colour = scene.pageColour || "#392630"; s.mapHeight = "70"; if (MAPS.length) { s.mapId = MAPS[0].id; s.mapType = MAPS[0].routes ? "route" : "static"; } }
 		if (kind === "gradientHero") { s.gradient = "linear-gradient(135deg, #1d4350 0%, #a43931 100%)"; }
 		if (kind === "layeredHero") {
@@ -1047,7 +1085,7 @@ $(document).ready(function () {
 	<!--- Add a section (owner, 10-20, option B): a window of cards, one per kind, in two groups, each with a small drawing of what
 	it looks like. The new section goes after the selected one, or at the end when Scene settings is selected. --->
 	var KIND_GROUPS = [["Heroes - the big picture at the top", ["layeredHero", "photoHero", "vantaHero", "gradientHero", "videoHero"]],
-		["Content", ["text", "imageSlide", "slideshow", "form", "map"]]];
+		["Content", ["text", "imageSlide", "slideshow", "form", "map", "product"]]];
 	var KIND_SKETCHES = {
 		layeredHero: '<rect width="200" height="96" fill="#9fc3e6"/><path d="M0 70 L40 40 L80 62 L120 30 L160 58 L200 38 V96 H0Z" fill="#6c8fb3"/><path d="M0 80 L50 58 L100 76 L150 52 L200 72 V96 H0Z" fill="#3f5f80"/><path d="M0 90 L70 74 L130 88 L200 80 V96 H0Z" fill="#26384d"/>',
 		photoHero: '<defs><linearGradient id="kindPhoto" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6c38b"/><stop offset="1" stop-color="#c0603b"/></linearGradient></defs><rect width="200" height="96" fill="url(#kindPhoto)"/><circle cx="150" cy="34" r="14" fill="#fff3c4"/><path d="M0 96 L60 60 L110 80 L160 56 L200 72 V96Z" fill="#5b3424"/><rect x="18" y="34" width="70" height="8" rx="2" fill="#fff"/>',
@@ -1058,13 +1096,15 @@ $(document).ready(function () {
 		imageSlide: '<rect width="200" height="96" fill="#e8ecef"/><rect x="30" y="14" width="140" height="68" rx="3" fill="#7aa874"/><path d="M30 82 L80 46 L120 70 L150 52 L170 64 V82Z" fill="#4c7a47"/><circle cx="140" cy="30" r="8" fill="#f3e9a2"/>',
 		slideshow: '<rect width="200" height="96" fill="#111"/><rect x="40" y="12" width="120" height="58" rx="3" fill="#6a7fa8"/><rect x="18" y="20" width="16" height="42" rx="2" fill="#3c4a66"/><rect x="166" y="20" width="16" height="42" rx="2" fill="#3c4a66"/><circle cx="88" cy="82" r="3" fill="#fff"/><circle cx="100" cy="82" r="3" fill="#fff" opacity=".4"/><circle cx="112" cy="82" r="3" fill="#fff" opacity=".4"/>',
 		form: '<rect width="200" height="96" fill="#392630"/><rect x="30" y="12" width="90" height="8" rx="2" fill="#fff"/><rect x="30" y="28" width="140" height="12" rx="3" fill="#fff" opacity=".9"/><rect x="30" y="46" width="140" height="12" rx="3" fill="#fff" opacity=".9"/><rect x="30" y="66" width="44" height="14" rx="3" fill="#007bff"/>',
+		product: '<rect width="200" height="96" fill="#392630"/><rect x="24" y="14" width="70" height="8" rx="2" fill="#fff"/><rect x="24" y="32" width="152" height="54" rx="5" fill="#fff"/><rect x="32" y="40" width="38" height="38" rx="3" fill="#c98b5b"/><rect x="80" y="44" width="70" height="6" rx="2" fill="#555"/><rect x="80" y="56" width="34" height="6" rx="2" fill="#555"/><rect x="80" y="68" width="40" height="10" rx="3" fill="#007bff"/>',
 		map: '<rect width="200" height="96" fill="#e6efe0"/><path d="M0 30 H200 M0 64 H200 M60 0 V96 M140 0 V96" stroke="#fff" stroke-width="6"/><path d="M0 80 Q60 60 100 70 T200 40" stroke="#9ec2e8" stroke-width="8" fill="none"/><path d="M100 22 a10 10 0 1 1 0.1 0 Z" fill="#d1242f"/><path d="M92 30 L100 46 L108 30Z" fill="#d1242f"/><circle cx="100" cy="28" r="4" fill="#fff"/>'
 	};
 	var KIND_TEXT = {
 		layeredHero: "Layers of a picture that move at different speeds as you scroll.", photoHero: "One photo, held in place with a slow zoom.",
 		vantaHero: "A moving animation behind the text: waves, fog, clouds, birds...", gradientHero: "Colors that blend, no pictures.", videoHero: "A silent looping video.",
 		text: "A heading and text on a color or gradient.", imageSlide: "A picture that moves slower than the page.", slideshow: "Pictures with captions; each scroll brings in the next.",
-		form: "A contact form, or one of yours, right in the scene.", map: "One of your Azure maps, live, with a heading and text."
+		form: "A contact form, or one of yours, right in the scene.", map: "One of your Azure maps, live, with a heading and text.",
+		product: "Something from your shop, with an Add to cart button."
 	};
 	function addSection(kind) {
 		var at = selected < 0 ? scene.sections.length : selected + 1;

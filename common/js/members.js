@@ -258,6 +258,8 @@ var galaxieMembers = (function($) {
 			'<div>' +
 				'<p class="galaxieMemberMessage"></p>' +
 				'<div class="galaxieMemberSection galaxieMemberBookings"><h4>Your bookings</h4><div class="galaxieMemberList">Loading...</div></div>' +
+				// Shop orders (2026-10-21): shown only to members who have bought something.
+				'<div class="galaxieMemberSection galaxieMemberOrders" hidden><h4>Your orders</h4><div class="galaxieMemberList"></div></div>' +
 				'<div class="galaxieMemberSection galaxieMemberSignups"><h4>Your sign-ups</h4><div class="galaxieMemberList">Loading...</div></div>' +
 				'<div class="galaxieMemberSection galaxieMemberEmails"><h4>Emails</h4><div class="galaxieMemberList">Loading...</div></div>' +
 				'<form novalidate class="galaxieMemberSection galaxieMemberDetails"><h4>Your details</h4>' +
@@ -377,6 +379,7 @@ var galaxieMembers = (function($) {
 				return;
 			}
 			renderBookings(content.find(".galaxieMemberBookings .galaxieMemberList"), response.bookings || [], content, dialog);
+			renderOrders(content.find(".galaxieMemberOrders"), response.orders || []);
 			renderSignups(content.find(".galaxieMemberSignups .galaxieMemberList"), response.signups || []);
 			renderEmails(content.find(".galaxieMemberEmails .galaxieMemberList"), response.subscriptions || {}, content, dialog);
 			dialog.center();
@@ -509,6 +512,25 @@ var galaxieMembers = (function($) {
 			if (opened && now <= before) { clearInterval(timer); if (dialog.element.is(":visible")) { loadAccount(content, dialog); } }
 			if (!dialog.element.closest(".k-window").length) { clearInterval(timer); }
 		}, 500);
+	}
+
+	// Shop orders (2026-10-21): each paid order, newest first, with its download links while they still work.
+	function renderOrders(section, orders) {
+		if (!orders.length) { section.prop("hidden", true); return; }
+		var box = section.find(".galaxieMemberList").empty();
+		$.each(orders, function(i, o) {
+			var item = $('<div class="galaxieMemberItem"></div>');
+			item.append($("<strong></strong>").text("Order " + o.orderNumber + (o.date ? ", " + o.date : "")));
+			item.append($('<div class="galaxieMemberFacts"></div>').text(o.status + ". " + o.totalText));
+			$.each(o.downloads || [], function(j, d) {
+				var line = $('<div class="galaxieMemberFacts"></div>');
+				line.append($("<a></a>").attr("href", d.url).text("Download " + d.name));
+				if (d.expires) { line.append(document.createTextNode(" (works until " + d.expires + ")")); }
+				item.append(line);
+			});
+			box.append(item);
+		});
+		section.prop("hidden", false);
 	}
 
 	function renderSignups(box, signups) {

@@ -215,6 +215,95 @@
 </cffunction>
 
 <!---//*****************************************************************************************
+		Shop pages (2026-10-21, owner): like a booking page, a Page whose text is followed by products - every product (*) or
+		the ones picked (their aliases, comma separated). The offer is the page's own setting 'shopOffer' in BlogEventSetting.
+		Made from New post > Shop, or a page's Post Type in the post editor; set up in the Shop page window (116,
+		admin/adminInterface/shopPageDetail.cfm). Ordinary posts and pages can still hold products, with Insert > Product.
+//******************************************************************************************--->
+
+<cffunction name="getPageOffer" access="public" returntype="string" output="false" hint="What a shop page offers (* or product aliases), or '' when the page isn't a shop page.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfreturn application.events.getSetting(arguments.postId, "shopOffer", "")>
+</cffunction>
+
+<cffunction name="setPageOffer" access="public" returntype="struct" output="false" hint="Makes a page a shop page, or changes what it offers. Returns { success, errors[] }.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfargument name="offer" type="string" required="true" hint="* or a comma-separated list of product aliases.">
+	<cfset var result = { success: false, errors: [] }>
+	<cfset var cleanOffer = "">
+	<cfset var alias = "">
+	<cfif trim(arguments.offer) eq "*">
+		<cfset cleanOffer = "*">
+	<cfelse>
+		<!--- Only this blog's products, each once. --->
+		<cfloop list="#arguments.offer#" index="alias">
+			<cfif not structIsEmpty(getProduct(alias = left(trim(alias), 100))) and not listFind(cleanOffer, trim(alias))>
+				<cfset cleanOffer = listAppend(cleanOffer, trim(alias))>
+			</cfif>
+		</cfloop>
+	</cfif>
+	<cfif not len(cleanOffer)>
+		<cfset arrayAppend(result.errors, "Choose what the page offers: every product, or the ones to show.")>
+		<cfreturn result>
+	</cfif>
+	<cfset application.events.setSetting(arguments.postId, "shopOffer", left(cleanOffer, 500))>
+	<cfset result.success = true>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="removePage" access="public" returntype="void" output="false" hint="Makes a shop page an ordinary page again (its text stays).">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfset application.events.deleteSetting(arguments.postId, "shopOffer")>
+</cffunction>
+
+<cffunction name="offerLabel" access="public" returntype="string" output="false" hint="A shop page's offer in words: 'All products', or the products' names.">
+	<cfargument name="offer" type="string" required="true">
+	<cfset var names = []>
+	<cfset var alias = "">
+	<cfset var p = "">
+	<cfif arguments.offer eq "*"><cfreturn "All products"></cfif>
+	<cfloop list="#arguments.offer#" index="alias">
+		<cfset p = getProduct(alias = alias)>
+		<cfif not structIsEmpty(p)><cfset arrayAppend(names, p.name)></cfif>
+	</cfloop>
+	<cfreturn arrayLen(names) gt 3 ? arrayLen(names) & " products" : arrayToList(names, ", ")>
+</cffunction>
+
+<cffunction name="getShopPages" access="public" returntype="array" output="false" hint="This blog's shop pages, for the Products window: [{ postId, title, url, released, offer, label }].">
+	<cfset var pages = []>
+	<cfset var rows = "">
+	<cftry>
+		<cfset rows = queryExecute("
+			SELECT s.PostRef, s.SettingValue, p.Title, p.PostAlias, p.DatePosted, p.Released
+			FROM BlogEventSetting s INNER JOIN Post p ON p.PostId = s.PostRef
+			WHERE s.BlogRef = :blogId AND s.SettingName = 'shopOffer' AND p.Remove = 0
+			ORDER BY p.Title", { blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } })>
+		<cfcatch type="any"><cfreturn pages></cfcatch>
+	</cftry>
+	<cfloop query="rows">
+		<cfif len(rows.SettingValue)>
+			<cfset arrayAppend(pages, {
+				postId: rows.PostRef, title: rows.Title,
+				url: application.blog.makeLink(isPage = true, postAlias = rows.PostAlias, datePosted = rows.DatePosted),
+				released: isBoolean(rows.Released) and rows.Released, offer: rows.SettingValue, label: offerLabel(rows.SettingValue)
+			})>
+		</cfif>
+	</cfloop>
+	<cfreturn pages>
+</cffunction>
+
+<cffunction name="renderPageWidgetHtml" access="public" returntype="string" output="false" hint="The products under a shop page's text, or '' for any other page. common/js/shop.js fills them in.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfset var offer = "">
+	<cftry>
+		<cfset offer = getPageOffer(arguments.postId)>
+		<cfcatch type="any"><cfreturn ""></cfcatch>
+	</cftry>
+	<cfif not len(offer)><cfreturn ""></cfif>
+	<cfreturn '<div class="galaxieProduct galaxieShopPage" data-product="' & encodeForHtmlAttribute(offer) & '"></div>'>
+</cffunction>
+
+<!---//*****************************************************************************************
 		Cart and checkout
 //******************************************************************************************--->
 
@@ -705,8 +794,9 @@
 	<cfif structIsEmpty(arguments.member)>
 		<cfreturn list>
 	</cfif>
-	<cfset found = ormExecuteQuery("FROM ShopOrder WHERE BlogRef = :blogId AND (MemberRef = :memberId OR lower(Email) = :email) AND Status IN ('paid','shipped','partlyRefunded','refunded') ORDER BY ShopOrderId DESC",
-		{ blogId = blogId(), memberId = javacast("int", arguments.member.memberId), email = lCase(arguments.member.email) }, false, { maxResults = 50 })>
+	<!--- Guest orders have MemberRef 0, so 0 never matches by member (only by email). --->
+	<cfset found = ormExecuteQuery("FROM ShopOrder WHERE BlogRef = :blogId AND ((MemberRef = :memberId AND MemberRef > 0) OR lower(Email) = :email) AND Status IN ('paid','shipped','partlyRefunded','refunded') ORDER BY ShopOrderId DESC",
+		{ blogId = blogId(), memberId = javacast("int", val(arguments.member.memberId)), email = lCase(arguments.member.email) }, false, { maxResults = 50 })>
 	<cfloop array="#found#" index="o">
 		<cfset order = getOrder(o.getShopOrderId())>
 		<cfset arrayAppend(list, {
