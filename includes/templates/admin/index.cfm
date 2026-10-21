@@ -523,7 +523,9 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 				</cfsilent>
 				<cfoutput>
 				<div id="adminHome">
-					<div class="adminHomeSection adminHomeQuick">
+					<!--- The sections take turns, k-content first, then k-alt, with a line between them, like the admin windows (owner, 2026-10-21). --->
+					<cfset homeBlock = "k-content">
+					<div class="adminHomeSection adminHomeQuick #homeBlock#">
 						<h5 class="adminHomeHeading">Up next</h5>
 						<cfif not arrayLen(upNextShown)><p class="adminHomeCaughtUp">All caught up. Here are some things to do.</p></cfif>
 						<div class="adminHomeGrid">
@@ -560,7 +562,8 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 					<!--- Traffic this week (owner, 2026-10-20): four cards drawn by the page itself (no chart library), filled after the page
 					shows from ProxyController getAdminTraffic -> AdminHome.cfc getTraffic. Only for someone who may open the Visitor Log. --->
 					<cfif listFindNoCase(iconList, "VisitorLog") or comingUp.show>
-					<div class="adminHomeSection" id="adminTraffic">
+					<cfset homeBlock = homeBlock eq "k-content" ? "k-alt" : "k-content">
+					<div class="adminHomeSection #homeBlock#" id="adminTraffic">
 						<h5 class="adminHomeHeading">This week</h5>
 						<div class="adminTrafficGrid">
 							<cfif comingUp.show>
@@ -589,7 +592,8 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 						</div>
 					</div>
 					</cfif>
-					<div class="adminHomeSection">
+					<cfset homeBlock = homeBlock eq "k-content" ? "k-alt" : "k-content">
+					<div class="adminHomeSection #homeBlock#">
 						<h5 class="adminHomeHeading">Everything else</h5>
 						<div class="adminHomeGrid adminHomeGroups">
 						<cfloop array="#homeGroups#" index="group">
@@ -718,7 +722,8 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			<!--- The regrouped home (5.0). --->
 			#adminHome, .adminGroupPage { --homeAccent: <cfoutput>#homeAccent#</cfoutput>; }
 			#adminHome, .adminGroupPage { max-width: 980px; margin: 0 auto; }
-			.adminHomeSection { margin-top: 14px; }
+			.adminHomeSection { margin-top: 0; padding: 2px 12px 16px; }
+			.adminHomeSection + .adminHomeSection { border-top: 1px solid rgba(128, 128, 128, .35); }
 			.adminHomeHeading { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; opacity: .75; margin: 18px 0 10px; text-align: left; }
 			.adminHomeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>130<cfelse>150</cfif>px, 1fr)); gap: 14px;  grid-auto-rows: 1fr; }
 			.adminHomeTile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 8px 12px; border: 1px solid rgba(128,128,128,.35); border-radius: 8px; text-align: center; text-decoration: none; color: inherit; cursor: pointer; font: inherit; }
