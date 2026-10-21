@@ -1935,7 +1935,7 @@
 		  </tr>
 		  <tr>
 			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"> 
-				<p>Greensock is a popular animation library that you can use in your blog posts. Including this library does not require a dedicated license, and it is open source, however, it requires advanced Javascript skills and should not be loaded unless you intend to use it. For more information see <a href="https://www.greensock.com">https://greensock.com/gsap/</a></p>
+				<p>GreenSock (GSAP) is a free animation library. Galaxie Blog uses it for scenes and for the older parallax (ScrollMagic) posts, and loads it only on pages that use an animation. When it is switched off, scenes on posts show their pictures and text without movement, and the Scenes windows explain how to switch it back on.</p>
 			</td>
 		  </tr>
 		  <!-- Border -->
@@ -1963,6 +1963,35 @@
 			</td>
 		  </tr>
 		</cfif>
+		  <!--- Where GreenSock loads from (2026-10-20, moved here from the Scenes window): saved as soon as it is picked. --->
+		  <cfset gsapLibrarySource = application.blog.getScenes().getSetting("librarySource", "cdn")>
+		  <cfset gsapLocalFiles = application.blog.getScenes().getLocalLibraryFiles()>
+		  <cfset gsapHasLocal = arrayFind(gsapLocalFiles, "gsap.min.js") and arrayFind(gsapLocalFiles, "ScrollTrigger.min.js")>
+		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+		  <tr height="1px"><td colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td></tr>
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<p>Load it from Cloudflare's network (cdnjs), which is fast, with this server as a backup; or from this server only, if you'd rather visitors' browsers didn't contact a third party.<cfif not gsapHasLocal> This server doesn't have the files yet (common/libs/gsap3/), so that choice isn't available.</cfif></p>
+				<label><input type="radio" class="k-radio" name="gsapLibrarySource" value="cdn" onchange="saveGsapLibrarySource();"<cfif gsapLibrarySource neq "local" or not gsapHasLocal> checked</cfif>> Cloudflare (cdnjs), with this server as a backup</label><br>
+				<label><input type="radio" class="k-radio" name="gsapLibrarySource" value="local" onchange="saveGsapLibrarySource();"<cfif gsapLibrarySource eq "local" and gsapHasLocal> checked</cfif><cfif not gsapHasLocal> disabled</cfif>> This server only</label>
+				<span id="gsapLibrarySaved" class="k-form-hint"></span>
+				<script>
+					function saveGsapLibrarySource() {
+						jQuery.ajax({
+							type: "post",
+							url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveSceneSettings",
+							data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", librarySource: $("input[name=gsapLibrarySource]:checked").val() },
+							dataType: "json",
+							success: function (response) {
+								if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+								$("#gsapLibrarySaved").text(response && response.success ? "Saved." : ((response && response.errorMessage) || "Could not save."));
+							},
+							error: function (jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
+						});
+					}
+				</script>
+			</td>
+		  </tr>
 		  <!-- Border -->
 		  <tr height="2px" class="containerWidths">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>

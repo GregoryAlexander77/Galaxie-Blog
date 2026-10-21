@@ -1,4 +1,4 @@
-<!--- description: Galaxie 5.0: adds the columns for the post hero text, glow and hero styles, the carousel text shadow, the post hero style in Blog Options and the Site Setup wizard, creates the Scenes and shop tables, and turns background pictures back on for themes that have one. --->
+<!--- description: Galaxie 5.0: adds the columns for the post hero text, glow and hero styles, the carousel text shadow, the post hero style in Blog Options and the Site Setup wizard, creates the Scenes and shop tables, switches GreenSock on, and turns background pictures back on for themes that have one. --->
 <!--- The work is done by DatabaseUpdater.cfc's ensureColumns(), which adds only the columns that are missing (ORM may already have
 added them when the blog restarted with the new files). --->
 <cfset ensureColumns("Post", [
@@ -28,6 +28,14 @@ used, so listing the scenes makes sure they exist now. --->
 <!--- The shop (2026-10-20): Product, ShopOrder and ShopOrderItem. ORM also adds Payment.ShopOrderRef when it creates them. The shop
 stays closed until the owner switches it on in Blog Options. --->
 <cfset ensureOrmTables("Product,ShopOrder,ShopOrderItem")>
+<!--- GreenSock on (2026-10-20, owner): in 5.0 it covers scenes too, and it only loads on pages that use an animation, so it is
+switched on once here. An owner can switch it off again in Blog Options. --->
+<cfset gsapTurnedOn = ormExecuteQuery("SELECT count(*) FROM BlogOption WHERE IncludeGsap = :off OR IncludeGsap IS NULL", { off = false }, true)>
+<cfif gsapTurnedOn>
+	<cfset ormExecuteQuery("UPDATE BlogOption SET IncludeGsap = :on WHERE IncludeGsap = :off OR IncludeGsap IS NULL", { on = true, off = false })>
+	<cfset application.includeGsap = true>
+</cfif>
+<cfset addToLog("GreenSock: switched on (#gsapTurnedOn# blog setting changed).")>
 <!--- Background pictures (2026-10-20): a theme with no background picture, or with "show background pictures" switched off,
 shows a plain page, and nothing on the old Themes screen made that easy to spot (the owner found Snow like this on
 galaxieblog.org: switched off while testing, and its picture gone). Every built-in theme ships with its picture on, so:

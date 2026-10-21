@@ -9853,6 +9853,10 @@
 				<cfset EntitySave(OptionDbObj)>
 
 			</cftransaction>
+			<!--- The running site's copies (2026-10-20): GreenSock decides whether scenes move, and the Azure Maps key whether the map windows
+			open, without waiting for the blog to restart. --->
+			<cfset application.includeGsap = includeGsap>
+			<cfset application.azureMapsApiKey = arguments.azureMapsApiKey>
 
 			<!--- 2026-09-26: same class of bug as saveBlogSettings() (see its own comment on this exact fix) - this
 			function loads and saves its own separate BlogOption entity instance (OptionDbObj, local-scoped),

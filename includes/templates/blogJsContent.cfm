@@ -506,11 +506,40 @@
 		}//..function createStandaloneUppyUploadWindow(config) {
 
 		// Administrative Interface window --------------------------------------------------------------------------
+		<!--- Features that need setting up first (2026-10-20, owner): instead of opening a window that can't work (eg. a map with no
+		Azure Maps key), say what's missing and offer to open Blog Options at the right section. galaxieSetupMissing is worked out
+		on the server; each feature's window ids are listed in galaxieNeedsSetupFor inside createAdminInterfaceWindow. --->
+		var galaxieSetupMissing = {
+			maps: <cfoutput>#(isDefined("application.azureMapsApiKey") and len(trim(application.azureMapsApiKey))) ? "false" : "true"#</cfoutput>,
+			gsap: <cfoutput>#(isDefined("application.includeGsap") and isBoolean(application.includeGsap) and application.includeGsap) ? "false" : "true"#</cfoutput>
+		};
+		function galaxieShowNeedsSetup(feature) {
+			var info = {
+				maps: {
+					title: "Maps need an Azure Maps key",
+					message: "Maps and map routes are drawn by Azure Maps, which needs a free Azure Maps account and its key. Add the key in Blog Options, under Azure Maps Library, then come back here. <a href=\"https://galaxieblog.org/maps-in-posts\" target=\"_blank\" rel=\"noopener\">How to get a key</a>",
+					section: "azuremapslibrary"
+				},
+				gsap: {
+					title: "Scenes need GreenSock",
+					message: "Scenes move with GreenSock (GSAP), a free animation library, which is switched off on this blog. Switch it on in Blog Options, under Greensock Animation Library, then come back here. While it is off, scenes already on posts show without movement.",
+					section: "greensockanimationlibrary"
+				}
+			}[feature];
+			if (!info) { return; }
+			$.when(kendo.ui.ExtYesNoDialog.show({ title: info.title, message: info.message + "<br><br>Open Blog Options now?", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function (answer) {
+				if (answer && answer.button === "Yes") { createAdminInterfaceWindow(38, info.section); }
+			});
+		}
+
 		function createAdminInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) {
 			/* Note: the Id is the window, optArgs generally is the post or comment id, otherArgs typically is the name of the tinymce widget, and otherArgs 1 is generally the id of the widget in the database (ie. the mapId). The arguments were meant to be generic. */
 			
 			// Initialize non required args
 			otherArgs1 = typeof otherArgs1 !== 'undefined' ? otherArgs1 : '';
+			// Features that need setting up first (see galaxieShowNeedsSetup above): window id -> feature.
+			var galaxieNeedsSetupFor = { 19: "maps", 20: "maps", 21: "maps", 106: "gsap", 107: "gsap", 108: "gsap" };
+			if (galaxieNeedsSetupFor[Id] && galaxieSetupMissing[galaxieNeedsSetupFor[Id]]) { galaxieShowNeedsSetup(galaxieNeedsSetupFor[Id]); return; }
 			
 			// Set the window name, title, height and width
 			if (Id == 0){

@@ -198,7 +198,8 @@ Populate the blog option table.
 			<cfset OptionDbObj.setDisableCache(true)>
 			<cfset OptionDbObj.setKendoCommercial(kendoCommercial)>
 			<cfset OptionDbObj.setIncludeDisqus(includeDisqus)>
-			<cfset OptionDbObj.setIncludeGsap(includeGsap)>
+			<!--- On for every new blog (2026-10-20, owner): scenes need GreenSock, and it only loads on pages with an animation. --->
+			<cfset OptionDbObj.setIncludeGsap(true)>
 			<!--- These are strings coming from textboxes. --->
 			<cfset OptionDbObj.setJQueryCDNPath(jQueryCDNPath)>
 			<cfset OptionDbObj.setKendoFolderPath(kendoFolderPath)>

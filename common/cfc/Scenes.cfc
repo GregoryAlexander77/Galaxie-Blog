@@ -117,7 +117,9 @@
 	<cfset var parts = []>
 	<cfset var name = "">
 	<cfloop array="#libFiles#" index="name"><cfset arrayAppend(parts, serializeJSON(name))></cfloop>
-	<cfreturn '<script>window.GalaxieSceneConfig = { "source": "' & source & '", "localBase": ' & serializeJSON(application.baseUrl & "/common/libs/gsap3/") & ', "local": [' & arrayToList(parts, ",") & '] };</script>'>
+	<!--- still (2026-10-20): GreenSock switched off in Blog Options - the engine loads nothing and shows the scene without movement. --->
+	<cfset var still = structKeyExists(application, "includeGsap") and isBoolean(application.includeGsap) and not application.includeGsap>
+	<cfreturn '<script>window.GalaxieSceneConfig = { "source": "' & source & '", "still": ' & (still ? 'true' : 'false') & ', "localBase": ' & serializeJSON(application.baseUrl & "/common/libs/gsap3/") & ', "local": [' & arrayToList(parts, ",") & '] };</script>'>
 </cffunction>
 
 <cffunction name="getEngineUrl" access="public" returntype="string" output="false"

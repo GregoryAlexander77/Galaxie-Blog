@@ -596,8 +596,13 @@
 	/* ---------- build ---------- */
 
 	function build(container, data) {
-		if (!window.gsap || !window.ScrollTrigger) { throw new Error("GalaxieScene needs gsap.min.js and ScrollTrigger.min.js"); }
-		gsap.registerPlugin(window.ScrollTrigger);
+		// Still (2026-10-20): GreenSock is switched off in Blog Options, so nothing is loaded and the scene shows its pictures and text
+		// without movement, as visitors who turned motion off see it.
+		var still = !!config().still;
+		if (!still) {
+			if (!window.gsap || !window.ScrollTrigger) { throw new Error("GalaxieScene needs gsap.min.js and ScrollTrigger.min.js"); }
+			gsap.registerPlugin(window.ScrollTrigger);
+		}
 		addStyles();
 		data = data || {};
 		data.settings = data.settings || {};
@@ -642,6 +647,13 @@
 		});
 
 		startForms(container, data);
+
+		if (still) {
+			container.classList.add("gs-still");
+			Array.prototype.forEach.call(container.querySelectorAll(".gs-reveal"), function (x) { x.style.opacity = 1; x.style.transform = "none"; });
+			Array.prototype.forEach.call(container.querySelectorAll(".gs-slideshow"), function (x) { x.classList.add("gs-static"); });
+			return { container: container, refresh: function () {}, destroy: function () {} };
+		}
 
 		// 2. Animations, set up per screen size and motion preference (and undone/redone when they change).
 		var mm = gsap.matchMedia();
@@ -702,6 +714,8 @@
 	}
 	// Loads GSAP and ScrollTrigger, then the plugins the scene needs (a plugin that won't load is skipped: its effect falls back).
 	function ready(callback, data) {
+		// GreenSock switched off (2026-10-20): nothing to load; the scene is built still.
+		if (config().still) { if (callback) { callback(); } return Promise.resolve(); }
 		var core = CORE.reduce(function (chain, entry) { return chain.then(function () { return loadLibrary(entry); }); }, Promise.resolve());
 		return core.then(function () {
 			return Promise.all(pluginsFor(data).map(function (name) {
@@ -716,5 +730,5 @@
 		return !!p && (c.source !== "local" || (c.local || []).indexOf(p.file) >= 0);
 	}
 
-	window.GalaxieScene = { build: build, ready: ready, pluginAvailable: pluginAvailable, plugins: Object.keys(PLUGINS), version: "1.2.0-plugins" };
+	window.GalaxieScene = { build: build, ready: ready, pluginAvailable: pluginAvailable, plugins: Object.keys(PLUGINS), version: "1.3.0-still" };
 })(window, document);

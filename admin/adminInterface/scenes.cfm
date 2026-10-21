@@ -127,15 +127,7 @@ through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. -
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Animation library</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Scenes move with GSAP, a free animation library. It normally comes from Cloudflare's network (cdnjs), which is fast, with this server as a backup if Cloudflare can't be reached. Choose this server only if you'd rather your visitors' browsers didn't contact a third party.<cfif not sceneHasLocal> This server doesn't have the files yet (common/libs/gsap3/), so that choice isn't available.</cfif></td></tr>
-	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr>
-		<td class="#blockClass#" align="right">Load it from:</td>
-		<td class="#blockClass#">
-			<label><input type="radio" class="k-radio" name="sceneLibrarySource" value="cdn" onchange="saveSceneLibrarySource();"<cfif sceneLibrarySource neq "local" or not sceneHasLocal> checked</cfif>> Cloudflare (cdnjs), with this server as a backup</label><br>
-			<label><input type="radio" class="k-radio" name="sceneLibrarySource" value="local" onchange="saveSceneLibrarySource();"<cfif sceneLibrarySource eq "local" and sceneHasLocal> checked</cfif><cfif not sceneHasLocal> disabled</cfif>> This server only</label>
-			<span id="sceneLibrarySaved" class="k-form-hint"></span>
-		</td>
-	</tr>
+	<!--- Moved to Blog Options (2026-10-20): GreenSock on or off, and where it loads from, are set in one place. --->
+	<tr><td colspan="2" class="#blockClass#">Scenes move with GreenSock (GSAP), a free animation library. Whether it is on, and whether it loads from Cloudflare or from this server, is set in Blog Options. <button type="button" class="k-button" onclick="createAdminInterfaceWindow(38, 'greensockanimationlibrary');">Open Blog Options</button></td></tr>
 </table>
 </cfoutput>
