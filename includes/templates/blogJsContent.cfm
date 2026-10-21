@@ -594,7 +594,7 @@
 				var windowName = "postEnclosureWindow";
 				var windowHeight = "85%";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>66%</cfif>";
-				var windowTitle = "Post Enclosure";
+				var windowTitle = "Hero";
 			} else if (Id == 14){
 				var windowName = "postEnclosureVideoWindow";
 				var windowHeight = "85%";

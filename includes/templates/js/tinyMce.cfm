@@ -99,6 +99,10 @@
 	<cfparam name="includeGradient" default="false">
 	<cfparam name="includeHeroAnimation" default="false">
 	<cfparam name="includeHeroCoverImage" default="false">
+	<!--- The Hero editor (2026-10-20, owner): Scene (Insert menu and ribbon) and Hero text (Format menu and ribbon), which were
+	separate buttons in the post editor. --->
+	<cfparam name="includeScene" default="false">
+	<cfparam name="includeHeroText" default="false">
 	<cfparam name="includeFileUpload" default="false">
 	<cfparam name="disableWebVttAndVideoCoverButtons" default="true">
 	<cfparam name="includeMaps" default="true">
@@ -256,11 +260,12 @@
 		<!--- Set the menu depending upon the selector name. --->
 		<cfswitch expression="#selectorId#">
 		<cfcase value="enclosureEditor">
-			menubar: 'file edit insert view',
+			menubar: 'file edit insert format view',
 			menu: {
 				file: {title: 'File', items: 'preview print'},
 				edit: {title: 'Edit', items: 'undo redo | cut copy paste | selectall'},
-				insert: {title: 'Insert', items: 'image | media | gradient heroAnimation heroCoverImage carousel | videoUpload webVttUpload videoCoverUpload | map mapRouting'},
+				insert: {title: 'Insert', items: 'image | media | gradient heroAnimation heroCoverImage carousel | scene | videoUpload webVttUpload videoCoverUpload | map mapRouting'},
+				format: {title: 'Format', items: 'heroText'},
 				view: {title: 'View', items: 'code | visualaid | preview fullscreen'}
 			},
 		</cfcase>
@@ -667,6 +672,36 @@
 					onAction: function () {
 						createAdminInterfaceWindow(79,<cfoutput>#URL.optArgs#</cfoutput>);
 					}
+				});
+			</cfif>
+			<cfif includeScene>
+				<!--- Scene (2026-10-20): the scrolling scene at the top of the post (window 108), in the Insert menu and on the ribbon
+				like the carousel - a scene takes the place of the picture at the top. --->
+				editor.ui.registry.addIcon('scene', '<svg><span data-fa-symbol="scene" class="fontAwesomeIcon fas fa-layer-group">&nbsp;</span></svg>');
+				editor.ui.registry.addButton('scene', {
+					text: '<i class="fontAwesomeIcon fas fa-layer-group"></i>',
+					tooltip: 'Scene',
+					onAction: function (_) { createAdminInterfaceWindow(108,<cfoutput>#URL.optArgs#</cfoutput>); }
+				});
+				editor.ui.registry.addMenuItem('scene', {
+					icon: 'scene',
+					text: 'Scene',
+					onAction: function () { createAdminInterfaceWindow(108,<cfoutput>#URL.optArgs#</cfoutput>); }
+				});
+			</cfif>
+			<cfif includeHeroText>
+				<!--- Hero text (2026-10-20): the heading over the picture at the top of the post (window 109), in the Format menu (it
+				sits on top of the media rather than being media) and on the ribbon. --->
+				editor.ui.registry.addIcon('heroText', '<svg><span data-fa-symbol="heroText" class="fontAwesomeIcon fas fa-heading">&nbsp;</span></svg>');
+				editor.ui.registry.addButton('heroText', {
+					text: '<i class="fontAwesomeIcon fas fa-heading"></i>',
+					tooltip: 'Hero text',
+					onAction: function (_) { createAdminInterfaceWindow(109,<cfoutput>#URL.optArgs#</cfoutput>); }
+				});
+				editor.ui.registry.addMenuItem('heroText', {
+					icon: 'heroText',
+					text: 'Hero text',
+					onAction: function () { createAdminInterfaceWindow(109,<cfoutput>#URL.optArgs#</cfoutput>); }
 				});
 			</cfif>
 			<cfif includeHeroCoverImage>

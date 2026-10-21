@@ -13576,6 +13576,44 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="getHeroSummary" access="remote" returnformat="json" output="false"
+			hint="The line under the post editor's Hero button (2026-10-20): the post's scene and hero text, eg. 'Scene: Delicate Arch'. Empty when it has neither.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" default="0" required="true">
+		<cfset var response = { "success": false, "summary": "" }>
+		<cfset var sceneAlias = "">
+		<cfset var sceneList = "">
+		<cfset var sceneName = "">
+		<cfset var heroPost = []>
+		<cfset var heroText = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId)>
+			<cftry>
+				<cfset sceneAlias = application.blog.getScenes().getPostScene(val(arguments.postId))>
+				<cfif len(sceneAlias)>
+					<cfset sceneList = application.blog.getScenes().listScenes()>
+					<cfloop query="sceneList"><cfif sceneList.Alias eq sceneAlias><cfset sceneName = sceneList.Name></cfif></cfloop>
+				</cfif>
+				<cfset heroPost = application.blog.getPostByPostId(val(arguments.postId), true, true)>
+				<cfif arrayLen(heroPost) and structKeyExists(heroPost[1], "HeroOverlayText") and not isNull(heroPost[1]["HeroOverlayText"])>
+					<cfset heroText = trim(reReplace(toString(heroPost[1]["HeroOverlayText"]), "<[^>]*>", "", "all"))>
+				</cfif>
+				<cfif len(sceneAlias)>
+					<cfset response[ "summary" ] = "Scene: " & (len(sceneName) ? sceneName : sceneAlias)>
+				<cfelseif len(heroText)>
+					<cfset response[ "summary" ] = "Hero text: " & left(heroText, 60) & (len(heroText) gt 60 ? "..." : "")>
+				</cfif>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="setPostScene" access="remote" returnformat="json" output="false"
 			hint="Shows a scene at the top of a post, or none (an empty alias), from the post's Scene window (108). Changes only the scene line of the post's header, then clears the post's cached page.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

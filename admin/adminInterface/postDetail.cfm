@@ -1174,13 +1174,13 @@
 	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Enclosure Editor</button>
-			<div class="k-form-hint">The image or media shown at the top of the post.</div>
+			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Hero</button> <span class="heroSummary k-form-hint" style="display:inline"></span>
+			<div class="k-form-hint">The picture, video, carousel, map or scene at the top of the post, and the hero text over it.</div>
 		</td>
 	  </tr>
 	<cfelse>
 	  <tr>
-	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">The image or media shown at the top of the post.</td>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">The picture, video, carousel, map or scene at the top of the post, and the hero text over it.</td>
 	  </tr>
 	  <tr height="2px">
 	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -1189,7 +1189,7 @@
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Enclosure Editor</button>			
+			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Hero</button> <span class="heroSummary k-form-hint" style="display:inline"></span>			
 		</td>
 	  </tr>
 	</cfif>
@@ -1217,10 +1217,7 @@
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<button id="jsonLd" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(46,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">CSS</button>
 			<button id="changeAlias" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(47,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">JavaScript</button>
-			<!--- Scene (2026-10-19, Galaxie 5): the scrolling hero at the top of the post (window 108). --->
-			<button id="sceneButton" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(108,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Scene</button>
-			<!--- Hero text (2026-10-19, Galaxie 5): the heading over the post's image, gradient or animated hero (window 109). --->
-			<button id="heroTextButton" class="k-button normalFontWeight" type="button" style="width: 175px" onClick="createAdminInterfaceWindow(109,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Hero text</button>
+			<!--- Scene and Hero text moved into the Hero editor's ribbon and menus (2026-10-20). --->
 		</td>
 	  </tr>
 	<cfelse><!---<cfif smallScreen>--->
@@ -1239,14 +1236,7 @@
 					<td width="20%">
 						<button id="postHeader" class="k-button normalFontWeight" type="button" style="width: 165px" onClick="createAdminInterfaceWindow(42,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Post Header</button>
 					</td>
-					<!--- Scene (2026-10-19, Galaxie 5): the scrolling hero at the top of the post (window 108). --->
-					<td width="20%">
-						<button id="sceneButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(108,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Scene</button>
-					</td>
-					<!--- Hero text (2026-10-19, Galaxie 5): the heading over the post's image, gradient or animated hero (window 109). --->
-					<td width="20%">
-						<button id="heroTextButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(109,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">Hero text</button>
-					</td>
+					<!--- Scene and Hero text moved into the Hero editor's ribbon and menus (2026-10-20). --->
 					<td width="20%">
 						<button id="cssButton" class="k-button normalFontWeight" type="button" style="width: 125px" onClick="createAdminInterfaceWindow(46,<cfoutput>#getPost[1]['PostId']#</cfoutput>)">CSS</button>
 					</td>
@@ -1761,6 +1751,22 @@ opens it again. Leaving Event takes the event details off the post after asking 
 
 		$("#postEventDetails").on("click", function() { createAdminInterfaceWindow(99, postId); });
 		$("#postBookingDetails").on("click", function() { createAdminInterfaceWindow(104, postId); });
+
+		<!--- The line beside the Hero button (2026-10-20): the post's scene or hero text. The Scene and Hero text windows call this after
+		saving, since their buttons moved into the Hero editor. --->
+		window.galaxieHeroSummaryRefresh = function () {
+			jQuery.ajax({
+				type: "post",
+				url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getHeroSummary",
+				data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId },
+				dataType: "json",
+				success: function (result) {
+					if (typeof result === "string") { try { result = JSON.parse(result); } catch (e) {} }
+					if (result && result.success) { $(".heroSummary").text(result.summary || ""); }
+				}
+			});
+		};
+		window.galaxieHeroSummaryRefresh();
 
 		$("input[name=postType]").on("change", function() {
 			var chosen = $(this).val();

@@ -1,5 +1,6 @@
 <!--- A post's Scene (window 108, 2026-10-19, Galaxie 5), opened with the Scene button in the post editor:
-createAdminInterfaceWindow(108, postId). Picks the scene shown at the top of the post's own page, or none. Saving changes only
+createAdminInterfaceWindow(108, postId). Picks the scene shown at the top of the post's own page; Remove the scene (only when the
+post has one, owner 2026-10-20) takes it off. Saving changes only
 the <galaxieScene> line of the post's header (Scenes.cfc setPostScene, through ProxyController.cfc setPostScene). New scene and
 Edit open the Scene editor (107); when it saves, this window reloads with that scene picked. --->
 <cfset postSceneId = val(URL.optArgs)>
@@ -25,7 +26,8 @@ $(document).ready(function () {
 	var scenes = <cfoutput>#postSceneJson#</cfoutput>;
 	var baseUrl = "<cfoutput>#jsStringFormat(application.baseUrl)#</cfoutput>";
 	<!--- A scene just made or changed in the Scene editor from here is picked; otherwise the post's own scene. --->
-	var picked = window.galaxiePostScenePick || "<cfoutput>#jsStringFormat(postSceneCurrent)#</cfoutput>";
+	var current = "<cfoutput>#jsStringFormat(postSceneCurrent)#</cfoutput>";
+	var picked = window.galaxiePostScenePick || current;
 	window.galaxiePostScenePick = null;
 
 	function sceneByAlias(alias) { for (var i = 0; i < scenes.length; i++) { if (scenes[i].alias === alias) { return scenes[i]; } } return null; }
@@ -39,11 +41,10 @@ $(document).ready(function () {
 			card.on("click", function () { picked = sc.alias; render(); });
 			cards.append(card);
 		});
-		var none = $('<button type="button" class="sceneCard sceneCardEmpty"></button>').toggleClass("selected", !picked).attr("aria-pressed", !picked)
-			.append('<div class="sceneCardThumb">&ndash;</div>', $('<div class="sceneCardText"></div>').append('<strong>No scene</strong>', '<span>The post shows its picture and text as usual.</span>'));
-		none.on("click", function () { picked = ""; render(); });
-		cards.append(none);
 		$("#postSceneEdit").toggle(!!sceneByAlias(picked));
+		<!--- Save waits for a pick; Remove shows only when the post has a scene now. --->
+		$("#postSceneSave").prop("disabled", !sceneByAlias(picked)).toggleClass("k-state-disabled", !sceneByAlias(picked));
+		$("#postSceneRemove").toggle(!!current);
 	}
 
 	function reloadWithPick(alias) {
@@ -58,19 +59,23 @@ $(document).ready(function () {
 	$("#postSceneNew").on("click", function () { createAdminInterfaceWindow(107, 0); });
 	$("#postSceneEdit").on("click", function () { var sc = sceneByAlias(picked); if (sc) { createAdminInterfaceWindow(107, sc.id); } });
 
-	$("#postSceneSave").on("click", function () {
-		$("#postSceneSave").prop("disabled", true);
+	$("#postSceneRemove").on("click", function () { saveScene(""); });
+	$("#postSceneSave").on("click", function () { if (sceneByAlias(picked)) { saveScene(picked); } });
+
+	function saveScene(alias) {
+		$("#postSceneSave, #postSceneRemove").prop("disabled", true);
 		jQuery.ajax({
 			type: "post",
 			url: baseUrl + "/common/cfc/ProxyController.cfc?method=setPostScene",
-			data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId, alias: picked },
+			data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId, alias: alias },
 			dataType: "json",
 			success: function (response) {
-				$("#postSceneSave").prop("disabled", false);
+				$("#postSceneSave, #postSceneRemove").prop("disabled", false);
 				if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
 				if (response && response.success) {
-					var sc = sceneByAlias(picked);
-					$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: sc ? "The post shows " + $("<div/>").text(sc.name).html() + " at the top of its page." : "The post no longer shows a scene.", icon: "k-ext-information" })).done(function () {
+					var sc = sceneByAlias(alias);
+					if (typeof galaxieHeroSummaryRefresh === "function") { galaxieHeroSummaryRefresh(); }
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: sc ? "The post shows " + $("<div/>").text(sc.name).html() + " at the top of its page." : "The scene was removed. The post shows its picture and text as usual.", icon: "k-ext-information" })).done(function () {
 						$("#postSceneWindow").kendoWindow("destroy");
 					});
 				} else {
@@ -78,12 +83,12 @@ $(document).ready(function () {
 				}
 			},
 			error: function (jqXHR, textStatus, error) {
-				$("#postSceneSave").prop("disabled", false);
+				$("#postSceneSave, #postSceneRemove").prop("disabled", false);
 				if (jqXHR.status === 403) { createLoginWindow(); }
 				else { $.when(kendo.ui.ExtAlertDialog.show({ title: "Error while saving", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); }
 			}
 		});
-	});
+	}
 
 	render();
 });
@@ -112,6 +117,7 @@ $(document).ready(function () {
 			<button id="postSceneSave" type="button" class="k-button k-primary">Save</button>
 			<button id="postSceneNew" type="button" class="k-button">New scene</button>
 			<button id="postSceneEdit" type="button" class="k-button" style="display: none;">Edit this scene</button>
+			<button id="postSceneRemove" type="button" class="k-button" style="display: none;">Remove the scene</button>
 		</td>
 	</tr>
 </table>

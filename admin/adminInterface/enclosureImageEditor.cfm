@@ -305,15 +305,18 @@
 	rebuilding it from scratch - see the two "UPPY PIPELINE" markers further down. "editimage" edits an image
 	already in the content (alt text, dimensions). --->
 	<cfif session.isMobile>
-		<cfset toolbarString = "undo redo | image editimage gradient heroAnimation heroCoverImage | media videoUpload">
+		<cfset toolbarString = "undo redo | image editimage gradient heroAnimation heroCoverImage | scene heroText | media videoUpload">
 	<cfelse>
-		<cfset toolbarString = "undo redo | image editimage gradient heroAnimation heroCoverImage | carousel | media videoUpload webVttUpload videoCoverUpload | map mapRouting">
+		<cfset toolbarString = "undo redo | image editimage gradient heroAnimation heroCoverImage | carousel scene | heroText | media videoUpload webVttUpload videoCoverUpload | map mapRouting">
 	</cfif>
 	<cfset includeCarousel = true>
 	<cfset includeVideoUpload = true>
 	<cfset includeGradient = true>
 	<cfset includeHeroAnimation = true>
 	<cfset includeHeroCoverImage = true>
+	<!--- Scene and Hero text live here since 2026-10-20 (the post editor's own buttons for them are gone). --->
+	<cfset includeScene = true>
+	<cfset includeHeroText = true>
 	<cfset disableVideoCoverAndWebVttButtons = true>
 	</cfsilent>
 	<!--- TinyMCE itself is still Post/Page-only - a Page Collection's hero enclosure supports the same underlying
@@ -618,7 +621,7 @@
 	  <cfelse>
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			The enclosure resides at the top of the blog post and it should take up to 100% of the content width of the blog post. The enclosure can either be a video or an image. Galaxie Blog will automatically crop your image for Facebook, Twitter, Google, and a classic 1200&times;900 fallback used whenever a platform-specific crop isn't available. To upload media, click on the buttons below.
+			The hero is what shows at the top of the post: a picture, a video, a carousel, a map, a gradient, an animation or a scene (the layered icon on the ribbon). Hero text, the heading over it, is the H on the ribbon or Format, Hero text. Galaxie Blog will automatically crop your image for Facebook, Twitter, Google, and a classic 1200&times;900 fallback used whenever a platform-specific crop isn't available. To upload media, click on the buttons below.
 		</td>
 	  </tr>
 	  <tr height="30px">
