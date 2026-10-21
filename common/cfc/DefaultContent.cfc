@@ -250,9 +250,9 @@
 									
 		<cfelseif findNoCase('bioWindow', arguments.contentTemplate)>
 			
-			<!-- FontAwesome 6.1 -->
+			<!-- Font Awesome 6.7.2 from cdnjs (2026-10-20; 6.1 had no X logo) -->
 			<script>
-				$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://use.fontawesome.com/releases/v6.1.0/css/all.css') );
+				$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css') );
 			</script>
 			
 			<!--- Get the author from the user table --->
@@ -283,7 +283,7 @@
 								</button></a>
 							</cfif><cfif structKeyExists(authorData[1], "TwitterUrl") and len(authorData[1]['TwitterUrl'])>
 								<a href="<cfoutput>#authorData[1]['TwitterUrl']#</cfoutput>" aria-label="<cfoutput>#authorData[1]['TwitterUrl']#</cfoutput>" class="k-content"><button id="twitterUrl" aria-label="twitter" class="k-button" style="#kendoIconButtonStyle#">
-									&nbsp;<i class="fa-brands fa-twitter"></i>&nbsp;
+									&nbsp;<i class="fa-brands fa-x-twitter"></i>&nbsp;
 								</button></a>
 							</cfif><cfif structKeyExists(authorData[1], "DisplayEmailOnBio") and authorData[1]["DisplayEmailOnBio"]>
 								<a href="mailto:<cfoutput>#authorData[1]['Email']#</cfoutput>" aria-label="mailto:<cfoutput>#authorData[1]['Email']#</cfoutput>" class="k-content"><button id="email" aria-label="email" class="k-button" style="#kendoIconButtonStyle#">

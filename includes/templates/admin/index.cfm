@@ -809,3 +809,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 	</p><!---<p class="bottomContent">--->
 
 </div><!---<span id="innerContentContainer" class="transition-fade">--->
+<!--- ?editPost=<id> (2026-10-20): opens that post in the editor, eg. from the Edit link in Site Setup's starter content. --->
+<cfif structKeyExists(url, "editPost") and isValid("integer", url.editPost) and url.editPost gt 0>
+	<script>$(function () { setTimeout(function () { createAdminInterfaceWindow(6, <cfoutput>#int(url.editPost)#</cfoutput>); }, 300); });</script>
+</cfif>

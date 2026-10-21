@@ -246,10 +246,10 @@
 			"<cfoutput>#editorKendoLocation##trim(getTheme[1]['KendoCommonCssFileLocation'])#</cfoutput>",
 			"<cfoutput>#editorKendoLocation##trim(getTheme[1]['KendoThemeCssFileLocation'])#</cfoutput>",
 			<!--- Include font awesome --->
-			"https://use.fontawesome.com/releases/v6.1.0/css/all.css"],
+			"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"],
 		<cfelse>
 			<!--- Include font awesome --->
-			content_css: ["https://use.fontawesome.com/releases/v6.1.0/css/all.css"],
+			content_css: ["https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"],
 		</cfif>
 			//<cfoutput>#application.baseUrl#</cfoutput>/common/libs/tinymce/skins/ui/oxide/content.css"
 			height: "<cfoutput>#editorHeight#</cfoutput>",

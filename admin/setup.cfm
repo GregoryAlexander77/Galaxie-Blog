@@ -94,6 +94,8 @@ takes the same options and events. --->
 <title>Set up your site</title>
 <cfoutput>
 <link rel="stylesheet" href="#application.baseUrl#/common/libs/kendoCore/styles/kendo.bootstrap-v4.min.css">
+<!--- Font Awesome for the social icons beside the "Where to find you" fields (2026-10-20). --->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 <script src="#application.baseUrl#/common/libs/kendoCore/js/jquery.min.js"></script>
 <script src="#application.baseUrl#/common/libs/kendoCore/js/kendo.ui.core.min.js"></script>
 <script src="#application.baseUrl#/common/js/galaxieWizard.js"></script>
@@ -157,6 +159,10 @@ takes the same options and events. --->
 	.summary .state { color: var(--muted); }
 	.summary .state.done { color: #1a7f37; }
 	.summary a { color: var(--accent); margin-left: 10px; }
+	/* Upload buttons (2026-10-20): the file boxes are hidden; their labels are Kendo buttons. */
+	.hiddenFile { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+	.uploadButton { cursor: pointer; margin: 4px 0; }
+	.fileName { color: var(--muted); font-size: 13px; }
 	/* Preview */
 	.previewSide { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 	.previewBar { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; font-size: 14px; color: var(--muted); }
@@ -253,7 +259,9 @@ takes the same options and events. --->
 			<div class="wayPanel" id="wayUpload">
 				<div class="uploadBox">
 					<p>Choose a picture of your logo: PNG, SVG, JPG, GIF or WebP, up to 2 MB. A wide logo about 300 by 80 pixels works best.</p>
-					<input type="file" id="logoFile" accept="image/png,image/svg+xml,image/jpeg,image/gif,image/webp">
+					<!--- A Kendo button in place of the browser's own file box (2026-10-20, owner); the box itself is hidden. --->
+					<input type="file" id="logoFile" class="hiddenFile" accept="image/png,image/svg+xml,image/jpeg,image/gif,image/webp">
+					<label for="logoFile" class="k-button k-primary uploadButton" tabindex="0">Upload a logo</label> <span class="fileName" data-for="logoFile"></span>
 					<img id="uploadPreview" alt="" hidden>
 				</div>
 			</div>
@@ -266,7 +274,8 @@ takes the same options and events. --->
 			<h4>You</h4>
 			<div class="fieldRow"><label for="aboutPhoto">Photo</label><div class="control">
 				<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><img id="aboutPhotoPreview" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;background:#eef1f4">
-				<input type="file" id="aboutPhoto" accept="image/png,image/jpeg,image/gif,image/webp"></div>
+				<input type="file" id="aboutPhoto" class="hiddenFile" accept="image/png,image/jpeg,image/gif,image/webp">
+				<label for="aboutPhoto" class="k-button k-primary uploadButton" tabindex="0">Upload a photo</label> <span class="fileName" data-for="aboutPhoto"></span></div>
 				<div class="hint">Shown in your Bio window. A square photo works best.</div></div></div>
 			<div class="fieldRow"><label for="aboutFirst">First name</label><div class="control"><input id="aboutFirst" class="k-textbox" maxlength="125"></div></div>
 			<div class="fieldRow"><label for="aboutLast">Last name</label><div class="control"><input id="aboutLast" class="k-textbox" maxlength="125"></div></div>
@@ -278,10 +287,10 @@ takes the same options and events. --->
 		</div>
 		<div class="block k-alt">
 			<h4>Where to find you</h4>
-			<div class="fieldRow"><label for="aboutFacebook">Facebook</label><div class="control"><input id="aboutFacebook" class="k-textbox" placeholder="https://"></div></div>
-			<div class="fieldRow"><label for="aboutInstagram">Instagram</label><div class="control"><input id="aboutInstagram" class="k-textbox" placeholder="https://"></div></div>
-			<div class="fieldRow"><label for="aboutLinkedIn">LinkedIn</label><div class="control"><input id="aboutLinkedIn" class="k-textbox" placeholder="https://"></div></div>
-			<div class="fieldRow"><label for="aboutTwitter">X (Twitter)</label><div class="control"><input id="aboutTwitter" class="k-textbox" placeholder="https://"></div></div>
+			<div class="fieldRow"><label for="aboutFacebook"><i class="fa-brands fa-facebook" aria-hidden="true"></i> Facebook</label><div class="control"><input id="aboutFacebook" class="k-textbox" placeholder="https://"></div></div>
+			<div class="fieldRow"><label for="aboutInstagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i> Instagram</label><div class="control"><input id="aboutInstagram" class="k-textbox" placeholder="https://"></div></div>
+			<div class="fieldRow"><label for="aboutLinkedIn"><i class="fa-brands fa-linkedin" aria-hidden="true"></i> LinkedIn</label><div class="control"><input id="aboutLinkedIn" class="k-textbox" placeholder="https://"></div></div>
+			<div class="fieldRow"><label for="aboutTwitter"><i class="fa-brands fa-x-twitter" aria-hidden="true"></i> X (Twitter)</label><div class="control"><input id="aboutTwitter" class="k-textbox" placeholder="https://"></div></div>
 		</div>
 	</div>
 	<div id="stepHome">
@@ -516,6 +525,9 @@ $(function () {
 			drawLogos(); applyLogo();
 		}));
 	});
+	<!--- The upload buttons (labels for hidden file boxes): open with Enter or Space too, and show the chosen file's name. --->
+	$(".uploadButton").on("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#" + $(this).attr("for")).trigger("click"); } });
+	$(".hiddenFile").on("change", function () { $('.fileName[data-for="' + this.id + '"]').text(this.files && this.files[0] ? this.files[0].name : ""); });
 	$("#logoFile").on("change", function () {
 		var file = this.files && this.files[0]; if (!file) { return; }
 		if (file.size > 2 * 1024 * 1024) { kendo.alert("That picture is larger than 2 MB. Please choose a smaller one."); return; }

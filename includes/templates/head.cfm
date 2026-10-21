@@ -363,9 +363,9 @@ Either use https://code.jquery.com/jquery-3.7.1.min.js or https://ajax.googleapi
 <script type="#scriptTypeString#" src="#application.baseUrl#/common/js/adminDropDowns.js"></script>
 </cfif>
 <!-- Optional libs -->
-<!-- FontAwesome 6.1 -->
+<!-- Font Awesome 6.7.2 from cdnjs (2026-10-20; 6.1 had no X logo) -->
 <script type="#scriptTypeString#">
-	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://use.fontawesome.com/releases/v6.1.0/css/all.css') );
+	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css') );
 </script>
 <!-- Fancy box (version 2), Plyr (our HTML5 media player) and Prism (our code highlighter) are not needed on most pages, so they are not downloaded with every page. The first time that a page needs one of them, galaxieLoader downloads it and then runs the callback. Calling it again does not download it again. Used in blogJsContent.cfm, tailEndScripts.cfm and Renderer.cfc. -->
 <script>

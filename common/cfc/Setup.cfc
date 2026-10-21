@@ -335,7 +335,7 @@
 	<cfif arguments.welcomePost>
 		<cfset made.welcomePostId = makePost("blogPost", owner.getUserId(), "Welcome to " & blogTitle,
 			"The first post on " & blogTitle & ".",
-			"<p>Welcome to " & encodeForHtml(blogTitle) & "! This is the first post. Edit it to say hello in your own words, or delete it once you have written your own.</p><p>To write a new post, sign in and choose Create Post on the administration page.</p>",
+			"<p>Welcome to " & encodeForHtml(blogTitle) & "! This is the first post. <a href=""{editLink}"">Edit it</a> to say hello in your own words, or delete it once you have written your own. (Later you will find it in the administration under Posts and Pages, then Posts: click its title in the list.)</p><p>To write a new post, sign in and choose Create Post on the administration page.</p>",
 			"linear-gradient(135deg, ##1d4350 0%, ##a43931 100%)")>
 	</cfif>
 	<cfif arguments.contactForm and structKeyExists(application, "webForms")>
@@ -349,7 +349,7 @@
 		<cfset made.contactFormId = contact.webFormId>
 	</cfif>
 	<cfif arguments.aboutPage>
-		<cfset aboutBody = len(owner.getBiography() ?: "") ? owner.getBiography() : "<p>Tell your visitors who you are and what this site is about. Edit this page to make it yours.</p>">
+		<cfset aboutBody = len(owner.getBiography() ?: "") ? owner.getBiography() : "<p>Tell your visitors who you are and what this site is about. <a href=""{editLink}"">Edit this page</a> to make it yours. (Later you will find it in the administration under Posts and Pages, then Pages: click About in the list.)</p>">
 		<!--- The contact form at the end, as Insert Form places one. --->
 		<cfif not structIsEmpty(contact)>
 			<cfset aboutBody = aboutBody & '<h2>Get in touch</h2><div class="galaxieWebForm" data-webform="' & encodeForHtmlAttribute(contact.alias) & '">[Form: Contact]</div>'>
@@ -377,9 +377,10 @@
 	<cfelse>
 		<cfset postId = application.blog.insertNewPost(postType = arguments.postType, author = arguments.authorId, title = arguments.title, description = arguments.description)>
 	</cfif>
+	<!--- {editLink} in the text (2026-10-20): a link that opens this post in the editor (the admin home opens ?editPost=). --->
 	<!--- savePost reads the author without declaring it as an argument, so it is passed by name. --->
 	<cfset application.blog.savePost(postId = postId, postType = arguments.postType, author = arguments.authorId, title = arguments.title, description = arguments.description,
-		post = arguments.body, released = true, emailSubscriber = false)>
+		post = replace(arguments.body, "{editLink}", application.baseUrl & "/admin/?editPost=" & postId, "all"), released = true, emailSubscriber = false)>
 	<cfif len(arguments.gradient)>
 		<cfset application.blog.savePostHeroGradient(postId = postId, heroGradient = arguments.gradient)>
 		<cfset application.blog.flushGalaxieCache(type = "post", postId = postId)>

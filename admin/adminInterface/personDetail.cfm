@@ -161,7 +161,7 @@ which checks everything again on the server. --->
 		<td class="#blockClass#" align="right"><label for="personPicture">Picture:</label></td>
 		<td class="#blockClass#">
 			<input type="text" id="personPicture" class="k-textbox" maxlength="500" placeholder="https://" value="#encodeForHtmlAttribute(person.picture)#" style="width: calc(95% - 160px);">
-			<button type="button" class="k-button" id="personPictureUpload">Upload a picture</button>
+			<button type="button" class="k-button k-primary" id="personPictureUpload">Upload a picture</button>
 			<input type="file" id="personPictureFile" accept="image/jpeg,image/png,image/gif<cfif application.imageEngineSupportsWebP>,image/webp</cfif>" style="display: none;">
 			<div style="margin-top: 6px;"><img id="personPicturePreview" src="#encodeForHtmlAttribute(person.picture)#" alt="" width="85" height="85" style="border-radius: 50%; object-fit: cover;<cfif not len(person.picture)> display: none;</cfif>"> <span id="personPictureStatus" role="status"></span></div>
 		</td>
@@ -179,7 +179,7 @@ which checks everything again on the server. --->
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">Optional. Each link you fill in shows as its icon on the profile.</td></tr>
 	<!--- The same Font Awesome icons the profile on the site shows for each link (includes/windows/personCard.cfm). --->
-	<cfloop array="#[ { id: 'personWebsite', label: 'Website', icon: 'fa-solid fa-globe', value: person.website }, { id: 'personFacebook', label: 'Facebook', icon: 'fa-brands fa-facebook', value: person.facebookUrl }, { id: 'personLinkedIn', label: 'LinkedIn', icon: 'fa-brands fa-linkedin', value: person.linkedInUrl }, { id: 'personInstagram', label: 'Instagram', icon: 'fa-brands fa-instagram', value: person.instagramUrl }, { id: 'personTwitter', label: 'Twitter', icon: 'fa-brands fa-twitter', value: person.twitterUrl } ]#" index="thisField">
+	<cfloop array="#[ { id: 'personWebsite', label: 'Website', icon: 'fa-solid fa-globe', value: person.website }, { id: 'personFacebook', label: 'Facebook', icon: 'fa-brands fa-facebook', value: person.facebookUrl }, { id: 'personLinkedIn', label: 'LinkedIn', icon: 'fa-brands fa-linkedin', value: person.linkedInUrl }, { id: 'personInstagram', label: 'Instagram', icon: 'fa-brands fa-instagram', value: person.instagramUrl }, { id: 'personTwitter', label: 'Twitter', icon: 'fa-brands fa-x-twitter', value: person.twitterUrl } ]#" index="thisField">
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="#thisField.id#"><i class="#thisField.icon#" aria-hidden="true"></i> #thisField.label#:</label></td>

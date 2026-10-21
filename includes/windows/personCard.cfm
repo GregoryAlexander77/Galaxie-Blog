@@ -17,7 +17,7 @@ Their address is never shown. URL.person is a card reference, 'user:5' or 'guest
 		<cfif len(personCard.facebookUrl)><cfset arrayAppend(personLinks, { url: personCard.facebookUrl, icon: "fa-brands fa-facebook", label: "Facebook" })></cfif>
 		<cfif len(personCard.linkedInUrl)><cfset arrayAppend(personLinks, { url: personCard.linkedInUrl, icon: "fa-brands fa-linkedin", label: "LinkedIn" })></cfif>
 		<cfif len(personCard.instagramUrl)><cfset arrayAppend(personLinks, { url: personCard.instagramUrl, icon: "fa-brands fa-instagram", label: "Instagram" })></cfif>
-		<cfif len(personCard.twitterUrl)><cfset arrayAppend(personLinks, { url: personCard.twitterUrl, icon: "fa-brands fa-twitter", label: "Twitter" })></cfif>
+		<cfif len(personCard.twitterUrl)><cfset arrayAppend(personLinks, { url: personCard.twitterUrl, icon: "fa-brands fa-x-twitter", label: "X (Twitter)" })></cfif>
 	</cfif>
 </cfsilent>
 <cfif structIsEmpty(personCard)>

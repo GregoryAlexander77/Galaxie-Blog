@@ -796,7 +796,7 @@
 											</button></a>
 										</cfif><cfif structKeyExists(authorData[1], "TwitterUrl") and len(authorData[1]['TwitterUrl'])>
 											<a href="<cfoutput>#authorData[1]['TwitterUrl']#</cfoutput>" aria-label="<cfoutput>#authorData[1]['TwitterUrl']#</cfoutput>" class="k-content"><button id="twitterUrl" aria-label="twitter" class="k-button" style="#kendoIconButtonStyle#">
-												&nbsp;<i class="fa-brands fa-twitter"></i>&nbsp;
+												&nbsp;<i class="fa-brands fa-x-twitter"></i>&nbsp;
 											</button></a>
 										</cfif><cfif structKeyExists(authorData[1], "DisplayEmailOnBio") and authorData[1]["DisplayEmailOnBio"]>
 											<a href="mailto:<cfoutput>#authorData[1]['Email']#</cfoutput>" aria-label="mailto:<cfoutput>#authorData[1]['Email']#</cfoutput>" class="k-content"><button id="email" aria-label="email" class="k-button" style="#kendoIconButtonStyle#">
