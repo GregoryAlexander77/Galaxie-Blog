@@ -2720,24 +2720,27 @@
 		
 		<cfparam name="httpReferrerId" default="0">
 			
-		<cfif len(httpReferrer)>
+		<!--- 2026-10-20: this saved a referrer only when it was already saved, and dropped every new one, so no referrer was ever
+		recorded (the admin home's "Where they came from" showed everyone as Straight in). Now a known referrer returns its id and a new
+		one is saved. Kept to the column's 500 characters. --->
+		<cfset arguments.httpReferrer = left(trim(arguments.httpReferrer), 500)>
+		<cfif len(arguments.httpReferrer)>
 			<!--- Get the referrer. ---> 
 			<cfset httpReferrerId = this.getHttpReferrerId(arguments.httpReferrer)>
-			<cfif httpReferrerId gt 0>
+			<cfif httpReferrerId eq 0>
 				<!--- Load the blog entity. This is not functional at the moment to have several blogs on a site, but the logic is in the database. --->
 				<cfset BlogDbObj = entityLoadByPk("Blog", 1)>
 
-				<!--- Create a new entity --->
-				<cfset HttpReferrerObj = entityNew("HttpReferrer")>
-				<!--- Save it --->
-				<cfset HttpReferrerObj.setBlogRef(BlogDbObj)>
-				<cfset HttpReferrerObj.setHttpReferrer(arguments.httpReferrer)>
-				<cfset HttpReferrerObj.setDate(blogNow())>
-				<cfset EntitySave(HttpReferrerObj)>
+				<!--- Create a new entity, in a transaction: ORM does not flush at the end of the request (Application.cfc). --->
+				<cftransaction>
+					<cfset HttpReferrerObj = entityNew("HttpReferrer")>
+					<cfset HttpReferrerObj.setBlogRef(BlogDbObj)>
+					<cfset HttpReferrerObj.setHttpReferrer(arguments.httpReferrer)>
+					<cfset HttpReferrerObj.setDate(blogNow())>
+					<cfset EntitySave(HttpReferrerObj)>
+				</cftransaction>
 				<!--- Return the new id --->
 				<cfset httpReferrerId = HttpReferrerObj.getHttpReferrerId()>
-			<cfelse>
-				<cfset httpReferrerId = 0>
 			</cfif>
 		</cfif>
 		<cfreturn httpReferrerId>
