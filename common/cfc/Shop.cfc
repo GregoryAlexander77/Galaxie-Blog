@@ -602,7 +602,7 @@
 	<cfargument name="includeUnpaid" type="boolean" required="false" default="false">
 	<cfset var list = []>
 	<cfset var q = queryExecute("
-		SELECT o.ShopOrderId, o.Name, o.Email, o.Status, o.Total, o.Currency, o.NeedsShipping, o.TestMode, o.Created, o.PaidAt,
+		SELECT o.ShopOrderId, o.Name, o.Email, o.Status, o.Total, o.Currency, o.NeedsShipping, o.TestMode, o.Created, o.PaidAt, o.ShippedAt,
 			(SELECT COUNT(*) FROM ShopOrderItem i WHERE i.ShopOrderRef = o.ShopOrderId) AS ItemCount,
 			(SELECT i2.ProductName FROM ShopOrderItem i2 WHERE i2.ShopOrderItemId = (SELECT MIN(i3.ShopOrderItemId) FROM ShopOrderItem i3 WHERE i3.ShopOrderRef = o.ShopOrderId)) AS FirstItem
 		FROM ShopOrder o
@@ -617,7 +617,7 @@
 			"Email": toString(q.Email),
 			"Items": toString(q.FirstItem) & (q.ItemCount gt 1 ? " and " & (q.ItemCount - 1) & " more" : ""),
 			"Total": money(val(q.Total), toString(q.Currency)),
-			"Status": statusLabel(toString(q.Status), isTrue(q.NeedsShipping)),
+			"Status": statusLabel(toString(q.Status), isTrue(q.NeedsShipping), isDate(q.ShippedAt)),
 			"TestMode": isTrue(q.TestMode),
 			"Date": isDate(q.PaidAt) ? dateFormat(q.PaidAt, "yyyy-mm-dd") & " " & timeFormat(q.PaidAt, "HH:nn") : dateFormat(q.Created, "yyyy-mm-dd") & " " & timeFormat(q.Created, "HH:nn")
 		])>
@@ -646,7 +646,7 @@
 		email: valueOrEmpty(o.getEmail()),
 		memberId: val(valueOrEmpty(o.getMemberRef())),
 		status: valueOrEmpty(o.getStatus()),
-		statusLabel: statusLabel(valueOrEmpty(o.getStatus()), isTrue(o.getNeedsShipping())),
+		statusLabel: statusLabel(valueOrEmpty(o.getStatus()), isTrue(o.getNeedsShipping()), not isNull(o.getShippedAt())),
 		needsShipping: isTrue(o.getNeedsShipping()),
 		address: [],
 		subtotal: val(valueOrEmpty(o.getSubtotal())),
@@ -701,12 +701,17 @@
 	<cfargument name="tellBuyer" type="boolean" required="false" default="true">
 	<cfset var o = loadOrder(arguments.shopOrderId)>
 	<cfset var wasShipped = false>
-	<cfif isNull(o) or not listFind("paid,shipped", valueOrEmpty(o.getStatus()))>
+	<cfif isNull(o) or not listFind("paid,shipped,partlyRefunded", valueOrEmpty(o.getStatus()))>
 		<cfreturn { success: false, message: "Only a paid order can be marked as shipped." }>
 	</cfif>
 	<cfset wasShipped = not isNull(o.getShippedAt())>
 	<cftransaction>
-		<cfset o.setStatus(arguments.shipped ? "shipped" : "paid")>
+		<!--- A partly refunded order keeps its status (2026-10-21): the rest of it may still go out, and ShippedAt says it went. --->
+		<cfif valueOrEmpty(o.getStatus()) neq "partlyRefunded">
+			<cfset o.setStatus(arguments.shipped ? "shipped" : "paid")>
+		<cfelseif not arguments.shipped>
+			<cfset o.setShippedAt(javacast("null", ""))>
+		</cfif>
 		<cfif arguments.shipped and not wasShipped><cfset o.setShippedAt(now())></cfif>
 		<cfset o.setDate(now())>
 		<cfset entitySave(o)>
@@ -739,7 +744,7 @@
 <cffunction name="getOrdersCsv" access="public" returntype="string" output="false" hint="The paid orders, one row per product, for a spreadsheet.">
 	<cfset var rows = ["Order,Date,Name,Email,Product,Kind,Quantity,Unit price,Order total,Currency,Status,Ship to,Test"]>
 	<cfset var q = queryExecute("
-		SELECT o.ShopOrderId, o.PaidAt, o.Name, o.Email, o.Total, o.Currency, o.Status, o.NeedsShipping, o.TestMode,
+		SELECT o.ShopOrderId, o.PaidAt, o.Name, o.Email, o.Total, o.Currency, o.Status, o.NeedsShipping, o.TestMode, o.ShippedAt,
 			o.ShipName, o.ShipLine1, o.ShipLine2, o.ShipCity, o.ShipState, o.ShipPostalCode, o.ShipCountry,
 			i.ProductName, i.Kind, i.Quantity, i.UnitPrice
 		FROM ShopOrder o JOIN ShopOrderItem i ON i.ShopOrderRef = o.ShopOrderId
@@ -750,7 +755,7 @@
 		<cfset arrayAppend(rows, arrayToList([
 			csvCell(orderNumber(q.ShopOrderId)), csvCell(isDate(q.PaidAt) ? dateFormat(q.PaidAt, "yyyy-mm-dd") & " " & timeFormat(q.PaidAt, "HH:nn") : ""),
 			csvCell(q.Name), csvCell(q.Email), csvCell(q.ProductName), csvCell(q.Kind), csvCell(q.Quantity), csvCell(numberFormat(val(q.UnitPrice), "0.00")),
-			csvCell(numberFormat(val(q.Total), "0.00")), csvCell(q.Currency), csvCell(statusLabel(toString(q.Status), isTrue(q.NeedsShipping))),
+			csvCell(numberFormat(val(q.Total), "0.00")), csvCell(q.Currency), csvCell(statusLabel(toString(q.Status), isTrue(q.NeedsShipping), isDate(q.ShippedAt))),
 			csvCell(reReplace(trim(listChangeDelims(trim(q.ShipName & "|" & q.ShipLine1 & "|" & q.ShipLine2 & "|" & q.ShipCity & " " & q.ShipState & " " & q.ShipPostalCode & "|" & q.ShipCountry), ", ", "|")), "\s+", " ", "all")),
 			csvCell(isTrue(q.TestMode) ? "test" : "")
 		], ","))>
@@ -768,7 +773,7 @@
 	<cftry>
 		<cfset q = queryExecute("
 			SELECT
-				SUM(CASE WHEN Status = 'paid' AND NeedsShipping = :on THEN 1 ELSE 0 END) AS ToShip,
+				SUM(CASE WHEN NeedsShipping = :on AND (Status = 'paid' OR (Status = 'partlyRefunded' AND ShippedAt IS NULL)) THEN 1 ELSE 0 END) AS ToShip,
 				SUM(CASE WHEN PaidAt >= :weekAgo THEN 1 ELSE 0 END) AS NewThisWeek
 			FROM ShopOrder WHERE BlogRef = :blogId AND Status IN ('paid','shipped','partlyRefunded','refunded')",
 			{ on = { value = true, cfsqltype = "cf_sql_bit" }, weekAgo = { value = dateAdd("d", -7, now()), cfsqltype = "cf_sql_timestamp" }, blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } },
@@ -992,11 +997,12 @@
 <cffunction name="statusLabel" access="public" returntype="string" output="false">
 	<cfargument name="status" type="string" required="true">
 	<cfargument name="needsShipping" type="boolean" required="false" default="false">
+	<cfargument name="shipped" type="boolean" required="false" default="false" hint="It has a ShippedAt: a partly refunded order still needs shipping (2026-10-21).">
 	<cfswitch expression="#arguments.status#">
 		<cfcase value="paid"><cfreturn arguments.needsShipping ? "Paid, to ship" : "Paid"></cfcase>
 		<cfcase value="shipped"><cfreturn "Shipped"></cfcase>
 		<cfcase value="refunded"><cfreturn "Refunded"></cfcase>
-		<cfcase value="partlyRefunded"><cfreturn "Partly refunded"></cfcase>
+		<cfcase value="partlyRefunded"><cfreturn "Partly refunded" & (arguments.needsShipping ? (arguments.shipped ? ", shipped" : ", to ship") : "")></cfcase>
 		<cfcase value="pending"><cfreturn "Not paid yet"></cfcase>
 		<cfcase value="expired"><cfreturn "Not paid (closed)"></cfcase>
 		<cfcase value="cancelled"><cfreturn "Not paid (went back)"></cfcase>

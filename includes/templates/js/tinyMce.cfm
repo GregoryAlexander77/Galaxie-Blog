@@ -911,10 +911,56 @@
 						createAdminInterfaceWindow(115);
 					}
 				});
-				<!--- The placeholder stands out in the editor as a dashed box, like a booking's. --->
+				<!--- The real look of a product in the editor (2026-10-21), like a booking's: the card visitors see (picture, name, price,
+				Add to cart), from the same call the site uses (getShopProducts). The preview is data-mce-bogus="all", so TinyMCE never
+				saves it: the post keeps its small placeholder, which the site, feeds and emails use. --->
+				var galaxieProductPreviewCache = {};
+				function galaxieProductPreviewText(value) { return $("<div/>").text(value === null || value === undefined ? "" : String(value)).html(); }
+				function galaxieProductPreviewHtml(products, alias) {
+					var html = '<div class="galaxieProductPreviewLabel">' + (alias === "*" ? "Every product" : "Product") + ': how visitors see it</div>';
+					if (!products.length) { return html + '<p>Nothing to show: the product is hidden or no longer exists. Check it under Products.</p>'; }
+					$.each(products, function(i, p) {
+						html += '<div class="galaxieProductPreviewCard">'
+							+ (p.imageUrl ? '<img src="' + galaxieProductPreviewText(p.imageUrl) + '" alt="">' : '')
+							+ '<div><h4>' + galaxieProductPreviewText(p.name) + '</h4>'
+							+ (p.description ? '<div>' + galaxieProductPreviewText(p.description) + '</div>' : '')
+							+ '<div class="galaxieProductPreviewPrice">' + galaxieProductPreviewText(p.priceText) + '</div>'
+							+ '<span class="galaxieProductPreviewButton">' + (p.soldOut ? 'Sold out' : 'Add to cart') + '</span></div></div>';
+					});
+					return html;
+				}
+				function galaxieShowProductPreviews(editor) {
+					$.each(editor.dom.select("div.galaxieProduct"), function(i, box) {
+						if (editor.dom.select(".galaxieProductPreview", box).length) { return; }
+						var alias = box.getAttribute("data-product") || "*";
+						var show = function(products) {
+							if (editor.dom.select(".galaxieProductPreview", box).length) { return; }
+							editor.dom.add(box, "div", { "class": "galaxieProductPreview", "data-mce-bogus": "all", "contenteditable": "false" }, galaxieProductPreviewHtml(products, alias));
+						};
+						if (galaxieProductPreviewCache[alias]) { show(galaxieProductPreviewCache[alias]); return; }
+						$.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getShopProducts", data: { aliases: alias }, dataType: "json", cache: false })
+							.done(function(response) {
+								galaxieProductPreviewCache[alias] = response && response.success === true ? response.products : [];
+								show(galaxieProductPreviewCache[alias]);
+							});
+					});
+				}
 				editor.on("init", function() {
-					editor.dom.addStyle(".galaxieProduct { border: 1px dashed #bbb; border-radius: 6px; padding: 10px 14px; margin: 1em 0; }");
+					editor.dom.addStyle(
+						".galaxieProduct { font-size: 0; border: 1px dashed #bbb; border-radius: 6px; padding: 10px 14px; margin: 1em 0; }" +
+						".galaxieProduct:not(:has(.galaxieProductPreview)) { font-size: inherit; }" +
+						".galaxieProductPreview { font-size: 1rem; cursor: default; }" +
+						".galaxieProductPreviewLabel { font-size: 0.8em; opacity: 0.65; margin-bottom: 0.5em; }" +
+						".galaxieProductPreviewCard { display: flex; gap: 12px; margin: 0 0 0.8em 0; }" +
+						".galaxieProductPreviewCard img { width: 90px; height: 90px; object-fit: cover; border-radius: 4px; }" +
+						".galaxieProductPreviewCard h4 { margin: 0 0 0.25em 0; }" +
+						".galaxieProductPreviewPrice { margin: 0.3em 0; }" +
+						".galaxieProductPreviewButton { display: inline-block; padding: 4px 14px; border-radius: 4px; background: #555; color: #fff; }"
+					);
+					galaxieShowProductPreviews(editor);
 				});
+				<!--- After the post loads, and after Insert Product adds one. --->
+				editor.on("SetContent", function() { galaxieShowProductPreviews(editor); });
 			</cfif>
 			<cfif includeVideoUpload>
 				<!--- Create the icon --->

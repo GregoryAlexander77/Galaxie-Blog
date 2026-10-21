@@ -103,16 +103,19 @@
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	</cfif>
 
-	<cfif (shopOrder.needsShipping and listFind("paid,shipped", shopOrder.status)) or shopOrder.refundable gt 0>
+	<!--- Shipping: a paid order, or a partly refunded one (2026-10-21), whose status stays while ShippedAt says it went. --->
+	<cfset orderCanShip = shopOrder.needsShipping and (shopOrder.status eq "paid" or (shopOrder.status eq "partlyRefunded" and not isDate(shopOrder.shippedAt)))>
+	<cfset orderCanUnship = shopOrder.needsShipping and (shopOrder.status eq "shipped" or (shopOrder.status eq "partlyRefunded" and isDate(shopOrder.shippedAt)))>
+	<cfif orderCanShip or orderCanUnship or shopOrder.refundable gt 0>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Actions</h4></td></tr>
-		<cfif shopOrder.needsShipping and shopOrder.status eq "paid">
+		<cfif orderCanShip>
 		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		<tr><td colspan="2" class="#blockClass#">Marking the order shipped emails the buyer.</td></tr>
 		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		<tr><td class="#blockClass#"></td><td class="#blockClass#"><button type="button" id="shopOrderShipped" class="k-button k-primary">Mark as shipped</button></td></tr>
-		<cfelseif shopOrder.needsShipping and shopOrder.status eq "shipped">
+		<cfelseif orderCanUnship>
 		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		<tr><td class="#blockClass#"></td><td class="#blockClass#"><button type="button" id="shopOrderNotShipped" class="k-button">Not shipped after all</button></td></tr>
 		</cfif>

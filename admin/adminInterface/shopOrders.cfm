@@ -4,7 +4,7 @@ downloads the paid orders as CSV (ProxyController.cfc's exportShopOrders). A pla
 <cfset ordersView = listFind("paid,toShip,all", URL.optArgs) ? URL.optArgs : "paid">
 <cfset shopOrders = application.shop.getOrdersForGrid(ordersView eq "all")>
 <cfif ordersView eq "toShip">
-	<cfset shopOrders = arrayFilter(shopOrders, function (o) { return o.Status eq "Paid, to ship"; })>
+	<cfset shopOrders = arrayFilter(shopOrders, function (o) { return right(o.Status, 7) eq "to ship"; })>
 </cfif>
 
 <script>
