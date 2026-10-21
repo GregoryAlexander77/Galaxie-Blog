@@ -477,7 +477,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 						<cfset upNext = application.blog.getAdminHome().getSuggestions(iconList, linkList, listFindNoCase(currentUserCapabilityList, "EditServerSetting") gt 0, listFindNoCase(titleList, "Blog Updates (update needed)") gt 0)>
 						<cfcatch type="any"><cfset upNext = []></cfcatch>
 					</cftry>
-					<cfset upNextIcons = { setup: "SiteSetup", bookings: "Bookings", comments: "Comments", update: "BlogUpdate", signups: "Forms", errors: "ErrorLog", draft: "Posts", scheduled: "Posts" }>
+					<cfset upNextIcons = { setup: "SiteSetup", bookings: "Bookings", newBookings: "Bookings", comments:"Comments", update: "BlogUpdate", signups: "Forms", errors: "ErrorLog", draft: "Posts", scheduled: "Posts" }>
 					<cfset upNextShown = []>
 					<cfloop array="#upNext#" index="suggestion">
 						<cfif arrayLen(upNextShown) lt 2><cfset arrayAppend(upNextShown, suggestion)></cfif>
@@ -506,6 +506,14 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 						<cfset homeStatus = { comments: val(homeStatusQuery.CommentCount), errors: val(homeStatusQuery.ErrorCount), signUps: val(homeStatusQuery.SubmissionCount) + val(homeStatusQuery.BookingCount) }>
 						<cfcatch type="any"></cfcatch>
 					</cftry>
+					<!--- Coming up (owner, 2026-10-21): the next bookings, for someone who may open them, once the blog has booking types. --->
+					<cfset comingUp = { show: false, total: 0, items: [] }>
+					<cfif listFindNoCase(iconList, "Bookings")>
+						<cftry>
+							<cfset comingUp = application.blog.getAdminHome().getComingUp()>
+							<cfcatch type="any"></cfcatch>
+						</cftry>
+					</cfif>
 					<cfset homeGroupStatus = {
 						forms: homeStatus.signUps ? homeStatus.signUps & " new this week" : "",
 						logs: homeStatus.errors ? homeStatus.errors & (homeStatus.errors eq 1 ? " new error" : " new errors") : "",
@@ -551,15 +559,33 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 					</div>
 					<!--- Traffic this week (owner, 2026-10-20): four cards drawn by the page itself (no chart library), filled after the page
 					shows from ProxyController getAdminTraffic -> AdminHome.cfc getTraffic. Only for someone who may open the Visitor Log. --->
-					<cfif listFindNoCase(iconList, "VisitorLog")>
+					<cfif listFindNoCase(iconList, "VisitorLog") or comingUp.show>
 					<div class="adminHomeSection" id="adminTraffic">
 						<h5 class="adminHomeHeading">This week</h5>
 						<div class="adminTrafficGrid">
+							<cfif comingUp.show>
+							<!--- Coming up (owner, 2026-10-21): the next bookings, soonest first; the card opens the bookings list, a booking opens that booking. --->
+							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See your bookings" onclick="createAdminInterfaceWindow(94, 'upcoming');" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(94, 'upcoming'); }">
+								<div class="adminTrafficTitle">Coming up</div>
+								<div class="adminTrafficBody">
+									<div class="adminTrafficBig">#comingUp.total#</div>
+									<div class="adminTrafficNote">#comingUp.total eq 1 ? "booking" : "bookings"# in the next two weeks</div>
+									<cfloop array="#comingUp.items#" index="booking">
+										<div class="adminComingUpRow" role="button" tabindex="0" title="Open this booking" onclick="event.stopPropagation(); createAdminInterfaceWindow(95, #booking.bookingId#);" onkeydown="if (event.key === 'Enter') { event.stopPropagation(); createAdminInterfaceWindow(95, #booking.bookingId#); }">
+											<div class="adminComingUpWhen">#encodeForHtml(booking.when)#<cfif booking.pending> <span class="adminComingUpWaiting">waiting for your OK</span></cfif></div>
+											<div class="adminTrafficNote" title="#encodeForHtmlAttribute(booking.typeName & (len(booking.location) ? ', ' & booking.location : ''))#">#encodeForHtml(left(booking.name, 40))#, #encodeForHtml(booking.typeName)#<cfif len(booking.location)>, #encodeForHtml(booking.location)#</cfif></div>
+										</div>
+									</cfloop>
+								</div>
+							</div>
+							</cfif>
+							<cfif listFindNoCase(iconList, "VisitorLog")>
 							<!--- Clicking the card opens the Visitor Log with this week's people only, bots left out (owner, 2026-10-20). --->
 							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See these visitors in the Visitor Log" onclick="createAdminInterfaceWindow(48, 'people');" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(48, 'people'); }"><div class="adminTrafficTitle">Visitors</div><div id="trafficVisitors" class="adminTrafficBody">Loading...</div></div>
 							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Most read</div><div id="trafficTop" class="adminTrafficBody"></div></div>
 							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Where they came from</div><div id="trafficSources" class="adminTrafficBody"></div></div>
 							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Reading now</div><div id="trafficNow" class="adminTrafficBody"></div></div>
+							</cfif>
 						</div>
 					</div>
 					</cfif>
@@ -609,7 +635,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 				<script>
 					<!--- Traffic cards: drawn here from the numbers (a trend line, bars), so no chart library is downloaded. --->
 					(function () {
-						if (!document.getElementById("adminTraffic")) { return; }
+						if (!document.getElementById("trafficVisitors")) { return; }
 						var esc = function (t) { return $("<div/>").text(t).html(); };
 						jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getAdminTraffic",
 							data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>" }, dataType: "json" }).done(function (response) {
@@ -721,6 +747,11 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			<!--- Traffic cards (5.0). --->
 			.adminTrafficGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>220<cfelse>210</cfif>px, 1fr)); gap: 14px; text-align: left; }
 			.adminTrafficCard { border: 1px solid rgba(128,128,128,.35); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+			.adminComingUpRow { margin-top: 8px; padding: 2px 4px; border-radius: 4px; }
+			.adminComingUpRow:hover, .adminComingUpRow:focus { outline: 1px solid var(--homeAccent); }
+			.adminComingUpWhen { font-size: 13px; }
+			.adminComingUpWaiting { opacity: .75; }
+			.adminComingUpRow .adminTrafficNote { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 			.adminTrafficLink { cursor: pointer; } .adminTrafficLink:hover, .adminTrafficLink:focus { border-color: var(--homeAccent); outline: none; }
 			.adminTrafficTitle { font-weight: bold; margin-bottom: 8px; }
 			.adminTrafficBig { font-size: 30px; font-weight: bold; line-height: 1.1; }

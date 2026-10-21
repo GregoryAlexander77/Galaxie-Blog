@@ -46,6 +46,74 @@
 	</cftry>
 </cffunction>
 
+<!--- New and changed bookings (owner, 2026-10-21): a booking that doesn't need the owner's OK never showed on the home, so Up next
+also has "See 2 new bookings" and "1 booking changed" (cancelled or moved by the client from their manage link), until the
+bookings list or calendar is opened. The owner's own changes aren't counted. --->
+<cffunction name="markBookingsSeen" access="public" returntype="void" output="false" hint="The bookings list or calendar was opened: the bookings so far are no longer new.">
+	<cftry>
+		<cfset application.events.setSetting(0, settingKey("bookingsSeen"), dateTimeFormat(now(), "yyyy-mm-dd HH:nn:ss"))>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+</cffunction>
+
+<cffunction name="noteBookingChange" access="public" returntype="void" output="false" hint="A client cancelled or moved a booking (ProxyController cancelManagedBooking / rescheduleManagedBooking). The last 15 are kept for the whole blog, as id:kind:time.">
+	<cfargument name="bookingId" type="numeric" required="true">
+	<cfargument name="kind" type="string" required="true" hint="cancelled or moved">
+	<cfset var changes = []>
+	<cftry>
+		<cflock name="galaxieBookingChanges_#application.BlogDbObj.getBlogId()#" type="exclusive" timeout="10">
+			<cfset changes = listToArray(application.events.getSetting(0, "bookingChanges", ""))>
+			<cfset arrayAppend(changes, int(arguments.bookingId) & ":" & (arguments.kind eq "moved" ? "moved" : "cancelled") & ":" & dateTimeFormat(now(), "yyyymmddHHnnss"))>
+			<cfloop condition="arrayLen(changes) gt 15"><cfset arrayDeleteAt(changes, 1)></cfloop>
+			<cfset application.events.setSetting(0, "bookingChanges", arrayToList(changes))>
+		</cflock>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+</cffunction>
+
+<cffunction name="bookingWhen" access="private" returntype="string" output="false" hint="A booking's start (StartLocal, yyyy-mm-dd HH:mm in the blog's time) as Today 1:30 PM, Tomorrow 9:00 AM or Tue Oct 27, 10:00 AM.">
+	<cfargument name="startLocal" type="string" required="true">
+	<cfset var start = "">
+	<cfset var today = dateFormat(application.blog.blogNow(), "yyyy-mm-dd")>
+	<cfif not reFind("^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$", arguments.startLocal)><cfreturn arguments.startLocal></cfif>
+	<cfset start = createDateTime(left(arguments.startLocal, 4), mid(arguments.startLocal, 6, 2), mid(arguments.startLocal, 9, 2), mid(arguments.startLocal, 12, 2), right(arguments.startLocal, 2), 0)>
+	<cfif left(arguments.startLocal, 10) eq today>
+		<cfreturn "Today " & timeFormat(start, "h:mm tt")>
+	<cfelseif left(arguments.startLocal, 10) eq dateFormat(dateAdd("d", 1, today), "yyyy-mm-dd")>
+		<cfreturn "Tomorrow " & timeFormat(start, "h:mm tt")>
+	</cfif>
+	<cfreturn dateFormat(start, "ddd mmm d") & ", " & timeFormat(start, "h:mm tt")>
+</cffunction>
+
+<cffunction name="getComingUp" access="public" returntype="struct" output="false"
+		hint="The admin home's Coming up card (owner, 2026-10-21): the next bookings in the two weeks ahead, soonest first. { show: the blog has booking types, total, items: [{ bookingId, when, name, typeName, location, pending }] } - up to five.">
+	<cfset var result = { show: false, total: 0, items: [] }>
+	<cfset var blogId = application.BlogDbObj.getBlogId()>
+	<cfset var nowTime = application.blog.blogNow()>
+	<cfset var q = "">
+	<cftry>
+		<cfset q = queryExecute("SELECT COUNT(*) AS N FROM BookingType WHERE BlogRef = :blogId", { blogId = { value = blogId, cfsqltype = "cf_sql_integer" } }, { datasource = application.dsn })>
+		<cfif not val(q.N)><cfreturn result></cfif>
+		<cfset result.show = true>
+		<!--- StartLocal is text in the blog's time (yyyy-mm-dd HH:mm), so it compares as text. --->
+		<cfset q = queryExecute("
+			SELECT b.BookingId, b.Name, b.StartLocal, b.Status, t.Name AS TypeName, l.Label AS LocationLabel
+			FROM Booking b LEFT JOIN BookingType t ON t.BookingTypeId = b.BookingTypeRef LEFT JOIN LocationOption l ON l.LocationOptionId = b.LocationOptionRef
+			WHERE b.BlogRef = :blogId AND b.Status IN ('confirmed', 'pending') AND b.StartLocal >= :fromLocal AND b.StartLocal <= :toLocal
+			ORDER BY b.StartLocal",
+			{ blogId = { value = blogId, cfsqltype = "cf_sql_integer" },
+			  fromLocal = { value = dateTimeFormat(nowTime, "yyyy-mm-dd HH:nn"), cfsqltype = "cf_sql_varchar" },
+			  toLocal = { value = dateFormat(dateAdd("d", 14, nowTime), "yyyy-mm-dd") & " 23:59", cfsqltype = "cf_sql_varchar" } }, { datasource = application.dsn })>
+		<cfset result.total = q.recordCount>
+		<cfloop query="q" endrow="5">
+			<cfset arrayAppend(result.items, { bookingId: q.BookingId, when: bookingWhen(q.StartLocal), name: toString(q.Name), typeName: toString(q.TypeName),
+				location: toString(q.LocationLabel), pending: q.Status eq "pending" })>
+		</cfloop>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+	<cfreturn result>
+</cffunction>
+
 <cffunction name="getSuggestions" access="public" returntype="array" output="false"
 		hint="What needs this person now, most important first: [{ kind, label, detail, count, link, signature }]. iconList and linkList are the admin home's own lists of what they may open (and how), so nothing is suggested that they can't do.">
 	<cfargument name="iconList" type="string" required="true">
@@ -87,6 +155,50 @@
 			<cfif val(q.N)>
 				<cfset arrayAppend(list, { kind: "bookings", label: "Confirm " & q.N & (q.N eq 1 ? " booking" : " bookings"), detail: "Waiting for your OK",
 					count: val(q.N), link: linkOf("Bookings"), signature: q.N & "-" & q.Newest })>
+			</cfif>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+	</cfif>
+
+	<!--- 2b. New bookings, and bookings the client cancelled or moved, since the bookings were last opened (owner, 2026-10-21).
+	A first look counts the last week. --->
+	<cfif listFindNoCase(arguments.iconList, "Bookings")>
+		<cftry>
+			<cfset seen = application.events.getSetting(0, settingKey("bookingsSeen"), "")>
+			<cfset seen = isDate(seen) ? parseDateTime(seen) : dateAdd("d", -7, now())>
+			<cfset q = queryExecute("SELECT BookingId, Name, StartLocal FROM Booking WHERE BlogRef = :blogId AND Status = 'confirmed' AND Created >= :after ORDER BY BookingId DESC",
+				<!--- seen is kept to the second and Created has milliseconds, so new means from the next whole second. --->
+				{ blogId = { value = blogId, cfsqltype = "cf_sql_integer" }, after = { value = dateAdd("s", 1, seen), cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn })>
+			<cfset item = { changed: {}, newest: "" }>
+			<cfloop list="#application.events.getSetting(0, 'bookingChanges', '')#" index="local.change">
+				<cfif listLen(local.change, ":") eq 3 and reFind("^\d{14}$", listLast(local.change, ":"))>
+					<cfset local.at = listLast(local.change, ":")>
+					<cfset local.at = createDateTime(left(local.at, 4), mid(local.at, 5, 2), mid(local.at, 7, 2), mid(local.at, 9, 2), mid(local.at, 11, 2), right(local.at, 2))>
+					<cfif local.at gt seen>
+						<cfset item.changed[listFirst(local.change, ":")] = listGetAt(local.change, 2, ":")>
+						<cfset item.newest = local.change>
+					</cfif>
+				</cfif>
+			</cfloop>
+			<cfset local.changedCount = structCount(item.changed)>
+			<cfif q.recordCount or local.changedCount>
+				<cfif q.recordCount>
+					<cfset local.label = "See " & q.recordCount & (q.recordCount eq 1 ? " new booking" : " new bookings")>
+					<cfif local.changedCount>
+						<cfset local.detail = "And " & local.changedCount & " changed by the client">
+					<cfelseif q.recordCount eq 1>
+						<cfset local.detail = left(q.Name, 30) & ", " & bookingWhen(q.StartLocal)>
+					<cfelse>
+						<cfset local.detail = "Since you last looked">
+					</cfif>
+				<cfelse>
+					<cfset local.label = local.changedCount & (local.changedCount eq 1 ? " booking changed" : " bookings changed")>
+					<cfset local.detail = "Cancelled or moved by the client">
+				</cfif>
+				<!--- Cancelled ones only show in the list's All view. --->
+				<cfset arrayAppend(list, { kind: "newBookings", label: local.label, detail: local.detail, count: q.recordCount + local.changedCount,
+					link: "javascript:createAdminInterfaceWindow(94, '" & (local.changedCount ? "all" : "upcoming") & "');",
+					signature: val(q.BookingId) & "-" & local.changedCount & "-" & hash(item.newest, "MD5") })>
 			</cfif>
 			<cfcatch type="any"></cfcatch>
 		</cftry>
@@ -180,7 +292,7 @@
 
 	<!--- In the owner's order; an error that keeps happening first. --->
 	<cfset arraySort(list, function (a, b) {
-		var order = "setup,bookings,comments,update,signups,errors,draft,scheduled";
+		var order = "setup,bookings,newBookings,comments,update,signups,errors,draft,scheduled";
 		var rankA = (a.kind eq "errors" and a.signature contains "broken") ? 0 : listFind(order, a.kind);
 		var rankB = (b.kind eq "errors" and b.signature contains "broken") ? 0 : listFind(order, b.kind);
 		return rankA lt rankB ? -1 : (rankA gt rankB ? 1 : 0);

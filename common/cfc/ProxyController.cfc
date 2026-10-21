@@ -12741,6 +12741,8 @@
 					</cfif>
 				</cfif>
 				<cfset application.bookings.sendBookingEmails(b.bookingId, "cancelledByVisitor")>
+				<!--- For the admin home's Up next row (5.0): the client changed a booking. --->
+				<cfset application.blog.getAdminHome().noteBookingChange(b.bookingId, "cancelled")>
 			</cfif>
 		</cfif>
 
@@ -12767,6 +12769,7 @@
 			<cfif moved.success>
 				<cfset response[ "startUtc" ] = application.bookings.getBooking(bookingId = b.bookingId).startUtc>
 				<cfset application.bookings.sendBookingEmails(b.bookingId, "rescheduled")>
+				<cfset application.blog.getAdminHome().noteBookingChange(b.bookingId, "moved")>
 			</cfif>
 		</cfif>
 

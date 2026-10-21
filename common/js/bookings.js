@@ -72,11 +72,12 @@ var galaxieBookings = (function($) {
 		$.each(new Intl.DateTimeFormat("en-US", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date), function(i, p) { parts[p.type] = p.value; });
 		return parts.year + "-" + parts.month + "-" + parts.day;
 	}
+	// Times are always 12-hour, 1:00 PM (owner, 2026-10-21), whatever the browser's region.
 	function formatTime(utc, zone) {
-		return new Date(utc).toLocaleTimeString([], { timeZone: zone, hour: "numeric", minute: "2-digit" });
+		return new Date(utc).toLocaleTimeString([], { timeZone: zone, hour: "numeric", minute: "2-digit", hour12: true });
 	}
 	function formatWhen(utc, zone) {
-		return new Date(utc).toLocaleString([], { timeZone: zone, weekday: "long", month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+		return new Date(utc).toLocaleString([], { timeZone: zone, weekday: "long", month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
 	}
 	function pad(n) { return (n < 10 ? "0" : "") + n; }
 	function dateText(date) { return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()); }

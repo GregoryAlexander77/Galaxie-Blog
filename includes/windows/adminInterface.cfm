@@ -1133,6 +1133,8 @@ days off. See common/cfc/Bookings.cfc. --->
 </cfcase>
 <!--- Bookings (2026-10-14): 94 the bookings list (optArgs = upcoming, past or all), 95 one booking (optArgs = bookingId). --->
 <cfcase value=94>
+	<!--- Opening the bookings: the new and changed ones so far are no longer new for the admin home's Up next row (5.0). --->
+	<cftry><cfset application.blog.getAdminHome().markBookingsSeen()><cfcatch type="any"></cfcatch></cftry>
 	<cfinclude template="../../admin/adminInterface/bookingsList.cfm">
 </cfcase>
 <cfcase value=95>
@@ -1140,6 +1142,7 @@ days off. See common/cfc/Bookings.cfc. --->
 </cfcase>
 <!--- Bookings (2026-10-15): 96 the bookings calendar. --->
 <cfcase value=96>
+	<cftry><cfset application.blog.getAdminHome().markBookingsSeen()><cfcatch type="any"></cfcatch></cftry>
 	<cfinclude template="../../admin/adminInterface/bookingsCalendar.cfm">
 </cfcase>
 <!--- Member accounts (2026-10-15): 97 the members list. --->
