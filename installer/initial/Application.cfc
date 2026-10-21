@@ -14,9 +14,10 @@
 		<!--- Append '/org/camden/blog/blog.ini.cfm' to the sitePath to get the proper path to the ini file. --->
 		<cfset blogIniPath = sitePath & 'org/camden/blog/blog.ini.cfm'>
 			
-		<!--- Abort if the blog is already installed. --->
-		<cfset blogInstalled = getProfileString(blogIniPath, "default", "installed")>
-		<cfif len(blogInstalled) and blogInstalled>
+		<!--- Abort if the blog is already installed. The settings file is read from its full path on disk (2026-10-20). --->
+		<cfset blogInstalled = fileExists(expandPath(blogIniPath)) ? getProfileString(expandPath(blogIniPath), "default", "installed") : "">
+		<cfif isBoolean(blogInstalled) and blogInstalled>
+			<cfheader statuscode="403">
 			<p>This blog is already installed. 
 			If you manually set the application.reinstallIni variable, set it back to false in the Application.cfc in the root directory to false to continue.
 			
