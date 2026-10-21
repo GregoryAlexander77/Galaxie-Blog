@@ -86,6 +86,42 @@
 	<cfreturn list>
 </cffunction>
 
+<cffunction name="getThemeCards" access="public" returntype="struct" output="false"
+		hint="What the theme cards need (2026-10-20, common/js/galaxieThemeCards.js, shared by the Themes window and Site Setup): { themes: [{ the card's keys, Dark, UseTheme }], fontFaces: the @font-face rules for the fonts the cards use }.">
+	<cfargument name="onlyInUse" type="boolean" required="false" default="false" hint="Only the themes offered to visitors (Theme.UseTheme).">
+	<cfset var keys = "ThemeId,ThemeAlias,ThemeName,KendoThemeId,Breakpoint,ContentWidth,SideBarContainerWidth,SiteOpacity,IncludeBackgroundImages,BlogBackgroundImage,BlogBackgroundColor,HeaderBackgroundImage,LogoImage,DisplayBlogName,BlogNameFont,BlogNameFontType,BlogNameTextColor,MenuFont,MenuFontType,Font,FontType">
+	<cfset var result = { "themes": [], "fontFaces": "" }>
+	<cfset var renderer = createObject("component", application.rendererComponentPath)>
+	<cfset var fontsDone = {}>
+	<cfset var t = "">
+	<cfset var row = "">
+	<cfset var key = "">
+	<cfset var value = "">
+	<cfset var themeObj = "">
+	<cfloop array="#getThemeList()#" index="t">
+		<cfset themeObj = entityLoadByPK("Theme", t["ThemeId"])>
+		<cfif not arguments.onlyInUse or (isBoolean(themeObj.getUseTheme() ?: false) and themeObj.getUseTheme())>
+			<!--- Bracket keys, so Adobe ColdFusion keeps their case for the script. --->
+			<cfset row = {}>
+			<cfloop list="#keys#" index="key">
+				<cfset value = structKeyExists(t, key) and not isNull(t[key]) ? t[key] : "">
+				<cfif isBoolean(value) and not isNumeric(value)><cfset value = value ? "1" : "0"></cfif>
+				<cfset row[key] = toString(value)>
+			</cfloop>
+			<cfset row["Dark"] = isBoolean(themeObj.getDarkTheme() ?: false) and themeObj.getDarkTheme()>
+			<cfset arrayAppend(result.themes, row)>
+			<cfloop list="Font,MenuFont,BlogNameFont" index="key">
+				<cfset value = row[key]>
+				<cfif len(value) and not structKeyExists(fontsDone, value)>
+					<cfset fontsDone[value] = true>
+					<cfset result.fontFaces = result.fontFaces & renderer.getOverlayFontFaceStyle(value)>
+				</cfif>
+			</cfloop>
+		</cfif>
+	</cfloop>
+	<cfreturn result>
+</cffunction>
+
 <cffunction name="getContentList" access="public" returntype="array" output="false" hint="The content the Content tab lists: each template's name, whether it is shown, and which themes have the owner's own text (an empty ThemeRef is every theme).">
 	<cfset var list = []>
 	<cfset var name = "">

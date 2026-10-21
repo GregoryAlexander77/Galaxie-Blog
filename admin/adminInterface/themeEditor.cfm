@@ -19,7 +19,9 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 <cfloop array="#editorThemes#" index="thisTheme">
 	<cfset row = {}>
 	<cfloop list="#themeKeys#" index="thisKey">
-		<cfset thisValue = thisTheme[thisKey] ?: "">
+		<!--- Not ?: here (2026-10-20): Adobe ColdFusion took a 0 for missing, so a modern theme's Breakpoint of 0 came out empty and
+		every card showed a sidebar. --->
+		<cfset thisValue = structKeyExists(thisTheme, thisKey) and not isNull(thisTheme[thisKey]) ? thisTheme[thisKey] : "">
 		<cfif isBoolean(thisValue) and not isNumeric(thisValue)><cfset thisValue = thisValue ? "1" : "0"></cfif>
 		<cfset row[thisKey] = toString(thisValue)>
 	</cfloop>
@@ -62,21 +64,7 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 	.themeEditorGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>220<cfelse>280</cfif>px, 1fr)); gap: 14px; }
 	.themeCard { border: 1px solid rgba(128,128,128,.35); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
 	.themeCard.inUse { border: 3px solid currentColor; }
-	.themeCardPicture { height: 230px; background-size: cover; background-position: center; position: relative; background-color: #888; overflow: hidden; }
-	.themeCardHeader { box-sizing: border-box; height: 34px; margin: 0 auto; background-size: cover; background-position: center; display: flex; align-items: center; gap: 6px; padding: 0 8px; overflow: hidden; white-space: nowrap; }
-	.themeCardHeader img { max-height: 24px; max-width: 30%; }
-	.themeCardName { font-size: 15px; line-height: 1; overflow: hidden; text-overflow: ellipsis; }
-	.themeCardMenu { margin-left: auto; font-size: 10px; opacity: .9; }
-	.themeCardBody { position: absolute; top: 34px; bottom: 0; display: flex; }
-	.themeCardPosts, .themeCardSide { background: #fff; color: #222; padding: 7px 8px; overflow: hidden; }
-	.themeCard.dark .themeCardPosts, .themeCard.dark .themeCardSide { background: #24262a; color: #e6e6e6; }
-	.themeCardPosts { flex: 1 1 auto; }
-	.themeCardSide { flex: 0 0 auto; border-left: 1px solid rgba(128,128,128,.25); }
 	.themeCardFonts { margin-top: -4px; }
-	.themeCardTitle { font-weight: bold; font-size: 13px; line-height: 1.2; margin-bottom: 4px; }
-	.themeCardText1 { font-size: 10px; line-height: 1.4; }
-	.themeCardPod { font-size: 9px; line-height: 1.35; margin-bottom: 6px; }
-	.themeCardPod b { display: block; font-size: 10px; margin-bottom: 2px; }
 	.themeCardPill { position: absolute; top: 40px; right: 8px; z-index: 2; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.65); color: #fff; font-size: 12px; font-weight: bold; }
 	.themeCardText { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 8px; }
 	.themeCardButtons { display: flex; gap: 6px; }
@@ -207,6 +195,7 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 </div>
 </cfoutput>
 
+<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/js/galaxieThemeCards.js"></script>
 <script>
 $(function () {
 	var BASE = "<cfoutput>#jsStringFormat(application.baseUrl)#</cfoutput>";
@@ -267,15 +256,13 @@ $(function () {
 		$.each(THEMES, function (i, t) {
 			var isUsed = used && used.ThemeId === t.ThemeId, kendoTheme = kendoById(t.KendoThemeId);
 			var card = $('<div class="themeCard"></div>').toggleClass("inUse", !!isUsed).toggleClass("dark", !!(kendoTheme && kendoTheme.dark));
-			var picture = $('<div class="themeCardPicture"></div>').css("background-image", bool(t.IncludeBackgroundImages) && t.BlogBackgroundImage ? 'url("' + img(t.BlogBackgroundImage) + '")' : "none")
-				.css("background-color", t.BlogBackgroundColor || "#888").append(themeCardPage(t));
+			<!--- The card's picture of a page is drawn by common/js/galaxieThemeCards.js, shared with Site Setup (2026-10-20). --->
+			var picture = GalaxieThemeCards.picture($.extend({}, t, { Dark: !!(kendoTheme && kendoTheme.dark) }), { siteName: SITE_NAME, baseUrl: BASE });
 			if (isUsed) { picture.append('<span class="themeCardPill">In use</span>'); }
 			var buttons = $('<div class="themeCardButtons"></div>');
 			buttons.append($('<button type="button" class="k-button"></button>').text(isUsed ? "In use" : "Use this theme").prop("disabled", !!isUsed).on("click", function () { useTheme(t); }));
 			buttons.append($('<button type="button" class="k-button">Customize</button>').on("click", function () { startCustomize(t.ThemeId); showView("customize"); }));
-			var fonts = $('<div class="themeCardFonts k-form-hint"></div>').append(
-				$("<span></span>").text("Header: " + (t.BlogNameFont || "default")).css("font-family", fontCss(t.BlogNameFont, t.BlogNameFontType)), " · ",
-				$("<span></span>").text("Body: " + (t.Font || "default")).css("font-family", fontCss(t.Font, t.FontType)));
+			var fonts = $('<div class="themeCardFonts k-form-hint"></div>').append(GalaxieThemeCards.fontsLine(t));
 			card.append(picture, $('<div class="themeCardText"></div>').append($("<b></b>").text(t.ThemeName), fonts, buttons));
 			box.append(card);
 		});
@@ -284,26 +271,7 @@ $(function () {
 	// the content box straight under it - a post in the text font, and the sidebar on a classic (not modern) theme.
 	var SITE_NAME = "<cfoutput>#jsStringFormat(application.BlogDbObj.getBlogTitle())#</cfoutput>";
 	function fontCss(name, type) { return name ? "'" + name.replace(/'/g, "") + "'" + (type ? ", " + type : "") : "inherit"; }
-	function themeCardPage(t) {
-		var width = Math.max(40, Math.min(100, parseInt(t.ContentWidth, 10) || 60)), classic = String(t.Breakpoint) !== "0";
-		if (classic) { width = Math.max(width, 80); }
-		var left = (100 - width) / 2, opacity = Math.max(0.5, Math.min(1, (parseInt(t.SiteOpacity, 10) || 99) / 100));
-		var header = $('<div class="themeCardHeader"></div>').css({ "background-image": t.HeaderBackgroundImage ? 'url("' + img(t.HeaderBackgroundImage) + '")' : "none", width: width + "%" });
-		if (t.LogoImage) { header.append($('<img alt="">').attr("src", img(t.LogoImage))); }
-		if (bool(t.DisplayBlogName)) { header.append($('<span class="themeCardName"></span>').text(SITE_NAME).css({ "font-family": fontCss(t.BlogNameFont, t.BlogNameFontType), color: t.BlogNameTextColor || "#fff" })); }
-		header.append($('<span class="themeCardMenu">Menu &nbsp; About &nbsp; Themes</span>').css({ "font-family": fontCss(t.MenuFont, t.MenuFontType), color: t.BlogNameTextColor || "#fff" }));
-		var body = $('<div class="themeCardBody"></div>').css({ left: left + "%", right: left + "%", opacity: opacity, "font-family": fontCss(t.Font, t.FontType) });
-		body.append($('<div class="themeCardPosts"></div>').append(
-			$('<div class="themeCardTitle">Lorem ipsum dolor sit amet</div>').css("font-family", fontCss(t.BlogNameFont, t.BlogNameFontType)),
-			$('<div class="themeCardText1">Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</div>')));
-		if (classic) {
-			var side = Math.max(20, Math.min(45, parseInt(t.SideBarContainerWidth, 10) || 35));
-			body.append($('<div class="themeCardSide"></div>').css("width", side + "%").append(
-				'<div class="themeCardPod"><b>Categories</b>Lorem<br>Ipsum<br>Dolor</div>',
-				'<div class="themeCardPod"><b>Recent posts</b>Sit amet<br>Consectetur</div>'));
-		}
-		return [header, body];
-	}
+	<!--- themeCardPage moved to common/js/galaxieThemeCards.js (2026-10-20). --->
 	function setInUse(themeId) { $.each(THEMES, function (i, t) { t.SelectedTheme = String(t.ThemeId) === String(themeId) ? "1" : "0"; }); drawGallery(); drawBranding(); }
 	function useTheme(t) {
 		post("use", { themeId: t.ThemeId }, function () { setInUse(t.ThemeId); say("Theme changed", t.ThemeName + " is now your site's theme."); });

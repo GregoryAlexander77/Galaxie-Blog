@@ -46,6 +46,8 @@ takes the same options and events. --->
 <cfset fontFaces = fontFaces & rendererObj.getOverlayFontFaceStyle("Montserrat Bold")>
 <cfset markFontFile = fontFiles["Montserrat Bold"] ?: "">
 
+<!--- The theme cards (2026-10-20): the same small pictures of a page as the Themes window, from ThemeEditor.cfc getThemeCards(). --->
+<cfset setupThemeCards = application.blog.getThemeEditor().getThemeCards(true)>
 <cfset themeParts = []>
 <cfloop query="themes">
 	<cfset arrayAppend(themeParts, '{"alias":' & serializeJSON(toString(themes.ThemeAlias)) & ',"name":' & serializeJSON(toString(themes.ThemeName))
@@ -99,7 +101,9 @@ takes the same options and events. --->
 <script src="#application.baseUrl#/common/libs/kendoCore/js/jquery.min.js"></script>
 <script src="#application.baseUrl#/common/libs/kendoCore/js/kendo.ui.core.min.js"></script>
 <script src="#application.baseUrl#/common/js/galaxieWizard.js"></script>
+<script src="#application.baseUrl#/common/js/galaxieThemeCards.js"></script>
 #fontFaces#
+#setupThemeCards.fontFaces#
 </cfoutput>
 <style>
 	:root { --ink: #1f2328; --muted: #5d6670; --line: #d8dde3; --accent: #007bff; --panel: #ffffff; --page: #eef1f4; }
@@ -121,7 +125,7 @@ takes the same options and events. --->
 	.hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
 	.saveNote { font-size: 13px; color: #b00020; margin: 8px 0 0; min-height: 1em; }
 	/* Look */
-	.themeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 2px 4px 8px; }
+	.themeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 2px 4px 8px; }
 	.themeCard { border: 2px solid transparent; border-radius: 8px; cursor: pointer; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.15); overflow: hidden; text-align: left; padding: 0; font: inherit; color: inherit; }
 	.themeCard:hover { box-shadow: 0 3px 10px rgba(0,0,0,.2); }
 	.themeCard[aria-pressed="true"] { border-color: var(--accent); }
@@ -130,6 +134,7 @@ takes the same options and events. --->
 	.themeBody { position: absolute; left: 14%; right: 14%; top: 30px; bottom: 0; background: rgba(255,255,255,.88); border-radius: 3px 3px 0 0; }
 	.themeCard.dark .themeBody { background: rgba(30,32,36,.88); }
 	.themeName { padding: 7px 9px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+	.themeFonts { padding: 0 9px 8px; font-size: 12px; color: var(--muted); }
 	.themeName .tick { color: var(--accent); font-weight: bold; visibility: hidden; }
 	.themeCard[aria-pressed="true"] .tick { visibility: visible; }
 	.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; align-items: center; font-size: 14px; }
@@ -359,6 +364,8 @@ $(function () {
 	var baseUrl = "#jsStringFormat(application.baseUrl)#";
 	var csrfToken = "#csrfToken#";
 	var themes = [#arrayToList(themeParts, ",")#];
+	var themeCards = {};
+	#serializeJSON(setupThemeCards.themes)#.forEach(function (c) { themeCards[c.ThemeAlias] = c; });
 	var fonts = [#arrayToList(fontParts, ",")#];
 	var markFontFile = #serializeJSON(markFontFile)#;
 	var fontFaceHtml = #serializeJSON(fontFaces)#;
@@ -534,11 +541,15 @@ $(function () {
 		themes.filter(function (t) {
 			return themeFilter === "all" || (themeFilter === "dark" ? t.dark : themeFilter === "photo" ? isPhoto(t) : !isPhoto(t));
 		}).forEach(function (t) {
+			<!--- The same small picture of a page as the Themes window (common/js/galaxieThemeCards.js): the header with the site name in its
+			font, the content box under it with a Latin sample in the theme's fonts, the sidebar on classic themes, and the font names. --->
+			var data = themeCards[t.alias];
+			var pic = data ? GalaxieThemeCards.picture(data, { siteName: state.name, baseUrl: baseUrl, height: 150 })
+				: $('<div class="themePic"></div>').css("background-image", 'url("' + t.bg + '")');
 			var card = $('<button type="button" class="themeCard"></button>').toggleClass("dark", t.dark).attr("aria-pressed", t.alias === state.theme ? "true" : "false")
-				.append($('<div class="themePic"></div>').css("background-image", 'url("' + t.bg + '")')
-					.append($('<div class="themeHeader"></div>').css("background-image", 'url("' + t.header + '")').css("color", lightHeader(t) ? "#1f2328" : "#fff").text(state.name))
-					.append('<div class="themeBody"></div>'))
+				.append(pic)
 				.append($('<div class="themeName"></div>').append($("<span>").text(t.name)).append('<span class="tick">&#10003;</span>'));
+			if (data) { card.append($('<div class="themeFonts"></div>').append(GalaxieThemeCards.fontsLine(data))); }
 			card.on("click", function () {
 				state.theme = t.alias; dirty.look = true;
 				if (!state.colourPicked) { state.colour = state.sampleColour = lightHeader(t) ? "#1f2328" : "#ffffff"; syncColours(); }
