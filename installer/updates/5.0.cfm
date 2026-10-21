@@ -71,8 +71,11 @@ security answers in blog.ini.cfm. The administrator is saved with a hashed passw
 installer has done this itself since 2026-10-12). --->
 <cfif structKeyExists(application, "blogIniPath") and fileExists(application.blogIniPath)>
 	<cfset clearedIniKeys = 0>
+	<!--- Blog Settings keeps the datasource password on the same line (password), so a value that matches the blog's saved
+	datasource password is the owner's and stays. --->
+	<cfset savedDsnPassword = isNull(application.BlogDbObj.getBlogDsnPassword()) ? "" : application.BlogDbObj.getBlogDsnPassword()>
 	<cfloop list="password,securityAnswer1,securityAnswer2,securityAnswer3" index="iniKey">
-		<cfif len(getProfileString(application.blogIniPath, "default", iniKey))>
+		<cfif len(getProfileString(application.blogIniPath, "default", iniKey)) and not (iniKey eq "password" and len(savedDsnPassword) and getProfileString(application.blogIniPath, "default", iniKey) eq savedDsnPassword)>
 			<cfset setProfileString(application.blogIniPath, "default", iniKey, "")>
 			<cfset clearedIniKeys++>
 		</cfif>
