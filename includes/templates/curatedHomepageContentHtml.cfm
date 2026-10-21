@@ -32,6 +32,22 @@ instead of the sidebar dropping below it. ONE wrapper for all three sections, no
 mechanism working (it needs exactly one #blogContent sibling next to #sidebar). --->
 <div id="blogContent" class="k-content">
 
+<!--- One featured page with blog posts (2026-10-20, Site Setup's "Your About page, then your latest posts"): the page's own text is an
+introduction at the top, then the sections below. (With two or more pages they are cards, as before; one page alone is the whole
+homepage, handled in index.cfm.) --->
+<cfif curatedHomepageSettings.showPages and listLen(curatedHomepageSettings.pageIdList) eq 1>
+	<cfset curatedIntroPost = application.blog.getPostByPostId(val(curatedHomepageSettings.pageIdList), true, false)>
+	<cfif arrayLen(curatedIntroPost)>
+		<cfobject component="#application.rendererComponentPath#" name="CuratedIntroRenderer">
+		<cfoutput>
+		<section class="curatedIntro postContent" style="padding: 10px 20px 20px;">
+			<h2>#encodeForHtml(curatedIntroPost[1]["Title"])#</h2>
+			#CuratedIntroRenderer.renderBody(curatedIntroPost[1]["Body"], structKeyExists(curatedIntroPost[1], "MediaPath") and not isNull(curatedIntroPost[1]["MediaPath"]) ? curatedIntroPost[1]["MediaPath"] : "", "post")#
+		</section>
+		</cfoutput>
+	</cfif>
+</cfif>
+
 <cfset featuredPagesRowCount = 0>
 <cfif curatedHomepageSettings.showPages and listLen(curatedHomepageSettings.pageIdList) gt 1>
 	<cfset featuredPagesItems = []>

@@ -6601,6 +6601,18 @@
 		<cfset var showBlogPosts = application.BlogOptionDbObj.getHomepageShowBlogPosts()>
 		<cfset var post = "">
 		<cfset var pc = "">
+		<cfset var previewAbout = []>
+		<!--- Site Setup's preview (2026-10-20): a signed-in owner's ?previewHome=posts|featured|about shows that layout without saving it. --->
+		<cfif isDefined("url.previewHome") and isSimpleValue(url.previewHome) and listFind("posts,featured,about", url.previewHome) and application.Udf.isLoggedIn()>
+			<cfset previewAbout = ormExecuteQuery("SELECT PostId FROM Post WHERE Title = 'About' AND IsPage = :isPage AND Remove = :removed ORDER BY PostId", { isPage = true, removed = false })>
+			<cfset showCollections = false>
+			<cfset collectionIdList = "">
+			<cfif url.previewHome eq "posts" or not arrayLen(previewAbout)>
+				<cfset showPages = false><cfset pageIdList = ""><cfset showBlogPosts = true>
+			<cfelse>
+				<cfset showPages = true><cfset pageIdList = previewAbout[1]><cfset showBlogPosts = url.previewHome eq "featured">
+			</cfif>
+		</cfif>
 		<cfset var oneId = "">
 		<cfset var pageTitles = "">
 		<cfset var collectionTitles = "">

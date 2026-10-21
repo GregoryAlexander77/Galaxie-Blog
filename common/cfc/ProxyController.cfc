@@ -13671,6 +13671,7 @@
 		<cfargument name="welcomePost" type="string" default="false" required="false">
 		<cfargument name="aboutPage" type="string" default="false" required="false">
 		<cfargument name="contactForm" type="string" default="false" required="false">
+		<cfargument name="footer" type="string" default="" required="false" hint="Site Setup's footer: simple, blurb or none (2026-10-20).">
 		<cfargument name="photo" type="string" default="" required="false" hint="A new profile photo as a data URL.">
 
 		<cfset var response = { "success": false, "errorMessage": "" }>
@@ -13698,9 +13699,13 @@
 						<cfset setup.saveAbout(arguments.firstName, arguments.lastName, arguments.biography, arguments.aboutSite,
 							arguments.facebookUrl, arguments.linkedInUrl, arguments.instagramUrl, arguments.twitterUrl, arguments.photo)>
 					</cfcase>
-					<cfcase value="home"><cfset setup.saveHome(arguments.layout, arguments.heroStyle)></cfcase>
+					<cfcase value="home"><cfset setup.saveHome(arguments.layout, arguments.heroStyle, arguments.footer)></cfcase>
 					<cfcase value="starter">
 						<cfset setup.saveStarter(isBoolean(arguments.welcomePost) and arguments.welcomePost, isBoolean(arguments.aboutPage) and arguments.aboutPage, isBoolean(arguments.contactForm) and arguments.contactForm)>
+						<!--- Their ids and addresses, for the next screen's previews and the Done screen's Edit links (2026-10-20). --->
+						<cfset local.starterLinks = setup.starterLinks()>
+						<cfset response[ "welcomePostId" ] = local.starterLinks.welcomePostId><cfset response[ "welcomeUrl" ] = local.starterLinks.welcomeUrl>
+						<cfset response[ "aboutPageId" ] = local.starterLinks.aboutPageId><cfset response[ "aboutUrl" ] = local.starterLinks.aboutUrl>
 					</cfcase>
 					<cfcase value="finish"><cfset setup.finish()></cfcase>
 					<cfdefaultcase><cfthrow type="GalaxieBlog.Setup" message="Unknown setup step."></cfdefaultcase>

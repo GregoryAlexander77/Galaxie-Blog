@@ -37,7 +37,9 @@ request that finished the install has this flag (Application.cfc), so every othe
 	urlAfterIndexCfm = reReplaceNoCase(urlAfterIndexCfm, '^/+', '');
 	if (len(urlAfterIndexCfm) eq 0 and isDefined("application.blog")) {
 		homepageSettings = application.blog.getHomepageSettings();
-		if (homepageSettings.showPages and listLen(homepageSettings.pageIdList) eq 1) {
+		// One page ALONE is the whole homepage; one page with blog posts (or collections) is an introduction above them, on the
+		// curated homepage below (2026-10-20: Site Setup's "Your About page, then your latest posts" used to show only the page).
+		if (homepageSettings.showPages and listLen(homepageSettings.pageIdList) eq 1 and not homepageSettings.showBlogPosts and not homepageSettings.showCollections) {
 			// The single-page override: Pages is on and exactly one Page is selected - that Page's own full
 			// content becomes the ENTIRE homepage (site chrome still shows), ignoring whatever Collections/Blog
 			// Posts toggles say. Only when 0 or 2+ pages are selected does the additive/stacked model below apply.
@@ -192,6 +194,10 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 <cfset disableCache = application.blog.getDisableCache()>	
 <!--- The Themes window's preview frame (5.0) is drawn fresh each time, with the look being edited. --->
 <cfif isDefined("url.previewTheme") and application.blog.getThemeEditor().isPreviewRequest()>
+	<cfset disableCache = true>
+</cfif>
+<!--- Site Setup's previews of an unsaved home layout or post picture style (2026-10-20) are never cached either. --->
+<cfif (isDefined("url.previewHome") or isDefined("url.previewHeroStyle")) and application.Udf.isLoggedIn()>
 	<cfset disableCache = true>
 </cfif>
 <!--- We need to differentiate material and non-material themes to apply the right settings to the buttons. Computed once here instead of twice further down (sidebar div and sidebar panel both need it). --->

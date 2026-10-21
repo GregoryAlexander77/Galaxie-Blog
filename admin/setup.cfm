@@ -159,6 +159,23 @@ takes the same options and events. --->
 	.summary .state { color: var(--muted); }
 	.summary .state.done { color: #1a7f37; }
 	.summary a { color: var(--accent); margin-left: 10px; }
+	/* Preview switch, post picture cards, footer (2026-10-20). */
+	.previewSwitch { display: inline-flex; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--panel); }
+	.previewSwitch:empty { display: none; }
+	.previewSwitch button { border: 0; background: none; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; color: var(--ink); }
+	.previewSwitch button[aria-pressed=true] { background: var(--accent); color: var(--panel); }
+	.heroCards { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+	.heroCard { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); cursor: pointer; overflow: hidden; font: inherit; font-size: 13px; text-align: left; padding: 0; color: var(--ink); }
+	.heroCard[aria-pressed=true] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+	.heroCard .art { height: 70px; background: var(--page); position: relative; display: block; }
+	.heroCard .art i { position: absolute; display: block; background: rgba(93,102,112,.45); }
+	.heroCard .art u { position: absolute; display: block; height: 4px; border-radius: 2px; background: rgba(31,35,40,.75); }
+	.heroCard .art u.light { background: rgba(255,255,255,.95); }
+	.heroCard .art u.soft { background: rgba(93,102,112,.5); }
+	.heroCard .lbl { display: block; padding: 6px 8px; }
+	.choice.disabled { opacity: .55; cursor: default; }
+	.needsAbout { display: none; font-size: 13px; }
+	.choice.disabled .needsAbout { display: block; }
 	/* Upload buttons (2026-10-20): the file boxes are hidden; their labels are Kendo buttons. */
 	.hiddenFile { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 	.uploadButton { cursor: pointer; margin: 4px 0; }
@@ -204,7 +221,7 @@ takes the same options and events. --->
 		<div id="wizard"></div>
 	</div>
 	<div class="previewSide">
-		<div class="previewBar"><span>Your site, live</span><a href="#" id="toggleMobile">Show on mobile</a></div>
+		<div class="previewBar"><span>Your site, live</span><span class="previewSwitch" id="previewSwitch"></span><a href="#" id="toggleMobile">Show on mobile</a></div>
 		<div class="previewStage" id="previewStage">
 			<div class="loading" id="previewLoading">Loading your site...</div>
 			<iframe id="preview" title="Preview of your site" sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
@@ -299,24 +316,34 @@ takes the same options and events. --->
 			<h4>Home page</h4>
 			<div class="choiceList" id="homeChoices">
 				<label class="choice"><input type="radio" name="homeLayout" value="posts"><div><strong>Latest posts</strong><span>A blog: your newest posts first.</span></div></label>
-				<label class="choice"><input type="radio" name="homeLayout" value="featured"><div><strong>Your About page, then your latest posts</strong><span>Introduce yourself at the top, with posts below.</span></div></label>
-				<label class="choice"><input type="radio" name="homeLayout" value="about"><div><strong>Just your About page</strong><span>A one-page site; posts are still in the menu.</span></div></label>
+				<label class="choice"><input type="radio" name="homeLayout" value="featured"><div><strong>Your About page, then your latest posts</strong><span>Introduce yourself at the top, with posts below.</span><a href="#" class="needsAbout">Needs an About page: go back to Starter content</a></div></label>
+				<label class="choice"><input type="radio" name="homeLayout" value="about"><div><strong>Just your About page</strong><span>A one-page site; posts are still in the menu.</span><a href="#" class="needsAbout">Needs an About page: go back to Starter content</a></div></label>
 			</div>
 		</div>
 		<div class="block k-content">
-			<h4>Posts</h4>
-			<div class="fieldRow"><label for="heroStyle">Post pictures</label><div class="control"><input id="heroStyle" style="width:100%">
-				<div class="hint">How the picture at the top of each post shows on the post's own page.</div></div></div>
+			<h4>Post pictures</h4>
+			<p class="hint" style="margin-top:0">How the picture at the top of each post (the hero) shows on the post's own page. Click one to see it on the right.</p>
+			<div class="heroCards" id="heroCards"></div>
+		</div>
+		<div class="block k-alt">
+			<h4>Footer</h4>
+			<p class="hint" style="margin-top:0" id="footerHint">Made from what you entered: About and Contact links and your social links, never your email address. It is made when you press Next; change it any time in Themes, Content.</p>
+			<div class="choiceList" id="footerChoices">
+				<label class="choice"><input type="radio" name="footerStyle" value="simple"><div><strong>Simple</strong><span>About and Contact, and your social links.</span></div></label>
+				<label class="choice"><input type="radio" name="footerStyle" value="blurb"><div><strong>With a short about blurb</strong><span>The first lines of what you wrote about yourself, above the links.</span></div></label>
+				<label class="choice"><input type="radio" name="footerStyle" value="none"><div><strong>Just the basics</strong><span>Only the logo and the version line every footer has, without links.</span></div></label>
+			</div>
 		</div>
 	</div>
 	<div id="stepStarter">
-		<div class="block k-content"><p class="lead">A few things to start with, so the site doesn't look empty. Each is an ordinary post or page you can edit or delete.</p></div>
+		<div class="block k-content"><p class="lead">A few things to start with, so the site doesn't look empty. Each is an ordinary post or page; nothing is made until you press Next. The preview on the right shows how they will look.</p></div>
 		<div class="block k-alt">
 			<div class="choiceList">
-				<label class="choice"><input type="checkbox" id="starterWelcome" checked><div><strong>A welcome post</strong><span>Your first post, ready to edit.</span></div></label>
+				<label class="choice"><input type="checkbox" id="starterWelcome" checked><div><strong>A welcome post</strong><span>Your first post, ready to change. The next step uses it to show the post picture styles.</span></div></label>
 				<label class="choice"><input type="checkbox" id="starterAbout" checked><div><strong>An About page</strong><span>Made from what you wrote about yourself. Needed for an About home page.</span></div></label>
 				<label class="choice"><input type="checkbox" id="starterContact" checked><div><strong>A contact form</strong><span>At the end of your About page, so visitors can reach you. Their messages come to your email. Change its questions any time in Forms.</span></div></label>
 			</div>
+			<p class="hint">To change them later: in the administration, open <b>Posts and Pages</b>, then <b>Posts</b> (or <b>Pages</b> for the About page), and click the title in the list to open it in the editor. The last step also links straight to them.</p>
 		</div>
 	</div>
 	<div id="stepDone">
@@ -342,7 +369,9 @@ $(function () {
 		homeLayout: #serializeJSON(setupState.homeLayout)#, heroStyle: #serializeJSON(setupState.heroStyle)#,
 		firstName: #serializeJSON(setupState.firstName)#, lastName: #serializeJSON(setupState.lastName)#,
 		biography: #serializeJSON(setupState.biography)#, profilePicture: #serializeJSON(setupState.profilePicture)#, facebookUrl: #serializeJSON(setupState.facebookUrl)#, linkedInUrl: #serializeJSON(setupState.linkedInUrl)#,
-		instagramUrl: #serializeJSON(setupState.instagramUrl)#, twitterUrl: #serializeJSON(setupState.twitterUrl)#
+		instagramUrl: #serializeJSON(setupState.instagramUrl)#, twitterUrl: #serializeJSON(setupState.twitterUrl)#,
+		welcomePostId: #val(setupState.welcomePostId)#, welcomeUrl: #serializeJSON(setupState.welcomeUrl)#, aboutPageId: #val(setupState.aboutPageId)#, aboutUrl: #serializeJSON(setupState.aboutUrl)#,
+		footer: #serializeJSON(setupState.footer)#, footerIsCustom: #setupState.footerIsCustom ? "true" : "false"#
 	};
 	var userMarks = [#arrayToList(sampleParts, ",")#];
 	</cfoutput>
@@ -394,9 +423,66 @@ $(function () {
 	// ---------- the preview: the blog in the picked theme, with the picked logo in its header until it is saved ----------
 	var frame = document.getElementById("preview");
 	var previewLogo = false;
+	// What the preview shows (2026-10-20): the site, or on Starter content the welcome post / About page, or on Home page the home
+	// page (in the picked layout) / a post (in the picked picture style). Unsaved choices are shown with preview-only address options
+	// that only work for a signed-in owner (previewHome, previewHeroStyle); starter posts not made yet are drawn here instead.
+	var previewView = "site";
+	function addQuery(url, query) { return url + (url.indexOf("?") >= 0 ? "&" : "?") + query; }
+	function previewUrl() {
+		var q = "theme=" + encodeURIComponent(state.theme) + "&setupPreview=" + Date.now();
+		if (previewView === "home") { return addQuery(baseUrl + "/index.cfm", q + "&previewHome=" + encodeURIComponent(homeLayout())); }
+		if (previewView === "post") { return addQuery(saved.welcomeUrl || saved.aboutUrl || (baseUrl + "/index.cfm"), q + "&previewHeroStyle=" + encodeURIComponent(state.heroStyle)); }
+		if (previewView === "welcome" && saved.welcomeUrl) { return addQuery(saved.welcomeUrl, q); }
+		if (previewView === "about" && saved.aboutUrl) { return addQuery(saved.aboutUrl, q); }
+		return addQuery(baseUrl + "/index.cfm", q);
+	}
 	function loadPreview() {
 		$("#previewLoading").show();
-		frame.src = baseUrl + "/index.cfm?theme=" + encodeURIComponent(state.theme) + "&setupPreview=" + Date.now();
+		if ((previewView === "welcome" && !saved.welcomeUrl) || (previewView === "about" && !saved.aboutUrl)) {
+			frame.removeAttribute("src"); frame.srcdoc = pretendPage(previewView); return;
+		}
+		frame.removeAttribute("srcdoc");
+		frame.src = previewUrl();
+	}
+	// A starter post that isn't made yet, drawn in the picked theme's colors.
+	function pretendPage(kind) {
+		var t = themes.filter(function (x) { return x.alias === state.theme; })[0] || themes[0] || {};
+		var name = esc($.trim($("#siteTitle").val()) || saved.title || "Your site");
+		var head = '<div style="padding:14px 22px;color:' + (t.dark ? "white" : "white") + ';font:bold 20px Arial,sans-serif;background:rgba(40,60,90,.9) url(\'' + (t.header || "") + '\') center/cover">' + name + '</div>';
+		var bio = $.trim($("#aboutBio").val() || "");
+		var paras = bio ? bio.split(/\n\s*\n/).map(function (x) { return "<p>" + esc(x).replace(/\n/g, "<br>") + "</p>"; }).join("") : "<p>Tell your visitors who you are and what this site is about. <u>Edit this page</u> to make it yours.</p>";
+		var body = kind === "welcome"
+			? '<h1 style="font-size:26px;margin:0 0 6px">Welcome to ' + name + '</h1><div style="font:12px Arial,sans-serif;color:gray;margin-bottom:12px">Today</div><div style="height:160px;border-radius:6px;margin-bottom:14px;background:linear-gradient(135deg,rgb(29,67,80) 0%,rgb(164,57,49) 100%)"></div><p>Welcome to ' + name + '! This is the first post. <u>Edit it</u> to say hello in your own words, or delete it once you have written your own.</p>'
+			: '<h1 style="font-size:26px;margin:0 0 12px">About</h1>' + paras + ($("#starterContact").is(":checked") ? '<h2 style="font-size:20px">Get in touch</h2><div style="border:1px solid silver;border-radius:6px;padding:12px;font:13px Arial,sans-serif">Name<div style="height:26px;border:1px solid silver;border-radius:4px;margin:4px 0 8px"></div>Email<div style="height:26px;border:1px solid silver;border-radius:4px;margin:4px 0 8px"></div>Message<div style="height:60px;border:1px solid silver;border-radius:4px;margin-top:4px"></div></div>' : "");
+		return '<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;font-family:Georgia,serif;color:rgb(40,40,40);background:silver url(\'' + (t.bg || "") + '\') center/cover fixed">' + head
+			+ '<div style="max-width:760px;margin:22px auto;background:rgba(255,255,255,.96);border-radius:6px;padding:20px 26px;line-height:1.6">'
+			+ '<div style="font:12px Arial,sans-serif;background:rgb(255,246,224);border:1px solid rgb(240,217,160);border-radius:4px;padding:6px 8px;margin-bottom:14px">Not made yet: this is how it will look once you press Next.</div>' + body + '</div></body></html>';
+	}
+	// The switch above the preview, for the screens that show more than the site.
+	function setPreviewSwitch(views, pick) {
+		var bar = $("#previewSwitch").empty();
+		if (views.length > 1) {
+			views.forEach(function (v) {
+				bar.append($('<button type="button"></button>').attr("aria-pressed", v[0] === pick ? "true" : "false").text(v[1]).on("click", function () {
+					previewView = v[0]; bar.children().attr("aria-pressed", "false"); $(this).attr("aria-pressed", "true"); loadPreview();
+				}));
+			});
+		}
+		previewView = pick; loadPreview();
+	}
+	function previewForStep(index) {
+		if (index === 4) {
+			var views = [];
+			if ($("#starterWelcome").is(":checked")) { views.push(["welcome", "Welcome post"]); }
+			if ($("#starterAbout").is(":checked")) { views.push(["about", "About page"]); }
+			setPreviewSwitch(views, views.length ? (views.some(function (v) { return v[0] === previewView; }) ? previewView : views[0][0]) : "site");
+		} else if (index === 5) {
+			setPreviewSwitch([["home", "Home page"], ["post", "A post"]], previewView === "post" ? "post" : "home");
+		} else if (previewView !== "site") {
+			setPreviewSwitch([], "site");
+		} else {
+			$("#previewSwitch").empty();
+		}
 	}
 	function applyLogo() {
 		var doc;
@@ -619,16 +705,50 @@ $(function () {
 		reader.readAsDataURL(file);
 	});
 
-	// ---------- screen 5: home page ----------
+	// ---------- screen 6: home page, post pictures, footer (after Starter content since 2026-10-20) ----------
+	function homeLayout() { return $("input[name=homeLayout]:checked").val() || "posts"; }
+	// The About layouts need an About page: one already made, or one ticked on Starter content.
+	function aboutAvailable() { return !!saved.aboutUrl || $("#starterAbout").is(":checked"); }
+	function syncHomeChoices() {
+		var ok = aboutAvailable();
+		$("#homeChoices input[value=featured], #homeChoices input[value=about]").prop("disabled", !ok).closest(".choice").toggleClass("disabled", !ok);
+		if (!ok && homeLayout() !== "posts") { $("input[name=homeLayout][value=posts]").prop("checked", true); }
+	}
 	$("input[name=homeLayout][value=" + (saved.homeLayout || "posts") + "]").prop("checked", true);
-	$("#homeChoices").on("change", "input", function () { dirty.home = true; if (this.value !== "posts") { $("#starterAbout").prop("checked", true); } });
-	$("#heroStyle").kendoDropDownList({
-		dataTextField: "text", dataValueField: "value", value: saved.heroStyle || "classic", change: function () { dirty.home = true; },
-		dataSource: [{ text: "Classic (inside the post)", value: "classic" }, { text: "Full screen, held", value: "held" }, { text: "Tall band (scrolls away)", value: "band" }, { text: "Magazine (large heading, low left)", value: "magazine" }]
+	$("#homeChoices").on("change", "input", function () { dirty.home = true; previewView = "home"; previewForStep(5); });
+	$("#homeChoices").on("click", ".needsAbout", function (e) { e.preventDefault(); wizard.select(4); });
+	state.heroStyle = saved.heroStyle || "classic";
+	[["classic", "Classic (inside the post)", '<i style="left:12%;top:30%;width:76%;height:38%"></i><u style="left:12%;top:12%;width:50%"></u><u class="soft" style="left:12%;top:78%;width:70%"></u>'],
+	 ["held", "Full screen, held", '<i style="left:0;top:0;width:100%;height:100%"></i><u class="light" style="left:28%;top:46%;width:44%"></u>'],
+	 ["band", "Tall band (scrolls away)", '<i style="left:0;top:0;width:100%;height:64%"></i><u class="light" style="left:8%;top:48%;width:40%"></u><u class="soft" style="left:8%;top:80%;width:70%"></u>'],
+	 ["magazine", "Magazine (large heading, low left)", '<i style="left:0;top:0;width:100%;height:100%"></i><u class="light" style="left:8%;top:60%;width:55%;height:7px"></u><u class="light" style="left:8%;top:76%;width:40%;height:7px"></u>']
+	].forEach(function (h) {
+		var card = $('<button type="button" class="heroCard"></button>').attr("aria-pressed", h[0] === state.heroStyle ? "true" : "false")
+			.append('<span class="art">' + h[2] + '</span>', $('<span class="lbl"></span>').text(h[1]));
+		card.on("click", function () {
+			state.heroStyle = h[0]; dirty.home = true;
+			$("#heroCards .heroCard").attr("aria-pressed", "false"); card.attr("aria-pressed", "true");
+			previewView = "post"; previewForStep(5);
+		});
+		$("#heroCards").append(card);
 	});
+	$("input[name=footerStyle][value=" + (saved.footer || "simple") + "]").prop("checked", true);
+	$("#footerChoices").on("change", "input", function () { dirty.home = true; });
+	if (saved.footerIsCustom) {
+		$("#footerChoices input").prop("disabled", true).closest(".choice").addClass("disabled");
+		$("#footerHint").text("You have changed the footer in Themes, so Site Setup leaves it as it is. Change it any time in Themes, Content.");
+	}
+	syncHomeChoices();
 	if (stepsDone().indexOf("home") < 0) { dirty.home = true; }
 	if (stepsDone().indexOf("starter") < 0) { dirty.starter = true; }
-	$("#stepStarter").on("change", "input", function () { dirty.starter = true; });
+	$("#stepStarter").on("change", "input", function () {
+		dirty.starter = true;
+		// Contact form goes at the end of the About page.
+		if (this.id === "starterContact" && this.checked) { $("#starterAbout").prop("checked", true); }
+		if (this.id === "starterAbout" && !this.checked) { $("#starterContact").prop("checked", false); }
+		previewView = this.id === "starterWelcome" ? "welcome" : "about";
+		syncHomeChoices(); previewForStep(4);
+	});
 
 	// ---------- saving ----------
 	function save(step, data) {
@@ -653,15 +773,18 @@ $(function () {
 		function () { return save("about", { firstName: $.trim($("#aboutFirst").val()), lastName: $.trim($("#aboutLast").val()), biography: $("#aboutBio").val(), aboutSite: $("#aboutSite").val(),
 			facebookUrl: $.trim($("#aboutFacebook").val()), instagramUrl: $.trim($("#aboutInstagram").val()), linkedInUrl: $.trim($("#aboutLinkedIn").val()), twitterUrl: $.trim($("#aboutTwitter").val()),
 			photo: state.photo || "" }).then(function () { state.photo = ""; }); },
-		function () { return save("home", { layout: $("input[name=homeLayout]:checked").val() || "posts", heroStyle: $("#heroStyle").data("kendoDropDownList").value() }); },
-		function () { return save("starter", { welcomePost: $("#starterWelcome").is(":checked"), aboutPage: $("#starterAbout").is(":checked"), contactForm: $("#starterContact").is(":checked") }); }
+		function () { return save("starter", { welcomePost: $("#starterWelcome").is(":checked"), aboutPage: $("#starterAbout").is(":checked"), contactForm: $("#starterContact").is(":checked") })
+			.then(function (r) { ["welcomePostId", "welcomeUrl", "aboutPageId", "aboutUrl"].forEach(function (k) { if (r && r[k] !== undefined) { saved[k] = r[k]; } }); syncHomeChoices(); }); },
+		function () { return save("home", { layout: homeLayout(), heroStyle: state.heroStyle, footer: saved.footerIsCustom ? "" : ($("input[name=footerStyle]:checked").val() || "simple") }); }
 	];
-	var stepKeys = ["site", "look", "logo", "about", "home", "starter"];
+	// Starter content comes before Home page (2026-10-20, owner): the About layouts need the About page, and the post picture styles
+	// are shown on the welcome post.
+	var stepKeys = ["site", "look", "logo", "about", "starter", "home"];
 
 	// ---------- the wizard ----------
 	var screens = [
 		{ title: "Your site", id: "stepSite" }, { title: "Pick a look", id: "stepLook" }, { title: "Your logo", id: "stepLogo" }, { title: "About you", id: "stepAbout" },
-		{ title: "Home page", id: "stepHome" }, { title: "Starter content", id: "stepStarter" }, { title: "Done", id: "stepDone" }
+		{ title: "Starter content", id: "stepStarter" }, { title: "Home page", id: "stepHome" }, { title: "Done", id: "stepDone" }
 	];
 	var busy = false;
 	var wizard = $("#wizard").galaxieWizard({
@@ -692,7 +815,7 @@ $(function () {
 				});
 			}
 		},
-		activate: function (e) { fillHolders(); if (e.step.options.index === 2) { drawLogos(); } if (e.step.options.index === 6) { drawSummary(); } },
+		activate: function (e) { fillHolders(); if (e.step.options.index === 2) { drawLogos(); } if (e.step.options.index === 6) { drawSummary(); } previewForStep(e.step.options.index); },
 		done: function (e) {
 			e.preventDefault();
 			save("finish", {}).then(function () { window.location.href = baseUrl + "/"; }, function (message) { $("[data-note=6]").css("color", "#b00020").text(message); });
@@ -704,9 +827,12 @@ $(function () {
 		$("#doneSummary").html(screens.slice(0, 6).map(function (s, i) {
 			var ok = done.indexOf(stepKeys[i]) >= 0;
 			return '<li><span>' + s.title + '</span><span><span class="state' + (ok ? " done" : "") + '">' + (ok ? "Done" : "Skipped") + '</span><a href="#" data-go="' + i + '">Change</a></span></li>';
-		}).join(""));
+		}).join("")
+			// The starter posts, straight into the editor (2026-10-20).
+			+ (saved.welcomePostId ? '<li><span>Your welcome post</span><span><a href="' + baseUrl + '/admin/?editPost=' + saved.welcomePostId + '">Edit it</a></span></li>' : "")
+			+ (saved.aboutPageId ? '<li><span>Your About page</span><span><a href="' + baseUrl + '/admin/?editPost=' + saved.aboutPageId + '">Edit it</a></span></li>' : ""));
 	}
-	$("#doneSummary").on("click", "a", function (e) { e.preventDefault(); wizard.select(+$(this).data("go")); });
+	$("#doneSummary").on("click", "a[data-go]", function (e) { e.preventDefault(); wizard.select(+$(this).data("go")); });
 	fillHolders();
 	drawThemes(); drawLogos(); loadPreview();
 	// Opens on the first screen not done yet.

@@ -259,6 +259,10 @@
 		<cfset var heroStyle = lCase(trim(arguments.postHeroStyle))>
 		<cfif not listFind("classic,held,band,magazine", heroStyle)>
 			<cfset heroStyle = lCase(trim(application.BlogOptionDbObj.getPostHeroStyle() ?: ""))>
+			<!--- Site Setup's preview (2026-10-20): a signed-in owner's ?previewHeroStyle= shows the blog's style before it is saved. --->
+			<cfif isDefined("url.previewHeroStyle") and isSimpleValue(url.previewHeroStyle) and listFind("classic,held,band,magazine", url.previewHeroStyle) and application.Udf.isLoggedIn()>
+				<cfset heroStyle = url.previewHeroStyle>
+			</cfif>
 		</cfif>
 		<cfif heroStyle eq "scene"><cfset heroStyle = "held"></cfif>
 		<cfreturn listFind("held,band,magazine", heroStyle) ? heroStyle : "classic">

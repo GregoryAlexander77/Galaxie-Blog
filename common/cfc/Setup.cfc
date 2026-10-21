@@ -44,7 +44,26 @@
 		<cfset state.instagramUrl = owner.getInstagramUrl() ?: "">
 		<cfset state.twitterUrl = owner.getTwitterUrl() ?: "">
 	</cfif>
+	<!--- For the previews (2026-10-20): the starter posts if they exist, and the footer choice. --->
+	<cfset structAppend(state, starterLinks(), true)>
+	<cfset state.footer = application.events.getSetting(0, "setupFooter", "simple")>
+	<cfset state.footerIsCustom = footerIsCustom()>
 	<cfreturn state>
+</cffunction>
+
+<cffunction name="starterLinks" access="public" returntype="struct" output="false" hint="The welcome post's and About page's ids and addresses, when Site Setup has made them (0 and empty otherwise).">
+	<cfset var result = { welcomePostId = 0, welcomeUrl = "", aboutPageId = 0, aboutUrl = "" }>
+	<cfset var found = ormExecuteQuery("SELECT PostId FROM Post WHERE Title = :title AND Remove = :removed ORDER BY PostId", { title = "Welcome to " & (application.BlogDbObj.getBlogTitle() ?: ""), removed = false })>
+	<cfif arrayLen(found)>
+		<cfset result.welcomePostId = found[1]>
+		<cfset result.welcomeUrl = application.blog.makeLink(postId = found[1])>
+	</cfif>
+	<cfset found = ormExecuteQuery("SELECT PostId FROM Post WHERE Title = 'About' AND IsPage = :isPage AND Remove = :removed ORDER BY PostId", { isPage = true, removed = false })>
+	<cfif arrayLen(found)>
+		<cfset result.aboutPageId = found[1]>
+		<cfset result.aboutUrl = application.blog.makeLink(postId = found[1])>
+	</cfif>
+	<cfreturn result>
 </cffunction>
 
 <cffunction name="isStepDone" access="public" returntype="boolean" output="false">
@@ -299,6 +318,65 @@
 	<cfreturn html>
 </cffunction>
 
+<cffunction name="saveFooter" access="public" returntype="void" output="false"
+		hint="The footer Site Setup builds (2026-10-20, owner): from what the wizard knows - About and Contact links and the owner's social links, with the first lines of their bio for 'blurb' - or switched off for 'none'. No email address (spam). footer.cfm adds the copyright and version lines under it by itself. Changed later in the Themes window's Content tab.">
+	<cfargument name="style" type="string" required="true">
+	<cfset var owner = getOwner()>
+	<cfset var links = starterLinks()>
+	<cfset var parts = []>
+	<cfset var icons = []>
+	<cfset var html = "">
+	<cfset var bio = "">
+	<cfset var net = "">
+	<!--- A footer the owner made themselves (in Themes) is never replaced: only the default one, or one this wizard wrote. --->
+	<cfif footerIsCustom()><cfreturn></cfif>
+	<cfset application.events.setSetting(0, "setupFooter", arguments.style)>
+	<!--- None: just the basics - footer.cfm's own logo and version lines, without links. (A footer can't be switched off: footer.cfm
+	always adds the version and copyright.) Only reached for the default footer or one this wizard wrote, never the owner's own. --->
+	<cfif arguments.style eq "none">
+		<cfset application.blog.saveContentOutput(contentTemplate = "compositeFooter", themeId = "", revertDesktop = "true")>
+		<cfset application.blog.saveContentOutput(contentTemplate = "compositeFooter", themeId = "", revertMobile = "true")>
+		<cfset application.events.setSetting(0, "setupFooterHash", "")>
+		<cfset application.blog.flushGalaxieCache(type = "all")>
+		<cfreturn>
+	</cfif>
+	<cfif len(links.aboutUrl)><cfset arrayAppend(parts, '<a href="' & encodeForHtmlAttribute(links.aboutUrl) & '">About</a>')></cfif>
+	<cfset arrayAppend(parts, '<a href="' & encodeForHtmlAttribute(application.blogHostUrl & "/?contact") & '">Contact</a>')>
+	<cfif not isNull(owner)>
+		<cfloop array="#[[owner.getFacebookUrl() ?: '', 'fa-facebook', 'Facebook'], [owner.getInstagramUrl() ?: '', 'fa-instagram', 'Instagram'], [owner.getLinkedInUrl() ?: '', 'fa-linkedin', 'LinkedIn'], [owner.getTwitterUrl() ?: '', 'fa-x-twitter', 'X']]#" index="net">
+			<cfif reFindNoCase("^https?://", trim(net[1]))>
+				<cfset arrayAppend(icons, '<a href="' & encodeForHtmlAttribute(trim(net[1])) & '" title="' & net[3] & '" aria-label="' & net[3] & '" rel="me noopener"><i class="fa-brands ' & net[2] & '" aria-hidden="true"></i></a>')>
+			</cfif>
+		</cfloop>
+		<cfif arguments.style eq "blurb">
+			<cfset bio = trim(reReplace(owner.getBiography() ?: "", "<[^>]*>", " ", "all"))>
+			<cfset bio = reReplace(bio, "\s+", " ", "all")>
+			<cfif len(bio) gt 220><cfset bio = left(bio, 217) & "..."></cfif>
+		</cfif>
+	</cfif>
+	<cfset html = '<div class="siteFooter" style="text-align: center;">'>
+	<cfif len(bio)><cfset html = html & '<p>' & encodeForHtml(bio) & '</p>'></cfif>
+	<cfset html = html & '<p>' & arrayToList(parts, ' &middot; ') & '</p>'>
+	<cfif arrayLen(icons)><cfset html = html & '<p class="siteFooterIcons" style="font-size: 1.3em; word-spacing: 0.6em;">' & arrayToList(icons, ' ') & '</p>'></cfif>
+	<cfset html = html & '</div>'>
+	<cfset application.blog.saveContentOutput(contentTemplate = "compositeFooter", themeId = "", contentOutputDesktop = html, contentOutputMobile = html, active = "true")>
+	<!--- Remember exactly what was written, so a later run can tell this footer from one the owner changed. --->
+	<cfset application.events.setSetting(0, "setupFooterHash", hash(html))>
+	<cfset application.blog.flushGalaxieCache(type = "all")>
+</cffunction>
+
+<cffunction name="footerIsCustom" access="public" returntype="boolean" output="false"
+		hint="Whether the footer was written by the owner (in Themes) rather than being the default or the one Site Setup made - then Site Setup leaves it alone.">
+	<cfset var rows = queryExecute("SELECT o.ContentOutput FROM ContentOutput o JOIN ContentTemplate t ON t.ContentTemplateId = o.ContentTemplateRef WHERE t.ContentTemplateName = 'compositeFooter' AND o.ContentOutput IS NOT NULL",
+		{}, { datasource = application.dsn })>
+	<cfset var made = application.events.getSetting(0, "setupFooterHash", "")>
+	<cfset var row = 0>
+	<cfloop query="rows">
+		<cfif len(trim(rows.ContentOutput)) and hash(toString(rows.ContentOutput)) neq made><cfreturn true></cfif>
+	</cfloop>
+	<cfreturn false>
+</cffunction>
+
 <!---//*****************************************************************************************************
 		Screen 5: your home page
 //******************************************************************************************************--->
@@ -306,8 +384,12 @@
 <cffunction name="saveHome" access="public" returntype="void" output="false" hint="The home page layout (posts: latest posts; about: the About page as the whole home page; featured: the About page above the latest posts) and the post hero style. The layout is applied when the owner presses Done, after the starter pages exist.">
 	<cfargument name="layout" type="string" required="true">
 	<cfargument name="heroStyle" type="string" required="false" default="classic">
+	<cfargument name="footer" type="string" required="false" default="" hint="simple, blurb or none (2026-10-20); empty leaves the footer as it is.">
 	<cfset var optionObj = entityLoadByPK("BlogOption", application.BlogOptionDbObj.getBlogOptionId())>
 	<cfif not listFind("posts,about,featured", arguments.layout)><cfset fail("Please choose a home page layout.")></cfif>
+	<cfif listFind("simple,blurb,none", arguments.footer)>
+		<cfset saveFooter(arguments.footer)>
+	</cfif>
 	<cfset optionObj.setSetupHomeLayout(arguments.layout)>
 	<cfset optionObj.setPostHeroStyle(listFind("classic,held,band,magazine", arguments.heroStyle) ? arguments.heroStyle : "classic")>
 	<cfset entitySave(optionObj)>
