@@ -3969,6 +3969,9 @@
 		<cfargument name="httpUserAgent" required="no" default="">
 		<cfargument name="isBot" required="no" default="">
 		<cfargument name="dateVisited" required="no" default="" hint="Changed from date to dateVisited to fix a new CF related bug in June 2025">
+		<!--- The admin home's Visitors card (2026-10-20): people only, the last few days. Names the grid's own filters never send. --->
+		<cfargument name="peopleOnly" required="no" default="">
+		<cfargument name="sinceDays" required="no" default="">
 		<!--- The window passes an id in the URL (ie anonymousUserId=1) and the jsGrid filter of the same column sends an empty value with the same name (AnonymousUserId=). ColdFusion combines URL variables that have the same name into a list ('1,') and the query fails to convert this to a number. Use the first value. --->
 		<cfloop list="anonymousUserId,postId,ipAddressId" index="idArgument">
 			<cfif find(",", arguments[idArgument])><cfset arguments[idArgument] = listFirst(arguments[idArgument])></cfif>
@@ -4026,6 +4029,12 @@
 			</cfif>
 			<cfif arguments.dateVisited neq ''>
 				<cfinvokeargument name="date" value="#arguments.dateVisited#"/>
+			</cfif>
+			<cfif isBoolean(arguments.peopleOnly) and arguments.peopleOnly>
+				<cfinvokeargument name="peopleOnly" value="true"/>
+			</cfif>
+			<cfif isNumeric(arguments.sinceDays) and arguments.sinceDays gt 0>
+				<cfinvokeargument name="sinceDays" value="#min(int(arguments.sinceDays), 366)#"/>
 			</cfif>
 		</cfinvoke>
 

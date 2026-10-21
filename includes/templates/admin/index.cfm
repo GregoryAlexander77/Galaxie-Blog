@@ -457,14 +457,15 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 				above; this only lays them out. Room is left below the groups for charts of traffic and popular posts, some day. --->
 				<cfsilent>
 					<cfset homeGroups = [
-						{ key: "posts", name: "Posts and Pages", image: "/images/icons/posts.png", what: "Write and organise", icons: "addPost,Posts,CreatePage,Pages,Comments,CreatePageCollection,ConfigurePageCollections,Categories,Tags" },
+						{ key: "posts", name: "Posts and Pages", image: "/images/icons/posts.png", what: "Write and organize", icons: "addPost,Posts,CreatePage,Pages,Comments,CreatePageCollection,ConfigurePageCollections,Categories,Tags" },
 						{ key: "look", name: "Look and Layout", image: "/images/icons/themes.png", what: "Themes, scenes, home page and menu", icons: "Themes,Scenes,Fonts,ConfigureHomepage,ConfigureMenu" },
 						{ key: "forms", name: "Forms and Bookings", image: "/images/icons/forms.gif", what: "Forms, bookings and events", icons: "Forms,Bookings,Events" },
 						{ key: "people", name: "People", image: "/images/icons/users.png", what: "Users, members and subscribers", icons: "Users,Members,Subscriber,userProfile,BanVisitors,BannedUsers" },
-						{ key: "logs", name: "Logs", image: "/images/icons/adminLog.gif", what: "What happened on the site", icons: "ErrorLog,AdminLog,MemberLog,VisitorLog,reactionLog,SearchQuery" },
 						{ key: "settings", name: "Settings", image: "/images/icons/settings.gif", what: "Set-up, settings and updates", icons: "SiteSetup,BlogSettings,BlogOptions,BlogUpdate" },
 						<!--- Tools (owner, 2026-10-20): the upkeep that isn't a setting, out of Posts and Settings. --->
-						{ key: "tools", name: "Tools", image: "/images/icons/tools.svg", what: "Import, refresh and other upkeep", icons: "ImportData,RefreshSite,ReloadOrm" }
+						{ key: "tools", name: "Tools", image: "/images/icons/tools.svg", what: "Import, refresh and other upkeep", icons: "ImportData,RefreshSite,ReloadOrm" },
+						<!--- Logs last (owner, 2026-10-20): Up next brings forward new errors and This week the visitors, so it is opened least. --->
+						{ key: "logs", name: "Logs", image: "/images/icons/adminLog.gif", what: "What happened on the site", icons: "ErrorLog,AdminLog,MemberLog,VisitorLog,reactionLog,SearchQuery" }
 					]>
 					<!--- Up next (owner, 2026-10-20): three tiles - Create Post, then the two things that need this person most now
 					(AdminHome.cfc getSuggestions, most important first), each with an x to hide it until something new happens, which
@@ -553,7 +554,8 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 					<div class="adminHomeSection" id="adminTraffic">
 						<h5 class="adminHomeHeading">This week</h5>
 						<div class="adminTrafficGrid">
-							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Visitors</div><div id="trafficVisitors" class="adminTrafficBody">Loading...</div></div>
+							<!--- Clicking the card opens the Visitor Log with this week's people only, bots left out (owner, 2026-10-20). --->
+							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See these visitors in the Visitor Log" onclick="createAdminInterfaceWindow(48, 'people');" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(48, 'people'); }"><div class="adminTrafficTitle">Visitors</div><div id="trafficVisitors" class="adminTrafficBody">Loading...</div></div>
 							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Most read</div><div id="trafficTop" class="adminTrafficBody"></div></div>
 							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Where they came from</div><div id="trafficSources" class="adminTrafficBody"></div></div>
 							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Reading now</div><div id="trafficNow" class="adminTrafficBody"></div></div>
@@ -718,6 +720,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			<!--- Traffic cards (5.0). --->
 			.adminTrafficGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>220<cfelse>210</cfif>px, 1fr)); gap: 14px; text-align: left; }
 			.adminTrafficCard { border: 1px solid rgba(128,128,128,.35); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+			.adminTrafficLink { cursor: pointer; } .adminTrafficLink:hover, .adminTrafficLink:focus { border-color: var(--homeAccent); outline: none; }
 			.adminTrafficTitle { font-weight: bold; margin-bottom: 8px; }
 			.adminTrafficBig { font-size: 30px; font-weight: bold; line-height: 1.1; }
 			.adminTrafficNote { font-size: 13px; opacity: .75; margin-top: 2px; }

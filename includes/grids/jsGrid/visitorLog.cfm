@@ -22,6 +22,12 @@
 	<cfset pageTitle = "Visitor Statistics By Page">
 </cfif>
 <!--- Finally, attach the csrfToken --->
+<!--- From the admin home's Visitors card (2026-10-20): createAdminInterfaceWindow(48, 'people') shows people only (no bots) from the
+last 7 days, as the card counts them. --->
+<cfif structKeyExists(URL, "optArgs") and URL.optArgs eq "people">
+	<cfset getUrl = getUrl & '&peopleOnly=1&sinceDays=7'>
+	<cfset pageTitle = "Visitors this week (bots left out)">
+</cfif>
 <cfset getUrl = getUrl & '&csrfToken=' & csrfToken>
 
 <!------>

@@ -1003,6 +1003,9 @@
 		<cfargument name="postId" type="string" required="false" default="">
 		<cfargument name="PostTitle" type="string" required="false" default="">
 		<cfargument name="onlyShowCurrentVisitors" type="boolean" required="false" default="false">
+		<!--- The admin home's Visitors card (2026-10-20): people only (not bots) in the last few days, as the card counts them. --->
+		<cfargument name="peopleOnly" type="boolean" required="false" default="false">
+		<cfargument name="sinceDays" type="numeric" required="false" default="0">
 		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
 		<cfset var Data = "">
 		<cfset var fiveMinutesAgo = "">
@@ -1081,6 +1084,12 @@
 			</cfif>
 			<cfif arguments.onlyShowCurrentVisitors>
 				AND VisitorLog.Date >= <cfqueryparam value="#fiveMinutesAgo#" cfsqltype="timestamp">
+			</cfif>
+			<cfif arguments.peopleOnly>
+				AND (AnonymousUser.IsBot = <cfqueryparam value="0" cfsqltype="bit"> OR AnonymousUser.IsBot IS NULL)
+			</cfif>
+			<cfif arguments.sinceDays gt 0>
+				AND VisitorLog.Date >= <cfqueryparam value="#dateAdd('d', -int(arguments.sinceDays), blogNow())#" cfsqltype="timestamp">
 			</cfif>
 				ORDER BY VisitorLog.Date DESC
 		</cfquery>
