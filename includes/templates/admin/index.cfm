@@ -466,10 +466,10 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 						<!--- Tools (owner, 2026-10-20): the upkeep that isn't a setting, out of Posts and Settings. --->
 						{ key: "tools", name: "Tools", image: "/images/icons/tools.svg", what: "Import, refresh and other upkeep", icons: "ImportData,RefreshSite,ReloadOrm" }
 					]>
-					<!--- Up next (owner, 2026-10-20): Create Post, then up to three things that need this person now, most important first
-					(AdminHome.cfc getSuggestions), each with an x to hide it until something new happens. With fewer than three, the rest
-					are Create Page, Posts and Comments. Create Page only shows with fewer than two suggestions (owner, 2026-10-20): a page
-					can also be made from Create Post, which has the Post/Page switch at the top. --->
+					<!--- Up next (owner, 2026-10-20): three tiles - Create Post, then the two things that need this person most now
+					(AdminHome.cfc getSuggestions, most important first), each with an x to hide it until something new happens, which
+					brings up the next one. With fewer than two, the rest are Create Page, Posts and Comments, so Create Page goes when
+					there are two (a page can also be made from Create Post, which has the Post/Page switch at the top). --->
 					<cfset upNext = []>
 					<cftry>
 						<cfset upNext = application.blog.getAdminHome().getSuggestions(iconList, linkList, listFindNoCase(currentUserCapabilityList, "EditServerSetting") gt 0, listFindNoCase(titleList, "Blog Updates (update needed)") gt 0)>
@@ -478,13 +478,13 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 					<cfset upNextIcons = { setup: "SiteSetup", bookings: "Bookings", comments: "Comments", update: "BlogUpdate", signups: "Forms", errors: "ErrorLog", draft: "Posts", scheduled: "Posts" }>
 					<cfset upNextShown = []>
 					<cfloop array="#upNext#" index="suggestion">
-						<cfif arrayLen(upNextShown) lt 3><cfset arrayAppend(upNextShown, suggestion)></cfif>
+						<cfif arrayLen(upNextShown) lt 2><cfset arrayAppend(upNextShown, suggestion)></cfif>
 					</cfloop>
 					<cfset upNextKinds = "">
 					<cfloop array="#upNextShown#" index="suggestion"><cfset upNextKinds = listAppend(upNextKinds, suggestion.kind)></cfloop>
 					<cfset upNextFallback = "">
 					<cfloop list="CreatePage,Posts,Comments" index="key">
-						<cfif listLen(upNextFallback) + arrayLen(upNextShown) lt 3 and listFindNoCase(iconList, key) and not (key eq "Comments" and listFind(upNextKinds, "comments")) and not (key eq "CreatePage" and arrayLen(upNextShown) gte 2)>
+						<cfif listLen(upNextFallback) + arrayLen(upNextShown) lt 2 and listFindNoCase(iconList, key) and not (key eq "Comments" and listFind(upNextKinds, "comments"))>
 							<cfset upNextFallback = listAppend(upNextFallback, key)>
 						</cfif>
 					</cfloop>
@@ -700,7 +700,8 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			.adminHomeStatus { font-size: 13px; font-weight: bold; color: #d1242f; }
 			.adminHomeStatus.adminHomeInfo { color: var(--homeAccent); }
 			.adminHomeBadge { position: absolute; top: 8px; right: 8px; background: #d1242f; color: #ffffff; font-size: 12px; font-weight: bold; border-radius: 10px; padding: 2px 7px; }
-			.adminHomeQuick .adminHomeGrid { grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>150<cfelse>200</cfif>px, 1fr)); }
+			<!--- Up next is always three tiles (2026-10-20): three equal columns on a computer. --->
+			.adminHomeQuick .adminHomeGrid { grid-template-columns: <cfif session.isMobile>repeat(auto-fill, minmax(150px, 1fr))<cfelse>repeat(3, minmax(0, 1fr))</cfif>; }
 			.adminHomeQuick .adminHomeTile { flex-direction: row; justify-content: flex-start; padding: 10px 12px; text-align: left; }
 			.adminHomeQuick .adminHomeTile img { width: 40px; height: 40px; }
 			<!--- Up next suggestions (things that need the owner now) have a line in the theme's primary color down the left, and an x at the
