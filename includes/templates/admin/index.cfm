@@ -468,7 +468,8 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 					]>
 					<!--- Up next (owner, 2026-10-20): Create Post, then up to three things that need this person now, most important first
 					(AdminHome.cfc getSuggestions), each with an x to hide it until something new happens. With fewer than three, the rest
-					are Create Page, Posts and Comments. --->
+					are Create Page, Posts and Comments. Create Page only shows with fewer than two suggestions (owner, 2026-10-20): a page
+					can also be made from Create Post, which has the Post/Page switch at the top. --->
 					<cfset upNext = []>
 					<cftry>
 						<cfset upNext = application.blog.getAdminHome().getSuggestions(iconList, linkList, listFindNoCase(currentUserCapabilityList, "EditServerSetting") gt 0, listFindNoCase(titleList, "Blog Updates (update needed)") gt 0)>
@@ -483,7 +484,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 					<cfloop array="#upNextShown#" index="suggestion"><cfset upNextKinds = listAppend(upNextKinds, suggestion.kind)></cfloop>
 					<cfset upNextFallback = "">
 					<cfloop list="CreatePage,Posts,Comments" index="key">
-						<cfif listLen(upNextFallback) + arrayLen(upNextShown) lt 3 and listFindNoCase(iconList, key) and not (key eq "Comments" and listFind(upNextKinds, "comments"))>
+						<cfif listLen(upNextFallback) + arrayLen(upNextShown) lt 3 and listFindNoCase(iconList, key) and not (key eq "Comments" and listFind(upNextKinds, "comments")) and not (key eq "CreatePage" and arrayLen(upNextShown) gte 2)>
 							<cfset upNextFallback = listAppend(upNextFallback, key)>
 						</cfif>
 					</cfloop>
