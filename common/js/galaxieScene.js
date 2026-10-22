@@ -139,8 +139,10 @@
 			".gScene .gs-section{position:relative;z-index:2}",
 			".gScene .gs-softTop{position:relative;z-index:2;pointer-events:none}",
 			".gScene .gs-text{padding:12vh 8vw;min-height:60vh;display:flex;flex-direction:column;justify-content:center}",
-			".gScene .gs-heading{font-size:clamp(1.4rem,3vw,2.4rem);margin:0 0 .6em;line-height:1.2}",
-			".gScene .gs-body{font-size:clamp(1rem,1.6vw,1.3rem);line-height:1.5}",
+			// The theme's header and body fonts (2026-10-21), set by the page (blogContentCss.cfm, scenePreview.cfm); a section's own
+			// font, set on the element, still wins.
+			".gScene .gs-heading{font-family:var(--galaxieSceneHeadingFont,inherit);font-size:clamp(1.4rem,3vw,2.4rem);margin:0 0 .6em;line-height:1.2}",
+			".gScene .gs-body{font-family:var(--galaxieSceneTextFont,inherit);font-size:clamp(1rem,1.6vw,1.3rem);line-height:1.5}",
 			".gScene .gs-body p{margin:0 0 .8em;max-width:60ch}",
 			".gScene .gs-align-center{text-align:center;align-items:center}.gScene .gs-align-center .gs-body p{margin-left:auto;margin-right:auto}",
 			".gScene .gs-align-right{text-align:right;align-items:flex-end}",

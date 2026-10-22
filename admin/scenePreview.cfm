@@ -17,6 +17,22 @@ view, so the engine's phone settings apply as they would on a phone. In the admi
 	<!--- Something below the scene to scroll into, as the post's own text would be. --->
 	##scenePreviewAfter { padding: 40px 20px 60vh; color: ##ccc; text-align: center; font-size: 14px; }
 </style>
+<!--- The theme's fonts (2026-10-21, owner): the preview shows the scene in the header and body fonts of the theme the blog uses,
+as the site does (blogContentCss.cfm sets the same two variables there). --->
+<cftry>
+	<cfset previewTheme = application.blog.getTheme(themeAlias = application.blog.getSelectedThemeAlias())>
+	<cfif arrayLen(previewTheme)>
+		<cfset previewRenderer = createObject("component", application.rendererComponentPath)>
+		<cfset previewBodyFont = trim(previewTheme[1]["Font"] ?: "")>
+		<cfset previewHeaderFont = trim(previewTheme[1]["BlogNameFont"] ?: "")>
+		#previewRenderer.getOverlayFontFaceStyle(previewBodyFont)##previewHeaderFont neq previewBodyFont ? previewRenderer.getOverlayFontFaceStyle(previewHeaderFont) : ""#
+		<style>:root {
+			<cfif len(previewBodyFont)>--galaxieSceneTextFont: '#previewBodyFont#'<cfif len(trim(previewTheme[1]["FontType"] ?: ""))>, #previewTheme[1]["FontType"]#</cfif>;</cfif>
+			<cfif len(previewHeaderFont)>--galaxieSceneHeadingFont: '#previewHeaderFont#'<cfif len(trim(previewTheme[1]["BlogNameFontType"] ?: ""))>, #previewTheme[1]["BlogNameFontType"]#</cfif>;</cfif>
+		}</style>
+	</cfif>
+	<cfcatch type="any"></cfcatch>
+</cftry>
 </head>
 <body>
 <style id="scenePreviewFonts"></style>
