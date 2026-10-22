@@ -1144,6 +1144,15 @@
 		.galaxieBlock + .galaxieBlock { margin-top: 12px; }
 		.galaxieBlock > * + * { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif>; padding-top: 10px; margin-top: 10px; }
 		.galaxieBlock > :first-child { margin-top: 0; }
+		<!--- Callouts in posts (2026-10-22, owner): a quote block with one of Kendo's k-notification-info / -success / -warning / -error
+		classes (the editor's Styles > Callouts) keeps the theme's color as a faint wash and a strong left stripe, with the page's own
+		text color instead of Kendo's white-on-color. --->
+		blockquote.k-notification-info, blockquote.k-notification-success, blockquote.k-notification-warning, blockquote.k-notification-error {
+			margin: 1em 0; padding: 10px 16px; border-width: 1px 1px 1px 5px; border-style: solid; border-radius: 4px; color: inherit !important;
+			background-image: linear-gradient(<cfif darkTheme>rgba(0,0,0,.6), rgba(0,0,0,.6)<cfelse>rgba(255,255,255,.82), rgba(255,255,255,.82)</cfif>);
+		}
+		blockquote.k-notification-info > :first-child, blockquote.k-notification-success > :first-child, blockquote.k-notification-warning > :first-child, blockquote.k-notification-error > :first-child { margin-top: 0; }
+		blockquote.k-notification-info > :last-child, blockquote.k-notification-success > :last-child, blockquote.k-notification-warning > :last-child, blockquote.k-notification-error > :last-child { margin-bottom: 0; }
 		.galaxieBlock > :last-child { margin-bottom: 0; }
 		<!--- Kendo before 2020 (eg. Kendo UI Professional 2019) hides input.k-checkbox and input.k-radio and draws the box on a
 		label.k-checkbox-label / k-radio-label right after them. Galaxie's checkboxes and radios have no such label, so with an old

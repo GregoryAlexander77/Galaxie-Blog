@@ -352,11 +352,22 @@
 				{ text: 'SQL', value: 'sql' }
 			],
 			toolbar: '<cfoutput>#toolbarString#</cfoutput>',
+			<!--- Callouts (2026-10-22, owner): Styles > Callouts wraps the selected paragraphs in a quote block with a Kendo color class, drawn
+			softly by blogContentCss.cfm. Added to TinyMCE's own styles, not in place of them. --->
+			style_formats: [
+				{ title: 'Callouts', items: [
+					{ title: 'Callout: Info', block: 'blockquote', classes: 'k-notification-info', wrapper: true, preview: false },
+					{ title: 'Callout: Tip', block: 'blockquote', classes: 'k-notification-success', wrapper: true, preview: false },
+					{ title: 'Callout: Warning', block: 'blockquote', classes: 'k-notification-warning', wrapper: true, preview: false },
+					{ title: 'Callout: Important', block: 'blockquote', classes: 'k-notification-error', wrapper: true, preview: false }
+				] }
+			],
+			style_formats_merge: true,
 			media_live_embeds: true,
 			<!--- Load our custom fonts --->
 			font_formats: "<cfloop from="1" to="#arrayLen(getThemeAndWebSafeFonts)#" index="i"><cfoutput>#getThemeAndWebSafeFonts[i]['Font']#=<cfif len(getThemeAndWebSafeFonts[i]['WebSafeFallback'])>#lCase(getThemeAndWebSafeFonts[i]['WebSafeFallback'])#<cfelse>#lCase(getThemeAndWebSafeFonts[i]['Font'])#</cfif>;</cfoutput></cfloop>",
 			<!--- Declare the font faces and set the font properties for the editor body --->
-			content_style: '<cfoutput><cfloop from="1" to="#arrayLen(getSelfHostedFonts)#" index="i">@font-face {font-family: "#getSelfHostedFonts[i]['Font']#"; src: url("#application.baseUrl#/common/fonts/#getSelfHostedFonts[i]['FileName']#.#fontExtension#") format("#fontExtension#");}</cfloop> body { font-family:#themeBodyFont#; font-size:14px; }',</cfoutput>
+			content_style: '<cfoutput><cfloop from="1" to="#arrayLen(getSelfHostedFonts)#" index="i">@font-face {font-family: "#getSelfHostedFonts[i]['Font']#"; src: url("#application.baseUrl#/common/fonts/#getSelfHostedFonts[i]['FileName']#.#fontExtension#") format("#fontExtension#");}</cfloop> body { font-family:#themeBodyFont#; font-size:14px; } blockquote[class*=k-notification-] { margin: 1em 0; padding: 10px 16px; border: 1px solid; border-left-width: 5px; border-radius: 4px; } blockquote.k-notification-info { border-color: ##7fb2e5; border-left-color: ##0066cc; background: ##eef5fc; } blockquote.k-notification-success { border-color: ##9fd49a; border-left-color: ##37b400; background: ##f0f9ee; } blockquote.k-notification-warning { border-color: ##f3d38a; border-left-color: ##e8a400; background: ##fdf7e8; } blockquote.k-notification-error { border-color: ##ef9f97; border-left-color: ##d9372b; background: ##fcefee; }',</cfoutput>
 			<!--- I am turning off script support as the setContent method will break if scripts are included. If you want it enabled add this string to the extended_valid_elements var below- 'script[src|async|defer|type|charset]', and use a different method to populate the editor. Alow a list item in order to incorporate font awesome icons, we also put onClick events on buttons. --->
 			extended_valid_elements: 'i[*],a[href|class|id|onClick],button[*],span[*],input[*],script[src|async|defer|type|charset],more',
 			<!--- Allows all elements: valid_elements : '*[*]', We need to allow javascript within URL's as are using javascript links in the navigation menu. Without this argument tinymce strips out the 'javascript:' string in URL's --->
