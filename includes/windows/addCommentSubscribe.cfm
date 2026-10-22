@@ -34,7 +34,20 @@
 <cfif isDefined("cookie.blog_website")>
 	<cfset commenterWebsite = cookie.blog_website>
 	<cfset rememberMe = true>
-</cfif>			
+</cfif>
+<!--- A signed-in admin comments as themselves (2026-10-22, owner): their name, email and website from their profile. Their comment is
+approved straight away and linked to their account by blog.cfc's addComment. --->
+<cfif application.Udf.isLoggedIn() and structKeyExists(session, "userName") and len(session.userName)>
+	<cftry>
+		<cfset commentAdmin = entityLoad("Users", { UserName = session.userName }, true)>
+		<cfif not isNull(commentAdmin)>
+			<cfset commenterName = len(trim(commentAdmin.getDisplayName() ?: "")) ? trim(commentAdmin.getDisplayName()) : trim(commentAdmin.getFullName() ?: "")>
+			<cfset commenterEmail = trim(commentAdmin.getEmail() ?: "")>
+			<cfif len(trim(commentAdmin.getWebsite() ?: ""))><cfset commenterWebsite = trim(commentAdmin.getWebsite())></cfif>
+		</cfif>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+</cfif>		
 	
 <cfif isDefined("URL.Id") and URL.id neq ''>
 	<!--- Get the individual post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) )--->
