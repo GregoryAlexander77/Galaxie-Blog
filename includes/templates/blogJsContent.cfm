@@ -2078,6 +2078,22 @@
 			}
 		}
 		
+		<!--- A link to a comment (2026-10-22, owner), eg. .../my-post#c50 from a reply email, or #50: the comments are hidden until the
+		arrow is clicked, so open that post's comments and scroll to the comment. On a post's own page showComment (above) opens them
+		first but only finds #c50, not #50, so this waits for it and only opens the list if it is still closed. --->
+		function openLinkedComment(){
+			var match = /^#c?(\d+)$/.exec(window.location.hash || "");
+			if (!match) { return; }
+			var row = $("#c" + match[1]);
+			if (!row.length) { return; }
+			var list = row.closest("div[id^='comment']");
+			var control = list.length ? $("#commentControl" + list.attr("id").replace("comment", "")) : $();
+			if (control.length && control.hasClass("k-i-sort-desc-sm")) { handleComments(control[0]); }
+			setTimeout(function() { row[0].scrollIntoView({ block: "center" }); }, 450);
+		}
+		$(function() { setTimeout(openLinkedComment, 800); });
+		$(window).on("hashchange", openLinkedComment);
+		
 		/* Javascript utilities */
 		// Helper function to determine if the numer is even or odd. This is used to create alternating row colors.
 		function isOdd(num) {
