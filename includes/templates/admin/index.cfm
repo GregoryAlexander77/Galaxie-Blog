@@ -475,7 +475,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 						{ key: "people", name: "People", image: "/images/icons/users.png", what: "Users, members and subscribers", icons: "Users,Members,Subscriber,userProfile,BanVisitors,BannedUsers" },
 						{ key: "settings", name: "Settings", image: "/images/icons/settings.gif", what: "Set-up, settings and updates", icons: "SiteSetup,BlogSettings,BlogOptions,BlogUpdate" },
 						<!--- Tools (owner, 2026-10-20): the upkeep that isn't a setting, out of Posts and Settings. --->
-						{ key: "tools", name: "Tools", image: "/images/icons/tools.svg", what: "Import, refresh and other upkeep", icons: "ImportData,RefreshSite,ReloadOrm" },
+						{ key: "tools", name: "Tools", image: "/images/icons/tools.gif", what: "Import, refresh and other upkeep", icons: "ImportData,RefreshSite,ReloadOrm" },
 						<!--- Logs last (owner, 2026-10-20): Up next brings forward new errors and This week the visitors, so it is opened least. --->
 						{ key: "logs", name: "Logs", image: "/images/icons/adminLog.gif", what: "What happened on the site", icons: "ErrorLog,AdminLog,MemberLog,VisitorLog,reactionLog,SearchQuery" }
 					]>
