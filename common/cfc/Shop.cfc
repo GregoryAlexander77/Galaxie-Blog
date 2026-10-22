@@ -169,11 +169,13 @@
 </cffunction>
 
 <cffunction name="saveProductImage" access="public" returntype="struct" output="false"
-		hint="Stores a product picture in /images/shop/ (public) and returns { success, message, url }.">
+		hint="Stores a product picture in /images/shop/ (public) and returns { success, message, url }. Booking types' pictures use the same, in /images/bookings/ (2026-10-22).">
 	<cfargument name="tempPath" type="string" required="true">
 	<cfargument name="originalName" type="string" required="true">
+	<cfargument name="pictureFolder" type="string" required="false" default="shop" hint="shop or bookings.">
 	<cfset var ext = lCase(listLast(arguments.originalName, "."))>
-	<cfset var folder = expandPath(application.baseUrl & "/images/shop/")>
+	<cfset var folderName = arguments.pictureFolder eq "bookings" ? "bookings" : "shop">
+	<cfset var folder = expandPath(application.baseUrl & "/images/" & folderName & "/")>
 	<cfset var fileName = lCase(left(hash(createUUID()), 16)) & "." & ext>
 	<cfif not listFind("jpg,jpeg,png,webp,gif", ext) or not isImageFile(arguments.tempPath)>
 		<cfreturn { success: false, message: "Please choose a picture (jpg, png, webp or gif).", url: "" }>
@@ -183,7 +185,7 @@
 	<cfif server.os.name does not contain "Windows">
 		<cftry><cfset fileSetAccessMode(folder & fileName, "644")><cfcatch type="any"></cfcatch></cftry>
 	</cfif>
-	<cfreturn { success: true, message: "", url: application.baseUrl & "/images/shop/" & fileName }>
+	<cfreturn { success: true, message: "", url: application.baseUrl & "/images/" & folderName & "/" & fileName }>
 </cffunction>
 
 <cffunction name="getProductsForPage" access="public" returntype="array" output="false"

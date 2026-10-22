@@ -10,7 +10,7 @@
 	the server restarts: the running application keeps the old mapping, and reloading it from the admin (TestUtility.cfc
 	reloadOrm) needs a sign-in that may already be failing. Never set it back to an older date: that brings back the old
 	application if the server still holds it. Changing it signs everyone out once. --->
-	<cfset this.name = "GalaxieBlog_" & left(hash(getDirectoryFromPath(getCurrentTemplatePath())), 10) & "_20261020" />
+	<cfset this.name = "GalaxieBlog_" & left(hash(getDirectoryFromPath(getCurrentTemplatePath())), 10) & "_20261022" />
 	<!--- Preserve the case for database columns --->
 	<cfset this.serialization.preserveCaseForQueryColumn = true>
 	<!--- Set the root directory. This returns the full path. Note: this will have a forward slash at the end of the string '/' --->

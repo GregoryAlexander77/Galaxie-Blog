@@ -11,6 +11,10 @@ added them when the blog restarted with the new files). --->
 	{ name: "HeroOverlayGlowSoftness", length: 10 },
 	{ name: "HeroStyle", length: 20 }
 ])>
+<!--- A booking type's picture (2026-10-22). --->
+<cfset ensureColumns("BookingType", [
+	{ name: "ImageUrl", length: 500 }
+])>
 <cfset ensureColumns("Carousel", [
 	{ name: "CarouselTextShadow", length: 20 },
 	{ name: "CarouselTextShadowColor", length: 20 }

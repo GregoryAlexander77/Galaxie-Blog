@@ -14615,8 +14615,9 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
-	<cffunction name="uploadShopProductImage" access="remote" returnformat="json" output="false" hint="A product's picture (window 112). Returns url.">
+	<cffunction name="uploadShopProductImage" access="remote" returnformat="json" output="false" hint="A product's picture (window 112), or a booking type's (window 91, folder=bookings). Returns url.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="folder" type="string" required="false" default="shop" hint="shop or bookings (2026-10-22).">
 		<!--- The uploaded file's form field. Declared so strict argument checking accepts it; cffile reads it from the form. --->
 		<cfargument name="file" required="false" default="">
 		<cfset var response = { "success": false, "errorMessage": "", "url": "" }>
@@ -14634,7 +14635,7 @@
 					<cffile action="delete" file="#uploaded.serverDirectory#/#uploaded.serverFile#">
 					<cfset response[ "errorMessage" ] = "The picture is larger than 15 MB. Please make it smaller.">
 				<cfelse>
-					<cfset saved = application.shop.saveProductImage(uploaded.serverDirectory & "/" & uploaded.serverFile, uploaded.clientFile)>
+					<cfset saved = application.shop.saveProductImage(uploaded.serverDirectory & "/" & uploaded.serverFile, uploaded.clientFile, arguments.folder)>
 					<cfif not saved.success and fileExists(uploaded.serverDirectory & "/" & uploaded.serverFile)>
 						<cffile action="delete" file="#uploaded.serverDirectory#/#uploaded.serverFile#">
 					</cfif>

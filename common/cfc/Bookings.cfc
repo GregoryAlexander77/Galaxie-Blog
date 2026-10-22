@@ -70,6 +70,7 @@
 		alias: valueOrEmpty(e.getAlias()),
 		category: valueOrEmpty(e.getCategory()),
 		description: valueOrEmpty(e.getDescription()),
+		imageUrl: valueOrEmpty(e.getImageUrl()),
 		durationMinutes: intOr(e.getDurationMinutes(), 60),
 		startIntervalMinutes: intOr(e.getStartIntervalMinutes(), 30),
 		bufferBeforeMinutes: intOr(e.getBufferBeforeMinutes(), 0),
@@ -179,6 +180,8 @@
 		<cfset entity.setName(name)>
 		<cfset entity.setCategory(left(trim(structKeyExists(d, "category") ? d.category : ""), 100))>
 		<cfset entity.setDescription(left(trim(replace(structKeyExists(d, "description") ? d.description : "", chr(13), "", "all")), 4000))>
+		<!--- The picture: only one uploaded to this blog's /images/bookings/ (uploadShopProductImage with folder bookings), or none. --->
+		<cfset entity.setImageUrl(structKeyExists(d, "imageUrl") and isSimpleValue(d.imageUrl) and reFind("^" & application.baseUrl & "/images/bookings/[a-z0-9]+\.(jpg|jpeg|png|webp|gif)$", d.imageUrl) ? d.imageUrl : "")>
 		<cfset entity.setDurationMinutes(duration)>
 		<cfset entity.setStartIntervalMinutes(startInterval)>
 		<cfset entity.setBufferBeforeMinutes(min(wholeNumber(d, "bufferBeforeMinutes", 0), 480))>
@@ -522,6 +525,7 @@
 					"name": bookingType.name,
 					"category": bookingType.category,
 					"description": bookingType.description,
+					"imageUrl": bookingType.imageUrl,
 					"durationMinutes": bookingType.durationMinutes,
 					"price": bookingType.price,
 					"priceText": bookingType.price gt 0 ? application.payments.formatMoney(bookingType.price) : "Free",

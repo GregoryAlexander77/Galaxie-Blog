@@ -9,6 +9,8 @@
 	<!--- Optional heading the type is listed under, eg. "Existing clients", "Pets", "Youth". --->
 	<cfproperty name="Category" ormtype="string" length="100" default="">
 	<cfproperty name="Description" ormtype="string" length="4000" default="">
+	<!--- An optional picture shown beside the type on the booking page (2026-10-22), in /images/bookings/. --->
+	<cfproperty name="ImageUrl" ormtype="string" length="500" default="">
 	<cfproperty name="DurationMinutes" ormtype="int" default="60">
 	<!--- How often start times are offered: 15, 30, 60, or 0 = back to back (every DurationMinutes). --->
 	<cfproperty name="StartIntervalMinutes" ormtype="int" default="30">

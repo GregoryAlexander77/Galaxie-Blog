@@ -7,7 +7,7 @@ its refund window are in the Price section (2026-10-15). --->
 <cfset isNewBookingType = structIsEmpty(bookingType)>
 <cfif isNewBookingType>
 	<cfset bookingType = {
-		bookingTypeId: 0, name: "", category: "", description: "", durationMinutes: 60, startIntervalMinutes: 30,
+		bookingTypeId: 0, name: "", category: "", description: "", imageUrl: "", durationMinutes: 60, startIntervalMinutes: 30,
 		bufferBeforeMinutes: 0, bufferAfterMinutes: 0, bookingMode: "oneOnOne", groupSize: 1, price: 0, pricingUnit: "perBooking",
 		webFormId: 0, minNoticeHours: 24, maxDaysAhead: 60, dailyLimit: 0, requiresApproval: false, reminderHours: 24,
 		active: true, sortOrder: 0, locationIds: [],
@@ -91,6 +91,43 @@ its refund window are in the Price section (2026-10-15). --->
 		$("input[name=bookingTypePaymentOption]").on("change", refreshPaymentRows);
 		refreshPaymentRows();
 
+		<!--- The picture (2026-10-22): uploaded straight away to /images/bookings/, saved with the type. --->
+		$("#bookingTypeImageButton").on("click", function() { $("#bookingTypeImageInput").trigger("click"); });
+		$("#bookingTypeImageInput").on("change", function() {
+			var file = this.files[0];
+			this.value = "";
+			if (!file) { return; }
+			var data = new FormData();
+			data.append("csrfToken", "<cfoutput>#csrfToken#</cfoutput>");
+			data.append("folder", "bookings");
+			data.append("file", file);
+			$("#bookingTypeImageStatus").text("Uploading " + file.name + "...");
+			jQuery.ajax({
+				type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=uploadShopProductImage",
+				data: data, processData: false, contentType: false, dataType: "json",
+				success: function(response) {
+					$("#bookingTypeImageStatus").text("");
+					if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+					if (response && response.success) {
+						$("#bookingTypeImageUrl").val(response.url);
+						$("#bookingTypeImagePreview").attr("src", response.url).show();
+						$("#bookingTypeImageRemove").show();
+					} else {
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not upload", message: (response && response.errorMessage) || "The picture could not be uploaded.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+					}
+				},
+				error: function(jqXHR, textStatus, error) {
+					$("#bookingTypeImageStatus").text("");
+					if (jqXHR.status === 403) { createLoginWindow(); } else { $.when(kendo.ui.ExtAlertDialog.show({ title: "Error while uploading", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); }
+				}
+			});
+		});
+		$("#bookingTypeImageRemove").on("click", function() {
+			$("#bookingTypeImageUrl").val("");
+			$("#bookingTypeImagePreview").hide();
+			$(this).hide();
+		});
+
 		$("#bookingTypeSubmit").on("click", function() {
 			var category = $("#bookingTypeCategory").data("kendoComboBox");
 			var typeData = {
@@ -98,6 +135,7 @@ its refund window are in the Price section (2026-10-15). --->
 				name: $.trim($("#bookingTypeName").val()),
 				category: $.trim(category.text()),
 				description: $.trim($("#bookingTypeDescription").val()),
+				imageUrl: $("#bookingTypeImageUrl").val(),
 				durationMinutes: $("#bookingTypeDuration").val(),
 				startIntervalMinutes: $("#bookingTypeStartInterval").val(),
 				bufferBeforeMinutes: $("#bookingTypeBufferBefore").val() || 0,
@@ -185,6 +223,20 @@ its refund window are in the Price section (2026-10-15). --->
 	<tr>
 		<td class="#blockClass#" align="right"><label for="bookingTypeDescription">Description:</label></td>
 		<td class="#blockClass#"><textarea id="bookingTypeDescription" class="k-textbox" rows="4" maxlength="4000" style="width: 95%;">#encodeForHtml(bookingType.description)#</textarea></td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Optional: a picture shown beside this type on the booking page. A square one looks best.</td></tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#" align="right">Picture:</td>
+		<td class="#blockClass#">
+			<input type="hidden" id="bookingTypeImageUrl" value="#encodeForHtmlAttribute(bookingType.imageUrl)#">
+			<img id="bookingTypeImagePreview" src="#encodeForHtmlAttribute(bookingType.imageUrl)#" alt="" style="width: 120px; height: 120px; object-fit: cover; border-radius: 6px; vertical-align: middle;<cfif not len(bookingType.imageUrl)> display: none;</cfif>">
+			<input type="file" id="bookingTypeImageInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display: none;">
+			<button type="button" id="bookingTypeImageButton" class="k-button k-primary">Upload picture</button>
+			<button type="button" id="bookingTypeImageRemove" class="k-button"<cfif not len(bookingType.imageUrl)> style="display: none;"</cfif>>Remove</button>
+			<span id="bookingTypeImageStatus" class="k-form-hint"></span>
+		</td>
 	</tr>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>

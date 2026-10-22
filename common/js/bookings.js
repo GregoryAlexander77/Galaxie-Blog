@@ -23,6 +23,11 @@ var galaxieBookings = (function($) {
 			".galaxieBooking { margin: 1.5em 0; }" +
 			".galaxieBookingCategory { margin: 0.25em 0; }" +
 			".galaxieBookingType { padding: 0.25em 0; }" +
+			// A type with a picture (2026-10-22): the picture on the left, like a shop product; above the text on a mobile.
+			".galaxieBookingTypeWithPicture { display: flex; gap: 16px; align-items: flex-start; }" +
+			".galaxieBookingPicture { width: 150px; height: 150px; object-fit: cover; border-radius: 6px; flex: none; }" +
+			".galaxieBookingTypeBody { flex: 1 1 auto; min-width: 0; }" +
+			"@media (max-width: 600px) { .galaxieBookingTypeWithPicture { flex-direction: column; } .galaxieBookingPicture { width: 100%; height: 200px; } }" +
 			".galaxieBookingType h4 { margin: 0 0 0.25em 0; }" +
 			".galaxieBookingMeta { margin-bottom: 0.4em; }" +
 			".galaxieBookingStep { margin: 1em 0; }" +
@@ -143,10 +148,15 @@ var galaxieBookings = (function($) {
 				if (type.category) { box.append($('<h3 class="galaxieBookingCategory"></h3>').text(type.category)); }
 			}
 			var card = $('<div class="galaxieBookingType"></div>');
-			card.append($("<h4></h4>").text(type.name));
-			card.append($('<div class="galaxieBookingMeta"></div>').text(formatLength(type.durationMinutes) + " · " + formatPrice(type)));
-			if (type.description) { card.append($("<p></p>").html(escapeHtml(type.description).replace(/\n/g, "<br/>"))); }
-			card.append($('<button type="button" class="k-button k-primary">Book</button>').on("click", function() { chooseType(state, type); }));
+			var text = card;
+			if (type.imageUrl) {
+				card.addClass("galaxieBookingTypeWithPicture").append($('<img class="galaxieBookingPicture" alt="">').attr("src", type.imageUrl));
+				text = $('<div class="galaxieBookingTypeBody"></div>').appendTo(card);
+			}
+			text.append($("<h4></h4>").text(type.name));
+			text.append($('<div class="galaxieBookingMeta"></div>').text(formatLength(type.durationMinutes) + " · " + formatPrice(type)));
+			if (type.description) { text.append($("<p></p>").html(escapeHtml(type.description).replace(/\n/g, "<br/>"))); }
+			text.append($('<button type="button" class="k-button k-primary">Book</button>').on("click", function() { chooseType(state, type); }));
 			box.append(card);
 		});
 	}
