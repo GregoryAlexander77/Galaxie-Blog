@@ -23,12 +23,13 @@ as the site does (blogContentCss.cfm sets the same two variables there). --->
 	<cfset previewTheme = application.blog.getTheme(themeAlias = application.blog.getSelectedThemeAlias())>
 	<cfif arrayLen(previewTheme)>
 		<cfset previewRenderer = createObject("component", application.rendererComponentPath)>
-		<cfset previewBodyFont = trim(previewTheme[1]["Font"] ?: "")>
-		<cfset previewHeaderFont = trim(previewTheme[1]["BlogNameFont"] ?: "")>
+		<!--- Large headings in the theme's Text font, the text in its Menu font (owner, 2026-10-21). --->
+		<cfset previewBodyFont = trim(previewTheme[1]["MenuFont"] ?: "")>
+		<cfset previewHeaderFont = trim(previewTheme[1]["Font"] ?: "")>
 		#previewRenderer.getOverlayFontFaceStyle(previewBodyFont)##previewHeaderFont neq previewBodyFont ? previewRenderer.getOverlayFontFaceStyle(previewHeaderFont) : ""#
 		<style>:root {
-			<cfif len(previewBodyFont)>--galaxieSceneTextFont: '#previewBodyFont#'<cfif len(trim(previewTheme[1]["FontType"] ?: ""))>, #previewTheme[1]["FontType"]#</cfif>;</cfif>
-			<cfif len(previewHeaderFont)>--galaxieSceneHeadingFont: '#previewHeaderFont#'<cfif len(trim(previewTheme[1]["BlogNameFontType"] ?: ""))>, #previewTheme[1]["BlogNameFontType"]#</cfif>;</cfif>
+			<cfif len(previewBodyFont)>--galaxieSceneTextFont: '#previewBodyFont#'<cfif len(trim(previewTheme[1]["MenuFontType"] ?: ""))>, #previewTheme[1]["MenuFontType"]#</cfif>;</cfif>
+			<cfif len(previewHeaderFont)>--galaxieSceneHeadingFont: '#previewHeaderFont#'<cfif len(trim(previewTheme[1]["FontType"] ?: ""))>, #previewTheme[1]["FontType"]#</cfif>;</cfif>
 		}</style>
 	</cfif>
 	<cfcatch type="any"></cfcatch>

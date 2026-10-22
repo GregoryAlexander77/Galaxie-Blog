@@ -593,4 +593,68 @@ key NAMES are taken from the original text, so their case survives on Adobe Cold
 	</cflock>
 </cffunction>
 
+<!---//*****************************************************************************************************
+		A scene's fonts from a theme (2026-10-21, owner): its large headings in that theme's Text font and its text in the
+		theme's Menu font, wherever the scene is shown. The theme is the one picked in Scene settings (settings.fontTheme), or else the theme
+		with the scene's name (the Delicate Arch scene and the Delicate Arch theme). With neither, the scene keeps the page's
+		own theme fonts (blogContentCss.cfm). A font picked for a section still wins (galaxieScene.js applyLook).
+//******************************************************************************************************--->
+
+<cffunction name="getFontTheme" access="public" returntype="struct" output="false" hint="The theme a scene takes its fonts from: { alias, name, headerFont, headerType, bodyFont, bodyType }, or an empty struct.">
+	<cfargument name="sceneJson" type="string" required="true">
+	<cfset var parsed = isJSON(arguments.sceneJson) ? deserializeJSON(arguments.sceneJson) : {}>
+	<cfset var wanted = isStruct(parsed) and isStruct(parsed.settings ?: "") ? toString(parsed.settings.fontTheme ?: "") : "">
+	<cfset var sceneName = isStruct(parsed) ? lCase(reReplace(toString(parsed.name ?: ""), "[^A-Za-z0-9]", "", "all")) : "">
+	<cfset var theme = "">
+	<cfloop array="#getThemeFonts()#" index="theme">
+		<cfif len(wanted) and theme.alias eq wanted><cfreturn theme></cfif>
+	</cfloop>
+	<cfif len(sceneName)>
+		<cfloop array="#getThemeFonts()#" index="theme">
+			<cfif lCase(reReplace(theme.name, "[^A-Za-z0-9]", "", "all")) eq sceneName or lCase(reReplace(theme.alias, "[^A-Za-z0-9]", "", "all")) eq sceneName><cfreturn theme></cfif>
+		</cfloop>
+	</cfif>
+	<cfreturn {}>
+</cffunction>
+
+<cffunction name="getThemeFonts" access="public" returntype="array" output="false" hint="Every theme's name and the fonts a scene takes from it, kept for five minutes: headerFont (for headings) is the theme's Text font, bodyFont (for text) its Menu font.">
+	<cfset var list = []>
+	<cfset var cards = "">
+	<cfset var t = "">
+	<cfif structKeyExists(variables, "themeFontsCache") and dateDiff("s", variables.themeFontsCache.made, now()) lt 300>
+		<cfreturn variables.themeFontsCache.list>
+	</cfif>
+	<cftry>
+		<cfset cards = application.blog.getThemeEditor().getThemeCards(false)>
+		<cfloop array="#cards.themes#" index="t">
+			<cfset arrayAppend(list, { "alias": toString(t.ThemeAlias ?: ""), "name": toString(t.ThemeName ?: ""),
+				"headerFont": toString(t.Font ?: ""), "headerType": toString(t.FontType ?: ""),
+				"bodyFont": toString(t.MenuFont ?: ""), "bodyType": toString(t.MenuFontType ?: "") })>
+		</cfloop>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+	<cfset variables.themeFontsCache = { made: now(), list: list }>
+	<cfreturn list>
+</cffunction>
+
+<cffunction name="getFontThemeStyle" access="public" returntype="string" output="false" hint="The style for one scene on the page: its theme's two fonts as the variables galaxieScene.js reads, on the scene's own container, with their @font-face rules. Empty when the scene has no font theme.">
+	<cfargument name="sceneJson" type="string" required="true">
+	<cfargument name="selector" type="string" required="true" hint="The scene's container, eg. ##galaxieScene12.">
+	<cfset var theme = getFontTheme(arguments.sceneJson)>
+	<cfset var renderer = "">
+	<cfset var vars = "">
+	<cfset var faces = "">
+	<cfif structIsEmpty(theme)><cfreturn ""></cfif>
+	<cfset renderer = createObject("component", application.rendererComponentPath)>
+	<cfif len(theme.bodyFont)>
+		<cfset vars = vars & "--galaxieSceneTextFont:'" & theme.bodyFont & "'" & (len(theme.bodyType) ? ", " & theme.bodyType : "") & ";">
+		<cfset faces = faces & renderer.getOverlayFontFaceStyle(theme.bodyFont)>
+	</cfif>
+	<cfif len(theme.headerFont)>
+		<cfset vars = vars & "--galaxieSceneHeadingFont:'" & theme.headerFont & "'" & (len(theme.headerType) ? ", " & theme.headerType : "") & ";">
+		<cfif theme.headerFont neq theme.bodyFont><cfset faces = faces & renderer.getOverlayFontFaceStyle(theme.headerFont)></cfif>
+	</cfif>
+	<cfreturn faces & (len(vars) ? "<style>" & arguments.selector & "{" & vars & "}</style>" : "")>
+</cffunction>
+
 </cfcomponent>

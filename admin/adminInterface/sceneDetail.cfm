@@ -87,6 +87,14 @@ this scene. Drafts are listed too (a scene can go on a post before it is release
 		<cfcatch type="any"></cfcatch>
 	</cftry>
 </cfif>
+<!--- Every theme's Header and Body fonts (2026-10-21, owner), for "Fonts from" in Scene settings and the preview. --->
+<cfset sceneThemeFonts = []>
+<cfset sceneThemeFontFaces = "">
+<cftry>
+	<cfset sceneThemeFonts = application.blog.getScenes().getThemeFonts()>
+	<cfset sceneThemeFontFaces = application.blog.getThemeEditor().getThemeCards(false).fontFaces>
+	<cfcatch type="any"></cfcatch>
+</cftry>
 <cfset sceneFormParts = []>
 <cfif structKeyExists(application, "webForms")>
 	<cftry>
@@ -311,6 +319,8 @@ $(document).ready(function () {
 	var READY_FORMS = <cfoutput>#replace("[" & arrayToList(sceneReadyParts, ",") & "]", "</", "<\/", "all")#</cfoutput>;   <!--- { key, name } --->
 	var MAPS = <cfoutput>#replace(replace("[" & arrayToList(sceneMapParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- { id, title, routes } --->
 	var PRODUCTS = <cfoutput>#replace(replace("[" & arrayToList(sceneProductParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;
+	var THEME_FONTS = <cfoutput>#replace(replace(serializeJSON(sceneThemeFonts), "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- [{ alias, name, headerFont, headerType, bodyFont, bodyType }] --->
+	var THEME_FONT_FACES = <cfoutput>#serializeJSON(reReplace(sceneThemeFontFaces, "</?style[^>]*>", "", "all"))#</cfoutput>.replace(/<\/?style[^>]*>/g, "");
 	var FORMS = <cfoutput>#replace(replace("[" & arrayToList(sceneFormParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- { alias, title, active } --->   <!--- the post ids that show this scene now --->   <!--- the blog's posts and pages: { id, title, page, released, url } --->
 	var selected = -1;            <!--- -1 is the scene's own settings; 0... a section --->
 	var aliasTyped = sceneId > 0; <!--- a new scene's name in posts follows its title until it is typed in --->
@@ -398,6 +408,8 @@ $(document).ready(function () {
 		scene: [
 			{ key: "@name", label: "Title", type: "text", hint: "Only you see this, in the Scenes window." },
 			{ key: "@pageColour", label: "Page color", type: "colour", hint: "Behind the scene and between its sections." },
+			{ key: "settings.fontTheme", label: "Fonts from", type: "select", options: [["", "The theme with this scene's name, or the page's theme"]].concat($.map(THEME_FONTS, function (t) { return [[t.alias, t.name + " (" + (t.headerFont || "default") + " / " + (t.bodyFont || "default") + ")"]]; })),
+				hint: "Large headings use that theme's Text font, and the text its Menu font. A font picked for a section still wins." },
 			{ group: "Motion" },
 			{ key: "settings.scrub", label: "Movement", type: "select", options: [["true", "Follows the scroll exactly"], ["0.5", "Smooth"], ["1", "Smoother"]] },
 			{ key: "settings.intensity", label: "Depth (how far the layers move)", type: "number", min: 0.25, max: 2, step: 0.05, placeholder: "1" },
@@ -513,8 +525,22 @@ $(document).ready(function () {
 		var fallback = f.type.indexOf("mono") >= 0 ? "monospace" : (f.type.indexOf("serif") >= 0 && f.type.indexOf("sans") < 0 ? "serif" : "sans-serif");
 		return '"' + f.name.replace(/"/g, "") + '", ' + fallback;
 	}
+	<!--- The theme the scene takes its fonts from (2026-10-21): the one picked in Fonts from, else the theme with the scene's name;
+	none means the page's own theme (scenePreview.cfm shows the blog's selected theme). Same rule as Scenes.cfc getFontTheme. --->
+	function sceneFontTheme() {
+		var wanted = (scene.settings || {}).fontTheme || "", name = String(scene.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+		var norm = function (x) { return String(x || "").toLowerCase().replace(/[^a-z0-9]/g, ""); };
+		return $.grep(THEME_FONTS, function (t) { return wanted && t.alias === wanted; })[0]
+			|| (name ? $.grep(THEME_FONTS, function (t) { return norm(t.name) === name || norm(t.alias) === name; })[0] : null) || null;
+	}
 	function sceneFontCss() {
 		var css = "", seen = {};
+		var theme = sceneFontTheme();
+		if (theme) {
+			css += THEME_FONT_FACES + ":root{"
+				+ (theme.bodyFont ? "--galaxieSceneTextFont:'" + theme.bodyFont + "'" + (theme.bodyType ? "," + theme.bodyType : "") + ";" : "")
+				+ (theme.headerFont ? "--galaxieSceneHeadingFont:'" + theme.headerFont + "'" + (theme.headerType ? "," + theme.headerType : "") + ";" : "") + "}";
+		}
 		$.each(scene.sections, function (i, s) {
 			$.each([s.headingFontId, s.textFontId], function (j, id) {
 				var f = id ? fontById(id) : null;

@@ -120,11 +120,11 @@
 			font-size: <cfoutput>#fontSize#</cfoutput>pt;
 		}</cfif><!---<cfif session.isMobile>--->
 
-		<!--- The theme's fonts for scenes (2026-10-21, owner): a scene's headings in the theme's header font and its text in the
-		body font, unless a section picks its own (common/js/galaxieScene.js reads these). --->
+		<!--- The theme's fonts for scenes (2026-10-21, owner): a scene's large headings in the theme's Text font and its text in
+		the Menu font, unless a section picks its own (common/js/galaxieScene.js reads these). --->
 		:root {
-			<cfif len(trim(font))>--galaxieSceneTextFont: <cfoutput>'#font#'<cfif len(trim(fontType))>, #fontType#</cfif></cfoutput>;</cfif>
-			<cfif len(trim(blogNameFont))>--galaxieSceneHeadingFont: <cfoutput>'#blogNameFont#'<cfif len(trim(blogNameFontType))>, #blogNameFontType#</cfif></cfoutput>;</cfif>
+			<cfif len(trim(font))>--galaxieSceneHeadingFont: <cfoutput>'#font#'<cfif len(trim(fontType))>, #fontType#</cfif></cfoutput>;</cfif>
+			<cfif len(trim(menuFont))>--galaxieSceneTextFont: <cfoutput>'#menuFont#'<cfif len(trim(menuFontType))>, #menuFontType#</cfif></cfoutput>;</cfif>
 		}
 				
 	</cfif><!---<cfif not standAlone>--->

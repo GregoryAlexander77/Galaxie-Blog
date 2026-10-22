@@ -200,7 +200,12 @@
 			<cfset fontCss = application.blog.getScenes().getFontFaceCss(sceneJson)>
 			<cfcatch type="any"><cfset fontCss = ""></cfcatch>
 		</cftry>
-		<cfsavecontent variable="html"><cfoutput><cfif len(fontCss)><style>#fontCss#</style></cfif>#application.blog.getScenes().getEngineConfigScript()#<div class="galaxieSceneHost" id="#containerId#"<cfif len(hostStyle)> style="#hostStyle#"</cfif>></div>
+		<!--- The fonts of the scene's own theme (2026-10-21, owner), on this scene only. --->
+		<cftry>
+			<cfset local.sceneThemeFonts = application.blog.getScenes().getFontThemeStyle(sceneJson, "##" & containerId)>
+			<cfcatch type="any"><cfset local.sceneThemeFonts = ""></cfcatch>
+		</cftry>
+		<cfsavecontent variable="html"><cfoutput><cfif len(fontCss)><style>#fontCss#</style></cfif>#local.sceneThemeFonts##application.blog.getScenes().getEngineConfigScript()#<div class="galaxieSceneHost" id="#containerId#"<cfif len(hostStyle)> style="#hostStyle#"</cfif>></div>
 <script>
 (function () {
 	var data = #sceneJson#;
