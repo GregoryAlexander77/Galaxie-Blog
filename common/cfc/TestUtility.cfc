@@ -1732,6 +1732,7 @@ END CATCH;
 	  ALLPAGES  - find/replace pairs applied to every page and post that contains the text (eg. a link's text);
 	  PAGES     - per page (by POSTALIAS): find/replace EDITS, and an optional NEWTITLE and NEWDESCRIPTION. The address
 	              (alias) is never changed, so links to the page keep working;
+	  COLLECTIONS - page collections to rename (2026-10-21): COLLECTIONALIAS (or OLDTITLE) and NEWTITLE. The address stays;
 	  NEWPAGES  - pages to create, as drafts (not released), in the collection named by COLLECTIONALIAS (or, when no
 	              collection has that address, by COLLECTIONTITLE). A page whose
 	              alias already exists is left alone, so your own changes to it are never overwritten.
@@ -1822,6 +1823,31 @@ END CATCH;
 
 	<!--- Report, and save --->
 	<cfoutput><h2>#(arguments.confirm ? "Saved" : "Dry run (add &amp;confirm=true to the address to save)")#</h2></cfoutput>
+
+	<!--- Collections to rename (2026-10-21): COLLECTIONS [{ COLLECTIONALIAS, OLDTITLE, NEWTITLE }]. Found by its address, or by its
+	old title; only the title changes, so the collection's address and every link to it keep working. --->
+	<cfloop array="#structKeyExists(docsEditList, 'COLLECTIONS') ? docsEditList.COLLECTIONS : []#" index="local.collectionEntry">
+		<cfset collectionList = ormExecuteQuery("FROM PageCollection WHERE BlogRef = :blog AND CollectionAlias = :alias", { blog = application.BlogDbObj, alias = local.collectionEntry.COLLECTIONALIAS ?: "" })>
+		<cfif not arrayLen(collectionList) and len(local.collectionEntry.OLDTITLE ?: "")>
+			<cfset collectionList = ormExecuteQuery("FROM PageCollection WHERE BlogRef = :blog AND lower(Title) = :title", { blog = application.BlogDbObj, title = lCase(trim(local.collectionEntry.OLDTITLE)) })>
+		</cfif>
+		<cfif not arrayLen(collectionList)>
+			<cfset arrayAppend(warnings, "Rename to " & local.collectionEntry.NEWTITLE & ": no collection /" & (local.collectionEntry.COLLECTIONALIAS ?: "") & " or titled """ & (local.collectionEntry.OLDTITLE ?: "") & """ - not renamed")>
+			<cfcontinue>
+		</cfif>
+		<cfoutput><h3>Collection: #encodeForHtml(collectionList[1].getTitle())# <small>/#encodeForHtml(collectionList[1].getCollectionAlias())#</small></h3></cfoutput>
+		<cfif collectionList[1].getTitle() eq local.collectionEntry.NEWTITLE>
+			<cfoutput><div><b>already done</b> - title</div></cfoutput>
+		<cfelse>
+			<cfoutput><div><b>#(arguments.confirm ? "renamed" : "will be renamed")#</b> to #encodeForHtml(local.collectionEntry.NEWTITLE)#</div></cfoutput>
+			<cfset editsMade = editsMade + 1>
+			<cfif arguments.confirm>
+				<cfset collectionList[1].setTitle(left(local.collectionEntry.NEWTITLE, 250))>
+				<cfset entitySave(collectionList[1])>
+				<cfset postsChanged = postsChanged + 1>
+			</cfif>
+		</cfif>
+	</cfloop>
 	<cfloop collection="#work#" item="key">
 		<cfset item = work[key]>
 		<cfif item.body neq item.originalBody or len(item.newTitle) or len(item.newDescription)>
@@ -1854,6 +1880,12 @@ END CATCH;
 		anywhere, so a list can name the collection by COLLECTIONTITLE too. --->
 		<cfif not arrayLen(collectionList) and structKeyExists(newPage, "COLLECTIONTITLE") and len(newPage.COLLECTIONTITLE)>
 			<cfset collectionList = ormExecuteQuery("FROM PageCollection WHERE BlogRef = :blog AND lower(Title) = :title", { blog = application.BlogDbObj, title = lCase(trim(newPage.COLLECTIONTITLE)) })>
+			<!--- A collection this same list renames (COLLECTIONS) still has its old title in a dry run (2026-10-21). --->
+			<cfloop array="#structKeyExists(docsEditList, 'COLLECTIONS') ? docsEditList.COLLECTIONS : []#" index="local.renamed">
+				<cfif not arrayLen(collectionList) and (local.renamed.NEWTITLE ?: "") eq newPage.COLLECTIONTITLE and len(local.renamed.OLDTITLE ?: "")>
+					<cfset collectionList = ormExecuteQuery("FROM PageCollection WHERE BlogRef = :blog AND lower(Title) = :title", { blog = application.BlogDbObj, title = lCase(trim(local.renamed.OLDTITLE)) })>
+				</cfif>
+			</cfloop>
 		</cfif>
 		<cfoutput><h3>New page: #encodeForHtml(newPage.TITLE)# <small>/#encodeForHtml(newPage.POSTALIAS)#</small></h3></cfoutput>
 		<cfif arrayLen(found)>
