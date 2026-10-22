@@ -407,6 +407,9 @@ $(document).ready(function () {
 	var FIELDS = {
 		scene: [
 			{ key: "@name", label: "Title", type: "text", hint: "Only you see this, in the Scenes window." },
+			<!--- Kind of scene (2026-10-22, owner): a hero parallax scene is a post's hero - see heroParallax in common/js/galaxieScene.js. --->
+			{ key: "settings.type", label: "Kind of scene", type: "select", options: [["", "Scene"], ["heroParallax", "Hero parallax scene"]],
+				hint: "A hero parallax scene is the hero at the top of a post: its layers move as it scrolls away, and it fades into the post. Its hold, fade color and depth are set for you." },
 			{ key: "@pageColour", label: "Page color", type: "colour", hint: "Behind the scene and between its sections." },
 			{ key: "settings.fontTheme", label: "Fonts from", type: "select", options: [["", "The theme with this scene's name, or the page's theme"]].concat($.map(THEME_FONTS, function (t) { return [[t.alias, t.name + " (" + (t.headerFont || "default") + " / " + (t.bodyFont || "default") + ")"]]; })),
 				hint: "Large headings use that theme's Text font, and the text its Menu font. A font picked for a section still wins." },

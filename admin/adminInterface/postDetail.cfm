@@ -1164,11 +1164,11 @@
 
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <!-- Enclosure thumbnail -->
+	  <!-- Hero thumbnail -->
 	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-		<label>Enclosure</label>
+		<label>Hero</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1179,7 +1179,7 @@
 	<cfelse><!---<cfif smallScreen>--->
 	   <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-			<label>Enclosure</label>
+			<label>Hero</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- Debugging
@@ -1195,7 +1195,7 @@
 	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Hero</button> <span class="heroSummary k-form-hint" style="display:inline"></span>
+			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Change hero</button> <span class="heroSummary k-form-hint" style="display:inline"></span>
 			<div class="k-form-hint">The picture, video, carousel, map or scene at the top of the post, and the hero text over it.</div>
 		</td>
 	  </tr>
@@ -1210,7 +1210,7 @@
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Hero</button> <span class="heroSummary k-form-hint" style="display:inline"></span>			
+			<button id="enclosure" class="k-button normalFontWeight" type="button" style="width: 235px" onClick="createAdminInterfaceWindow(13,<cfoutput>#URL.optArgs#</cfoutput>)">Change hero</button> <span class="heroSummary k-form-hint" style="display:inline"></span>			
 		</td>
 	  </tr>
 	</cfif>

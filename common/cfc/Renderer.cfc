@@ -212,11 +212,14 @@
 	data.settings = data.settings || {};
 	data.settings.baseUrl = data.settings.baseUrl || "#application.baseUrl#";
 	<!--- Full width (2026-10-19, owner): the scene reaches the edges of the blog's content area (##blogContent, which hides
-	anything wider), past the post's own padding - edge to edge on a phone, and up to the sidebar on a desktop theme that has one. --->
+	anything wider), past the post's own padding - edge to edge on a phone, and up to the sidebar on a desktop theme that has one.
+	In a post on a desktop it stays inside the post's box instead (2026-10-22, owner). --->
 	var host = document.getElementById("#containerId#");
 	function fit() {
 		var area = host.closest("##blogContent") || document.body;
 		host.style.width = ""; host.style.marginLeft = "";
+		<!--- In a post (2026-10-22, owner): inside the post's own box on a desktop, lined up with its title; edge to edge on a phone. --->
+		if (host.closest(".blogPost") && window.innerWidth >= 700) { return; }
 		var a = area.getBoundingClientRect(), border = parseFloat(getComputedStyle(area).borderLeftWidth) || 0;
 		host.style.width = area.clientWidth + "px";
 		host.style.marginLeft = (a.left + border - host.getBoundingClientRect().left) + "px";

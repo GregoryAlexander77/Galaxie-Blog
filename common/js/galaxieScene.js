@@ -632,6 +632,26 @@
 
 	/* ---------- build ---------- */
 
+	function heroParallax(container, data) {
+		data.pageColour = colourBehind(container) || data.pageColour;
+		if (!data.settings.fadeHeight) { data.settings.fadeHeight = "40vh"; }
+		data.settings.intensity = Math.min(+(data.settings.intensity || 1), 0.6);
+		(data.sections || []).forEach(function (section) {
+			if (HERO_KINDS[section.kind]) { section.pin = false; delete section.fadeColour; }
+		});
+	}
+
+	// The first solid background color behind an element (the post's own box), as #rrggbb.
+	function colourBehind(node) {
+		for (var n = node.parentElement; n; n = n.parentElement) {
+			var m = /rgba?\(([0-9]+),\s*([0-9]+),\s*([0-9]+)(?:,\s*([0-9.]+))?\)/.exec(getComputedStyle(n).backgroundColor);
+			if (m && (m[4] === undefined || +m[4] > 0.5)) {
+				return "#" + [m[1], m[2], m[3]].map(function (x) { return ("0" + (+x).toString(16)).slice(-2); }).join("");
+			}
+		}
+		return "";
+	}
+
 	function build(container, data) {
 		// Still (2026-10-20): GreenSock is switched off in Blog Options, so nothing is loaded and the scene shows its pictures and text
 		// without movement, as visitors who turned motion off see it.
@@ -643,6 +663,10 @@
 		addStyles();
 		data = data || {};
 		data.settings = data.settings || {};
+		// A hero parallax scene (2026-10-22, owner): the hero at the top of a post. Its layers move while it scrolls away (no hold,
+		// so no empty stretch after the art), it fades into the color behind the post with a fade tall enough to wash out the
+		// bottom of the art, and its layers travel no further than the scene. Other scenes keep their own rules.
+		if (data.settings.type === "heroParallax") { heroParallax(container, data); }
 		container.classList.add("gScene");
 		if (data.pageColour) { container.style.backgroundColor = data.pageColour; }
 

@@ -187,7 +187,7 @@
 		blogJsContent.cfm's Id==13 branch), so the content itself has to correct the title once it knows better. --->
 		<script>
 			$(document).ready(function() {
-				try { $("#postEnclosureWindow").data("kendoWindow").title("Page Collection Hero Enclosure"); } catch(e) {}
+				try { $("#postEnclosureWindow").data("kendoWindow").title("Page Collection Hero"); } catch(e) {}
 			});
 		</script>
 	</cfif>
@@ -615,7 +615,7 @@
 	  <cfif isPageCollectionEnclosure>
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			The hero enclosure appears at the top of this Page Collection's listing and can take up to 100% of the content width. It can be a video or an image. Unlike a Post, a Page Collection isn't shared individually on social media, so none of the automatic Facebook/Twitter/Pinterest crops apply here - a single image (or video) is all you need. To upload media, click on the buttons below.
+			The hero appears at the top of this Page Collection's listing and can take up to 100% of the content width. It can be a video or an image. Unlike a Post, a Page Collection isn't shared individually on social media, so none of the automatic Facebook/Twitter/Pinterest crops apply here - a single image (or video) is all you need. To upload media, click on the buttons below.
 		</td>
 	  </tr>
 	  <cfelse>

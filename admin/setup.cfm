@@ -343,8 +343,8 @@ takes the same options and events. --->
 			</div>
 		</div>
 		<div class="block k-content">
-			<h4>Post pictures</h4>
-			<p class="hint" style="margin-top:0">How the picture at the top of each post (the hero) shows on the post's own page. Click one to see it on the right.</p>
+			<h4>Post heroes</h4>
+			<p class="hint" style="margin-top:0">How the hero at the top of each post (its picture, video or scene) shows on the post's own page. Click one to see it on the right.</p>
 			<div class="heroCards" id="heroCards"></div>
 		</div>
 		<div class="block k-alt">
