@@ -180,7 +180,8 @@
 						<cfset cacheName = "pagePodDark">
 					</cfif>
 				</cfsilent>
-				<cfif isActive or displayContentOutputData or arrayLen(getPages)>
+				<!--- Only with something to list, or the owner's own content for it (2026-10-22: gregoryalexander.com, with no collections, showed an empty Page Collections box). --->
+				<cfif displayContentOutputData or arrayLen(getPages)>
 					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" displayContentOutputData="#displayContentOutputData#" getPages="#getPages#" scope="html" file="#application.baseUrl#/cache/pods/#cacheName#.cfm" disabled="#application.disableCache#">
 					<div class="widget k-content flexItem">
 						<span class="innerContentContainer">
@@ -221,7 +222,8 @@
 						<cfset cacheName = "homepagePagesPodDark">
 					</cfif>
 				</cfsilent>
-				<cfif isActive or arrayLen(homepagePagesForPod)>
+				<!--- Only with pages to list (2026-10-22), not an empty box. --->
+				<cfif arrayLen(homepagePagesForPod)>
 					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/pods/#cacheName#.cfm" disabled="#application.disableCache#">
 					<div class="widget k-content flexItem">
 						<span class="innerContentContainer">
