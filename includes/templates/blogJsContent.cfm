@@ -1639,7 +1639,7 @@
 				// The moderateComments will be returned either as 'YES/NO'. 
 				var moderateComments = '<cfoutput>#application.commentmoderation#</cfoutput>'; 
 				if (uiInterface == 'addComment'){
-					if (moderateComments == 'YES'){
+					if (moderateComments == 'YES' && adminEmailedNewComment){ // a signed-in admin's comment is approved straight away (2026-10-22)
 						var successTitle = 'Email Sent to moderator';
 						var successMessage = 'Your comment has been sent to the administrator for approval.';
 					} else  {

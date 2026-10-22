@@ -932,7 +932,8 @@
 									 <tr width="100%">
 									 <cftry>
 									 <!--- Get the comments and loop through them. --->
-									 <cfset comments = application.blog.getComments(postId)>
+									 <!--- Only approved comments (2026-10-22): comments waiting for approval were shown to everyone. --->
+									 <cfset comments = application.blog.getComments(postId = postId, publicOnly = true)>
 									 <cfparam name="commentLoopCount" default="1">
 								<cfloop from="1" to="#arrayLen(comments)#" index="i">
 									 <cfsilent>

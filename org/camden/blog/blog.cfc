@@ -8407,6 +8407,7 @@
 		<cfargument name="new" required="no" default="">
 		<cfargument name="commentLike" type="string" required="false" default="">
 		<cfargument name="sortDir" type="string" required="false" default="DESC">
+		<cfargument name="publicOnly" type="boolean" required="false" default="false" hint="Only what visitors may see (2026-10-22): approved (or old comments with no value), not hidden.">
 
 		<cfset var getC = "">
 		<cfset var getO = "">
@@ -8481,8 +8482,12 @@
 				AND Comment.Hide = <cfqueryparam value="#arguments.hide#" cfsqltype="cf_sql_bit" maxlength="35">
 			</cfif>
 			<cfif structKeyExists(arguments, "new") and len(arguments.new)>
-				<!--- Waiting for approval (2026-10-22): a new comment is saved with Approved = false, not empty, so "IS NULL" alone found none. --->
-				AND (Comment.Approved = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Approved IS NULL) AND (Comment.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Remove IS NULL) AND (Comment.Spam = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Spam IS NULL)
+				<!--- Waiting for approval (2026-10-22): new comments are saved with Approved = false. Empty is only old imported comments, which are shown, so they count as approved. --->
+				AND Comment.Approved = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> AND (Comment.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Remove IS NULL) AND (Comment.Spam = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Spam IS NULL)
+			</cfif>
+			<cfif arguments.publicOnly>
+				AND (Comment.Approved = <cfqueryparam value="1" cfsqltype="cf_sql_bit"> OR Comment.Approved IS NULL)
+				AND (Comment.Hide = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Hide IS NULL)
 			</cfif>
 			<cfif structKeyExists(arguments, "commentLike") and len(arguments.commentLike)>
 				AND Comment.Comment LIKE <cfqueryparam value="%#arguments.commentLike#%" cfsqltype="cf_sql_varchar">
@@ -8511,8 +8516,9 @@
 			FROM Comment
 			WHERE 
 				<!--- Waiting for approval (2026-10-22): new comments are saved with Approved = false, so "IS NULL" alone counted none and the
-				admin home's "Unapproved Comments" prompt never showed. Same rule as the admin home's Up next card (AdminHome.cfc). --->
-				(Comment.Approved = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Approved IS NULL) AND (Comment.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Remove IS NULL) AND (Comment.Spam = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Spam IS NULL)
+				admin home's "Unapproved Comments" prompt never showed. Empty is only old imported comments, which are shown, so they count
+				as approved. Same rule as the admin home's Up next card (AdminHome.cfc). --->
+				Comment.Approved = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> AND (Comment.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Remove IS NULL) AND (Comment.Spam = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Spam IS NULL)
 		</cfquery>	
 
 		<cfif arrayLen(Data)>
@@ -8539,6 +8545,10 @@
 			WHERE 0=0
 				AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 				AND Comment.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
+				<!--- What visitors see (2026-10-22): comments waiting for approval, spam and hidden ones were counted (and listed). --->
+				AND (Comment.Approved = <cfqueryparam value="1" cfsqltype="cf_sql_bit"> OR Comment.Approved IS NULL)
+				AND (Comment.Spam = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Spam IS NULL)
+				AND (Comment.Hide = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Hide IS NULL)
 				AND Post.PostId = #arguments.postId#
 		</cfquery>
 			
@@ -8756,12 +8766,12 @@
 					<!--- Use the entity objects to set the data. --->
 					<cfset CommentDbObj.setBlogRef(BlogDbObj)>
 					<cfset CommentDbObj.setPostRef(PostRefDbObj)>
-					<cfif isDefined("UserRefDbObj")>
-						<!--- Set the user ref. The UserRef is only defined when the administrator is logged in. --->
-						<cfset CommentDbObj.setUserRef(UserRefDbObj)>
-					<cfelse>
-						<!--- Set the commenter ref --->
-						<cfset CommentDbObj.setCommenterRef(CommenterRefDbObj)>
+					<!--- The commenter's name, email and website, for every comment. A signed-in admin's comment is also linked to their
+					account (2026-10-22): UserRefDbObj was checked here but never set, so the owner's comments looked like a visitor's. --->
+					<cfset CommentDbObj.setCommenterRef(CommenterRefDbObj)>
+					<cfif application.Udf.isLoggedIn() and structKeyExists(session, "userName") and len(session.userName)>
+						<cfset local.commentUser = entityLoad("Users", { UserName = session.userName }, true)>
+						<cfif not isNull(local.commentUser)><cfset CommentDbObj.setUserRef(local.commentUser)></cfif>
 					</cfif>
 					<cfset CommentDbObj.setComment(arguments.comments)>
 					<!--- ParentCommentRef is null right now. I will not use it in this version. --->
@@ -9281,6 +9291,8 @@
 				AND Post.Released = <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 				AND Comment.Spam <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 				AND Comment.Hide <> <cfqueryparam value="1" cfsqltype="cf_sql_bit">
+				<!--- Not comments waiting for approval (2026-10-22). --->
+				AND (Comment.Approved = <cfqueryparam value="1" cfsqltype="cf_sql_bit"> OR Comment.Approved IS NULL)
 			<!---<cfif instance.moderate>
 				AND Comment.Moderated = <cfqueryparam value="1" cfsqltype="cf_sql_integer">
 			</cfif>--->

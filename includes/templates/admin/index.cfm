@@ -507,7 +507,7 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 					<cftry>
 						<cfset homeStatusQuery = queryExecute("
 							SELECT
-								(SELECT COUNT(*) FROM Comment WHERE BlogRef = :blogId AND (Approved = 0 OR Approved IS NULL) AND (Remove = 0 OR Remove IS NULL) AND (Spam = 0 OR Spam IS NULL)) AS CommentCount,
+								(SELECT COUNT(*) FROM Comment WHERE BlogRef = :blogId AND Approved = 0 AND (Remove = 0 OR Remove IS NULL) AND (Spam = 0 OR Spam IS NULL)) AS CommentCount,
 								(SELECT COUNT(*) FROM ErrorLog WHERE Date >= :dayAgo AND (Resolved = 0 OR Resolved IS NULL)) AS ErrorCount,
 								(SELECT COUNT(*) FROM WebFormSubmission s JOIN WebForm f ON f.WebFormId = s.WebFormRef WHERE f.BlogRef = :blogId AND s.Created >= :weekAgo) AS SubmissionCount,
 								(SELECT COUNT(*) FROM Booking WHERE BlogRef = :blogId AND Created >= :weekAgo) AS BookingCount",

@@ -219,7 +219,7 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 	<!--- 3. Comments waiting --->
 	<cfif listFindNoCase(arguments.iconList, "Comments")>
 		<cftry>
-			<cfset q = queryExecute("SELECT COUNT(*) AS N, MAX(CommentId) AS Newest FROM Comment WHERE BlogRef = :blogId AND (Approved = 0 OR Approved IS NULL) AND (Remove = 0 OR Remove IS NULL) AND (Spam = 0 OR Spam IS NULL)",
+			<cfset q = queryExecute("SELECT COUNT(*) AS N, MAX(CommentId) AS Newest FROM Comment WHERE BlogRef = :blogId AND Approved = 0 AND (Remove = 0 OR Remove IS NULL) AND (Spam = 0 OR Spam IS NULL)",
 				{ blogId = { value = blogId, cfsqltype = "cf_sql_integer" } }, { datasource = application.dsn })>
 			<cfif val(q.N)>
 				<cfset arrayAppend(list, { kind: "comments", label: "Approve " & q.N & (q.N eq 1 ? " comment" : " comments"), detail: "Readers are waiting",

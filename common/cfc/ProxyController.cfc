@@ -731,14 +731,17 @@
 						</cfif>
 					</cfinvoke>
 							
-					<!--- Email the owner of the blog. --->
+					<!--- Email the owner of the blog - not about a comment they wrote themselves while signed in (2026-10-22): it is already
+					approved, and the email's Approve Comment button made it look as if it wasn't. --->
+					<cfif not application.Udf.isLoggedIn()>
 					<cfset UtilsObj.mail(
 						to=#application.BlogDbObj.getBlogEmail()#,
 						subject="New comment made by #arguments.commenterName#",
 						body=emailBody)>
+					</cfif>
 						
-					<!--- Send a response back to the client to determine the messages shown in the popup --->
-					<cfset response[ "adminEmailedNewComment" ] = true />
+					<!--- Send a response back to the client to determine the messages shown in the popup (only when the email went out). --->
+					<cfset response[ "adminEmailedNewComment" ] = not application.Udf.isLoggedIn() />
 						
 					<!--- ************* Render email to all post subscribers informing them of the new comment ************* --->
 					<!--- Note: if one of the admins is creating the comment it does not need to be approved. --->
