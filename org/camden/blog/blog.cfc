@@ -8441,7 +8441,8 @@
 				Comment.Promote as Promote,
 				Comment.Hide as Hide,
 				Comment.Spam as Spam,
-				Comment.Remove as Remove
+				Comment.Remove as Remove,
+				Comment.ParentCommentRef as ParentCommentId
 			)
 			FROM 
 				Comment as Comment
@@ -8651,6 +8652,7 @@
 		<cfargument name="subscribe" type="boolean" required="true">
 		<cfargument name="subscribeOnly" type="boolean" required="false" default="false">
 		<cfargument name="overrideModeration" type="boolean" required="false" default="false">
+		<cfargument name="parentCommentId" type="numeric" required="false" default="0" hint="A reply (2026-10-22): the comment it answers. A reply to a reply joins the same thread (one level).">
 		<cfargument name="sendEmail" type="boolean" required="false" default="true" hint="Sometimes you will want to override sending email out, for example, when importing data when upgrading to a newer version of the blog">
 		<cfargument name="datePosted" cfsqltype="cf_sql_varchar" maxlength="210" required="false" default="">
 		<cfargument name="showPendingPosts"  type="boolean" required="false" default="false">
@@ -8774,7 +8776,17 @@
 						<cfif not isNull(local.commentUser)><cfset CommentDbObj.setUserRef(local.commentUser)></cfif>
 					</cfif>
 					<cfset CommentDbObj.setComment(arguments.comments)>
-					<!--- ParentCommentRef is null right now. I will not use it in this version. --->
+					<!--- A reply (2026-10-22): the thread's first comment, on the same post. Replies are one level deep, so a reply to a reply
+					is filed under the comment that started the thread. --->
+					<cfif arguments.parentCommentId gt 0>
+						<cfset local.parentComment = entityLoadByPK("Comment", arguments.parentCommentId)>
+						<cfif not isNull(local.parentComment) and not isNull(local.parentComment.getParentCommentRef()) and val(local.parentComment.getParentCommentRef()) gt 0>
+							<cfset local.parentComment = entityLoadByPK("Comment", val(local.parentComment.getParentCommentRef()))>
+						</cfif>
+						<cfif not isNull(local.parentComment) and local.parentComment.getPostRef().getPostId() eq arguments.postId>
+							<cfset CommentDbObj.setParentCommentRef(local.parentComment.getCommentId())>
+						</cfif>
+					</cfif>
 					<cfset CommentDbObj.setCommentUuid(newUuid)>
 					<cfset CommentDbObj.setComment(arguments.comments)>
 					<cfif len(arguments.datePosted)>
@@ -8860,6 +8872,39 @@
 			
 		<cfreturn returnValue>
 		
+	</cffunction>
+
+	<cffunction name="sendCommentReplyEmail" access="public" returnType="boolean" output="false"
+			hint="A reply (2026-10-22): emails the person whose comment it answers, once the reply is approved. Not when they wrote the reply themselves, and only to an address they gave with their comment, never shown to anyone.">
+		<cfargument name="commentId" type="numeric" required="true">
+		<cfset var reply = entityLoadByPK("Comment", arguments.commentId)>
+		<cfset var parent = "">
+		<cfset var toEmail = "">
+		<cfset var fromName = "">
+		<cfset var post = "">
+		<cfset var link = "">
+		<cfset var body = "">
+		<cfif isNull(reply) or isNull(reply.getParentCommentRef()) or val(reply.getParentCommentRef()) eq 0 or not (reply.getApproved() eq true)>
+			<cfreturn false>
+		</cfif>
+		<cfset parent = entityLoadByPK("Comment", val(reply.getParentCommentRef()))>
+		<cfif isNull(parent) or isNull(parent.getCommenterRef())><cfreturn false></cfif>
+		<cfset toEmail = trim(parent.getCommenterRef().getEmail() ?: "")>
+		<cfset fromName = isNull(reply.getCommenterRef()) ? "Someone" : trim(reply.getCommenterRef().getFullName() ?: "Someone")>
+		<cfif not isValid("email", toEmail) or (not isNull(reply.getCommenterRef()) and compareNoCase(toEmail, trim(reply.getCommenterRef().getEmail() ?: "")) eq 0)>
+			<cfreturn false>
+		</cfif>
+		<cftry>
+			<cfset post = reply.getPostRef()>
+			<cfset link = makeLink(post.getPostId()) & "##c" & reply.getCommentId()>
+			<cfsavecontent variable="body"><cfoutput><p>#encodeForHtml(fromName)# replied to your comment on <a href="#link#">#encodeForHtml(post.getTitle())#</a>:</p>
+<blockquote style="margin: 0 0 1em 0; padding: 8px 14px; border-left: 4px solid ##cccccc;">#reply.getComment()#</blockquote>
+<p><a href="#link#">Read the reply and join the conversation</a></p></cfoutput></cfsavecontent>
+			<cfset body = createObject("component", application.rendererComponentPath).renderEmail(email = toEmail, emailTitle = fromName & " replied to your comment", emailTitleLink = link, emailDesc = post.getTitle(), emailBody = body, callToActionText = "Read the reply", callToActionLink = link)>
+			<cfset variables.utils.mail(to = toEmail, subject = fromName & " replied to your comment on " & post.getTitle(), body = body, cc = "")>
+			<cfreturn true>
+			<cfcatch type="any"><cfreturn false></cfcatch>
+		</cftry>
 	</cffunction>
 				
 	<cffunction name="getProperties" access="public" returnType="struct" output="false">

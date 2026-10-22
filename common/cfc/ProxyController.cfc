@@ -465,6 +465,7 @@
 		<cfargument name="subscribe" required="false" default="true" hint="Does the user want to subscribe?" />
 		<!--- Args required after CF Update in May 25 --->
 		<cfargument name="rememberMe" required="false" default="true" hint="Drops a cookie on client machine for identification purposes" />
+		<cfargument name="parentCommentId" required="false" default="0" hint="A reply (2026-10-22): the comment it answers." />
 		
 		<cfset valid = true>
 		<!--- Set the default response object. --->
@@ -692,7 +693,12 @@
 						<cfif application.Udf.isLoggedIn()>
 							<cfinvokeargument name="overrideModeration" value="true">
 						</cfif>
+						<cfinvokeargument name="parentCommentId" value="#val(arguments.parentCommentId)#">
 					</cfinvoke>	
+					<!--- A reply that is approved straight away tells the person it answers (2026-10-22); a waiting one does when it's approved. --->
+					<cfif val(arguments.parentCommentId) gt 0>
+						<cftry><cfset application.blog.sendCommentReplyEmail(commentId)><cfcatch type="any"></cfcatch></cftry>
+					</cfif>
 							
 					<!--- ******** Render email to blog owner and potentially to the post subscribers informing them of a new comment ******** --->
 
@@ -1580,12 +1586,17 @@
 			<!--- Update the database. --->
 			<!--- Load the comment entity. --->
 			<cfset CommentDbObj = entityLoad("Comment", { CommentId = arguments.commentId }, "true" )>
+			<cfset local.wasApproved = CommentDbObj.getApproved() eq true>
 			<!--- Set the approved column --->
 			<cfset CommentDbObj.setApproved( "#arguments.approved#" )>
 			<!--- Save it --->
 			<cfset EntitySave(CommentDbObj)>
 
 		</cftransaction>
+		<!--- A reply just approved tells the person it answers (2026-10-22). --->
+		<cfif isBoolean(arguments.approved) and arguments.approved and not local.wasApproved>
+			<cftry><cfset application.blog.sendCommentReplyEmail(val(arguments.commentId))><cfcatch type="any"></cfcatch></cftry>
+		</cfif>
 				
 		<!--- Email the post subscribers if the comment was approved --->
 		<cfif arguments.approved>
@@ -2096,10 +2107,16 @@
 				<!--- Update the database. --->
 				<!--- Load the comment entity. --->
 				<cfset CommentDbObj = entityLoad("Comment", { CommentId = commentId }, "true" )>
+				<cfset local.wasApproved = CommentDbObj.getApproved() eq true>
 				<!--- Set the approved column --->
 				<cfset CommentDbObj.setApproved( "#approved#" )>
 				<!--- Save it --->
 				<cfset EntitySave(CommentDbObj)>
+				<!--- A reply just approved tells the person it answers (2026-10-22). --->
+				<cfif isBoolean(approved) and approved and not local.wasApproved>
+					<cfset ormFlush()>
+					<cftry><cfset application.blog.sendCommentReplyEmail(val(commentId))><cfcatch type="any"></cfcatch></cftry>
+				</cfif>
 					
 				<!--- Email the post subscribers if the comment was approved --->
 				<cfif arguments.approved>

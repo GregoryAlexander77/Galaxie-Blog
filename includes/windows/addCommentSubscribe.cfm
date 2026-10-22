@@ -397,6 +397,25 @@ This section has been completely redesigned by Gregory --->
 2) The Kendo window is not responsive, and has its own internal properties that are hardcoded, so I need to reset properties using inline styles, such as font-size.
 -->
 <form id="addCommentSubscribe" name="addCommentSubscribe" action="addCommentSubscribe.cfm" method="post" data-role="validator">
+	<!--- A reply (2026-10-22): the Reply link under a comment opens this window with replyTo, the comment it answers. Only an approved
+	comment on this post; anything else is an ordinary new comment. --->
+	<cfset replyToComment = {}>
+	<cfif URL.uiElement eq 'addComment' and structKeyExists(URL, "replyTo") and isNumeric(URL.replyTo) and URL.replyTo gt 0>
+		<cftry>
+			<cfset replyLookup = application.blog.getComments(commentId = URL.replyTo, publicOnly = true)>
+			<cfif arrayLen(replyLookup) and replyLookup[1]["PostId"] eq postId><cfset replyToComment = replyLookup[1]></cfif>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+	</cfif>
+	<cfif not structIsEmpty(replyToComment)>
+		<cfset replyQuote = trim(reReplace(decodeForHtml(reReplace(replyToComment["Comment"], "<[^>]*>", " ", "all")), "\s+", " ", "all"))>
+		<cfif len(replyQuote) gt 160><cfset replyQuote = left(replyQuote, 157) & "..."></cfif>
+		<div style="padding: 6px 10px 10px 10px;">
+			<input type="hidden" id="parentCommentId" name="parentCommentId" value="<cfoutput>#replyToComment["CommentId"]#</cfoutput>" />
+			<cfoutput><strong>Replying to #encodeForHtml(replyToComment["CommenterFullName"] ?: "")#</strong>
+			<div style="margin-top: 4px; padding: 4px 10px; border-left: 3px solid rgba(128,128,128,0.5);">#encodeForHtml(replyQuote)#</div></cfoutput>
+		</div>
+	</cfif>
 <table align="center" class="k-content" width="100%" cellpadding="0" cellspacing="0" style="font-size: 16px;">
 	<cfif URL.uiElement neq 'contact'>
 		<!--- Hidden form elements to pass in required vars --->

@@ -1144,6 +1144,10 @@
 		.galaxieBlock + .galaxieBlock { margin-top: 12px; }
 		.galaxieBlock > * + * { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif>; padding-top: 10px; margin-top: 10px; }
 		.galaxieBlock > :first-child { margin-top: 0; }
+		<!--- Comment replies (2026-10-22, owner): indented under the comment they answer, with a line down the left, and a Reply link
+		under every comment. --->
+		td.galaxieCommentReply { padding-left: 52px !important; border-left: 3px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif>; }
+		.galaxieCommentReplyLink { clear: both; margin: 4px 0 0 0; }
 		<!--- Callouts in posts (2026-10-22, owner): a quote block with one of Kendo's k-notification-info / -success / -warning / -error
 		classes (the editor's Styles > Callouts) keeps the theme's color as a faint wash and a strong left stripe, with the page's own
 		text color instead of Kendo's white-on-color. --->

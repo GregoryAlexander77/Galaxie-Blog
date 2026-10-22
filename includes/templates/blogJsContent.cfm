@@ -1404,7 +1404,8 @@
 		}
 	</cfif><!---<cfif application.includeDisqus>--->
 		// Add comment window (note: even when including Disqus, this must be here as it is used for the contact form. ------------------------------------------------
-		function createAddCommentSubscribeWindow(Id, uiElement, isMobile) {
+		<!--- replyTo (2026-10-22): the comment a reply answers, from the Reply link under it. --->
+		function createAddCommentSubscribeWindow(Id, uiElement, isMobile, replyTo) {
 
 			// Remove the window if it already exists
 			if ($("#addCommentWindow").length > 0) {
@@ -1439,6 +1440,7 @@
 			}
 
 			// Typically we would use a div outside of the script to attach the window to, however, since this is inside of a function call, we are going to dynamically create a div via the append js method. If we were to use a div outside of this script, lets say underneath the 'mainBlog' container, it would cause wierd problems, such as the page disappearing behind the window.
+			if (uiElement == 'addComment' && replyTo){ var windowTitle = 'Reply'; }
 			$(document.body).append('<div id="addCommentWindow"></div>');
 			$('#addCommentWindow').kendoWindow({
 				title: windowTitle,
@@ -1450,7 +1452,7 @@
 				width: <cfif session.isMobile>getContentWidthPercent()<cfelse>(getContentWidthPercentAsInt()-5 + '%')</cfif>,
 				height: windowHeight,
 				iframe: false, // don't  use iframes unless it is content derived outside of your own site. 
-				content: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/addCommentSubscribe.cfm?id=" + Id + '&uiElement=' + uiElement,// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
+				content: "<cfoutput>#application.baseUrl#</cfoutput>/includes/windows/addCommentSubscribe.cfm?id=" + Id + '&uiElement=' + uiElement + (replyTo ? '&replyTo=' + encodeURIComponent(replyTo) : ''),// Make sure to create an absolute path here. I had problems with a cached index.cfm page being inserted into the Kendo window probably due to the blogCfc caching logic. 
 			<cfif session.isMobile>
 				animation: {
 					close: {
@@ -1557,7 +1559,8 @@
 					captchaHash: captchaHash,
 					</cfif>
 					subscribe: subscribe,
-					rememberMe: rememberMe
+					rememberMe: rememberMe,
+					parentCommentId: $('#parentCommentId').val() || 0
 				},//..data: {
 				dataType: "json",
 				cache: false,
