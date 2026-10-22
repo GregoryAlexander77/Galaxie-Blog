@@ -886,7 +886,7 @@
 							</cfif>
 							<!--- Span to hold the little arrow. Note: the order of the spans in the code are different than the actual display. We need to reverse the order for proper display. We are not going to display this if there are no comments. --->
 							<cfif commentCount gt 0>
-								<span id="commentControl#postId#" class="collapse k-icon k-i-sort-desc-sm k-primary" style="width: 35px; height:35px; border-radius: 50%;" onClick="handleComments()"></span>&nbsp;&nbsp;<span id="commentControlLabel#postId#">Show Comments</span><br/><br/>
+								<span id="commentControl#postId#" class="collapse k-icon k-i-sort-desc-sm k-primary" style="width: 35px; height:35px; border-radius: 50%;" onClick="handleComments(this)"></span>&nbsp;&nbsp;<span id="commentControlLabel#postId#">Show Comments</span><br/><br/>
 							</cfif><!---<cfif len(commentCount) gt 0>--->
 						</cfif><!---<cfif not application.includeDisqus>--->
 							<cfsilent>

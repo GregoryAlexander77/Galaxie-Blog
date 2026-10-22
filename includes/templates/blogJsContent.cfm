@@ -2057,48 +2057,25 @@
 		}
 		
 		// Script that will allow us to expand the post containers to allow the user to see the comments.
-		function handleComments(){
-			// Expand the comments
-			// When the ascending arrow is clicked on...
-			$(".flexParent").on("click", "span.k-i-sort-desc-sm", function(e) {	
-				// We need to get the associated postId to properly expand the right containter. Here, we will get the id of this emement. It should be commentControl + postId. 
-				var clickedSpan = $(this).attr('id');
-				// Remove the 'commentControl' string from the id to just get the Id.
-				var postId = clickedSpan.replace("commentControl", "");
-				// The content element's id will be 'comment' + postId 
-				var contentElement = 'comment' + postId;
-				// We also want to change the label. The label has the postId appended to it as well.
-				var spanLabelElement = "#commentControlLabel" + postId;
-				// Change the label text
-				$(spanLabelElement).text("Hide Comments");
-				// Change the class of the span (ie change the arrow direction), and expand the table.
-				$(e.target)
-					.removeClass("k-i-sort-desc-sm")
-					.addClass("k-i-sort-asc-sm");
-					// Expand the table. See 'fx effects' on the Terlik website.
-					kendo.fx($("#" + contentElement)).expand("vertical").play();
-			});
-
-			// Collapse the widget. 
-			// When the ascending arrow is clicked on...
-			$(".flexParent").on("click", "span.k-i-sort-asc-sm", function(e) {
-				// We need to get the associated postId to properly expand the right containter. Here, we will get the id of this emement. It should be commentControl + postId. 
-				var clickedSpan = $(this).attr('id');
-				// Remove the 'commentControl' string from the id to just get the Id.
-				var postId = clickedSpan.replace("commentControl", "");
-				// The content element's id will be 'comment' + postId
-				var contentElement = 'comment' + postId;
-				// We also want to change the label. The lable has the postId appended to it as well.
-				var spanLabelElement = "#commentControlLabel" + postId;
-				// Change the label text
-				$(spanLabelElement).text("Show Comments");
-				// Change the class of the span (ie change the arrow direction), and shrink the table. I am doing this as I don't  want to have to traverse the dom and write a bug.
-				$(e.target)
-					.removeClass("k-i-sort-asc-sm")
-					.addClass("k-i-sort-desc-sm");
-					// 'reverse' the table. See 'fx effects' on the Telerik website.
-					kendo.fx($("#" + contentElement)).expand("vertical").stop().reverse();
-			});
+		function handleComments(control){
+			<!--- Show or hide a post's comments (2026-10-22): one open or close per click. It used to add another pair of click
+			listeners every time it was called, so after a few clicks one click opened and closed the list several times and
+			Hide Comments seemed to stop working. The arrow passes itself in; window.event covers the older markup. --->
+			var e = window.event;
+			var span = control ? $(control) : $(e && (e.target || e.srcElement));
+			if (!span.length || !span.attr("id")) { return; }
+			var postId = span.attr("id").replace("commentControl", "");
+			var content = $("#comment" + postId);
+			var label = $("#commentControlLabel" + postId);
+			if (span.hasClass("k-i-sort-desc-sm")) {
+				label.text("Hide Comments");
+				span.removeClass("k-i-sort-desc-sm").addClass("k-i-sort-asc-sm");
+				kendo.fx(content).expand("vertical").play();
+			} else {
+				label.text("Show Comments");
+				span.removeClass("k-i-sort-asc-sm").addClass("k-i-sort-desc-sm");
+				kendo.fx(content).expand("vertical").stop().reverse();
+			}
 		}
 		
 		/* Javascript utilities */
