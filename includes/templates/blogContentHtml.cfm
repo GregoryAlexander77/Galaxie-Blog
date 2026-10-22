@@ -435,7 +435,7 @@
 <cfif isPageMode()>
 	<cfset pageCollectionCrumbs = application.blog.getPageCollectionsForPost(postId)>
 	<cfloop from="1" to="#arrayLen(pageCollectionCrumbs)#" index="pcIndex">
-		<li class="<cfif arrayLen(getCategories) eq 0 and pcIndex eq arrayLen(pageCollectionCrumbs)>current</cfif>"><a href="<cfoutput>#application.blog.makeCollectionLink(pageCollectionCrumbs[pcIndex].pageCollectionId)#</cfoutput>" aria-label="<cfoutput>#pageCollectionCrumbs[pcIndex].title#</cfoutput>" class="k-content"><cfoutput>#pageCollectionCrumbs[pcIndex].title#</cfoutput></a></li>
+		<li><a href="<cfoutput>#application.blog.makeCollectionLink(pageCollectionCrumbs[pcIndex].pageCollectionId)#</cfoutput>" aria-label="<cfoutput>#pageCollectionCrumbs[pcIndex].title#</cfoutput>" class="k-content"><cfoutput>#pageCollectionCrumbs[pcIndex].title#</cfoutput></a></li>
 	</cfloop>
 </cfif>
 											<cfif parentSite and !isPageMode()>
@@ -447,12 +447,17 @@
 												<cfset categoryId = getCategories[i]["CategoryId"]>
 												<cfset categoryLink = application.blog.makeCategoryLink(categoryId)>
 												</cfsilent>
-												<cfif i lt arrayLen(getCategories)>
+												<cfif i lt arrayLen(getCategories) or isPageMode()>
 												<li><a href="#categoryLink#" aria-label="#categoryLink#" class="k-content">#category#</a></li>
 												<cfelse>
 												<li class="current"><a href="#categoryLink#" aria-label="#categoryLink#" class="k-content">#category#</a></li>
-												</cfif>	
+												</cfif>
 												</cfloop>
+												<!--- A page ends with its own title (2026-10-22, owner: a page outside any collection showed only the home icon), as the
+												breadcrumb's structured data above does; so does a post with no categories. --->
+												<cfif isPageMode() or arrayLen(getCategories) eq 0>
+												<li class="current"><a href="#postLink#" aria-label="#encodeForHtmlAttribute(title)#" class="k-content">#title#</a></li>
+												</cfif>
 											</ol>
 										</nav>
 									</td>
@@ -687,8 +692,11 @@
 									<!--- Send the postId's to be shown --->
 									<cfinvokeargument name="postIdList" value="#postIdList#">
 								</cfinvoke>
-								<cfset postScrollWidgetType = "Related Blogs">
-								<cfinclude template="popularPosts.cfm">
+								<!--- Only when some are live (2026-10-22): related posts that are not released yet left the heading over an empty strip. --->
+								<cfif arrayLen(getPosts)>
+									<cfset postScrollWidgetType = "Related Blogs">
+									<cfinclude template="popularPosts.cfm">
+								</cfif>
 
 							</cfif>
 							<cfsilent>
@@ -717,8 +725,11 @@
 										<!--- Send the postId's to be shown --->
 										<cfinvokeargument name="postIdList" value="#postIdList#">
 									</cfinvoke>
-									<cfset postScrollWidgetType = "Related Pages">
-									<cfinclude template="popularPosts.cfm">
+									<!--- Only when some are live (2026-10-22): related posts that are not released yet left the heading over an empty strip. --->
+									<cfif arrayLen(getPosts)>
+										<cfset postScrollWidgetType = "Related Pages">
+										<cfinclude template="popularPosts.cfm">
+									</cfif>
 
 								</cfif>
 							</cfif>
