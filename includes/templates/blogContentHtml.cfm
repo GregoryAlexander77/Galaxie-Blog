@@ -989,7 +989,7 @@
 												<img src="https://www.gravatar.com/avatar/#lcase(hash(lcase(commenterEmail)))#?s=64&amp;r=pg&amp;d=#application.blogHostUrl#/images/defaultAvatar.gif" title="#commenterFullName#'s Gravatar" alt="#commenterFullName#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"  />
 												#application.Udf.paragraphFormat2(comment)#
 												<!--- Reply (2026-10-22): a reply to a reply joins the same thread. --->
-												<cfif allowComment><p class="galaxieCommentReplyLink"><a href="javascript:createAddCommentSubscribeWindow('#postId#', 'addComment', #session.isMobile#, #topComments[i]["CommentId"]#);" aria-label="Reply to #commenterFullName#">Reply</a></p></cfif>
+												<cfif allowComment><p class="galaxieCommentReplyLink"><button type="button" class="k-button k-primary" onclick="createAddCommentSubscribeWindow('#postId#', 'addComment', #session.isMobile#, #topComments[i]["CommentId"]#);" aria-label="Reply to #commenterFullName#">Reply</button></p></cfif>
 											</td>
 										 </tr>
 									 </cfloop>
