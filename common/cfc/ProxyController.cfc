@@ -1599,7 +1599,7 @@
 		</cfif>
 				
 		<!--- Email the post subscribers if the comment was approved --->
-		<cfif arguments.approved>
+		<cfif isBoolean(arguments.approved) and arguments.approved and not local.wasApproved><!--- Only when it was just approved (2026-10-22). --->
 
 			<!--- Get the commentId from the entity --->
 			<cfset commentId = arguments.commentId>
@@ -1612,7 +1612,7 @@
 			<cfloop from="1" to="#arrayLen(getPostSubscribers)#" index="i">
 
 				<!--- Set the recipient --->
-				<cfset emailTo = getPostSubscribers[1]["SubscriberEmail"]>
+				<cfset emailTo = getPostSubscribers[i]["SubscriberEmail"]><!--- Each subscriber (2026-10-22): it always used the first. --->
 
 				<!--- Render the email --->
 				<cfinvoke component="#RendererObj#" method="renderCommentEmailToPostSubscribers" returnvariable="postSubscriberEmail">
@@ -2089,70 +2089,45 @@
 		<cfset thisStruct = deserializeJson(thisStr, false)>
 		<!--- Now that we have a clean array of structures, loop thru the array and get to the underlying values that were sent in the grid. ---> 
 		
+		<!--- Rewritten 2026-10-22 (owner: approvals "came undone"). The subscriber email below read arguments.approved, which this
+		function never receives, so every Save threw an error after setting the first comment, the transaction was rolled back, and
+		the grid still showed the comments as approved - until it was opened again. Its loop also reused this loop's index, and sent
+		to the first subscriber only. Now the approvals are saved first, and the emails go out afterwards, only for comments that
+		were just approved, so a mail problem can't undo the save. --->
+		<cfset local.justApproved = []>
 		<cftransaction>
-			<!--- Loop thru the struct. --->
-			<cfloop array="#thisStruct#" index="i">
-				<!--- We are only looking for the CommentId. If we were editing other fields, use the column name and extract them. Note: some of the variables may not come thru if they are empty. Use error catching here to catch and continue processing if there is an error.  --->
-				<cfparam name="commentId" default="" type="any">
-				<cfparam name="approved" default="" type="any">
-				<cftry>
-					<!--- Get the selected values of the fields --->
-					<cfset commentId = i['CommentId']>
-					<cfset approved = i['Approved']>
-					<cfcatch type="any">
-						<cfset error = "one of the variables was not defined.">
-					</cfcatch>
-				</cftry>
-
-				<!--- Update the database. --->
-				<!--- Load the comment entity. --->
-				<cfset CommentDbObj = entityLoad("Comment", { CommentId = commentId }, "true" )>
-				<cfset local.wasApproved = CommentDbObj.getApproved() eq true>
-				<!--- Set the approved column --->
-				<cfset CommentDbObj.setApproved( "#approved#" )>
-				<!--- Save it --->
-				<cfset EntitySave(CommentDbObj)>
-				<!--- A reply just approved tells the person it answers (2026-10-22). --->
-				<cfif isBoolean(approved) and approved and not local.wasApproved>
-					<cfset ormFlush()>
-					<cftry><cfset application.blog.sendCommentReplyEmail(val(commentId))><cfcatch type="any"></cfcatch></cftry>
+			<cfloop array="#thisStruct#" index="local.row">
+				<cfif isStruct(local.row) and structKeyExists(local.row, "CommentId") and isNumeric(local.row["CommentId"]) and structKeyExists(local.row, "Approved") and isBoolean(local.row["Approved"])>
+					<cfset local.commentEntity = entityLoad("Comment", { CommentId = local.row["CommentId"] }, true)>
+					<cfif not isNull(local.commentEntity)>
+						<cfset local.wasApproved = local.commentEntity.getApproved() eq true>
+						<cfset local.commentEntity.setApproved(local.row["Approved"] ? true : false)>
+						<cfset entitySave(local.commentEntity)>
+						<cfif local.row["Approved"] and not local.wasApproved><cfset arrayAppend(local.justApproved, val(local.row["CommentId"]))></cfif>
+					</cfif>
 				</cfif>
-					
-				<!--- Email the post subscribers if the comment was approved --->
-				<cfif arguments.approved>
-
-					<!--- Get the commentId from the entity --->
-					<cfset commentId = arguments.commentId>
-					<!--- Get the comment. The comment table will have the postId --->
-					<cfset getComment = application.blog.getComment(commentId=commentId)>
-					<!--- Get all post subscribers --->
-					<cfset getPostSubscribers = application.blog.getSubscriber(postId=getComment[1]["PostId"], verifiedOnly=true)>
-
-					<!--- Loop through the post subscribers --->
-					<cfloop from="1" to="#arrayLen(getPostSubscribers)#" index="i">
-
-						<!--- Set the recipient --->
-						<cfset emailTo = getPostSubscribers[1]["SubscriberEmail"]>
-
-						<!--- Render the email --->
-						<cfinvoke component="#RendererObj#" method="renderCommentEmailToPostSubscribers" returnvariable="postSubscriberEmail">
-							<cfinvokeargument name="commentId" value="#commentId#">
-							<cfinvokeargument name="emailTo" value="#emailTo#">
-						</cfinvoke>
-
-						<!--- Email the rendered content to the post subscribers --->
-						<cfset UtilsObj.mail(
-							to=#emailTo#,
-							subject="Message sent via #application.BlogDbObj.getBlogTitle()#",
-							body=postSubscriberEmail)>
-
-					</cfloop>
-				
-				</cfif><!---<cfif arguments.approved>--->
-
-			</cfloop><!---<cfloop array="#thisStruct#" index="i">--->
-
+			</cfloop>
 		</cftransaction>
+		<cfset ormFlush()>
+
+		<!--- Comments just approved: tell the person a reply answers, and email the post's subscribers. --->
+		<cfloop array="#local.justApproved#" index="local.approvedId">
+			<cftry><cfset application.blog.sendCommentReplyEmail(local.approvedId)><cfcatch type="any"></cfcatch></cftry>
+			<cftry>
+				<cfset local.getComment = application.blog.getComment(commentId = local.approvedId)>
+				<cfif arrayLen(local.getComment)>
+					<cfset local.subscribers = application.blog.getSubscriber(postId = local.getComment[1]["PostId"], verifiedOnly = true)>
+					<cfloop array="#local.subscribers#" index="local.subscriber">
+						<cfinvoke component="#RendererObj#" method="renderCommentEmailToPostSubscribers" returnvariable="local.postSubscriberEmail">
+							<cfinvokeargument name="commentId" value="#local.approvedId#">
+							<cfinvokeargument name="emailTo" value="#local.subscriber["SubscriberEmail"]#">
+						</cfinvoke>
+						<cfset UtilsObj.mail(to = local.subscriber["SubscriberEmail"], subject = "Message sent via #application.BlogDbObj.getBlogTitle()#", body = local.postSubscriberEmail)>
+					</cfloop>
+				</cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+		</cfloop>
     
     	<cfset jsonString = []><!--- '{"data":null}', --->
     
