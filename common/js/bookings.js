@@ -130,8 +130,8 @@ var galaxieBookings = (function($) {
 			.fail(function() { box.empty().attr("hidden", "hidden"); });
 	}
 
-	// Step 1: the booking types, under their categories. Each category is a block, white and gray in turn with a line between
-	// them, like the admin windows (galaxieBlocks in blogContentCss.cfm, 2026-10-22).
+	// Step 1: the booking types, under their categories. Each category is its own rounded card, white and gray in turn, like the
+	// admin home's cards (galaxieBlocks in blogContentCss.cfm, owner 2026-10-22).
 	function showTypes(state) {
 		var blocks = $('<div class="galaxieBlocks"></div>').appendTo(state.box.empty());
 		var box = null;
