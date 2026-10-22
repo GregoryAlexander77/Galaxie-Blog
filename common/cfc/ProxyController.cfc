@@ -564,6 +564,22 @@
 
 		<!--- If there are no errors, proceed. --->
 		<cfif valid>
+			<!--- Remember me (2026-10-22): the comment window fills in the name, email and website from these cookies
+			(includes/windows/addCommentSubscribe.cfm), but nothing ever saved them. Kept for a year; unticking the box forgets them. --->
+			<cftry>
+				<cfif isBoolean(arguments.rememberMe) and arguments.rememberMe>
+					<cfset local.rememberSecure = (cgi.https eq "on" or cgi.server_port_secure eq 1)>
+					<cfif len(trim(arguments.commenterName))><cfset cookie.blog_name = { value = left(trim(arguments.commenterName), 255), path = "/", expires = 365, httponly = true, secure = local.rememberSecure }></cfif>
+					<cfif len(trim(arguments.commenterEmail))><cfset cookie.blog_email = { value = left(trim(arguments.commenterEmail), 150), path = "/", expires = 365, httponly = true, secure = local.rememberSecure }></cfif>
+					<cfif len(trim(arguments.commenterWebSite))><cfset cookie.blog_website = { value = left(trim(arguments.commenterWebSite), 255), path = "/", expires = 365, httponly = true, secure = local.rememberSecure }></cfif>
+				<cfelse>
+					<!--- In capitals: that is how they were saved, and a browser treats blog_name and BLOG_NAME as two cookies. --->
+					<cfloop list="blog_name,blog_email,blog_website" index="local.rememberCookie">
+						<cfif structKeyExists(cookie, local.rememberCookie)><cfset cookie[uCase(local.rememberCookie)] = { value = "", path = "/", expires = "now" }></cfif>
+					</cfloop>
+				</cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
 
 			<!--- Handle the contact form. Note: this does not save the data to the db --->
 			<cfif arguments.uiInterface eq 'contact'>
