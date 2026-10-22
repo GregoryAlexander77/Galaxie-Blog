@@ -402,7 +402,9 @@
 	function buildHero(data, section, root, nextSection) {
 		root.classList.add("gs-hero");
 		if (section.height) { root.style.height = section.height; root.classList.add("gs-sized"); }
-		var joinColour = section.fadeColour || (nextSection && nextSection.colour) || data.pageColour || "#000000";
+		// What the hero fades into (2026-10-21): the next section's gradient's top color when it has a gradient - the seam must
+		// match what that section starts with - then the hero's own fade color, the next section's color, or the page color.
+		var joinColour = (nextSection && gradientTopColour(nextSection.gradient)) || section.fadeColour || (nextSection && nextSection.colour) || data.pageColour || "#000000";
 		root.style.backgroundColor = joinColour;
 		var back = el("div", "gs-heroBack", root);
 		var phone = isPhone();
@@ -468,11 +470,23 @@
 		return "linear-gradient(to bottom, " + stops.join(", ") + ")";
 	}
 
-	// A section's own color at its top: its background color, the first color of its gradient, or the page color.
+	// A section's own color at its top edge - what the section above it fades into: its gradient's top color, its background
+	// color, or the page color. A gradient is "used instead of the color" (the Scene editor), so it wins here too (2026-10-21,
+	// owner: a section with both faded into its solid color, then started with the gradient's dark top, leaving a band).
 	function sectionColour(data, section) {
-		if (section.colour) { return section.colour; }
-		var m = /(#[0-9a-f]{6})/i.exec(section.gradient || "");
-		return m ? m[1] : (data.pageColour || "#000000");
+		return gradientTopColour(section.gradient) || section.colour || data.pageColour || "#000000";
+	}
+	// A gradient's color at the top edge. Straight: 180deg (the usual) runs top to bottom, so its first color is at the top;
+	// one pointing up (0deg, "to top") ends there, so its last. Round: its outer color.
+	function gradientTopColour(gradient) {
+		var text = String(gradient || ""), colours = text.match(/#[0-9a-f]{6}|rgba?\([^)]*\)/gi);
+		if (!colours) { return ""; }
+		if (/radial-gradient/i.test(text)) { return colours[colours.length - 1]; }
+		var deg = /linear-gradient\(\s*(-?[\d.]+)deg/i.exec(text), angle = 180;
+		if (deg) { angle = ((parseFloat(deg[1]) % 360) + 360) % 360; }
+		else if (/linear-gradient\(\s*to\s+top/i.test(text)) { angle = 0; }
+		var pointsUp = angle < 90 || angle > 270;
+		return pointsUp ? colours[colours.length - 1] : colours[0];
 	}
 
 	function addFade(section, data, parent, joinColour) {
