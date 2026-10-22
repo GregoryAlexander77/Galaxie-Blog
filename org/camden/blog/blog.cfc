@@ -8481,7 +8481,8 @@
 				AND Comment.Hide = <cfqueryparam value="#arguments.hide#" cfsqltype="cf_sql_bit" maxlength="35">
 			</cfif>
 			<cfif structKeyExists(arguments, "new") and len(arguments.new)>
-				AND Comment.Approved IS NULL
+				<!--- Waiting for approval (2026-10-22): a new comment is saved with Approved = false, not empty, so "IS NULL" alone found none. --->
+				AND (Comment.Approved = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Approved IS NULL) AND (Comment.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Remove IS NULL) AND (Comment.Spam = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Spam IS NULL)
 			</cfif>
 			<cfif structKeyExists(arguments, "commentLike") and len(arguments.commentLike)>
 				AND Comment.Comment LIKE <cfqueryparam value="%#arguments.commentLike#%" cfsqltype="cf_sql_varchar">
@@ -8509,7 +8510,9 @@
 			)
 			FROM Comment
 			WHERE 
-				Comment.Approved IS NULL
+				<!--- Waiting for approval (2026-10-22): new comments are saved with Approved = false, so "IS NULL" alone counted none and the
+				admin home's "Unapproved Comments" prompt never showed. Same rule as the admin home's Up next card (AdminHome.cfc). --->
+				(Comment.Approved = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Approved IS NULL) AND (Comment.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Remove IS NULL) AND (Comment.Spam = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Comment.Spam IS NULL)
 		</cfquery>	
 
 		<cfif arrayLen(Data)>
