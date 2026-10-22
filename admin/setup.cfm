@@ -277,7 +277,7 @@ takes the same options and events. --->
 				<div class="chips" id="sampleFilter"></div>
 				<div class="fieldRow"><label for="sampleColour">Color</label><div class="control"><input id="sampleColour"></div></div>
 				<div class="logoGrid" id="sampleGrid"></div>
-				<p class="hint">Your site name is set beside each mark.</p>
+				<p class="hint">Your site name is set beside each mark. Samples are starting points other sites may use too. For a logo that's only yours, upload your own.</p>
 			</div>
 			<div class="wayPanel" id="wayUpload">
 				<div class="uploadBox">
