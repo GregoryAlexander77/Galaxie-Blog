@@ -710,7 +710,8 @@
 						<cfinvokeargument name="emailBody" value="#contentBody#">
 						<cfif application.commentModeration>
 							<cfinvokeargument name="callToActionText" value="Approve Comment">
-							<cfinvokeargument name="callToActionLink" value="#application.baseUrl#/admin/">
+							<!--- The full address (2026-10-22): baseUrl is only the path (eg. /blog), which an email can't open. --->
+							<cfinvokeargument name="callToActionLink" value="#application.blogHostUrl#/admin/">
 						</cfif>
 					</cfinvoke>
 							
