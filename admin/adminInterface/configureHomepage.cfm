@@ -56,8 +56,10 @@
 		function togglePickerVisibility() {
 			$("#homepagePagePicker").toggle($("#homepageShowPages").is(':checked'));
 			$("#homepageCollectionPicker").toggle($("#homepageShowCollections").is(':checked'));
+			<!--- Blog Posts off with other sections on: new posts won't reach the homepage, so say so (2026-10-21). With everything off it's the plain blog listing. --->
+			$("#homepageBlogPostsOffNote").toggle(!$("#homepageShowBlogPosts").is(':checked') && ($("#homepageShowPages").is(':checked') || $("#homepageShowCollections").is(':checked')));
 		}
-		$("#homepageShowPages, #homepageShowCollections").on('change', togglePickerVisibility);
+		$("#homepageShowPages, #homepageShowCollections, #homepageShowBlogPosts").on('change', togglePickerVisibility);
 		togglePickerVisibility();
 
 		var configureHomepageSubmit = $('#configureHomepageSubmit');
@@ -225,7 +227,7 @@
   <tr class="blockSpacer"><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>"></td></tr>
   <cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
   <tr class="blockSpacer"><td colspan="2" class="border <cfoutput>#blockClass#</cfoutput>"></td></tr>
-  <tr><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>">Your most recent posts, with a View All Posts link.</td></tr>
+  <tr><td colspan="2" class="<cfoutput>#blockClass#</cfoutput>">Your most recent posts, with a View All Posts link.<span id="homepageBlogPostsOffNote" style="display: none"> With this off, new posts won't appear on your homepage.</span></td></tr>
   <tr class="blockSpacer"><td colspan="2" class="border <cfoutput>#blockClass#</cfoutput>"></td></tr>
   <tr valign="top">
 	<td align="right" class="<cfoutput>#blockClass#</cfoutput>"><label for="homepageShowBlogPosts">Blog Posts:</label></td>

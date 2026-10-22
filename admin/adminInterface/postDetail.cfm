@@ -593,6 +593,8 @@
 			}
 		}
 		
+		<!--- Whether it was already released when this window opened: the homepage note after saving is only shown the first time (2026-10-21). --->
+		var postDetailReleasedAtLoad = <cfif getPost[1]["Released"]>true<cfelse>false</cfif>;
 		<!--- The blog's clock when this window opened, and when that was on this computer (see blogNowAtLoad at the top). --->
 		var postDetailBlogNowAtLoad = new Date(<cfoutput>#year(blogNowAtLoad)#, #month(blogNowAtLoad) - 1#, #day(blogNowAtLoad)#, #hour(blogNowAtLoad)#, #minute(blogNowAtLoad)#, #second(blogNowAtLoad)#</cfoutput>);
 		var postDetailOpenedAt = Date.now();
@@ -741,6 +743,18 @@
 			</cfif>
 				<!--- Close the window --->
 				jQuery('#postDetailWindow').kendoWindow('destroy');
+				<!--- Just released (2026-10-21, owner): say whether it's on the homepage, and offer Configure Homepage when it isn't. --->
+				var frontPage = response.frontPage || {};
+				if (!postDetailReleasedAtLoad && frontPage.message){
+					if (frontPage.onFrontPage == "yes"){
+						kendo.ui.ExtAlertDialog.show({ title: "Released", message: frontPage.message, icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+					} else {
+						$.when(kendo.ui.ExtYesNoDialog.show({ title: "Released", message: frontPage.message, icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px" })
+						).done(function (answer) {
+							if (answer['button'] == 'Yes'){ createAdminInterfaceWindow(70); }
+						});
+					}
+				}
 			} else {
 				<!--- Alert the user that the process has failed. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Error saving post", message: response.errorMessage, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "125px" }) // or k-ext-error, k-ext-question

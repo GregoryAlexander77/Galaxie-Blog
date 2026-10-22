@@ -339,7 +339,7 @@ takes the same options and events. --->
 			<div class="choiceList" id="homeChoices">
 				<label class="choice"><input type="radio" name="homeLayout" value="posts"><div><strong>Latest posts</strong><span>A blog: your newest posts first.</span></div></label>
 				<label class="choice"><input type="radio" name="homeLayout" value="featured"><div><strong>Your About page, then your latest posts</strong><span>Introduce yourself at the top, with posts below.</span><a href="#" class="needsAbout">Needs an About page: go back to Starter content</a></div></label>
-				<label class="choice"><input type="radio" name="homeLayout" value="about"><div><strong>Just your About page</strong><span>A one-page site; posts are still in the menu.</span><a href="#" class="needsAbout">Needs an About page: go back to Starter content</a></div></label>
+				<label class="choice"><input type="radio" name="homeLayout" value="about"><div><strong>Just your About page</strong><span>A one-page site. New posts won't appear on the home page; they're still in the menu.</span><a href="#" class="needsAbout">Needs an About page: go back to Starter content</a></div></label>
 			</div>
 		</div>
 		<div class="block k-content">

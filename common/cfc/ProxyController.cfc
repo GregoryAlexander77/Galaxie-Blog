@@ -4988,11 +4988,16 @@
 					<cfinvokeargument name="redirectType" value="#arguments.redirectType#">
 					<cfinvokeargument name="emailSubscriber" value="#arguments.emailSubscriber#">
 				</cfinvoke>
-				
+
 				<!--- Set the success response --->
 				<cfset response[ "success" ] = true />
 				<!--- And send the new or updated postId --->
 				<cfset response[ "postId" ] = postId />
+				<!--- Whether it's on the homepage now (2026-10-21): the editor says so when a post or page is first released. --->
+				<cftry>
+					<cfset response[ "frontPage" ] = application.blog.getFrontPageStatus(val(postId)) />
+					<cfcatch type="any"><cfset response[ "frontPage" ] = {} /></cfcatch>
+				</cftry>
 			</cfif><!---<cfif not error>--->
 		<cfelse><!---<cfif application.Udf.isLoggedIn()>--->	
 			<cfset error = true>

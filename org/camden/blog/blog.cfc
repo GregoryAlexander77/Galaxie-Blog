@@ -6651,6 +6651,61 @@
 		<cfreturn { showPages: showPages, pageIdList: pageIdList, showCollections: showCollections, collectionIdList: collectionIdList, showBlogPosts: showBlogPosts, currentText: arrayLen(textParts) ? arrayToList(textParts, ", then ") : "the latest posts" }>
 	</cffunction>
 
+	<cffunction name="getFrontPageStatus" access="public" returnType="struct" output="false"
+			hint="After a post or page is released (2026-10-21, owner): whether it shows on the homepage, in a sentence for the post editor. Empty when it isn't live yet (not released, removed, or scheduled for later).">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfset var post = entityLoadByPK("Post", arguments.postId)>
+		<cfset var settings = "">
+		<cfset var noun = "">
+		<cfset var anySection = false>
+		<cfset var collection = "">
+		<cfset var summary = "">
+		<cfset var summaryParts = []>
+		<cfif not isObject(post) or not post.getReleased() or post.getRemove()>
+			<cfreturn {}>
+		</cfif>
+		<cfif not isNull(post.getDatePosted()) and isDate(post.getDatePosted()) and post.getDatePosted() gt blogNow()>
+			<cfreturn {}>
+		</cfif>
+		<cfset settings = getHomepageSettings()>
+		<cfset noun = post.getIsPage() ? "page" : "post">
+		<cfset anySection = settings.showPages or settings.showCollections or settings.showBlogPosts>
+		<cfif post.getIsPage()>
+			<cfif settings.showPages and listFind(settings.pageIdList, arguments.postId)>
+				<cfif listLen(settings.pageIdList) eq 1 and not settings.showBlogPosts and not settings.showCollections>
+					<cfreturn { "onFrontPage": "yes", "message": "Your page is live, and it's your homepage." }>
+				</cfif>
+				<cfreturn { "onFrontPage": "yes", "message": "Your page is live, and it's featured on your homepage." }>
+			</cfif>
+			<cfif settings.showCollections>
+				<cfloop array="#getPageCollectionsForPost(arguments.postId)#" index="collection">
+					<cfif listFind(settings.collectionIdList, collection.pageCollectionId)>
+						<cfreturn { "onFrontPage": "yes", "message": "Your page is live, and it's on your homepage in the '" & collection.title & "' collection." }>
+					</cfif>
+				</cfloop>
+			</cfif>
+		<cfelseif not anySection or settings.showBlogPosts>
+			<!--- Nothing chosen is the plain blog listing, which shows the newest posts too. --->
+			<cfreturn { "onFrontPage": "yes", "message": "Your post is live, and it's on your homepage with your latest posts." }>
+		</cfif>
+		<!--- What the homepage shows, in counts like Configure Homepage's own summary (the titles of every featured collection made it too long). --->
+		<cfif settings.showPages and listLen(settings.pageIdList) eq 1>
+			<cfset summary = settings.currentText>
+		<cfelse>
+			<cfif settings.showPages and listLen(settings.pageIdList)>
+				<cfset arrayAppend(summaryParts, listLen(settings.pageIdList) & " featured pages")>
+			</cfif>
+			<cfif settings.showCollections and listLen(settings.collectionIdList)>
+				<cfset arrayAppend(summaryParts, listLen(settings.collectionIdList) & " featured " & (listLen(settings.collectionIdList) eq 1 ? "collection" : "collections"))>
+			</cfif>
+			<cfif settings.showBlogPosts>
+				<cfset arrayAppend(summaryParts, "the latest blog posts")>
+			</cfif>
+			<cfset summary = arrayToList(summaryParts, ", then ")>
+		</cfif>
+		<cfreturn { "onFrontPage": "no", "message": "Your " & noun & " is live, but it isn't on your homepage, which shows " & summary & ". Do you want to change what your homepage shows?" }>
+	</cffunction>
+
 	<cffunction name="saveHomepageSettings" access="public" returnType="boolean" output="false"
 			hint="Saves the Configure Homepage picker - three independently toggled, additive sections. Every Page Collection selected must already have 2+ members - it must already be visible to be selectable here.">
 		<cfargument name="showPages" type="boolean" required="false" default="false">
