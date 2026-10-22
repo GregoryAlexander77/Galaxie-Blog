@@ -21,15 +21,16 @@ var galaxieShop = (function($) {
 		if ($("#galaxieShopStyles").length) { return; }
 		$("head").append($('<style id="galaxieShopStyles"></style>').text(
 			".galaxieProduct { margin: 1.5em 0; }" +
-			".galaxieProductCard { display: flex; gap: 16px; padding: 14px; border: 1px solid rgba(128,128,128,0.35); border-radius: 8px; max-width: 560px; }" +
-			".galaxieProductCard + .galaxieProductCard { margin-top: 14px; }" +
+			// The cards are blocks, white and gray in turn (galaxieBlocks in blogContentCss.cfm, 2026-10-22); one product in a post stays narrow.
+			".galaxieProductCard { display: flex; gap: 16px; }" +
+			".galaxieProduct:not(.galaxieShopPage) .galaxieBlocks { max-width: 560px; }" +
 			".galaxieProductPicture { width: 150px; height: 150px; object-fit: cover; border-radius: 6px; flex: none; }" +
 			".galaxieProductCard h3 { margin: 0 0 0.25em 0; }" +
 			".galaxieProductPrice { font-size: 1.25em; margin: 0.4em 0 0.6em 0; }" +
 			".galaxieProductNote { margin-top: 0.4em; opacity: 0.75; }" +
 			".galaxieCartButton { position: fixed; right: 16px; bottom: 16px; z-index: 10050; border-radius: 22px; padding: 8px 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }" +
 			".galaxieCartCount { display: inline-block; min-width: 1.4em; margin-left: 0.4em; padding: 0 0.35em; border-radius: 0.7em; text-align: center; }" +
-			".galaxieCartLine { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(128,128,128,0.25); }" +
+			".galaxieCartLine { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; }" +
 			".galaxieCartThumb { width: 44px; height: 44px; object-fit: cover; border-radius: 4px; background: rgba(128,128,128,0.2); display: block; }" +
 			".galaxieCartQty { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }" +
 			".galaxieCartQty .k-button { min-width: 2em; padding: 0 0.4em; }" +
@@ -68,7 +69,7 @@ var galaxieShop = (function($) {
 	// ---------- Product cards
 
 	function renderCard(product, open) {
-		var card = $('<div class="galaxieProductCard k-content"></div>');
+		var card = $('<div class="galaxieProductCard"></div>');
 		if (product.imageUrl) {
 			card.append($('<img class="galaxieProductPicture" alt="">').attr("src", product.imageUrl));
 		}
@@ -114,13 +115,17 @@ var galaxieShop = (function($) {
 					// and a card added to a box that left the page would never show.
 					$(".galaxieProduct[data-product]").each(function() {
 						var box = $(this).empty();
+						var blocks = $('<div class="galaxieBlocks"></div>');
 						var aliases = String(box.attr("data-product")) === "*" ? all.map(function(p) { return p.alias; }) : String(box.attr("data-product")).split(",");
 						var shown = 0;
 						$.each(aliases, function(i, alias) {
 							var product = byAlias[$.trim(alias)];
-							if (product) { box.append(renderCard(product, result.open)); shown++; }
+							if (product) {
+								$('<div class="galaxieBlock"></div>').addClass(shown % 2 ? "k-alt" : "k-content").append(renderCard(product, result.open)).appendTo(blocks);
+								shown++;
+							}
 						});
-						if (!shown) { box.append($("<p></p>").text("Nothing for sale here right now.")); }
+						if (shown) { box.append(blocks); } else { box.append($("<p></p>").text("Nothing for sale here right now.")); }
 					});
 				})
 				.fail(function() { boxes.empty(); });
@@ -191,8 +196,11 @@ var galaxieShop = (function($) {
 		var notices = (notice ? [notice] : []).concat(result.errors || []);
 		$.each(notices, function(i, text) { content.append($('<div class="galaxieCartNotice"></div>').text(text)); });
 		if (!result.lines.length) { content.append($("<p></p>").text("Your cart is empty.")); return; }
+		// The lines are blocks, white and gray in turn (galaxieBlocks in blogContentCss.cfm, 2026-10-22).
+		var lines = $('<div class="galaxieBlocks"></div>').appendTo(content);
 		$.each(result.lines, function(i, line) {
-			var row = $('<div class="galaxieCartLine"></div>').appendTo(content);
+			var block = $('<div class="galaxieBlock"></div>').addClass(i % 2 ? "k-alt" : "k-content").appendTo(lines);
+			var row = $('<div class="galaxieCartLine"></div>').appendTo(block);
 			row.append(line.imageUrl ? $('<img class="galaxieCartThumb" alt="">').attr("src", line.imageUrl) : $('<span class="galaxieCartThumb"></span>'));
 			var middle = $("<div></div>").appendTo(row);
 			middle.append($("<div></div>").text(line.name));

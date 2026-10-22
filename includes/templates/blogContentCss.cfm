@@ -1135,6 +1135,16 @@
 		.adminDivBlock + .adminDivBlock { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif>; }
 		.adminDivBlock > * + * { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif>; padding-top: 8px; margin-top: 8px; }
 		.adminDivBlock:empty { display: none; }
+		<!--- The same blocks on the public pages (2026-10-22, owner): lists in a post or page (booking types, products, member lists...)
+		are div.galaxieBlocks holding div.galaxieBlock sections that alternate k-content / k-alt, with the admin's line between blocks
+		and between the items inside a block. --->
+		.galaxieBlocks { border: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif>; border-radius: 6px; overflow: hidden; margin: 1em 0; }
+		.galaxieBlock { padding: 10px 14px; }
+		.galaxieBlock.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
+		.galaxieBlock + .galaxieBlock { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif>; }
+		.galaxieBlock > * + * { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif>; padding-top: 10px; margin-top: 10px; }
+		.galaxieBlock > :first-child { margin-top: 0; }
+		.galaxieBlock > :last-child { margin-bottom: 0; }
 		<!--- Kendo before 2020 (eg. Kendo UI Professional 2019) hides input.k-checkbox and input.k-radio and draws the box on a
 		label.k-checkbox-label / k-radio-label right after them. Galaxie's checkboxes and radios have no such label, so with an old
 		Kendo they vanished. head.cfm adds galaxieLegacyKendoInputs to the html tag for those versions; show the browser's own

@@ -21,8 +21,8 @@ var galaxieBookings = (function($) {
 		if ($("#galaxieBookingStyles").length) { return; }
 		$("head").append($('<style id="galaxieBookingStyles"></style>').text(
 			".galaxieBooking { margin: 1.5em 0; }" +
-			".galaxieBookingCategory { margin: 1em 0 0.5em 0; }" +
-			".galaxieBookingType { padding: 0.75em 0; border-top: 1px solid rgba(128,128,128,0.25); }" +
+			".galaxieBookingCategory { margin: 0.25em 0; }" +
+			".galaxieBookingType { padding: 0.25em 0; }" +
 			".galaxieBookingType h4 { margin: 0 0 0.25em 0; }" +
 			".galaxieBookingMeta { margin-bottom: 0.4em; }" +
 			".galaxieBookingStep { margin: 1em 0; }" +
@@ -130,13 +130,16 @@ var galaxieBookings = (function($) {
 			.fail(function() { box.empty().attr("hidden", "hidden"); });
 	}
 
-	// Step 1: the booking types, under their categories.
+	// Step 1: the booking types, under their categories. Each category is a block, white and gray in turn with a line between
+	// them, like the admin windows (galaxieBlocks in blogContentCss.cfm, 2026-10-22).
 	function showTypes(state) {
-		var box = state.box.empty();
+		var blocks = $('<div class="galaxieBlocks"></div>').appendTo(state.box.empty());
+		var box = null;
 		var lastCategory = null;
 		$.each(state.types, function(i, type) {
-			if (type.category !== lastCategory) {
+			if (box === null || type.category !== lastCategory) {
 				lastCategory = type.category;
+				box = $('<div class="galaxieBlock"></div>').addClass(blocks.children().length % 2 ? "k-alt" : "k-content").appendTo(blocks);
 				if (type.category) { box.append($('<h3 class="galaxieBookingCategory"></h3>').text(type.category)); }
 			}
 			var card = $('<div class="galaxieBookingType"></div>');

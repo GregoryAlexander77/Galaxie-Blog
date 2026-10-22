@@ -37,9 +37,10 @@ var galaxieMembers = (function($) {
 			".galaxieMemberButtons .k-button { margin: 0 0.5em 0.5em 0; }" +
 			// Hints read like normal text (the owner's admin look), not Kendo's small hint font.
 			".galaxieMemberForm .k-form-hint { display: block; font-size: inherit; margin: 0 0 0.3em 0; }" +
-			".galaxieMemberSection { margin: 0 0 1.25em 0; }" +
-			".galaxieMemberSection h4 { margin: 0 0 0.5em 0; }" +
-			".galaxieMemberItem { padding: 0.6em 0; border-top: 1px solid rgba(128,128,128,0.25); }" +
+			// The sections are blocks, white and gray in turn (galaxieBlocks in blogContentCss.cfm, 2026-10-22), with a line between the items.
+			".galaxieMemberSection h4 { margin: 0; }" +
+			".galaxieMemberItem { padding: 0.4em 0; }" +
+			".galaxieMemberItem + .galaxieMemberItem { border-top: 1px solid rgba(128,128,128,0.4); padding-top: 0.6em; }" +
 			".galaxieMemberFacts { margin-top: 0.2em; }" +
 			".galaxieMemberItem .galaxieMemberButtons { margin-top: 0.5em; }" +
 			".galaxieMemberFollowed { margin-top: 0.3em; }" +
@@ -251,18 +252,26 @@ var galaxieMembers = (function($) {
 		return { zones: items, value: value };
 	}
 
+	// White and gray in turn over the sections that show (Your orders only shows to members who have bought something).
+	function stripeBlocks(content) {
+		content.find(".galaxieBlocks").children(".galaxieBlock").not("[hidden]").each(function(i) {
+			$(this).toggleClass("k-alt", i % 2 === 1).toggleClass("k-content", i % 2 === 0);
+		});
+	}
+
 	// My account: the member's bookings, sign-ups and emails (ProxyController.cfc's memberAccount), then their details.
 	function openAccount(message) {
 		var m = state.member || {};
 		var content = $(
 			'<div>' +
 				'<p class="galaxieMemberMessage"></p>' +
-				'<div class="galaxieMemberSection galaxieMemberBookings"><h4>Your bookings</h4><div class="galaxieMemberList">Loading...</div></div>' +
+				'<div class="galaxieBlocks">' +
+				'<div class="galaxieBlock galaxieMemberSection galaxieMemberBookings"><h4>Your bookings</h4><div class="galaxieMemberList">Loading...</div></div>' +
 				// Shop orders (2026-10-21): shown only to members who have bought something.
-				'<div class="galaxieMemberSection galaxieMemberOrders" hidden><h4>Your orders</h4><div class="galaxieMemberList"></div></div>' +
-				'<div class="galaxieMemberSection galaxieMemberSignups"><h4>Your sign-ups</h4><div class="galaxieMemberList">Loading...</div></div>' +
-				'<div class="galaxieMemberSection galaxieMemberEmails"><h4>Emails</h4><div class="galaxieMemberList">Loading...</div></div>' +
-				'<form novalidate class="galaxieMemberSection galaxieMemberDetails"><h4>Your details</h4>' +
+				'<div class="galaxieBlock galaxieMemberSection galaxieMemberOrders" hidden><h4>Your orders</h4><div class="galaxieMemberList"></div></div>' +
+				'<div class="galaxieBlock galaxieMemberSection galaxieMemberSignups"><h4>Your sign-ups</h4><div class="galaxieMemberList">Loading...</div></div>' +
+				'<div class="galaxieBlock galaxieMemberSection galaxieMemberEmails"><h4>Emails</h4><div class="galaxieMemberList">Loading...</div></div>' +
+				'<form novalidate class="galaxieBlock galaxieMemberSection galaxieMemberDetails"><h4>Your details</h4>' +
 					'<div class="galaxieMemberField"><label>Picture</label>' +
 						'<div class="galaxieMemberPictureRow"><span class="galaxieMemberAvatar galaxieMemberAvatarLarge" aria-hidden="true"></span>' +
 						'<button type="button" class="k-button galaxieMemberPictureUpload">Upload a picture</button>' +
@@ -277,16 +286,18 @@ var galaxieMembers = (function($) {
 					'<div class="galaxieMemberField"><label for="galaxieMemberTimeZone">Time zone</label><div class="k-form-hint">Booking times are shown in this time zone.</div><input id="galaxieMemberTimeZone"></div>' +
 					'<div class="galaxieMemberButtons"><button type="submit" class="k-button k-primary">Save my details</button> <span class="galaxieMemberSaved" role="status"></span></div>' +
 				'</form>' +
-				'<div class="galaxieMemberSection"><h4>Your data</h4>' +
+				'<div class="galaxieBlock galaxieMemberSection"><h4>Your data</h4>' +
 					'<div class="k-form-hint">Download a copy of everything this site keeps about you, or delete your account.</div>' +
 					'<div class="galaxieMemberButtons"><button type="button" class="k-button galaxieMemberDownload">Download my data</button><button type="button" class="k-button galaxieMemberDelete">Delete my account</button></div>' +
 				'</div>' +
-				'<div class="galaxieMemberSection"><h4>Signing out</h4>' +
+				'<div class="galaxieBlock galaxieMemberSection"><h4>Signing out</h4>' +
 					'<div class="k-form-hint">Sign out everywhere also signs you out of every device that was kept signed in.</div>' +
 					'<div class="galaxieMemberButtons"><button type="button" class="k-button galaxieMemberSignOut">Sign out</button><button type="button" class="k-button galaxieMemberSignOutAll">Sign out everywhere</button></div>' +
 				'</div>' +
+				'</div>' +
 			'</div>'
 		);
+		stripeBlocks(content);
 		content.find(".galaxieMemberMessage").text(message || "");
 		content.find(".galaxieMemberMessage").toggle(!!message);
 		content.find(".galaxieMemberEmail").text(m.email || "");
@@ -380,6 +391,7 @@ var galaxieMembers = (function($) {
 			}
 			renderBookings(content.find(".galaxieMemberBookings .galaxieMemberList"), response.bookings || [], content, dialog);
 			renderOrders(content.find(".galaxieMemberOrders"), response.orders || []);
+			stripeBlocks(content);
 			renderSignups(content.find(".galaxieMemberSignups .galaxieMemberList"), response.signups || []);
 			renderEmails(content.find(".galaxieMemberEmails .galaxieMemberList"), response.subscriptions || {}, content, dialog);
 			dialog.center();

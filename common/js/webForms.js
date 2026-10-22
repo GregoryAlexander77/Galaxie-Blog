@@ -45,7 +45,9 @@ var galaxieWebForms = (function($) {
 			".galaxieWebFormListCount { margin-left: 0.5em; }" +
 			".galaxieWebFormListTable { width: 100%; border-collapse: collapse; }" +
 			".galaxieWebFormListTable th, .galaxieWebFormListTable td { text-align: left; padding: 0.4em 0.6em; vertical-align: top; }" +
-			".galaxieWebFormListTable tbody tr { border-top: 1px solid rgba(128,128,128,0.25); }" +
+			// Rows white and gray in turn with a line between them, like the other lists (galaxieBlocks, 2026-10-22).
+			".galaxieWebFormListTable tbody tr { border-top: 1px solid rgba(128,128,128,0.4); }" +
+			".galaxieWebFormListTable tbody tr.galaxieWebFormListAlt { background-image: linear-gradient(rgba(128,128,128,0.08), rgba(128,128,128,0.08)); }" +
 			".galaxieWebFormListSort { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }" +
 			"@media (max-width: 600px) {" +
 				".galaxieWebFormListTable thead { display: none; }" +
@@ -108,6 +110,10 @@ var galaxieWebForms = (function($) {
 		var rows = table.find("tbody tr");
 		var count = placeholder.find(".galaxieWebFormListCount");
 		var total = rows.length;
+		function stripe() {
+			table.find("tbody tr").filter(function() { return this.style.display !== "none"; }).each(function(i) { $(this).toggleClass("galaxieWebFormListAlt", i % 2 === 1); });
+		}
+		stripe();
 		placeholder.find(".galaxieWebFormListSearch").on("input", function() {
 			var text = $.trim($(this).val()).toLowerCase();
 			var shown = 0;
@@ -117,6 +123,7 @@ var galaxieWebForms = (function($) {
 				if (match) { shown++; }
 			});
 			count.text(text.length ? shown + " of " + total : total + (total === 1 ? " sign-up" : " sign-ups"));
+			stripe();
 		});
 		// Click a heading to sort by it; click again to reverse. Numbers sort as numbers.
 		placeholder.find(".galaxieWebFormListSort").each(function(column) {
@@ -130,6 +137,7 @@ var galaxieWebForms = (function($) {
 					return ascending ? result : -result;
 				});
 				table.find("tbody").append(sorted);
+				stripe();
 			});
 		});
 	}
