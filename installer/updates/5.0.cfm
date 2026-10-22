@@ -47,7 +47,7 @@ so a picture the owner chose themselves stays the same picture. --->
 		<cfloop array="#themePictureFields#" index="pictureField">
 			<cfset oldPicture = invoke(themeSettingRow, "get" & pictureField) ?: "">
 			<cfif len(oldPicture)>
-				<cfset newPicture = reReplaceNoCase(oldPicture, "/images/background/gregoryalexander/purchased/(depositPhotos/)?", "/images/background/themes/", "all")>
+				<cfset newPicture = reReplaceNoCase(oldPicture, "/images/background/gregoryalexander/purchased/([^/]+/)?", "/images/background/themes/", "all")>
 				<cfif newPicture neq oldPicture>
 					<cfset invoke(themeSettingRow, "set" & pictureField, [newPicture])>
 					<cfset themePathsMoved++>
