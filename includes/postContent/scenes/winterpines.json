@@ -46,7 +46,7 @@
 		{
 			"kind": "text",
 			"heading": "Then your story",
-			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"html": "<p>Tell your story here. Change the words, fonts, colors and pictures in the Scene editor.</p>",
 			"colour": "#263a5c",
 			"gradient": "linear-gradient(180deg, #263a5c 0%, #455f87 100%)"
 		},

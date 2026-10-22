@@ -1,6 +1,6 @@
 {
 	"name": "Calm mist",
-	"description": "Slow drifting mist in soft colours. Calm and quiet, for wellness and services.",
+	"description": "Slow drifting mist in soft colors. Calm and quiet, for wellness and services.",
 	"order": 17,
 	"pageColour": "#f7f3f0",
 	"settings": {
@@ -30,7 +30,7 @@
 		{
 			"kind": "text",
 			"heading": "Then your story",
-			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"html": "<p>Tell your story here. Change the words, fonts, colors and pictures in the Scene editor.</p>",
 			"colour": "#f7f3f0",
 			"gradient": "linear-gradient(180deg, #f7f3f0 0%, #e3eef0 100%)",
 			"textColour": "#3c4a5c"

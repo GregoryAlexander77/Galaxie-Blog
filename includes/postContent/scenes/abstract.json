@@ -1,6 +1,6 @@
 {
 	"name": "Abstract photo",
-	"description": "Flowing abstract colours as the hero, then text and a second picture. Upload your own photos in the Scene editor.",
+	"description": "Flowing abstract colors as the hero, then text and a second picture. Upload your own photos in the Scene editor.",
 	"order": 16,
 	"pageColour": "#101a3a",
 	"settings": {
@@ -23,7 +23,7 @@
 		{
 			"kind": "text",
 			"heading": "Then your story",
-			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"html": "<p>Tell your story here. Change the words, fonts, colors and pictures in the Scene editor.</p>",
 			"colour": "#101a3a",
 			"gradient": "linear-gradient(180deg, #101a3a 0%, #2c2f6b 100%)"
 		},

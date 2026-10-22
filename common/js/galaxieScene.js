@@ -195,7 +195,7 @@
 		document.head.appendChild(style);
 	}
 
-	/* ---------- the look of a section: fonts, sizes, colours, shadows, overlay ---------- */
+	/* ---------- the look of a section: fonts, sizes, colors, shadows, overlay ---------- */
 
 	function applyLook(section, root, headingEl, bodyEl) {
 		if (section.textColour) { root.style.color = section.textColour; }

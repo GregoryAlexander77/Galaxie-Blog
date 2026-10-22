@@ -1,6 +1,6 @@
 {
 	"name": "Soft pastels",
-	"description": "Still pastel colours and dark text. The lightest scene to load.",
+	"description": "Still pastel colors and dark text. The lightest scene to load.",
 	"order": 19,
 	"pageColour": "#eef3f6",
 	"settings": {
@@ -21,7 +21,7 @@
 		{
 			"kind": "text",
 			"heading": "Then your story",
-			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"html": "<p>Tell your story here. Change the words, fonts, colors and pictures in the Scene editor.</p>",
 			"colour": "#eef3f6",
 			"gradient": "linear-gradient(180deg, #eef3f6 0%, #f3e7e9 100%)",
 			"textColour": "#3c4a5c"

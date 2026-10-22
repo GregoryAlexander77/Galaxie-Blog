@@ -1,6 +1,6 @@
 {
 	"name": "Sunset gradient",
-	"description": "Warm colours and a big heading. Quick to load, and easy to change to your own colours.",
+	"description": "Warm colors and a big heading. Quick to load, and easy to change to your own colors.",
 	"order": 21,
 	"pageColour": "#2b1a2f",
 	"settings": {
@@ -21,7 +21,7 @@
 		{
 			"kind": "text",
 			"heading": "Then your story",
-			"html": "<p>Tell your story here. Change the words, fonts, colours and pictures in the Scene editor.</p>",
+			"html": "<p>Tell your story here. Change the words, fonts, colors and pictures in the Scene editor.</p>",
 			"colour": "#2b1a2f",
 			"gradient": "linear-gradient(180deg, #2b1a2f 0%, #7b2d5b 100%)"
 		},
