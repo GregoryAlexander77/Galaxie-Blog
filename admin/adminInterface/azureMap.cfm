@@ -4,7 +4,12 @@
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
 	<!--- Same Page-Collection-vs-Post switch as enclosureImageEditor.cfm - see its comment. --->
 	<cfset isPageCollectionEnclosure = (isDefined("URL.entityType") and URL.entityType eq 'pageCollection')>
-	<cfif isPageCollectionEnclosure>
+	<!--- From the Scene editor (2026-10-21, owner): createAdminInterfaceWindow(19 or 20, mapId or 0, 'scene'). The map isn't any
+	post's: it is saved on its own and handed back to the Scene editor (window.galaxieSceneMapSaved), which places it in the scene. --->
+	<cfset isSceneMap = isDefined("URL.otherArgs") and URL.otherArgs eq "scene">
+	<cfif isSceneMap>
+		<cfset getPost = [{ "EnclosureMapId": val(URL.optArgs) gt 0 ? val(URL.optArgs) : "" }]>
+	<cfelseif isPageCollectionEnclosure>
 		<cfset getPost = application.blog.getPageCollectionByPageCollectionId(URL.optArgs)>
 	<cfelse>
 		<!--- Get the post ( getPostByPostId(postId, showPendingPosts, showRemovedPosts) ) --->
@@ -277,7 +282,9 @@
 					provider: 'Azure Maps',
 					isEnclosure: <cfif URL.otherArgs eq 'enclosureEditor'>true<cfelse>false</cfif>,
 					mapId: $("#enclosureMapId").val(),
-					<cfif isPageCollectionEnclosure>
+					<cfif isSceneMap>
+					postId: "",
+					<cfelseif isPageCollectionEnclosure>
 					pageCollectionId: "<cfoutput>#URL.optArgs#</cfoutput>",
 					<cfelse>
 					postId: "<cfoutput>#URL.optArgs#</cfoutput>",
@@ -306,6 +313,13 @@
 		}
 		
 		function saveMapResponse(response){
+			<cfif isSceneMap>
+			<!--- A scene's map: back to the Scene editor, which places it. --->
+			kendo.ui.ExtWaitDialog.hide();
+			try { window.galaxieSceneMapSaved({ mapId: JSON.parse(response.mapId), routes: false, title: $("#selectedFreeformAddress").val() }); } catch (e) {}
+			$('#mapWindow').kendoWindow('destroy');
+			return;
+			</cfif>
 			
 			<!--- alert(JSON.parse(response.postId)); --->
 			var postId = JSON.parse(response.postId);

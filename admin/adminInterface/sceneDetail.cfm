@@ -695,9 +695,14 @@ $(document).ready(function () {
 		function hint() { if (field.hint) { wrap.append($('<div class="k-form-hint"></div>').text(field.hint)); } return wrap; }
 
 		if (field.type === "map") {
-			<!--- Which map (owner, 10-20). Maps are made in a post's editor, so with none yet this says where. --->
+			<!--- Which map (owner, 10-20), and making one right here (owner, 10-21): the same Create Map and Create Map Routes windows
+			as a post's, in their scene mode - the map is saved on its own and comes back through galaxieSceneMapSaved below. --->
+			var mapButtons = $('<div style="margin-top:6px"></div>');
+			$('<button type="button" class="k-button"></button>').text(MAPS.length ? "Make a new map" : "Make a map").on("click", function () { createAdminInterfaceWindow(19, 0, "scene"); }).appendTo(mapButtons);
+			mapButtons.append(" ");
+			$('<button type="button" class="k-button"></button>').text("Make a route map").on("click", function () { createAdminInterfaceWindow(20, 0, "scene"); }).appendTo(mapButtons);
 			if (!MAPS.length) {
-				wrap.append($('<div class="k-form-hint"></div>').text("You haven't made a map yet. Make one in a post's editor (Insert, then Map), save the post, then close and reopen this scene to pick it."));
+				wrap.append($('<div class="k-form-hint"></div>').text("Find a place, or plan a route with stops, and save it: it goes straight into this section."), mapButtons);
 				return wrap;
 			}
 			var mapPick = $('<select></select>').attr("id", id);
@@ -707,7 +712,12 @@ $(document).ready(function () {
 				var m = $.grep(MAPS, function (x) { return String(x.id) === mapPick.val(); })[0];
 				setValue("mapId", m.id); setValue("mapType", m.routes ? "route" : "static"); schedulePreview();
 			});
-			wrap.append(mapPick, $('<div class="k-form-hint"></div>').text("The map is live: visitors can move and zoom it. Change the map itself in the post it was made in."));
+			var current = $.grep(MAPS, function (x) { return String(x.id) === String(value || MAPS[0].id); })[0];
+			mapButtons.prepend($('<button type="button" class="k-button"></button>').text("Change this map").on("click", function () {
+				var m = $.grep(MAPS, function (x) { return String(x.id) === mapPick.val(); })[0] || current;
+				createAdminInterfaceWindow(m && m.routes ? 20 : 19, m ? m.id : 0, "scene");
+			}), " ");
+			wrap.append(mapPick, mapButtons, $('<div class="k-form-hint"></div>').text("The map is live: visitors can move and zoom it. Change this map here, or make a new one."));
 			return wrap;
 		}
 		if (field.type === "product") {
@@ -1057,6 +1067,16 @@ $(document).ready(function () {
 		selected = Math.min(selected, scene.sections.length - 1);
 		renderList(); renderSettings(); schedulePreview();
 	}
+	<!--- A map made or changed from a Map section (2026-10-21): it joins the list and goes into the selected section. --->
+	window.galaxieSceneMapSaved = function (info) {
+		if (!info || !(info.mapId > 0)) { return; }
+		var title = $.trim(info.title || "") || ("Map " + info.mapId);
+		var known = $.grep(MAPS, function (x) { return String(x.id) === String(info.mapId); })[0];
+		if (known) { known.routes = !!info.routes; if ($.trim(info.title || "")) { known.title = title; } }
+		else { MAPS.unshift({ id: info.mapId, title: title, routes: !!info.routes }); }
+		setValue("mapId", info.mapId); setValue("mapType", info.routes ? "route" : "static");
+		renderSettings(); schedulePreview();
+	};
 	function newSection(kind) {
 		var s = { kind: kind, heading: "", html: "" };
 		if (kind === "text") { s.heading = "A new heading"; s.html = "<p>Your text.</p>"; s.colour = scene.pageColour || "#392630"; }
