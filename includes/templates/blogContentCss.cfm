@@ -1511,6 +1511,11 @@
   			margin-left: auto;
   			margin-right: auto;
 		}
+		<!--- The footer logo (2026-10-21): up to 300 pixels wide, never wider than the screen. --->
+		#footerInnerContainer img.siteFooterLogo {
+			max-width: min(300px, 100%);
+			height: auto;
+		}
 		
 		<!--- Center the logo --->
 		#footerInnerContainer a {

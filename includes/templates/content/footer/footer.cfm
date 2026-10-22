@@ -25,6 +25,15 @@ Note: the following logic should not be cached as each theme may return a differ
 <cfif len(trim(contentOutputData))>
 	<cfset displayContentOutputData = true>		
 </cfif>
+<!--- The footer Site Setup wrote (2026-10-21) has no picture of its own, so the footer logo shows above it. A footer the owner
+wrote in Themes is shown exactly as they made it. --->
+<cfset showFooterLogoAboveContent = false>
+<cfif displayContentOutputData and len(footerImage)>
+	<cftry>
+		<cfset showFooterLogoAboveContent = len(application.events.getSetting(0, "setupFooterHash", "")) and hash(toString(contentOutputData)) eq application.events.getSetting(0, "setupFooterHash", "")>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+</cfif>
 <!--- ********* End content template logic *********--->
 </cfsilent>
 
@@ -34,10 +43,12 @@ Note: the following logic should not be cached as each theme may return a differ
 		<span id="footerInnerContainer">
 		<cfif displayContentOutputData>
 			<!--- The owner's own footer from the Composite Footer content template. Note: the footer and span tags are removed by tinymce so we need to manually include them --->
+			<cfif showFooterLogoAboveContent><a href="<cfoutput>#application.blogHostUrl#</cfoutput>"><img class="siteFooterLogo" src="<cfoutput>#application.baseUrl##footerImage#</cfoutput>" alt="Footer Logo"/></a></cfif>
 			<cfoutput>#contentOutputData#</cfoutput>
 		<cfelse>
 			<!--- Neutral default for any blog. The site-specific text that used to be here (the galaxieblog.org promo on Lucee, the gregoryalexander.com credits on Adobe ColdFusion) now lives in each site's own Composite Footer. --->
-			<a href="<cfoutput>#application.blogHostUrl#</cfoutput>"><img src="<cfoutput>#application.baseUrl##footerImage#</cfoutput>" alt="Footer Logo"/></a>
+			<!--- No picture at all when the footer logo is switched off (Site Setup, 2026-10-21). --->
+			<cfif len(footerImage)><a href="<cfoutput>#application.blogHostUrl#</cfoutput>"><img class="siteFooterLogo" src="<cfoutput>#application.baseUrl##footerImage#</cfoutput>" alt="Footer Logo"/></a></cfif>
 			<!--- Shown only to a logged-in admin. The footer is cached as HTML for every visitor, so this stays hidden here and index.cfm reveals it after the cached footer when an admin is logged in. --->
 			<p id="footerCustomizeHint" hidden>You can replace this footer with your own in the administrative site: Themes, then Composite Footer.</p>
 		</cfif>

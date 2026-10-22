@@ -266,6 +266,7 @@ takes the same options and events. --->
 	<div id="stepLogo">
 		<div class="block k-content"><p class="lead">Your logo appears at the top of every page, in every theme.</p></div>
 		<div class="block k-alt">
+			<h4>Header logo</h4>
 			<div class="ways" id="logoWays"></div>
 			<div class="wayPanel on" id="wayName">
 				<div class="fieldRow"><label for="logoName">Name</label><div class="control"><input id="logoName" class="k-textbox" maxlength="60"></div></div>
@@ -288,7 +289,23 @@ takes the same options and events. --->
 				</div>
 			</div>
 		</div>
-		<div class="block k-content"><p class="hint">We also make the smaller logo for mobile and the picture used when your posts are shared on social media.</p></div>
+		<!--- The footer logo (2026-10-21, owner): usually a bigger, fuller picture than the small one in the header. --->
+		<div class="block k-content">
+			<h4>Footer logo</h4>
+			<p class="hint" style="margin-top:0">At the bottom of every page, above your footer links.</p>
+			<div class="choiceList" id="footerLogoChoices">
+				<label class="choice"><input type="radio" name="footerLogoMode" value="same"><div><strong>Same as the header logo</strong><span>Your header logo, centered in the footer.</span></div></label>
+				<label class="choice"><input type="radio" name="footerLogoMode" value="upload"><div><strong>Upload a footer logo</strong><span>A fuller version: a stacked logo, a badge, or your logo with a tagline.</span></div></label>
+				<label class="choice"><input type="radio" name="footerLogoMode" value="none"><div><strong>No footer logo</strong><span>Just your footer links and the copyright line.</span></div></label>
+			</div>
+			<div class="uploadBox" id="footerLogoUpload" style="margin-top:10px" hidden>
+				<p>PNG, SVG, JPG, GIF or WebP, up to 2 MB. About 3 by 2, for example 480 by 320 pixels, works best; it shows up to 300 pixels wide.</p>
+				<input type="file" id="footerLogoFile" class="hiddenFile" accept="image/png,image/svg+xml,image/jpeg,image/gif,image/webp">
+				<label for="footerLogoFile" class="k-button k-primary uploadButton" tabindex="0">Upload a footer logo</label> <span class="fileName" data-for="footerLogoFile"></span>
+				<img id="footerLogoPreview" alt="" hidden>
+			</div>
+		</div>
+		<div class="block k-alt"><p class="hint">We also make the smaller logo for mobile and the picture used when your posts are shared on social media.</p></div>
 	</div>
 	<div id="stepAbout">
 		<div class="block k-content"><p class="lead">Who is behind the site. This fills your About and Bio windows; change it any time in your profile.</p></div>
@@ -378,11 +395,12 @@ $(function () {
 		biography: #serializeJSON(setupState.biography)#, profilePicture: #serializeJSON(setupState.profilePicture)#, facebookUrl: #serializeJSON(setupState.facebookUrl)#, linkedInUrl: #serializeJSON(setupState.linkedInUrl)#,
 		instagramUrl: #serializeJSON(setupState.instagramUrl)#, twitterUrl: #serializeJSON(setupState.twitterUrl)#,
 		welcomePostId: #val(setupState.welcomePostId)#, welcomeUrl: #serializeJSON(setupState.welcomeUrl)#, aboutPageId: #val(setupState.aboutPageId)#, aboutUrl: #serializeJSON(setupState.aboutUrl)#,
-		footer: #serializeJSON(setupState.footer)#, footerIsCustom: #setupState.footerIsCustom ? "true" : "false"#
+		footer: #serializeJSON(setupState.footer)#, footerIsCustom: #setupState.footerIsCustom ? "true" : "false"#, footerLogo: #serializeJSON(setupState.footerLogo)#
 	};
 	var userMarks = [#arrayToList(sampleParts, ",")#];
 	</cfoutput>
-	var state = { theme: saved.theme || (themes[0] && themes[0].alias), way: "name", font: 0, sample: 0, name: saved.title, colour: "#ffffff", sampleColour: "#ffffff", upload: "", colourPicked: false };
+	var state = { theme: saved.theme || (themes[0] && themes[0].alias), way: "name", font: 0, sample: 0, name: saved.title, colour: "#ffffff", sampleColour: "#ffffff", upload: "", colourPicked: false,
+		footerMode: saved.footerLogo || "same", footerUpload: "" };
 	var dirty = {};
 	function stepsDone() { return (saved.stepsDone || "").split(",").filter(Boolean); }
 
@@ -505,6 +523,16 @@ $(function () {
 			link.innerHTML = html ? '<span style="display:inline-block;padding:6px 10px">' + html + '</span>' : link.getAttribute("data-original");
 		});
 		Array.prototype.forEach.call(doc.querySelectorAll("#blogNameContainer"), function (n) { n.style.visibility = html && state.way !== "upload" ? "hidden" : ""; });
+		<!--- The footer logo (2026-10-21): the theme's footer picture is hidden, and the chosen footer logo shows above the links. --->
+		var foot = doc.getElementById("footerInnerContainer");
+		if (foot) {
+			Array.prototype.forEach.call(foot.querySelectorAll("img"), function (img) { if (!img.hasAttribute("data-setup")) { img.style.display = "none"; } });
+			var mine = foot.querySelector("[data-setup]");
+			if (!mine) { mine = doc.createElement("div"); mine.setAttribute("data-setup", "footerLogo"); mine.style.cssText = "text-align:center;padding:10px 0"; foot.insertBefore(mine, foot.firstChild); }
+			mine.innerHTML = state.footerMode === "none" ? "" : state.footerMode === "upload"
+				? (state.footerUpload ? '<img data-setup="1" src="' + state.footerUpload + '" alt="" style="max-width:min(300px,100%);height:auto;display:inline-block">' : "")
+				: '<span style="display:inline-block">' + logoHtml(30) + '</span>';
+		}
 	}
 	frame.addEventListener("load", function () { $("#previewLoading").hide(); applyLogo(); });
 	$("#toggleMobile").on("click", function (e) {
@@ -625,6 +653,21 @@ $(function () {
 	<!--- The upload buttons (labels for hidden file boxes): open with Enter or Space too, and show the chosen file's name. --->
 	$(".uploadButton").on("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#" + $(this).attr("for")).trigger("click"); } });
 	$(".hiddenFile").on("change", function () { $('.fileName[data-for="' + this.id + '"]').text(this.files && this.files[0] ? this.files[0].name : ""); });
+	<!--- The footer logo choice (2026-10-21). --->
+	$("input[name=footerLogoMode][value=" + state.footerMode + "]").prop("checked", true);
+	$("#footerLogoUpload").prop("hidden", state.footerMode !== "upload");
+	$("input[name=footerLogoMode]").on("change", function () {
+		state.footerMode = this.value; dirty.logo = true; previewLogo = true;
+		$("#footerLogoUpload").prop("hidden", state.footerMode !== "upload");
+		applyLogo();
+	});
+	$("#footerLogoFile").on("change", function () {
+		var file = this.files && this.files[0]; if (!file) { return; }
+		if (file.size > 2 * 1024 * 1024) { kendo.alert("That picture is larger than 2 MB. Please choose a smaller one."); return; }
+		var reader = new FileReader();
+		reader.onload = function () { state.footerUpload = reader.result; dirty.logo = true; previewLogo = true; $("#footerLogoPreview").attr("src", reader.result).prop("hidden", false); applyLogo(); };
+		reader.readAsDataURL(file);
+	});
 	$("#logoFile").on("change", function () {
 		var file = this.files && this.files[0]; if (!file) { return; }
 		if (file.size > 2 * 1024 * 1024) { kendo.alert("That picture is larger than 2 MB. Please choose a smaller one."); return; }
@@ -779,7 +822,8 @@ $(function () {
 		function () { return save("site", { title: $.trim($("#siteTitle").val()), description: $.trim($("#siteDescription").val()), email: $.trim($("#siteEmail").val()), timeZone: $("#siteTimeZone").data("kendoDropDownList").value() })
 			.then(function () { saved.title = $.trim($("#siteTitle").val()); }); },
 		function () { return save("look", { themeAlias: state.theme }); },
-		function () { return buildLogo().then(function (b) { return socialPng(b.logo).then(function (png) { return save("logo", { logo: b.logo, social: png, hasName: b.hasName }); }); })
+		function () { return buildLogo().then(function (b) { return socialPng(b.logo).then(function (png) { if (state.footerMode === "upload" && !state.footerUpload) { return Promise.reject("Please choose a picture for the footer logo, or pick one of the other two choices."); }
+			return save("logo", { logo: b.logo, social: png, hasName: b.hasName, footerMode: state.footerMode, footerLogo: state.footerMode === "upload" ? state.footerUpload : "" }); }); })
 			.then(function () { previewLogo = false; }); },
 		function () { return save("about", { firstName: $.trim($("#aboutFirst").val()), lastName: $.trim($("#aboutLast").val()), biography: $("#aboutBio").val(), aboutSite: $("#aboutSite").val(),
 			facebookUrl: $.trim($("#aboutFacebook").val()), instagramUrl: $.trim($("#aboutInstagram").val()), linkedInUrl: $.trim($("#aboutLinkedIn").val()), twitterUrl: $.trim($("#aboutTwitter").val()),

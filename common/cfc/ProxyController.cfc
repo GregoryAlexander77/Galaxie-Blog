@@ -13678,6 +13678,8 @@
 		<cfargument name="contactForm" type="string" default="false" required="false">
 		<cfargument name="footer" type="string" default="" required="false" hint="Site Setup's footer: simple, blurb or none (2026-10-20).">
 		<cfargument name="photo" type="string" default="" required="false" hint="A new profile photo as a data URL.">
+		<cfargument name="footerMode" type="string" default="same" required="false" hint="The footer logo: same, upload or none (2026-10-21).">
+		<cfargument name="footerLogo" type="string" default="" required="false" hint="An uploaded footer logo as a data URL.">
 
 		<cfset var response = { "success": false, "errorMessage": "" }>
 		<cfset var setup = "">
@@ -13697,7 +13699,7 @@
 					<cfcase value="testEmail"><cfset setup.sendTestEmail(arguments.email)></cfcase>
 					<cfcase value="look"><cfset setup.saveLook(arguments.themeAlias)></cfcase>
 					<cfcase value="logo">
-						<cfset result = setup.saveLogo(arguments.logo, arguments.social, isBoolean(arguments.hasName) and arguments.hasName)>
+						<cfset result = setup.saveLogo(arguments.logo, arguments.social, isBoolean(arguments.hasName) and arguments.hasName, arguments.footerMode, arguments.footerLogo)>
 						<cfset response[ "logo" ] = result.logo>
 					</cfcase>
 					<cfcase value="about">

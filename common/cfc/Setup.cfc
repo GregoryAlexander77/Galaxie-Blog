@@ -48,6 +48,7 @@
 	<cfset structAppend(state, starterLinks(), true)>
 	<cfset state.footer = application.events.getSetting(0, "setupFooter", "simple")>
 	<cfset state.footerIsCustom = footerIsCustom()>
+	<cfset state.footerLogo = application.events.getSetting(0, "setupFooterLogo", "same")>
 	<cfreturn state>
 </cffunction>
 
@@ -181,6 +182,8 @@
 	<cfargument name="logo" type="string" required="true" hint="data:image/svg+xml;base64,... (made by the wizard) or an uploaded PNG, GIF, JPG, WebP or SVG.">
 	<cfargument name="social" type="string" required="false" default="" hint="data:image/png;base64,... 1200 x 630, for social media.">
 	<cfargument name="hasName" type="boolean" required="false" default="true" hint="Whether the logo carries the site name.">
+	<cfargument name="footerMode" type="string" required="false" default="same" hint="The footer logo (2026-10-21, owner): same (the header logo), upload (footerLogo), or none.">
+	<cfargument name="footerLogo" type="string" required="false" default="" hint="An uploaded footer logo as a data URL, for footerMode upload.">
 	<cfset var folder = expandPath(application.baseUrl & "/images/logo")>
 	<cfset var stamp = dateTimeFormat(now(), "yyyymmddHHnnss")>
 	<cfset var logoData = decodeDataUrl(arguments.logo)>
@@ -194,7 +197,23 @@
 	<cfif logoData.ext eq "svg">
 		<cfset checkSvg(toString(logoData.bytes, "utf-8"))>
 	</cfif>
+	<!--- The footer logo is checked before anything is written. --->
+	<cfset local.footerMode = listFind("same,upload,none", arguments.footerMode) ? arguments.footerMode : "same">
+	<cfset local.footerPath = "">
+	<cfif local.footerMode eq "upload">
+		<cfif not len(arguments.footerLogo)><cfset fail("Please choose a picture for the footer logo, or pick one of the other two choices.")></cfif>
+		<cfset local.footerData = decodeDataUrl(arguments.footerLogo)>
+		<cfif not listFind("svg,png,gif,jpg,webp", local.footerData.ext)><cfset fail("A footer logo must be a PNG, GIF, JPG, WebP or SVG picture.")></cfif>
+		<cfif arrayLen(local.footerData.bytes) gt 2 * 1024 * 1024><cfset fail("That footer logo is larger than 2 MB. Please use a smaller picture.")></cfif>
+		<cfif local.footerData.ext eq "svg"><cfset checkSvg(toString(local.footerData.bytes, "utf-8"))></cfif>
+	</cfif>
 	<cfif not directoryExists(folder)><cfdirectory action="create" directory="#folder#"></cfif>
+	<cfif local.footerMode eq "upload">
+		<cfset local.footerPath = "/images/logo/site-footer-logo-" & stamp & "." & local.footerData.ext>
+		<cffile action="write" file="#folder#/site-footer-logo-#stamp#.#local.footerData.ext#" output="#local.footerData.bytes#">
+	<cfelseif local.footerMode eq "same">
+		<cfset local.footerPath = "/images/logo/" & logoFile>
+	</cfif>
 	<cffile action="write" file="#folder#/#logoFile#" output="#logoData.bytes#">
 	<cfif structKeyExists(socialData, "ext") and socialData.ext eq "png" and arrayLen(socialData.bytes) lt 4 * 1024 * 1024>
 		<cfset socialFile = "site-logo-" & stamp & "-social.png">
@@ -207,10 +226,13 @@
 			<cfset setting.setLogoImage("/images/logo/" & logoFile)>
 			<cfset setting.setLogoImageMobile("/images/logo/" & logoFile)>
 			<cfif len(socialFile)><cfset setting.setDefaultLogoImageForSocialMediaShare("/images/logo/" & socialFile)></cfif>
+			<!--- The footer logo (2026-10-21): bigger, at the bottom of every page; empty for none. --->
+			<cfset setting.setFooterImage(local.footerPath)>
 			<cfif arguments.hasName><cfset setting.setDisplayBlogName(false)></cfif>
 			<cfset entitySave(setting)>
 		</cfloop>
 	</cftransaction>
+	<cfset application.events.setSetting(0, "setupFooterLogo", local.footerMode)>
 	<cfset markDone("logo")>
 	<cfset application.blog.flushGalaxieCache(type = "all")>
 	<cfreturn { logo = application.baseUrl & "/images/logo/" & logoFile, social = len(socialFile) ? application.baseUrl & "/images/logo/" & socialFile : "" }>
