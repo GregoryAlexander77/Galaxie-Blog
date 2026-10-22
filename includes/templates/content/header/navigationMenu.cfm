@@ -75,7 +75,7 @@ Note: the following logic should not be cached as each theme may return a differ
 								<cfif not session.isMobile>
 									<!--- Desktop: Categories and the collections menu side by side, each hidden when it has nothing in it. --->
 									<cfif arrayLen(menuCategories)>
-									<li>
+									<li class="galaxieMenuSplit">
 										Categories
 										<ul>
 											<cfloop array="#menuCategories#" index="menuCategory"><li><a href="<cfoutput>#menuCategory.link#</cfoutput>"><cfoutput>#menuCategory.name#</cfoutput></a></li></cfloop>
@@ -83,9 +83,23 @@ Note: the following logic should not be cached as each theme may return a differ
 									</li>
 									</cfif>
 									<cfif arrayLen(menuCollections)>
-									<li>
+									<li class="galaxieMenuSplit">
 										<cfoutput>#encodeForHtml(menuLabels.collections)#</cfoutput>
 										<ul>
+											<cfloop array="#menuCollections#" index="menuCollection"><li><a href="<cfoutput>#application.blog.makeCollectionLink(menuCollection.pageCollectionId)#</cfoutput>"><cfoutput>#menuCollection.title#</cfoutput></a></li></cfloop>
+										</ul>
+									</li>
+									</cfif>
+									<!--- The phone's combined dropdown, hidden: when a narrow window or a tablet wraps the menu, the script at the end
+									of this template shows it instead of the two above (2026-10-22, owner). --->
+									<cfif arrayLen(menuCategories) and arrayLen(menuCollections)>
+									<li class="galaxieMenuCombined" style="display: none;">
+										<cfoutput>#encodeForHtml(menuLabels.mobile)#</cfoutput>
+										<ul>
+											<li class="k-state-disabled">Categories</li>
+											<cfloop array="#menuCategories#" index="menuCategory"><li><a href="<cfoutput>#menuCategory.link#</cfoutput>"><cfoutput>#menuCategory.name#</cfoutput></a></li></cfloop>
+											<li class="k-separator"></li>
+											<li class="k-state-disabled"><cfoutput>#encodeForHtml(menuLabels.collections)#</cfoutput></li>
 											<cfloop array="#menuCollections#" index="menuCollection"><li><a href="<cfoutput>#application.blog.makeCollectionLink(menuCollection.pageCollectionId)#</cfoutput>"><cfoutput>#menuCollection.title#</cfoutput></a></li></cfloop>
 										</ul>
 									</li>
@@ -138,7 +152,7 @@ Note: the following logic should not be cached as each theme may return a differ
 									</cfif>
 									<!--- Don't show the admin link with mobile. There is not enough room. --->
 									<cfif not session.isMobile>
-									<li>
+									<li class="galaxieAdminMenuItem">
 									<!--- Admin. --->
 									<a href="<cfoutput>#application.baseUrl#/admin/</cfoutput>" aria-label="<cfif not application.Udf.isLoggedIn()>Login<cfelse>Blog Administration</cfif>"><span class="k-icon k-i-user"></span></a>
 									<!--- Allow the user to logout. --->

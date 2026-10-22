@@ -32,6 +32,37 @@
 									$(document).ready(function() {	
 										$("#<cfoutput>#menuDivName#</cfoutput>").kendoMenu();
 									});//..document.ready
+									<!--- A desktop menu that wraps (a narrow window or a tablet, 2026-10-22, owner): Categories and the collections menu
+									become the phone's one combined dropdown, and the admin icon goes when the member Sign in is there. Tried again
+									whenever the window changes size, so the full menu comes back when there is room. Defined once for both menus. --->
+									if (!window.galaxieCompactMenus) {
+										window.galaxieCompactMenus = function() {
+											function wraps(menu) {
+												var items = menu.children("li:visible");
+												if (items.length < 2) { return false; }
+												var top = items.first()[0].getBoundingClientRect().top;
+												var wrapped = false;
+												items.each(function() { if (this.getBoundingClientRect().top > top + 5) { wrapped = true; } });
+												return wrapped;
+											}
+											$("#topMenu, #fixedNavMenu").each(function() {
+												var menu = $(this);
+												menu.find("> li.galaxieMenuSplit, > li.galaxieAdminMenuItem").show();
+												menu.find("> li.galaxieMenuCombined").hide();
+												if (!wraps(menu)) { return; }
+												if (menu.find("> li.galaxieMenuCombined").length) {
+													menu.find("> li.galaxieMenuSplit").hide();
+													menu.find("> li.galaxieMenuCombined").show();
+												}
+												if (menu.find("> li.galaxieMemberMenuItem").length) {
+													menu.find("> li.galaxieAdminMenuItem").hide();
+												}
+											});
+										};
+										var galaxieCompactTimer = null;
+										$(window).on("load", function() { galaxieCompactMenus(); setTimeout(galaxieCompactMenus, 1500); });
+										$(window).on("resize", function() { clearTimeout(galaxieCompactTimer); galaxieCompactTimer = setTimeout(galaxieCompactMenus, 250); });
+									}
 								</script>
 							<cfif session.isMobile or menuDivName eq 'fixedNavMenu'>				
 								<style>
