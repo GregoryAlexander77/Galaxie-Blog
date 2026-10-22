@@ -1,4 +1,4 @@
-<!--- description: Galaxie 5.0: adds the columns for the post hero text, glow and hero styles, the carousel text shadow, the post hero style in Blog Options and the Site Setup wizard, creates the Scenes and shop tables, switches GreenSock on, and turns background pictures back on for themes that have one. --->
+<!--- description: Galaxie 5.0: adds the columns for the post hero text, glow and hero styles, the carousel text shadow, the post hero style in Blog Options and the Site Setup wizard, creates the Scenes and shop tables, switches GreenSock on, turns background pictures back on for themes that have one, and moves the built-in theme backgrounds to their new folder. --->
 <!--- The work is done by DatabaseUpdater.cfc's ensureColumns(), which adds only the columns that are missing (ORM may already have
 added them when the blog restarted with the new files). --->
 <cfset ensureColumns("Post", [
@@ -36,6 +36,34 @@ switched on once here. An owner can switch it off again in Blog Options. --->
 	<cfset application.includeGsap = true>
 </cfif>
 <cfset addToLog("GreenSock: switched on (#gsapTurnedOn# blog setting changed).")>
+<!--- Theme backgrounds (2026-10-21): the built-in themes' background pictures moved to /images/background/themes/, so the themes
+that still point at the old folders are pointed at the new one. Only the picture fields are changed, and only the folder part,
+so a picture the owner chose themselves stays the same picture. --->
+<cfset themePathsMoved = 0>
+<cftry>
+	<cfset themePictureFields = ["BlogBackgroundImage","BlogBackgroundImageMobile","HeaderBackgroundImage","HeaderBodyDividerImage",
+		"MenuBackgroundImage","LogoImage","LogoImageMobile","DefaultLogoImageForSocialMediaShare","FooterImage"]>
+	<cfloop array="#entityLoad('ThemeSetting')#" index="themeSettingRow">
+		<cfloop array="#themePictureFields#" index="pictureField">
+			<cfset oldPicture = invoke(themeSettingRow, "get" & pictureField) ?: "">
+			<cfif len(oldPicture)>
+				<cfset newPicture = reReplaceNoCase(oldPicture, "/images/background/gregoryalexander/purchased/(depositPhotos/)?", "/images/background/themes/", "all")>
+				<cfif newPicture neq oldPicture>
+					<cfset invoke(themeSettingRow, "set" & pictureField, [newPicture])>
+					<cfset themePathsMoved++>
+				</cfif>
+			</cfif>
+		</cfloop>
+	</cfloop>
+	<cfif themePathsMoved>
+		<cfset ormFlush()>
+		<cfset application.blog.flushGalaxieCache(type = "all")>
+	</cfif>
+	<cfcatch type="any">
+		<cfset addToLog("The theme background folders couldn't be updated: " & cfcatch.message)>
+	</cfcatch>
+</cftry>
+<cfset addToLog("Theme backgrounds: #themePathsMoved# picture address(es) moved to the new folder.")>
 <!--- Background pictures (2026-10-20): a theme with no background picture, or with "show background pictures" switched off,
 shows a plain page, and nothing on the old Themes screen made that easy to spot (the owner found Snow like this on
 galaxieblog.org: switched off while testing, and its picture gone). Every built-in theme ships with its picture on, so:
