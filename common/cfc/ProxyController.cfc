@@ -9648,6 +9648,8 @@
 		<cfargument name="enableVisitorLog" default="" required="false">
 		<cfargument name="includeDisqus" default="" required="false">
 		<cfargument name="includeGsap" default="" required="false">
+		<!--- The GreenSock library source radios sit inside this form but save themselves (saveSceneSettings), so this is accepted and not used (2026-10-21). --->
+		<cfargument name="gsapLibrarySource" default="" required="false">
 		<!--- Dropdowns --->
 		<cfargument name="visitorLogMonths" default="" required="false">
 		<cfargument name="adminLogMonths" default="" required="false">
