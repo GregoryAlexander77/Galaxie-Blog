@@ -14759,6 +14759,15 @@
 		<cfset response[ "products" ] = application.shop.getProductsForPage(left(trim(arguments.aliases), 2000))>
 		<cfset response[ "currency" ] = settings.currency>
 		<cfset response[ "open" ] = settings.enabled and settings.paymentsReady>
+		<!--- Why the shop shows as closed (2026-10-22), for a signed-in admin only: visitors just see "closed right now". --->
+		<cfset response[ "ownerNote" ] = "">
+		<cfif not response.open and application.Udf.isLoggedIn()>
+			<cfif not settings.paymentsReady>
+				<cfset response[ "ownerNote" ] = "Only you see this: payments aren't set up yet, so visitors can't buy. Add your Stripe keys in Blog Options > Payments.">
+			<cfelse>
+				<cfset response[ "ownerNote" ] = "Only you see this: the shop is closed. Open it in Products > Shop is open.">
+			</cfif>
+		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 

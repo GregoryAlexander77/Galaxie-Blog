@@ -68,7 +68,7 @@ var galaxieShop = (function($) {
 
 	// ---------- Product cards
 
-	function renderCard(product, open) {
+	function renderCard(product, open, ownerNote) {
 		var card = $('<div class="galaxieProductCard"></div>');
 		if (product.imageUrl) {
 			card.append($('<img class="galaxieProductPicture" alt="">').attr("src", product.imageUrl));
@@ -81,6 +81,8 @@ var galaxieShop = (function($) {
 			body.append($('<button type="button" class="k-button" disabled></button>').text("Sold out"));
 		} else if (!product.available) {
 			body.append($('<div class="galaxieProductNote"></div>').text(open ? "Not available right now." : "The shop is closed right now."));
+			// Why, for a signed-in admin only (the server sends it only then), in the soft info callout (2026-10-22).
+			if (!open && ownerNote) { body.append($('<blockquote class="k-notification-info"></blockquote>').append($("<p></p>").text(ownerNote))); }
 		} else {
 			$('<button type="button" class="k-button k-primary"></button>').text("Add to cart").on("click", function() {
 				addToCart(product.alias, product.kind);
@@ -121,7 +123,7 @@ var galaxieShop = (function($) {
 						$.each(aliases, function(i, alias) {
 							var product = byAlias[$.trim(alias)];
 							if (product) {
-								$('<div class="galaxieBlock"></div>').addClass(shown % 2 ? "k-alt" : "k-content").append(renderCard(product, result.open)).appendTo(blocks);
+								$('<div class="galaxieBlock"></div>').addClass(shown % 2 ? "k-alt" : "k-content").append(renderCard(product, result.open, result.ownerNote)).appendTo(blocks);
 								shown++;
 							}
 						});

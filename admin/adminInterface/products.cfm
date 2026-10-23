@@ -72,17 +72,19 @@ not a grid: a small shop has a handful of products. --->
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Shop settings</h4></td></tr>
-	<cfif not shopSettings.paymentsReady>
-	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#"><b>Set up payments first:</b> the shop takes payments through your Stripe account, in Blog Options &gt; Payments. Until then, products show without an Add to cart button.</td></tr>
-	<cfelseif shopSettings.testMode>
+	<cfif shopSettings.paymentsReady and shopSettings.testMode>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">Payments are in <b>test mode</b> (Blog Options &gt; Payments): orders use Stripe's test cards and no money changes hands.</td></tr>
 	</cfif>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right"><label for="shopEnabled">Shop is open:</label></td>
-		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="shopEnabled"<cfif shopSettings.enabled> checked</cfif>> <span class="k-form-hint">When it's closed, products still show, without an Add to cart button.</span></td>
+		<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="shopEnabled"<cfif shopSettings.enabled> checked</cfif>> <span class="k-form-hint">When it's closed, products still show, without an Add to cart button.</span>
+		<!--- Without payments the shop shows as closed even when it's open here (owner, 10-22: "it says the shop is closed, but I
+		opened the shop"), so say so right where it's opened, in the soft info callout. --->
+		<cfif not shopSettings.paymentsReady>
+			<blockquote class="k-notification-info"><p><b>Visitors will see the shop as closed until payments are set up.</b> Add your Stripe keys in <a href="javascript:createAdminInterfaceWindow(38, 'payments');">Blog Options &gt; Payments</a>, then the Add to cart buttons appear.</p></blockquote>
+		</cfif></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
