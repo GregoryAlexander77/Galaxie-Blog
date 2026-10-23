@@ -1,6 +1,6 @@
 {
-	"name": "Delicate Arch at golden hour",
-	"description": "The arch on its slickrock rim in low evening sun, the snowy La Sal Mountains behind. Light to load.",
+	"name": "Arches",
+	"description": "A sandstone arch on its slickrock rim in low evening sun, the snowy La Sal Mountains behind. Light to load.",
 	"order": 11,
 	"pageColour": "#2a1316",
 	"settings": {
@@ -17,27 +17,27 @@
 			"fadeColour": "#2a1316",
 			"layers": [
 				{
-					"src": "{baseUrl}/images/scenes/delicate/1.svg",
+					"src": "{baseUrl}/images/scenes/arches/1.svg",
 					"depth": 60
 				},
 				{
-					"src": "{baseUrl}/images/scenes/delicate/2.svg",
+					"src": "{baseUrl}/images/scenes/arches/2.svg",
 					"depth": 160
 				},
 				{
-					"src": "{baseUrl}/images/scenes/delicate/3.svg",
+					"src": "{baseUrl}/images/scenes/arches/3.svg",
 					"depth": 280
 				},
 				{
-					"src": "{baseUrl}/images/scenes/delicate/4.svg",
+					"src": "{baseUrl}/images/scenes/arches/4.svg",
 					"depth": 420
 				},
 				{
-					"src": "{baseUrl}/images/scenes/delicate/5.svg",
+					"src": "{baseUrl}/images/scenes/arches/5.svg",
 					"depth": 560
 				},
 				{
-					"src": "{baseUrl}/images/scenes/delicate/6.svg",
+					"src": "{baseUrl}/images/scenes/arches/6.svg",
 					"depth": 700
 				}
 			],
