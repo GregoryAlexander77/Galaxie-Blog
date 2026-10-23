@@ -143,7 +143,7 @@ details). --->
 	<cfset iconList = listAppend(iconList, 'Shop')>
 	<cfset titleList = listAppend(titleList, 'Shop')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(111);")>
-	<cfset imageList = listAppend(imageList, "/images/icons/shopProducts.svg")>
+	<cfset imageList = listAppend(imageList, "/images/icons/shop.gif")>
 	<cfset iconList = listAppend(iconList, 'Orders')>
 	<cfset titleList = listAppend(titleList, 'Orders')>
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(113&##44;'paid');")>
