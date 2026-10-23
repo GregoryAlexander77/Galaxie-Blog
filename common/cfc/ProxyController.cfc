@@ -9929,6 +9929,103 @@
 		Blog Settings
 	*******************************************************************************************************--->
 					
+	<!--- Test buttons in Blog Settings (2026-10-23, owner: "there is no validation if you put in a wrong credential"). Both try the
+	values typed in the window, before they are saved; a blank password means the saved one, as saveBlogSettings does. --->
+	<cffunction name="testMailSettings" access="remote" returnformat="json" output="false"
+			hint="Sends a short test email with the mail settings typed in Blog Settings, straight away (not through the mail spool), so a wrong server, user name or password shows its real error. Returns { success, message }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="mailServer" type="string" default="" required="false">
+		<cfargument name="mailUserName" type="string" default="" required="false">
+		<cfargument name="mailPassword" type="string" default="" required="false">
+		<cfargument name="blogEmail" type="string" default="" required="false" hint="The test goes to, and comes from, this address.">
+		<cfset var response = { "success": false, "message": "" }>
+		<cfset var address = trim(arguments.blogEmail)>
+		<cfset var password = arguments.mailPassword>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfif not isValid("email", address)>
+				<cfset response[ "message" ] = "Enter the Blog Email Address first: the test email is sent to it.">
+			<cfelse>
+				<cfif not len(password)>
+					<cfset password = isNull(application.BlogDbObj.getBlogMailServerPassword()) ? "" : application.BlogDbObj.getBlogMailServerPassword()>
+				</cfif>
+				<cftry>
+					<cfif len(trim(arguments.mailServer))>
+						<cfmail to="#address#" from="#address#" subject="Test email from #application.BlogDbObj.getBlogTitle()#" type="text"
+							server="#trim(arguments.mailServer)#" username="#trim(arguments.mailUserName)#" password="#password#"
+							spoolenable="false" timeout="20">This is a test email from your blog's Blog Settings window. Your mail settings work.</cfmail>
+					<cfelse>
+						<!--- No mail server: the server's own mail settings (ColdFusion or Lucee Administrator) are used, as for every email. --->
+						<cfmail to="#address#" from="#address#" subject="Test email from #application.BlogDbObj.getBlogTitle()#" type="text"
+							spoolenable="false" timeout="20">This is a test email from your blog's Blog Settings window. Your mail settings work.</cfmail>
+					</cfif>
+					<cfset response[ "success" ] = true>
+					<cfset response[ "message" ] = "Success! The mail server accepted a test email to #address#. Check that inbox (and the spam folder) in a minute.">
+					<cfcatch type="any">
+						<cfset response[ "message" ] = "The mail server didn't accept it: " & left(trim(reReplace(cfcatch.message & " " & (cfcatch.detail ?: ""), "<[^>]*>", "", "all")), 500)>
+					</cfcatch>
+				</cftry>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="testDatabaseSettings" access="remote" returnformat="json" output="false"
+			hint="Connects to the database with the datasource name, user name and password typed in Blog Settings. Returns { success, message }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="dsn" type="string" default="" required="false">
+		<cfargument name="dsnUserName" type="string" default="" required="false">
+		<cfargument name="dsnPassword" type="string" default="" required="false">
+		<cfset var response = { "success": false, "message": "" }>
+		<cfset var options = {}>
+		<cfset var password = arguments.dsnPassword>
+		<cfset var product = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfif not len(trim(arguments.dsn))>
+				<cfset response[ "message" ] = "Enter the datasource name (DSN) first.">
+			<cfelse>
+				<cfif not len(password)>
+					<cfset password = isNull(application.BlogDbObj.getBlogDsnPassword()) ? "" : application.BlogDbObj.getBlogDsnPassword()>
+				</cfif>
+				<cfset options.datasource = trim(arguments.dsn)>
+				<cfif len(trim(arguments.dsnUserName))>
+					<cfset options.username = trim(arguments.dsnUserName)>
+					<cfset options.password = password>
+				</cfif>
+				<cftry>
+					<cfset queryExecute("SELECT 1 AS ok", {}, options)>
+					<!--- Which database it reached, when the driver says (cfdbinfo). --->
+					<cftry>
+						<cfif structKeyExists(options, "username")>
+							<cfdbinfo type="version" datasource="#options.datasource#" username="#options.username#" password="#options.password#" name="local.version">
+						<cfelse>
+							<cfdbinfo type="version" datasource="#options.datasource#" name="local.version">
+						</cfif>
+						<!--- SQL Server's version already starts with its name. --->
+						<cfset product = findNoCase(local.version.DATABASE_PRODUCTNAME, local.version.DATABASE_VERSION) ? trim(local.version.DATABASE_VERSION) : trim(local.version.DATABASE_PRODUCTNAME & " " & local.version.DATABASE_VERSION)>
+						<cfset product = trim(listFirst(product, chr(10)))>
+						<cfcatch type="any"></cfcatch>
+					</cftry>
+					<cfset response[ "success" ] = true>
+					<cfset response[ "message" ] = "Success! Connected through the '#options.datasource#' datasource" & (len(product) ? " (" & product & ")." : ".")>
+					<cfcatch type="any">
+						<cfset response[ "message" ] = "Could not connect: " & left(trim(reReplace(cfcatch.message & " " & (cfcatch.detail ?: ""), "<[^>]*>", "", "all")), 500)>
+					</cfcatch>
+				</cftry>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="saveBlogSettings" access="remote" output="false" returnformat="json"
 			hint="Updates the BlogSetting table">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">

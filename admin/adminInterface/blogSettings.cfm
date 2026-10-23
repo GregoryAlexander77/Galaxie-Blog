@@ -75,6 +75,28 @@
 	</style>
 		
 	<script>
+	// Test buttons (2026-10-23): try the mail or database values typed in the window, and say plainly whether they work.
+	$(document).off("click.settingsTest").on("click.settingsTest", ".settingsTest", function () {
+		var button = $(this), kind = button.attr("data-test"), result = $("#" + kind + "TestResult");
+		var data = kind === "mail"
+			? { mailServer: $("#mailServer").val(), mailUserName: $("#mailUserName").val(), mailPassword: $("#mailPassword").val(), blogEmail: $("#blogEmail").val() }
+			: { dsn: $("#dsn").val(), dsnUserName: $("#dsnUserName").val(), dsnPassword: $("#dsnPassword").val() };
+		data.csrfToken = "<cfoutput>#csrfToken#</cfoutput>";
+		button.prop("disabled", true);
+		result.html('<blockquote class="k-notification-info"><p>' + (kind === "mail" ? "Sending a test email..." : "Connecting...") + '</p></blockquote>');
+		jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=" + (kind === "mail" ? "testMailSettings" : "testDatabaseSettings"), data: data, dataType: "json", timeout: 60000 })
+			.done(function (response) {
+				if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+				var ok = response && response.success;
+				result.empty().append($("<blockquote></blockquote>").addClass(ok ? "k-notification-success" : "k-notification-error").append($("<p></p>").text((response && response.message) || "The test could not run.")));
+			})
+			.fail(function (jqXHR) {
+				if (jqXHR.status === 403) { createLoginWindow(); }
+				result.empty().append($('<blockquote class="k-notification-error"></blockquote>').append($("<p></p>").text("The test could not run (" + (jqXHR.statusText || "no answer") + ").")));
+			})
+			.always(function () { button.prop("disabled", false); });
+	});
+
 		
 		// !!! Note on the validators, all forms need a name attribute, otherwise the positioning of the messages will not work. --->
 		$(document).ready(function() {
@@ -1051,6 +1073,13 @@
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		
+		<!--- Test button (2026-10-23, owner): tries the values typed above before they are saved (ProxyController.cfc testDatabaseSettings). --->
+		  <tr>
+			<td colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
+				<button type="button" class="k-button settingsTest" data-test="database">Test the database connection</button> <span class="k-form-hint">Uses the values above, before you save.</span>
+				<div class="settingsTestResult" id="databaseTestResult"></div>
+			</td>
+		  </tr>
 		</table>
 	</div>
 	</div>
@@ -1303,6 +1332,13 @@
 		  <!-- Border -->
 		  <tr height="2px">
 			<td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		<!--- Test button (2026-10-23, owner): tries the values typed above before they are saved (ProxyController.cfc testMailSettings). --->
+		  <tr>
+			<td colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
+				<button type="button" class="k-button settingsTest" data-test="mail">Send a test email</button> <span class="k-form-hint">Sends a short email to the Blog Email Address with the values above, before you save.</span>
+				<div class="settingsTestResult" id="mailTestResult"></div>
+			</td>
 		  </tr>
 		</table>
 	</div>
