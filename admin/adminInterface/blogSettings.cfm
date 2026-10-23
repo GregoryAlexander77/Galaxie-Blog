@@ -1312,3 +1312,6 @@
 
 	<br/><br/>
 	<button id="settingsSubmit" name="settingsSubmit" class="k-button k-primary" type="button">Submit</button>
+
+	<!--- Notes (2026-10-22): a private note on these settings, at the bottom of the window. --->
+	<cfset notesKind = "blogSettings"><cfset notesItemId = 1><cfset notesLayout = "div"><cfinclude template="adminNotes.cfm">

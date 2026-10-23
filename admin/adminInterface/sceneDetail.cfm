@@ -278,6 +278,8 @@ chose "this server only" (Scenes window settings). --->
 				<button id="sceneAddSection" type="button" class="k-button k-primary">Add section...</button>
 				<div class="k-form-hint">It goes after the selected section.</div>
 			</div>
+			<!--- Notes on this scene (2026-10-22), at the bottom of the left column; a new scene gets its box when first saved. --->
+			<cfset notesKind = "scene"><cfset notesItemId = isNewScene ? 0 : scene.sceneId><cfset notesLayout = "div"><cfset notesDomId = "sceneNotes"><cfinclude template="adminNotes.cfm">
 		</div>
 		<div id="sceneEditorSettings" class="#blockClass#">
 			<div id="sceneSettingsTop"></div>
@@ -1778,6 +1780,8 @@ $(document).ready(function () {
 				if (response && response.success) {
 					<!--- Saved: from now on this is an existing scene, and its name in posts stays as it is. --->
 					sceneId = response.sceneId;
+					<!--- A new scene's notes box comes alive now that it has an id. --->
+					if (window.galaxieAdminNoteBoxes && galaxieAdminNoteBoxes.sceneNotes && $("#sceneNotes").is(":hidden")) { galaxieAdminNoteBoxes.sceneNotes.setItem(sceneId); }
 					$("#sceneAlias").prop("readonly", true).attr("title", "A saved scene keeps its name, so the posts that show it keep working.");
 					$("#sceneRestart").remove();
 					unsaved = false;

@@ -446,6 +446,8 @@ its refund window are in the Price section (2026-10-15). --->
 		<td class="#blockClass#"></td>
 		<td class="#blockClass#"><button id="bookingTypeSubmit" type="button" class="k-button k-primary">Save</button></td>
 	</tr>
+	<!--- Notes (2026-10-22): a private note on this, at the bottom of the window. --->
+	<cfset notesKind = "bookingType"><cfset notesItemId = bookingTypeId><cfinclude template="adminNotes.cfm">
 </table>
 </form>
 </cfoutput>

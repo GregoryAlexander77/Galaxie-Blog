@@ -2068,3 +2068,6 @@
 
 	<br/><br/>
 	<button id="optionsSubmit" name="optionsSubmit" class="k-button k-primary" type="button">Submit</button>
+
+	<!--- Notes (2026-10-22): a private note on these settings, at the bottom of the window. --->
+	<cfset notesKind = "blogOptions"><cfset notesItemId = 1><cfset notesLayout = "div"><cfinclude template="adminNotes.cfm">

@@ -131,6 +131,8 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 				<button type="button" class="k-button" id="themeLookUndo" title="Go back to this theme's saved look">Undo changes</button>
 				<span class="k-form-hint" id="themeLookStatus"></span>
 			</div>
+			<!--- Notes on the theme being customized (2026-10-22): startCustomize switches the box to that theme. --->
+			<cfset notesKind = "theme"><cfset notesItemId = 0><cfset notesLayout = "div"><cfset notesDomId = "themeLookNotes"><cfinclude template="adminNotes.cfm">
 		</div>
 		<div id="themeLookPreview">
 			<iframe id="themeLookFrame" title="Preview of your site"></iframe>
@@ -327,6 +329,7 @@ $(function () {
 		themePicker.value(t.ThemeId);
 		drawFields();
 		sendDraft(true);
+		if (window.galaxieAdminNoteBoxes && galaxieAdminNoteBoxes.themeLookNotes) { galaxieAdminNoteBoxes.themeLookNotes.setItem(t.ThemeId); }
 	}
 	function setUnsaved(on) {
 		unsaved = on;

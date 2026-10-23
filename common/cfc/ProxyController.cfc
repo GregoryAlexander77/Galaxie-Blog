@@ -14563,6 +14563,46 @@
 		since orders hold buyers' names, emails and addresses.
 	********************************************************************************************************************* --->
 
+	<cffunction name="getAdminNote" access="remote" returnformat="json" output="false" hint="The private note on a post, product, order and the like, for a window that switches records (the Themes window).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="kind" type="string" default="" required="false">
+		<cfargument name="itemId" default="0" required="false">
+		<cfset var response = { "note": "", "updatedBy": "", "updated": "" }>
+		<cfset var found = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfif application.Udf.isLoggedIn() and application.blog.getAdminNotes().isKind(arguments.kind)>
+			<cfset found = application.blog.getAdminNotes().getNote(arguments.kind, val(arguments.itemId))>
+			<cfset response = { "note": found.note, "updatedBy": found.updatedBy, "updated": found.updated }>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="saveAdminNote" access="remote" returnformat="json" output="false" hint="Saves the private note on a post, product, order and the like (admin/adminInterface/adminNotes.cfm, 2026-10-22).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="kind" type="string" default="" required="false">
+		<cfargument name="itemId" default="0" required="false">
+		<cfargument name="note" type="string" default="" required="false">
+		<cfset var response = { "success": false, "errorMessage": "", "updatedBy": "", "updated": "" }>
+		<cfset var saved = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfif application.Udf.isLoggedIn() and application.blog.getAdminNotes().isKind(arguments.kind) and val(arguments.itemId) gt 0>
+			<cftry>
+				<cfset saved = application.blog.getAdminNotes().saveNote(arguments.kind, val(arguments.itemId), arguments.note, session.userName ?: "")>
+				<cfset response[ "success" ] = true>
+				<cfset response[ "updatedBy" ] = saved.updatedBy>
+				<cfset response[ "updated" ] = saved.updated>
+				<cfcatch type="any"><cfset response[ "errorMessage" ] = "The note could not be saved: " & cfcatch.message></cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="saveShopSettings" access="remote" returnformat="json" output="false" hint="The shop's switches, from the Products window.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="enabled" default="false" required="false">

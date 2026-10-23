@@ -455,6 +455,8 @@ person:user:5 / person:guest:3 in OrganizerUrl ("guest" is only the internal nam
 		<td class="#blockClass#"></td>
 		<td class="#blockClass#"><button type="button" class="k-button k-primary" id="eventSubmit">Save event</button><cfif not isNewEvent> <button type="button" class="k-button" id="eventDelete">Remove event</button></cfif></td>
 	</tr>
+	<!--- Notes (2026-10-22): a private note on this, at the bottom of the window. --->
+	<cfset notesKind = "event"><cfset notesItemId = (isNewEvent ? 0 : eventPostId)><cfinclude template="adminNotes.cfm">
 </table>
 </cfoutput>
 

@@ -84,5 +84,7 @@ away by ProxyController.cfc's saveBookingPage; Make it an ordinary page takes th
 		<td class="#blockClass#"></td>
 		<td class="#blockClass#"><button type="button" class="k-button k-primary" id="bookingPageSave">Save</button><cfif len(bookingPageOffer)> <button type="button" class="k-button" id="bookingPageRemove">Make it an ordinary page</button></cfif></td>
 	</tr>
+	<!--- Notes (2026-10-22): a private note on this, at the bottom of the window. --->
+	<cfset notesKind = "post"><cfset notesItemId = bookingPagePostId><cfinclude template="adminNotes.cfm">
 </table>
 </cfoutput>

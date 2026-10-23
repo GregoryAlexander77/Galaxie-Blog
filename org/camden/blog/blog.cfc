@@ -1596,6 +1596,17 @@
 		<cfreturn variables.scenesObj>
 	</cffunction>
 
+	<cffunction name="getAdminNotes" access="public" returnType="any" output="false" hint="Private admin notes on posts, products, orders and the like (common/cfc/AdminNotes.cfc, 2026-10-22), created on first use, like getScenes.">
+		<cfif not structKeyExists(variables, "adminNotesObj")>
+			<cflock name="galaxieAdminNotesCreate_#application.applicationName#" type="exclusive" timeout="10">
+				<cfif not structKeyExists(variables, "adminNotesObj")>
+					<cfset variables.adminNotesObj = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.AdminNotes" : "common.cfc.AdminNotes")>
+				</cfif>
+			</cflock>
+		</cfif>
+		<cfreturn variables.adminNotesObj>
+	</cffunction>
+
 	<cffunction name="errorEmailMode" access="public" returnType="string" output="false" hint="'daily' (one summary a night, the default) or 'immediate' (an email for each new error). Falls back to 'immediate' if the summary can't be read, so errors are never silently dropped.">
 		<cftry>
 			<cfreturn getErrorDigest().mode()>

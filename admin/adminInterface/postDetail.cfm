@@ -1739,6 +1739,8 @@
 			<button id="postDetailSubmit" name="postDetailSubmit" class="k-button k-primary" type="button">Submit</button>
 		</td>
 	  </tr>
+	  <!--- Notes (2026-10-22): a private note on this post or page, at the bottom of the window. --->
+	  <cfset blockClass = thisContentClass><cfset notesKind = "post"><cfset notesItemId = getPost[1]['PostId']><cfinclude template="adminNotes.cfm">
 	</table>
 	</form>
 

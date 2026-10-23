@@ -129,6 +129,8 @@
 		</tr>
 		</cfif>
 	</cfif>
+	<!--- Notes (2026-10-22): a private note on this, at the bottom of the window. --->
+	<cfset notesKind = "order"><cfset notesItemId = shopOrder.shopOrderId><cfinclude template="adminNotes.cfm">
 </table>
 </cfoutput>
 </cfif>

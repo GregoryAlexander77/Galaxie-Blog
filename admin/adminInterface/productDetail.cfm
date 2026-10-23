@@ -239,6 +239,8 @@ again. The picture goes to /images/shop/ (uploadShopProductImage); a download's 
 			<cfif not isNewProduct><button id="productDelete" type="button" class="k-button">Delete</button></cfif>
 		</td>
 	</tr>
+	<!--- Notes (2026-10-22): a private note on this, at the bottom of the window. --->
+	<cfset notesKind = "product"><cfset notesItemId = productId><cfinclude template="adminNotes.cfm">
 </table>
 </form>
 </cfoutput>

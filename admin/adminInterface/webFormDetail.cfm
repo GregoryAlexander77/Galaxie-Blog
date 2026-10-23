@@ -505,6 +505,8 @@ the submissions already received - stay matched to it when the label changes. --
 		<td class="#blockClass#"></td>
 		<td class="#blockClass#"><button id="webFormSubmit" type="button" class="k-button k-primary">Save</button></td>
 	</tr>
+	<!--- Notes (2026-10-22): a private note on this, at the bottom of the window. --->
+	<cfset notesKind = "form"><cfset notesItemId = webFormId><cfinclude template="adminNotes.cfm">
 </table>
 </form>
 </cfoutput>
