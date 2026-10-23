@@ -1,0 +1,82 @@
+{
+	"name": "Wilderness",
+	"description": "Looking down a misty valley at sunset: forested hillsides, a glowing lake, a hiker on a cliff and a fire lookout far off. As you scroll the dark ground rises and swallows the scene.",
+	"order": 24,
+	"pageColour": "#2c0b12",
+	"settings": {
+		"scrub": true,
+		"pinLength": "100%",
+		"fadeHeight": "6vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"shadow": "soft",
+			"fadeColour": "#2c0b12",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/wilderness/1.webp",
+					"srcPhone": "{baseUrl}/images/scenes/wilderness/1-phone.webp",
+					"depth": 2
+				},
+				{
+					"src": "{baseUrl}/images/scenes/wilderness/2.webp",
+					"srcPhone": "{baseUrl}/images/scenes/wilderness/2-phone.webp",
+					"depth": 8
+				},
+				{
+					"src": "{baseUrl}/images/scenes/wilderness/3.webp",
+					"srcPhone": "{baseUrl}/images/scenes/wilderness/3-phone.webp",
+					"depth": 16
+				},
+				{
+					"src": "{baseUrl}/images/scenes/wilderness/4.webp",
+					"srcPhone": "{baseUrl}/images/scenes/wilderness/4-phone.webp",
+					"depth": 28
+				},
+				{
+					"src": "{baseUrl}/images/scenes/wilderness/5.webp",
+					"srcPhone": "{baseUrl}/images/scenes/wilderness/5-phone.webp",
+					"depth": 42
+				},
+				{
+					"src": "{baseUrl}/images/scenes/wilderness/6.webp",
+					"srcPhone": "{baseUrl}/images/scenes/wilderness/6-phone.webp",
+					"depth": 56
+				},
+				{
+					"src": "{baseUrl}/images/scenes/wilderness/7.webp",
+					"srcPhone": "{baseUrl}/images/scenes/wilderness/7-phone.webp",
+					"depth": 70
+				},
+				{
+					"src": "{baseUrl}/images/scenes/wilderness/8.webp",
+					"srcPhone": "{baseUrl}/images/scenes/wilderness/8-phone.webp",
+					"depth": 86
+				},
+				{
+					"src": "{baseUrl}/images/scenes/wilderness/9.webp",
+					"srcPhone": "{baseUrl}/images/scenes/wilderness/9-phone.webp",
+					"depth": 100
+				}
+			]
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colors and pictures in the Scene editor.</p>",
+			"colour": "#2c0b12",
+			"gradient": "linear-gradient(180deg, #2c0b12 0%, #4a1520 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#4a1520",
+			"gradient": "linear-gradient(180deg, #4a1520 0%, #2c0b12 100%)"
+		}
+	]
+}
