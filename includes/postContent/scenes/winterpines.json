@@ -1,6 +1,6 @@
 {
 	"name": "Winter pines",
-	"description": "The pine forest in cool winter blues. Light to load.",
+	"description": "The pine forest in cool winter blues.",
 	"order": 9,
 	"pageColour": "#263a5c",
 	"settings": {
@@ -17,28 +17,34 @@
 			"fadeColour": "#263a5c",
 			"layers": [
 				{
-					"src": "{baseUrl}/images/scenes/winterpines/1.svg",
-					"depth": 60
+					"src": "{baseUrl}/images/scenes/winterpines/1.webp",
+					"depth": 60,
+					"srcPhone": "{baseUrl}/images/scenes/winterpines/1-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/winterpines/2.svg",
-					"depth": 160
+					"src": "{baseUrl}/images/scenes/winterpines/2.webp",
+					"depth": 160,
+					"srcPhone": "{baseUrl}/images/scenes/winterpines/2-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/winterpines/3.svg",
-					"depth": 280
+					"src": "{baseUrl}/images/scenes/winterpines/3.webp",
+					"depth": 280,
+					"srcPhone": "{baseUrl}/images/scenes/winterpines/3-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/winterpines/4.svg",
-					"depth": 420
+					"src": "{baseUrl}/images/scenes/winterpines/4.webp",
+					"depth": 420,
+					"srcPhone": "{baseUrl}/images/scenes/winterpines/4-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/winterpines/5.svg",
-					"depth": 560
+					"src": "{baseUrl}/images/scenes/winterpines/5.webp",
+					"depth": 560,
+					"srcPhone": "{baseUrl}/images/scenes/winterpines/5-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/winterpines/6.svg",
-					"depth": 700
+					"src": "{baseUrl}/images/scenes/winterpines/6.webp",
+					"depth": 700,
+					"srcPhone": "{baseUrl}/images/scenes/winterpines/6-phone.webp"
 				}
 			],
 			"shadow": "soft"

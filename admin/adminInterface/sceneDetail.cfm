@@ -706,9 +706,10 @@ $(document).ready(function () {
 		if (field.type === "slides") { return slidesField(wrap); }
 		if (field.type === "artStyle") {
 			<!--- Flat / Soft (2026-10-19, owner): for a drawn scene that comes in both color styles, swaps every layer between
-			images/scenes/{name}/ and images/scenes/{name}-soft/. Not shown for other layers. --->
+			images/scenes/{name}/ and images/scenes/{name}-soft/. Not shown for other layers. The detailed ones ship as WebP, with
+			a smaller {n}-phone.webp for mobile (2026-10-22). --->
 			var artLayers = getValue("layers") || [];
-			var art = artLayers.length ? /\/images\/scenes\/([a-z0-9]+?)(-soft)?\/\d+\.svg$/i.exec(artLayers[0].src || "") : null;
+			var art = artLayers.length ? /\/images\/scenes\/([a-z0-9]+?)(-soft)?\/\d+(-phone)?\.(svg|webp)$/i.exec(artLayers[0].src || "") : null;
 			if (!art || SOFT_SETS.indexOf(art[1].toLowerCase()) < 0) { return $(); }
 			var style = $('<select></select>').attr("id", id).append('<option value="flat">Flat colors</option><option value="soft">Soft (ridges blend into each other)</option>').val(art[2] ? "soft" : "flat");
 			style.on("change", function () {

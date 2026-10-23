@@ -1,6 +1,6 @@
 {
 	"name": "Fire lookout",
-	"description": "A late summer sunset over ridges of pines, in flat oranges and reds. Look for the fire lookout on the far peak. Light to load.",
+	"description": "A late summer sunset over ridges of pines, in flat oranges and reds. Look for the fire lookout on the far peak.",
 	"order": 10,
 	"pageColour": "#3e1630",
 	"settings": {
@@ -17,28 +17,34 @@
 			"fadeColour": "#3e1630",
 			"layers": [
 				{
-					"src": "{baseUrl}/images/scenes/lookout/1.svg",
-					"depth": 60
+					"src": "{baseUrl}/images/scenes/lookout/1.webp",
+					"depth": 60,
+					"srcPhone": "{baseUrl}/images/scenes/lookout/1-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/lookout/2.svg",
-					"depth": 160
+					"src": "{baseUrl}/images/scenes/lookout/2.webp",
+					"depth": 160,
+					"srcPhone": "{baseUrl}/images/scenes/lookout/2-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/lookout/3.svg",
-					"depth": 280
+					"src": "{baseUrl}/images/scenes/lookout/3.webp",
+					"depth": 280,
+					"srcPhone": "{baseUrl}/images/scenes/lookout/3-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/lookout/4.svg",
-					"depth": 420
+					"src": "{baseUrl}/images/scenes/lookout/4.webp",
+					"depth": 420,
+					"srcPhone": "{baseUrl}/images/scenes/lookout/4-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/lookout/5.svg",
-					"depth": 560
+					"src": "{baseUrl}/images/scenes/lookout/5.webp",
+					"depth": 560,
+					"srcPhone": "{baseUrl}/images/scenes/lookout/5-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/lookout/6.svg",
-					"depth": 700
+					"src": "{baseUrl}/images/scenes/lookout/6.webp",
+					"depth": 700,
+					"srcPhone": "{baseUrl}/images/scenes/lookout/6-phone.webp"
 				}
 			],
 			"shadow": "soft"

@@ -1,6 +1,6 @@
 {
 	"name": "Pine forest",
-	"description": "Ridges of pine trees under a pale morning sky: small and dense far away, tall up close. Light to load.",
+	"description": "Ridges of pine trees under a pale morning sky: small and dense far away, tall up close.",
 	"order": 8,
 	"pageColour": "#1b3a2b",
 	"settings": {
@@ -17,28 +17,34 @@
 			"fadeColour": "#1b3a2b",
 			"layers": [
 				{
-					"src": "{baseUrl}/images/scenes/pines/1.svg",
-					"depth": 60
+					"src": "{baseUrl}/images/scenes/pines/1.webp",
+					"depth": 60,
+					"srcPhone": "{baseUrl}/images/scenes/pines/1-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/pines/2.svg",
-					"depth": 160
+					"src": "{baseUrl}/images/scenes/pines/2.webp",
+					"depth": 160,
+					"srcPhone": "{baseUrl}/images/scenes/pines/2-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/pines/3.svg",
-					"depth": 280
+					"src": "{baseUrl}/images/scenes/pines/3.webp",
+					"depth": 280,
+					"srcPhone": "{baseUrl}/images/scenes/pines/3-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/pines/4.svg",
-					"depth": 420
+					"src": "{baseUrl}/images/scenes/pines/4.webp",
+					"depth": 420,
+					"srcPhone": "{baseUrl}/images/scenes/pines/4-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/pines/5.svg",
-					"depth": 560
+					"src": "{baseUrl}/images/scenes/pines/5.webp",
+					"depth": 560,
+					"srcPhone": "{baseUrl}/images/scenes/pines/5-phone.webp"
 				},
 				{
-					"src": "{baseUrl}/images/scenes/pines/6.svg",
-					"depth": 700
+					"src": "{baseUrl}/images/scenes/pines/6.webp",
+					"depth": 700,
+					"srcPhone": "{baseUrl}/images/scenes/pines/6-phone.webp"
 				}
 			],
 			"textColour": "#1b3a2b"
