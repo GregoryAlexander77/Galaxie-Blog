@@ -768,19 +768,113 @@
 	</cftransaction>
 </cffunction>
 
+<cffunction name="testKeys" access="public" returntype="struct" output="false"
+		hint="The Test button in Blog Options > Payments (2026-10-23, owner): asks Stripe whether the keys typed (or saved) for one mode work, which account they belong to, and whether a webhook points at this blog with the four events. Nothing is changed in Stripe. Returns { success, lines: [{ ok, text }] }.">
+	<cfargument name="mode" type="string" required="true" hint="test or live">
+	<cfargument name="publishableKey" type="string" required="false" default="">
+	<cfargument name="secretKey" type="string" required="false" default="" hint="Empty = the saved one.">
+	<cfset var result = { "success": false, "lines": [] }>
+	<cfset var keyMode = arguments.mode eq "live" ? "live" : "test">
+	<cfset var entity = loadEntity()>
+	<cfset var secret = trim(arguments.secretKey)>
+	<cfset var publishable = trim(arguments.publishableKey)>
+	<cfset var answer = "">
+	<cfset var name = "">
+	<cfset var found = []>
+	<cfset var endpoint = "">
+	<cfset var wanted = "checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.expired,charge.refunded">
+	<cfset var missing = "">
+	<cfset var event = "">
+	<cfif not len(secret) and not isNull(entity)>
+		<cfset secret = decryptSecret(valueOrEmpty(keyMode eq "live" ? entity.getStripeLiveSecretKey() : entity.getStripeTestSecretKey()))>
+	</cfif>
+	<cfif not len(secret)>
+		<cfset arrayAppend(result.lines, { "ok": false, "text": "There's no #keyMode# secret key to test. Paste it in the Secret key box." })>
+		<cfreturn result>
+	</cfif>
+	<!--- The key's own prefix says its mode: sk_test_ / sk_live_ (or rk_ for a restricted key). --->
+	<cfif not reFind("^(sk|rk)_#keyMode#_", secret)>
+		<cfset arrayAppend(result.lines, { "ok": false, "text": reFind("^(sk|rk)_(test|live)_", secret) ? "That secret key is a #keyMode eq 'live' ? 'test' : 'live'# key, but it's in the #keyMode# box." : "That doesn't look like a Stripe secret key: it should start with sk_#keyMode#_." })>
+		<cfreturn result>
+	</cfif>
+	<!--- 1. The secret key: whose account is it? --->
+	<cfset answer = stripeRequest("GET", "/v1/account", [], "", secret)>
+	<cfif not answer.success>
+		<cfset arrayAppend(result.lines, { "ok": false, "text": "Stripe didn't accept the secret key: " & answer.message })>
+		<cfreturn result>
+	</cfif>
+	<cfif isStruct(answer.data)>
+		<cfif structKeyExists(answer.data, "settings") and isStruct(answer.data.settings) and structKeyExists(answer.data.settings, "dashboard") and isStruct(answer.data.settings.dashboard) and len(answer.data.settings.dashboard.display_name ?: "")>
+			<cfset name = answer.data.settings.dashboard.display_name>
+		<cfelseif structKeyExists(answer.data, "business_profile") and isStruct(answer.data.business_profile) and len(answer.data.business_profile.name ?: "")>
+			<cfset name = answer.data.business_profile.name>
+		</cfif>
+	</cfif>
+	<cfset arrayAppend(result.lines, { "ok": true, "text": "Secret key works" & (len(name) ? ", for the Stripe account " & chr(8220) & name & chr(8221) : "") & " (#keyMode# mode)." })>
+	<!--- 2. The publishable key: Stripe refuses it for this call either way, but says "Invalid API Key" only when it doesn't exist. --->
+	<cfif not len(publishable) and not isNull(entity)>
+		<cfset publishable = valueOrEmpty(keyMode eq "live" ? entity.getStripeLivePublishableKey() : entity.getStripeTestPublishableKey())>
+	</cfif>
+	<cfif not len(publishable)>
+		<cfset arrayAppend(result.lines, { "ok": false, "text": "There's no #keyMode# publishable key yet (pk_#keyMode#_...)." })>
+	<cfelseif not reFind("^pk_#keyMode#_", publishable)>
+		<cfset arrayAppend(result.lines, { "ok": false, "text": reFind("^pk_(test|live)_", publishable) ? "The publishable key is a #keyMode eq 'live' ? 'test' : 'live'# key, but it's in the #keyMode# box." : "The publishable key should start with pk_#keyMode#_." })>
+	<cfelse>
+		<cfset answer = stripeRequest("GET", "/v1/customers?limit=1", [], "", publishable)>
+		<cfif answer.success or not findNoCase("Invalid API Key", answer.message)>
+			<cfset arrayAppend(result.lines, { "ok": true, "text": "Publishable key is recognized by Stripe." })>
+		<cfelse>
+			<cfset arrayAppend(result.lines, { "ok": false, "text": "Stripe doesn't recognize the publishable key. Copy it again from Developers > API keys." })>
+		</cfif>
+	</cfif>
+	<!--- 3. The webhook: one pointing at this blog, with the four events. --->
+	<cfset answer = stripeRequest("GET", "/v1/webhook_endpoints?limit=100", [], "", secret)>
+	<cfif not answer.success>
+		<cfset arrayAppend(result.lines, { "ok": false, "text": "Couldn't read the webhooks: " & answer.message })>
+	<cfelse>
+		<cfloop array="#(isStruct(answer.data) and structKeyExists(answer.data, 'data')) ? answer.data.data : []#" index="endpoint">
+			<cfif compareNoCase(endpoint.url ?: "", getWebhookUrl()) eq 0><cfset arrayAppend(found, endpoint)></cfif>
+		</cfloop>
+		<cfif not arrayLen(found)>
+			<cfif reFindNoCase("^https?://(localhost|127\.0\.0\.1|\[::1\])[:/]", getWebhookUrl())>
+				<!--- On the owner's own computer Stripe can't reach the blog; the Stripe CLI forwards the events instead. --->
+				<cfset arrayAppend(result.lines, { "ok": true, "note": true, "text": "This blog runs on your own computer, which Stripe can't reach, so there's no webhook to check. Use the Stripe CLI command below while testing." })>
+			<cfelse>
+				<cfset arrayAppend(result.lines, { "ok": false, "text": "No #keyMode# webhook points at " & getWebhookUrl() & " yet, so payments can't be confirmed. Add one in Stripe (Webhooks > + Add destination)." })>
+			</cfif>
+		<cfelse>
+			<cfset endpoint = found[1]>
+			<cfloop list="#wanted#" index="event">
+				<cfif not arrayFindNoCase(endpoint.enabled_events ?: [], event) and not arrayFindNoCase(endpoint.enabled_events ?: [], "*")><cfset missing = listAppend(missing, event, ", ")></cfif>
+			</cfloop>
+			<cfif (endpoint.status ?: "enabled") neq "enabled">
+				<cfset arrayAppend(result.lines, { "ok": false, "text": "The webhook for this blog is #endpoint.status# in Stripe. Turn it back on there." })>
+			<cfelseif len(missing)>
+				<cfset arrayAppend(result.lines, { "ok": false, "text": "The webhook for this blog is missing these events: " & missing & "." })>
+			<cfelse>
+				<cfset arrayAppend(result.lines, { "ok": true, "text": "Webhook points at this blog with all four events." })>
+			</cfif>
+		</cfif>
+	</cfif>
+	<cfset arrayAppend(result.lines, { "ok": true, "note": true, "text": "The webhook signing secret can't be checked from here (Stripe never shows it again). If payments stay 'pending', copy it again from the webhook's page." })>
+	<cfset result.success = arrayLen(arrayFilter(result.lines, function(line) { return not line.ok; })) eq 0>
+	<cfreturn result>
+</cffunction>
+
 <cffunction name="stripeRequest" access="private" returntype="struct" output="false"
 		hint="One call to the Stripe API with the current mode's secret key: { success, status, data, message }. The key is only ever sent to Stripe.">
 	<cfargument name="method" type="string" required="true">
 	<cfargument name="path" type="string" required="true">
 	<cfargument name="fields" type="array" required="true" hint="[[name, value], ...] form fields, in order.">
 	<cfargument name="idempotencyKey" type="string" required="false" default="">
+	<cfargument name="secretKey" type="string" required="false" default="" hint="A key to use instead of the current mode's (testKeys, 2026-10-23).">
 	<cfset var result = { success: false, status: 0, data: {}, message: "" }>
-	<cfset var secretKey = getStripeKeys().secretKey>
+	<cfset var useKey = len(arguments.secretKey) ? arguments.secretKey : getStripeKeys().secretKey>
 	<cfset var field = "">
 	<cfset var httpResult = "">
 	<cftry>
 		<cfhttp url="https://api.stripe.com#arguments.path#" method="#arguments.method#" timeout="20" result="httpResult" charset="utf-8">
-			<cfhttpparam type="header" name="Authorization" value="Bearer #secretKey#">
+			<cfhttpparam type="header" name="Authorization" value="Bearer #useKey#">
 			<cfif len(arguments.idempotencyKey)>
 				<cfhttpparam type="header" name="Idempotency-Key" value="#arguments.idempotencyKey#">
 			</cfif>

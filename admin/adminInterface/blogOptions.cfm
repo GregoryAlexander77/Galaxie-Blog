@@ -85,6 +85,28 @@
 	</style>
 
 	<script>
+	// Stripe key test buttons (2026-10-23): one per mode; a line for each check, ticked or crossed.
+	$(document).off("click.stripeKeyTest").on("click.stripeKeyTest", ".stripeKeyTest", function () {
+		var button = $(this), mode = button.attr("data-mode"), result = $("#stripe" + mode + "TestResult");
+		button.prop("disabled", true);
+		result.html('<blockquote class="k-notification-info"><p>Asking Stripe...</p></blockquote>');
+		jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=testStripeKeys", dataType: "json", timeout: 60000,
+			data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", mode: mode.toLowerCase(), publishableKey: $("#stripe" + mode + "PublishableKey").val(), secretKey: $("#stripe" + mode + "SecretKey").val() } })
+			.done(function (response) {
+				if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+				var lines = (response && response.lines) || [{ ok: false, text: "The test could not run." }];
+				var box = $("<blockquote></blockquote>").addClass(response && response.success ? "k-notification-success" : "k-notification-warning");
+				if (response && response.success) { box.append($("<p></p>").append($("<b></b>").text("Success! Your " + mode.toLowerCase() + " keys work."))); }
+				$.each(lines, function (i, line) { box.append($("<p></p>").text((line.note ? "ℹ " : line.ok ? "✓ " : "✗ ") + line.text)); });
+				result.empty().append(box);
+			})
+			.fail(function (jqXHR) {
+				if (jqXHR.status === 403) { createLoginWindow(); }
+				result.empty().append($('<blockquote class="k-notification-error"></blockquote>').append($("<p></p>").text("The test could not run (" + (jqXHR.statusText || "no answer") + ").")));
+			})
+			.always(function () { button.prop("disabled", false); });
+	});
+
 		
 		<!--- Numeric inputs --->
 		$("#entriesPerBlogPage").kendoNumericTextBox({
@@ -1196,6 +1218,15 @@
 			<td class="#blockClass#" align="right"><label for="stripe#paymentMode#WebhookSecret">Webhook signing secret:</label></td>
 			<td class="#blockClass#">
 				<input type="password" id="stripe#paymentMode#WebhookSecret" name="stripe#paymentMode#WebhookSecret" value="" placeholder="<cfif modeKeys.hasWebhookSecret and len(modeKeys.webhookSecretHint)>Saved, #modeKeys.webhookSecretHint# - leave blank to keep it<cfelse>whsec_...</cfif>" autocomplete="new-password" spellcheck="false" class="k-textbox" style="width: 95%">
+			</td>
+		  </tr>
+		  <!--- Test button (2026-10-23, owner): asks Stripe about the keys typed above, before they are saved (Payments.cfc testKeys). --->
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#" align="right"></td>
+			<td class="#blockClass#">
+				<button type="button" class="k-button stripeKeyTest" data-mode="#paymentMode#">Test the #lCase(paymentMode)# keys</button> <span class="k-form-hint">Checks the keys and the webhook with Stripe. Nothing is changed.</span>
+				<div id="stripe#paymentMode#TestResult"></div>
 			</td>
 		  </tr>
 		<cfif len(modeKeys.publishableKey) or modeKeys.hasSecretKey or modeKeys.hasWebhookSecret>

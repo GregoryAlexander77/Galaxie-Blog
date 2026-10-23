@@ -9931,6 +9931,24 @@
 					
 	<!--- Test buttons in Blog Settings (2026-10-23, owner: "there is no validation if you put in a wrong credential"). Both try the
 	values typed in the window, before they are saved; a blank password means the saved one, as saveBlogSettings does. --->
+	<cffunction name="testStripeKeys" access="remote" returnformat="json" output="false"
+			hint="The Test button in Blog Options > Payments (2026-10-23): Payments.cfc testKeys with the keys typed for one mode (a blank secret key means the saved one). Returns { success, lines: [{ ok, text }] }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="mode" type="string" default="test" required="false">
+		<cfargument name="publishableKey" type="string" default="" required="false">
+		<cfargument name="secretKey" type="string" default="" required="false">
+		<cfset var response = { "success": false, "lines": [] }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfset response = application.payments.testKeys(mode = arguments.mode, publishableKey = left(arguments.publishableKey, 300), secretKey = left(arguments.secretKey, 300))>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="testMailSettings" access="remote" returnformat="json" output="false"
 			hint="Sends a short test email with the mail settings typed in Blog Settings, straight away (not through the mail spool), so a wrong server, user name or password shows its real error. Returns { success, message }.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
