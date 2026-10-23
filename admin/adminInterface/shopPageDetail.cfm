@@ -73,8 +73,7 @@ Make it an ordinary page takes the products off (removeShopPage). --->
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
-	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading"><cfif arrayLen(shopPagePost)>#encodeForHtml(shopPagePost[1]["Title"])#<cfelse>Shop page</cfif></h4></td></tr>
-	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<!--- No heading (owner, 10-22): the window title already says "Shop page", and the page's own title repeated it. --->
 	<tr><td colspan="2" class="#blockClass#">A shop page is a page where visitors buy from you. It stays up for as long as you sell: it isn't dated and doesn't go out in your RSS feed. The page's own text shows first, then the products, each with an Add to cart button.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
