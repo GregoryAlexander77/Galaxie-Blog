@@ -67,8 +67,7 @@ away by ProxyController.cfc's saveBookingPage; Make it an ordinary page takes th
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
-	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading"><cfif arrayLen(bookingPagePost)>#encodeForHtml(bookingPagePost[1]["Title"])#<cfelse>Booking page</cfif></h4></td></tr>
-	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<!--- No heading (owner, 10-22): the window title already says "Booking page", like the Shop page window. --->
 	<tr><td colspan="2" class="#blockClass#">A booking page is a page where visitors book a time with you. It stays up for as long as you offer the booking: it isn't dated and doesn't go out in your RSS feed. The page's own text shows first, then the booking form.</td></tr>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>

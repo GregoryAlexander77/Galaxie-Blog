@@ -402,8 +402,9 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 		return false;
 	}//..function reloadOrmObjects()
 </script>
-<!--- If there are any unapproved comments, launch a prompt asking the user if they want to review the comments. --->
-<cfif recentCommentCount gt 0>
+<!--- If there are any unapproved comments, launch a prompt asking the user if they want to review the comments. Not when the admin
+was opened at a window from a link (?open=, 2026-10-22): the prompt would cover the window they came for. --->
+<cfif recentCommentCount gt 0 and not structKeyExists(URL, "open")>
 	
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">
 	// Prompt the user

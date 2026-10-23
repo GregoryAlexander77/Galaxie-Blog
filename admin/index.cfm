@@ -304,7 +304,20 @@ customPageTemplate: path allows to use a custom template using a hardcoded cfinc
 	//****************************************************************************************************************--->	
 </cfsilent>
 <cfinclude template="#application.baseUrl#/includes/templates/tailEndScripts.cfm" />
-<!--- 
+<!--- Opened at a window (2026-10-22): /admin/?open=payments opens Blog Options at the Payments (Stripe) section, ?open=products the
+Products window - for links from the site itself, like the owner's note under a product when the shop shows as closed. Only these
+named windows, and only for someone signed in. --->
+<cfif application.Udf.isLoggedIn() and structKeyExists(URL, "open") and listFindNoCase("payments,products", URL.open)>
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+	<!--- Ready, not window load: the page's scripts can run after the load event has already gone by. --->
+	$(function () {
+		setTimeout(function () {
+			<cfif URL.open eq "payments">createAdminInterfaceWindow(38, 'payments');<cfelse>createAdminInterfaceWindow(111);</cfif>
+		}, 300);
+	});
+</script>
+</cfif>
+<!---
 Note: if the Zion theme is screwed up, check the use custom theme setting in the ini file.
 --->
 </body>

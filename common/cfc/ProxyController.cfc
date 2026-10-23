@@ -14762,10 +14762,15 @@
 		<!--- Why the shop shows as closed (2026-10-22), for a signed-in admin only: visitors just see "closed right now". --->
 		<cfset response[ "ownerNote" ] = "">
 		<cfif not response.open and application.Udf.isLoggedIn()>
+			<!--- With a link that opens the admin at the right window (admin/index.cfm ?open=). --->
 			<cfif not settings.paymentsReady>
-				<cfset response[ "ownerNote" ] = "Only you see this: payments aren't set up yet, so visitors can't buy. Add your Stripe keys in Blog Options > Payments.">
+				<cfset response[ "ownerNote" ] = "Only you see this: payments aren't set up yet, so visitors can't buy.">
+				<cfset response[ "ownerLinkText" ] = "Add your Stripe keys in Blog Options > Payments">
+				<cfset response[ "ownerLink" ] = application.baseUrl & "/admin/?open=payments">
 			<cfelse>
-				<cfset response[ "ownerNote" ] = "Only you see this: the shop is closed. Open it in Products > Shop is open.">
+				<cfset response[ "ownerNote" ] = "Only you see this: the shop is closed.">
+				<cfset response[ "ownerLinkText" ] = "Open it in Products > Shop is open">
+				<cfset response[ "ownerLink" ] = application.baseUrl & "/admin/?open=products">
 			</cfif>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
