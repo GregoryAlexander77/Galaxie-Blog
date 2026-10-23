@@ -4,6 +4,7 @@ not a grid: a small shop has a handful of products. --->
 <cfset shopSettings = application.shop.getSettings()>
 <cfset shopProducts = application.shop.listProducts()>
 <cfset shopPages = application.shop.getShopPages()>
+<cfset shopLabelGroups = application.shop.getLabelGroups()>
 <cfset kindLabels = { physical: "Shipped", digital: "Download", service: "Service" }>
 
 <script>
@@ -38,6 +39,43 @@ not a grid: a small shop has a handful of products. --->
 					kendo.ui.ExtWaitDialog.hide();
 					if (jqXHR.status === 403) { createLoginWindow(); } else {
 						$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while saving the shop settings", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+					}
+				}
+			});
+		});
+
+		<!--- Labels (2026-10-22, owner): Reset shows only next to a label that differs from the default, and keeps its space
+		while hidden so the boxes don't move. It refills the box; Save labels saves. --->
+		$("input.shopLabel").each(function() {
+			var box = $(this);
+			var reset = box.siblings(".shopLabelReset");
+			function refresh() { reset.css("visibility", box.val() === box.attr("data-default") ? "hidden" : "visible"); }
+			box.on("input", refresh);
+			reset.on("click", function() { box.val(box.attr("data-default")); refresh(); box.focus(); });
+			refresh();
+		});
+		$("#shopLabelsSubmit").on("click", function() {
+			var labels = {};
+			$("input.shopLabel").each(function() { labels[$(this).attr("data-key")] = $(this).val(); });
+			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Saving the labels.", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-information" }));
+			jQuery.ajax({
+				type: 'post',
+				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveShopLabels',
+				data: { csrfToken: '<cfoutput>#csrfToken#</cfoutput>', labelsJson: JSON.stringify(labels) },
+				dataType: "json",
+				success: function(response) {
+					kendo.ui.ExtWaitDialog.hide();
+					if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+					if (response && response.success) {
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: "The labels were saved.", icon: "k-ext-information" }));
+					} else {
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The labels could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+					}
+				},
+				error: function(jqXHR, textStatus, error) {
+					kendo.ui.ExtWaitDialog.hide();
+					if (jqXHR.status === 403) { createLoginWindow(); } else {
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Error while saving the labels", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 					}
 				}
 			});
@@ -136,11 +174,37 @@ not a grid: a small shop has a handful of products. --->
 		</cfif>
 		</td>
 	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+
+	<!--- Labels (2026-10-22, owner): the words visitors see in the shop, a block for each group (Shop.cfc labelGroups). --->
+	<cfloop array="#shopLabelGroups#" index="thisGroup">
+		<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Labels: #encodeForHtml(thisGroup.heading)#</h4></td></tr>
+		<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		<tr><td colspan="2" class="#blockClass#">#encodeForHtml(thisGroup.intro)#</td></tr>
+		<cfloop array="#thisGroup.labels#" index="thisLabel">
+			<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+			<tr>
+				<td class="#blockClass#" align="right"><label for="shopLabel_#thisLabel.key#">#encodeForHtml(thisLabel.label)#:</label></td>
+				<td class="#blockClass#"><div class="shopLabelRow"><input type="text" class="k-textbox shopLabel" id="shopLabel_#thisLabel.key#" data-key="#thisLabel.key#" data-default="#encodeForHtmlAttribute(thisLabel.default)#" value="#encodeForHtmlAttribute(thisLabel.text)#" maxlength="300"> <button type="button" class="k-button shopLabelReset" title="Put back: #encodeForHtmlAttribute(thisLabel.default)#">Reset</button></div></td>
+			</tr>
+		</cfloop>
+		<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	</cfloop>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><span class="k-form-hint">{count}, {date}, {amount} and {email} are filled in for you.</span><br/><button id="shopLabelsSubmit" type="button" class="k-button k-primary">Save labels</button></td>
+	</tr>
 </table>
 </cfoutput>
 <style>
 	table.shopAdminList th { text-align: left; border-bottom: 1px solid rgba(128, 128, 128, .35); }
 	table.shopAdminList td { border-bottom: 1px solid rgba(128, 128, 128, .2); vertical-align: middle; }
 	tr.shopAdminRow { cursor: pointer; }
+	.shopLabelRow { display: flex; gap: 8px; align-items: center; max-width: 520px; }
+	.shopLabelRow .k-textbox { flex: 1 1 auto; min-width: 0; width: auto; }
+	.shopLabelReset { flex: none; }
 	.shopAdminThumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; display: inline-block; vertical-align: middle; background: rgba(128, 128, 128, .2); }
 </style>

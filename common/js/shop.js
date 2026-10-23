@@ -14,7 +14,10 @@ var galaxieShop = (function($) {
 
 	var proxyUrl = "";
 	var storageKey = "galaxieShopCart";
+	var ordersKey = "galaxieShopOrders";
 	var cartWindow = null;
+	// The owner's labels (Shop window > Labels, 2026-10-22), sent with the products and the checkout result.
+	var labels = {};
 
 	// Layout only. Colors and fonts come from the Kendo theme's classes.
 	function addStyles() {
@@ -28,6 +31,10 @@ var galaxieShop = (function($) {
 			".galaxieProductCard h3 { margin: 0 0 0.25em 0; }" +
 			".galaxieProductPrice { font-size: 1.25em; margin: 0.4em 0 0.6em 0; }" +
 			".galaxieProductNote { margin-top: 0.4em; opacity: 0.75; }" +
+			// "You bought..." sits just above Add to cart, in the post callout style (blockquote.k-notification-info).
+			".galaxieProductCard blockquote.galaxieProductBought { margin: 0 0 0.6em 0; }" +
+			".galaxieShopThanks h3 { margin: 0; }" +
+			".galaxieShopThanks p { margin: 0; }" +
 			".galaxieCartButton { position: fixed; right: 16px; bottom: 16px; z-index: 10050; border-radius: 22px; padding: 8px 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }" +
 			".galaxieCartCount { display: inline-block; min-width: 1.4em; margin-left: 0.4em; padding: 0 0.35em; border-radius: 0.7em; text-align: center; }" +
 			".galaxieCartLine { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; }" +
@@ -45,6 +52,27 @@ var galaxieShop = (function($) {
 
 	function escapeHtml(value) {
 		return $("<div/>").text(value === null || value === undefined ? "" : String(value)).html();
+	}
+
+	// A label by key, or the default given here; {name} in it is filled from values.
+	function label(key, fallback, values) {
+		var text = (labels && typeof labels[key] === "string" && labels[key]) ? labels[key] : fallback;
+		$.each(values || {}, function(name, value) { text = text.split("{" + name + "}").join(value); });
+		return text;
+	}
+
+	// The orders this browser paid for (their tokens), newest first, so a guest sees "You bought..." when they come back.
+	function readOrders() {
+		try {
+			var list = JSON.parse(window.localStorage.getItem(ordersKey) || "[]");
+			return $.isArray(list) ? list.filter(function(token) { return /^[a-f0-9]{64}$/.test(token); }) : [];
+		} catch (e) { return []; }
+	}
+	function rememberOrder(token) {
+		if (!/^[a-f0-9]{64}$/.test(token || "")) { return; }
+		var list = readOrders().filter(function(t) { return t !== token; });
+		list.unshift(token);
+		try { window.localStorage.setItem(ordersKey, JSON.stringify(list.slice(0, 30))); } catch (e) {}
 	}
 
 	function setProxy(options) {
@@ -68,7 +96,7 @@ var galaxieShop = (function($) {
 
 	// ---------- Product cards
 
-	function renderCard(product, open, ownerNote) {
+	function renderCard(product, open, ownerNote, bought) {
 		var card = $('<div class="galaxieProductCard"></div>');
 		if (product.imageUrl) {
 			card.append($('<img class="galaxieProductPicture" alt="">').attr("src", product.imageUrl));
@@ -77,10 +105,11 @@ var galaxieShop = (function($) {
 		body.append($("<h3></h3>").text(product.name));
 		if (product.description) { body.append($("<div></div>").text(product.description)); }
 		body.append($('<div class="galaxieProductPrice"></div>').text(product.priceText));
+		if (bought) { body.append(boughtLine(bought)); }
 		if (product.soldOut) {
-			body.append($('<button type="button" class="k-button" disabled></button>').text("Sold out"));
+			body.append($('<button type="button" class="k-button" disabled></button>').text(label("soldOut", "Sold out")));
 		} else if (!product.available) {
-			body.append($('<div class="galaxieProductNote"></div>').text(open ? "Not available right now." : "The shop is closed right now."));
+			body.append($('<div class="galaxieProductNote"></div>').text(open ? label("notAvailable", "Not available right now.") : label("shopClosed", "The shop is closed right now.")));
 			// Why, for a signed-in admin only (the server sends it only then), in the soft info callout (2026-10-22).
 			if (!open && ownerNote && ownerNote.text) {
 				var p = $("<p></p>").text(ownerNote.text + " ");
@@ -88,16 +117,36 @@ var galaxieShop = (function($) {
 				body.append($('<blockquote class="k-notification-info"></blockquote>').append(p));
 			}
 		} else {
-			$('<button type="button" class="k-button k-primary"></button>').text("Add to cart").on("click", function() {
+			$('<button type="button" class="k-button k-primary"></button>').text(label("addToCart", "Add to cart")).on("click", function() {
 				addToCart(product.alias, product.kind);
 			}).appendTo(body);
 		}
 		if (product.shippingText) {
-			body.append($('<div class="galaxieProductNote"></div>').text(product.shippingText === "Free" ? "Free shipping" : "+ " + product.shippingText + " shipping"));
+			body.append($('<div class="galaxieProductNote"></div>').text(product.shippingText === "Free" ? label("freeShipping", "Free shipping") : label("shippingCost", "+ {amount} shipping", { amount: product.shippingText })));
 		} else if (product.kind === "digital") {
-			body.append($('<div class="galaxieProductNote"></div>').text("A download, emailed to you right after you pay"));
+			body.append($('<div class="galaxieProductNote"></div>').text(label("download", "A download, emailed to you right after you pay")));
 		}
 		return card;
+	}
+
+	// "You bought 2 of these on October 22." (2026-10-22, owner), with the download link again while it still works.
+	function boughtLine(bought) {
+		var values = { count: bought.count, date: bought.dateText };
+		var text;
+		if (bought.orders > 1) {
+			text = label("boughtAgain", "You've bought {count} of these, most recently on {date}.", values);
+		} else if (bought.count > 1) {
+			text = label("boughtSeveral", "You bought {count} of these on {date}.", values);
+		} else if (bought.kind === "service") {
+			text = label("booked", "You booked this on {date}.", values);
+		} else {
+			text = label("boughtOne", "You bought this on {date}.", values);
+		}
+		var p = $("<p></p>").text(text);
+		if (bought.downloadUrl) {
+			p.append(" ", $("<a></a>").attr("href", bought.downloadUrl).text(label("downloadAgain", "Download it again")));
+		}
+		return $('<blockquote class="k-notification-info galaxieProductBought"></blockquote>').append(p);
 	}
 
 	function init(options) {
@@ -112,9 +161,11 @@ var galaxieShop = (function($) {
 					if (alias && wanted.indexOf(alias) < 0) { wanted.push(alias); }
 				});
 			});
-			$.ajax({ type: "post", url: proxyUrl + "?method=getShopProducts", data: { aliases: wanted.indexOf("*") >= 0 ? "*" : wanted.join(",") }, dataType: "json", cache: false })
+			$.ajax({ type: "post", url: proxyUrl + "?method=getShopProducts", data: { aliases: wanted.indexOf("*") >= 0 ? "*" : wanted.join(","), orderTokens: readOrders().join(",") }, dataType: "json", cache: false })
 				.done(function(result) {
 					var byAlias = {};
+					labels = (result && result.labels) || {};
+					var bought = (result && result.bought) || {};
 					var all = (result && result.products) || [];
 					$.each(all, function(i, p) { byAlias[p.alias] = p; });
 					// Looked up again now, not the boxes found before the request: a scene can rebuild its sections in the meantime,
@@ -127,11 +178,11 @@ var galaxieShop = (function($) {
 						$.each(aliases, function(i, alias) {
 							var product = byAlias[$.trim(alias)];
 							if (product) {
-								$('<div class="galaxieBlock"></div>').addClass(shown % 2 ? "k-alt" : "k-content").append(renderCard(product, result.open, { text: result.ownerNote, link: result.ownerLink, linkText: result.ownerLinkText })).appendTo(blocks);
+								$('<div class="galaxieBlock"></div>').addClass(shown % 2 ? "k-alt" : "k-content").append(renderCard(product, result.open, { text: result.ownerNote, link: result.ownerLink, linkText: result.ownerLinkText }, bought[product.alias])).appendTo(blocks);
 								shown++;
 							}
 						});
-						if (shown) { box.append(blocks); } else { box.append($("<p></p>").text("Nothing for sale here right now.")); }
+						if (shown) { box.append(blocks); } else { box.append($("<p></p>").text(label("nothingForSale", "Nothing for sale here right now."))); }
 					});
 				})
 				.fail(function() { boxes.empty(); });
@@ -284,20 +335,46 @@ var galaxieShop = (function($) {
 				.done(function(result) {
 					if (result && result.success && result.paid) {
 						writeCart([]);
+						rememberOrder(result.orderToken);
+						labels = result.labels || {};
 						box.empty();
-						box.append($("<h3></h3>").text("Thank you!"));
-						box.append($("<p></p>").text("Your order is paid" + (result.email ? ". A receipt is on its way to " + result.email + "." : ".")));
+						// Rows, white and gray in turn with a line between them (galaxieBlocks, owner 10-22).
+						var rows = $('<div class="galaxieBlocks"></div>').appendTo(box);
+						var row = function() { return $('<div class="galaxieBlock"></div>').addClass(rows.children().length % 2 ? "k-alt" : "k-content").appendTo(rows); };
+						var first = row();
+						first.append($("<h3></h3>").text(label("thanksHeading", "Thank you!")));
+						first.append($("<p></p>").text(label("paid", "Your order is paid. A receipt is on its way to {email}.", { email: result.email || "your email address" })));
 						// The server builds this table from the order and escapes every name in it (Shop.cfc itemsTable).
-						box.append(result.itemsHtml || "");
+						row().append(result.itemsHtml || "");
 						if (result.downloads && result.downloads.length) {
-							box.append($("<h4></h4>").text(result.downloads.length === 1 ? "Your download" : "Your downloads"));
+							var downloads = row();
+							downloads.append($("<h4></h4>").text(result.downloads.length === 1 ? "Your download" : "Your downloads"));
 							$.each(result.downloads, function(i, d) {
-								var p = $("<p></p>").appendTo(box);
+								var p = $("<p></p>").appendTo(downloads);
 								p.append($("<a></a>").attr("href", d.url).text(d.name));
 								if (d.expires) { p.append($("<span></span>").text(" (works until " + d.expires + ")")); }
 							});
 						}
-						if (result.needsShipping) { box.append($("<p></p>").text("We'll email you when it ships.")); }
+						if (result.needsShipping) { row().append($("<p></p>").text(label("ships", "We'll email you when it ships."))); }
+						// Invite a guest to make an account, or tell a member where the order is kept (when member accounts are on).
+						if (window.galaxieMembers && galaxieMembers.whenKnown) {
+							galaxieMembers.whenKnown(function(member) {
+								if (!member || !member.enabled) { return; }
+								var account = row();
+								if (member.signedIn) {
+									account.append($("<p></p>").text(label("saved", "This order is saved in your account.") + " ").append(
+										$('<a href="javascript:void(0)"></a>').text(label("ordersLink", "See your orders")).on("click", function() { dialog.close(); galaxieMembers.openAccount(); })));
+								} else {
+									account.append($("<p></p>").text(label("join", "Make a free account with {email} to see this order, and anything you buy later, from any device.", { email: result.email || "your email address" })));
+									account.append($("<p></p>").append(
+										$('<button type="button" class="k-button k-primary"></button>').text(label("joinButton", "Create your account")).on("click", function() {
+											dialog.close();
+											galaxieMembers.openSignIn("Create your account to see your orders in one place. We'll email you a link that signs you in: no password needed.", result.email || "");
+										})));
+								}
+								dialog.center();
+							});
+						}
 						dialog.center();
 					} else if (tries < 10) {
 						setTimeout(check, 2000);

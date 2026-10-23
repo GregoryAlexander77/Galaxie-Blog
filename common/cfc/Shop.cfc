@@ -38,6 +38,90 @@
 </cffunction>
 
 <!---//*****************************************************************************************
+		Labels (2026-10-22, owner): the words visitors see in the shop, changed in the Shop window's Labels section. Each one the
+		owner changed is a setting 'shopLabel.<key>' (BlogEventSetting, post 0); an empty or unchanged one uses the default below.
+		{count}, {date}, {amount} and {email} are filled in by common/js/shop.js.
+//******************************************************************************************--->
+
+<cfset variables.labelGroups = [
+	{ heading: "On the product", intro: "What visitors see on a product in a post or on a shop page.", labels: [
+		{ key: "addToCart", label: "Add to cart button", text: "Add to cart" },
+		{ key: "soldOut", label: "Sold out", text: "Sold out" },
+		{ key: "shopClosed", label: "Shop closed", text: "The shop is closed right now." },
+		{ key: "notAvailable", label: "Not for sale yet", text: "Not available right now." },
+		{ key: "freeShipping", label: "Free shipping", text: "Free shipping" },
+		{ key: "shippingCost", label: "Shipping cost", text: "+ {amount} shipping" },
+		{ key: "download", label: "Downloads", text: "A download, emailed to you right after you pay" },
+		{ key: "nothingForSale", label: "Nothing for sale", text: "Nothing for sale here right now." }
+	] },
+	{ heading: "When they come back", intro: "The line above Add to cart for someone who has bought the product before: a signed-in member anywhere, a guest on the browser they bought with.", labels: [
+		{ key: "boughtOne", label: "Bought one", text: "You bought this on {date}." },
+		{ key: "boughtSeveral", label: "Bought several", text: "You bought {count} of these on {date}." },
+		{ key: "boughtAgain", label: "Bought more than once", text: "You've bought {count} of these, most recently on {date}." },
+		{ key: "booked", label: "A service", text: "You booked this on {date}." },
+		{ key: "downloadAgain", label: "Download link", text: "Download it again" }
+	] },
+	{ heading: "After they pay", intro: "The thank-you window when they come back from Stripe.", labels: [
+		{ key: "thanksHeading", label: "Heading", text: "Thank you!" },
+		{ key: "paid", label: "Paid", text: "Your order is paid. A receipt is on its way to {email}." },
+		{ key: "ships", label: "Shipping", text: "We'll email you when it ships." },
+		{ key: "join", label: "Make an account", text: "Make a free account with {email} to see this order, and anything you buy later, from any device." },
+		{ key: "joinButton", label: "Account button", text: "Create your account" },
+		{ key: "saved", label: "Signed in", text: "This order is saved in your account." },
+		{ key: "ordersLink", label: "Account link", text: "See your orders" }
+	] }
+]>
+
+<cffunction name="getLabels" access="public" returntype="struct" output="false" hint="Every shop label by key: the owner's text, or the default. Kept until the labels are saved again.">
+	<cfset var labels = {}>
+	<cfset var group = "">
+	<cfset var item = "">
+	<cfset var saved = "">
+	<cfif structKeyExists(variables, "labelCache")>
+		<cfreturn duplicate(variables.labelCache)>
+	</cfif>
+	<cfloop array="#variables.labelGroups#" index="group">
+		<cfloop array="#group.labels#" index="item">
+			<cfset saved = trim(application.events.getSetting(0, "shopLabel." & item.key, ""))>
+			<!--- Bracket keys keep their case in the JSON on Adobe ColdFusion. --->
+			<cfset labels[ item.key ] = len(saved) ? saved : item.text>
+		</cfloop>
+	</cfloop>
+	<cfset variables.labelCache = labels>
+	<cfreturn duplicate(labels)>
+</cffunction>
+
+<cffunction name="getLabelGroups" access="public" returntype="array" output="false" hint="The Labels section of the Shop window: [{ heading, intro, labels: [{ key, label, text, default }] }].">
+	<cfset var current = getLabels()>
+	<cfset var groups = duplicate(variables.labelGroups)>
+	<cfset var group = "">
+	<cfset var item = "">
+	<cfloop array="#groups#" index="group">
+		<cfloop array="#group.labels#" index="item">
+			<cfset item.default = item.text>
+			<cfset item.text = current[item.key]>
+		</cfloop>
+	</cfloop>
+	<cfreturn groups>
+</cffunction>
+
+<cffunction name="saveLabels" access="public" returntype="void" output="false" hint="Saves the labels from the Shop window. One left empty or the same as the default goes back to the default.">
+	<cfargument name="labels" type="struct" required="true" hint="{ key: text }; unknown keys are ignored.">
+	<cfset var group = "">
+	<cfset var item = "">
+	<cfset var text = "">
+	<cfloop array="#variables.labelGroups#" index="group">
+		<cfloop array="#group.labels#" index="item">
+			<cfif structKeyExists(arguments.labels, item.key) and isSimpleValue(arguments.labels[item.key])>
+				<cfset text = left(trim(reReplace(arguments.labels[item.key], "[\r\n\t]+", " ", "all")), 300)>
+				<cfset application.events.setSetting(0, "shopLabel." & item.key, compare(text, item.text) eq 0 ? "" : text)>
+			</cfif>
+		</cfloop>
+	</cfloop>
+	<cfset structDelete(variables, "labelCache")>
+</cffunction>
+
+<!---//*****************************************************************************************
 		Products
 //******************************************************************************************--->
 
@@ -467,6 +551,8 @@
 	<cfset result[ "email" ] = order.email>
 	<cfif result.paid>
 		<cfset result[ "itemsHtml" ] = order.itemsHtml>
+		<!--- The buyer's browser keeps it, so the product shows "You bought..." when they come back (getBought, 2026-10-22). --->
+		<cfset result[ "orderToken" ] = order.orderToken>
 		<!--- Quoted keys: Adobe ColdFusion sends unquoted ones in capitals (NAME, URL), which the page wouldn't find. --->
 		<cfloop array="#order.downloads#" index="local.download">
 			<cfset arrayAppend(result.downloads, { "name": local.download.name, "url": local.download.url, "expires": local.download.expires })>
@@ -816,6 +902,83 @@
 		})>
 	</cfloop>
 	<cfreturn list>
+</cffunction>
+
+<cffunction name="getBought" access="public" returntype="struct" output="false"
+		hint="What the visitor has bought before, by product alias, for the 'You bought...' line on a product (2026-10-22, owner): { alias: { count, orders, kind, dateText, downloadUrl } }. A signed-in member's orders, and a guest's by the order tokens their own browser kept after paying (never by email alone: anyone can type an email). Refunded orders don't count.">
+	<cfargument name="orderTokens" type="string" required="false" default="" hint="Comma separated, from common/js/shop.js.">
+	<cfset var bought = {}>
+	<cfset var result = {}>
+	<cfset var tokens = []>
+	<cfset var token = "">
+	<cfset var member = application.members.getCurrentMember()>
+	<cfset var where = []>
+	<cfset var params = { blogId = blogId() }>
+	<cfset var orders = []>
+	<cfset var order = "">
+	<cfset var paidAt = {}>
+	<cfset var orderIds = []>
+	<cfset var items = []>
+	<cfset var item = "">
+	<cfset var aliases = {}>
+	<cfset var product = "">
+	<cfset var alias = "">
+	<cfset var entry = "">
+	<cfset var limit = getSettings().downloadLimit>
+	<cfloop list="#arguments.orderTokens#" index="token">
+		<cfif reFind("^[a-f0-9]{64}$", trim(token)) and arrayLen(tokens) lt 30><cfset arrayAppend(tokens, trim(token))></cfif>
+	</cfloop>
+	<cfif arrayLen(tokens)>
+		<cfset arrayAppend(where, "OrderToken IN (:tokens)")>
+		<cfset params.tokens = tokens>
+	</cfif>
+	<!--- Guest orders have MemberRef 0, so 0 never matches by member (only by email), as in getMemberOrders. --->
+	<cfif not structIsEmpty(member)>
+		<cfset arrayAppend(where, "(MemberRef = :memberId AND MemberRef > 0) OR lower(Email) = :email")>
+		<cfset params.memberId = javacast("int", val(member.memberId))>
+		<cfset params.email = lCase(member.email)>
+	</cfif>
+	<cfif not arrayLen(where)>
+		<cfreturn result>
+	</cfif>
+	<cfset orders = ormExecuteQuery("FROM ShopOrder WHERE BlogRef = :blogId AND (" & arrayToList(where, " OR ") & ") AND Status IN ('paid','shipped','partlyRefunded') ORDER BY ShopOrderId DESC", params, false, { maxResults = 100 })>
+	<cfif not arrayLen(orders)>
+		<cfreturn result>
+	</cfif>
+	<cfloop array="#orders#" index="order">
+		<cfset paidAt[order.getShopOrderId()] = isNull(order.getPaidAt()) ? order.getCreated() : order.getPaidAt()>
+		<cfset arrayAppend(orderIds, javacast("int", order.getShopOrderId()))>
+	</cfloop>
+	<cfloop array="#listProducts()#" index="product">
+		<cfset aliases[product.productId] = product.alias>
+	</cfloop>
+	<!--- Newest order first, so the first download link found is the newest. --->
+	<cfset items = ormExecuteQuery("FROM ShopOrderItem WHERE ShopOrderRef IN (:ids) ORDER BY ShopOrderRef DESC", { ids = orderIds })>
+	<cfloop array="#items#" index="item">
+		<cfif structKeyExists(aliases, val(item.getProductRef()))>
+			<cfset alias = aliases[val(item.getProductRef())]>
+			<cfif not structKeyExists(bought, alias)>
+				<cfset bought[alias] = { count: 0, orders: 0, kind: valueOrEmpty(item.getKind()), last: paidAt[item.getShopOrderRef()], downloadUrl: "" }>
+			</cfif>
+			<cfset entry = bought[alias]>
+			<cfset entry.count += val(item.getQuantity())>
+			<cfset entry.orders++>
+			<cfif dateCompare(paidAt[item.getShopOrderRef()], entry.last) gt 0><cfset entry.last = paidAt[item.getShopOrderRef()]></cfif>
+			<cfif not len(entry.downloadUrl) and len(valueOrEmpty(item.getDownloadToken())) and not isNull(item.getDownloadExpiresAt())
+				and dateCompare(item.getDownloadExpiresAt(), now()) gt 0 and val(valueOrEmpty(item.getDownloadCount())) lt limit>
+				<cfset entry.downloadUrl = application.blogHostUrl & "/common/services/shopDownload.cfm?t=" & item.getDownloadToken()>
+			</cfif>
+		</cfif>
+	</cfloop>
+	<!--- Quoted keys: Adobe ColdFusion sends unquoted ones in capitals. The year only when it isn't this year. --->
+	<cfloop collection="#bought#" item="alias">
+		<cfset entry = bought[alias]>
+		<cfset result[alias] = {
+			"count": entry.count, "orders": entry.orders, "kind": entry.kind, "downloadUrl": entry.downloadUrl,
+			"dateText": dateFormat(entry.last, year(entry.last) eq year(now()) ? "mmmm d" : "mmmm d, yyyy")
+		}>
+	</cfloop>
+	<cfreturn result>
 </cffunction>
 
 <cffunction name="prepareDownload" access="public" returntype="struct" output="false"

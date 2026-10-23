@@ -14622,6 +14622,27 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="saveShopLabels" access="remote" returnformat="json" output="false" hint="The shop's labels, from the Shop window's Labels section (2026-10-22).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="labelsJson" type="string" default="{}" required="false" hint="JSON: { key: text }.">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var labels = isJSON(arguments.labelsJson) ? deserializeJSON(arguments.labelsJson) : "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfif isStruct(labels)>
+				<cfset application.shop.saveLabels(labels)>
+				<cfset response[ "success" ] = true>
+			<cfelse>
+				<cfset response[ "errorMessage" ] = "The labels could not be read.">
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="saveShopProduct" access="remote" returnformat="json" output="false" hint="Adds or changes a product (window 112).">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="productJson" type="string" default="{}" required="false" hint="JSON: productId, name, description, imageUrl, kind, price, shippingPrice, trackStock, stock, active.">
@@ -14794,9 +14815,13 @@
 
 	<cffunction name="getShopProducts" access="remote" returnformat="json" output="false" hint="The products for the product cards on a page: a comma-separated list of aliases, or * for every product.">
 		<cfargument name="aliases" type="string" required="false" default="">
+		<cfargument name="orderTokens" type="string" required="false" default="" hint="The orders this browser paid for (common/js/shop.js keeps them), for 'You bought...'.">
 		<cfset var response = { "success": true, "products": [], "currency": "" }>
 		<cfset var settings = application.shop.getSettings()>
 		<cfset response[ "products" ] = application.shop.getProductsForPage(left(trim(arguments.aliases), 2000))>
+		<!--- The owner's labels (Shop window > Labels) and what this visitor bought before (2026-10-22). --->
+		<cfset response[ "labels" ] = application.shop.getLabels()>
+		<cfset response[ "bought" ] = application.shop.getBought(left(trim(arguments.orderTokens), 2000))>
 		<cfset response[ "currency" ] = settings.currency>
 		<cfset response[ "open" ] = settings.enabled and settings.paymentsReady>
 		<!--- Why the shop shows as closed (2026-10-22), for a signed-in admin only: visitors just see "closed right now". --->
@@ -14884,6 +14909,7 @@
 		<cfif reFind("^cs_[A-Za-z0-9_]+$", trim(arguments.sessionId))>
 			<cfset response = application.shop.getCheckoutResult(trim(arguments.sessionId))>
 		</cfif>
+		<cfset response[ "labels" ] = application.shop.getLabels()>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
