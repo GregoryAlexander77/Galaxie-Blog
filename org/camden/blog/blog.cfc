@@ -1552,7 +1552,7 @@
 		<cfreturn application.errorDigest>
 	</cffunction>
 
-	<cffunction name="getSetup" access="public" returnType="any" output="false" hint="The Site Setup wizard's saves (common/cfc/Setup.cfc, 5.0), created on first use - kept here like getScenes, so a reinit picks up a changed Setup.cfc.">
+	<cffunction name="getSetup" access="public" returnType="any" output="false" hint="The Site Wizard's saves (common/cfc/Setup.cfc, 5.0), created on first use - kept here like getScenes, so a reinit picks up a changed Setup.cfc.">
 		<cfif not structKeyExists(variables, "setupObj")>
 			<cflock name="galaxieSetupCreate_#application.applicationName#" type="exclusive" timeout="10">
 				<cfif not structKeyExists(variables, "setupObj")>
@@ -6613,7 +6613,7 @@
 		<cfset var post = "">
 		<cfset var pc = "">
 		<cfset var previewAbout = []>
-		<!--- Site Setup's preview (2026-10-20): a signed-in owner's ?previewHome=posts|featured|about shows that layout without saving it. --->
+		<!--- Site Wizard's preview (2026-10-20): a signed-in owner's ?previewHome=posts|featured|about shows that layout without saving it. --->
 		<cfif isDefined("url.previewHome") and isSimpleValue(url.previewHome) and listFind("posts,featured,about", url.previewHome) and application.Udf.isLoggedIn()>
 			<cfset previewAbout = ormExecuteQuery("SELECT PostId FROM Post WHERE Title = 'About' AND IsPage = :isPage AND Remove = :removed ORDER BY PostId", { isPage = true, removed = false })>
 			<cfset showCollections = false>

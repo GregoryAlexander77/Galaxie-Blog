@@ -1,4 +1,4 @@
-<cfcomponent displayName="Setup" output="false" hint="The Site Setup wizard's saves (Galaxie 5, 2026-10-19): admin/setup.cfm, through ProxyController.cfc saveSetup*. One function per screen. Each marks its screen done in BlogOption.SetupStepsDone, so the wizard can show what is finished and pick up where the owner left off.">
+<cfcomponent displayName="Setup" output="false" hint="The Site Wizard's saves (Galaxie 5, 2026-10-19): admin/setup.cfm, through ProxyController.cfc saveSetup*. One function per screen. Each marks its screen done in BlogOption.SetupStepsDone, so the wizard can show what is finished and pick up where the owner left off.">
 
 <!---
 	The screens: site (name, description, email, time zone), look (theme), logo, about (the owner's profile and the About and
@@ -52,7 +52,7 @@
 	<cfreturn state>
 </cffunction>
 
-<cffunction name="starterLinks" access="public" returntype="struct" output="false" hint="The welcome post's and About page's ids and addresses, when Site Setup has made them (0 and empty otherwise).">
+<cffunction name="starterLinks" access="public" returntype="struct" output="false" hint="The welcome post's and About page's ids and addresses, when the Site Wizard has made them (0 and empty otherwise).">
 	<cfset var result = { welcomePostId = 0, welcomeUrl = "", aboutPageId = 0, aboutUrl = "" }>
 	<cfset var found = ormExecuteQuery("SELECT PostId FROM Post WHERE Title = :title AND Remove = :removed ORDER BY PostId", { title = "Welcome to " & (application.BlogDbObj.getBlogTitle() ?: ""), removed = false })>
 	<cfif arrayLen(found)>
@@ -341,7 +341,7 @@
 </cffunction>
 
 <cffunction name="saveFooter" access="public" returntype="void" output="false"
-		hint="The footer Site Setup builds (2026-10-20, owner): from what the wizard knows - About and Contact links and the owner's social links, with the first lines of their bio for 'blurb' - or switched off for 'none'. No email address (spam). footer.cfm adds the copyright and version lines under it by itself. Changed later in the Themes window's Content tab.">
+		hint="The footer the Site Wizard builds (2026-10-20, owner): from what the wizard knows - About and Contact links and the owner's social links, with the first lines of their bio for 'blurb' - or switched off for 'none'. No email address (spam). footer.cfm adds the copyright and version lines under it by itself. Changed later in the Themes window's Content tab.">
 	<cfargument name="style" type="string" required="true">
 	<cfset var owner = getOwner()>
 	<cfset var links = starterLinks()>
@@ -388,7 +388,7 @@
 </cffunction>
 
 <cffunction name="footerIsCustom" access="public" returntype="boolean" output="false"
-		hint="Whether the footer was written by the owner (in Themes) rather than being the default or the one Site Setup made - then Site Setup leaves it alone.">
+		hint="Whether the footer was written by the owner (in Themes) rather than being the default or the one the Site Wizard made - then the Site Wizard leaves it alone.">
 	<cfset var rows = queryExecute("SELECT o.ContentOutput FROM ContentOutput o JOIN ContentTemplate t ON t.ContentTemplateId = o.ContentTemplateRef WHERE t.ContentTemplateName = 'compositeFooter' AND o.ContentOutput IS NOT NULL",
 		{}, { datasource = application.dsn })>
 	<cfset var made = application.events.getSetting(0, "setupFooterHash", "")>

@@ -87,7 +87,7 @@
 </cffunction>
 
 <cffunction name="getThemeCards" access="public" returntype="struct" output="false"
-		hint="What the theme cards need (2026-10-20, common/js/galaxieThemeCards.js, shared by the Themes window and Site Setup): { themes: [{ the card's keys, Dark, UseTheme }], fontFaces: the @font-face rules for the fonts the cards use }.">
+		hint="What the theme cards need (2026-10-20, common/js/galaxieThemeCards.js, shared by the Themes window and the Site Wizard): { themes: [{ the card's keys, Dark, UseTheme }], fontFaces: the @font-face rules for the fonts the cards use }.">
 	<cfargument name="onlyInUse" type="boolean" required="false" default="false" hint="Only the themes offered to visitors (Theme.UseTheme).">
 	<cfset var keys = "ThemeId,ThemeAlias,ThemeName,KendoThemeId,Breakpoint,ContentWidth,SideBarContainerWidth,SiteOpacity,IncludeBackgroundImages,BlogBackgroundImage,BlogBackgroundColor,HeaderBackgroundImage,LogoImage,DisplayBlogName,BlogNameFont,BlogNameFontType,BlogNameTextColor,MenuFont,MenuFontType,Font,FontType">
 	<cfset var result = { "themes": [], "fontFaces": "" }>

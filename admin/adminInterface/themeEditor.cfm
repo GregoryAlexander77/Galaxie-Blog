@@ -258,7 +258,7 @@ $(function () {
 		$.each(THEMES, function (i, t) {
 			var isUsed = used && used.ThemeId === t.ThemeId, kendoTheme = kendoById(t.KendoThemeId);
 			var card = $('<div class="themeCard"></div>').toggleClass("inUse", !!isUsed).toggleClass("dark", !!(kendoTheme && kendoTheme.dark));
-			<!--- The card's picture of a page is drawn by common/js/galaxieThemeCards.js, shared with Site Setup (2026-10-20). --->
+			<!--- The card's picture of a page is drawn by common/js/galaxieThemeCards.js, shared with the Site Wizard (2026-10-20). --->
 			var picture = GalaxieThemeCards.picture($.extend({}, t, { Dark: !!(kendoTheme && kendoTheme.dark) }), { siteName: SITE_NAME, baseUrl: BASE });
 			if (isUsed) { picture.append('<span class="themeCardPill">In use</span>'); }
 			var buttons = $('<div class="themeCardButtons"></div>');
@@ -549,7 +549,7 @@ $(function () {
 			var buttons = $('<div class="brandCardButtons"></div>').append(file,
 				$('<button type="button" class="k-button">Change</button>').on("click", function () { file.trigger("click"); }));
 			if (value) { buttons.append($('<button type="button" class="k-button">Remove</button>').on("click", function () { saveBrand(b, ""); })); }
-			if (b[0] === "logo") { buttons.append($('<button type="button" class="k-button" title="The Site Setup wizard\'s logo maker">Make one from my site name</button>').on("click", function () { window.location.href = BASE + "/admin/setup.cfm"; })); }
+			if (b[0] === "logo") { buttons.append($('<button type="button" class="k-button" title="The Site Wizard\'s logo maker">Make one from my site name</button>').on("click", function () { window.location.href = BASE + "/admin/setup.cfm"; })); }
 			box.append($('<div class="brandCard"></div>').append(art, $('<div class="brandCardTitle"></div>').text(b[2]), $("<div></div>").text(b[3]), buttons));
 		});
 		var iconFile = $('<div class="brandCard"></div>').append($('<div class="brandCardArt"></div>').append($('<img alt="" style="width: 48px; height: 48px;">').attr("src", BASE + "/favicon.ico").on("error", function () { $(this).replaceWith('<span class="k-form-hint">None</span>'); })),

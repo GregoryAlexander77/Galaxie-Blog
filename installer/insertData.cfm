@@ -214,7 +214,7 @@ Populate the blog option table.
 			<cfset OptionDbObj.setDisqusAuthTokenUrl(disqusAuthTokenUrl)>
 			<cfset OptionDbObj.setDate(now())>
 			<!--- A 5.0 install (2026-10-19): the About and Bio windows use the new owner's own details instead of the built-in text,
-			even before they run the Site Setup wizard (common/cfc/Setup.cfc usesOwnText). Blogs updated from older versions don't
+			even before they run the Site Wizard (common/cfc/Setup.cfc usesOwnText). Blogs updated from older versions don't
 			have this, so they keep showing what they always have. --->
 			<cfset OptionDbObj.setSetupStepsDone("new")>
 			<!--- Save it --->

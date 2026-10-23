@@ -1,4 +1,4 @@
-<!--- Site Setup wizard (Galaxie 5, 2026-10-19): seven screens that turn a new install into the owner's own site - name, look,
+<!--- Site Wizard (Galaxie 5, 2026-10-19): seven screens that turn a new install into the owner's own site - name, look,
 logo, about you, home page, starter content, done - with a live preview of the site beside them. Each screen is saved when the
 owner moves on (ProxyController.cfc saveSetup -> common/cfc/Setup.cfc), so leaving half way loses nothing, and the admin home
 shows a "Finish setting up your site" banner until Done. Uses Kendo UI 2021 R1 (its Wizard; the rest of the admin uses 2019),
@@ -93,7 +93,7 @@ takes the same options and events. --->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Set up your site</title>
+<title>Site Wizard</title>
 <cfoutput>
 <link rel="stylesheet" href="#application.baseUrl#/common/libs/kendoCore/styles/kendo.bootstrap-v4.min.css">
 <!--- Font Awesome for the social icons beside the "Where to find you" fields (2026-10-20). --->
@@ -790,7 +790,7 @@ $(function () {
 	$("#footerChoices").on("change", "input", function () { dirty.home = true; });
 	if (saved.footerIsCustom) {
 		$("#footerChoices input").prop("disabled", true).closest(".choice").addClass("disabled");
-		$("#footerHint").text("You have changed the footer in Themes, so Site Setup leaves it as it is. Change it any time in Themes, Content.");
+		$("#footerHint").text("You have changed the footer in Themes, so the Site Wizard leaves it as it is. Change it any time in Themes, Content.");
 	}
 	syncHomeChoices();
 	if (stepsDone().indexOf("home") < 0) { dirty.home = true; }

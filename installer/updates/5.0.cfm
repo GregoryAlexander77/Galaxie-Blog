@@ -1,4 +1,4 @@
-<!--- description: Galaxie 5.0: adds the columns for the post hero text, glow and hero styles, the carousel text shadow, the post hero style in Blog Options and the Site Setup wizard, creates the Scenes and shop tables, switches GreenSock on, turns background pictures back on for themes that have one, and moves the built-in theme backgrounds to their new folder. --->
+<!--- description: Galaxie 5.0: adds the columns for the post hero text, glow and hero styles, the carousel text shadow, the post hero style in Blog Options and the Site Wizard, creates the Scenes and shop tables, switches GreenSock on, turns background pictures back on for themes that have one, and moves the built-in theme backgrounds to their new folder. --->
 <!--- The work is done by DatabaseUpdater.cfc's ensureColumns(), which adds only the columns that are missing (ORM may already have
 added them when the blog restarted with the new files). --->
 <cfset ensureColumns("Post", [

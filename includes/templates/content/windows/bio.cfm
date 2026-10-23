@@ -64,7 +64,7 @@ Note: the following logic should not be cached as each theme may return a differ
 		</tr>
 		<tr>
 			<td colspan="2">
-			<!--- The owner's own biography (5.0): after the Site Setup wizard's About screen, or on a blog installed with 5.0 or
+			<!--- The owner's own biography (5.0): after the Site Wizard's About screen, or on a blog installed with 5.0 or
 			later; empty until they write one. A blog updated from an older version keeps the text below, as before. --->
 			<cfif application.blog.getSetup().usesOwnText()>
 				<cfoutput>#authorData[1]["Biography"] ?: ""#</cfoutput>

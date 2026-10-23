@@ -2,7 +2,7 @@
 	Galaxie theme cards (2026-10-20): a small picture of a page in a theme - the background picture, the header ribbon with the logo,
 	the site name in its font and color and the menu, then the content box right under it with a post in the theme's fonts (a Latin
 	sample) and, on a classic (not modern) theme, the sidebar. Shared by the Themes window (admin/adminInterface/themeEditor.cfm) and
-	Site Setup's "Pick a look" (admin/setup.cfm), so the two always show the same thing. The theme data comes from ThemeEditor.cfc
+	Site Wizard's "Pick a look" (admin/setup.cfm), so the two always show the same thing. The theme data comes from ThemeEditor.cfc
 	getThemeCards(); its fonts' @font-face rules are put on the page by the page itself.
 
 	GalaxieThemeCards.picture(theme, { siteName, baseUrl, height }) returns a jQuery element (div.themeCardPicture).

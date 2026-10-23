@@ -13671,7 +13671,7 @@
 	</cffunction>
 
 	<cffunction name="saveSetup" access="remote" returnformat="json" output="false"
-			hint="The Site Setup wizard (admin/setup.cfm, 5.0): saves one screen - step = site, testEmail, look, logo, about, home, starter or finish - through common/cfc/Setup.cfc. Only for someone who may change the blog's settings (EditServerSetting).">
+			hint="The Site Wizard (admin/setup.cfm, 5.0): saves one screen - step = site, testEmail, look, logo, about, home, starter or finish - through common/cfc/Setup.cfc. Only for someone who may change the blog's settings (EditServerSetting).">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="step" type="string" default="" required="true">
 		<cfargument name="title" type="string" default="" required="false">
@@ -13695,7 +13695,7 @@
 		<cfargument name="welcomePost" type="string" default="false" required="false">
 		<cfargument name="aboutPage" type="string" default="false" required="false">
 		<cfargument name="contactForm" type="string" default="false" required="false">
-		<cfargument name="footer" type="string" default="" required="false" hint="Site Setup's footer: simple, blurb or none (2026-10-20).">
+		<cfargument name="footer" type="string" default="" required="false" hint="Site Wizard's footer: simple, blurb or none (2026-10-20).">
 		<cfargument name="photo" type="string" default="" required="false" hint="A new profile photo as a data URL.">
 		<cfargument name="footerMode" type="string" default="same" required="false" hint="The footer logo: same, upload or none (2026-10-21).">
 		<cfargument name="footerLogo" type="string" default="" required="false" hint="An uploaded footer logo as a data URL.">

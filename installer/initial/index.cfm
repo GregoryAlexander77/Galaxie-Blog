@@ -1,12 +1,12 @@
 <!---
 	The Galaxie Blog installer (5.0, 2026-10-20): one page with four steps - Welcome, Your site, Database, Your account - then
-	Install, in the same wizard as Site Setup (common/js/galaxieWizard.js on the free Kendo UI Core). It replaces the seven
+	Install, in the same wizard engine as the Site Wizard (common/js/galaxieWizard.js on the free Kendo UI Core). It replaces the seven
 	pages that each posted to the next (index.cfm, step2SiteInfo.cfm ... step7Post.cfm).
 
 	Each step is saved (save.cfm) before the wizard moves on, so a mistake shows on the step it belongs to, and nothing goes
 	forward until the database has been checked: a datasource that doesn't exist, doesn't connect or already holds a blog is
 	refused (dsnCheck.cfm), so an existing blog can never be written over. Install then opens the blog's index.cfm?init=1&install=true,
-	which builds the database, runs ../insertData.cfm and sends the new owner on to Site Setup.
+	which builds the database, runs ../insertData.cfm and sends the new owner on to the Site Wizard.
 
 	What was entered before (the session, or blog.ini.cfm) is filled in again, so a reload or a return keeps it.
 --->
@@ -93,7 +93,7 @@
 <div class="shell">
 	<div class="top">
 		<img src="../images/welcome.jpg" alt="">
-		<div><h1>Install Galaxie Blog</h1><p class="sub">Four short steps. Afterwards, Site Setup helps you make the site your own.</p></div>
+		<div><h1>Install Galaxie Blog</h1><p class="sub">Four short steps. Afterwards, the Site Wizard helps you make the site your own.</p></div>
 	</div>
 	<div id="wizard"></div>
 </div>
@@ -124,7 +124,7 @@
 		<div class="block k-alt">
 			<h4>Your site</h4>
 			<div class="fieldRow"><label for="blogUrl">Address</label><div class="control"><input id="blogUrl" class="k-textbox" value="#encodeForHtmlAttribute(values.blogUrl)#"><div class="hint">Include https:// (recommended) or http://. Leave off any page name.</div></div></div>
-			<div class="fieldRow"><label for="blogTitle">Site name</label><div class="control"><input id="blogTitle" class="k-textbox" maxlength="125" placeholder="My Blog" value="#encodeForHtmlAttribute(values.blogTitle)#"><div class="hint">You can change it later in Site Setup.</div></div></div>
+			<div class="fieldRow"><label for="blogTitle">Site name</label><div class="control"><input id="blogTitle" class="k-textbox" maxlength="125" placeholder="My Blog" value="#encodeForHtmlAttribute(values.blogTitle)#"><div class="hint">You can change it later in Site Wizard.</div></div></div>
 		</div>
 	</div>
 
@@ -187,7 +187,7 @@
 			<button type="button" class="k-button k-primary" id="installNow">Install Galaxie Blog</button>
 			<ul class="progress" id="progress" style="display:none">
 				<li>Installing - this takes about a minute. Please keep this page open.</li>
-				<li>Next, Site Setup opens to help you make the site your own.</li>
+				<li>Next, the Site Wizard opens to help you make the site your own.</li>
 			</ul>
 		</div>
 	</div>
@@ -280,7 +280,7 @@ $(function () {
 		$("#strengthText").text(score >= 4 ? "Strong." : score >= 2 ? "Could be stronger: make it longer, or add a symbol." : "At least 8 characters, with a number or symbol.");
 	});
 
-	// Install: the blog builds its database and starter content on its own page, then opens Site Setup.
+	// Install: the blog builds its database and starter content on its own page, then opens the Site Wizard.
 	$("#installNow").on("click", function () {
 		if (!installUrl || !saved.site || !saved.database || !saved.account) {
 			message(4, "A step isn't finished yet. Go back and press Next on each step.");

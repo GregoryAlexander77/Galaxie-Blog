@@ -209,11 +209,11 @@ details). --->
 <cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(7);")>
 <cfset imageList = listAppend(imageList, "/images/icons/userProfile.gif")>
 	
-<!--- Site Setup (5.0, 2026-10-19): the wizard that makes a new install the owner's own site - a full page, not a window.
+<!--- Site Wizard (5.0, 2026-10-19): the wizard that makes a new install the owner's own site - a full page, not a window.
 The icon is a placeholder (a copy of settings.gif) until the owner makes one. --->
 <cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') gt 0>
 	<cfset iconList = listAppend(iconList, 'SiteSetup')>
-	<cfset titleList = listAppend(titleList, 'Site Setup')>
+	<cfset titleList = listAppend(titleList, 'Site Wizard')>
 	<cfset linkList = listAppend(linkList, application.baseUrl & "/admin/setup.cfm")>
 	<cfset imageList = listAppend(imageList, "/images/icons/siteSetup.gif")>
 </cfif>
@@ -456,7 +456,7 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 
 			<span style="text-align: center">What's up next, then everything else in groups.</span>
 
-			<!--- Until the owner finishes the Site Setup wizard (5.0): how many screens are done, and a button to carry on. --->
+			<!--- Until the owner finishes the Site Wizard (5.0): how many screens are done, and a button to carry on. --->
 			<!--- A brand new blog (5.0): the first visit to the administration page in a session opens the wizard, until the owner has
 			saved its first screen. Blogs updated from older versions are never sent there (Setup.cfc shouldAutoOpen). --->
 			<cfif listFindNoCase(currentUserCapabilityList, 'EditServerSetting') and application.blog.getSetup().shouldAutoOpen()
@@ -863,7 +863,7 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 	</p><!---<p class="bottomContent">--->
 
 </div><!---<span id="innerContentContainer" class="transition-fade">--->
-<!--- ?editPost=<id> (2026-10-20): opens that post in the editor, eg. from the Edit link in Site Setup's starter content. --->
+<!--- ?editPost=<id> (2026-10-20): opens that post in the editor, eg. from the Edit link in Site Wizard's starter content. --->
 <cfif structKeyExists(url, "editPost") and isValid("integer", url.editPost) and url.editPost gt 0>
 	<script>$(function () { setTimeout(function () { createAdminInterfaceWindow(6, <cfoutput>#int(url.editPost)#</cfoutput>); }, 300); });</script>
 </cfif>

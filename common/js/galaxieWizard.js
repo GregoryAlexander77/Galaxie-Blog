@@ -1,7 +1,7 @@
 /*
 	Galaxie Wizard (5.0, 2026-10-20): a step-by-step form like Kendo UI's Wizard - numbered steps along the top, Previous / Next /
 	Done buttons - for pages that run on the free Kendo UI Core, which has no Wizard (it's in Kendo UI Professional only, which
-	Galaxie can't ship). Used by Site Setup (admin/setup.cfm) and the installer (installer/initial/index.cfm). It takes the same
+	Galaxie can't ship). Used by the Site Wizard (admin/setup.cfm) and the installer (installer/initial/index.cfm). It takes the same
 	options and events the Kendo Wizard did there, so either page reads the same:
 
 		var wizard = $("#wizard").galaxieWizard({

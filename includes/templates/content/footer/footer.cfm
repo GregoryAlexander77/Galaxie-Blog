@@ -25,7 +25,7 @@ Note: the following logic should not be cached as each theme may return a differ
 <cfif len(trim(contentOutputData))>
 	<cfset displayContentOutputData = true>		
 </cfif>
-<!--- The footer Site Setup wrote (2026-10-21) has no picture of its own, so the footer logo shows above it. A footer the owner
+<!--- The footer the Site Wizard wrote (2026-10-21) has no picture of its own, so the footer logo shows above it. A footer the owner
 wrote in Themes is shown exactly as they made it. --->
 <cfset showFooterLogoAboveContent = false>
 <cfif displayContentOutputData and len(footerImage)>
@@ -47,7 +47,7 @@ wrote in Themes is shown exactly as they made it. --->
 			<cfoutput>#contentOutputData#</cfoutput>
 		<cfelse>
 			<!--- Neutral default for any blog. The site-specific text that used to be here (the galaxieblog.org promo on Lucee, the gregoryalexander.com credits on Adobe ColdFusion) now lives in each site's own Composite Footer. --->
-			<!--- No picture at all when the footer logo is switched off (Site Setup, 2026-10-21). --->
+			<!--- No picture at all when the footer logo is switched off (Site Wizard, 2026-10-21). --->
 			<cfif len(footerImage)><a href="<cfoutput>#application.blogHostUrl#</cfoutput>"><img class="siteFooterLogo" src="<cfoutput>#application.baseUrl##footerImage#</cfoutput>" alt="Footer Logo"/></a></cfif>
 			<!--- Shown only to a logged-in admin. The footer is cached as HTML for every visitor, so this stays hidden here and index.cfm reveals it after the cached footer when an admin is logged in. --->
 			<p id="footerCustomizeHint" hidden>You can replace this footer with your own in the administrative site: Themes, then Composite Footer.</p>

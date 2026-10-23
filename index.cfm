@@ -10,7 +10,7 @@
 Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/2018) --->
 <!--- When developing for Lucee you may want to place to following code on the first line to flush the cache. --->
 <!---<cfset pagePoolClear()>--->
-<!--- Straight after a new install (5.0): on to the Site Setup wizard, which asks the new owner to sign in first. Only the one
+<!--- Straight after a new install (5.0): on to the Site Wizard, which asks the new owner to sign in first. Only the one
 request that finished the install has this flag (Application.cfc), so every other visit is unaffected. --->
 <cfif isDefined("request.blogJustInstalled") and request.blogJustInstalled>
 	<cflocation url="#application.baseUrl#/admin/setup.cfm" addToken="false">
@@ -38,7 +38,7 @@ request that finished the install has this flag (Application.cfc), so every othe
 	if (len(urlAfterIndexCfm) eq 0 and isDefined("application.blog")) {
 		homepageSettings = application.blog.getHomepageSettings();
 		// One page ALONE is the whole homepage; one page with blog posts (or collections) is an introduction above them, on the
-		// curated homepage below (2026-10-20: Site Setup's "Your About page, then your latest posts" used to show only the page).
+		// curated homepage below (2026-10-20: Site Wizard's "Your About page, then your latest posts" used to show only the page).
 		if (homepageSettings.showPages and listLen(homepageSettings.pageIdList) eq 1 and not homepageSettings.showBlogPosts and not homepageSettings.showCollections) {
 			// The single-page override: Pages is on and exactly one Page is selected - that Page's own full
 			// content becomes the ENTIRE homepage (site chrome still shows), ignoring whatever Collections/Blog
@@ -196,7 +196,7 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 <cfif isDefined("url.previewTheme") and application.blog.getThemeEditor().isPreviewRequest()>
 	<cfset disableCache = true>
 </cfif>
-<!--- Site Setup's previews of an unsaved home layout or post picture style (2026-10-20) are never cached either. --->
+<!--- Site Wizard's previews of an unsaved home layout or post picture style (2026-10-20) are never cached either. --->
 <cfif (isDefined("url.previewHome") or isDefined("url.previewHeroStyle")) and application.Udf.isLoggedIn()>
 	<cfset disableCache = true>
 </cfif>
@@ -232,7 +232,7 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 	
 </cfsilent>
 <!---<cfdump var="#URL#">--->
-<!--- Breaks out of a frame on another site; the blog's own pages may frame it (the Site Setup wizard's live preview, 2026-10-19). --->
+<!--- Breaks out of a frame on another site; the blog's own pages may frame it (the Site Wizard's live preview, 2026-10-19). --->
 <body onload="if (top != self) { var ownSite = false; try { ownSite = top.location.host === self.location.host; } catch (e) {} if (!ownSite) top.location.replace(self.location.href); }" onresize="setScreenProperties()">
 <cfsilent>
 <!---//*******************************************************************************************************************
