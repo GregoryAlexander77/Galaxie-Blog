@@ -1,0 +1,38 @@
+{
+	"name": "Tallulah Gorge photo",
+	"description": "The rocks and rushing water at the bottom of Tallulah Gorge, Georgia, held in place with a slow zoom.",
+	"order": 23,
+	"pageColour": "#1f2a22",
+	"settings": {
+		"scrub": true,
+		"pinLength": "150%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "photoHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"shadow": "strong",
+			"image": "{baseUrl}/images/scenes/tallulah/photo.webp",
+			"imagePhone": "{baseUrl}/images/scenes/tallulah/photo640.webp",
+			"zoom": 1.15,
+			"fadeColour": "#1f2a22"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colors and pictures in the Scene editor.</p>",
+			"colour": "#1f2a22",
+			"gradient": "linear-gradient(180deg, #1f2a22 0%, #2f4a36 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#2f4a36",
+			"gradient": "linear-gradient(180deg, #2f4a36 0%, #1f2a22 100%)"
+		}
+	]
+}

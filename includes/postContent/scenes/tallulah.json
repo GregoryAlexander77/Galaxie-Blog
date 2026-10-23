@@ -1,0 +1,63 @@
+{
+	"name": "Tallulah Gorge",
+	"description": "A real photo of Tallulah Gorge, Georgia, from an overlook, cut into five layers that slide apart as you scroll.",
+	"order": 22,
+	"pageColour": "#1f2a22",
+	"settings": {
+		"scrub": true,
+		"pinLength": "150%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"shadow": "strong",
+			"intensity": 0.5,
+			"fadeColour": "#1f2a22",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/tallulah/1.webp",
+					"srcPhone": "{baseUrl}/images/scenes/tallulah/1-phone.webp",
+					"depth": 70
+				},
+				{
+					"src": "{baseUrl}/images/scenes/tallulah/2.webp",
+					"srcPhone": "{baseUrl}/images/scenes/tallulah/2-phone.webp",
+					"depth": 78
+				},
+				{
+					"src": "{baseUrl}/images/scenes/tallulah/3.webp",
+					"srcPhone": "{baseUrl}/images/scenes/tallulah/3-phone.webp",
+					"depth": 86
+				},
+				{
+					"src": "{baseUrl}/images/scenes/tallulah/4.webp",
+					"srcPhone": "{baseUrl}/images/scenes/tallulah/4-phone.webp",
+					"depth": 93
+				},
+				{
+					"src": "{baseUrl}/images/scenes/tallulah/5.webp",
+					"srcPhone": "{baseUrl}/images/scenes/tallulah/5-phone.webp",
+					"depth": 100
+				}
+			]
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colors and pictures in the Scene editor.</p>",
+			"colour": "#1f2a22",
+			"gradient": "linear-gradient(180deg, #1f2a22 0%, #2f4a36 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#2f4a36",
+			"gradient": "linear-gradient(180deg, #2f4a36 0%, #1f2a22 100%)"
+		}
+	]
+}
