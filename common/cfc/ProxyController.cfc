@@ -13719,6 +13719,33 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="getHeroTextPreview" access="remote" returnformat="json" output="false"
+			hint="The post's hero text drawn as the post page draws it (Renderer.cfc getHeroTextHtml), for the preview layer over the Hero editor's picture (2026-10-23, owner: the text didn't show there). Returns { success, html }; html is empty when the post has no hero text.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" default="0" required="true">
+		<cfset var response = { "success": false, "html": "" }>
+		<cfset var heroPost = []>
+		<cfset var row = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId)>
+			<cfset heroPost = application.blog.getPostByPostId(val(arguments.postId), true, true)>
+			<cfif arrayLen(heroPost)>
+				<cfset row = heroPost[1]>
+				<cfset response[ "html" ] = createObject("component", application.rendererComponentPath).getHeroTextHtml(text = row["HeroOverlayText"] ?: "",
+					subText = row["HeroOverlaySubText"] ?: "", color = row["HeroOverlayTextColor"] ?: "", font = row["HeroOverlayFont"] ?: "",
+					size = row["HeroOverlayFontSize"] ?: "", sizePhone = row["HeroOverlayFontSizePhone"] ?: "", shadow = row["HeroOverlayShadow"] ?: "",
+					shadowColor = row["HeroOverlayShadowColor"] ?: "", glowColor = row["HeroOverlayGlowColor"] ?: "",
+					glowOpacity = row["HeroOverlayGlowOpacity"] ?: "", glowSoftness = row["HeroOverlayGlowSoftness"] ?: "")>
+				<cfset response[ "success" ] = true>
+			</cfif>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="getHeroSummary" access="remote" returnformat="json" output="false"
 			hint="The line under the post editor's Hero button (2026-10-20): the post's scene and hero text, eg. 'Scene: Delicate Arch'. Empty when it has neither.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

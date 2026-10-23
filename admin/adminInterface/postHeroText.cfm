@@ -229,6 +229,8 @@ $(document).ready(function () {
 				if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
 				if (response && response.success) {
 					if (typeof galaxieHeroSummaryRefresh === "function") { galaxieHeroSummaryRefresh(); }
+					// The Hero editor redraws its hero text layer (enclosureImageEditor.cfm).
+					$(document).trigger("galaxieHeroTextSaved");
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Saved", message: "The hero text was saved.", icon: "k-ext-information" })).done(function () { $("#postHeroTextWindow").kendoWindow("destroy"); });
 				} else {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The hero text could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));

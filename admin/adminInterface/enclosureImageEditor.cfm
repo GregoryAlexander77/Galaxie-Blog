@@ -712,6 +712,61 @@
 			<div style="position: relative;">
 				<textarea id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>"></textarea>
 			</div>
+			<!--- The hero text over the picture, as a preview layer (2026-10-23, owner: "the text does not show up in the hero image
+			editor's preview"). It is drawn inside the editor's frame but outside its content (a sibling of <body>), so it is never
+			saved with the hero, and it follows the picture as the editor scrolls. Redrawn when the Hero text window saves
+			(galaxieHeroTextSaved) and when the hero changes. A gradient draws its own copy of the text; that copy is hidden here
+			so only the current text shows. --->
+			<script>
+				(function () {
+					var editorId = "<cfoutput>#selectorName#</cfoutput>", postId = <cfoutput>#val(URL.optArgs)#</cfoutput>, html = "";
+					function frameDoc(editor) { try { return editor.getDoc(); } catch (e) { return null; } }
+					function place(editor) {
+						var doc = frameDoc(editor); if (!doc || !doc.body) { return; }
+						var layer = doc.getElementById("galaxieHeroTextLayer");
+						if (!html) { if (layer) { layer.remove(); } return; }
+						var media = doc.body.querySelector("img, iframe, video, .galaxieHeroGradient, [style*='gradient']") || doc.body.firstElementChild;
+						if (!media) { if (layer) { layer.remove(); } return; }
+						if (!layer) {
+							layer = doc.createElement("div");
+							layer.id = "galaxieHeroTextLayer";
+							layer.setAttribute("contenteditable", "false");
+							layer.setAttribute("data-mce-bogus", "all");
+							doc.documentElement.appendChild(layer);
+							var hide = doc.createElement("style");
+							hide.id = "galaxieHeroTextLayerStyle";
+							hide.textContent = "body .galaxieHeroText { visibility: hidden; } #galaxieHeroTextLayer { font-family: Arial, Helvetica, sans-serif; position: absolute; display: flex; align-items: center; justify-content: center; pointer-events: none; overflow: hidden; z-index: 5; } #galaxieHeroTextLayer .galaxieHeroText { width: 90%; }";
+							doc.documentElement.appendChild(hide);
+						}
+						layer.innerHTML = html;
+						var r = media.getBoundingClientRect(), sx = doc.defaultView.pageXOffset, sy = doc.defaultView.pageYOffset;
+						$(layer).css({ left: r.left + sx, top: r.top + sy, width: r.width, height: r.height });
+						// The post page draws the heading for a page about 1100px wide; the picture here is smaller.
+						var text = layer.querySelector(".galaxieHeroText");
+						if (text) { text.style.zoom = Math.max(0.35, Math.min(1, r.width / 1100)); }
+					}
+					function load(editor) {
+						jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getHeroTextPreview", dataType: "json",
+							data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId } })
+							.done(function (response) {
+								if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+								html = (response && response.html) || "";
+								place(editor);
+								// Pictures load after the editor; place the text again once they have their size.
+								$(frameDoc(editor)).find("img, iframe").off("load.heroText").on("load.heroText", function () { place(editor); });
+							});
+					}
+					var tries = 0;
+					(function wait() {
+						var editor = window.tinymce && tinymce.get(editorId);
+						if (!editor || !editor.initialized) { if (tries++ < 60) { setTimeout(wait, 250); } return; }
+						load(editor);
+						editor.on("SetContent Change Undo Redo ResizeEditor", function () { setTimeout(function () { place(editor); }, 50); });
+						$(frameDoc(editor).defaultView).on("resize", function () { place(editor); });
+						$(document).off("galaxieHeroTextSaved.heroLayer").on("galaxieHeroTextSaved.heroLayer", function () { load(editor); });
+					})();
+				})();
+			</script>
 		</td>
 	  </tr>
 	  <!--- Remove the picture (2026-10-16), only when the post has one. --->
