@@ -265,7 +265,8 @@
 			menu: {
 				file: {title: 'File', items: 'preview print'},
 				edit: {title: 'Edit', items: 'undo redo | cut copy paste | selectall'},
-				insert: {title: 'Insert', items: 'image | media | gradient heroAnimation heroCoverImage carousel | scene | videoUpload webVttUpload videoCoverUpload | map mapRouting'},
+				<!--- Same order as the toolbar buttons (enclosureImageEditor.cfm toolbarString), with Hero text in it too (owner, 10-23). --->
+				insert: {title: 'Insert', items: 'image gradient heroAnimation heroCoverImage | carousel scene | heroText | media videoUpload webVttUpload videoCoverUpload | map mapRouting'},
 				format: {title: 'Format', items: 'heroText'},
 				view: {title: 'View', items: 'code | visualaid | preview fullscreen'}
 			},
