@@ -1240,7 +1240,7 @@
 		  <tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Webhook</h4></td></tr>
 		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
-			<td colspan="2" class="#blockClass#">Stripe tells the blog when a payment goes through by sending a signed message to the address below; a booking is only confirmed as paid when one arrives. In your Stripe dashboard, under Developers &gt; Webhooks, add an endpoint with this address and the events checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.expired and charge.refunded. Stripe then shows its signing secret (whsec_...) to paste above.</td>
+			<td colspan="2" class="#blockClass#">Stripe tells the blog when a payment goes through by sending a signed message to the address below; a booking is only confirmed as paid when one arrives. In your Stripe dashboard, search for <b>webhooks</b> and click <b>+ Add destination</b>. Tick the events checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.expired and charge.refunded (search for each one) and click Continue, choose <b>Webhook endpoint</b>, and paste this address as the Endpoint URL. On the new destination's page, click <b>Reveal</b> under Signing secret and paste the secret (whsec_...) above. Test and live mode each need their own destination.</td>
 		  </tr>
 		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr><td colspan="2" class="#blockClass#">Click it to select it for copying.</td></tr>
