@@ -557,7 +557,7 @@ This section has been completely redesigned by Gregory --->
 		<!-- Checkboxes -->
 		<tr class="k-content">
 			<td>
-				<input class="k-checkbox" type="checkbox" id="rememberMe" name="rememberMe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(rememberMe) and rememberMe)>checked="checked"</cfif> /> <label for="rememberMe">Remember me</label>
+				<input class="k-checkbox" type="checkbox" id="rememberMe" name="rememberMe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(rememberMe) and rememberMe)>checked="checked"</cfif> /> <label for="rememberMe">Remember my name, email and website for next time</label>
 			</td>
 		</tr>
 	<cfif URL.uiElement neq 'contact'>
@@ -715,8 +715,7 @@ This section has been completely redesigned by Gregory --->
 			<td align="right" width="<cfoutput>#firstCellWidth#</cfoutput>"><label for="rememberMe">Remember me:</label></td>
 			<td></td>
 			<td>
-				<input class="k-checkbox" type="checkbox" id="rememberMe" name="rememberMe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(rememberMe) and rememberMe)>checked="checked"</cfif> />
-				<div class="k-form-hint">Fills in your details next time.</div>
+				<input class="k-checkbox" type="checkbox" id="rememberMe" name="rememberMe" value="1" <cfif URL.uiElement eq 'subscribe' or (isBoolean(rememberMe) and rememberMe)>checked="checked"</cfif> /> <label for="rememberMe">Remember my name, email and website for next time</label>
 			</td>
 		</tr>
 	<cfif URL.uiElement neq 'contact'>
