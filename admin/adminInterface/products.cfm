@@ -1,4 +1,4 @@
-<!--- Products (window 111, 2026-10-21): the shop's switches and every product. Add a product or open one (window 112). The
+<!--- Shop (window 111, 2026-10-21; called Products until 10-22): the shop's switches, its pages and every product. Add a product or open one (window 112). The
 switches are saved by ProxyController.cfc's saveShopSettings -> application.shop.saveSettings (common/cfc/Shop.cfc). A plain table,
 not a grid: a small shop has a handful of products. --->
 <cfset shopSettings = application.shop.getSettings()>

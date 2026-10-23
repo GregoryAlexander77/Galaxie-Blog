@@ -78,7 +78,7 @@ Make it an ordinary page takes the products off (removeShopPage). --->
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">What the page shows: every product (new ones join it by themselves), or only the ones you pick. <a href="javascript:createAdminInterfaceWindow(111);">Products</a></td></tr>
+	<tr><td colspan="2" class="#blockClass#">What the page shows: every product (new ones join it by themselves), or only the ones you pick. <a href="javascript:createAdminInterfaceWindow(111);">Shop</a></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right">Shows:</td>

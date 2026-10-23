@@ -14603,7 +14603,7 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
-	<cffunction name="saveShopSettings" access="remote" returnformat="json" output="false" hint="The shop's switches, from the Products window.">
+	<cffunction name="saveShopSettings" access="remote" returnformat="json" output="false" hint="The shop's switches, from the Shop window.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="enabled" default="false" required="false">
 		<cfargument name="promotionCodes" default="false" required="false">
@@ -14809,8 +14809,8 @@
 				<cfset response[ "ownerLink" ] = application.baseUrl & "/admin/?open=payments">
 			<cfelse>
 				<cfset response[ "ownerNote" ] = "Only you see this: the shop is closed.">
-				<cfset response[ "ownerLinkText" ] = "Open it in Products > Shop is open">
-				<cfset response[ "ownerLink" ] = application.baseUrl & "/admin/?open=products">
+				<cfset response[ "ownerLinkText" ] = "Open it in Shop > Shop is open">
+				<cfset response[ "ownerLink" ] = application.baseUrl & "/admin/?open=shop">
 			</cfif>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
