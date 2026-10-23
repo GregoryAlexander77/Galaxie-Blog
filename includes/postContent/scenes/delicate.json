@@ -1,0 +1,61 @@
+{
+	"name": "Delicate Arch at golden hour",
+	"description": "The arch on its slickrock rim in low evening sun, the snowy La Sal Mountains behind. Light to load.",
+	"order": 11,
+	"pageColour": "#2a1316",
+	"settings": {
+		"scrub": true,
+		"pinLength": "200%",
+		"fadeHeight": "35vh"
+	},
+	"sections": [
+		{
+			"kind": "layeredHero",
+			"heading": "Your heading here",
+			"html": "<p>A line or two to go with it.</p>",
+			"align": "center",
+			"fadeColour": "#2a1316",
+			"layers": [
+				{
+					"src": "{baseUrl}/images/scenes/delicate/1.svg",
+					"depth": 60
+				},
+				{
+					"src": "{baseUrl}/images/scenes/delicate/2.svg",
+					"depth": 160
+				},
+				{
+					"src": "{baseUrl}/images/scenes/delicate/3.svg",
+					"depth": 280
+				},
+				{
+					"src": "{baseUrl}/images/scenes/delicate/4.svg",
+					"depth": 420
+				},
+				{
+					"src": "{baseUrl}/images/scenes/delicate/5.svg",
+					"depth": 560
+				},
+				{
+					"src": "{baseUrl}/images/scenes/delicate/6.svg",
+					"depth": 700
+				}
+			],
+			"shadow": "soft"
+		},
+		{
+			"kind": "text",
+			"heading": "Then your story",
+			"html": "<p>Tell your story here. Change the words, fonts, colors and pictures in the Scene editor.</p>",
+			"colour": "#2a1316",
+			"gradient": "linear-gradient(180deg, #2a1316 0%, #7a2f24 100%)"
+		},
+		{
+			"kind": "text",
+			"heading": "And a closing thought",
+			"html": "<p>A last section to round it off, or remove it and let the post's own text follow.</p>",
+			"colour": "#7a2f24",
+			"gradient": "linear-gradient(180deg, #7a2f24 0%, #2a1316 100%)"
+		}
+	]
+}
