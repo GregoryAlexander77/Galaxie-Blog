@@ -61,18 +61,17 @@ and videos have none. --->
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Style</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<!--- The hero's style (owner, 10-19: "keep them all"): the blog's choice (Blog Options), or one of its own. --->
-	<cfset heroStyleNames = { "classic": "Classic (inside the post)", "held": "Full screen, held", "band": "Tall band (scrolls away)", "magazine": "Magazine (large heading, low left)" }>
 	<cfset blogHeroStyle = createObject("component", application.rendererComponentPath).getPostHeroStyle("")>
+	<!--- Picture cards instead of a dropdown (owner, 10-23), with a first card that follows the blog's choice (heroStyleCards.cfm). --->
 	<tr>
-		<td class="#blockClass#" align="right"><label for="heroTextStyle">Style:</label></td>
-		<td class="#blockClass#">
-			<select id="heroTextStyle" style="width: 60%;">
-				<option value="">Same as the blog: #heroStyleNames[blogHeroStyle]#</option>
-				<cfloop list="classic,held,band,magazine" index="hs">
-					<option value="#hs#"<cfif (p["HeroStyle"] ?: "") eq hs> selected</cfif>>#heroStyleNames[hs]#</option>
-				</cfloop>
-			</select>
-			<div class="k-form-hint">How the hero shows on the post's own page. Full screen, Tall band and Magazine are full width and fade into the post; the blog's choice is in Blog Options. Carousels, maps and videos always show as they are.</div>
+		<td colspan="2" class="#blockClass#">
+			How the hero shows on this post's own page. Point at a card to see it move. Carousels, maps and videos always show as they are.
+			<cfset heroCardsId = "heroTextStyle">
+			<cfset heroCardsName = "">
+			<cfset heroCardsValue = p["HeroStyle"] ?: "">
+			<cfset heroCardsBlogChoice = blogHeroStyle>
+			<cfset heroCardsSmall = true>
+			<cfinclude template="heroStyleCards.cfm">
 		</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
@@ -176,7 +175,6 @@ $(document).ready(function () {
 	$("#heroTextColour").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true, change: preview });
 	$("#heroTextShadowColour").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true, change: preview });
 	$("#heroTextShadow").kendoDropDownList({ change: preview });
-	$("#heroTextStyle").kendoDropDownList();
 	$("#heroTextGlowColour").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true, change: preview });
 	$("#heroTextGlowOn").on("change", preview);
 	$("#heroTextGlowOpacity, #heroTextGlowSoftness").on("input", preview);
