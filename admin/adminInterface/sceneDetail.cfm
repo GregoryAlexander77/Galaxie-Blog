@@ -161,6 +161,20 @@ chose "this server only" (Scenes window settings). --->
 	.sceneKindGroup:first-child { margin-top: 0; }
 	.sceneKindCard { border: 2px solid rgba(128,128,128,.35); border-radius: 8px; background: transparent; color: inherit; padding: 0; text-align: left; cursor: pointer; font: inherit; overflow: hidden; display: flex; flex-direction: column; }
 	.sceneKindCard:hover, .sceneKindCard:focus { border-color: currentColor; outline: none; }
+	<!--- Where a hero's heading sits (2026-10-24, owner): six cards, drawn on the section's own picture. --->
+	.scenePosCards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+	.scenePosCard { border: 2px solid rgba(128,128,128,.35); border-radius: 8px; padding: 4px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+	.scenePosCard:hover, .scenePosCard:focus { border-color: rgba(128,128,128,.8); outline: none; }
+	.scenePosCard[aria-checked="true"] { border-color: currentColor; }
+	.scenePosCard .scenePosName { display: block; margin-top: 4px; font-size: 12px; line-height: 1.25; }
+	.scenePosArt { position: relative; aspect-ratio: 16 / 9; border-radius: 4px; overflow: hidden; background: #2b3540; background-size: cover; background-position: center; }
+	.scenePosArt img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+	.scenePosText { position: absolute; left: 8%; right: 8%; display: flex; flex-direction: column; gap: 3px; }
+	.scenePosText i { display: block; width: 46%; height: 6px; border-radius: 3px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.6); }
+	.scenePosText i + i { width: 30%; height: 4px; opacity: .85; }
+	.scenePosText.middle { top: 50%; transform: translateY(-50%); }
+	.scenePosText.low { bottom: 10%; }
+	.scenePosText.left { align-items: flex-start; } .scenePosText.center { align-items: center; } .scenePosText.right { align-items: flex-end; }
 	.sceneKindCard svg { display: block; width: 100%; height: 96px; }
 	.sceneKindText { padding: 8px 10px 10px; }
 	.sceneKindText b { display: block; margin-bottom: 3px; }
@@ -383,7 +397,7 @@ $(document).ready(function () {
 		{ key: "textSize", label: "Size", type: "select", options: TEXT_SIZES },
 		{ key: "textSizePhone", label: "Size on mobile", type: "select", options: TEXT_SIZES_PHONE },
 		{ group: "Heading and text" },
-		{ key: "align", label: "Line up", type: "select", options: [["", "Theme default"], ["left", "Left"], ["center", "Centre"], ["right", "Right"]] },
+		{ key: "align", label: "Line up", type: "select", options: [["", "Theme default"], ["left", "Left"], ["center", "Center"], ["right", "Right"]] },
 		{ key: "textColour", label: "Color", type: "colour" },
 		{ key: "shadow", label: "Shadow behind them", type: "select", options: [["", "None"], ["soft", "Soft"], ["strong", "Strong"], ["glow", "Glow"]], hint: "Makes text stand out on a busy picture." },
 		{ key: "shadowColour", label: "Shadow color", type: "colour" },
@@ -699,6 +713,49 @@ $(document).ready(function () {
 		});
 	}
 
+	<!--- Where a hero's heading sits (2026-10-24, owner: the magazine look for scenes): left, center or right, in the middle or low
+	(textPosition "bottom", galaxieScene.js gs-textBottom). Six cards drawn on the section's own picture, in place of the Line up
+	dropdown that text sections keep. --->
+	var HERO_POSITIONS = [
+		["left", "", "Middle, left"], ["center", "", "Middle, center"], ["right", "", "Middle, right"],
+		["left", "bottom", "Low, left (magazine)"], ["center", "bottom", "Low, center"], ["right", "bottom", "Low, right"]
+	];
+	function heroPositionArt(section) {
+		var art = $('<span class="scenePosArt" aria-hidden="true"></span>');
+		if (section.kind === "layeredHero") {
+			$.each(section.layers || [], function (i, layer) { if (layer && layer.src) { art.append($('<img alt="">').attr("src", withBase(layer.srcPhone || layer.src))); } });
+		} else if (section.kind === "photoHero" && (section.imagePhone || section.image)) {
+			art.css("background-image", 'url("' + withBase(section.imagePhone || section.image).replace(/"/g, "") + '")');
+		} else if (section.kind === "videoHero" && section.poster) {
+			art.css("background-image", 'url("' + withBase(section.poster).replace(/"/g, "") + '")');
+		} else if (section.kind === "gradientHero" && section.gradient) {
+			art.css("background", section.gradient);
+		}
+		return art;
+	}
+	function heroPositionField(wrap) {
+		var section = scene.sections[selected];
+		var align = getValue("align") || "center", low = getValue("textPosition") === "bottom";
+		var cards = $('<div class="scenePosCards" role="radiogroup" aria-label="Where the heading sits"></div>');
+		wrap.append($('<label></label>').text("Where the heading sits"), cards);
+		$.each(HERO_POSITIONS, function (i, pos) {
+			var card = $('<button type="button" class="scenePosCard" role="radio"></button>')
+				.attr("aria-checked", pos[0] === align && (pos[1] === "bottom") === low ? "true" : "false")
+				.append(heroPositionArt(section).append('<span class="scenePosText ' + (pos[1] ? "low" : "middle") + ' ' + pos[0] + '"><i></i><i></i></span>'),
+					$('<span class="scenePosName"></span>').text(pos[2]));
+			card.on("click", function () {
+				setValue("align", pos[0]);
+				setValue("textPosition", pos[1]);
+				cards.find(".scenePosCard").attr("aria-checked", "false");
+				card.attr("aria-checked", "true");
+				schedulePreview();
+			});
+			cards.append(card);
+		});
+		wrap.append($('<div class="k-form-hint"></div>').text("Low keeps the middle of the picture clear, like a magazine cover. Phones show the heading in the same place."));
+		return wrap;
+	}
+
 	function fieldHtml(field) {
 		if (field.group) { return $('<h4 class="adminBlockHeading sceneFieldGroup"></h4>').text(field.group); }
 		var wrap = $('<div class="sceneField"></div>');
@@ -723,6 +780,7 @@ $(document).ready(function () {
 			wrap.append($('<label></label>').attr("for", id).text("Color style"), style);
 			return wrap;
 		}
+		if (field.key === "align" && selected >= 0 && HERO[(scene.sections[selected] || {}).kind]) { return heroPositionField(wrap); }
 		wrap.append($('<label></label>').attr("for", id).text(field.label));
 		function hint() { if (field.hint) { wrap.append($('<div class="k-form-hint"></div>').text(field.hint)); } return wrap; }
 
