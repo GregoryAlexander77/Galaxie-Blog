@@ -40,6 +40,8 @@
 </script>
 </cfif>
 
+<!--- Delete asks, then deletes at once (2026-10-24). --->
+<cfinclude template="deleteCommand.cfm">
 <script>
 	$(document).ready(function() {
 
@@ -153,7 +155,7 @@
 				filterable: true,
 				width: "<cfif session.isMobile>15<cfelse>7</cfif>%"
 			}, {
-				command: ["destroy"],
+				command: [galaxieGridDeleteCommand("page", ["Title"], "It is taken off your site.")],
 				title: "&nbsp;",
 				width: "<cfif session.isMobile>15<cfelse>7</cfif>%"
 			}]

@@ -14,6 +14,8 @@
 
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
+<!--- Delete asks, then deletes at once (2026-10-24). --->
+<cfinclude template="deleteCommand.cfm">
 <script>
 	$(document).ready(function() {
 
@@ -91,7 +93,7 @@
 				filterable: false,
 				template: "<button type='button' class='k-button' onclick='setWebFormSubmissionHidden(#= WebFormSubmissionId #, #= Hidden ? false : true #)'>#= Hidden ? 'Show' : 'Hide' #</button>"
 			</cfif>}, {
-				command: ["destroy"],
+				command: [galaxieGridDeleteCommand("submission", ["Name","Email"])],
 				title: "&nbsp;",
 				width: "<cfif session.isMobile>25<cfelse>10</cfif>%"
 			}]

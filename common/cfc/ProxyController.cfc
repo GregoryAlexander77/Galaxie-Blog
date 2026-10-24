@@ -1370,31 +1370,14 @@
 		<!--- Use the deserialize function to get at the underlying data. --->
 		<cfset thisStruct = deserializeJson(thisStr, false)>
 
-		<cftransaction>
-			<!--- Now that we have a clean array of structures, loop thru the array and get to the underlying values that were sent in the grid. ---> 
-			<!--- Loop thru the struct. --->
-			<cfloop array="#thisStruct#" index="i">
-				<!--- Extract the needed fields. Note: some of the variables may not come thru if they are empty. Use error catching here to catch and continue processing if there is an error.  --->
-				<cfparam name="commentId" default="" type="any">
-				<cftry>
-					<!--- Get the selected values of the fields --->
-					<cfset commentId = i['CommentId']>
-					<cfcatch type="any">
-						<cfset error = "one of the variables was not defined.">
-					</cfcatch>
-				</cftry>
-
-				<!--- Update the database. --->
-				<!--- Load the comment entity. --->
-				<cfset CommentDbObj = entityLoad("Comment", { CommentId = commentId }, "true" )>
-				<!--- Set the remove column to true --->
-				<cfset CommentDbObj.setRemove(1)>
-				<!--- Save it --->
-				<cfset EntitySave(CommentDbObj)>
-
-			</cfloop>
-
-		</cftransaction>
+		<!--- 2026-10-24: this used to be a copy of the comments grid's version (it loaded a Comment by CommentId, or flagged a
+		column nothing reads), so deleting a subscriber from the Kendo grid never worked. Each row now goes through deleteSubscriberViaJsGrid,
+		which the jsGrid has always used. --->
+		<cfloop array="#thisStruct#" index="i">
+			<cfif structKeyExists(i, "SubscriberId") and isNumeric(i["SubscriberId"])>
+				<cfset deleteSubscriberViaJsGrid(csrfToken=arguments.csrfToken, subscriberId=i["SubscriberId"])>
+			</cfif>
+		</cfloop>
 								
     	<cfset jsonString = []><!--- '{"data":null}', --->
     	
@@ -2760,31 +2743,14 @@
 		<!--- Use the deserialize function to get at the underlying data. --->
 		<cfset thisStruct = deserializeJson(thisStr, false)>
 
-		<cftransaction>
-			<!--- Now that we have a clean array of structures, loop thru the array and get to the underlying values that were sent in the grid. ---> 
-			<!--- Loop thru the struct. --->
-			<cfloop array="#thisStruct#" index="i">
-				<!--- Extract the needed fields. Note: some of the variables may not come thru if they are empty. Use error catching here to catch and continue processing if there is an error.  --->
-				<cfparam name="commentId" default="" type="any">
-				<cftry>
-					<!--- Get the selected values of the fields --->
-					<cfset commentId = i['CommentId']>
-					<cfcatch type="any">
-						<cfset error = "one of the variables was not defined.">
-					</cfcatch>
-				</cftry>
-
-				<!--- Update the database. --->
-				<!--- Load the comment entity. --->
-				<cfset CommentDbObj = entityLoad("Comment", { CommentId = commentId }, "true" )>
-				<!--- Set the remove column to true --->
-				<cfset CommentDbObj.setRemove(1)>
-				<!--- Save it --->
-				<cfset EntitySave(CommentDbObj)>
-
-			</cfloop>
-
-		</cftransaction>
+		<!--- 2026-10-24: this used to be a copy of the comments grid's version (it loaded a Comment by CommentId, or flagged a
+		column nothing reads), so deleting a theme from the Kendo grid never worked. Each row now goes through deleteThemeViaJsGrid,
+		which the jsGrid has always used. --->
+		<cfloop array="#thisStruct#" index="i">
+			<cfif structKeyExists(i, "ThemeId") and isNumeric(i["ThemeId"])>
+				<cfset deleteThemeViaJsGrid(csrfToken=arguments.csrfToken, themeId=i["ThemeId"])>
+			</cfif>
+		</cfloop>
 								
     	<cfset jsonString = []><!--- '{"data":null}', --->
 			
@@ -5823,31 +5789,14 @@
 		<!--- Use the deserialize function to get at the underlying data. --->
 		<cfset thisStruct = deserializeJson(thisStr, false)>
 
-		<cftransaction>
-			<!--- Now that we have a clean array of structures, loop thru the array and get to the underlying values that were sent in the grid. ---> 
-			<!--- Loop thru the struct. --->
-			<cfloop array="#thisStruct#" index="i">
-				<!--- Extract the needed fields. Note: some of the variables may not come thru if they are empty. Use error catching here to catch and continue processing if there is an error.  --->
-				<cfparam name="commentId" default="" type="any">
-				<cftry>
-					<!--- Get the selected values of the fields --->
-					<cfset commentId = i['CommentId']>
-					<cfcatch type="any">
-						<cfset error = "one of the variables was not defined.">
-					</cfcatch>
-				</cftry>
-
-				<!--- Update the database. --->
-				<!--- Load the comment entity. --->
-				<cfset CommentDbObj = entityLoad("Comment", { CommentId = commentId }, "true" )>
-				<!--- Set the remove column to true --->
-				<cfset CommentDbObj.setRemove(1)>
-				<!--- Save it --->
-				<cfset EntitySave(CommentDbObj)>
-
-			</cfloop>
-
-		</cftransaction>
+		<!--- 2026-10-24: this used to be a copy of the comments grid's version (it loaded a Comment by CommentId, or flagged a
+		column nothing reads), so deleting a category from the Kendo grid never worked. Each row now goes through deleteCategoryViaJsGrid,
+		which the jsGrid has always used. --->
+		<cfloop array="#thisStruct#" index="i">
+			<cfif structKeyExists(i, "CategoryId") and isNumeric(i["CategoryId"])>
+				<cfset deleteCategoryViaJsGrid(csrfToken=arguments.csrfToken, categoryId=i["CategoryId"])>
+			</cfif>
+		</cfloop>
 								
     	<cfset jsonString = []><!--- '{"data":null}', --->
     	
@@ -5894,6 +5843,8 @@
 			<!--- Now, in a different transaction, delete the record. --->
 			<!--- Load the comment entity. --->
 			<cfset CategoryDbObj = entityLoad("Category", { CategoryId = arguments.categoryId }, "true" )>
+			<!--- 2026-10-24: take it off any posts first; the PostCategoryLookup rows point at it, so the delete failed for one that was in use. --->
+			<cfset ormExecuteQuery("DELETE FROM PostCategoryLookup WHERE CategoryRef = :ref", { ref = CategoryDbObj })>
 			<!--- Delete it --->
 			<cfset EntityDelete(CategoryDbObj)>
 		</cftransaction>
@@ -6195,31 +6146,14 @@
 		<!--- Use the deserialize function to get at the underlying data. --->
 		<cfset thisStruct = deserializeJson(thisStr, false)>
 
-		<cftransaction>
-			<!--- Now that we have a clean array of structures, loop thru the array and get to the underlying values that were sent in the grid. ---> 
-			<!--- Loop thru the struct. --->
-			<cfloop array="#thisStruct#" index="i">
-				<!--- Extract the needed fields. Note: some of the variables may not come thru if they are empty. Use error catching here to catch and continue processing if there is an error.  --->
-				<cfparam name="tagId" default="" type="any">
-				<cftry>
-					<!--- Get the selected values of the fields --->
-					<cfset tagId = i['TagId']>
-					<cfcatch type="any">
-						<cfset error = "one of the variables was not defined.">
-					</cfcatch>
-				</cftry>
-
-				<!--- Update the database. --->
-				<!--- Load the tag entity. --->
-				<cfset TagDbObj = entityLoad("Tag", { TagId = tagId }, "true" )>
-				<!--- Set the remove column to true --->
-				<cfset TagDbObj.setRemove(1)>
-				<!--- Save it --->
-				<cfset EntitySave(TagDbObj)>
-
-			</cfloop>
-
-		</cftransaction>
+		<!--- 2026-10-24: this used to be a copy of the comments grid's version (it loaded a Comment by CommentId, or flagged a
+		column nothing reads), so deleting a tag from the Kendo grid never worked. Each row now goes through deleteTagViaJsGrid,
+		which the jsGrid has always used. --->
+		<cfloop array="#thisStruct#" index="i">
+			<cfif structKeyExists(i, "TagId") and isNumeric(i["TagId"])>
+				<cfset deleteTagViaJsGrid(csrfToken=arguments.csrfToken, tagId=i["TagId"])>
+			</cfif>
+		</cfloop>
 								
     	<cfset jsonString = []><!--- '{"data":null}', --->
     	
@@ -6266,6 +6200,8 @@
 			<!--- Now, in a different transaction, delete the record. --->
 			<!--- Load the comment entity. --->
 			<cfset TagDbObj = entityLoad("Tag", { TagId = arguments.tagId }, "true" )>
+			<!--- 2026-10-24: take it off any posts first; the PostTagLookup rows point at it, so the delete failed for one that was in use. --->
+			<cfset ormExecuteQuery("DELETE FROM PostTagLookup WHERE TagRef = :ref", { ref = TagDbObj })>
 			<!--- Delete it --->
 			<cfset EntityDelete(TagDbObj)>
 		</cftransaction>
@@ -6564,31 +6500,14 @@
 		<!--- Use the deserialize function to get at the underlying data. --->
 		<cfset thisStruct = deserializeJson(thisStr, false)>
 
-		<cftransaction>
-			<!--- Now that we have a clean array of structures, loop thru the array and get to the underlying values that were sent in the grid. ---> 
-			<!--- Loop thru the struct. --->
-			<cfloop array="#thisStruct#" index="i">
-				<!--- Extract the needed fields. Note: some of the variables may not come thru if they are empty. Use error catching here to catch and continue processing if there is an error.  --->
-				<cfparam name="userId" default="" type="any">
-				<cftry>
-					<!--- Get the selected values of the fields --->
-					<cfset userId = i['UserId']>
-					<cfcatch type="any">
-						<cfset error = "one of the variables was not defined.">
-					</cfcatch>
-				</cftry>
-
-				<!--- Update the database. --->
-				<!--- Load the entity. --->
-				<cfset UserDbObj = entityLoad("User", { UserId = userId }, "true" )>
-				<!--- Set the remove column to true --->
-				<cfset UserDbObj.setActive(0)>
-				<!--- Save it --->
-				<cfset EntitySave(UserDbObj)>
-
-			</cfloop>
-
-		</cftransaction>
+		<!--- 2026-10-24: this used to be a copy of the comments grid's version (it loaded a Comment by CommentId, or flagged a
+		column nothing reads), so deleting a user from the Kendo grid never worked. Each row now goes through deleteUserViaJsGrid,
+		which the jsGrid has always used. --->
+		<cfloop array="#thisStruct#" index="i">
+			<cfif structKeyExists(i, "UserId") and isNumeric(i["UserId"])>
+				<cfset deleteUserViaJsGrid(csrfToken=arguments.csrfToken, userId=i["UserId"])>
+			</cfif>
+		</cfloop>
 								
     	<cfset jsonString = []><!--- '{"data":null}', --->
     	

@@ -38,6 +38,8 @@
 	<a href="javascript:createAdminInterfaceWindow(34, #: FontId #);">#: Font #</a>
 </script>
 
+<!--- Delete asks, then deletes at once (2026-10-24). --->
+<cfinclude template="deleteCommand.cfm">
 <script>
 	$(document).ready(function() {
 
@@ -157,7 +159,7 @@
 				filterable: true,
 				width: "10%"</cfif>
 			}, {
-				command: ["destroy"],
+				command: [galaxieGridDeleteCommand("font", ["Font"])],
 				title: "&nbsp;",
 				width: "<cfif session.isMobile>20<cfelse>10</cfif>%"
 			}]

@@ -23,6 +23,8 @@
 
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
+<!--- Delete asks, then deletes at once (2026-10-24). --->
+<cfinclude template="deleteCommand.cfm">
 <script>
 	$(document).ready(function() {
 
@@ -125,7 +127,7 @@
 				width: "<cfif session.isMobile>10<cfelse>14</cfif>%",
 				template: "#= Date ? dayjs(Date).format('MM/DD/YYYY h:mm A') : '' #"</cfif>
 			}, {
-				command: ["destroy"],
+				command: [galaxieGridDeleteCommand("category", ["Category"])],
 				title: "&nbsp;",
 				width: "<cfif session.isMobile>20<cfelse>10</cfif>%"
 			}]

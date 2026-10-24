@@ -41,6 +41,8 @@
 	<a href="javascript:createAdminInterfaceWindow(30, #: ThemeId #);">#: KendoTheme #</a>
 </script>
 
+<!--- Delete asks, then deletes at once (2026-10-24). --->
+<cfinclude template="deleteCommand.cfm">
 <script>
 	$(document).ready(function() {
 
@@ -167,7 +169,7 @@
 				filterable: true,
 				width: "<cfif session.isMobile>15<cfelse>15</cfif>%"
 			}, {
-				command: ["destroy"],
+				command: [galaxieGridDeleteCommand("theme", ["ThemeName"], "It is switched off (Use Theme is unticked); its settings are kept.")],
 				title: "&nbsp;",
 				width: "<cfif session.isMobile>20<cfelse>10</cfif>%"
 			}]
