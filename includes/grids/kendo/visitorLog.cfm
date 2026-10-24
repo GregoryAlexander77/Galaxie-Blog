@@ -5,7 +5,9 @@
 	same as createAdminInterfaceWindow(48, anonymousUserId, ipAddressId, postId). Pass 0 for any
 	argument you don't want to filter on. --->
 <cfset gridName = "visitorLogGrid">
-<cfset getUrl = application.baseUrl & '/common/cfc/ProxyController.cfc?method=getVisitorLogForGrid&gridType=kendo'>
+<!--- A virtual grid (2026-10-23, owner): rows are fetched a page at a time as you scroll, sorted and filtered on the server
+(ProxyController.cfc getVisitorLogForVirtualGrid, blog.cfc getVisitorLogPage). --->
+<cfset getUrl = application.baseUrl & '/common/cfc/ProxyController.cfc?method=getVisitorLogForVirtualGrid'>
 <cfparam name="pageTitle" default="" type="string">
 
 <cfif structKeyExists(URL, "optArgs") and isNumeric(URL.optArgs) and URL.optArgs gt 0>
@@ -33,7 +35,7 @@ last 7 days, as the card counts them. --->
 	<script type="text/javascript" src="#application.baseUrl#/common/libs/dayjs/dayjs.min.js"></script>
 	</cfoutput>
 	<cfif len(pageTitle)><h2><cfoutput>#pageTitle#</cfoutput></h2></cfif>
-	<p>All columns are sortable and searchable/filterable. Note: to conserve server resources, this grid is limited to 5000 records.</p>
+	<p>All columns are sortable and filterable. Scroll to load more: rows are fetched from the server as you go.</p>
 </head>
 
 <body>
@@ -48,7 +50,7 @@ last 7 days, as the card counts them. --->
 </script>
 <cfif not session.isMobile>
 <script type="text/x-kendo-template" id="postTitleTemplate">
-	# if (data.VisitingHomePage) { # Home # } else if (data.PostTitle !== null) { # <a href="javascript:createAdminInterfaceWindow(48,0,0,#: PostId #);">#: PostTitle #</a> # } #
+	# if (data.VisitingHomePage) { # Home # } else if (data.PostTitle) { # <a href="javascript:createAdminInterfaceWindow(48,0,0,#: PostId #);">#: PostTitle #</a> # } #
 </script>
 </cfif>
 
@@ -75,16 +77,34 @@ last 7 days, as the card counts them. --->
 	$(document).ready(function() {
 
 		visitorLogDs = new kendo.data.DataSource({
+			// Server paging, sorting and filtering: the grid posts { take, skip, sort, filter } as JSON.
+			serverPaging: true,
+			serverSorting: true,
+			serverFiltering: true,
+			pageSize: 100,
 			transport: {
 				read: {
 					url: "<cfoutput>#getUrl#</cfoutput>",
 					dataType: "json",
-					method: "post"
+					// ColdFusion needs this content type for a JSON request body.
+					contentType: "application/json; charset=utf-8",
+					type: "POST"
+				},
+				parameterMap: function (options) {
+					// Dates go as the visitor's own time (yyyy-MM-dd HH:mm:ss), not UTC, so "is equal to" a day means that day.
+					(function localDates(filter) {
+						if (!filter || !filter.filters) { return; }
+						$.each(filter.filters, function (i, f) {
+							if (f.filters) { localDates(f); } else if (f.value instanceof Date) { f.value = kendo.toString(f.value, "yyyy-MM-dd HH:mm:ss"); }
+						});
+					})(options.filter);
+					return JSON.stringify(options);
 				}
 			},
 			cache: false,
-			pageSize: <cfif session.isMobile>7<cfelse>15</cfif>,
 			schema: {
+				data: "data",
+				total: "total",
 				model: {
 					id: "uid",
 					fields: {
@@ -96,7 +116,7 @@ last 7 days, as the card counts them. --->
 						PostId: { type: "number", editable: false, nullable: true },
 						VisitingHomePage: { type: "boolean", editable: false, nullable: true },
 						IsBot: { type: "boolean", editable: false, nullable: true },
-						Date: { type: "string", editable: false, nullable: false }
+						Date: { type: "date", editable: false, nullable: false }
 					}
 				}
 			}
@@ -109,8 +129,10 @@ last 7 days, as the card counts them. --->
 			navigatable: true,
 			filterable: true,
 			sortable: { mode: "multiple", allowUnsort: true, showIndexes: true },
-			pageable: { pageSizes: [10,20,50,100,"All"], refresh: true },
-			groupable: true,
+			// Virtual scrolling: rows load as you scroll (no page numbers). Grouping is off - it would only group the rows loaded so far.
+			scrollable: { virtual: true },
+			pageable: { numeric: false, previousNext: false, refresh: true },
+			groupable: false,
 			selectable: "<cfif session.isMobile>cell<cfelse>multiple cell</cfif>",
 			allowCopy: true,
 			reorderable: true,

@@ -1098,6 +1098,166 @@
 			
 	</cffunction>
 							
+	<cffunction name="getVisitorLogPage" access="public" returnType="struct" output="false"
+			hint="One page of the visitor log for the virtual grid (2026-10-23, owner: the Visitors grid was slow because it loaded up to 5000 rows at once). The grid asks for rows skip+1..skip+take, sorted and filtered on the server; returns { rows, total }. Filters and sorting only use the columns listed below, and every value is a bound parameter. Works on every database ORM supports (HQL paging).">
+		<cfargument name="skip" type="numeric" required="false" default="0">
+		<cfargument name="take" type="numeric" required="false" default="100">
+		<cfargument name="sort" type="array" required="false" default="#[]#" hint="Kendo's sort: [{ field, dir }].">
+		<cfargument name="filter" type="any" required="false" default="" hint="Kendo's filter: { logic, filters: [{ field, operator, value } or a nested filter] }.">
+		<!--- The window's own limits (a visitor, an IP address, a post, or the admin home's people-this-week). --->
+		<cfargument name="anonymousUserId" type="string" required="false" default="">
+		<cfargument name="ipAddressId" type="string" required="false" default="">
+		<cfargument name="postId" type="string" required="false" default="">
+		<cfargument name="peopleOnly" type="boolean" required="false" default="false">
+		<cfargument name="sinceDays" type="numeric" required="false" default="0">
+		<cfset var columns = {
+			AnonymousUserId: { path: "AnonymousUser.AnonymousUserId", type: "int" },
+			IpAddress: { path: "IpAddress.IpAddress", type: "string" },
+			FullName: { path: "Users.FullName", type: "string" },
+			PostTitle: { path: "Post.Title", type: "string" },
+			VisitingHomePage: { path: "VisitorLog.VisitingHomePage", type: "boolean" },
+			IsBot: { path: "AnonymousUser.IsBot", type: "boolean" },
+			HitCount: { path: "AnonymousUser.HitCount", type: "int" },
+			HttpUserAgent: { path: "HttpUserAgent.HttpUserAgent", type: "string" },
+			Date: { path: "VisitorLog.Date", type: "date" }
+		}>
+		<cfset var params = {}>
+		<cfset var where = ["0=0"]>
+		<cfset var orderBy = []>
+		<cfset var sortItem = "">
+		<cfset var fromClause = " FROM VisitorLog as VisitorLog
+			LEFT OUTER JOIN VisitorLog.AnonymousUserRef as AnonymousUser
+			LEFT OUTER JOIN AnonymousUser.HttpUserAgentRef as HttpUserAgent
+			LEFT OUTER JOIN VisitorLog.HttpReferrerRef as HttpReferrer
+			LEFT OUTER JOIN AnonymousUser.IpAddressRef as IpAddress
+			LEFT OUTER JOIN VisitorLog.PostRef as Post
+			LEFT OUTER JOIN VisitorLog.UserRef as Users ">
+		<cfset var whereSql = "">
+		<cfset var filterSql = "">
+		<cfset var rows = []>
+		<cfset var total = 0>
+		<cfif len(arguments.anonymousUserId) and isNumeric(arguments.anonymousUserId)>
+			<cfset arrayAppend(where, "AnonymousUser.AnonymousUserId = :fixedAnonymousUserId")><cfset params.fixedAnonymousUserId = javacast("int", arguments.anonymousUserId)>
+		</cfif>
+		<cfif len(arguments.ipAddressId) and isNumeric(arguments.ipAddressId)>
+			<cfset arrayAppend(where, "IpAddress.IpAddressId = :fixedIpAddressId")><cfset params.fixedIpAddressId = javacast("int", arguments.ipAddressId)>
+		</cfif>
+		<cfif len(arguments.postId) and isNumeric(arguments.postId)>
+			<cfset arrayAppend(where, "Post.PostId = :fixedPostId")><cfset params.fixedPostId = javacast("int", arguments.postId)>
+		</cfif>
+		<cfif arguments.peopleOnly>
+			<cfset arrayAppend(where, "(AnonymousUser.IsBot = :notBot OR AnonymousUser.IsBot IS NULL)")><cfset params.notBot = false>
+		</cfif>
+		<cfif arguments.sinceDays gt 0>
+			<cfset arrayAppend(where, "VisitorLog.Date >= :sinceDate")><cfset params.sinceDate = dateAdd("d", -int(arguments.sinceDays), blogNow())>
+		</cfif>
+		<!--- The grid's own filters. --->
+		<cfif isStruct(arguments.filter)>
+			<cfset filterSql = visitorLogFilterSql(arguments.filter, columns, params)>
+			<cfif len(filterSql)><cfset arrayAppend(where, filterSql)></cfif>
+		</cfif>
+		<cfset whereSql = " WHERE " & arrayToList(where, " AND ")>
+		<!--- Sorting: only known columns, asc or desc; the newest visit first by default. --->
+		<cfloop array="#arguments.sort#" index="sortItem">
+			<cfif isStruct(sortItem) and structKeyExists(sortItem, "field") and structKeyExists(columns, sortItem.field)>
+				<cfset arrayAppend(orderBy, columns[sortItem.field].path & ((sortItem.dir ?: "asc") eq "desc" ? " DESC" : " ASC"))>
+			</cfif>
+		</cfloop>
+		<cfif not arrayLen(orderBy)><cfset arrayAppend(orderBy, "VisitorLog.Date DESC")></cfif>
+		<cfset arrayAppend(orderBy, "VisitorLog.VisitorLogId DESC")>
+		<cfset total = ormExecuteQuery("SELECT count(VisitorLog.VisitorLogId)" & fromClause & whereSql, params, true)>
+		<cfset rows = ormExecuteQuery("SELECT new Map (
+				VisitorLog.VisitorLogId as VisitorLogId, IpAddress.IpAddressId as IpAddressId, IpAddress.IpAddress as IpAddress,
+				HttpUserAgent.HttpUserAgentId as HttpUserAgentId, HttpUserAgent.HttpUserAgent as HttpUserAgent, AnonymousUser.IsBot as IsBot,
+				HttpReferrer.HttpReferrer as HttpReferrer, AnonymousUser.AnonymousUserId as AnonymousUserId, AnonymousUser.HitCount as HitCount,
+				Users.UserId as UserId, Users.FullName as FullName, Post.PostId as PostId, Post.Title as PostTitle,
+				VisitorLog.VisitingHomePage as VisitingHomePage, VisitorLog.Date as Date
+			)" & fromClause & whereSql & " ORDER BY " & arrayToList(orderBy, ", "), params, false,
+			{ offset = max(0, int(arguments.skip)), maxresults = min(max(1, int(arguments.take)), 500) })>
+		<cfreturn { rows: rows, total: val(total) }>
+	</cffunction>
+
+	<cffunction name="visitorLogFilterSql" access="private" returnType="string" output="false"
+			hint="Kendo's filter object as an HQL condition for getVisitorLogPage, with bound parameters added to params. Unknown columns and operators are left out.">
+		<cfargument name="filter" type="struct" required="true">
+		<cfargument name="columns" type="struct" required="true">
+		<cfargument name="params" type="struct" required="true">
+		<cfset var parts = []>
+		<cfset var item = "">
+		<cfset var column = "">
+		<cfset var name = "">
+		<cfset var value = "">
+		<cfset var op = "">
+		<cfset var logic = (arguments.filter.logic ?: "and") eq "or" ? " OR " : " AND ">
+		<cfset var nested = "">
+		<cfset var numberOps = { eq: "=", neq: "<>", gt: ">", gte: ">=", lt: "<", lte: "<=" }>
+		<cfset var dayStart = "">
+		<cfif not structKeyExists(arguments.filter, "filters") or not isArray(arguments.filter.filters)>
+			<cfreturn "">
+		</cfif>
+		<cfloop array="#arguments.filter.filters#" index="item">
+			<cfif not isStruct(item)><cfcontinue></cfif>
+			<cfif structKeyExists(item, "filters")>
+				<cfset nested = visitorLogFilterSql(item, arguments.columns, arguments.params)>
+				<cfif len(nested)><cfset arrayAppend(parts, nested)></cfif>
+				<cfcontinue>
+			</cfif>
+			<cfif not structKeyExists(item, "field") or not structKeyExists(arguments.columns, item.field)><cfcontinue></cfif>
+			<cfset column = arguments.columns[item.field]>
+			<cfset op = lCase(item.operator ?: "eq")>
+			<cfset name = "f" & (structCount(arguments.params) + 1)>
+			<cfset value = item.value ?: "">
+			<cfif op eq "isnull"><cfset arrayAppend(parts, column.path & " IS NULL")><cfcontinue></cfif>
+			<cfif op eq "isnotnull"><cfset arrayAppend(parts, column.path & " IS NOT NULL")><cfcontinue></cfif>
+			<cfswitch expression="#column.type#">
+				<cfcase value="string">
+					<cfset value = lCase(toString(value))>
+					<cfswitch expression="#op#">
+						<cfcase value="eq"><cfset arrayAppend(parts, "lower(" & column.path & ") = :" & name)><cfset arguments.params[name] = value></cfcase>
+						<cfcase value="neq"><cfset arrayAppend(parts, "(lower(" & column.path & ") <> :" & name & " OR " & column.path & " IS NULL)")><cfset arguments.params[name] = value></cfcase>
+						<cfcase value="contains"><cfset arrayAppend(parts, "lower(" & column.path & ") LIKE :" & name)><cfset arguments.params[name] = "%" & value & "%"></cfcase>
+						<cfcase value="doesnotcontain"><cfset arrayAppend(parts, "(lower(" & column.path & ") NOT LIKE :" & name & " OR " & column.path & " IS NULL)")><cfset arguments.params[name] = "%" & value & "%"></cfcase>
+						<cfcase value="startswith"><cfset arrayAppend(parts, "lower(" & column.path & ") LIKE :" & name)><cfset arguments.params[name] = value & "%"></cfcase>
+						<cfcase value="endswith"><cfset arrayAppend(parts, "lower(" & column.path & ") LIKE :" & name)><cfset arguments.params[name] = "%" & value></cfcase>
+						<cfcase value="isempty"><cfset arrayAppend(parts, "(" & column.path & " = '' OR " & column.path & " IS NULL)")></cfcase>
+						<cfcase value="isnotempty"><cfset arrayAppend(parts, "(" & column.path & " <> '' AND " & column.path & " IS NOT NULL)")></cfcase>
+					</cfswitch>
+				</cfcase>
+				<cfcase value="int">
+					<cfif isNumeric(value) and structKeyExists(numberOps, op)>
+						<cfset arrayAppend(parts, column.path & " " & numberOps[op] & " :" & name)><cfset arguments.params[name] = javacast("int", value)>
+					</cfif>
+				</cfcase>
+				<cfcase value="boolean">
+					<cfif isBoolean(value)>
+						<cfif (op eq "eq" and value) or (op eq "neq" and not value)>
+							<cfset arrayAppend(parts, column.path & " = :" & name)><cfset arguments.params[name] = true>
+						<cfelse>
+							<!--- "No" includes the rows where it was never set. --->
+							<cfset arrayAppend(parts, "(" & column.path & " = :" & name & " OR " & column.path & " IS NULL)")><cfset arguments.params[name] = false>
+						</cfif>
+					</cfif>
+				</cfcase>
+				<cfcase value="date">
+					<!--- The grid sends the visitor's own time, "yyyy-MM-dd HH:mm:ss" (visitorLog.cfm's parameterMap). "Is equal to" means that day. --->
+					<cfif isDate(value)>
+						<cfset value = parseDateTime(value)>
+						<cfset dayStart = createDate(year(value), month(value), day(value))>
+						<cfswitch expression="#op#">
+							<cfcase value="eq"><cfset arrayAppend(parts, "(" & column.path & " >= :" & name & "a AND " & column.path & " < :" & name & "b)")><cfset arguments.params[name & "a"] = dayStart><cfset arguments.params[name & "b"] = dateAdd("d", 1, dayStart)></cfcase>
+							<cfcase value="neq"><cfset arrayAppend(parts, "(" & column.path & " < :" & name & "a OR " & column.path & " >= :" & name & "b)")><cfset arguments.params[name & "a"] = dayStart><cfset arguments.params[name & "b"] = dateAdd("d", 1, dayStart)></cfcase>
+							<cfcase value="gt"><cfset arrayAppend(parts, column.path & " > :" & name)><cfset arguments.params[name] = value></cfcase>
+							<cfcase value="gte"><cfset arrayAppend(parts, column.path & " >= :" & name)><cfset arguments.params[name] = value></cfcase>
+							<cfcase value="lt"><cfset arrayAppend(parts, column.path & " < :" & name)><cfset arguments.params[name] = value></cfcase>
+							<cfcase value="lte"><cfset arrayAppend(parts, column.path & " <= :" & name)><cfset arguments.params[name] = value></cfcase>
+						</cfswitch>
+					</cfif>
+				</cfcase>
+			</cfswitch>
+		</cfloop>
+		<cfreturn arrayLen(parts) ? "(" & arrayToList(parts, logic) & ")" : "">
+	</cffunction>
+
 	<cffunction name="saveVisitorLog" access="public" returnType="numeric" output="false" hint="Gets an anonymous web user and returns the new id.">
 		<cfargument name="anonymousUserId" type="string" required="true" default="">
 		<cfargument name="userId" type="string" required="false" default="">

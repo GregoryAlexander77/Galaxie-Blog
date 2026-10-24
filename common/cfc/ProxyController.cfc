@@ -3964,6 +3964,76 @@
 		Visitor Log grid (read only)
 	******************************************************************************************************--->
 		
+	<cffunction name="getVisitorLogForVirtualGrid" access="remote" returnformat="json" output="false"
+			hint="One page of the visitor log for the Kendo virtual grid (2026-10-23, owner; the approach of 'Implementing a Kendo Virtualized Grid with ColdFusion'). The grid posts { take, skip, sort, filter } as JSON in the request body; the window's own limits come in the URL. Returns { data, total }.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="anonymousUserId" required="no" default="">
+		<cfargument name="ipAddressId" required="no" default="">
+		<cfargument name="postId" required="no" default="">
+		<cfargument name="peopleOnly" required="no" default="">
+		<cfargument name="sinceDays" required="no" default="">
+		<cfset var response = { "data": [], "total": 0 }>
+		<cfset var body = {}>
+		<cfset var page = {}>
+		<cfset var requestBody = "">
+		<cfset var visitorRow = "">
+		<cfset var visitorMemberIds = "">
+		<cfset var visitorMembers = {}>
+		<cfset var visitorMember = {}>
+		<cfset var row = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<!--- The JSON packet arrives as bytes: toString() before reading it (see Ben Nadel's "Posting JSON Data To The ColdFusion Server Using jQuery"). --->
+		<cfset requestBody = toString(getHttpRequestData().content)>
+		<cfif isJSON(requestBody)><cfset body = deserializeJSON(requestBody)></cfif>
+		<cfif not isStruct(body)><cfset body = {}></cfif>
+		<cfset page = application.blog.getVisitorLogPage(
+			skip = isNumeric(body.skip ?: "") ? body.skip : 0,
+			take = isNumeric(body.take ?: "") ? body.take : 100,
+			sort = isArray(body.sort ?: "") ? body.sort : [],
+			filter = isStruct(body.filter ?: "") ? body.filter : "",
+			anonymousUserId = listFirst(arguments.anonymousUserId),
+			ipAddressId = listFirst(arguments.ipAddressId),
+			postId = listFirst(arguments.postId),
+			peopleOnly = isBoolean(arguments.peopleOnly) and arguments.peopleOnly,
+			sinceDays = isNumeric(arguments.sinceDays) ? min(int(arguments.sinceDays), 366) : 0
+		)>
+		<!--- Signed-in members: their name, email and picture for the "Signed in as" column, as getVisitorLogForGrid does. --->
+		<cfif structKeyExists(application, "members") and arrayLen(page.rows)>
+			<cfloop array="#page.rows#" index="visitorRow">
+				<cfif structKeyExists(visitorRow, "AnonymousUserId") and not isNull(visitorRow["AnonymousUserId"])><cfset visitorMemberIds = listAppend(visitorMemberIds, visitorRow["AnonymousUserId"])></cfif>
+			</cfloop>
+			<cfset visitorMembers = application.members.getVisitorMembers(visitorMemberIds)>
+		</cfif>
+		<!--- Quoted keys keep their case on Adobe ColdFusion. The date goes as yyyy-mm-ddTHH:nn:ss (no zone), which the grid reads as local time. --->
+		<cfloop array="#page.rows#" index="visitorRow">
+			<cfset visitorMember = (structKeyExists(visitorRow, "AnonymousUserId") and not isNull(visitorRow["AnonymousUserId"]) and structKeyExists(visitorMembers, visitorRow["AnonymousUserId"])) ? visitorMembers[visitorRow["AnonymousUserId"]] : {}>
+			<cfset row = {
+				"VisitorLogId": visitorRow["VisitorLogId"] ?: "",
+				"AnonymousUserId": visitorRow["AnonymousUserId"] ?: "",
+				"IpAddressId": visitorRow["IpAddressId"] ?: "",
+				"IpAddress": visitorRow["IpAddress"] ?: "",
+				"HttpUserAgent": visitorRow["HttpUserAgent"] ?: "",
+				"HitCount": visitorRow["HitCount"] ?: "",
+				"FullName": visitorRow["FullName"] ?: "",
+				"PostId": visitorRow["PostId"] ?: "",
+				"PostTitle": visitorRow["PostTitle"] ?: "",
+				"VisitingHomePage": isBoolean(visitorRow["VisitingHomePage"] ?: "") and visitorRow["VisitingHomePage"],
+				"IsBot": isBoolean(visitorRow["IsBot"] ?: "") and visitorRow["IsBot"],
+				"Date": isDate(visitorRow["Date"] ?: "") ? dateFormat(visitorRow["Date"], "yyyy-mm-dd") & "T" & timeFormat(visitorRow["Date"], "HH:nn:ss") : "",
+				"MemberName": structIsEmpty(visitorMember) ? "" : visitorMember.name,
+				"MemberEmail": structIsEmpty(visitorMember) ? "" : visitorMember.email,
+				"MemberPicture": structIsEmpty(visitorMember) ? "" : visitorMember.picture
+			}>
+			<cfset arrayAppend(response.data, row)>
+		</cfloop>
+		<cfset response[ "total" ] = page.total>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="getVisitorLogForGrid" access="remote" returnformat="json" output="false" 
 			hint="Returns a json array to populate the visitor log grid.">
 		<cfargument name="csrfToken" default="" required="true">
