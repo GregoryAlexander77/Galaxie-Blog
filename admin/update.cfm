@@ -8,7 +8,8 @@
 --->
 
 <!--- The blog folder, taken from the URL of this page (for example /blog/admin/update.cfm gives /blog). This does not depend on any application variable, as the application may not have been initialized yet. --->
-<cfset blogBaseUrl = left(cgi.script_name, len(cgi.script_name) - len("/admin/update.cfm"))>
+<!--- A blog at the web root gives an empty string. Lucee throws for left(x, 0), so that case is tested first (2026-10-23: the update failed on galaxieblog.org, a root install). --->
+<cfset blogBaseUrl = len(cgi.script_name) gt len("/admin/update.cfm") ? left(cgi.script_name, len(cgi.script_name) - len("/admin/update.cfm")) : "">
 <cfset blogIsRunning = isDefined("application.blog") and isDefined("application.rootDirectoryPath") and isDefined("application.blogIniPath")>
 <cfset status = {}>
 <cfset errorMessage = "">
