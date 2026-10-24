@@ -214,6 +214,30 @@
 		div.code-toolbar {
 			z-index:0 !important;
 		}
+		<!--- Code blocks name their language (2026-10-24, owner: readers should see PowerShell vs Bash without pointing at the block). Prism's
+		toolbar (the language and Copy) floats over the code's first line, pale, and only on hover. It sits on its own line above the block
+		instead, always showing, in the page's text color, so it never covers code and can be read. --->
+		<!--- Prism adds the toolbar after the code; order puts it on top. --->
+		div.code-toolbar {
+			display: flex;
+			flex-direction: column;
+		}
+		div.code-toolbar > .toolbar {
+			order: -1;
+			position: static;
+			opacity: 1;
+			text-align: right;
+			margin-bottom: 4px;
+		}
+		div.code-toolbar > .toolbar > .toolbar-item > span,
+		div.code-toolbar > .toolbar > .toolbar-item > button,
+		div.code-toolbar > .toolbar > .toolbar-item > a {
+			color: inherit;
+			font-size: 13px;
+			background: rgba(128, 128, 128, .15);
+			box-shadow: none;
+			padding: 2px 8px;
+		}
 				
 		<!--- --- Header Classes --- --->
 		#logo {
