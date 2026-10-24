@@ -472,8 +472,13 @@ var galaxieLoader = (function() {
 				<!--- Prism highlights the page as soon as it loads, which would be before the line numbers plugin is there. Highlight it ourselves when both are loaded. --->
 				window.Prism = window.Prism || {};
 				window.Prism.manual = true;
-				getScript('#application.baseUrl#/common/libs/prism/prism.min.js').done(function() {
+				<!--- ?v= changes when the bundle does (2026-10-24: PowerShell, Bash, Windows command line and terminal session added), so browsers fetch it again. --->
+				getScript('#application.baseUrl#/common/libs/prism/prism.min.js?v=20261024').done(function() {
 					getScript('#application.baseUrl#/common/libs/prism/plugins/prism-line-numbers.min.js').done(function() {
+						<!--- The shells' labels on the code toolbar (2026-10-24, owner: "many cf programmers won't know bash from powershell"). Prism's
+						show-language plugin reads data-language first; a block with its own keeps it. --->
+						var shellNames = { "powershell": "PowerShell (Windows)", "bash": "Bash (Linux, macOS)", "batch": "Windows command line", "shell-session": "Terminal" };
+						jQuery.each(shellNames, function (lang, label) { jQuery("pre.language-" + lang + ":not([data-language])").attr("data-language", label); });
 						Prism.highlightAll();
 						ready();
 					});

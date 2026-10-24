@@ -340,6 +340,9 @@
 			<!--- Set the prism languages --->
 			codesample_languages: [
 				{ text: 'HTML/XML', value: 'markup' },
+				<!--- Shells (2026-10-24, owner): PowerShell, Bash (Linux/macOS commands), the Windows command line (batch) and a terminal
+				session with prompts and output (shell-session). common/libs/prism/prism.min.js has them. --->
+				{ text: 'Bash / Shell', value: 'bash' },
 				{ text: 'JavaScript', value: 'javascript' },
 				{ text: 'CSS', value: 'css' },
 				{ text: 'C#', value: 'csharp' },
@@ -348,9 +351,12 @@
 				{ text: 'JSON', value: 'json' },
 				{ text: 'JSONP', value: 'jsonp' }, 
 				{ text: 'PHP', value: 'php' },
+				{ text: 'PowerShell', value: 'powershell' },
 				{ text: 'Python', value: 'python' },
 				{ text: 'Ruby', value: 'ruby' },
-				{ text: 'SQL', value: 'sql' }
+				{ text: 'SQL', value: 'sql' },
+				{ text: 'Terminal session', value: 'shell-session' },
+				{ text: 'Windows command line', value: 'batch' }
 			],
 			toolbar: '<cfoutput>#toolbarString#</cfoutput>',
 			<!--- Callouts (2026-10-22, owner): Styles > Callouts wraps the selected paragraphs in a quote block with a Kendo color class, drawn
