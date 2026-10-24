@@ -138,7 +138,9 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 	<cfif arguments.canSetUp>
 		<cftry>
 			<cfset setup = application.blog.getSetup()>
-			<cfif not setup.isFinished()>
+			<!--- Not on a blog updated from an older version (2026-10-24, owner): it is already set up, so the card only shows
+			there once the owner has started the wizard themselves. --->
+			<cfif not setup.isFinished() and (not setup.isUpgradedBlog() or setup.stepsDoneCount())>
 				<cfset arrayAppend(list, { kind: "setup", label: "Finish setting up your site",
 					detail: setup.stepsDoneCount() ? setup.stepsDoneCount() & " of 6 steps done" : "Your name, look, logo and a few pages",
 					count: 0, link: application.baseUrl & "/admin/setup.cfm", signature: "setup" & setup.stepsDoneCount() })>

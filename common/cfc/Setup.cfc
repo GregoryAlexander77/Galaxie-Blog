@@ -49,6 +49,9 @@
 	<cfset state.footer = application.events.getSetting(0, "setupFooter", "simple")>
 	<cfset state.footerIsCustom = footerIsCustom()>
 	<cfset state.footerLogo = application.events.getSetting(0, "setupFooterLogo", "same")>
+	<!--- 2026-10-24 (owner): a blog updated from an older version already has its posts, pages and home page, so the wizard
+	starts with no starter content ticked and with "Keep my home page as it is" picked. --->
+	<cfset state.upgradedBlog = isUpgradedBlog()>
 	<cfreturn state>
 </cffunction>
 
@@ -85,6 +88,10 @@
 
 <cffunction name="shouldAutoOpen" access="public" returntype="boolean" output="false" hint="True on a blog installed with 5.0 or later (the installer's 'new' mark) whose owner hasn't started setup yet: the admin home then opens the wizard once per session. Blogs updated from older versions never have the mark, so they are never sent there.">
 	<cfreturn isStepDone("new") and stepsDoneCount() eq 0 and not isFinished()>
+</cffunction>
+
+<cffunction name="isUpgradedBlog" access="public" returntype="boolean" output="false" hint="True on a blog updated from a version before 5.0: it never has the installer's 'new' mark.">
+	<cfreturn not isStepDone("new")>
 </cffunction>
 
 <cffunction name="isFinished" access="public" returntype="boolean" output="false" hint="True once the owner pressed Done. The admin home shows the Finish setting up banner until then.">
@@ -403,12 +410,12 @@
 		Screen 5: your home page
 //******************************************************************************************************--->
 
-<cffunction name="saveHome" access="public" returntype="void" output="false" hint="The home page layout (posts: latest posts; about: the About page as the whole home page; featured: the About page above the latest posts) and the post hero style. The layout is applied when the owner presses Done, after the starter pages exist.">
+<cffunction name="saveHome" access="public" returntype="void" output="false" hint="The home page layout (posts: latest posts; about: the About page as the whole home page; featured: the About page above the latest posts; keep: leave the home page as it is) and the post hero style. The layout is applied when the owner presses Done, after the starter pages exist.">
 	<cfargument name="layout" type="string" required="true">
 	<cfargument name="heroStyle" type="string" required="false" default="classic">
 	<cfargument name="footer" type="string" required="false" default="" hint="simple, blurb or none (2026-10-20); empty leaves the footer as it is.">
 	<cfset var optionObj = entityLoadByPK("BlogOption", application.BlogOptionDbObj.getBlogOptionId())>
-	<cfif not listFind("posts,about,featured", arguments.layout)><cfset fail("Please choose a home page layout.")></cfif>
+	<cfif not listFind("posts,about,featured,keep", arguments.layout)><cfset fail("Please choose a home page layout.")></cfif>
 	<cfif listFind("simple,blurb,none", arguments.footer)>
 		<cfset saveFooter(arguments.footer)>
 	</cfif>
@@ -507,6 +514,7 @@
 		<cfset application.blog.saveHomepageSettings(showPages = false, pageIdList = "", showCollections = false,
 			collectionIdList = "", showBlogPosts = true)>
 	</cfif>
+	<!--- "keep" (2026-10-24) changes nothing: an updated blog's own home page settings stay. --->
 	<cfset optionObj = entityLoadByPK("BlogOption", optionObj.getBlogOptionId())>
 	<cfset optionObj.setSetupFinished(dateTimeFormat(application.blog.blogNow(), "yyyy-mm-dd HH:nn"))>
 	<cfset entitySave(optionObj)>

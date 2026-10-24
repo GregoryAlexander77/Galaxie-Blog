@@ -337,6 +337,7 @@ takes the same options and events. --->
 		<div class="block k-alt">
 			<h4>Home page</h4>
 			<div class="choiceList" id="homeChoices">
+				<label class="choice" id="homeKeepChoice" style="display:none"><input type="radio" name="homeLayout" value="keep"><div><strong>Keep my home page as it is</strong><span>Your home page stays as you have it now. Change it any time in Home Page settings.</span></div></label>
 				<label class="choice"><input type="radio" name="homeLayout" value="posts"><div><strong>Latest posts</strong><span>A blog: your newest posts first.</span></div></label>
 				<label class="choice"><input type="radio" name="homeLayout" value="featured"><div><strong>Your About page, then your latest posts</strong><span>Introduce yourself at the top, with posts below.</span><a href="#" class="needsAbout">Needs an About page: go back to Starter content</a></div></label>
 				<label class="choice"><input type="radio" name="homeLayout" value="about"><div><strong>Just your About page</strong><span>A one-page site. New posts won't appear on the home page; they're still in the menu.</span><a href="#" class="needsAbout">Needs an About page: go back to Starter content</a></div></label>
@@ -360,6 +361,7 @@ takes the same options and events. --->
 	<div id="stepStarter">
 		<div class="block k-content"><p class="lead">A few things to start with, so the site doesn't look empty. Each is an ordinary post or page; nothing is made until you press Next. The preview on the right shows how they will look.</p></div>
 		<div class="block k-alt">
+			<p class="hint" id="starterUpgradedNote" style="display:none;margin-top:0">Your blog already has its posts and pages, so nothing is ticked. Tick anything you would like to add.</p>
 			<div class="choiceList">
 				<label class="choice"><input type="checkbox" id="starterWelcome" checked><div><strong>A welcome post</strong><span>Your first post, ready to change. The next step uses it to show the post picture styles.</span></div></label>
 				<label class="choice"><input type="checkbox" id="starterAbout" checked><div><strong>An About page</strong><span>Made from what you wrote about yourself. Needed for an About home page.</span></div></label>
@@ -395,7 +397,8 @@ $(function () {
 		biography: #serializeJSON(setupState.biography)#, profilePicture: #serializeJSON(setupState.profilePicture)#, facebookUrl: #serializeJSON(setupState.facebookUrl)#, linkedInUrl: #serializeJSON(setupState.linkedInUrl)#,
 		instagramUrl: #serializeJSON(setupState.instagramUrl)#, twitterUrl: #serializeJSON(setupState.twitterUrl)#,
 		welcomePostId: #val(setupState.welcomePostId)#, welcomeUrl: #serializeJSON(setupState.welcomeUrl)#, aboutPageId: #val(setupState.aboutPageId)#, aboutUrl: #serializeJSON(setupState.aboutUrl)#,
-		footer: #serializeJSON(setupState.footer)#, footerIsCustom: #setupState.footerIsCustom ? "true" : "false"#, footerLogo: #serializeJSON(setupState.footerLogo)#
+		footer: #serializeJSON(setupState.footer)#, footerIsCustom: #setupState.footerIsCustom ? "true" : "false"#, footerLogo: #serializeJSON(setupState.footerLogo)#,
+		upgradedBlog: #setupState.upgradedBlog ? "true" : "false"#
 	};
 	var userMarks = [#arrayToList(sampleParts, ",")#];
 	</cfoutput>
@@ -760,15 +763,17 @@ $(function () {
 	});
 
 	// ---------- screen 6: home page, post pictures, footer (after Starter content since 2026-10-20) ----------
-	function homeLayout() { return $("input[name=homeLayout]:checked").val() || "posts"; }
+	function homeLayout() { return $("input[name=homeLayout]:checked").val() || (saved.upgradedBlog ? "keep" : "posts"); }
 	// The About layouts need an About page: one already made, or one ticked on Starter content.
 	function aboutAvailable() { return !!saved.aboutUrl || $("#starterAbout").is(":checked"); }
 	function syncHomeChoices() {
 		var ok = aboutAvailable();
 		$("#homeChoices input[value=featured], #homeChoices input[value=about]").prop("disabled", !ok).closest(".choice").toggleClass("disabled", !ok);
-		if (!ok && homeLayout() !== "posts") { $("input[name=homeLayout][value=posts]").prop("checked", true); }
+		if (!ok && (homeLayout() === "featured" || homeLayout() === "about")) { $("input[name=homeLayout][value=posts]").prop("checked", true); }
 	}
-	$("input[name=homeLayout][value=" + (saved.homeLayout || "posts") + "]").prop("checked", true);
+	// A blog updated from an older version (2026-10-24, owner) already has a home page: keep it unless the owner picks another.
+	if (saved.upgradedBlog) { $("#homeKeepChoice").show(); }
+	$("input[name=homeLayout][value=" + (saved.homeLayout || (saved.upgradedBlog ? "keep" : "posts")) + "]").prop("checked", true);
 	$("#homeChoices").on("change", "input", function () { dirty.home = true; previewView = "home"; previewForStep(5); });
 	$("#homeChoices").on("click", ".needsAbout", function (e) { e.preventDefault(); wizard.select(4); });
 	state.heroStyle = saved.heroStyle || "classic";
@@ -794,7 +799,11 @@ $(function () {
 	}
 	syncHomeChoices();
 	if (stepsDone().indexOf("home") < 0) { dirty.home = true; }
-	if (stepsDone().indexOf("starter") < 0) { dirty.starter = true; }
+	if (stepsDone().indexOf("starter") < 0) {
+		dirty.starter = true;
+		// ...and its posts and pages: nothing ticked to start with.
+		if (saved.upgradedBlog) { $("#stepStarter input[type=checkbox]").prop("checked", false); $("#starterUpgradedNote").show(); }
+	}
 	$("#stepStarter").on("change", "input", function () {
 		dirty.starter = true;
 		// Contact form goes at the end of the About page.
