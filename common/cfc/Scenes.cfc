@@ -135,8 +135,35 @@
 
 <cffunction name="listScenes" access="public" returntype="query" output="false" hint="Every scene of this blog, for the Scenes window.">
 	<cfset ensureTables()>
+	<cfset addStarterScenes()>
 	<cfreturn queryExecute("SELECT SceneId, Name, Alias, Active, Updated FROM Scene WHERE BlogRef = :blogId ORDER BY Name",
 		{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } })>
+</cffunction>
+
+<!--- The starter scenes (5.0, owner 2026-10-23): six ready-made scenes every blog starts with, so the Scenes window and the
+post editor's scene picker aren't empty. Never the private Delicate Arch scene (arch.json), which is the owner's own art. --->
+<cfset variables.starterScenes = "space,dusk,lookout,wilderness,tallulah,waves">
+
+<cffunction name="addStarterScenes" access="public" returntype="void" output="false"
+		hint="Adds the starter scenes to this blog once (new blogs and blogs updated to 5.0 alike, the first time a scene list is read). A scene with the same alias is left as it is, and one the owner deletes later doesn't come back: the SceneSetting startersAdded records that this has run.">
+	<cfset var name = "">
+	<cfif len(getSetting("startersAdded"))>
+		<cfreturn>
+	</cfif>
+	<cflock name="galaxieStarterScenes_#application.applicationName#" type="exclusive" timeout="30">
+		<cfset structDelete(variables, "settings")>
+		<cfif not len(getSetting("startersAdded"))>
+			<cfloop list="#variables.starterScenes#" index="name">
+				<cftry>
+					<cfif not aliasExists(name)><cfset importJson(name)></cfif>
+					<cfcatch type="any">
+						<cflog file="galaxieBlogErrors" type="warning" text="Starter scene #name# wasn't added: #cfcatch.message#">
+					</cfcatch>
+				</cftry>
+			</cfloop>
+			<cfset setSetting("startersAdded", dateTimeFormat(now(), "yyyy-mm-dd HH:nn"))>
+		</cfif>
+	</cflock>
 </cffunction>
 
 <cffunction name="getScene" access="public" returntype="struct" output="false"
