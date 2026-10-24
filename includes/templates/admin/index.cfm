@@ -9,9 +9,23 @@
 	adminInterface.cfm and latestVersionCheck.cfm) rather than minting a new one. --->
 <cfset csrfToken = csrfGenerateToken("admin", false)>
 
-<!--- Clean up the logs. This will delete records that fall outside of the specified retention period. --->
-<!--- Tidying the logs must never stop the admin home from opening (2026-10-20). --->
-<cftry><cfset logCleanup = application.blog.cleanUpLogs()><cfcatch type="any"><cflog file="galaxieBlogErrors" type="warning" text="cleanUpLogs failed: #cfcatch.message#"></cfcatch></cftry>
+<!--- Clean up the logs: delete records that fall outside of the retention period. Tidying the logs must never stop the admin home
+from opening (2026-10-20). 2026-10-23: it ran on EVERY load of the admin home, and its deletes (the referrer one checks the whole
+visitor log) made every page of every blog on the server wait whenever the admin was opened, worse with two loads at once. Now it runs
+at most once a day, one at a time, in the background. --->
+<cfif not structKeyExists(application, "logCleanupStarted") or dateDiff("h", application.logCleanupStarted, now()) gte 24>
+	<cflock name="galaxieLogCleanup#application.applicationName#" type="exclusive" timeout="1" throwOnTimeout="false">
+		<cfif not structKeyExists(application, "logCleanupStarted") or dateDiff("h", application.logCleanupStarted, now()) gte 24>
+			<cfset application.logCleanupStarted = now()>
+			<cfthread name="galaxieLogCleanup#getTickCount()#" action="run">
+				<cftry>
+					<cfset application.blog.cleanUpLogs()>
+					<cfcatch type="any"><cflog file="galaxieBlogErrors" type="warning" text="cleanUpLogs failed: #cfcatch.message#"></cfcatch>
+				</cftry>
+			</cfthread>
+		</cfif>
+	</cflock>
+</cfif>
 	
 <!--- Get roles and capabilities. This is used to determine what to display depending upon the permissions --->
 <!--- Get the list of roles (a user should only be one role at in V2). We can either extract a roleId list, or a role list. Here, we want to get the actual role name (roleList) --->
