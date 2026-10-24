@@ -10449,6 +10449,63 @@
 
 	</cffunction>
 			
+	<cffunction name="getRecentPostReads" access="public" returnType="struct" output="false"
+			hint="Reads of each post by people (not bots) in the last few days, from the visitor log: { postId: reads }. Every page load counts, as on the admin home's Most read card (AdminHome.cfc getTraffic). Kept for five minutes.">
+		<cfargument name="days" type="numeric" required="false" default="30">
+		<cfset var cacheKey = "galaxieRecentReads" & application.BlogDbObj.getBlogId() & "_" & int(arguments.days)>
+		<cfset var result = {}>
+		<cfset var q = "">
+		<cfif structKeyExists(application, cacheKey) and dateDiff("n", application[cacheKey].made, now()) lt 5>
+			<cfreturn application[cacheKey].data>
+		</cfif>
+		<cftry>
+			<cfset q = queryExecute("
+				SELECT v.PostRef AS PostId, COUNT(*) AS Reads
+				FROM VisitorLog v JOIN Post p ON p.PostId = v.PostRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+				WHERE v.Date >= :since AND p.BlogRef = :blogId AND (a.IsBot = 0 OR a.IsBot IS NULL)
+				GROUP BY v.PostRef",
+				{ since = { value = dateAdd("d", -int(arguments.days), blogNow()), cfsqltype = "cf_sql_timestamp" }, blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } },
+				{ datasource = application.dsn })>
+			<cfloop query="q"><cfset result[q.PostId] = val(q.Reads)></cfloop>
+			<cfcatch type="any">
+				<cflog file="galaxieBlogErrors" type="warning" text="getRecentPostReads: #cfcatch.message#">
+			</cfcatch>
+		</cftry>
+		<cfset application[cacheKey] = { made: now(), data: result }>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="getPopularPostIdList" access="public" returnType="string" output="false"
+			hint="The popular posts strip (2026-10-24, owner): released blog posts most read by people in the last 30 days, then, to fill it on a quiet blog, the rest by the old ranking (lifetime views a month). A comma list of up to count PostIds, most popular first.">
+		<cfargument name="count" type="numeric" required="false" default="12">
+		<cfset var reads = getRecentPostReads(30)>
+		<cfset var ranked = []>
+		<cfset var postId = "">
+		<cfset var item = {}>
+		<cfset var ids = []>
+		<cfset var live = []>
+		<cfset var older = []>
+		<cfset var readIds = []>
+		<!--- Only released, not removed blog posts (not pages) of this blog. --->
+		<cfif not structIsEmpty(reads)>
+			<cfloop list="#structKeyList(reads)#" index="postId"><cfset arrayAppend(readIds, javacast("int", postId))></cfloop>
+			<cfset live = ormExecuteQuery("SELECT Post.PostId FROM Post as Post WHERE Post.PostId IN (:ids) AND Post.Released = :yes AND Post.Remove = :no AND (Post.IsPage = :no OR Post.IsPage IS NULL) AND Post.BlogRef.BlogId = :blogId",
+				{ ids = readIds, yes = true, no = false, blogId = application.BlogDbObj.getBlogId() })>
+			<cfloop array="#live#" index="postId"><cfset arrayAppend(ranked, { id: postId, reads: reads[postId] })></cfloop>
+			<cfset arraySort(ranked, function (a, b) { return b.reads - a.reads; })>
+			<cfloop array="#ranked#" index="item"><cfif arrayLen(ids) lt arguments.count><cfset arrayAppend(ids, item.id)></cfif></cfloop>
+		</cfif>
+		<cfif arrayLen(ids) lt arguments.count>
+			<cfset older = ormExecuteQuery("SELECT Post.PostId FROM Post as Post WHERE Post.Released = :yes AND Post.Remove = :no AND (Post.IsPage = :no OR Post.IsPage IS NULL) AND Post.BlogRef.BlogId = :blogId AND Post.DatePosted IS NOT NULL
+				ORDER BY Post.NumViews/(month(current_date())-month(Post.DatePosted)+12*(year(current_date())-year(Post.DatePosted))+1) DESC",
+				{ yes = true, no = false, blogId = application.BlogDbObj.getBlogId() }, false, { maxresults = arguments.count * 2 })>
+			<cfloop array="#older#" index="postId">
+				<cfif arrayLen(ids) lt arguments.count and not arrayFind(ids, postId)><cfset arrayAppend(ids, postId)></cfif>
+			</cfloop>
+		</cfif>
+		<cfreturn arrayToList(ids)>
+	</cffunction>
+
 	<cffunction name="getPosts" access="public" returnType="array" output="false"
 			hint="Gets data from the post table in the database. Used as the base query for various grid widgets. Note: to prevent a wierd Hibernate AST error, we need to limit the query to one query clause.">
 		
@@ -10537,9 +10594,17 @@
 			AND Post.IsPage = <cfqueryparam value="#arguments.showPages#" cfsqltype="cf_sql_bit">
 			ORDER BY 
 				Post.BlogSortDate DESC,
-				Post.DatePosted DESC, 
+				Post.DatePosted DESC,
 				Post.Title ASC
 		</cfquery>	
+
+		<!--- Reads in the last 30 days by people (not bots), from the visitor log (2026-10-24, owner): the posts grids' "Reads (30 days)"
+		column, the same count as the admin home's Most read card over a longer window. One query for all the posts. --->
+		<cfset var recentReads = getRecentPostReads(30)>
+		<cfset var readRow = "">
+		<cfloop array="#Data#" index="readRow">
+			<cfset readRow["Reads30"] = structKeyExists(recentReads, readRow["PostId"] ?: "") ? recentReads[readRow["PostId"]] : 0>
+		</cfloop>
 						
 		<!--- Return the data. --->
 		<cfreturn Data><!---Debugging (change the return type when testing) --->
@@ -10604,6 +10669,11 @@
 		<!--- Get 12 posts for the popular posts query --->
 		<cfif arguments.showPopularPosts>
 			<cfset arguments.params.maxEntries = 12>
+			<!--- The most read by people in the last 30 days (2026-10-24, owner), topped up from the old lifetime ranking on a quiet blog.
+			Put back into that order after the query (popularOrder below). --->
+			<cfif not len(arguments.postIdList)>
+				<cfset arguments.postIdList = getPopularPostIdList(12)>
+			</cfif>
 		</cfif>
 		
 		<!--- Preset vars. --->
@@ -10918,6 +10988,19 @@
 			Create the PostStruct structure
 		*************************************************************************************************--->
 		
+		<!--- The popular posts in the order getPopularPostIdList gave (2026-10-24). --->
+		<cfif arguments.showPopularPosts and len(arguments.postIdList) and arrayLen(Data) gt 1>
+			<!--- A plain loop rather than a sort closure that reads popularOrder (closures over local variables have differed between engines). --->
+			<cfset var popularOrder = listToArray(arguments.postIdList)>
+			<cfset var popularSorted = []>
+			<cfset var popularId = "">
+			<cfset var popularRow = "">
+			<cfloop array="#popularOrder#" index="popularId">
+				<cfloop array="#Data#" index="popularRow"><cfif popularRow["PostId"] eq popularId><cfset arrayAppend(popularSorted, popularRow)></cfif></cfloop>
+			</cfloop>
+			<cfif arrayLen(popularSorted) eq arrayLen(Data)><cfset Data = popularSorted></cfif>
+		</cfif>
+
 		<!--- Create the array that we will place the structure into. --->
 		<cfset PostArray = arrayNew(1)>
 		

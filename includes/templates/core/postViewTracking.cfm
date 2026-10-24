@@ -43,7 +43,10 @@
 					<!--- Increment the view count. --->
 					<cfif not structKeyExists(session.viewedpages, postId)>
 						<cfset session.viewedpages[postId] = 1>
-						<cfset application.blog.logView(postId)>
+						<!--- Not for bots (2026-10-24, owner): most keep no session, so every crawl counted as a view. --->
+						<cfif not application.blog.isBot()>
+							<cfset application.blog.logView(postId)>
+						</cfif>
 					</cfif>
 				</cfif><!---<cfif arrayLen(getPost)>--->
 						

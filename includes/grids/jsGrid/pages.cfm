@@ -325,9 +325,9 @@ New Errors in June 2025: CF update 14 tightened down strict argument matching an
 					},
 				},
 				{ 	
-					name: "ViewsPerDay", 
+					name: "Reads30", 
 					type: "number",
-					title: "Monthly Views",
+					title: "Reads (30 days)",
 					filtering: false,
 					editing: false,
 					width: (pageWidth*(<cfif session.isMobile>8<cfelse>8</cfif>/100)),

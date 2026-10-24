@@ -85,7 +85,7 @@
 						Body: { type: "string", editable: false, nullable: true },
 						BlogSortDate: { type: "string", editable: false, nullable: true },
 						DatePosted: { type: "string", editable: false, nullable: true },
-						ViewsPerDay: { type: "number", editable: false, nullable: true },
+						Reads30: { type: "number", editable: false, nullable: true },
 						Released: { type: "boolean", editable: true, nullable: false }
 					}
 				}
@@ -168,8 +168,9 @@
 				width: "<cfif session.isMobile>8<cfelse>14</cfif>%",
 				template: "#= DatePosted ? dayjs(DatePosted).format('MM/DD/YYYY h:mm A') : '' #"
 			}, {
-				field: "ViewsPerDay",
-				title: "Monthly Views",
+				<!--- People's reads in the last 30 days (2026-10-24); it was lifetime views a month, bots included. --->
+				field: "Reads30",
+				title: "Reads (30 days)",
 				filterable: true,
 				width: "<cfif session.isMobile>7<cfelse>8</cfif>%"</cfif>
 			}, {
