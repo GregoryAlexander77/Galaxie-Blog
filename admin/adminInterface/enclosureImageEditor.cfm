@@ -778,6 +778,56 @@
 		</td>
 	  </tr>
 	  </cfif>
+	  <!--- The hero's style (2026-10-24, owner): it was in the Hero text window, but it is the whole hero's style (its height, whether it
+	  holds while the post scrolls, where the text sits), not only its text, so it is chosen here, with the picture. The cards are
+	  heroStyleCards.cfm, as in Blog Options; a click saves it (ProxyController.cfc savePostHeroStyle). --->
+	  <cfsilent>
+	  <cfset heroStylePost = entityLoadByPK("Post", val(URL.optArgs))>
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <cfif not isNull(heroStylePost)>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr valign="middle">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
+			<h4 class="adminBlockHeading">Hero style</h4>
+			How the hero shows on this post's own page. Point at a card to see it move; a click saves it. Carousels, maps and videos always show as they are.
+			<span id="enclosureHeroStyleSaved" class="k-form-hint" style="margin-left: 6px;"></span>
+			<cfset heroCardsId = "enclosureHeroStyle">
+			<cfset heroCardsName = "">
+			<cfset heroCardsValue = heroStylePost.getHeroStyle() ?: "">
+			<cfset heroCardsBlogChoice = createObject("component", application.rendererComponentPath).getPostHeroStyle("")>
+			<cfset heroCardsSmall = true>
+			<cfinclude template="heroStyleCards.cfm">
+			<script>
+				$("#enclosureHeroStyle").off("change.heroStyle").on("change.heroStyle", function () {
+					$("#enclosureHeroStyleSaved").text("Saving...");
+					jQuery.ajax({
+						type: "post",
+						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=savePostHeroStyle",
+						data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: <cfoutput>#val(URL.optArgs)#</cfoutput>, heroStyle: $(this).val() },
+						dataType: "json",
+						success: function (response) {
+							if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+							if (response && response.success) {
+								$("#enclosureHeroStyleSaved").text("Saved.");
+								if (typeof galaxieHeroSummaryRefresh === "function") { galaxieHeroSummaryRefresh(); }
+							} else {
+								$("#enclosureHeroStyleSaved").text("");
+								$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The hero style could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+							}
+						},
+						error: function (jqXHR, textStatus, error) {
+							$("#enclosureHeroStyleSaved").text("");
+							if (jqXHR.status === 403) { createLoginWindow(); } else { $.when(kendo.ui.ExtAlertDialog.show({ title: "Error while saving", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); }
+						}
+					});
+				});
+			</script>
+		</td>
+	  </tr>
+	  </cfif>
 	  </cfif>
 	  <!-- Border -->
 	  <tr height="2px">

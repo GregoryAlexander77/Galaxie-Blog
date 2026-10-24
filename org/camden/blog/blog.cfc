@@ -6333,10 +6333,29 @@
 		<cfreturn true>
 	</cffunction>
 
+	<cffunction name="savePostHeroStyle" access="public" returnType="void" output="false"
+			hint="A post's hero style (2026-10-24, owner: the style is the whole hero's, not only its text, so it is chosen in the Hero editor): classic, held, band or magazine, or empty for the blog's choice (Blog Options). Checked by the caller (ProxyController.cfc savePostHeroStyle). Updates Post.Date (dateModified) and clears the post's cached page.">
+		<cfargument name="postId" type="numeric" required="true">
+		<cfargument name="heroStyle" type="string" required="true">
+		<cfset var post = entityLoadByPK("Post", arguments.postId)>
+		<cfif isNull(post)>
+			<cfthrow type="GalaxieBlog.HeroText" message="This post no longer exists.">
+		</cfif>
+		<cftransaction>
+			<cfset post.setHeroStyle(arguments.heroStyle)>
+			<cfset post.setDate(blogNow())>
+			<cfset entitySave(post)>
+		</cftransaction>
+		<cftry>
+			<cfset flushGalaxieCache(type = "post", postId = arguments.postId)>
+			<cfcatch type="any"><!--- A cache that can't be cleared now is rebuilt when it expires; it mustn't fail the save. ---></cfcatch>
+		</cftry>
+	</cffunction>
+
 	<cffunction name="savePostHeroText" access="public" returnType="void" output="false"
 			hint="The text over a post's image, gradient or animated hero, from the Hero text window (109, 2026-10-19, Galaxie 5):
 			the heading and second line, colour, font (a font NAME), heading size and phone size (px digits), and a shadow
-			(none, soft, strong or glow) with its color, a glow (colour, opacity, softness), and the hero's style (empty = the blog's). Leaves the hero itself as it is. The values are checked by the caller
+			(none, soft, strong or glow) with its color, a glow (colour, opacity, softness), and the hero's style only when heroText has heroStyle (it is chosen in the Hero editor since 2026-10-24). Leaves the hero itself as it is. The values are checked by the caller
 			(ProxyController.cfc savePostHeroText). Updates Post.Date (dateModified) and clears the post's cached page.">
 		<cfargument name="postId" type="numeric" required="true">
 		<cfargument name="heroText" type="struct" required="true">
@@ -6356,7 +6375,8 @@
 			<cfset post.setHeroOverlayGlowColor(arguments.heroText.glowColour)>
 			<cfset post.setHeroOverlayGlowOpacity(arguments.heroText.glowOpacity)>
 			<cfset post.setHeroOverlayGlowSoftness(arguments.heroText.glowSoftness)>
-			<cfset post.setHeroStyle(arguments.heroText.heroStyle)>
+			<!--- The style is chosen in the Hero editor now (2026-10-24, savePostHeroStyle); only set here when given. --->
+			<cfif structKeyExists(arguments.heroText, "heroStyle")><cfset post.setHeroStyle(arguments.heroText.heroStyle)></cfif>
 			<cfset post.setDate(blogNow())>
 			<cfset entitySave(post)>
 		</cftransaction>

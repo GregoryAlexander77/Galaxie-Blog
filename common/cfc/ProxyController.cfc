@@ -14008,7 +14008,7 @@
 		<cfargument name="glowColour" type="string" default="" required="false" hint="Empty for no glow.">
 		<cfargument name="glowOpacity" type="string" default="" required="false" hint="10 to 100 (percent).">
 		<cfargument name="glowSoftness" type="string" default="" required="false" hint="4 to 60 (px).">
-		<cfargument name="heroStyle" type="string" default="" required="false" hint="classic, held, band or magazine; empty for the blog's choice.">
+		<!--- No heroStyle (2026-10-24): the style is chosen in the Hero editor (savePostHeroStyle below), so saving the text leaves it alone. --->
 
 		<cfset var response = { "success": false, "errorMessage": "" }>
 		<cfset var heroText = {}>
@@ -14032,8 +14032,7 @@
 				shadowColour = reFind(colourPattern, arguments.shadowColour) ? arguments.shadowColour : "",
 				glowColour = reFind(colourPattern, arguments.glowColour) ? arguments.glowColour : "",
 				glowOpacity = isNumeric(arguments.glowOpacity) ? toString(min(max(int(arguments.glowOpacity), 10), 100)) : "",
-				glowSoftness = isNumeric(arguments.glowSoftness) ? toString(min(max(int(arguments.glowSoftness), 4), 60)) : "",
-				heroStyle = listFind("classic,held,band,magazine", arguments.heroStyle) ? arguments.heroStyle : ""
+				glowSoftness = isNumeric(arguments.glowSoftness) ? toString(min(max(int(arguments.glowSoftness), 4), 60)) : ""
 			}>
 			<cftry>
 				<cfset application.blog.savePostHeroText(val(arguments.postId), heroText)>
@@ -14044,6 +14043,29 @@
 			</cftry>
 		</cfif>
 
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="savePostHeroStyle" access="remote" returnformat="json" output="false"
+			hint="A post's hero style from the style cards in the Hero editor (2026-10-24; it was in the Hero text window, but it is the whole hero's style): classic, held, band or magazine, or empty for the blog's choice. Saved on click.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" type="string" default="" required="true">
+		<cfargument name="heroStyle" type="string" default="" required="false">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId)>
+			<cftry>
+				<cfset application.blog.savePostHeroStyle(val(arguments.postId), listFind("classic,held,band,magazine", arguments.heroStyle) ? arguments.heroStyle : "")>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.HeroText" ? cfcatch.message : "The hero style could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 

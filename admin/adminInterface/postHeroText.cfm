@@ -47,6 +47,7 @@ and videos have none. --->
 		<cfcase value="none">This post has no hero picture, gradient or animation yet. The text shows once it has one (or over the generated hero, when Blog Options shows one).</cfcase>
 		<cfdefaultcase>The heading and second line over this post's #heroKind eq "animation" ? "animated" : heroKind# hero. Leave the heading empty for no text.</cfdefaultcase>
 	</cfswitch>
+	How the whole hero shows (classic, full screen, tall band or magazine) is chosen in the Hero editor.
 	</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">
@@ -56,25 +57,8 @@ and videos have none. --->
 		</div>
 	</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
-	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
-	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Style</h4></td></tr>
-	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<!--- The hero's style (owner, 10-19: "keep them all"): the blog's choice (Blog Options), or one of its own. --->
-	<cfset blogHeroStyle = createObject("component", application.rendererComponentPath).getPostHeroStyle("")>
-	<!--- Picture cards instead of a dropdown (owner, 10-23), with a first card that follows the blog's choice (heroStyleCards.cfm). --->
-	<tr>
-		<td colspan="2" class="#blockClass#">
-			How the hero shows on this post's own page. Point at a card to see it move. Carousels, maps and videos always show as they are.
-			<cfset heroCardsId = "heroTextStyle">
-			<cfset heroCardsName = "">
-			<cfset heroCardsValue = p["HeroStyle"] ?: "">
-			<cfset heroCardsBlogChoice = blogHeroStyle>
-			<cfset heroCardsSmall = true>
-			<cfinclude template="heroStyleCards.cfm">
-		</td>
-	</tr>
-	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
+	<!--- The hero's style (classic, full screen, tall band, magazine) moved to the Hero editor (2026-10-24, owner): it is the whole
+	hero's style, not only its text. enclosureImageEditor.cfm, saved by ProxyController.cfc savePostHeroStyle. --->
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Text</h4></td></tr>
@@ -220,8 +204,7 @@ $(document).ready(function () {
 				size: $("#heroTextSize").val(), sizePhone: $("#heroTextSizePhone").val(),
 				shadow: $("#heroTextShadow").val(), shadowColour: $("#heroTextShadowColour").data("kendoColorPicker").value() || "",
 				glowColour: $("#heroTextGlowOn").is(":checked") ? ($("#heroTextGlowColour").data("kendoColorPicker").value() || "#ffffff") : "",
-				glowOpacity: $("#heroTextGlowOpacity").val(), glowSoftness: $("#heroTextGlowSoftness").val(),
-				heroStyle: $("#heroTextStyle").val()
+				glowOpacity: $("#heroTextGlowOpacity").val(), glowSoftness: $("#heroTextGlowSoftness").val()
 			},
 			dataType: "json",
 			success: function (response) {
