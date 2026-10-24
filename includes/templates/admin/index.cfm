@@ -804,6 +804,15 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 			.adminTrafficDot { width: 10px; height: 10px; border-radius: 50%; }
 			.adminTrafficPart0 { background: var(--homeAccent); } .adminTrafficPart1 { background: color-mix(in srgb, var(--homeAccent) 55%, #ffffff); } .adminTrafficPart2 { background: color-mix(in srgb, var(--homeAccent) 60%, #000000); } .adminTrafficPart3 { background: #9aa4ae; }
 			.adminHomeCrumb { text-align: left; margin: 10px 0 0; padding: 5px; }
+			<!--- Phones (2026-10-24, owner): below 768px the breadcrumb isn't the triangle kind, it's a box in the theme's alternate color with
+			the "selected" text color - hard to read on some themes - and the current group's link (k-content) drew as a blank white bar. In
+			the admin it is plain text in the page's own color, the current group in bold. --->
+			@media only screen and (max-width: 767px) {
+				.adminHomeCrumb .cd-breadcrumb { background-color: transparent; padding: 0; margin: 0; }
+				.adminHomeCrumb .cd-breadcrumb li > *, .adminHomeCrumb .cd-breadcrumb li::after { color: inherit; font-size: 1rem; }
+				<!--- Its own rule: the theme's .cd-breadcrumb li.current > * is as specific as the line above and comes later. --->
+				.adminHomeCrumb .cd-breadcrumb li.current > * { color: inherit; background: transparent; font-weight: bold; }
+			}
 
 			span.icon {
 				<!--- To correctly align image, regardless of content height: --->
