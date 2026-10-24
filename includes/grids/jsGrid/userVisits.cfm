@@ -3,22 +3,23 @@
 <cfset gridName = "userVisitsGrid">
 <cfset showEditButton = false>
 <!--- Note: this grid is identical to the visitors grid and captures the visits of an individual user. It needs to be a separate template as having a common template opens up and erases the original template and I need to have this open as a second window. The optArgs (2nd argument in the list) is the IP address, and the otherArgs is the optional anonymousUserId (createCustomInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) You can send in a 0 for one of the arguments if you don't want to filter by one of the criteria. We will construct the URL sent to the server dyncamically --->
-<cfset getUrl = application.baseUrl & '/common/cfc/ProxyController.cfc?method=getVisitorLogForGrid&gridType=jsGrid'>
+<!--- 2026-10-24 (owner): one page at a time from the server (getVisitorLogForJsGrid), as in visitorLog.cfm. --->
+<cfset getUrl = application.baseUrl & '/common/cfc/ProxyController.cfc?method=getVisitorLogForJsGrid'>
 <cfparam name="pageTitle" default="" type="string">
 
 <!--- Construct the URL --->
 <cfif structKeyExists(URL, "optArgs") and isNumeric(URL.optArgs) and URL.optArgs gt 0>
-	<cfset getUrl = getUrl & '&anonymousUserId=' & URL.optArgs>
+	<cfset getUrl = getUrl & '&fixedAnonymousUserId=' & URL.optArgs>
 	<cfset pageTitle = "Visitor Statistics by User" & URL.optArgs>
 </cfif>
 <!--- Append the IpAddressId --->
 <cfif structKeyExists(URL, "otherArgs")  and isNumeric(URL.optArgs) and URL.otherArgs gt 0>
-	<cfset getUrl = getUrl & '&ipAddressId=' & URL.otherArgs>
+	<cfset getUrl = getUrl & '&fixedIpAddressId=' & URL.otherArgs>
 	<cfset pageTitle = "Visitor Statistics By IP">
 </cfif>
 <!--- Append the postId --->
 <cfif structKeyExists(URL, "otherArgs1") and isNumeric(URL.otherArgs1) and URL.otherArgs1 gt 0>
-	<cfset getUrl = getUrl & '&postId=' & URL.otherArgs1>
+	<cfset getUrl = getUrl & '&fixedPostId=' & URL.otherArgs1>
 	<cfset pageTitle = "Visitor Statistics By Page">
 </cfif>
 <!--- Finally, attach the csrfToken --->
@@ -44,7 +45,7 @@
 	
 	<cfif len(pageTitle)><h2><cfoutput>#pageTitle#</cfoutput></h2></cfif>
 	<p>All columns are sortable and searchable. To search, enter the search term on top of the column and click the search link at the right of the page.However, all of data inside the retention period specified in the blog options interface is intact in the VisitorLog table in the database if you need to perform further manual analsis.<br/>
-	Note: to conserve server resouces, this grid is limited to 5k records.</p>
+	Each page is loaded from the server as you move through the pages, so the whole log is here.</p>
 	
 	<style>
 		body {
@@ -154,12 +155,13 @@
 			editing: false,
 			sorting: true,
 			paging: true,
+			<!--- The server pages, sorts and filters (see visitorLog.cfm). --->
+			pageLoading: true,
 			autoload: true,
 			pageSize: 15,
 			pageButtonCount: 5,
 			controller: {
 				loadData: function (filter) {
-					console.log(filter);
 					return $.ajax({
 						type: "GET",
 						url: "<cfoutput>#getUrl#</cfoutput>", 
@@ -167,7 +169,7 @@
 						dataType: "json"
 					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(result) {
-						return result.data;
+						return { data: result.data, itemsCount: result.itemsCount };
 					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
 						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->

@@ -3942,11 +3942,6 @@
 		<cfset var body = {}>
 		<cfset var page = {}>
 		<cfset var requestBody = "">
-		<cfset var visitorRow = "">
-		<cfset var visitorMemberIds = "">
-		<cfset var visitorMembers = {}>
-		<cfset var visitorMember = {}>
-		<cfset var row = {}>
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
 			<cfset response = "Invalid token">
 			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
@@ -3967,15 +3962,29 @@
 			peopleOnly = isBoolean(arguments.peopleOnly) and arguments.peopleOnly,
 			sinceDays = isNumeric(arguments.sinceDays) ? min(int(arguments.sinceDays), 366) : 0
 		)>
+		<cfset response[ "data" ] = visitorLogGridRows(page.rows)>
+		<cfset response[ "total" ] = page.total>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="visitorLogGridRows" access="private" returntype="array" output="false"
+			hint="The rows of a getVisitorLogPage page as both Visitors grids (Kendo and jsGrid) read them: member details added, the date as yyyy-mm-ddTHH:nn:ss.">
+		<cfargument name="rows" type="array" required="true">
+		<cfset var result = []>
+		<cfset var visitorRow = "">
+		<cfset var visitorMemberIds = "">
+		<cfset var visitorMembers = {}>
+		<cfset var visitorMember = {}>
+		<cfset var row = {}>
 		<!--- Signed-in members: their name, email and picture for the "Signed in as" column, as getVisitorLogForGrid does. --->
-		<cfif structKeyExists(application, "members") and arrayLen(page.rows)>
-			<cfloop array="#page.rows#" index="visitorRow">
+		<cfif structKeyExists(application, "members") and arrayLen(arguments.rows)>
+			<cfloop array="#arguments.rows#" index="visitorRow">
 				<cfif structKeyExists(visitorRow, "AnonymousUserId") and not isNull(visitorRow["AnonymousUserId"])><cfset visitorMemberIds = listAppend(visitorMemberIds, visitorRow["AnonymousUserId"])></cfif>
 			</cfloop>
 			<cfset visitorMembers = application.members.getVisitorMembers(visitorMemberIds)>
 		</cfif>
 		<!--- Quoted keys keep their case on Adobe ColdFusion. The date goes as yyyy-mm-ddTHH:nn:ss (no zone), which the grid reads as local time. --->
-		<cfloop array="#page.rows#" index="visitorRow">
+		<cfloop array="#arguments.rows#" index="visitorRow">
 			<cfset visitorMember = (structKeyExists(visitorRow, "AnonymousUserId") and not isNull(visitorRow["AnonymousUserId"]) and structKeyExists(visitorMembers, visitorRow["AnonymousUserId"])) ? visitorMembers[visitorRow["AnonymousUserId"]] : {}>
 			<cfset row = {
 				"VisitorLogId": visitorRow["VisitorLogId"] ?: "",
@@ -3994,9 +4003,63 @@
 				"MemberEmail": structIsEmpty(visitorMember) ? "" : visitorMember.email,
 				"MemberPicture": structIsEmpty(visitorMember) ? "" : visitorMember.picture
 			}>
-			<cfset arrayAppend(response.data, row)>
+			<cfset arrayAppend(result, row)>
 		</cfloop>
-		<cfset response[ "total" ] = page.total>
+		<cfreturn result>
+	</cffunction>
+
+	<cffunction name="getVisitorLogForJsGrid" access="remote" returnformat="json" output="false"
+			hint="One page of the visitor log for the jsGrid (2026-10-24, owner: like the Kendo grid, it loaded up to 5000 rows at once). With pageLoading on, jsGrid sends pageIndex, pageSize, sortField, sortOrder and each column's filter value; they become getVisitorLogPage's skip, take, sort and filter, so both grids share one query. The window's own limits come in the URL as fixed* names, since the filters use the plain column names. Returns { data, itemsCount }.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="pageIndex" required="no" default="1">
+		<cfargument name="pageSize" required="no" default="15">
+		<cfargument name="sortField" required="no" default="">
+		<cfargument name="sortOrder" required="no" default="">
+		<!--- The column filters. --->
+		<cfargument name="anonymousUserId" required="no" default="">
+		<cfargument name="ipAddress" required="no" default="">
+		<cfargument name="fullName" required="no" default="">
+		<cfargument name="postTitle" required="no" default="">
+		<cfargument name="isBot" required="no" default="">
+		<cfargument name="dateVisited" required="no" default="">
+		<!--- The window's limits (a visitor, an IP address, a post, or the admin home's people-this-week). --->
+		<cfargument name="fixedAnonymousUserId" required="no" default="">
+		<cfargument name="fixedIpAddressId" required="no" default="">
+		<cfargument name="fixedPostId" required="no" default="">
+		<cfargument name="peopleOnly" required="no" default="">
+		<cfargument name="sinceDays" required="no" default="">
+		<cfset var response = { "data": [], "itemsCount": 0 }>
+		<cfset var page = {}>
+		<cfset var size = isNumeric(arguments.pageSize) ? min(max(1, int(arguments.pageSize)), 100) : 15>
+		<cfset var pageNumber = isNumeric(arguments.pageIndex) ? max(1, int(arguments.pageIndex)) : 1>
+		<cfset var filters = []>
+		<!--- The Date column is named dateVisited in the grid (see getVisitorLogForGrid's note on the June 2025 CF update). --->
+		<cfset var sortName = arguments.sortField eq "dateVisited" ? "Date" : arguments.sortField>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<!--- jsGrid's filter row, in the shape getVisitorLogPage takes (the Kendo grid sends that shape as it is). --->
+		<cfif isNumeric(arguments.anonymousUserId)><cfset arrayAppend(filters, { field: "AnonymousUserId", operator: "eq", value: arguments.anonymousUserId })></cfif>
+		<cfif len(trim(arguments.ipAddress))><cfset arrayAppend(filters, { field: "IpAddress", operator: "contains", value: trim(arguments.ipAddress) })></cfif>
+		<cfif len(trim(arguments.fullName))><cfset arrayAppend(filters, { field: "FullName", operator: "contains", value: trim(arguments.fullName) })></cfif>
+		<cfif len(trim(arguments.postTitle))><cfset arrayAppend(filters, { field: "PostTitle", operator: "contains", value: trim(arguments.postTitle) })></cfif>
+		<cfif isBoolean(arguments.isBot)><cfset arrayAppend(filters, { field: "IsBot", operator: "eq", value: arguments.isBot })></cfif>
+		<cfif isDate(arguments.dateVisited)><cfset arrayAppend(filters, { field: "Date", operator: "eq", value: arguments.dateVisited })></cfif>
+		<cfset page = application.blog.getVisitorLogPage(
+			skip = (pageNumber - 1) * size,
+			take = size,
+			sort = len(sortName) ? [ { field: sortName, dir: arguments.sortOrder eq "desc" ? "desc" : "asc" } ] : [],
+			filter = { logic: "and", filters: filters },
+			anonymousUserId = listFirst(arguments.fixedAnonymousUserId),
+			ipAddressId = listFirst(arguments.fixedIpAddressId),
+			postId = listFirst(arguments.fixedPostId),
+			peopleOnly = isBoolean(arguments.peopleOnly) and arguments.peopleOnly,
+			sinceDays = isNumeric(arguments.sinceDays) ? min(int(arguments.sinceDays), 366) : 0
+		)>
+		<cfset response[ "data" ] = visitorLogGridRows(page.rows)>
+		<cfset response[ "itemsCount" ] = page.total>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 

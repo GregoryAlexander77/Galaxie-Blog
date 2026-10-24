@@ -3,22 +3,24 @@
 <cfset gridName = "visitorLogGrid">
 <cfset showEditButton = false>
 <!--- Note: this grid has various arguments, the usage is return createAdminInterfaceWindow(63, anonymousUserId,IpAddressId,postId) send in by the URL. The vars are: createCustomInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) You can send in a 0 for one of the arguments if you don't want to filter by one of the criteria. We will construct the URL sent to the server dyncamically --->
-<cfset getUrl = application.baseUrl & '/common/cfc/ProxyController.cfc?method=getVisitorLogForGrid&gridType=jsGrid'>
+<!--- 2026-10-24 (owner): one page at a time from the server (getVisitorLogForJsGrid), not up to 5000 rows at once. The window's own
+limits go as fixed* names, since the grid's filters send the plain column names. --->
+<cfset getUrl = application.baseUrl & '/common/cfc/ProxyController.cfc?method=getVisitorLogForJsGrid'>
 <cfparam name="pageTitle" default="" type="string">
 
 <!--- Construct the URL --->
 <cfif structKeyExists(URL, "optArgs") and isNumeric(URL.optArgs) and URL.optArgs gt 0>
-	<cfset getUrl = getUrl & '&anonymousUserId=' & URL.optArgs>
+	<cfset getUrl = getUrl & '&fixedAnonymousUserId=' & URL.optArgs>
 	<cfset pageTitle = "Visitor Statistics by User" & URL.optArgs>
 </cfif>
 <!--- Append the IpAddressId --->
 <cfif structKeyExists(URL, "otherArgs")  and isNumeric(URL.optArgs) and URL.otherArgs gt 0>
-	<cfset getUrl = getUrl & '&ipAddressId=' & URL.otherArgs>
+	<cfset getUrl = getUrl & '&fixedIpAddressId=' & URL.otherArgs>
 	<cfset pageTitle = "Visitor Statistics By IP">
 </cfif>
 <!--- Append the postId --->
 <cfif structKeyExists(URL, "otherArgs1") and isNumeric(URL.otherArgs1) and URL.otherArgs1 gt 0>
-	<cfset getUrl = getUrl & '&postId=' & URL.otherArgs1>
+	<cfset getUrl = getUrl & '&fixedPostId=' & URL.otherArgs1>
 	<cfset pageTitle = "Visitor Statistics By Page">
 </cfif>
 <!--- Finally, attach the csrfToken --->
@@ -52,7 +54,7 @@ last 7 days, as the card counts them. --->
 	
 	<cfif len(pageTitle)><h2><cfoutput>#pageTitle#</cfoutput></h2></cfif>
 	<p>All columns are sortable and searchable. To search, enter the search term on top of the column and click the search link at the right of the page.However, all of data inside the retention period specified in the blog options interface is intact in the VisitorLog table in the database if you need to perform further manual analsis.<br/>
-	Note: to conserve server resouces, this grid is limited to 5k records.</p>
+	Each page is loaded from the server as you move through the pages, so the whole log is here.</p>
 	
 	<style>
 		body {
@@ -121,7 +123,7 @@ last 7 days, as the card counts them. --->
 
 	<!--- Set up the grid. --->
 	<!--- Signed-in members (2026-10-17, owner): their round picture (or initials) and name instead of only a browser; it opens
-	their page in Members. Admins keep their name. MemberName, MemberEmail and MemberPicture come from getVisitorLogForGrid. --->
+	their page in Members. Admins keep their name. MemberName, MemberEmail and MemberPicture come from getVisitorLogForJsGrid. --->
 	function visitorSignedInAs(item) {
 		var text = function(value) { return $("<div/>").text(value === null || value === undefined ? "" : String(value)).html(); };
 		if (item.MemberName) {
@@ -181,12 +183,13 @@ last 7 days, as the card counts them. --->
 			editing: false,
 			sorting: true,
 			paging: true,
+			<!--- The server pages, sorts and filters; jsGrid sends pageIndex, pageSize, sortField and sortOrder with the filters. --->
+			pageLoading: true,
 			autoload: true,
 			pageSize: 15,
 			pageButtonCount: 5,
 			controller: {
 				loadData: function (filter) {
-					console.log(filter);
 					return $.ajax({
 						type: "GET",
 						url: "<cfoutput>#getUrl#</cfoutput>", 
@@ -194,7 +197,8 @@ last 7 days, as the card counts them. --->
 						dataType: "json"
 					<!--- Note: you can't simply use the xhr done, complete or success methods here. If you do, the 'please wait' dialog will stay up indefinately as jsGrid does not think that the ajax is done. Instead, we must use a promise, ie the 'then' statement like we are doing here. --->
 					}).then(function(result) {
-						return result.data;
+						<!--- With pageLoading, jsGrid wants the page and the number of rows in all: { data, itemsCount }. --->
+						return { data: result.data, itemsCount: result.itemsCount };
 					<!--- Extract any errors. This is a new jQuery promise based function as of jQuery 1.8. --->
 					}).fail(function (jqXHR, textStatus, error) {
 						<!--- This is a secured function. Display the login screen if there is a 403 response header. --->
