@@ -1830,257 +1830,71 @@
 			
 	</cffunction>
 					
-	<cffunction name="cleanUpLogs" access="public" returnType="numeric" output="false" hint="This will delete records in the various logs that fall outside of the log retention period">		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
-		<cfset var adminLogAnonymousUserIds = "">
-		<cfset var adminLogIpAddressIds = "">
-		<cfset var adminLogRetentationDate = "">
-		<cfset var adminLogRetentionDate = "">
-		<cfset var adminLogRetentionMonth = "">
-		<cfset var adminLogRetentionYear = "">
-		<cfset var adminLogUserAgentIds = "">
-		<cfset var debug = "">
-		<cfset var deleteAdminLog = "">
-		<cfset var deleteAnonymousUser = "">
-		<cfset var deleteErrorLog = "">
-		<cfset var deleteHttpReferrer = "">
-		<cfset var deleteHttpUserAgent = "">
-		<cfset var deleteIP = "">
-		<cfset var deleteVisitorLog = "">
-		<cfset var exemptAnonymousUserIdList = "">
-		<cfset var exemptIpAddressList = "">
-		<cfset var exemptUserAgentList = "">
-		<cfset var i = "">
-		<cfset var postRatingUserIds = "">
-		<cfset var removeConstraints = "">
-		<cfset var visitorLogRetentationDate = "">
-		<cfset var visitorLogRetentionDate = "">
-		<cfset var visitorLogRetentionMonth = "">
-		<cfset var visitorLogRetentionYear = "">
-				
-		<cfset debug = false>
+	<cffunction name="cleanUpLogs" access="public" returnType="numeric" output="false" hint="Deletes log records that fall outside of the log retention periods (Blog Options). 2026-10-23 rewrite: it deletes in small batches, each its own short statement, oldest-dependent first, and stops after a time budget, so it never holds the database for long (the old version deleted everything in one statement each, and on a large log every page of every blog on the server waited behind it). What is left over is deleted on the next run. Returns the number of rows deleted.">
+		<cfargument name="secondsBudget" type="numeric" required="false" default="20" hint="Stop starting new batches after this many seconds.">
+		<cfargument name="batchSize" type="numeric" required="false" default="500">
+		<cfset var deadline = dateAdd("s", arguments.secondsBudget, now())>
+		<cfset var deleted = 0>
+		<!--- The first of the month, as before: the visitor log keeps whole months. --->
+		<cfset var visitorLogRetentionDate = dateAdd("m", -application.monthsToRetainVisitorLog, now())>
+		<cfset var adminLogRetentionDate = dateAdd("m", -application.monthsToRetainAdminLog, now())>
+		<cfset visitorLogRetentionDate = createDateTime(year(visitorLogRetentionDate), month(visitorLogRetentionDate), 1, 0, 0, 0)>
+		<cfset adminLogRetentionDate = createDateTime(year(adminLogRetentionDate), month(adminLogRetentionDate), 1, 0, 0, 0)>
 
-		<!--- This calculation will determine the proper year and month for the visitor log retention date from the database --->
-		<cfset visitorLogRetentationDate = dateAdd("m", -application.monthsToRetainVisitorLog, now())>
-		<cfset adminLogRetentationDate = dateAdd("m", -application.monthsToRetainAdminLog, now())>
-
-		<cfset visitorLogRetentionYear = year( visitorLogRetentationDate )>
-		<cfset visitorLogRetentionMonth = month( visitorLogRetentationDate )>
-		<cfset adminLogRetentionYear = year( adminLogRetentationDate )>
-		<cfset adminLogRetentionMonth = month ( adminLogRetentationDate )>
-
-		<cfif debug>
-			<cfoutput>
-				visitorLogRetentationDate: #visitorLogRetentationDate#<br/>
-				adminLogRetentationDate: #adminLogRetentationDate#<br/><br/>
-				visitorLogRetentionYear: #visitorLogRetentionYear#<br/>
-				visitorLogRetentionMonth: #visitorLogRetentionMonth#<br/><br/>
-				adminLogRetentionYear: #adminLogRetentionYear#<br/>
-				adminLogRetentionMonth: #adminLogRetentionMonth#<br/>
-			</cfoutput>
-		</cfif>
-
-		<cfset visitorLogRetentionDate = createDateTime(visitorLogRetentionYear,visitorLogRetentionMonth,1,0,0,0)>
-		<cfset adminLogRetentionDate = createDateTime(adminLogRetentionYear,adminLogRetentionMonth,1,0,0,0)>
-
-		<!--- Create exempt lists --->
-		<cfparam name="exemptAnonymousUserIdList" default="">
-		<cfparam name="exemptIpAddressList" default="">
-		<cfparam name="exemptUserAgentList" default="">
-
-		<!--- Delete from HttpReferrer (2026-10-20): referring addresses older than the visitor log is kept for, that no visit uses any more.
-		This said Date >= (it deleted the NEWEST) and ignored the visits pointing at them; nothing was ever saved, so it went unnoticed
-		until saveHttpReferrer was fixed, and then the visit rows' foreign key stopped the delete and the admin errored at sign-in. In a
-		try block: tidying the logs must never stop anyone signing in. --->
-		<cftry>
-			<cfquery name="deleteHttpReferrer" dbtype="hql">
-				DELETE FROM HttpReferrer
-				WHERE Date < <cfqueryparam value="#visitorLogRetentionDate#" cfsqltype="cf_sql_timestamp">
-				AND HttpReferrerId NOT IN (SELECT v.HttpReferrerRef.HttpReferrerId FROM VisitorLog v WHERE v.HttpReferrerRef IS NOT NULL)
-			</cfquery>
-			<cfcatch type="any">
-				<cflog file="galaxieBlogErrors" type="warning" text="cleanUpLogs: the old referring addresses could not be tidied: #cfcatch.message#">
-			</cfcatch>
-		</cftry>
-
-		<cfquery name="deleteAdminLog" dbtype="hql">
-			DELETE FROM AdminLog
-			WHERE Date <= <cfqueryparam value="#adminLogRetentionDate#" cfsqltype="cf_sql_timestamp">
-		</cfquery>
-			
-		<!--- This may cause an error with Lucee --->
-		<cftry>
-			<cfquery name="deleteErrorLog" dbtype="hql">
-				DELETE FROM ErrorLog
-				WHERE Date <= <cfqueryparam value="#adminLogRetentionDate#" cfsqltype="cf_sql_timestamp">
-			</cfquery>
-		<cfcatch type="any">
-			<!--- Do nothing --->
-		</cfcatch>
-		</cftry>
-	
-		<!--- ******************************** Create exempt lists from the admin log table ******************************** --->
-		<cfquery name="adminLogAnonymousUserIds" dbtype="hql">
-			SELECT new Map (
-			min( AnonymousUserRef.AnonymousUserId ) as AnonymousUserId
-			)
-			FROM AdminLog as AdminLog
-			GROUP BY AnonymousUserRef.AnonymousUserId
-		</cfquery>
-		<cfif debug>
-			<cfdump var="#adminLogAnonymousUserIds#" label="adminLogAnonymousUserIds">
-		</cfif>
-
-		<!--- Store the admin log anonymousUserIds in the exempt list --->
-		<cfloop from="1" to="#arrayLen(adminLogAnonymousUserIds)#" index="i">
-			<cfset exemptAnonymousUserIdList = listAppend(exemptAnonymousUserIdList,adminLogAnonymousUserIds[i]["AnonymousUserId"])>
-		</cfloop>
-		<cfdump var="#exemptAnonymousUserIdList#">
-
-		<!--- Create a list of IP's that were used in the admin log. We don't want to delete these --->
-		<cfquery name="adminLogIpAddressIds" dbtype="hql">
-			SELECT new Map ( 
-			min( AnonymousUserRef.IpAddressRef.IpAddressId ) as IpAddressId
-			)
-			FROM AdminLog as AdminLog
-			GROUP BY AnonymousUserRef.AnonymousUserId
-		</cfquery>
-		<cfif debug>
-			<cfdump var="#adminLogIpAddressIds#" label="adminLogIpAddressIds">
-		</cfif>
-
-		<!--- Also store the admin log anonymousUserIds in the exempt list --->
-		<cfloop from="1" to="#arrayLen(adminLogIpAddressIds)#" index="i">
-			<cfset exemptIpAddressList = listAppend(exemptIpAddressList,adminLogIpAddressIds[i]["IpAddressId"])>
-		</cfloop>
-		<cfif debug>
-			<cfdump var="#exemptIpAddressList#">
-		</cfif>
-
-		<!--- Create a list of user agent ID's that were used in the admin log. We don't want to delete these --->
-		<cfquery name="adminLogUserAgentIds" dbtype="hql">
-			SELECT new Map ( 
-			min( AnonymousUserRef.HttpUserAgentRef.HttpUserAgentId ) as HttpUserAgentId
-			)
-			FROM AdminLog as AdminLog
-			GROUP BY AnonymousUserRef.AnonymousUserId
-		</cfquery>
-		<cfif debug>
-			<cfdump var="#adminLogUserAgentIds#" label="adminLogUserAgentIds">
-		</cfif>
-
-		<!--- Also store the admin log user agent Ids in the exempt list --->
-		<cfloop from="1" to="#arrayLen(adminLogUserAgentIds)#" index="i">
-			<cfset exemptUserAgentList = listAppend(exemptUserAgentList,adminLogUserAgentIds[i]["HttpUserAgentId"])>
-		</cfloop>
-		<cfif debug>
-			<cfdump var="#exemptUserAgentList#">
-		</cfif>
-
-		<!--- ******************************** Create exempt lists from the reactions table ******************************** --->
-
-		<!--- The logic here sets the exempt lists in one pass --->
-		<cfquery name="postRatingUserIds" dbtype="hql">
-			SELECT new Map (      
-				AnonymousUser.AnonymousUserId as AnonymousUserId, 
-				IpAddress.IpAddressId as IpAddressId,
-				HttpUserAgent.HttpUserAgentId as HttpUserAgentId
-			)
-			FROM           
-				AnonymousUser as AnonymousUser INNER JOIN
-				PostRating as PostRating ON AnonymousUser.AnonymousUserId = PostRating.AnonymousUserRef INNER JOIN
-				HttpUserAgent as HttpUserAgent ON AnonymousUser.HttpUserAgentRef = HttpUserAgent.HttpUserAgentId INNER JOIN
-				IpAddress as IpAddress ON AnonymousUser.IpAddressRef = IpAddress.IpAddressId
-		</cfquery>
-		<cfif debug>
-			<cfdump var="#postRatingUserIds#" label="postRatingUserIds">
-		</cfif>
-
-		<!--- Store the post rating anonymousUserIds in the exempt list --->
-		<cfloop from="1" to="#arrayLen(postRatingUserIds)#" index="i">
-			<cfset exemptAnonymousUserIdList = listAppend(exemptAnonymousUserIdList,postRatingUserIds[i]["AnonymousUserId"])>
-		</cfloop>
-		<cfif debug>
-			<cfdump var="#exemptAnonymousUserIdList#" label="Post Rating exemptAnonymousUserIdList">
-		</cfif>
-
-		<!--- Store the post rating ip addresses in the exempt list --->
-		<cfloop from="1" to="#arrayLen(postRatingUserIds)#" index="i">
-			<cfset exemptIpAddressList = listAppend(exemptIpAddressList,postRatingUserIds[i]["IpAddressId"])>
-		</cfloop>
-		<cfif debug>
-			<cfdump var="#exemptIpAddressList#" label="Post Rating exemptIpAddressList">
-		</cfif>
-
-		<!--- Store the post rating http user agents in the exempt list --->
-		<cfloop from="1" to="#arrayLen(postRatingUserIds)#" index="i">
-			<cfset exemptUserAgentList = listAppend(exemptUserAgentList,postRatingUserIds[i]["HttpUserAgentId"])>
-		</cfloop>
-		<cfif debug>
-			<cfdump var="#exemptUserAgentList#" label="Post Rating exemptUserAgentList">
-		</cfif>
-
-		<!--- //**************************************************************************************************************
-				Delete IP Addresses
-		//****************************************************************************************************************--->
-
-		<!--- Now, delete the Anonymous User and IP Address records --->
-		<!--- Delete records from AnonymousUser that fall outside of the visitor log retention  --->
-		<!--- This may cause an error with MySql --->
-		<cftry>
-			<cfquery name="deleteAnonymousUser" dbtype="hql">
-				DELETE FROM AnonymousUser
-				WHERE AnonymousUserId NOT IN (#exemptAnonymousUserIdList#)
-				AND Date <= <cfqueryparam value="#visitorLogRetentionDate#" cfsqltype="cf_sql_timestamp">
-			</cfquery>
-		<cfcatch type="any"></cfcatch>
-		</cftry>
-
-		<!---Delete IpAddress. This has a constraint with the admin log and login table  --->
-		<cftry>
-			<cfquery name="deleteIP" dbtype="hql">
-				DELETE FROM IpAddress
-				WHERE IpAddressId NOT IN (#exemptAnonymousUserIdList#)
-				AND Date <= <cfqueryparam value="#visitorLogRetentionDate#" cfsqltype="cf_sql_timestamp">
-			</cfquery>
-			<cfcatch type="any">
-				<!--- This probably failed due to a constraint with the anonymous user table. Do nothing here --->
-			</cfcatch>
-		</cftry>
-			
-		<cftry>
-			<!--- Delete the Http User Agent records --->
-			<cfquery name="deleteHttpUserAgent" dbtype="hql">
-				DELETE FROM HttpUserAgent
-				WHERE HttpUserAgentId NOT IN (#exemptUserAgentList#)
-				AND Date <= <cfqueryparam value="#visitorLogRetentionDate#" cfsqltype="cf_sql_timestamp">
-			</cfquery>
-			<cfcatch type="any">
-				<!--- This probably failed due to a constraint with the anonymous user table. Do nothing here --->
-			</cfcatch>
-		</cftry>
-
-		<!--- Finally, delete records in the visitor log table --->
-		<!--- First we need to set the columns with contraints to null --->
-		<cfquery name="removeConstraints" dbtype="hql">
-			UPDATE VisitorLog
-			SET UserRef = NULL,
-			AnonymousUserRef = NULL,
-			HttpReferrerRef = NULL,
-			PostRef = NULL
-			WHERE Date <= <cfqueryparam value="#visitorLogRetentionDate#" cfsqltype="cf_sql_timestamp">
-		</cfquery>
-		
-		<!--- Now, delete the records --->
-		<cfquery name="deleteVisitorLog" dbtype="hql">
-			DELETE FROM VisitorLog
-			WHERE Date <= <cfqueryparam value="#visitorLogRetentionDate#" cfsqltype="cf_sql_timestamp">
-		</cfquery>
-			
-		<!--- Return a 1 indicating success  --->
-		<cfreturn 1>
-			
+		<!--- 1. Old visits. Nothing points at a visit, so these can go first; then the referrers, visitors, addresses and browsers
+		they pointed at may be free. --->
+		<cfset deleted += deleteLogBatches("VisitorLog", "VisitorLogId", "e.Date <= :before", { before = visitorLogRetentionDate }, arguments.batchSize, deadline)>
+		<!--- 2. The admin and error logs. --->
+		<cfset deleted += deleteLogBatches("AdminLog", "AdminLogId", "e.Date <= :before", { before = adminLogRetentionDate }, arguments.batchSize, deadline)>
+		<cfset deleted += deleteLogBatches("ErrorLog", "ErrorLogId", "e.Date <= :before", { before = adminLogRetentionDate }, arguments.batchSize, deadline)>
+		<!--- 3. Referring addresses no visit uses any more. --->
+		<cfset deleted += deleteLogBatches("HttpReferrer", "HttpReferrerId",
+			"e.Date < :before AND NOT EXISTS (SELECT 1 FROM VisitorLog v WHERE v.HttpReferrerRef = e)", { before = visitorLogRetentionDate }, arguments.batchSize, deadline)>
+		<!--- 4. Old anonymous visitors that nothing refers to: no visit, admin log entry, reaction, error, subscriber, search or read
+		marker uses them. (The old version kept the admin log and reaction ones in lists; these checks do the same without the lists.) --->
+		<cfset deleted += deleteLogBatches("AnonymousUser", "AnonymousUserId",
+			"e.Date <= :before
+			 AND NOT EXISTS (SELECT 1 FROM VisitorLog v WHERE v.AnonymousUserRef = e)
+			 AND NOT EXISTS (SELECT 1 FROM AdminLog a WHERE a.AnonymousUserRef = e)
+			 AND NOT EXISTS (SELECT 1 FROM PostRating r WHERE r.AnonymousUserRef = e)
+			 AND NOT EXISTS (SELECT 1 FROM ErrorLog x WHERE x.AnonymousUserRef = e)
+			 AND NOT EXISTS (SELECT 1 FROM Subscriber s WHERE s.AnonymousUserRef = e)
+			 AND NOT EXISTS (SELECT 1 FROM SearchQuery q WHERE q.AnonymousUserRef = e)
+			 AND NOT EXISTS (SELECT 1 FROM PostRead pr WHERE pr.AnonymousUserRef = e)
+			 AND NOT EXISTS (SELECT 1 FROM CommentRead cr WHERE cr.AnonymousUserRef = e)", { before = visitorLogRetentionDate }, arguments.batchSize, deadline)>
+		<!--- 5. Addresses and browsers no remaining visitor uses. --->
+		<cfset deleted += deleteLogBatches("IpAddress", "IpAddressId",
+			"e.Date <= :before AND NOT EXISTS (SELECT 1 FROM AnonymousUser u WHERE u.IpAddressRef = e)", { before = visitorLogRetentionDate }, arguments.batchSize, deadline)>
+		<cfset deleted += deleteLogBatches("HttpUserAgent", "HttpUserAgentId",
+			"e.Date <= :before AND NOT EXISTS (SELECT 1 FROM AnonymousUser u WHERE u.HttpUserAgentRef = e)", { before = visitorLogRetentionDate }, arguments.batchSize, deadline)>
+		<cfreturn deleted>
 	</cffunction>
-							
+
+	<cffunction name="deleteLogBatches" access="private" returnType="numeric" output="false"
+			hint="Deletes the rows of one log table that match a condition, a batch at a time (find up to batchSize ids, then delete just those), until none are left or the deadline passes. Each statement is short, so other requests are never kept waiting for long. A batch that fails (eg. a row something else still refers to) stops this table for this run and is logged; tidying the logs must never break anything.">
+		<cfargument name="entityName" type="string" required="true">
+		<cfargument name="idName" type="string" required="true">
+		<cfargument name="whereHql" type="string" required="true" hint="Uses the alias e.">
+		<cfargument name="params" type="struct" required="true">
+		<cfargument name="batchSize" type="numeric" required="true">
+		<cfargument name="deadline" type="date" required="true">
+		<cfset var ids = []>
+		<cfset var total = 0>
+		<cftry>
+			<cfloop condition="dateCompare(now(), arguments.deadline) lt 0">
+				<cfset ids = ormExecuteQuery("SELECT e.#arguments.idName# FROM #arguments.entityName# e WHERE #arguments.whereHql#", arguments.params, false, { maxresults = arguments.batchSize })>
+				<cfif not arrayLen(ids)><cfbreak></cfif>
+				<cfset ormExecuteQuery("DELETE FROM #arguments.entityName# WHERE #arguments.idName# IN (:ids)", { ids = ids })>
+				<cfset total += arrayLen(ids)>
+				<cfif arrayLen(ids) lt arguments.batchSize><cfbreak></cfif>
+			</cfloop>
+			<cfcatch type="any">
+				<cflog file="galaxieBlogErrors" type="warning" text="cleanUpLogs: #arguments.entityName# stopped after #total# rows: #cfcatch.message#">
+			</cfcatch>
+		</cftry>
+		<cfreturn total>
+	</cffunction>
+
 	<!--- ************************** Anonymous Users ************************** 
 	Note: this table can store a bunch of other data, such as the time-zone, language, etc, however, I am only trying to get the IP and user agent to see who views certain posts and made comments. You can easilly use google analytics or another software if you want better user tracking here.
 	--->
