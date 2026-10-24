@@ -159,6 +159,9 @@
 			".gScene .gs-heroText{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 8vw;z-index:3}",
 			".gScene .gs-heroText .gs-heading{font-size:clamp(2rem,6vw,4.5rem)}",
 			".gScene .gs-heroText.gs-textBottom{justify-content:flex-end;padding-bottom:16vh;text-align:left;align-items:flex-start}",
+			// Low text follows the hero's own align when it is center or right (2026-10-24); left stays the default.
+			".gScene .gs-heroText.gs-textBottom.gs-align-center{text-align:center;align-items:center}",
+			".gScene .gs-heroText.gs-textBottom.gs-align-right{text-align:right;align-items:flex-end}",
 			".gScene .gs-hero.gs-sized .gs-photo img{height:100%}",
 			".gScene .gs-fade{position:absolute;left:0;width:100%;bottom:0;pointer-events:none;z-index:4}",
 			".gScene .gs-fadeSolid{position:absolute;left:0;width:100%;height:300vh;top:calc(100% - 2px);pointer-events:none}",
