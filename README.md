@@ -9,7 +9,7 @@ The Galaxie Blog documentation is at https://www.galaxieblog.org. Gregory's Blog
 ## Installation
 
 You must have a ColdFusion installed on a server.
-Your web server must have ColdFusion installed. Galaxie Blog 4.9 has been tested on Adobe ColdFusion 2023 and 2025, and on Lucee 6 and 7. Earlier versions were tested on ColdFusion 2016, 2018 and 2021.
+Your web server must have ColdFusion installed. Galaxie Blog 5.0 has been tested on Adobe ColdFusion 2023 and 2025, and on Lucee 6 and 7. Earlier versions were tested on ColdFusion 2016, 2018 and 2021.
 
 Theoretically, the blog may support any ColdFusion edition starting from ColdFusion 9. However, your mileage may vary.
 We have successfully tested using Apache, TomCat and IIS.
@@ -64,6 +64,20 @@ Be sure to write down your chosen user name and password. You will need to retai
 7. Once installed, you should see your new blog with a 'No Entries' message on the front page. You will not see any blog posts until you make them using the administrative site; see below.
 8. The first thing to do after signing in: open Blog Settings and fill in the Blog Email Address. The installer leaves it empty, and the blog sends no email until it is filled in (member sign-in links, comment notices, subscriber email and error summaries). If you leave the Mail Server empty, the blog uses the mail server set in the ColdFusion or Lucee administrator.
     
+## What's new in 5.0 (Howl at the Moon Edition)
+
+Galaxie Blog 5.0 is about how your blog looks and moves.
+
+- **Scenes.** Scrolling stories at the top of a post or page, animated with GreenSock: layered heroes whose layers move at different speeds, photo, animated, gradient and video heroes, text blocks, slideshows, maps, forms and products. Every blog starts with six ready-made scenes, the gallery has many more, and the Scene editor builds your own with a live preview.
+- **Post heroes.** The Enclosure is now the Hero, with four styles (Classic, Full screen and held, Tall band, Magazine), hero text with its own font, color, shadow and glow, and a parallax hero picked from ready-made pictures right in the Hero editor.
+- **The Site Wizard.** A new blog is set up in a few screens: name, theme, logo, about you, starter content and home page, with a live preview. The installer is now one page.
+- **The Shop.** Products, downloads and services, a cart and checkout through your own Stripe account, orders with shipping and refunds, and download links.
+- **A new administrative home page** with Up next and this week's visitors, a Themes window with a live preview, one-step Delete in the grids, test buttons for the mail, database and Stripe settings, and private notes.
+- **Comment replies,** a Remember me that works, and visitors see only approved comments.
+- **Faster and lighter:** the visitor log is tidied once a day in the background instead of on every visit to the administrative site, and the Visitors grid loads one page at a time.
+
+The full list is in the [Release Notes: 5.0](https://galaxieblog.org/release-notes-50).
+
 ## What's new in 4.9 (Join the Pack Edition)
 
 Galaxie Blog 4.9 turns the blog into a place where visitors can do things: send a form, sign up for an event, book a time with you, and pay. Everyone who does is brought together in one list, Members.
