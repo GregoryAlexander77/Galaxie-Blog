@@ -56,13 +56,14 @@ Galaxie Blog uses web fonts for typography and needs web font mime types set up 
 - Migrate to the URL of your uploaded blog, and the blog should automatically open the installer. For example, if you uploaded the files to the root directory, go to http://yourdomain.com/.
 - If you uploaded to a blog directory in your root, go to http://yourdomain.com/blog/, etc.
 - The installer will guide you and ask you to enter information, such as your URL, blog name, and other information. 
-The installer is a seven-step process. Each screen may provide information and ask you to hit the next button or have multiple questions. It should not take more than five minutes to complete.
+The installer has four short steps: your site, the database, your account, and Install. It should not take more than five minutes. Afterwards the Site Wizard opens to help you make the site your own.
 Be sure to write down your chosen user name and password. You will need to retain this information. Galaxie Blog does not retain passwords—they are hashed using the strongest publicly available encryption process and cannot be recovered.
 - Once you are done, the installer will automatically create the database and import the needed data. The final step may take a while for the software to be installed. If there is a time-out error, refresh the browser, and the installation should continue.
+- If you get **File not found: /index.cfm** right after uploading (most often when you replace a site's files in the same folder, as for a reinstall), ColdFusion is still using its template cache from the old files. This happens when *Trusted Cache* is on. In the ColdFusion administrator, open Server Settings, Caching, and press **Clear Template Cache Now** (or restart ColdFusion), then reload the page. Lucee: Settings, Performance/Caching, clear the template cache.
 - If the blog shows *This site is not available right now* while it starts, the reason is written to the `galaxieBlogStartup.log` file in the logs folder of ColdFusion or Lucee, and is shown when you add `?startupDebug=1` to the address.
 
 7. Once installed, you should see your new blog with a 'No Entries' message on the front page. You will not see any blog posts until you make them using the administrative site; see below.
-8. The first thing to do after signing in: open Blog Settings and fill in the Blog Email Address. The installer leaves it empty, and the blog sends no email until it is filled in (member sign-in links, comment notices, subscriber email and error summaries). If you leave the Mail Server empty, the blog uses the mail server set in the ColdFusion or Lucee administrator.
+8. Check the blog's email address. The Site Wizard's first screen fills it in with your own email; if you skipped it, open Blog Settings and fill in the Blog Email Address. The blog sends no email until it is filled in (member sign-in links, comment notices, subscriber email and error summaries). If you leave the Mail Server empty, the blog uses the mail server set in the ColdFusion or Lucee administrator.
     
 ## What's new in 5.0 (Howl at the Moon Edition)
 
