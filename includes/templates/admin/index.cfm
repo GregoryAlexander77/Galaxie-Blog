@@ -262,7 +262,9 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 <cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
 	<cfset iconList = listAppend(iconList, 'TrafficSources')>
 	<cfset titleList = listAppend(titleList, 'Traffic Sources')>
-	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(117, 30);")>
+	<!--- No second argument: linkList is a comma list, so a comma here split the link and shifted the icons after it (the window
+	opens at 30 days by default). --->
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(117);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/trafficSources.gif")>
 </cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
