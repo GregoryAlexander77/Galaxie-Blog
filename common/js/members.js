@@ -31,6 +31,8 @@ var galaxieMembers = (function($) {
 			// selected color (k-state-selected) so it suits every theme. Their picture will go in the same circle.
 			".galaxieMemberAvatar { display: inline-flex; align-items: center; justify-content: center; width: 2em; height: 2em; border-radius: 50%; overflow: hidden; font-size: 0.8em; font-weight: bold; line-height: 1; vertical-align: middle; letter-spacing: 0.02em; }" +
 			".galaxieMemberAvatar img { width: 100%; height: 100%; object-fit: cover; }" +
+			// A picture gets a thin white ring with a faint dark edge (owner, 2026-10-25), so it stands out on light and dark headers.
+			".galaxieMemberAvatarPicture { box-shadow: 0 0 0 1.5px rgba(255,255,255,.95), 0 0 0 2.5px rgba(0,0,0,.25); }" +
 			".galaxieMemberAvatarLarge { width: 3.5em; height: 3.5em; font-size: 1.1em; }" +
 			".galaxieMemberPictureRow { display: flex; align-items: center; gap: 0.6em; flex-wrap: wrap; }" +
 			".galaxieMemberMessage { margin: 0 0 1em 0; }" +
@@ -93,9 +95,9 @@ var galaxieMembers = (function($) {
 	function fillAvatar(circle) {
 		circle.empty();
 		if (avatarPicture()) {
-			circle.removeClass("k-state-selected").append($('<img alt="">').attr("src", avatarPicture()));
+			circle.removeClass("k-state-selected").addClass("galaxieMemberAvatarPicture").append($('<img alt="">').attr("src", avatarPicture()));
 		} else {
-			circle.addClass("k-state-selected").text(initials());
+			circle.removeClass("galaxieMemberAvatarPicture").addClass("k-state-selected").text(initials());
 		}
 		return circle;
 	}
