@@ -13869,6 +13869,39 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="savePostHeroParallax" access="remote" returnformat="json" output="false"
+			hint="The Hero editor's Parallax hero panel (2026-10-25): makes or changes the post's own parallax hero (Scenes.cfc usePostHeroParallax) - starter is a ready-made picture's key, or 'photo' for the post's own picture - or, with remove=true, takes it off the post. Clears the post's cached page.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" default="0" required="true">
+		<cfargument name="starter" type="string" default="" required="false">
+		<cfargument name="heading" type="string" default="" required="false">
+		<cfargument name="line" type="string" default="" required="false">
+		<cfargument name="align" type="string" default="center" required="false">
+		<cfargument name="textPosition" type="string" default="" required="false">
+		<cfargument name="remove" type="string" default="false" required="false">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId)>
+			<cftry>
+				<cfif isBoolean(arguments.remove) and arguments.remove>
+					<cfset application.blog.getScenes().setPostScene(val(arguments.postId), "")>
+				<cfelse>
+					<cfset application.blog.getScenes().usePostHeroParallax(val(arguments.postId), arguments.starter, arguments.heading, arguments.line, arguments.align, arguments.textPosition)>
+				</cfif>
+				<cfset flushWebFormPosts([val(arguments.postId)])>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.Scenes" ? cfcatch.message : "The parallax hero could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="saveSetup" access="remote" returnformat="json" output="false"
 			hint="The Site Wizard (admin/setup.cfm, 5.0): saves one screen - step = site, testEmail, look, logo, about, home, starter or finish - through common/cfc/Setup.cfc. Only for someone who may change the blog's settings (EditServerSetting).">
 		<cfargument name="csrfToken" type="string" default="" required="true">

@@ -412,6 +412,121 @@ post editor's scene picker aren't empty. Never the private Delicate Arch scene (
 	</cftransaction>
 </cffunction>
 
+<!---//*****************************************************************************************************
+		A post's parallax hero, from the Hero editor (2026-10-25)
+//******************************************************************************************************--->
+
+<!--- Owner 10-25: "a shortcut for the users who just want a parallax hero image without having to go to the scene UI". The Hero
+editor's Parallax hero panel picks a ready-made layered picture (or the post's own photo, with a slow zoom), a heading and where it
+sits; that makes the post its own hero parallax scene, alias post-hero-{postId}, so changing it later updates the same copy and each
+post keeps its own heading. The picture it came from is kept in the scene's settings (heroStarter). --->
+
+<cffunction name="getHeroParallaxStarters" access="public" returntype="array" output="false"
+		hint="The ready-made pictures the Hero editor offers: every starter scene whose first section is a layered hero, as [{ key, name, layers: [{ src, depth }] }] with {baseUrl} left in the addresses.">
+	<cfset var result = []>
+	<cfset var starter = "">
+	<cfset var data = "">
+	<cfset var layer = "">
+	<cfset var layers = []>
+	<cfloop array="#getStarters()#" index="starter">
+		<cftry>
+			<cfset data = deserializeJSON(starter.json)>
+			<cfif isStruct(data) and isArray(data.sections ?: "") and arrayLen(data.sections) and (data.sections[1].kind ?: "") eq "layeredHero" and isArray(data.sections[1].layers ?: "")>
+				<cfset layers = []>
+				<cfloop array="#data.sections[1].layers#" index="layer">
+					<cfif isStruct(layer) and len(layer.src ?: "")><cfset arrayAppend(layers, { "src": layer.src, "depth": val(layer.depth ?: 0) })></cfif>
+				</cfloop>
+				<cfif arrayLen(layers)><cfset arrayAppend(result, { "key": starter.key, "name": data.name ?: starter.key, "layers": layers })></cfif>
+			</cfif>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+	</cfloop>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="getPostHeroParallax" access="public" returntype="struct" output="false"
+		hint="The post's parallax hero for the Hero editor: { active, starter, heading, line, align, textPosition, otherScene }. otherScene is the alias of a scene the post shows that the panel didn't make (set in the Scene window), or empty.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfset var result = { "active": false, "starter": "", "heading": "", "line": "", "align": "center", "textPosition": "", "otherScene": "" }>
+	<cfset var alias = getPostScene(arguments.postId)>
+	<cfset var data = "">
+	<cfset var section = "">
+	<cfif not len(alias)><cfreturn result></cfif>
+	<cfif alias neq "post-hero-" & arguments.postId>
+		<cfset result.otherScene = alias>
+		<cfreturn result>
+	</cfif>
+	<cftry>
+		<cfset data = deserializeJSON(getSceneJson(alias, false))>
+		<cfset section = data.sections[1]>
+		<cfset result.active = true>
+		<cfset result.starter = data.settings.heroStarter ?: "">
+		<cfset result.heading = section.heading ?: "">
+		<cfset result.line = trim(reReplace(section.html ?: "", "<[^>]*>", "", "all"))>
+		<cfset result.align = section.align ?: "center">
+		<cfset result.textPosition = section.textPosition ?: "">
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="usePostHeroParallax" access="public" returntype="string" output="false"
+		hint="Makes (or changes) the post's own parallax hero and shows it on the post: starter is a ready-made picture's key, or 'photo' for the post's own picture with a slow zoom. Returns the scene's alias.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfargument name="starter" type="string" required="true">
+	<cfargument name="heading" type="string" required="false" default="">
+	<cfargument name="line" type="string" required="false" default="">
+	<cfargument name="align" type="string" required="false" default="center">
+	<cfargument name="textPosition" type="string" required="false" default="">
+	<cfset var alias = "post-hero-" & arguments.postId>
+	<!--- The title and picture as the post page has them (the picture is in the media table, not on Post). --->
+	<cfset var posts = application.blog.getPostByPostId(arguments.postId, true, true)>
+	<cfset var post = arrayLen(posts) ? posts[1] : {}>
+	<cfset var section = {}>
+	<cfset var source = "">
+	<cfset var sourceName = "">
+	<cfset var filePath = "">
+	<cfset var scene = {}>
+	<cfif structIsEmpty(post)>
+		<cfthrow type="GalaxieBlog.Scenes" message="This post no longer exists.">
+	</cfif>
+	<cfif arguments.starter eq "photo">
+		<cfif not len(post["MediaUrl"] ?: "") or (post["MediaType"] ?: "") eq "Video">
+			<cfthrow type="GalaxieBlog.Scenes" message="This post has no picture yet. Add one above, or choose one of the ready-made pictures.">
+		</cfif>
+		<cfset section = { "kind": "photoHero", "image": post["MediaUrl"], "zoom": 1.15 }>
+		<cfset sourceName = "Photo hero">
+	<cfelse>
+		<cfif not reFind("^[A-Za-z0-9_-]{1,80}$", arguments.starter)>
+			<cfthrow type="GalaxieBlog.Scenes" message="Please choose a picture.">
+		</cfif>
+		<cfset filePath = expandPath(application.baseUrl & "/includes/postContent/scenes/" & arguments.starter & ".json")>
+		<cfif not fileExists(filePath)>
+			<cfthrow type="GalaxieBlog.Scenes" message="That picture isn't on this blog.">
+		</cfif>
+		<cfset source = deserializeJSON(fileRead(filePath, "utf-8"))>
+		<cfif not (isArray(source.sections ?: "") and arrayLen(source.sections) and (source.sections[1].kind ?: "") eq "layeredHero")>
+			<cfthrow type="GalaxieBlog.Scenes" message="That picture can't be used as a parallax hero.">
+		</cfif>
+		<cfset section = { "kind": "layeredHero", "layers": source.sections[1].layers }>
+		<cfif len(source.sections[1].shadow ?: "")><cfset section["shadow"] = source.sections[1].shadow></cfif>
+		<cfset sourceName = source.name ?: arguments.starter>
+	</cfif>
+	<cfset section["heading"] = left(trim(arguments.heading), 300)>
+	<cfif len(trim(arguments.line))><cfset section["html"] = "<p>" & encodeForHtml(left(trim(arguments.line), 300)) & "</p>"></cfif>
+	<cfset section["align"] = listFind("left,center,right", arguments.align) ? arguments.align : "center">
+	<cfif arguments.textPosition eq "bottom"><cfset section["textPosition"] = "bottom"></cfif>
+	<cfset scene = {
+		"name": left(sourceName & " (" & (post["Title"] ?: "") & ")", 120),
+		"pageColour": "auto",
+		"settings": { "type": "heroParallax", "scrub": true, "heroStarter": arguments.starter },
+		"sections": [ section ]
+	}>
+	<cfset saveScene(alias, serializeJSON(scene))>
+	<cfset setPostScene(arguments.postId, alias)>
+	<cfreturn alias>
+</cffunction>
+
 <cffunction name="getFontFaceCss" access="public" returntype="string" output="false"
 		hint="The @font-face rules for the blog fonts a scene uses (its sections' headingFontId and textFontId), so a scene's fonts load wherever it is shown. Web-safe fonts need none.">
 	<cfargument name="sceneJson" type="string" required="true">

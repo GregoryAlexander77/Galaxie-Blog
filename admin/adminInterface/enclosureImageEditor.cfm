@@ -778,6 +778,192 @@
 		</td>
 	  </tr>
 	  </cfif>
+	  <!--- A parallax hero (2026-10-25, owner: "a shortcut for the users who just want a parallax hero image without having to go to the
+	  scene UI"). Pick a ready-made layered picture (or this post's own picture, with a slow zoom), a heading and where it sits; it becomes
+	  the post's own hero parallax scene (Scenes.cfc usePostHeroParallax, alias post-hero-{postId}) and replaces the hero above on the post's
+	  own page. The post's picture stays, for its cards and for sharing. ProxyController.cfc savePostHeroParallax. --->
+	  <cfsilent>
+	  <cfset parallaxScenes = application.blog.getScenes()>
+	  <cfset parallaxState = parallaxScenes.getPostHeroParallax(val(URL.optArgs))>
+	  <cfset parallaxStarters = parallaxScenes.getHeroParallaxStarters()>
+	  <cfset parallaxPost = entityLoadByPK("Post", val(URL.optArgs))>
+	  <cfset parallaxTitle = isNull(parallaxPost) ? "" : (parallaxPost.getTitle() ?: "")>
+	  <cfset parallaxPhoto = (len(mediaUrl ?: "") and (mediaType ?: "") eq "Image") ? mediaUrl : "">
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <cfif not isNull(parallaxPost)>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr valign="middle">
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
+			<style>
+				#parallaxHeroCards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+				#parallaxHeroPositions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+				@media (max-width: 760px) { #parallaxHeroCards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+				.phCard { border: 2px solid rgba(128,128,128,.35); border-radius: 8px; padding: 4px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+				.phCard:hover, .phCard:focus { border-color: rgba(128,128,128,.8); outline: none; }
+				.phCard[aria-checked="true"] { border-color: currentColor; }
+				.phName { display: block; margin-top: 4px; font-size: 12px; line-height: 1.25; }
+				.phArt { display: block; position: relative; aspect-ratio: 16 / 9; border-radius: 4px; overflow: hidden; background: #2b3540; background-size: cover; background-position: center; transition: background-size 1.6s ease-out; }
+				.phArt img { position: absolute; left: 0; top: -7%; width: 100%; height: 115%; object-fit: cover; transition: transform 1.6s ease-out; }
+				.phCard:hover .phArt.phPhoto, .phCard:focus .phArt.phPhoto { background-size: 125%; }
+				.phText { position: absolute; left: 8%; right: 8%; display: flex; flex-direction: column; gap: 3px; }
+				.phText i { display: block; width: 46%; height: 6px; border-radius: 3px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.6); }
+				.phText i + i { width: 30%; height: 4px; opacity: .85; }
+				.phText.middle { top: 50%; transform: translateY(-50%); } .phText.low { bottom: 10%; }
+				.phText.left { align-items: flex-start; } .phText.center { align-items: center; } .phText.right { align-items: flex-end; }
+				#parallaxHeroDetails { display: none; margin-top: 12px; }
+				#parallaxHeroDetails.phOn { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+				@media (max-width: 760px) { #parallaxHeroDetails.phOn { grid-template-columns: 1fr; } }
+				#parallaxHeroPreview .phArt img { height: 125%; top: -12%; transition: transform 2.4s ease-in-out; }
+				#parallaxHeroPreview .phBig { position: absolute; left: 8%; right: 8%; display: flex; flex-direction: column; color: #ffffff; text-shadow: 0 2px 8px rgba(0,0,0,.7); }
+				#parallaxHeroPreview .phBig b { font-size: 22px; }
+				#parallaxHeroPreview .phBig.middle { top: 50%; transform: translateY(-50%); } #parallaxHeroPreview .phBig.low { bottom: 10%; }
+				#parallaxHeroPreview .phBig.left { text-align: left; } #parallaxHeroPreview .phBig.center { text-align: center; } #parallaxHeroPreview .phBig.right { text-align: right; }
+				.phDimmed { opacity: .45; pointer-events: none; }
+			</style>
+			<h4 class="adminBlockHeading">Parallax hero</h4>
+			A picture in layers that move at different speeds as the reader scrolls, at the top of this post. No need for the Scene editor.
+			<div style="margin-top: 8px;">
+				<button type="button" class="k-button normalFontWeight" id="parallaxHeroOpen"><i class="fontAwesomeIcon fas fa-layer-group"></i> <span id="parallaxHeroOpenText">Choose a parallax hero...</span></button>
+				<button type="button" class="k-button normalFontWeight" id="parallaxHeroRemove" style="display: none;"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove the parallax hero</button>
+				<span id="parallaxHeroStatus" class="k-form-hint" style="margin-left: 6px;"></span>
+			</div>
+			<div id="parallaxHeroPanel" style="display: none;">
+				<div class="k-form-hint" style="margin-top: 8px;">Point at a picture to see it move, then click it.</div>
+				<div id="parallaxHeroCards" role="radiogroup" aria-label="Parallax pictures"></div>
+				<div id="parallaxHeroDetails">
+					<div>
+						<div id="parallaxHeroPreview"></div>
+						<div class="k-form-hint">The preview moves on its own here; on the post it follows the scroll.</div>
+					</div>
+					<div>
+						<label for="parallaxHeroHeading">Heading</label>
+						<input type="text" id="parallaxHeroHeading" class="k-textbox" maxlength="300" style="width: 95%;">
+						<label for="parallaxHeroLine" style="display: block; margin-top: 6px;">A line under it (optional)</label>
+						<input type="text" id="parallaxHeroLine" class="k-textbox" maxlength="300" style="width: 95%;">
+						<label style="display: block; margin-top: 6px;">Where the heading sits</label>
+						<div id="parallaxHeroPositions" role="radiogroup" aria-label="Where the heading sits"></div>
+						<div style="margin-top: 10px;">
+							<button type="button" class="k-button k-primary" id="parallaxHeroSave">Use this parallax hero</button>
+							<button type="button" class="k-button" id="parallaxHeroCancel">Cancel</button>
+						</div>
+						<div class="k-form-hint" style="margin-top: 6px;">Saved as this post's own copy, so its heading is its own. For colors, more sections or your own layers, open it with the Scene button (the layered icon) and Change it in the Scene editor.</div>
+					</div>
+				</div>
+			</div>
+			<script>
+				(function () {
+					var BASE = "<cfoutput>#application.baseUrl#</cfoutput>";
+					var postId = <cfoutput>#val(URL.optArgs)#</cfoutput>;
+					var state = <cfoutput>#replace(serializeJSON(parallaxState), "</", "<\/", "all")#</cfoutput>;
+					var starters = <cfoutput>#replace(serializeJSON(parallaxStarters), "</", "<\/", "all")#</cfoutput>;
+					var photo = <cfoutput>#serializeJSON(parallaxPhoto)#</cfoutput>;
+					var postTitle = <cfoutput>#replace(serializeJSON(parallaxTitle), "</", "<\/", "all")#</cfoutput>;
+					var POSITIONS = [["center", "", "Middle, center"], ["left", "", "Middle, left"], ["right", "", "Middle, right"], ["left", "bottom", "Low, left (magazine)"], ["center", "bottom", "Low, center"], ["right", "bottom", "Low, right"]];
+					var chosen = null, align = state.align || "center", low = state.textPosition === "bottom", timer = null;
+					function withBase(v) { return String(v || "").split("{baseUrl}").join(BASE); }
+					function starterByKey(k) { for (var i = 0; i < starters.length; i++) { if (starters[i].key === k) { return starters[i]; } } return null; }
+					function art(pick) {
+						var a = $('<span class="phArt" aria-hidden="true"></span>');
+						if (pick === "photo") { a.addClass("phPhoto").css("background-image", 'url("' + String(photo).replace(/"/g, "") + '")'); }
+						else if (pick) { $.each(pick.layers, function (i, l) { a.append($('<img alt="">').attr({ src: withBase(l.src), "data-depth": l.depth })); }); }
+						return a;
+					}
+					function move(box, amount) {
+						box.find("img").each(function () { this.style.transform = "translateY(" + (-amount * (Number(this.getAttribute("data-depth")) || 0) / 700) + "%)"; });
+						if (box.hasClass("phPhoto")) { box.css("background-size", amount ? "125%" : "cover"); }
+					}
+					function showStatus() {
+						$("#parallaxHeroOpenText").text(state.active ? "Change the parallax hero..." : "Choose a parallax hero...");
+						$("#parallaxHeroRemove").toggle(!!state.active);
+						var styleRow = $("#enclosureHeroStyleRow");
+						styleRow.toggleClass("phDimmed", !!state.active);
+						$("#enclosureHeroStyleParallaxNote").text(state.active ? "This post's hero is a parallax hero, which has its own look." : "");
+						if (state.otherScene && !state.active) { $("#parallaxHeroStatus").text("This post shows the scene \"" + state.otherScene + "\" (the Scene button). Choosing a parallax hero replaces it."); }
+					}
+					function drawCards() {
+						var box = $("#parallaxHeroCards").empty();
+						var picks = (photo ? [{ key: "photo", name: "This post's picture (gentle zoom)" }] : []).concat(starters);
+						$.each(picks, function (i, p) {
+							var card = $('<button type="button" class="phCard" role="radio"></button>').attr("aria-checked", state.active && state.starter === p.key ? "true" : "false");
+							var a = art(p.key === "photo" ? "photo" : p);
+							card.append(a, $('<span class="phName"></span>').text(p.name));
+							card.on("mouseenter focus", function () { move(a, 14); }).on("mouseleave blur", function () { move(a, 0); });
+							card.on("click", function () { box.find(".phCard").attr("aria-checked", "false"); card.attr("aria-checked", "true"); choose(p.key); });
+							box.append(card);
+						});
+					}
+					function drawPreview() {
+						var pick = chosen === "photo" ? "photo" : starterByKey(chosen);
+						var a = art(pick).css("max-width", "100%");
+						var where = (low ? "low " : "middle ") + align;
+						var text = $('<span class="phBig"></span>').addClass(where).append($("<b></b>").text($("#parallaxHeroHeading").val()), $("<span></span>").text($("#parallaxHeroLine").val()));
+						$("#parallaxHeroPreview").empty().append(a.append(text));
+						clearInterval(timer);
+						var up = true, go = function () { move(a, up ? 22 : 0); up = !up; };
+						setTimeout(go, 50); timer = setInterval(go, 2600);
+						var posBox = $("#parallaxHeroPositions").empty();
+						$.each(POSITIONS, function (i, pos) {
+							var c = $('<button type="button" class="phCard" role="radio"></button>').attr("aria-checked", pos[0] === align && (pos[1] === "bottom") === low ? "true" : "false");
+							c.append(art(pick).append('<span class="phText ' + (pos[1] ? "low" : "middle") + ' ' + pos[0] + '"><i></i><i></i></span>'), $('<span class="phName"></span>').text(pos[2]));
+							c.on("click", function () { align = pos[0]; low = pos[1] === "bottom"; drawPreview(); });
+							posBox.append(c);
+						});
+					}
+					function choose(key) {
+						chosen = key;
+						if (!$("#parallaxHeroHeading").val()) { $("#parallaxHeroHeading").val(state.heading || postTitle); }
+						$("#parallaxHeroDetails").addClass("phOn");
+						drawPreview();
+					}
+					function save(remove) {
+						$("#parallaxHeroStatus").text(remove ? "Removing..." : "Saving...");
+						jQuery.ajax({
+							type: "post",
+							url: BASE + "/common/cfc/ProxyController.cfc?method=savePostHeroParallax",
+							data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId, starter: chosen || "", heading: $.trim($("#parallaxHeroHeading").val()),
+								line: $.trim($("#parallaxHeroLine").val()), align: align, textPosition: low ? "bottom" : "", remove: remove ? "true" : "false" },
+							dataType: "json",
+							success: function (response) {
+								if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+								if (response && response.success) {
+									state.active = !remove; state.otherScene = "";
+									if (!remove) { state.starter = chosen; state.heading = $.trim($("#parallaxHeroHeading").val()); state.align = align; state.textPosition = low ? "bottom" : ""; }
+									$("#parallaxHeroStatus").text(remove ? "Removed. The post shows its hero above again." : "Saved. The post shows it now.");
+									$("#parallaxHeroPanel").hide(); clearInterval(timer);
+									showStatus();
+									if (typeof galaxieHeroSummaryRefresh === "function") { galaxieHeroSummaryRefresh(); }
+								} else {
+									$("#parallaxHeroStatus").text("");
+									$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The parallax hero could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+								}
+							},
+							error: function (jqXHR, textStatus, error) {
+								$("#parallaxHeroStatus").text("");
+								if (jqXHR.status === 403) { createLoginWindow(); } else { $.when(kendo.ui.ExtAlertDialog.show({ title: "Error while saving", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); }
+							}
+						});
+					}
+					$("#parallaxHeroOpen").on("click", function () {
+						$("#parallaxHeroPanel").toggle();
+						if ($("#parallaxHeroPanel").is(":visible")) {
+							drawCards();
+							$("#parallaxHeroLine").val(state.line || "");
+							if (state.active && state.starter) { $("#parallaxHeroHeading").val(state.heading || ""); choose(state.starter); }
+						} else { clearInterval(timer); }
+					});
+					$("#parallaxHeroCancel").on("click", function () { $("#parallaxHeroPanel").hide(); clearInterval(timer); });
+					$("#parallaxHeroSave").on("click", function () { if (chosen) { save(false); } });
+					$("#parallaxHeroRemove").on("click", function () { save(true); });
+					$("#parallaxHeroHeading, #parallaxHeroLine").on("input", function () { if (chosen) { drawPreview(); } });
+					$(function () { showStatus(); });
+				})();
+			</script>
+		</td>
+	  </tr>
+	  </cfif>
 	  <!--- The hero's style (2026-10-24, owner): it was in the Hero text window, but it is the whole hero's style (its height, whether it
 	  holds while the post scrolls, where the text sits), not only its text, so it is chosen here, with the picture. The cards are
 	  heroStyleCards.cfm, as in Blog Options; a click saves it (ProxyController.cfc savePostHeroStyle). --->
@@ -789,9 +975,9 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	  <tr valign="middle">
+	  <tr valign="middle" id="enclosureHeroStyleRow">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
-			<h4 class="adminBlockHeading">Hero style</h4>
+			<h4 class="adminBlockHeading">Hero style <span id="enclosureHeroStyleParallaxNote" class="k-form-hint" style="font-weight: normal;"></span></h4>
 			How the hero shows on this post's own page. Point at a card to see it move; a click saves it. Carousels, maps and videos always show as they are.
 			<span id="enclosureHeroStyleSaved" class="k-form-hint" style="margin-left: 6px;"></span>
 			<cfset heroCardsId = "enclosureHeroStyle">
