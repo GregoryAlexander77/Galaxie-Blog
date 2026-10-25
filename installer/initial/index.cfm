@@ -15,9 +15,9 @@
 	<cfargument name="name" type="string" required="true">
 	<cfargument name="default" type="string" required="false" default="">
 	<cfset var fromIni = "">
-	<cfif structKeyExists(session, arguments.name) and isSimpleValue(session[arguments.name]) and len(session[arguments.name])><cfreturn session[arguments.name]></cfif>
+	<cfif structKeyExists(session, arguments.name) and isSimpleValue(session[arguments.name]) and len(trim(session[arguments.name]))><cfreturn trim(session[arguments.name])></cfif>
 	<cftry>
-		<cfset fromIni = getProfileString(application.iniFile, "default", arguments.name)>
+		<cfset fromIni = trim(getProfileString(application.iniFile, "default", arguments.name))>
 		<cfif len(fromIni)><cfreturn fromIni></cfif>
 		<cfcatch type="any"></cfcatch>
 	</cftry>

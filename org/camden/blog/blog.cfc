@@ -1298,7 +1298,8 @@
 		<cfinvoke component="#application.blog#" method="saveHttpReferrer" returnVariable="httpReferrerId">
 			<cfinvokeargument name="HttpReferrer" value="#CGI.Http_Referer#"><!--- This is mispelled and adopted as a standard --->
 		</cfinvoke>
-		<!--- Load the referrer entity if it was passed in. --->
+		<!--- Load the referrer entity if it was passed in. val(): an empty id is no referrer, never an error. --->
+		<cfset httpReferrerId = val(httpReferrerId)>
 		<cfif httpReferrerId>
 			<cfset HttpReferrerDbObj = entityLoadByPk("HttpReferrer", httpReferrerId)>
 		</cfif>
@@ -2717,9 +2718,9 @@
 		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
 		<cfset var BlogDbObj = "">
 		<cfset var HttpReferrerObj = "">
-		<cfset var httpReferrerId = "">
-		
-		<cfparam name="httpReferrerId" default="0">
+		<!--- 0, not "" (2026-10-25, found in the 5.0 install test): the cfparam that used to follow never applied to a var that already
+		existed, so a visit with no referrer got "", saveVisitorLog's cfif failed on it, and no direct visit was saved from 10-20. --->
+		<cfset var httpReferrerId = 0>
 			
 		<!--- 2026-10-20: this saved a referrer only when it was already saved, and dropped every new one, so no referrer was ever
 		recorded (the admin home's "Where they came from" showed everyone as Straight in). Now a known referrer returns its id and a new
@@ -14136,7 +14137,26 @@
 			hint="Returns the user information for the blog owner">
 		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
 		<cfset var blogOwner = "">
-		<cfset blogOwner = this.getUser(userName=application.blogOwner)>
+		<cfset var ownerName = trim(application.blogOwner ?: "")>
+		<!--- No owner kept yet (a new blog starts before the installer writes the user name): read it now (2026-10-25). --->
+		<cfif not len(ownerName) and structKeyExists(application, "blogIniPath")>
+			<cftry>
+				<cfset ownerName = trim(getProfileString(application.blogIniPath, "default", "username"))>
+				<cfif len(ownerName)><cfset application.blogOwner = ownerName></cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+		</cfif>
+		<cfif len(ownerName)>
+			<cfset blogOwner = this.getUser(userName=ownerName)>
+		</cfif>
+		<!--- Nobody by that name: the first user is the owner (the installer makes the first account). --->
+		<cfif not isArray(blogOwner) or not arrayLen(blogOwner)>
+			<cfset blogOwner = this.getUser()>
+			<cfif arrayLen(blogOwner) gt 1>
+				<cfset arraySort(blogOwner, function (a, b) { return val(a["UserId"]) - val(b["UserId"]); })>
+				<cfset blogOwner = [ blogOwner[1] ]>
+			</cfif>
+		</cfif>
 		<cfreturn blogOwner>
 	</cffunction>
 				

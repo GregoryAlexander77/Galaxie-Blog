@@ -1252,12 +1252,14 @@
 		<cfargument name="reset" type="boolean" default="false" required="false" hint="Set to true to read reset this var.">
 		
 		<!--- Return the current application.DSN if it exists. --->
-		<cfif isDefined("application.blogOwner") and len(application.blogOwner) and not arguments.reset>
-			<cfset owner = application.blogOwner>
+		<!--- Trimmed (5.0 install test, 2026-10-25): the shipped blog.ini.cfm had "username= ", so a new blog kept a one-space owner
+		before the installer wrote the real one, and the Site Wizard couldn't find the owner. --->
+		<cfif isDefined("application.blogOwner") and len(trim(application.blogOwner)) and not arguments.reset>
+			<cfset owner = trim(application.blogOwner)>
 		<cfelse>
 			<cftry>
 				<!--- Get the username from the ini file --->
-				<cfset owner = getProfileString(getBlogIniPath(), "default", "username")>
+				<cfset owner = trim(getProfileString(getBlogIniPath(), "default", "username"))>
 				<cfcatch type="any">
 					<!--- This should only happen when initially installing the blog. --->
 					<cfset owner = ""/>
