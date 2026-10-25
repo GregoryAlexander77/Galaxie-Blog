@@ -45,6 +45,9 @@ takes the same options and events. --->
 </cfloop>
 <cfset fontFaces = fontFaces & rendererObj.getOverlayFontFaceStyle("Montserrat Bold")>
 <cfset markFontFile = fontFiles["Montserrat Bold"] ?: "">
+<!--- The first name-logo style follows the picked theme's own header font (2026-10-25, owner); its file comes from here. --->
+<cfset allFontFiles = {}>
+<cfloop collection="#fontFiles#" item="f"><cfset allFontFiles[f] = fontFiles[f]></cfloop>
 
 <!--- The theme cards (2026-10-20): the same small pictures of a page as the Themes window, from ThemeEditor.cfc getThemeCards(). --->
 <cfset setupThemeCards = application.blog.getThemeEditor().getThemeCards(true)>
@@ -388,6 +391,7 @@ $(function () {
 	#serializeJSON(setupThemeCards.themes)#.forEach(function (c) { themeCards[c.ThemeAlias] = c; });
 	var fonts = [#arrayToList(fontParts, ",")#];
 	var markFontFile = #serializeJSON(markFontFile)#;
+	var allFontFiles = #serializeJSON(allFontFiles)#;
 	var fontFaceHtml = #serializeJSON(fontFaces)#;
 	var zones = #serializeJSON(zones)#;
 	var saved = {
@@ -427,6 +431,15 @@ $(function () {
 		return !!c && (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) > 150;
 	}
 	function currentTheme() { return themes.filter(function (t) { return t.alias === state.theme; })[0] || themes[0]; }
+	// "Your theme's font" (2026-10-25, owner): the first name-logo style is the picked theme's header font (its BlogNameFont), and
+	// the one picked to start with, so a new site's logo matches its theme. Kept up to date whenever the theme changes.
+	fonts.unshift({ font: "Playfair Display Bold", label: "Your theme's font", css: "", upper: false, spacing: 0, file: "", fromTheme: true });
+	function themeFont() {
+		var card = themeCards[state.theme] || {}, name = card.BlogNameFont || "Playfair Display Bold";
+		fonts[0].font = name; fonts[0].file = allFontFiles[name] || "";
+		fonts[0].label = "Your theme's font (" + name.replace(/\s+(Regular|Bold|Black|Medium|Light|SemiBold|ExtraBold)$/i, "") + ")";
+		return fonts[0];
+	}
 	function lightHeader(t) { return /white|ice/i.test(t.header); }
 	function initial() { return esc((state.name || "?").trim().charAt(0).toUpperCase()); }
 	// A mark's own SVG markup (inner shapes, in a 48 x 48 box), with the letter or cut-out in a shade that shows on its color.
@@ -445,6 +458,7 @@ $(function () {
 			return '<span style="display:inline-flex;align-items:center;gap:' + size * .35 + 'px;color:' + state.sampleColour + '">' + markHtml(marks[state.sample], size * 1.5)
 				+ '<span style="font-family:\'Montserrat Bold\',sans-serif;font-size:' + size + 'px;line-height:1">' + esc(state.name) + '</span></span>';
 		}
+		themeFont();
 		var f = fonts[state.font];
 		return '<span style="font-family:\'' + f.font + '\',serif;font-size:' + size + 'px;line-height:1.1;color:' + state.colour + ';' + f.css + '">' + esc(state.name) + '</span>';
 	}
@@ -611,6 +625,7 @@ $(function () {
 		});
 	}
 	function drawLogos() {
+		themeFont();
 		var headerCss = { "background-image": 'url("' + currentTheme().header + '")' };
 		var nameGrid = $("#nameGrid").empty();
 		fonts.forEach(function (f, i) {
@@ -721,6 +736,7 @@ $(function () {
 				};
 			});
 		}
+		themeFont();
 		var f = fonts[state.font], text = f.upper ? name.toUpperCase() : name, fsize = 44;
 		return document.fonts.load(fsize + 'px "' + f.font + '"').then(function () { return fontFace(f.font, f.file); }).then(function (face) {
 			var w = measure(text, f.font, fsize, f.spacing) + 16, h = 80;
