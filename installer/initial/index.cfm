@@ -173,7 +173,8 @@
 	</div>
 
 	<div id="stepInstall">
-		<div class="block k-content"><p class="lead">Ready. Here's what will be installed; go back to change anything.</p></div>
+		<div class="block k-content"><p class="lead">Ready. Here's what will be installed; go back to change anything.</p>
+			<p>All of this can be changed later too: the site's name and address in Blog Settings, and your account in User Profile.</p></div>
 		<div class="block k-alt">
 			<h4>Summary</h4>
 			<ul class="summary">

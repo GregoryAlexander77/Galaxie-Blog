@@ -373,7 +373,8 @@ takes the same options and events. --->
 	<div id="stepDone">
 		<div class="block k-content"><p class="lead">That's it. Here is what you set up; change anything with its link.</p></div>
 		<div class="block k-alt"><ul class="summary" id="doneSummary"></ul></div>
-		<div class="block k-content"><p class="hint">Press Done to finish and open your site.</p></div>
+		<div class="block k-content"><p>Nothing here is final. Come back to the Site Wizard any time from the administration page (Settings, then Site Wizard) and change any step, or change each part in its own place: your theme and logo in Look and Layout, your photo and words in User Profile.</p>
+			<p class="hint">Press Done to finish and open your site.</p></div>
 	</div>
 </div>
 

@@ -45,10 +45,20 @@
 												items.each(function() { if (this.getBoundingClientRect().top > top + 5) { wrapped = true; } });
 												return wrapped;
 											}
+											<!--- Still too wide beside a wide logo, such as the Site Wizard's name logo (2026-10-25, owner): the logo stops
+											spanning both rows of the desktop header, so the menu row runs the full width under it rather than one icon
+											wrapping. Only the header under the title; the bar fixed to the top when scrolling has no logo row. --->
+											function menuBelowLogo(below) {
+												var logo = document.getElementById("logo"), holder = document.getElementById("topMenuContainer");
+												if (!logo || !holder || logo.parentNode === holder.parentNode) { return; }
+												logo.rowSpan = below ? 1 : 2;
+												holder.colSpan = below ? 2 : 1;
+											}
 											$("#topMenu, #fixedNavMenu").each(function() {
-												var menu = $(this);
+												var menu = $(this), isTop = this.id === "topMenu";
 												menu.find("> li.galaxieMenuSplit, > li.galaxieAdminMenuItem").show();
 												menu.find("> li.galaxieMenuCombined").hide();
+												if (isTop) { menuBelowLogo(false); }
 												if (!wraps(menu)) { return; }
 												if (menu.find("> li.galaxieMenuCombined").length) {
 													menu.find("> li.galaxieMenuSplit").hide();
@@ -57,6 +67,7 @@
 												if (menu.find("> li.galaxieMemberMenuItem").length) {
 													menu.find("> li.galaxieAdminMenuItem").hide();
 												}
+												if (isTop && wraps(menu)) { menuBelowLogo(true); }
 											});
 										};
 										var galaxieCompactTimer = null;
