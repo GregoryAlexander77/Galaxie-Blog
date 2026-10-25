@@ -252,10 +252,38 @@
 <cffunction name="decodeDataUrl" access="private" returntype="struct" output="false" hint="A base64 data URL as { ext, bytes }; ext is empty for a type that isn't a picture.">
 	<cfargument name="dataUrl" type="string" required="true">
 	<cfargument name="what" type="string" required="false" default="The logo">
-	<cfset var m = reFind("^data:(image/(svg\+xml|png|gif|jpeg|webp));base64,(.+)$", trim(arguments.dataUrl), 1, true)>
-	<cfset var types = { "svg+xml" = "svg", "png" = "png", "gif" = "gif", "jpeg" = "jpg", "webp" = "webp" }>
-	<cfif not m.pos[1]><cfset fail(arguments.what & " didn't arrive as a picture.")></cfif>
-	<cfreturn { ext = types[mid(trim(arguments.dataUrl), m.pos[3], m.len[3])], bytes = binaryDecode(mid(trim(arguments.dataUrl), m.pos[4], m.len[4]), "base64") }>
+	<!--- Read without one pattern over the whole picture, and typed by the picture's own first bytes rather than the browser's label
+	(gregorysblog.org 5.0 install, 2026-10-25: a JPG photo "didn't arrive as a picture" - some browsers label a JPG image/pjpeg or
+	image/jpg, and a + in the data can arrive as a space). --->
+	<cfset var value = trim(arguments.dataUrl)>
+	<cfset var comma = find(",", value)>
+	<cfset var header = comma ? lCase(left(value, comma - 1)) : "">
+	<cfset var bytes = "">
+	<cfset var head = "">
+	<cfset var ext = "">
+	<cfif left(header, 5) neq "data:" or not findNoCase(";base64", header)>
+		<cfset fail(arguments.what & " didn't arrive as a picture (it began: " & encodeForHtml(left(value, 30)) & ").")>
+	</cfif>
+	<cftry>
+		<cfset bytes = binaryDecode(reReplace(replace(mid(value, comma + 1, len(value)), " ", "+", "all"), "[\r\n\t]", "", "all"), "base64")>
+		<cfcatch type="any"><cfset fail(arguments.what & " arrived damaged. Please choose it again.")></cfcatch>
+	</cftry>
+	<!--- The type from the first bytes: PNG, JPG, GIF, WebP; SVG is text, so it is taken from the label. --->
+	<cfif arrayLen(bytes) gte 12>
+		<cfset head = binaryEncode(createObject("java", "java.util.Arrays").copyOfRange(bytes, 0, 12), "hex")>
+	</cfif>
+	<cfif left(head, 16) eq "89504E470D0A1A0A">
+		<cfset ext = "png">
+	<cfelseif left(head, 6) eq "FFD8FF">
+		<cfset ext = "jpg">
+	<cfelseif left(head, 8) eq "47494638">
+		<cfset ext = "gif">
+	<cfelseif left(head, 8) eq "52494646" and mid(head, 17, 8) eq "57454250">
+		<cfset ext = "webp">
+	<cfelseif findNoCase("image/svg+xml", header)>
+		<cfset ext = "svg">
+	</cfif>
+	<cfreturn { ext = ext, bytes = bytes }>
 </cffunction>
 
 <cffunction name="checkSvg" access="private" returntype="void" output="false" hint="An SVG logo is served from the blog's own address, so it must not carry anything that runs: no scripts, event handlers, javascript: links or embedded HTML.">

@@ -754,12 +754,39 @@ $(function () {
 	$("#aboutFacebook").val(saved.facebookUrl); $("#aboutInstagram").val(saved.instagramUrl); $("#aboutLinkedIn").val(saved.linkedInUrl); $("#aboutTwitter").val(saved.twitterUrl);
 	$("#stepAbout").on("input", "input, textarea", function () { dirty.about = true; });
 	$("#aboutPhotoPreview").attr("src", saved.profilePicture || baseUrl + "/images/defaultAvatar.jpg");
+	// The photo is made 600 pixels wide here, before it is sent (gregorysblog.org 5.0 install, 2026-10-25: a large photo didn't
+	// arrive whole - some servers limit how much a form can send). The server keeps photos at 600 pixels anyway. A GIF is sent as it
+	// is, so an animated one stays animated.
+	function shrinkPhoto(file) {
+		return new Promise(function (resolve, reject) {
+			var reader = new FileReader();
+			reader.onerror = function () { reject("That photo couldn't be read."); };
+			reader.onload = function () {
+				if (file.type === "image/gif") { resolve(reader.result); return; }
+				var img = new Image();
+				img.onerror = function () { reject("That file doesn't look like a picture. Please choose a JPG, PNG, GIF or WebP photo."); };
+				img.onload = function () {
+					var scale = Math.min(1, 600 / Math.max(img.naturalWidth, 1));
+					var canvas = document.createElement("canvas");
+					canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+					canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+					var ctx = canvas.getContext("2d");
+					// White under a transparent PNG, since the photo is saved as a JPG.
+					ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+					ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+					resolve(canvas.toDataURL("image/jpeg", 0.88));
+				};
+				img.src = reader.result;
+			};
+			reader.readAsDataURL(file);
+		});
+	}
 	$("#aboutPhoto").on("change", function () {
 		var file = this.files && this.files[0]; if (!file) { return; }
-		if (file.size > 8 * 1024 * 1024) { kendo.alert("That photo is larger than 8 MB. Please choose a smaller one."); return; }
-		var reader = new FileReader();
-		reader.onload = function () { state.photo = reader.result; dirty.about = true; $("#aboutPhotoPreview").attr("src", reader.result); };
-		reader.readAsDataURL(file);
+		if (file.size > 20 * 1024 * 1024) { kendo.alert("That photo is larger than 20 MB. Please choose a smaller one."); return; }
+		if (file.type === "image/gif" && file.size > 2 * 1024 * 1024) { kendo.alert("A GIF photo can be 2 MB at most. Please choose a smaller one, or a JPG or PNG."); return; }
+		shrinkPhoto(file).then(function (dataUrl) { state.photo = dataUrl; dirty.about = true; $("#aboutPhotoPreview").attr("src", dataUrl); },
+			function (message) { kendo.alert(message); });
 	});
 
 	// ---------- screen 6: home page, post pictures, footer (after Starter content since 2026-10-20) ----------
