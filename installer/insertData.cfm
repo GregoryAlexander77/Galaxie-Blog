@@ -85,7 +85,9 @@ Populate the blog table.
 			<!--- Make the name unique. --->
 			<cfset BlogDbObj.setBlogName('GalaxieBlog3_' & BlogDbObj.getBlogId())>
 			<cfset BlogDbObj.setBlogTitle(thisBlogTitle)>
-			<cfset BlogDbObj.setBlogDescription(blogDescription)>
+			<!--- Empty until the owner writes one (5.0 install test, 2026-10-25): the seed's "Your blog description" went out as the
+			search engines' description of every new blog. --->
+			<cfset BlogDbObj.setBlogDescription('')>
 			<cfset BlogDbObj.setBlogUrl(thisBlogUrl)>
 			<!--- This is an optional field. --->
 			<cfset BlogDbObj.setBlogMetaKeywords('')>
@@ -822,8 +824,9 @@ Populate the Theme and Theme Setting tables at the same time. This one is tricky
 			<cfset ThemeDbObj.setThemeSettingRef(ThemeSettingDbObj)>
 			<cfset ThemeDbObj.setThemeAlias(themeAlias)>
 			<cfset ThemeDbObj.setThemeGenre(themeGenre)>
-			<!--- Always set the selected theme to false. --->
-			<cfset ThemeDbObj.setSelectedTheme(0)>
+			<!--- A new blog starts on Abstract Blue (owner, 2026-10-25): with no theme chosen, the site showed one theme and the Site
+			Wizard highlighted another. --->
+			<cfset ThemeDbObj.setSelectedTheme(themeName eq "Abstract Blue" ? 1 : 0)>
 			<!--- And set UseTheme to true --->
 			<cfset ThemeDbObj.setUseTheme(1)>
 			<cfset ThemeDbObj.setThemeName(themeName)>

@@ -16,11 +16,12 @@ Set before including:
 <cfparam name="heroCardsSmall" default="false">
 <cfset heroCardStyles = [
 	{ key: "classic", name: "Classic", what: "The picture sits inside the post, under the title. Quiet and simple, good for posts that are mostly text." },
-	{ key: "held", name: "Full screen, held", what: "The picture fills the screen and stays put while the post slides up over it." },
+	{ key: "held", name: "Tall, held", what: "A tall picture that stays put while the post slides up over it. Edge to edge on phones." },
 	{ key: "band", name: "Tall band", what: "A tall picture across the top with the title on it. It scrolls away with the page." },
-	{ key: "magazine", name: "Magazine", what: "Full screen like a magazine cover, with a large heading low on the left." }
+	{ key: "magazine", name: "Magazine", what: "Tall, like a magazine cover, with a large heading low on the left. Edge to edge on phones." }
 ]>
-<cfset heroCardNames = { "classic": "Classic", "held": "Full screen, held", "band": "Tall band", "magazine": "Magazine" }>
+<!--- Not "Full screen" (2026-10-25): on a computer a post's hero stays in the post's width (design B, 10-22). --->
+<cfset heroCardNames = { "classic": "Classic", "held": "Tall, held", "band": "Tall band", "magazine": "Magazine" }>
 <!--- A picture that ships with every blog (a theme background). --->
 <cfset heroCardPicture = application.baseUrl & "/images/background/themes/antelopCanyon.webp">
 <cfif not structKeyExists(request, "heroStyleCardsCss")>
@@ -55,7 +56,7 @@ Set before including:
 	/* Classic: title, then the picture inside the post; the whole page scrolls. */
 	.heroMini.classic .page { animation: heroCardScroll 6s ease-in-out infinite; padding-top: 8%; }
 	.heroMini.classic .pic { margin: 0 8% 8px; border-radius: 3px; aspect-ratio: 16 / 7; }
-	/* Full screen, held: the picture stays; the post slides up over it. */
+	/* Tall, held: the picture stays; the post slides up over it. */
 	.heroMini.held .pic { position: absolute; inset: 0; }
 	.heroMini.held .over { position: absolute; left: 0; right: 0; top: 0; height: 100%; animation: heroCardSlide 6s ease-in-out infinite; }
 	.heroMini.held .heading { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }

@@ -69,7 +69,7 @@ Be sure to write down your chosen user name and password. You will need to retai
 Galaxie Blog 5.0 is about how your blog looks and moves.
 
 - **Scenes.** Scrolling stories at the top of a post or page, animated with GreenSock: layered heroes whose layers move at different speeds, photo, animated, gradient and video heroes, text blocks, slideshows, maps, forms and products. Every blog starts with six ready-made scenes, the gallery has many more, and the Scene editor builds your own with a live preview.
-- **Post heroes.** The Enclosure is now the Hero, with four styles (Classic, Full screen and held, Tall band, Magazine), hero text with its own font, color, shadow and glow, and a parallax hero picked from ready-made pictures right in the Hero editor.
+- **Post heroes.** The Enclosure is now the Hero, with four styles (Classic, Tall and held, Tall band, Magazine), hero text with its own font, color, shadow and glow, and a parallax hero picked from ready-made pictures right in the Hero editor.
 - **The Site Wizard.** A new blog is set up in a few screens: name, theme, logo, about you, starter content and home page, with a live preview. The installer is now one page.
 - **The Shop.** Products, downloads and services, a cart and checkout through your own Stripe account, orders with shipping and refunds, and download links.
 - **A new administrative home page** with Up next and this week's visitors, a Themes window with a live preview, one-step Delete in the grids, test buttons for the mail, database and Stripe settings, and private notes.

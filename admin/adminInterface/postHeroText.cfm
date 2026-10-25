@@ -47,7 +47,7 @@ and videos have none. --->
 		<cfcase value="none">This post has no hero picture, gradient or animation yet. The text shows once it has one (or over the generated hero, when Blog Options shows one).</cfcase>
 		<cfdefaultcase>The heading and second line over this post's #heroKind eq "animation" ? "animated" : heroKind# hero. Leave the heading empty for no text.</cfdefaultcase>
 	</cfswitch>
-	How the whole hero shows (classic, full screen, tall band or magazine) is chosen in the Hero editor.
+	How the whole hero shows (classic, tall and held, tall band or magazine) is chosen in the Hero editor.
 	</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">
@@ -57,7 +57,7 @@ and videos have none. --->
 		</div>
 	</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
-	<!--- The hero's style (classic, full screen, tall band, magazine) moved to the Hero editor (2026-10-24, owner): it is the whole
+	<!--- The hero's style (classic, tall and held, tall band, magazine) moved to the Hero editor (2026-10-24, owner): it is the whole
 	hero's style, not only its text. enclosureImageEditor.cfm, saved by ProxyController.cfc savePostHeroStyle. --->
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>

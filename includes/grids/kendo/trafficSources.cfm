@@ -24,6 +24,7 @@ A period's sites are few (one row each), so the grid sorts, filters and pages th
 			sortable: true,
 			filterable: true,
 			pageable: { pageSizes: [25, 50, 100] },
+			noRecords: { template: "No visits in this period yet." },
 			resizable: true,
 			columns: [
 				{ field: "site", title: "Site", width: "<cfif session.isMobile>40<cfelse>22</cfif>%", template: function (item) { return trafficSourcesSite(item); } },

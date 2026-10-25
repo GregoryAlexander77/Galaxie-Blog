@@ -7,6 +7,7 @@
 		var wizard = $("#wizard").galaxieWizard({
 			steps: [{ title: "Your site", content: "<div>...</div>", buttons: ["previous", "next"] }, ...],   // "done" on the last
 			stepper: { linear: false },        // false: any step number can be clicked; true: only steps already reached
+			welcome: true,                     // optional: the first step is a welcome without a number (Step 1 is the second)
 			select: function (e) { ... },      // before a move the user asked for: e.step.options.index, e.preventDefault()
 			activate: function (e) { ... },    // after a step is shown: e.step.options.index
 			done: function (e) { ... }         // the Done button: e.preventDefault()
@@ -64,8 +65,9 @@
 		this.panels = [];
 		$.each(this.options.steps, function (i, step) {
 			var item = $('<li class="gw-step"></li>').appendTo(self.stepper);
-			var button = $('<button type="button"></button>').attr("aria-label", "Step " + (i + 1) + ": " + step.title)
-				.append($('<span class="gw-num"></span>').text(i + 1), $('<span class="gw-label"></span>').text(step.title))
+			var number = self.options.welcome ? i : i + 1;
+			var button = $('<button type="button"></button>').attr("aria-label", number ? "Step " + number + ": " + step.title : step.title)
+				.append($('<span class="gw-num"></span>').text(number || "\u2022"), $('<span class="gw-label"></span>').text(step.title))
 				.on("click", function () { self.go(i); });
 			item.append(button);
 			var panel = $('<div class="gw-panel" role="group"></div>').attr("aria-label", step.title).append(step.content || "").appendTo(self.content);
@@ -110,7 +112,8 @@
 		if (names.indexOf("previous") >= 0) {
 			this.buttons.append($('<button type="button" class="k-button">Previous</button>').on("click", function () { self.go(self.current - 1); }));
 		}
-		this.buttons.append($('<span class="gw-pager"></span>').text("Step " + (index + 1) + " of " + this.panels.length));
+		var counted = this.options.welcome ? this.panels.length - 1 : this.panels.length, number = this.options.welcome ? index : index + 1;
+		this.buttons.append($('<span class="gw-pager"></span>').text(number ? "Step " + number + " of " + counted : ""));
 		var right = $('<span class="gw-right"></span>').appendTo(this.buttons);
 		$.each(names, function (i, b) {
 			var name = typeof b === "string" ? b : b.name, text = typeof b === "string" ? null : b.text;

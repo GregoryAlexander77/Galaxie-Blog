@@ -778,7 +778,7 @@ $(function () {
 	$("#homeChoices").on("click", ".needsAbout", function (e) { e.preventDefault(); wizard.select(4); });
 	state.heroStyle = saved.heroStyle || "classic";
 	[["classic", "Classic (inside the post)", '<i style="left:12%;top:30%;width:76%;height:38%"></i><u style="left:12%;top:12%;width:50%"></u><u class="soft" style="left:12%;top:78%;width:70%"></u>'],
-	 ["held", "Full screen, held", '<i style="left:0;top:0;width:100%;height:100%"></i><u class="light" style="left:28%;top:46%;width:44%"></u>'],
+	 ["held", "Tall, held", '<i style="left:0;top:0;width:100%;height:100%"></i><u class="light" style="left:28%;top:46%;width:44%"></u>'],
 	 ["band", "Tall band (scrolls away)", '<i style="left:0;top:0;width:100%;height:64%"></i><u class="light" style="left:8%;top:48%;width:40%"></u><u class="soft" style="left:8%;top:80%;width:70%"></u>'],
 	 ["magazine", "Magazine (large heading, low left)", '<i style="left:0;top:0;width:100%;height:100%"></i><u class="light" style="left:8%;top:60%;width:55%;height:7px"></u><u class="light" style="left:8%;top:76%;width:40%;height:7px"></u>']
 	].forEach(function (h) {

@@ -33,6 +33,10 @@
 		firstName = "", lastName = "", displayName = "", biography = "", profilePicture = "",
 		facebookUrl = "", linkedInUrl = "", instagramUrl = "", twitterUrl = ""
 	}>
+	<!--- The installer's old stand-ins (a blog installed before 5.0) read as empty, and the email starts as the owner's (2026-10-25). --->
+	<cfif state.description eq "Your blog description"><cfset state.description = ""></cfif>
+	<cfif state.email eq "myblog@yournewblog.com"><cfset state.email = ""></cfif>
+	<cfif not len(state.email) and not isNull(owner)><cfset state.email = owner.getEmail() ?: ""></cfif>
 	<cfif not isNull(owner)>
 		<cfset state.firstName = owner.getFirstName() ?: "">
 		<cfset state.lastName = owner.getLastName() ?: "">

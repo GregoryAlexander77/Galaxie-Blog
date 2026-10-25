@@ -17,6 +17,7 @@ A period's sites are few (one row each), so the grid sorts and pages them in the
 				sorting: true,
 				paging: true,
 				pageSize: 25,
+				noDataContent: "No visits in this period yet.",
 				data: rows,
 				fields: [
 					{ name: "site", title: "Site", type: "text", width: pageWidth * (<cfif session.isMobile>40<cfelse>22</cfif> / 100), itemTemplate: function (value, item) { return trafficSourcesSite(item); } },

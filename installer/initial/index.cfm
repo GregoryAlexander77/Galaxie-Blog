@@ -236,6 +236,8 @@ $(function () {
 				buttons: i === 0 ? [{ name: "next", text: "Start" }] : i === steps.length - 1 ? ["previous"] : ["previous", "next"] };
 		}),
 		stepper: { linear: false },
+		// The welcome has no number, so the bar and "Step 1 of 4" match "Four short steps" (2026-10-25).
+		welcome: true,
 		select: function (e) {
 			// Going back is always fine. Going forward saves each step on the way, and stops at the first one that isn't right.
 			var from = wizard.activeStep().options.index, to = e.step.options.index;
