@@ -496,6 +496,8 @@
 			var text = function (value) { return $("<div/>").text(value === null || value === undefined ? "" : String(value)).html(); };
 			list.html("Loading...").show();
 			$.getJSON("<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getTrafficSources&csrfToken=<cfoutput>#csrfToken#</cfoutput>&days=0&anonymousUserId=" + anonymousUserId).done(function (result) {
+				// Adobe ColdFusion sends the answer as a JSON string inside JSON (the ProxyController pattern); Lucee sends it as is.
+				if (typeof result === "string") { try { result = JSON.parse(result); } catch (e) { result = {}; } }
 				var rows = result.rows || [];
 				if (!rows.length) { list.text("No visits in the log."); return; }
 				list.html("<p>Where this visitor came from:</p><table>" + $.map(rows, function (r) {

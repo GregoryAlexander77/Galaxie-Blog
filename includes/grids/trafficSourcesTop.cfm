@@ -46,6 +46,8 @@ createAdminInterfaceWindow(117, days); days is 7, 30, 90 or 0 (everything in the
 		trafficSourcesDays = days;
 		$("#trafficSourcesTop .trafficPeriods .k-button").each(function () { $(this).toggleClass("k-primary", String($(this).data("days")) === String(days)); });
 		$.getJSON("<cfoutput>#trafficUrl#</cfoutput>&days=" + days).done(function (result) {
+			// Adobe ColdFusion sends the answer as a JSON string inside JSON (the ProxyController pattern); Lucee sends it as is.
+			if (typeof result === "string") { try { result = JSON.parse(result); } catch (e) { result = {}; } }
 			var types = result.types || {}, total = 0;
 			$.each(trafficSourcesTypes, function (i, t) { total += Number(types[t] || 0); });
 			$("#trafficSourcesTop .trafficStack").html($.map(trafficSourcesTypes, function (t, i) {
