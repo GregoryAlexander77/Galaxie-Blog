@@ -87,11 +87,13 @@ var galaxieMembers = (function($) {
 		return (state.member.email || "").charAt(0).toUpperCase();
 	}
 
-	// Fills a round picture: the member's own picture (2026-10-17) when they've uploaded one, otherwise their initials.
+	// Fills a round picture: the member's own picture (2026-10-17) when they've uploaded one, else (2026-10-25) the profile picture
+	// of an author or administrator with their email, otherwise their initials.
+	function avatarPicture() { return state.member.picture || state.member.profilePicture || ""; }
 	function fillAvatar(circle) {
 		circle.empty();
-		if (state.member.picture) {
-			circle.removeClass("k-state-selected").append($('<img alt="">').attr("src", state.member.picture));
+		if (avatarPicture()) {
+			circle.removeClass("k-state-selected").append($('<img alt="">').attr("src", avatarPicture()));
 		} else {
 			circle.addClass("k-state-selected").text(initials());
 		}
@@ -120,13 +122,13 @@ var galaxieMembers = (function($) {
 			}
 			item.find(".galaxieMemberMenuText").text(menuText()).removeClass("galaxieMemberMenuIcon").removeAttr("aria-label title role");
 			// Signed in (owner, 2026-10-17): a small round picture instead of the name, like most sites - their initials for now.
-			if (state.signedIn && (state.member.picture || initials())) {
+			if (state.signedIn && (avatarPicture() || initials())) {
 				item.find(".galaxieMemberMenuText").empty().addClass("galaxieMemberMenuIcon")
 					.attr({ "aria-label": menuText(), title: menuText(), role: "img" })
 					.append(fillAvatar($('<span class="galaxieMemberAvatar" aria-hidden="true"></span>')));
 			}
 		});
-		if (state.signedIn && (state.member.picture || initials())) { return; }
+		if (state.signedIn && (avatarPicture() || initials())) { return; }
 		// The menu fixed to the top is hidden until the page scrolls, so the menu under the title decides for both.
 		var measured = $("#topMenu:visible");
 		if (!measured.length) { measured = $("#fixedNavMenu:visible"); }
@@ -266,10 +268,12 @@ var galaxieMembers = (function($) {
 			'<div>' +
 				'<p class="galaxieMemberMessage"></p>' +
 				'<div class="galaxieBlocks">' +
-				'<div class="galaxieBlock galaxieMemberSection galaxieMemberBookings"><h4>Your bookings</h4><div class="galaxieMemberList">Loading...</div></div>' +
+				// Bookings and sign-ups (owner, 2026-10-25): shown only to members who have ever booked or signed up for something,
+				// even when nothing is coming up now - like the orders below.
+				'<div class="galaxieBlock galaxieMemberSection galaxieMemberBookings" hidden><h4>Your bookings</h4><div class="galaxieMemberList">Loading...</div></div>' +
 				// Shop orders (2026-10-21): shown only to members who have bought something.
 				'<div class="galaxieBlock galaxieMemberSection galaxieMemberOrders" hidden><h4>Your orders</h4><div class="galaxieMemberList"></div></div>' +
-				'<div class="galaxieBlock galaxieMemberSection galaxieMemberSignups"><h4>Your sign-ups</h4><div class="galaxieMemberList">Loading...</div></div>' +
+				'<div class="galaxieBlock galaxieMemberSection galaxieMemberSignups" hidden><h4>Your sign-ups</h4><div class="galaxieMemberList">Loading...</div></div>' +
 				'<div class="galaxieBlock galaxieMemberSection galaxieMemberEmails"><h4>Emails</h4><div class="galaxieMemberList">Loading...</div></div>' +
 				'<form novalidate class="galaxieBlock galaxieMemberSection galaxieMemberDetails"><h4>Your details</h4>' +
 					'<div class="galaxieMemberField"><label>Picture</label>' +
@@ -391,8 +395,8 @@ var galaxieMembers = (function($) {
 			}
 			renderBookings(content.find(".galaxieMemberBookings .galaxieMemberList"), response.bookings || [], content, dialog);
 			renderOrders(content.find(".galaxieMemberOrders"), response.orders || []);
-			stripeBlocks(content);
 			renderSignups(content.find(".galaxieMemberSignups .galaxieMemberList"), response.signups || []);
+			stripeBlocks(content);
 			renderEmails(content.find(".galaxieMemberEmails .galaxieMemberList"), response.subscriptions || {}, content, dialog);
 			dialog.center();
 		}).fail(function() {
@@ -404,7 +408,8 @@ var galaxieMembers = (function($) {
 		box.empty();
 		var upcoming = $.grep(bookings, function(b) { return b.upcoming && b.status !== "cancelled"; });
 		var past = $.grep(bookings, function(b) { return !(b.upcoming && b.status !== "cancelled"); });
-		if (!bookings.length) { box.text("You haven't booked anything yet."); return; }
+		box.closest(".galaxieMemberBookings").prop("hidden", !bookings.length);
+		if (!bookings.length) { return; }
 		if (!upcoming.length) { box.append($('<div class="galaxieMemberItem"></div>').text("Nothing coming up.")); }
 		$.each(upcoming, function(i, b) { box.append(bookingItem(b, content, dialog)); });
 		if (past.length) {
@@ -547,7 +552,8 @@ var galaxieMembers = (function($) {
 
 	function renderSignups(box, signups) {
 		box.empty();
-		if (!signups.length) { box.text("You haven't signed up for anything yet."); return; }
+		box.closest(".galaxieMemberSignups").prop("hidden", !signups.length);
+		if (!signups.length) { return; }
 		$.each(signups, function(i, s) {
 			var item = $('<div class="galaxieMemberItem"></div>');
 			item.append($("<strong></strong>").text(s.formTitle));

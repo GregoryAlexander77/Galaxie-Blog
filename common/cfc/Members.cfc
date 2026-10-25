@@ -935,6 +935,25 @@
 	</cftry>
 </cffunction>
 
+<cffunction name="getProfilePicture" access="public" returntype="string" output="false"
+		hint="The profile picture of the blog user (an author or administrator, Users.ProfilePicture) with the member's email, or ''. Used in the menu circle and My account when the member hasn't uploaded their own picture (owner, 2026-10-25).">
+	<cfargument name="memberId" type="numeric" required="true">
+	<cfset var rows = "">
+	<cfif arguments.memberId lte 0>
+		<cfreturn "">
+	</cfif>
+	<cftry>
+		<cfset rows = queryExecute("
+			SELECT u.ProfilePicture
+			FROM BlogMember m INNER JOIN Users u ON LOWER(u.Email) = LOWER(m.Email) AND u.BlogRef = m.BlogRef
+			WHERE m.MemberId = :memberId AND m.BlogRef = :blogId AND u.ProfilePicture IS NOT NULL AND u.ProfilePicture <> ''",
+			{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" } })>
+		<cfreturn rows.recordCount ? trim(rows.ProfilePicture) : "">
+		<!--- A picture must never break a page. --->
+		<cfcatch type="any"><cfreturn ""></cfcatch>
+	</cftry>
+</cffunction>
+
 <cffunction name="setPicture" access="public" returntype="void" output="false" hint="Saves a member's new picture, removing the old one and its file.">
 	<cfargument name="memberId" type="numeric" required="true">
 	<cfargument name="url" type="string" required="true">
@@ -1031,15 +1050,17 @@
 		<cfset ensureVisitorTable()>
 		<cfset ensurePictureTable()>
 		<cfset rows = queryExecute("
-			SELECT v.AnonymousUserRef, m.MemberId, m.Name, m.Email, p.Picture
+			SELECT v.AnonymousUserRef, m.MemberId, m.Name, m.Email, p.Picture, u.ProfilePicture
 			FROM MemberVisitor v
 				INNER JOIN BlogMember m ON m.MemberId = v.MemberRef
 				LEFT JOIN MemberPicture p ON p.MemberRef = m.MemberId AND p.BlogRef = v.BlogRef
+				LEFT JOIN Users u ON LOWER(u.Email) = LOWER(m.Email) AND u.BlogRef = v.BlogRef
 			WHERE v.BlogRef = :blogId AND v.AnonymousUserRef IN (:ids)",
 			{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, ids = { value = structKeyList(found), cfsqltype = "cf_sql_integer", list = true } })>
 		<cfset found = {}>
 		<cfloop query="rows">
-			<cfset found[rows.AnonymousUserRef] = { memberId: rows.MemberId, name: len(trim(rows.Name)) ? trim(rows.Name) : rows.Email, email: rows.Email, picture: isNull(rows.Picture) ? "" : rows.Picture }>
+			<!--- Their own picture, else the profile picture of a blog user with their email (2026-10-25). --->
+			<cfset found[rows.AnonymousUserRef] = { memberId: rows.MemberId, name: len(trim(rows.Name)) ? trim(rows.Name) : rows.Email, email: rows.Email, picture: len(trim(rows.Picture ?: "")) ? rows.Picture : trim(rows.ProfilePicture ?: "") }>
 		</cfloop>
 		<cfreturn found>
 		<cfcatch type="any"><cfreturn {}></cfcatch>

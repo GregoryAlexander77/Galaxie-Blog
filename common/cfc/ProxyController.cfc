@@ -12669,8 +12669,11 @@
 
 	<cffunction name="memberForBrowser" access="private" returntype="struct" output="false" hint="The member fields the visitor's own browser may see, with lower-case keys.">
 		<cfargument name="member" type="struct" required="true">
+		<!--- profilePicture (2026-10-25, owner): an author's or administrator's own profile picture (Users), shown when they haven't
+		uploaded a member picture. --->
 		<cfreturn { "name": arguments.member.name, "email": arguments.member.email, "phone": arguments.member.phone, "timeZone": arguments.member.timeZone,
-			"picture": structKeyExists(arguments.member, "memberId") ? application.members.getPicture(arguments.member.memberId) : "" }>
+			"picture": structKeyExists(arguments.member, "memberId") ? application.members.getPicture(arguments.member.memberId) : "",
+			"profilePicture": structKeyExists(arguments.member, "memberId") ? application.members.getProfilePicture(arguments.member.memberId) : "" }>
 	</cffunction>
 
 	<cffunction name="memberUploadPicture" access="remote" returnformat="json" output="false"
