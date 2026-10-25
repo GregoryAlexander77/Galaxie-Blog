@@ -72,7 +72,20 @@ Note: the following logic should not be cached as each theme may return a differ
 											<cfif menuDivName eq 'fixedNavMenu'><li onclick="javascript:scrollToBottom();"><span class="fa fa-arrow-circle-down"></span> Bottom</li></cfif>
 										</ul>
 									</li>
-								<cfif not session.isMobile>
+								<cfif not session.isMobile and menuLabels.combined and arrayLen(menuCategories) and arrayLen(menuCollections)>
+									<!--- One menu on computers too (Configure Menu, 2026-10-24, owner: galaxieblog's Categories held one item next to its
+									Docs menu): the phone's combined dropdown, always shown. Not galaxieMenuCombined, which the wrap script hides. --->
+									<li>
+										<cfoutput>#encodeForHtml(menuLabels.mobile)#</cfoutput>
+										<ul>
+											<li class="k-state-disabled">Categories</li>
+											<cfloop array="#menuCategories#" index="menuCategory"><li><a href="<cfoutput>#menuCategory.link#</cfoutput>"><cfoutput>#menuCategory.name#</cfoutput></a></li></cfloop>
+											<li class="k-separator"></li>
+											<li class="k-state-disabled"><cfoutput>#encodeForHtml(menuLabels.collections)#</cfoutput></li>
+											<cfloop array="#menuCollections#" index="menuCollection"><li><a href="<cfoutput>#application.blog.makeCollectionLink(menuCollection.pageCollectionId)#</cfoutput>"><cfoutput>#menuCollection.title#</cfoutput></a></li></cfloop>
+										</ul>
+									</li>
+								<cfelseif not session.isMobile>
 									<!--- Desktop: Categories and the collections menu side by side, each hidden when it has nothing in it. --->
 									<cfif arrayLen(menuCategories)>
 									<li class="galaxieMenuSplit">

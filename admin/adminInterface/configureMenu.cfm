@@ -9,6 +9,7 @@ stays automatic. Saved by ProxyController.cfc's saveMenuSettings; drawn by inclu
 <!--- The saved labels themselves (blank means "use the default"), so the boxes show what was typed, not the default. --->
 <cfset savedCollectionsLabel = isNull(application.BlogOptionDbObj.getCollectionsMenuLabel()) ? "" : application.BlogOptionDbObj.getCollectionsMenuLabel()>
 <cfset savedMobileLabel = isNull(application.BlogOptionDbObj.getMobileMenuLabel()) ? "" : application.BlogOptionDbObj.getMobileMenuLabel()>
+<cfset savedCombined = application.blog.getMenuLabels().combined>
 
 <script>
 	$(document).ready(function() {
@@ -80,7 +81,8 @@ stays automatic. Saved by ProxyController.cfc's saveMenuSettings; drawn by inclu
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					linksJson: JSON.stringify(links),
 					collectionsMenuLabel: $("#collectionsMenuLabel").val(),
-					mobileMenuLabel: $("#mobileMenuLabel").val()
+					mobileMenuLabel: $("#mobileMenuLabel").val(),
+					combineMenus: $("#combineMenus").is(":checked")
 				},
 				dataType: "json",
 				success: function(response) {
@@ -156,16 +158,22 @@ stays automatic. Saved by ProxyController.cfc's saveMenuSettings; drawn by inclu
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td colspan="2" class="#blockClass#">Mobile screens have less room, so Categories and the collections menu are combined into one dropdown with this name.</td>
+		<td colspan="2" class="#blockClass#">Mobile screens have less room, so Categories and the collections menu are combined into one dropdown with this name. Tick the box below to use the one menu on computers too.</td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">Leave blank for "Explore".</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
-		<td class="#blockClass#" align="right"><label for="mobileMenuLabel">Mobile menu:</label></td>
+		<td class="#blockClass#" align="right"><label for="mobileMenuLabel">One-menu name:</label></td>
 		<td class="#blockClass#">
 			<input type="text" id="mobileMenuLabel" class="k-textbox" maxlength="50" placeholder="Explore" value="#encodeForHtmlAttribute(savedMobileLabel)#" style="width: 220px;">
 		</td>
+	</tr>
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<!--- One menu on computers too (2026-10-24, owner). --->
+	<tr>
+		<td class="#blockClass#"></td>
+		<td class="#blockClass#"><label><input type="checkbox" id="combineMenus" class="k-checkbox"<cfif savedCombined> checked</cfif>> Use this one menu on computers too, instead of Categories and the collections menu side by side</label></td>
 	</tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>

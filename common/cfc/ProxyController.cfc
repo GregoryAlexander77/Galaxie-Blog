@@ -11130,6 +11130,7 @@
 		<cfargument name="linksJson" type="string" default="[]" required="false" hint="JSON array of {label, linkUrl, newWindow}, in display order.">
 		<cfargument name="collectionsMenuLabel" type="string" default="" required="false">
 		<cfargument name="mobileMenuLabel" type="string" default="" required="false">
+		<cfargument name="combineMenus" type="string" default="" required="false" hint="true: Categories and the collections menu are one menu on computers too (2026-10-24).">
 
 		<cfset response = {} />
 		<cfset response[ "success" ] = false />
@@ -11153,6 +11154,10 @@
 				<cfset menuLinks = deserializeJson(arguments.linksJson)>
 				<cfif not isArray(menuLinks)>
 					<cfset menuLinks = []>
+				</cfif>
+				<!--- Saved first: saveMenuSettings clears the cached menus. --->
+				<cfif structKeyExists(application, "events")>
+					<cfset application.events.setSetting(0, "menuCombined", isBoolean(arguments.combineMenus) and arguments.combineMenus ? "1" : "0")>
 				</cfif>
 				<cfset saveResult = application.blog.saveMenuSettings(links=menuLinks, collectionsMenuLabel=arguments.collectionsMenuLabel, mobileMenuLabel=arguments.mobileMenuLabel)>
 				<cfset response[ "success" ] = saveResult.success />

@@ -5809,8 +5809,12 @@
 	</cffunction>
 
 	<cffunction name="getMenuLabels" access="public" returnType="struct" output="false"
-			hint="The two top menu labels, with their defaults filled in: {collections ('Collections'), mobile ('Explore')}.">
-		<cfset var labels = { collections: "Collections", mobile: "Explore" }>
+			hint="The two top menu labels, with their defaults filled in: {collections ('Collections'), mobile ('Explore')}, and combined: true when Categories and the collections menu are one menu on computers too (Configure Menu, 2026-10-24).">
+		<cfset var labels = { collections: "Collections", mobile: "Explore", combined: false }>
+		<!--- A blog setting (application.events, as the Site Wizard's footer choice), not a column, so no database change. --->
+		<cfif structKeyExists(application, "events")>
+			<cfset labels.combined = application.events.getSetting(0, "menuCombined", "") eq "1">
+		</cfif>
 		<!--- isNull() first: on a row from before these columns existed the getter returns null, and on Lucee assigning
 		null to a variable leaves it undefined. --->
 		<cfif not isNull(application.BlogOptionDbObj.getCollectionsMenuLabel()) and len(trim(application.BlogOptionDbObj.getCollectionsMenuLabel()))>
