@@ -124,6 +124,15 @@ last 7 days, as the card counts them. --->
 	<!--- Set up the grid. --->
 	<!--- Signed-in members (2026-10-17, owner): their round picture (or initials) and name instead of only a browser; it opens
 	their page in Members. Admins keep their name. MemberName, MemberEmail and MemberPicture come from getVisitorLogForJsGrid. --->
+	<!--- Where a visitor came from (2026-10-25, owner): the referring site's name (google.com), the full address when pointed at,
+	empty for a direct visit. Text only: the address comes from outside the blog. --->
+	function visitorReferrer(item) {
+		var full = String(item.HttpReferrer || "");
+		if (!full) { return ""; }
+		var host = full.replace(/^[a-z]+:\/\//i, "").replace(/^www\./i, "").split(/[\/?#:]/)[0];
+		var esc = function (v) { return $("<div/>").text(v).html(); };
+		return '<span title="' + esc(full) + '">' + esc(host || full) + '</span>';
+	}
 	function visitorSignedInAs(item) {
 		var text = function(value) { return $("<div/>").text(value === null || value === undefined ? "" : String(value)).html(); };
 		if (item.MemberName) {
@@ -221,7 +230,7 @@ last 7 days, as the card counts them. --->
 					type: "text",
 					title: "UserId",
 					editing: false,
-					width: (pageWidth*(10/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>7</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- Link to the visitor details --->
 						return '<a href="javascript:createAdminInterfaceWindow(63, ' + item.AnonymousUserId + ');">' + value + '</a>';
@@ -232,7 +241,7 @@ last 7 days, as the card counts them. --->
 					type: "text",
 					title: "IP Address",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>25<cfelse>15</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>25<cfelse>12</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- Link to this page using the ipAddressId (createAdminInterfaceWindow(48,[anonymousUserId,ipAddressId,postId]). This will show all of the pages that the ip has visited, not necessarilly the anonymous user which is a unique combination of the user agent and ip. --->
 					  	return '<a href="javascript:createAdminInterfaceWindow(64,0,' + item.IpAddressId + ',0);">' + value + '</a>';
@@ -243,7 +252,7 @@ last 7 days, as the card counts them. --->
 					type: "text",
 					title: "Signed in as",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>15</cfif>/100)),
 					itemTemplate: function(value, item) { return visitorSignedInAs(item); },
 				},
 				<!--- We just don't have the room for the posts on mobile. --->
@@ -253,7 +262,7 @@ last 7 days, as the card counts them. --->
 					type: "text",
 					title: "Post",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>40<cfelse>38</cfif>/100)),
+					width: (pageWidth*(28/100)),
 					itemTemplate: function(value, item) {
 						<!--- Don't show null posts --->
 						if (item.VisitingHomePage) {
@@ -264,23 +273,31 @@ last 7 days, as the card counts them. --->
 						}
 					}
 				},
+				{
+					name: "httpReferrer",
+					type: "text",
+					title: "Came from",
+					editing: false,
+					width: (pageWidth*(20/100)),
+					itemTemplate: function(value, item) { return visitorReferrer(item); }
+				},
 				</cfif>
 				{ 
 					name: "IsBot", 
 					type: "checkbox",
 					title: "Bot?",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>10<cfelse>7</cfif>/100))
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>5</cfif>/100))
 				},
 				{ 	
 					name: "dateVisited", 
 					type: "date",
 					title: "Date",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>15</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>30<cfelse>13</cfif>/100)),
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the dayjs lib. --->
-						return dayjs(item.Date).format('MM/DD/YYYY h:mm A');
+						return dayjs(item.Date).format('MM/DD/YY h:mm A');
 					}
 				}
 

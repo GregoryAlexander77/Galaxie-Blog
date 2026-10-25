@@ -1119,6 +1119,7 @@
 			IsBot: { path: "AnonymousUser.IsBot", type: "boolean" },
 			HitCount: { path: "AnonymousUser.HitCount", type: "int" },
 			HttpUserAgent: { path: "HttpUserAgent.HttpUserAgent", type: "string" },
+			HttpReferrer: { path: "HttpReferrer.HttpReferrer", type: "string" },
 			Date: { path: "VisitorLog.Date", type: "date" }
 		}>
 		<cfset var params = {}>

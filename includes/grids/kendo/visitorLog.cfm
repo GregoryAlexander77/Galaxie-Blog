@@ -57,6 +57,15 @@ last 7 days, as the card counts them. --->
 <script>
 	<!--- Signed-in members (2026-10-17, owner): their round picture (or initials) and name instead of only a browser; it opens
 	their page in Members. Admins keep their name. MemberName, MemberEmail and MemberPicture come from getVisitorLogForGrid. --->
+	<!--- Where a visitor came from (2026-10-25, owner): the referring site's name (google.com), the full address when pointed at,
+	empty for a direct visit. Text only: the address comes from outside the blog. --->
+	function visitorReferrer(item) {
+		var full = String(item.HttpReferrer || "");
+		if (!full) { return ""; }
+		var host = full.replace(/^[a-z]+:\/\//i, "").replace(/^www\./i, "").split(/[\/?#:]/)[0];
+		var esc = function (v) { return $("<div/>").text(v).html(); };
+		return '<span title="' + esc(full) + '">' + esc(host || full) + '</span>';
+	}
 	function visitorSignedInAs(item) {
 		var text = function(value) { return $("<div/>").text(value === null || value === undefined ? "" : String(value)).html(); };
 		if (item.MemberName) {
@@ -116,6 +125,7 @@ last 7 days, as the card counts them. --->
 						PostId: { type: "number", editable: false, nullable: true },
 						VisitingHomePage: { type: "boolean", editable: false, nullable: true },
 						IsBot: { type: "boolean", editable: false, nullable: true },
+						HttpReferrer: { type: "string", editable: false, nullable: true },
 						Date: { type: "date", editable: false, nullable: false }
 					}
 				}
@@ -142,38 +152,45 @@ last 7 days, as the card counts them. --->
 				field: "AnonymousUserId",
 				title: "UserId",
 				filterable: true,
-				width: "<cfif session.isMobile>15<cfelse>10</cfif>%",
+				width: "<cfif session.isMobile>15<cfelse>7</cfif>%",
 				template: kendo.template($("#anonymousUserIdTemplate").html())
 			}, {
 				field: "IpAddress",
 				title: "IP Address",
 				filterable: true,
-				width: "<cfif session.isMobile>25<cfelse>15</cfif>%",
+				width: "<cfif session.isMobile>25<cfelse>12</cfif>%",
 				template: kendo.template($("#ipAddressTemplate").html())
 			}, {
 				field: "FullName",
 				title: "Signed in as",
 				filterable: true,
-				width: "<cfif session.isMobile>30<cfelse>20</cfif>%",
+				width: "<cfif session.isMobile>30<cfelse>15</cfif>%",
 				template: function(item) { return visitorSignedInAs(item); }
 			<cfif not session.isMobile>}, {
 				field: "PostTitle",
 				title: "Post",
 				filterable: true,
-				width: "<cfif session.isMobile>40<cfelse>38</cfif>%",
-				template: kendo.template($("#postTitleTemplate").html())</cfif>
+				width: "28%",
+				template: kendo.template($("#postTitleTemplate").html())
+			}, {
+				field: "HttpReferrer",
+				title: "Came from",
+				filterable: true,
+				width: "20%",
+				template: function(item) { return visitorReferrer(item); }</cfif>
 			}, {
 				field: "IsBot",
 				title: "Bot?",
 				filterable: true,
-				width: "<cfif session.isMobile>10<cfelse>7</cfif>%",
+				width: "<cfif session.isMobile>10<cfelse>5</cfif>%",
 				template: "#= IsBot ? 'Yes' : 'No' #"
 			}, {
 				field: "Date",
 				title: "Date",
 				filterable: true,
-				width: "<cfif session.isMobile>30<cfelse>15</cfif>%",
-				template: "#= dayjs(Date).format('MM/DD/YYYY h:mm A') #"
+				width: "<cfif session.isMobile>30<cfelse>13</cfif>%",
+				<!--- A short date (2026-10-25), to make room for Came from. --->
+				template: "#= dayjs(Date).format('MM/DD/YY h:mm A') #"
 			}]
 		});
 

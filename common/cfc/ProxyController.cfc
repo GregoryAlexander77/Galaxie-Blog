@@ -3992,6 +3992,7 @@
 				"IpAddressId": visitorRow["IpAddressId"] ?: "",
 				"IpAddress": visitorRow["IpAddress"] ?: "",
 				"HttpUserAgent": visitorRow["HttpUserAgent"] ?: "",
+				"HttpReferrer": visitorRow["HttpReferrer"] ?: "",
 				"HitCount": visitorRow["HitCount"] ?: "",
 				"FullName": visitorRow["FullName"] ?: "",
 				"PostId": visitorRow["PostId"] ?: "",
@@ -4022,6 +4023,7 @@
 		<cfargument name="postTitle" required="no" default="">
 		<cfargument name="isBot" required="no" default="">
 		<cfargument name="dateVisited" required="no" default="">
+		<cfargument name="httpReferrer" required="no" default="">
 		<!--- The window's limits (a visitor, an IP address, a post, or the admin home's people-this-week). --->
 		<cfargument name="fixedAnonymousUserId" required="no" default="">
 		<cfargument name="fixedIpAddressId" required="no" default="">
@@ -4047,6 +4049,7 @@
 		<cfif len(trim(arguments.postTitle))><cfset arrayAppend(filters, { field: "PostTitle", operator: "contains", value: trim(arguments.postTitle) })></cfif>
 		<cfif isBoolean(arguments.isBot)><cfset arrayAppend(filters, { field: "IsBot", operator: "eq", value: arguments.isBot })></cfif>
 		<cfif isDate(arguments.dateVisited)><cfset arrayAppend(filters, { field: "Date", operator: "eq", value: arguments.dateVisited })></cfif>
+		<cfif len(trim(arguments.httpReferrer))><cfset arrayAppend(filters, { field: "HttpReferrer", operator: "contains", value: trim(arguments.httpReferrer) })></cfif>
 		<cfset page = application.blog.getVisitorLogPage(
 			skip = (pageNumber - 1) * size,
 			take = size,
