@@ -107,15 +107,15 @@ Either can be changed again in Themes > Customize > Background. HQL, so the bool
 <cfif backgroundsRestored or backgroundsOff><cfset application.blog.flushGalaxieCache(type = "all")></cfif>
 <cfset addToLog("Background pictures: #backgroundsRestored# put back, #backgroundsOff# switched back on.")>
 <!--- Neutral branding (2026-10-25): before 5.0, 29 of the 30 built-in themes linked the favicons on www.gregoryalexander.com, used
-Gregory Alexander's logo in the footer and for link previews, and three used the Gregory's Blog logo. Only values still exactly as
+Gregory Alexander's logo for link previews, and three used the Gregory's Blog logo. Only values still exactly as
 they were shipped are changed, so anything an owner set stays: the favicon is emptied (the site's own favicon.ico shows), the link
-preview picture becomes the theme's background picture, the three logos become the theme's Galaxie logo, and the footer shows the
-theme's logo. gregoryalexander.com itself is skipped - they are its own. --->
+preview picture becomes the theme's background picture, and the three logos become the theme's Galaxie logo. The footer keeps the Gregory Alexander logo
+(owner, 10-25: his branding stays there for now; the themes get redone in a later version). gregoryalexander.com itself is
+skipped - they are its own. --->
 <cfset brandingChanged = 0>
 <cfif not findNoCase("gregoryalexander.com", cgi.server_name & " " & (application.blogHostUrl ?: ""))>
 	<cftry>
 		<cfset oldShare = ["/images/logo/gregoryAlexanderSocialMediaShare.png", "/images/logo/gregoryAlexanderSocialMediaShare.webp"]>
-		<cfset oldFooter = ["/images/logo/gregoryAlexanderLogo125_190.png", "/images/logo/gregoryAlexanderLogo125_190.webp"]>
 		<cfset oldLogo = ["/images/logo/gregorysBlogLogo.gif"]>
 		<cfset oldLogoMobile = ["/images/logo/gregorysBlogMobile.png", "/images/logo/gregorysBlogMobile.webp"]>
 		<cfset brandingRows = ormExecuteQuery("SELECT new Map(ts.ThemeSettingId as id, ts.FavIconHtml as favicon, ts.DefaultLogoImageForSocialMediaShare as share, ts.FooterImage as footer, ts.LogoImage as logo, ts.LogoImageMobile as logoMobile, ts.BlogBackgroundImage as background) FROM ThemeSetting ts")>
@@ -126,7 +126,6 @@ theme's logo. gregoryalexander.com itself is skipped - they are its own. --->
 			<cfif arrayFindNoCase(oldShare, brandingNew.share) and len(brandingRow["background"] ?: "")><cfset brandingNew.share = brandingRow["background"]></cfif>
 			<cfif arrayFindNoCase(oldLogo, brandingNew.logo)><cfset brandingNew.logo = "/images/logo/logoSilverThemeOs.gif"></cfif>
 			<cfif arrayFindNoCase(oldLogoMobile, brandingNew.logoMobile)><cfset brandingNew.logoMobile = "/images/logo/logoSilverMobileTheme.gif"></cfif>
-			<cfif arrayFindNoCase(oldFooter, brandingNew.footer) and len(brandingNew.logo)><cfset brandingNew.footer = brandingNew.logo></cfif>
 			<cfif not (brandingNew.favicon eq brandingNow.favicon and brandingNew.share eq brandingNow.share and brandingNew.footer eq brandingNow.footer and brandingNew.logo eq brandingNow.logo and brandingNew.logoMobile eq brandingNow.logoMobile)>
 				<cfset ormExecuteQuery("UPDATE ThemeSetting SET FavIconHtml = :favicon, DefaultLogoImageForSocialMediaShare = :share, FooterImage = :footer, LogoImage = :logo, LogoImageMobile = :logoMobile WHERE ThemeSettingId = :id",
 					{ favicon = brandingNew.favicon, share = brandingNew.share, footer = brandingNew.footer, logo = brandingNew.logo, logoMobile = brandingNew.logoMobile, id = brandingRow["id"] })>
