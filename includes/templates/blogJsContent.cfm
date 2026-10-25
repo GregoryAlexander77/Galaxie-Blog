@@ -1125,6 +1125,12 @@
 				var windowHeight = "<cfif session.isMobile>80%<cfelse>60%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>45%</cfif>";
 				var windowTitle = "Shop page";
+			} else if (Id == 117){
+				// Traffic Sources (2026-10-25): the sites people came from. optArgs is the days (7, 30, 90 or 0). See includes/grids/*/trafficSources.cfm.
+				var windowName = "trafficSourcesWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Traffic Sources";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

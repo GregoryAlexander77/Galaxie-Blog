@@ -427,7 +427,10 @@
 			<cfif arrayLen(getErrorLog)>
 				<button id="errorLog" name="errorLog" class="k-button k-alt" type="button" onClick="javascript:createAdminInterfaceWindow(59,#ipAddressId#)">Error Logs</button>
 			</cfif>
+			<button id="trafficSourcesButton" name="trafficSourcesButton" class="k-button k-alt" type="button" onClick="javascript:showVisitorTrafficSources(this, #anonymousUserId#)">Traffic Sources</button>
 			</cfoutput>
+			<!--- Traffic Sources (2026-10-25, owner): the sites this visitor came from (AdminHome.cfc getTrafficSources), shown here. --->
+			<div class="visitorTrafficSources" style="display: none; margin-top: 8px;"></div>
 		</td>
 	  </tr>
 	<cfelse><!---<cfif session.isMobile>--->
@@ -446,7 +449,10 @@
 			<cfif arrayLen(getSubscribers)>
 				<button id="subscribedPages" name="subscribedPages" class="k-button k-alt" type="button" onClick="javascript:createAdminInterfaceWindow(26,#ipAddressId#)">Subscribed Pages</button>
 			</cfif>
+			<button id="trafficSourcesButton" name="trafficSourcesButton" class="k-button k-alt" type="button" onClick="javascript:showVisitorTrafficSources(this, #anonymousUserId#)">Traffic Sources</button>
 			</cfoutput>
+			<!--- Traffic Sources (2026-10-25, owner): the sites this visitor came from (AdminHome.cfc getTrafficSources), shown here. --->
+			<div class="visitorTrafficSources" style="display: none; margin-top: 8px;"></div>
 		</td>
 	  </tr>
 	</cfif>
@@ -480,6 +486,25 @@
 			originalIpBanned: <cfoutput>#serializeJSON(ipBanned)#</cfoutput>,
 			originalUserAgentBanned: <cfoutput>#serializeJSON(userAgentBanned)#</cfoutput>
 		};
+
+		<!--- Traffic Sources (2026-10-25, owner): the sites this visitor came from, listed under the buttons (the button shows and hides
+		it). Each visit in the log keeps its referrer, so these are this visitor's own visits grouped by site; the full address shows
+		when pointed at. --->
+		function showVisitorTrafficSources(button, anonymousUserId) {
+			var list = $(button).closest("td").find(".visitorTrafficSources");
+			if (list.is(":visible")) { list.hide(); return; }
+			var text = function (value) { return $("<div/>").text(value === null || value === undefined ? "" : String(value)).html(); };
+			list.html("Loading...").show();
+			$.getJSON("<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getTrafficSources&csrfToken=<cfoutput>#csrfToken#</cfoutput>&days=0&anonymousUserId=" + anonymousUserId).done(function (result) {
+				var rows = result.rows || [];
+				if (!rows.length) { list.text("No visits in the log."); return; }
+				list.html("<p>Where this visitor came from:</p><table>" + $.map(rows, function (r) {
+					return "<tr><td style=\"padding-right: 16px;\">" + (r.site ? '<span title="' + text(r.address) + '">' + text(r.site) + "</span>" : "<i>Straight in</i>")
+						+ "</td><td style=\"padding-right: 16px;\">" + r.visits + (r.visits === 1 ? " visit" : " visits")
+						+ "</td><td>first " + String(r.first || "").replace(/^\d\d(\d\d)-(\d\d)-(\d\d)$/, "$2/$3/$1") + "</td></tr>";
+				}).join("") + "</table>");
+			}).fail(function () { list.text("The traffic sources couldn't be read."); });
+		}
 
 		$(document).ready(function() {
 			<!--- Invoked when the submit button is clicked. Insted of using '$("form").submit(function(event) {' and 'event.preventDefault();', We are using direct binding here to speed up the event. --->

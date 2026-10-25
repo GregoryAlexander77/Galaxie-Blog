@@ -1110,6 +1110,8 @@
 		<cfargument name="postId" type="string" required="false" default="">
 		<cfargument name="peopleOnly" type="boolean" required="false" default="false">
 		<cfargument name="sinceDays" type="numeric" required="false" default="0">
+		<!--- Visits from one site (2026-10-25, the Traffic Sources window): google.com matches https://google.com/... and https://www.google.com/... --->
+		<cfargument name="referrerHost" type="string" required="false" default="">
 		<cfset var columns = {
 			AnonymousUserId: { path: "AnonymousUser.AnonymousUserId", type: "int" },
 			IpAddress: { path: "IpAddress.IpAddress", type: "string" },
@@ -1148,6 +1150,10 @@
 		</cfif>
 		<cfif arguments.peopleOnly>
 			<cfset arrayAppend(where, "(AnonymousUser.IsBot = :notBot OR AnonymousUser.IsBot IS NULL)")><cfset params.notBot = false>
+		</cfif>
+		<cfif reFind("^[a-z0-9][a-z0-9.-]*$", arguments.referrerHost)>
+			<cfset arrayAppend(where, "(lower(HttpReferrer.HttpReferrer) LIKE :fromHostA OR lower(HttpReferrer.HttpReferrer) LIKE :fromHostB)")>
+			<cfset params.fromHostA = "%://" & arguments.referrerHost & "%"><cfset params.fromHostB = "%://www." & arguments.referrerHost & "%">
 		</cfif>
 		<cfif arguments.sinceDays gt 0>
 			<cfset arrayAppend(where, "VisitorLog.Date >= :sinceDate")><cfset params.sinceDate = dateAdd("d", -int(arguments.sinceDays), blogNow())>

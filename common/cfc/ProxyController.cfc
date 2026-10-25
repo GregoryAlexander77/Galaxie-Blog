@@ -3938,6 +3938,7 @@
 		<cfargument name="postId" required="no" default="">
 		<cfargument name="peopleOnly" required="no" default="">
 		<cfargument name="sinceDays" required="no" default="">
+		<cfargument name="referrerHost" required="no" default="">
 		<cfset var response = { "data": [], "total": 0 }>
 		<cfset var body = {}>
 		<cfset var page = {}>
@@ -3960,7 +3961,8 @@
 			ipAddressId = listFirst(arguments.ipAddressId),
 			postId = listFirst(arguments.postId),
 			peopleOnly = isBoolean(arguments.peopleOnly) and arguments.peopleOnly,
-			sinceDays = isNumeric(arguments.sinceDays) ? min(int(arguments.sinceDays), 366) : 0
+			sinceDays = isNumeric(arguments.sinceDays) ? min(int(arguments.sinceDays), 366) : 0,
+			referrerHost = lCase(trim(arguments.referrerHost))
 		)>
 		<cfset response[ "data" ] = visitorLogGridRows(page.rows)>
 		<cfset response[ "total" ] = page.total>
@@ -4030,6 +4032,7 @@
 		<cfargument name="fixedPostId" required="no" default="">
 		<cfargument name="peopleOnly" required="no" default="">
 		<cfargument name="sinceDays" required="no" default="">
+		<cfargument name="referrerHost" required="no" default="">
 		<cfset var response = { "data": [], "itemsCount": 0 }>
 		<cfset var page = {}>
 		<cfset var size = isNumeric(arguments.pageSize) ? min(max(1, int(arguments.pageSize)), 100) : 15>
@@ -4059,14 +4062,33 @@
 			ipAddressId = listFirst(arguments.fixedIpAddressId),
 			postId = listFirst(arguments.fixedPostId),
 			peopleOnly = isBoolean(arguments.peopleOnly) and arguments.peopleOnly,
-			sinceDays = isNumeric(arguments.sinceDays) ? min(int(arguments.sinceDays), 366) : 0
+			sinceDays = isNumeric(arguments.sinceDays) ? min(int(arguments.sinceDays), 366) : 0,
+			referrerHost = lCase(trim(arguments.referrerHost))
 		)>
 		<cfset response[ "data" ] = visitorLogGridRows(page.rows)>
 		<cfset response[ "itemsCount" ] = page.total>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
-	<cffunction name="getVisitorLogForGrid" access="remote" returnformat="json" output="false" 
+	<cffunction name="getTrafficSources" access="remote" returnformat="json" output="false"
+			hint="The Traffic Sources window and the visitor detail window's Traffic Sources list (2026-10-25, owner): AdminHome.cfc getTrafficSources, for someone who may open the Visitor Log. days is 7, 30, 90 or 0 (everything in the log); anonymousUserId gives one visitor's sites.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="days" required="no" default="30">
+		<cfargument name="anonymousUserId" required="no" default="0">
+		<cfset var response = {}>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfset response = application.blog.getAdminHome().getTrafficSources(
+			days = listFind("7,30,90,0", arguments.days) ? arguments.days : 30,
+			anonymousUserId = isNumeric(arguments.anonymousUserId) ? max(0, int(arguments.anonymousUserId)) : 0
+		)>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getVisitorLogForGrid" access="remote" returnformat="json" output="false"
 			hint="Returns a json array to populate the visitor log grid.">
 		<cfargument name="csrfToken" default="" required="true">
 		<cfargument name="gridType" required="yes" default="kendo" hint="Either Kendo or jsGrid">

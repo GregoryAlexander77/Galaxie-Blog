@@ -258,6 +258,13 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(48);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/visitorLog.gif")>
 </cfif>
+<!--- Traffic Sources (2026-10-25, owner): the sites people came from, the last 30 days. Its data is the Visitor Log's (EditUser). --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
+	<cfset iconList = listAppend(iconList, 'TrafficSources')>
+	<cfset titleList = listAppend(titleList, 'Traffic Sources')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(117, 30);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/trafficSources.gif")>
+</cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
 	<!--- Ban Visitors by IP address or HTTP User-Agent string --->
 	<cfset iconList = listAppend(iconList, 'BanVisitors')>
@@ -493,7 +500,7 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 						<!--- Tools (owner, 2026-10-20): the upkeep that isn't a setting, out of Posts and Settings. --->
 						{ key: "tools", name: "Tools", image: "/images/icons/tools.gif", what: "Import, refresh and other upkeep", icons: "ImportData,RefreshSite,ReloadOrm" },
 						<!--- Logs last (owner, 2026-10-20): Up next brings forward new errors and This week the visitors, so it is opened least. --->
-						{ key: "logs", name: "Logs", image: "/images/icons/adminLog.gif", what: "What happened on the site", icons: "ErrorLog,AdminLog,MemberLog,VisitorLog,reactionLog,SearchQuery" }
+						{ key: "logs", name: "Logs", image: "/images/icons/adminLog.gif", what: "What happened on the site", icons: "ErrorLog,AdminLog,MemberLog,VisitorLog,TrafficSources,reactionLog,SearchQuery" }
 					]>
 					<!--- Up next (owner, 2026-10-20): three tiles - Create Post, then the two things that need this person most now
 					(AdminHome.cfc getSuggestions, most important first), each with an x to hide it until something new happens, which
@@ -618,7 +625,7 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 							<!--- Clicking the card opens the Visitor Log with this week's people only, bots left out (owner, 2026-10-20). --->
 							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See these visitors in the Visitor Log" onclick="createAdminInterfaceWindow(48, 'people');" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(48, 'people'); }"><div class="adminTrafficTitle">Visitors</div><div id="trafficVisitors" class="adminTrafficBody">Loading...</div></div>
 							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Most read</div><div id="trafficTop" class="adminTrafficBody"></div></div>
-							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Where they came from</div><div id="trafficSources" class="adminTrafficBody"></div></div>
+							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See the sites in Traffic Sources" onclick="createAdminInterfaceWindow(117, 7);" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(117, 7); }"><div class="adminTrafficTitle">Where they came from</div><div id="trafficSources" class="adminTrafficBody"></div></div>
 							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Reading now</div><div id="trafficNow" class="adminTrafficBody"></div></div>
 							</cfif>
 						</div>

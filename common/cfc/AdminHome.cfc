@@ -336,8 +336,6 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 	<cfset var day = "">
 	<cfset var i = 0>
 	<cfset var sources = { "search": 0, "social": 0, "sites": 0, "direct": 0 }>
-	<cfset var host = "">
-	<cfset var ownHost = lCase(cgi.server_name)>
 	<cfset var seen = {}>
 	<cfset var weekAgo = dateAdd("d", -7, nowTime)>
 	<cfset var people = "(a.IsBot = 0 OR a.IsBot IS NULL)">
@@ -382,25 +380,10 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 		{ weekAgo = { value = weekAgo, cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn, maxrows = 5 })>
 	<cfloop query="q"><cfset arrayAppend(result.topPosts, { "postId": q.PostId, "title": toString(q.Title), "reads": val(q.ReadCount) })></cfloop>
 
-	<!--- Where people came from this week: search engines, social media, other sites, or straight in (no referrer, or this site). --->
-	<cfset q = queryExecute("
-		SELECT h.HttpReferrer, COUNT(DISTINCT v.AnonymousUserRef) AS People
-		FROM VisitorLog v LEFT JOIN HttpReferrer h ON h.HttpReferrerId = v.HttpReferrerRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
-		WHERE v.Date >= :weekAgo AND #people#
-		GROUP BY h.HttpReferrer",
-		{ weekAgo = { value = weekAgo, cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn })>
-	<cfloop query="q">
-		<cfset host = lCase(reReplace(reReplace(toString(q.HttpReferrer), "^[a-z]+://", ""), "[/:?##].*$", ""))>
-		<cfif not len(host) or host eq ownHost or right(host, len(ownHost) + 1) eq "." & ownHost>
-			<cfset sources.direct = sources.direct + val(q.People)>
-		<cfelseif reFind("(^|\.)(google|bing|duckduckgo|yahoo|baidu|yandex|ecosia|startpage|brave|qwant)\.", host)>
-			<cfset sources.search = sources.search + val(q.People)>
-		<cfelseif reFind("(^|\.)(facebook|fb|t\.co|twitter|x\.com|linkedin|lnkd|reddit|instagram|pinterest|youtube|mastodon|threads|bsky)", host)>
-			<cfset sources.social = sources.social + val(q.People)>
-		<cfelse>
-			<cfset sources.sites = sources.sites + val(q.People)>
-		</cfif>
-	</cfloop>
+	<!--- Where people came from this week: search engines, social media, other sites, or straight in (no referrer, or this site).
+	The same count as the Traffic Sources window's last 7 days (2026-10-25: each person once per type; it was once per referrer address). --->
+	<cfset q = getTrafficSources(days = 7).types>
+	<cfset sources = { "search": q["Search"], "social": q["Social"], "sites": q["Other site"], "direct": q["Straight in"] }>
 	<cfset result.sources = sources>
 
 	<!--- Reading now: people in the last 15 minutes, each with the newest page they opened. --->
@@ -421,6 +404,127 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 	<cfset result.nowCount = structCount(seen)>
 
 	<cfset application[cacheKey] = { made = now(), data = result }>
+	<cfreturn result>
+</cffunction>
+
+<!---//*****************************************************************************************************
+		Traffic Sources (owner, 2026-10-25): the sites people came from, for the Traffic Sources window (117) and the visitor detail window
+//******************************************************************************************************--->
+
+<cffunction name="sourceHost" access="public" returntype="string" output="false"
+		hint="The referring site's name from a referrer address (https://www.google.com/search?q=x is google.com). Empty for a direct visit or a page on this blog.">
+	<cfargument name="referrer" required="true">
+	<cfset var ownHost = reReplace(lCase(cgi.server_name), "^www\.", "")>
+	<cfset var host = lCase(reReplace(reReplace(toString(arguments.referrer ?: ""), "^[a-z]+://", ""), "[/:?##].*$", ""))>
+	<cfset host = reReplace(host, "^www\.", "")>
+	<cfif not len(host) or host eq ownHost or right(host, len(ownHost) + 1) eq "." & ownHost or host eq "localhost" or host eq "127.0.0.1">
+		<cfreturn "">
+	</cfif>
+	<cfreturn host>
+</cffunction>
+
+<cffunction name="sourceType" access="public" returntype="string" output="false"
+		hint="Search, Social, Other site, or Straight in (no site) for a sourceHost name. The admin home's Where they came from card counts the same way.">
+	<cfargument name="host" type="string" required="true">
+	<cfif not len(arguments.host)>
+		<cfreturn "Straight in">
+	<cfelseif reFind("(^|\.)(google|bing|duckduckgo|yahoo|baidu|yandex|ecosia|startpage|brave|qwant)\.", arguments.host)>
+		<cfreturn "Search">
+	<cfelseif reFind("(^|\.)(facebook|fb|t\.co|twitter|x\.com|linkedin|lnkd|reddit|instagram|pinterest|youtube|mastodon|threads|bsky)", arguments.host)>
+		<cfreturn "Social">
+	</cfif>
+	<cfreturn "Other site">
+</cffunction>
+
+<cffunction name="getTrafficSources" access="public" returntype="struct" output="false"
+		hint="The sites people came from, one row per site: its type, people (each visitor once), visits, first and last seen, the post it sent people to most, and its newest full address. Bots are left out. With an anonymousUserId it is that one visitor (bot or not, every day kept in the log). days 0 is everything still in the log. Returns { rows, types, days }, types being the people per type. Kept for five minutes (not the one-visitor version).">
+	<cfargument name="days" type="numeric" required="false" default="30">
+	<cfargument name="anonymousUserId" type="numeric" required="false" default="0">
+	<cfset var nowTime = application.blog.blogNow()>
+	<cfset var oneVisitor = arguments.anonymousUserId gt 0>
+	<cfset var cacheKey = "galaxieTrafficSources" & application.BlogDbObj.getBlogId() & "_" & int(arguments.days)>
+	<cfset var where = "v.Date >= :since AND (a.IsBot = 0 OR a.IsBot IS NULL)">
+	<cfset var params = { since = { value = arguments.days gt 0 ? dateAdd("d", -int(arguments.days), nowTime) : createDate(1990, 1, 1), cfsqltype = "cf_sql_timestamp" } }>
+	<cfset var sites = {}>
+	<cfset var typePeople = { "Search": {}, "Social": {}, "Other site": {}, "Straight in": {} }>
+	<cfset var types = {}>
+	<cfset var rows = []>
+	<cfset var site = {}>
+	<cfset var result = {}>
+	<cfset var host = "">
+	<cfset var key = "">
+	<cfset var post = "">
+	<cfset var q = "">
+	<cfif not oneVisitor and structKeyExists(application, cacheKey) and dateDiff("n", application[cacheKey].made, now()) lt 5>
+		<cfreturn application[cacheKey].data>
+	</cfif>
+	<cfif oneVisitor>
+		<cfset where = "v.AnonymousUserRef = :visitor">
+		<cfset params = { visitor = { value = int(arguments.anonymousUserId), cfsqltype = "cf_sql_integer" } }>
+	</cfif>
+
+	<!--- Each address and visitor once, with their visits. The address becomes its site here, since the database keeps whole addresses. --->
+	<cfset q = queryExecute("
+		SELECT h.HttpReferrer AS Referrer, v.AnonymousUserRef AS Visitor, COUNT(*) AS Visits, MIN(v.Date) AS FirstVisit, MAX(v.Date) AS LastVisit
+		FROM VisitorLog v LEFT JOIN HttpReferrer h ON h.HttpReferrerId = v.HttpReferrerRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+		WHERE #where#
+		GROUP BY h.HttpReferrer, v.AnonymousUserRef", params, { datasource = application.dsn })>
+	<cfloop query="q">
+		<cfset host = sourceHost(q.Referrer)>
+		<cfset key = len(host) ? host : "(straight in)">
+		<cfif not structKeyExists(sites, key)>
+			<cfset sites[key] = { "site": host, "type": sourceType(host), "people": {}, "visits": 0, "first": q.FirstVisit, "last": q.LastVisit, "address": "", "posts": {} }>
+		</cfif>
+		<cfset site = sites[key]>
+		<cfset site.visits = site.visits + val(q.Visits)>
+		<cfset site.people[toString(q.Visitor)] = true>
+		<cfset typePeople[site.type][toString(q.Visitor)] = true>
+		<cfif dateCompare(q.FirstVisit, site.first) lt 0><cfset site.first = q.FirstVisit></cfif>
+		<cfif dateCompare(q.LastVisit, site.last) gte 0>
+			<cfset site.last = q.LastVisit>
+			<cfif len(host)><cfset site.address = toString(q.Referrer)></cfif>
+		</cfif>
+	</cfloop>
+
+	<!--- Where each site sent people: the post (or the home page) it sent them to most. --->
+	<cfset q = queryExecute("
+		SELECT h.HttpReferrer AS Referrer, p.Title, COUNT(*) AS Visits
+		FROM VisitorLog v LEFT JOIN HttpReferrer h ON h.HttpReferrerId = v.HttpReferrerRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+			LEFT JOIN Post p ON p.PostId = v.PostRef
+		WHERE #where#
+		GROUP BY h.HttpReferrer, p.Title", params, { datasource = application.dsn })>
+	<cfloop query="q">
+		<cfset host = sourceHost(q.Referrer)>
+		<cfset key = len(host) ? host : "(straight in)">
+		<cfif structKeyExists(sites, key)>
+			<cfset post = len(toString(q.Title)) ? toString(q.Title) : "The home page">
+			<cfset sites[key].posts[post] = (sites[key].posts[post] ?: 0) + val(q.Visits)>
+		</cfif>
+	</cfloop>
+
+	<cfloop collection="#sites#" item="key">
+		<cfset site = sites[key]>
+		<cfset post = "">
+		<cfloop collection="#site.posts#" item="host">
+			<cfif not len(post) or site.posts[host] gt site.posts[post]><cfset post = host></cfif>
+		</cfloop>
+		<!--- Quoted keys keep their case on Adobe ColdFusion; dates as yyyy-mm-dd so they sort. --->
+		<cfset arrayAppend(rows, {
+			"site": site.site,
+			"type": site.type,
+			"people": structCount(site.people),
+			"visits": site.visits,
+			"first": dateFormat(site.first, "yyyy-mm-dd"),
+			"last": dateFormat(site.last, "yyyy-mm-dd"),
+			"topPost": post,
+			"address": site.address
+		})>
+	</cfloop>
+	<cfset arraySort(rows, function (a, b) { return b.people neq a.people ? b.people - a.people : b.visits - a.visits; })>
+	<cfloop collection="#typePeople#" item="key"><cfset types[key] = structCount(typePeople[key])></cfloop>
+
+	<cfset result = { "rows": rows, "types": types, "days": int(arguments.days) }>
+	<cfif not oneVisitor><cfset application[cacheKey] = { made = now(), data = result }></cfif>
 	<cfreturn result>
 </cffunction>
 

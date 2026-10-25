@@ -28,6 +28,12 @@ last 7 days, as the card counts them. --->
 	<cfset getUrl = getUrl & '&peopleOnly=1&sinceDays=7'>
 	<cfset pageTitle = "Visitors this week (bots left out)">
 </cfif>
+<!--- From the Traffic Sources window (2026-10-25): createAdminInterfaceWindow(48, 'from:google.com:30') shows the visits people
+made from one site in the last 30 days (0 is everything in the log), bots left out, as Traffic Sources counts them. --->
+<cfif structKeyExists(URL, "optArgs") and reFind("^from:[a-z0-9][a-z0-9.-]*:(7|30|90|0)$", URL.optArgs)>
+	<cfset getUrl = getUrl & '&peopleOnly=1&referrerHost=' & listGetAt(URL.optArgs, 2, ":") & (listLast(URL.optArgs, ":") gt 0 ? '&sinceDays=' & listLast(URL.optArgs, ":") : '')>
+	<cfset pageTitle = "Visits from " & listGetAt(URL.optArgs, 2, ":") & (listLast(URL.optArgs, ":") gt 0 ? ", the last " & listLast(URL.optArgs, ":") & " days" : "") & " (bots left out)">
+</cfif>
 <cfset getUrl = getUrl & '&csrfToken=' & csrfToken>
 </cfsilent>
 <html>

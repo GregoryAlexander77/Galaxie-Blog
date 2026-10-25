@@ -1221,6 +1221,15 @@ admin/adminInterface/scenes.cfm, sceneDetail.cfm and common/cfc/Scenes.cfc. --->
 <cfcase value=116>
 	<cfinclude template="../../admin/adminInterface/shopPageDetail.cfm">
 </cfcase>
+<!--- 117 Traffic Sources (2026-10-25, owner): the sites people came from, from the visitor log. optArgs is the days (7, 30, 90 or 0
+for everything in the log). A site opens the Visitor Log (48) with its visits. --->
+<cfcase value=117>
+	<cfif application.kendoCommercial>
+		<cfinclude template="../grids/kendo/trafficSources.cfm">
+	<cfelse>
+		<cfinclude template="../grids/jsGrid/trafficSources.cfm">
+	</cfif>
+</cfcase>
 <!--- 110 Themes (5.0): pick the theme in use, customize a theme with a live preview, the site's pictures, content and custom code.
 See admin/adminInterface/themeEditor.cfm. The old Themes grid (29) and settings (30) stay for the settings not moved yet. --->
 <cfcase value=110>
