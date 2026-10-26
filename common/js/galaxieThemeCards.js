@@ -38,10 +38,20 @@
 	function fontCss(name, type) { return name ? "'" + String(name).replace(/'/g, "") + "'" + (type ? ", " + type : "") : "inherit"; }
 	function img(path, base) { return path ? (/^(https?:)?\/\//.test(path) || (base && path.indexOf(base + "/") === 0) ? path : (base || "") + path) : ""; }
 
+	// The content width the blog itself shows on this window (includes/templates/responsiveJs.cfm getContentWidthPercent, 2026-10-26,
+	// owner: the cards' content looked far smaller than the real site). A theme's ContentWidth is aimed at 1700 pixel screens; the blog
+	// widens it on narrower ones (+20 at 1500, +30 at 1280...), up to 95%.
+	function shownWidth(w) {
+		if (w > 70) { return w; }
+		var s = window.innerWidth || 1600;
+		var add = s < 980 ? 40 : s <= 1140 ? 35 : s <= 1280 ? 30 : s <= 1400 ? 25 : s <= 1500 ? 20 : s <= 1600 ? 10 : s <= 1700 ? 0 : s <= 1920 ? -5 : -10;
+		return Math.min(95, w + add);
+	}
+
 	function picture(t, options) {
 		var o = options || {};
 		addStyles();
-		var width = Math.max(40, Math.min(100, parseInt(t.ContentWidth, 10) || 60)), classic = String(t.Breakpoint) !== "0";
+		var width = shownWidth(Math.max(40, Math.min(100, parseInt(t.ContentWidth, 10) || 60))), classic = String(t.Breakpoint) !== "0";
 		if (classic) { width = Math.max(width, 80); }
 		var left = (100 - width) / 2, opacity = Math.max(0.5, Math.min(1, (parseInt(t.SiteOpacity, 10) || 99) / 100));
 		var pic = $('<div class="themeCardPicture"></div>').toggleClass("dark", bool(t.Dark)).css({
