@@ -251,7 +251,7 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 			<cfif q.recordCount>
 				<cfset item = { total: 0, newest: 0 }>
 				<cfloop query="q"><cfset item.total = item.total + val(q.N)><cfset item.newest = max(item.newest, val(q.Newest))></cfloop>
-				<cfset arrayAppend(list, { kind: "signups", label: "See " & item.total & (item.total eq 1 ? " new answer" : " new answers"),
+				<cfset arrayAppend(list, { kind: "signups", label: item.total eq 1 ? "One new contact" : item.total & " new contacts",
 					detail: q.recordCount eq 1 ? left(q.Title, 50) & ", this week" : "In " & q.recordCount & " forms, this week",
 					count: item.total, link: q.recordCount eq 1 ? "javascript:createAdminInterfaceWindow(85, " & q.WebFormId & ");" : linkOf("Forms"),
 					signature: item.total & "-" & item.newest })>
