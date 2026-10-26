@@ -529,6 +529,7 @@ $(function () {
 		previewView = pick; loadPreview();
 	}
 	function previewForStep(index) {
+		previewStep = index;
 		if (index === 4) {
 			var views = [];
 			if ($("#starterWelcome").is(":checked")) { views.push(["welcome", "Welcome post"]); }
@@ -540,6 +541,8 @@ $(function () {
 			setPreviewSwitch([], "site");
 		} else {
 			$("#previewSwitch").empty();
+			// From a sample-post screen to Done (the real site), or back.
+			if ((index < 4) !== sampleShown) { loadPreview(); }
 		}
 	}
 	function applyLogo() {
@@ -568,7 +571,32 @@ $(function () {
 				: '<span style="display:inline-block">' + logoHtml(30) + '</span>';
 		}
 	}
-	frame.addEventListener("load", function () { $("#previewLoading").hide(); applyLogo(); });
+	frame.addEventListener("load", function () { $("#previewLoading").hide(); sampleShown = previewView === "site" && previewStep < 4; if (sampleShown) { samplePost(); } applyLogo(); });
+	// The first screens show the site with a sample post (2026-10-26, owner: "prettier" than a new site's own front page, which may be
+	// an About page and a contact form): the real page in the picked theme, its main column swapped for a Latin post in the blog's own
+	// post markup, so the theme's fonts, colors and boxes draw it. Only in the preview; nothing is made.
+	var previewStep = 0, sampleShown = false;
+	function samplePost() {
+		var doc;
+		try { doc = frame.contentDocument; } catch (e) { return; }
+		var main = doc && doc.getElementById("blogContent");
+		if (!main) { return; }
+		var now = new Date(), month = now.toLocaleString("en-US", { month: "short" }), day = now.getDate();
+		var who = esc($.trim(($("#aboutFirst").val() || "") + " " + ($("#aboutLast").val() || "")) || "You");
+		main.innerHTML = '<article><div class="blogPost widget k-content"><span class="innerContentContainer">'
+			+ '<h1 class="topContent">Lorem ipsum dolor sit amet</h1>'
+			+ '<table cellpadding="0" cellspacing="0"><tr><td style="vertical-align: top"><p class="postDate"><span class="month">' + month + '</span><span class="day k-alt">' + day + '</span></p></td><td width="20"></td><td></td></tr></table>'
+			+ '<p class="postAuthor"><span class="info">by ' + who + '</span></p>'
+			+ '<span class="postContent">'
+			+ '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>'
+			+ '<p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>'
+			+ '<h2>Sed ut perspiciatis</h2>'
+			+ '<p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>'
+			+ '<blockquote><p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p></blockquote>'
+			+ '<ul><li>Neque porro quisquam est</li><li>Qui dolorem ipsum quia dolor sit amet</li><li>Consectetur, adipisci velit</li></ul>'
+			+ '<p>Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur.</p>'
+			+ '</span></span></div></article>';
+	}
 	$("#toggleMobile").on("click", function (e) {
 		e.preventDefault();
 		var mobile = !$("#previewStage").hasClass("mobile");
