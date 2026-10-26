@@ -502,6 +502,9 @@ $(function () {
 			row("Style", choice("HeaderStyle", [["picture", "The header picture"], ["color", "A solid color"]], function (v) { showHeaderStyle(v); }));
 			row("Picture", pictures("HeaderBackgroundImage", true), "", "themeLookHeaderPicture");
 			row("Color", colour("HeaderBackgroundColor", false), "For a dark color, make the site name white (Fonts): the menu uses that color too.", "themeLookHeaderColor");
+			// Back to a picture with a light site name (2026-10-26): many shipped themes have a pale name for their solid header, which
+			// would barely show on a light header picture.
+			row("", $('<span class="k-form-hint"></span>').text("Your site name is a light color, made for a dark header. If this picture is light, pick a darker name color in Fonts (the menu uses it too)."), "", "themeLookHeaderNameWarn");
 			row("Divider", pictures("HeaderBodyDividerImage", true), "The line under the header.");
 			row("", checkbox("StretchHeaderAcrossPage", "Stretch the header across the page"));
 			heading("Menu");
@@ -516,6 +519,11 @@ $(function () {
 	function showHeaderStyle(style) {
 		$(".themeLookHeaderPicture").toggle(style !== "color");
 		$(".themeLookHeaderColor").toggle(style === "color");
+		$(".themeLookHeaderNameWarn").toggle(style !== "color" && lightColour(current.BlogNameTextColor));
+	}
+	function lightColour(c) {
+		var m = /^#([0-9a-f]{6})$/i.exec(c || ""), n = m ? parseInt(m[1], 16) : 0;
+		return !!m && (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) > 200;
 	}
 	$("#themeLookSave").on("click", function () {
 		var button = $(this).prop("disabled", true);

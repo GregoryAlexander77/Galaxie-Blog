@@ -41,7 +41,8 @@ A failure is logged and skipped: the themes then simply keep their header pictur
 }>
 <!--- Abstract Blue (the theme a new install starts on) keeps its header picture, and starts with the orange-flame hex mark (owner,
 2026-10-26: tech-hex-flame recolored with the coffee cup's orange) beside its site name. --->
-<cfset shippedLogos = { "Abstract Blue" = "tech-hex-flame-orange" }>
+<!--- Delicate Arch, Golden Gate and Joshua Tree also keep their header pictures and start with a mark (owner, 2026-10-26). --->
+<cfset shippedLogos = { "Abstract Blue" = "tech-hex-flame-orange", "Delicate Arch" = "personal-camera", "Golden Gate" = "personal-aperture", "Joshua Tree" = "outdoors-sprout" }>
 <cfset shippedHeadersSet = 0>
 <cftry>
 	<cfset shippedHeaderEvents = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.Events" : "common.cfc.Events")>

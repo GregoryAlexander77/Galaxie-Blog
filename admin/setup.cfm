@@ -644,7 +644,7 @@ $(function () {
 				.append($('<div class="themeName"></div>').append($("<span>").text(t.name)).append('<span class="tick">&#10003;</span>'));
 			if (data) { card.append($('<div class="themeFonts"></div>').append(GalaxieThemeCards.fontsLine(data))); }
 			card.on("click", function () {
-				state.theme = t.alias; dirty.look = true;
+				state.theme = t.alias; dirty.look = true; followThemeMark();
 				if (!state.colourPicked) { state.colour = state.sampleColour = themeColour(); syncColours(); }
 				$("#themeGrid .themeCard").attr("aria-pressed", "false"); card.attr("aria-pressed", "true");
 				loadPreview(); drawLogos();
@@ -707,15 +707,31 @@ $(function () {
 	$("#sampleColour").kendoColorPicker({ palette: palette, columns: 10, value: state.sampleColour, change: colourChange("sampleColour") });
 	function syncColours() { $("#logoColour").data("kendoColorPicker").value(state.colour); $("#sampleColour").data("kendoColorPicker").value(state.sampleColour); }
 	// The three ways, as buttons (Kendo UI Core has no ButtonGroup); the one chosen is the primary button.
+	function showWay(w) {
+		state.way = w;
+		$("#logoWays button").each(function () { var on = $(this).attr("data-way") === w; $(this).toggleClass("k-primary", on).attr("aria-pressed", on ? "true" : "false"); });
+		$(".wayPanel").removeClass("on"); $("#way" + { name: "Name", sample: "Sample", upload: "Upload" }[w]).addClass("on");
+	}
 	$.each([["name", "Your name as a logo"], ["sample", "Sample logos"], ["upload", "Upload your own"]], function (i, way) {
-		$("#logoWays").append($('<button type="button" class="k-button"></button>').toggleClass("k-primary", i === 0).attr("aria-pressed", i === 0 ? "true" : "false").text(way[1]).on("click", function () {
-			state.way = way[0];
-			$("#logoWays button").removeClass("k-primary").attr("aria-pressed", "false");
-			$(this).addClass("k-primary").attr("aria-pressed", "true");
-			$(".wayPanel").removeClass("on"); $("#way" + { name: "Name", sample: "Sample", upload: "Upload" }[state.way]).addClass("on");
-			drawLogos(); applyLogo();
+		$("#logoWays").append($('<button type="button" class="k-button"></button>').attr("data-way", way[0]).text(way[1]).on("click", function () {
+			showWay(way[0]); drawLogos(); applyLogo();
 		}));
 	});
+	// The logo screen starts on the picked theme's own mark (2026-10-26, owner): a new install's themes each start with a sample mark
+	// (images/logo/themes, installer/shippedHeaders.cfm), so the screen opens on Sample logos with that mark picked - what the site
+	// already shows - and follows the theme picked on the Look screen until a logo is chosen here. Otherwise it opens on the name.
+	function themeMark() {
+		var m = /\/images\/logo\/themes\/([\w-]+)\.svg$/i.exec((themeCards[state.theme] || {}).LogoImage || "");
+		if (!m) { return -1; }
+		for (var i = 0; i < marks.length; i++) { if (marks[i].src && marks[i].src.slice(-(m[1].length + 6)) === "/" + m[1] + ".webp") { return i; } }
+		return -1;
+	}
+	function followThemeMark() {
+		if (dirty.logo) { return; }
+		var i = themeMark();
+		if (i >= 0) { state.sample = i; sampleCat = marks[i].cat; showWay("sample"); } else { showWay("name"); }
+	}
+	followThemeMark();
 	<!--- The upload buttons (labels for hidden file boxes): open with Enter or Space too, and show the chosen file's name. --->
 	$(".uploadButton").on("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#" + $(this).attr("for")).trigger("click"); } });
 	$(".hiddenFile").on("change", function () { $('.fileName[data-for="' + this.id + '"]').text(this.files && this.files[0] ? this.files[0].name : ""); });
