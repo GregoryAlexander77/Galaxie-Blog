@@ -254,7 +254,7 @@ takes the same options and events. --->
 		</div>
 	</div>
 	<div id="stepLook">
-		<div class="block k-content"><p class="lead">Pick how your site looks. You can change it any time.</p></div>
+		<div class="block k-content"><p class="lead">Pick how your site looks. You can change it any time in Themes on the administration page, where you can also adjust a theme's colors, fonts and pictures.</p></div>
 		<div class="block k-alt">
 			<div class="chips" id="themeFilter">
 				<span>Show:</span>
