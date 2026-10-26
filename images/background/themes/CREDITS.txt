@@ -1,0 +1,23 @@
+Theme backgrounds - credits (2026-10-25)
+=========================================
+
+AI-generated images. These theme backgrounds were made new with Google Gemini in Adobe Firefly for Galaxie Blog (2026), from
+written descriptions; they replaced stock photos that could not be shared. The photo-like ones show real places but are
+AI-generated images, not photographs:
+
+  delicateArchLowRes*    Delicate Arch, Arches National Park, Utah - AI-generated image
+  cumberlandFallsLowRes* Cumberland Falls, Kentucky - AI-generated image
+  goldenGate*            Golden Gate Bridge, San Francisco - AI-generated image
+  joshua2*               Joshua Tree National Park, California - AI-generated image
+  portofinoLowRes*       Portofino, Italy - AI-generated image
+  redwoodDrive*          Avenue of the Giants redwoods, California - AI-generated image
+  antelopCanyon*         Slot canyon in the style of Antelope Canyon, Arizona - AI-generated image
+  woodCreek*             A Pacific Northwest forest creek - AI-generated image
+  onTheRoad*             A mountain pass road - AI-generated image
+  ranchLowRes*           A Kentucky horse-farm lane - AI-generated image
+  waveLowRes*            Inside an ocean wave - AI-generated image
+  blueWaveLowRes*        Over-under ocean view - AI-generated image
+  sunrise*               Sunrise over the sea - AI-generated image
+  chrome*                A futuristic tunnel - AI-generated image
+  silver*, spectrum*, abstractRed*, bootstrapTheme*, flair*, ice*   Abstract designs - AI-generated images
+
