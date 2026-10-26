@@ -13942,6 +13942,7 @@
 		<cfargument name="logo" type="string" default="" required="false">
 		<cfargument name="social" type="string" default="" required="false">
 		<cfargument name="hasName" type="string" default="true" required="false">
+		<cfargument name="themeName" type="string" default="false" required="false" hint="The logo leaves the site name to the theme (2026-10-26; Setup.cfc saveLogo).">
 		<cfargument name="firstName" type="string" default="" required="false">
 		<cfargument name="lastName" type="string" default="" required="false">
 		<cfargument name="biography" type="string" default="" required="false">
@@ -13978,7 +13979,8 @@
 					<cfcase value="testEmail"><cfset setup.sendTestEmail(arguments.email)></cfcase>
 					<cfcase value="look"><cfset setup.saveLook(arguments.themeAlias)></cfcase>
 					<cfcase value="logo">
-						<cfset result = setup.saveLogo(arguments.logo, arguments.social, isBoolean(arguments.hasName) and arguments.hasName, arguments.footerMode, arguments.footerLogo)>
+						<cfset result = setup.saveLogo(arguments.logo, arguments.social, isBoolean(arguments.hasName) and arguments.hasName, arguments.footerMode, arguments.footerLogo,
+							isBoolean(arguments.themeName) and arguments.themeName)>
 						<cfset response[ "logo" ] = result.logo>
 					</cfcase>
 					<cfcase value="about">

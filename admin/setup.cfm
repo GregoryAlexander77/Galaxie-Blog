@@ -441,6 +441,18 @@ $(function () {
 		return fonts[0];
 	}
 	function lightHeader(t) { return /white|ice/i.test(t.header); }
+	// The picked theme's site name color (2026-10-26, owner: "first impressions count"): the logo starts in the theme's own font
+	// AND color, and follows the theme as it changes until a color is picked by hand.
+	function themeColour() {
+		var c = (themeCards[state.theme] || {}).BlogNameTextColor || "";
+		return /^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : (lightHeader(currentTheme()) ? "#1f2328" : "#ffffff");
+	}
+	// Whether the saved logo can leave the name to the theme: the theme's font and color, not picked by hand. Then the header shows
+	// the theme's own site name (in whatever theme is picked later) instead of a picture with the name drawn in.
+	function followsTheme() {
+		return !state.colourPicked && (state.way === "sample" || (state.way === "name" && !!fonts[state.font].fromTheme));
+	}
+	state.colour = state.sampleColour = themeColour();
 	function initial() { return esc((state.name || "?").trim().charAt(0).toUpperCase()); }
 	// A mark's own SVG markup (inner shapes, in a 48 x 48 box), with the letter or cut-out in a shade that shows on its color.
 	function markInner(m) {
@@ -455,8 +467,9 @@ $(function () {
 	function logoHtml(size) {
 		if (state.way === "upload") { return state.upload ? '<img src="' + state.upload + '" alt="" style="max-height:' + size * 1.8 + 'px;max-width:320px;display:block">' : ""; }
 		if (state.way === "sample") {
+			var tf = themeFont();
 			return '<span style="display:inline-flex;align-items:center;gap:' + size * .35 + 'px;color:' + state.sampleColour + '">' + markHtml(marks[state.sample], size * 1.5)
-				+ '<span style="font-family:\'Montserrat Bold\',sans-serif;font-size:' + size + 'px;line-height:1">' + esc(state.name) + '</span></span>';
+				+ '<span style="font-family:\'' + tf.font + '\',sans-serif;font-size:' + size + 'px;line-height:1">' + esc(state.name) + '</span></span>';
 		}
 		themeFont();
 		var f = fonts[state.font];
@@ -538,7 +551,8 @@ $(function () {
 		var html = logoHtml(30);
 		Array.prototype.forEach.call(doc.querySelectorAll("#logo"), function (cell) {
 			var link = cell.querySelector("a");
-			if (!link) { return; }
+			// A header with no logo picture (the name left to the theme, 2026-10-26) has no link to fill: add an empty one.
+			if (!link) { link = doc.createElement("a"); link.setAttribute("data-original", ""); cell.appendChild(link); }
 			if (!link.hasAttribute("data-original")) { link.setAttribute("data-original", link.innerHTML); }
 			link.innerHTML = html ? '<span style="display:inline-block;padding:6px 10px">' + html + '</span>' : link.getAttribute("data-original");
 		});
@@ -600,7 +614,7 @@ $(function () {
 			if (data) { card.append($('<div class="themeFonts"></div>').append(GalaxieThemeCards.fontsLine(data))); }
 			card.on("click", function () {
 				state.theme = t.alias; dirty.look = true;
-				if (!state.colourPicked) { state.colour = state.sampleColour = lightHeader(t) ? "#1f2328" : "#ffffff"; syncColours(); }
+				if (!state.colourPicked) { state.colour = state.sampleColour = themeColour(); syncColours(); }
 				$("#themeGrid .themeCard").attr("aria-pressed", "false"); card.attr("aria-pressed", "true");
 				loadPreview(); drawLogos();
 			});
@@ -722,19 +736,24 @@ $(function () {
 			if (!state.upload) { return Promise.reject("Please choose a picture, or pick one of the other two ways."); }
 			return Promise.resolve({ logo: state.upload, hasName: false });
 		}
+		var follow = followsTheme();
 		if (state.way === "sample") {
-			var m = marks[state.sample], size = 40, markSize = 60, gap = 14;
-			return document.fonts.load(size + 'px "Montserrat Bold"').then(function () {
-				return Promise.all([fontFace("Montserrat Bold", markFontFile), m.src ? dataUrlOf(m.src) : Promise.resolve("")]);
+			var m = marks[state.sample], tf = themeFont(), size = 40, markSize = 60, gap = 14;
+			return document.fonts.load(size + 'px "' + tf.font + '"').then(function () {
+				return Promise.all([fontFace(tf.font, tf.file), m.src ? dataUrlOf(m.src) : Promise.resolve("")]);
 			}).then(function (got) {
-				var textW = measure(name, "Montserrat Bold", size, 0), w = markSize + gap + textW + 8, h = 80;
+				var textW = measure(name, tf.font, size, 0), w = markSize + gap + textW + 8, h = 80;
 				var mark = m.src ? '<image x="2" y="10" width="' + markSize + '" height="' + markSize + '" href="' + got[1] + '"/>'
 					: m.fileSvg ? m.fileSvg.replace(/<svg\b([^>]*)>/i, function (all, attrs) { return '<svg' + attrs.replace(/\s(width|height|x|y)="[^"]*"/gi, "") + ' x="2" y="10" width="' + markSize + '" height="' + markSize + '">'; })
 					: '<svg x="2" y="10" width="' + markSize + '" height="' + markSize + '" viewBox="0 0 48 48">' + markInner(m) + '</svg>';
+				var whole = svgDataUrl('<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" color="' + state.sampleColour + '"><style>' + got[0] + '</style>'
+					+ mark + '<text x="' + (markSize + gap + 2) + '" y="54" font-family="' + tf.font + ', sans-serif" font-size="' + size + '" fill="' + state.sampleColour + '">' + esc(name) + '</text></svg>');
+				if (!follow) { return { logo: whole, hasName: true }; }
+				// Only the mark (64 pixels, beside the theme's own site name); the whole logo is kept for the social media picture.
 				return {
-					logo: svgDataUrl('<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" color="' + state.sampleColour + '"><style>' + got[0] + '</style>'
-						+ mark + '<text x="' + (markSize + gap + 2) + '" y="54" font-family="Montserrat Bold, sans-serif" font-size="' + size + '" fill="' + state.sampleColour + '">' + esc(name) + '</text></svg>'),
-					hasName: true
+					logo: svgDataUrl('<svg xmlns="http://www.w3.org/2000/svg" width="68" height="64" viewBox="0 0 68 64" color="' + state.sampleColour + '">'
+						+ mark.replace(/x="2" y="10" width="60" height="60"/, 'x="2" y="2" width="60" height="60"') + '</svg>'),
+					social: whole, hasName: true, themeName: true
 				};
 			});
 		}
@@ -742,12 +761,11 @@ $(function () {
 		var f = fonts[state.font], text = f.upper ? name.toUpperCase() : name, fsize = 44;
 		return document.fonts.load(fsize + 'px "' + f.font + '"').then(function () { return fontFace(f.font, f.file); }).then(function (face) {
 			var w = measure(text, f.font, fsize, f.spacing) + 16, h = 80;
-			return {
-				logo: svgDataUrl('<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><style>' + face + '</style>'
-					+ '<text x="8" y="56" font-family="' + f.font + ', serif" font-size="' + fsize + '"' + (f.spacing ? ' letter-spacing="' + (f.spacing * fsize).toFixed(1) + '"' : '')
-					+ ' fill="' + state.colour + '">' + esc(text) + '</text></svg>'),
-				hasName: true
-			};
+			var whole = svgDataUrl('<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><style>' + face + '</style>'
+				+ '<text x="8" y="56" font-family="' + f.font + ', serif" font-size="' + fsize + '"' + (f.spacing ? ' letter-spacing="' + (f.spacing * fsize).toFixed(1) + '"' : '')
+				+ ' fill="' + state.colour + '">' + esc(text) + '</text></svg>');
+			// In the theme's font and color: no picture at all, the theme shows the site name itself.
+			return follow ? { logo: "", social: whole, hasName: true, themeName: true } : { logo: whole, hasName: true };
 		});
 	}
 	function socialPng(logoUrl) {
@@ -877,8 +895,8 @@ $(function () {
 		function () { return save("site", { title: $.trim($("#siteTitle").val()), description: $.trim($("#siteDescription").val()), email: $.trim($("#siteEmail").val()), timeZone: $("#siteTimeZone").data("kendoDropDownList").value() })
 			.then(function () { saved.title = $.trim($("#siteTitle").val()); }); },
 		function () { return save("look", { themeAlias: state.theme }); },
-		function () { return buildLogo().then(function (b) { return socialPng(b.logo).then(function (png) { if (state.footerMode === "upload" && !state.footerUpload) { return Promise.reject("Please choose a picture for the footer logo, or pick one of the other two choices."); }
-			return save("logo", { logo: b.logo, social: png, hasName: b.hasName, footerMode: state.footerMode, footerLogo: state.footerMode === "upload" ? state.footerUpload : "" }); }); })
+		function () { return buildLogo().then(function (b) { return socialPng(b.social || b.logo).then(function (png) { if (state.footerMode === "upload" && !state.footerUpload) { return Promise.reject("Please choose a picture for the footer logo, or pick one of the other two choices."); }
+			return save("logo", { logo: b.logo, social: png, hasName: b.hasName, themeName: b.themeName ? true : false, footerMode: state.footerMode, footerLogo: state.footerMode === "upload" ? state.footerUpload : "" }); }); })
 			.then(function () { previewLogo = false; }); },
 		function () { return save("about", { firstName: $.trim($("#aboutFirst").val()), lastName: $.trim($("#aboutLast").val()), biography: $("#aboutBio").val(), aboutSite: $("#aboutSite").val(),
 			facebookUrl: $.trim($("#aboutFacebook").val()), instagramUrl: $.trim($("#aboutInstagram").val()), linkedInUrl: $.trim($("#aboutLinkedIn").val()), twitterUrl: $.trim($("#aboutTwitter").val()),

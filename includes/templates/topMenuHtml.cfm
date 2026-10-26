@@ -29,8 +29,9 @@
 		<table id="topWrapper" name="topWrapper" cellpadding="0" cellspacing="0" border="0" align="<cfoutput>#topMenuAlign#</cfoutput>" valign="bottom">
 			<tr valign="middle">
 				<td id="logo" name="logo" valign="middle" width="<cfoutput>#logoMobileWidth#</cfoutput>">
-					<!--- Link the logo to the parent site if it exists, otherwise, link to the blog --->
-					<cfoutput><a href="#logoLink#" aria-label="#logoAriaLabel#"><img src="#logoSourcePath#" style="padding-left: #logoPaddingLeft#px;" align="left" valign="center" alt="Header Logo" /></a></cfoutput>
+					<!--- Link the logo to the parent site if it exists, otherwise, link to the blog. No logo picture (2026-10-26: the Site
+					Wizard's "your theme's font" name logo leaves the name to the theme): no picture, only the site name beside it. --->
+					<cfif len(trim(logoSourcePath))><cfoutput><a href="#logoLink#" aria-label="#logoAriaLabel#"><img src="#logoSourcePath#" style="padding-left: #logoPaddingLeft#px;" align="left" valign="center" alt="Header Logo" /></a></cfoutput></cfif>
 				</td>
 				<td id="blogNameContainer">
 					<!-- The blog name may not always be displayed. The blog name maybe in the logo for example. -->
@@ -67,8 +68,8 @@
 			<tr height="50px;" valign="bottom">
 				<!-- Give sufficient room for a logo. This row will bleed into the next row (rowspan="2") -->
 				<td id="logo" name="logo"  valign="middle" rowspan="2">
-					<!--- Link the logo to the parent site if it exists, otherwise, link to the blog --->
-					<cfoutput><a href="#logoLink#" aria-label="#logoAriaLabel#"><img src="#logoSourcePath#" style="padding-left: #logoPaddingLeft#px;" align="left" valign="center" alt="Header Logo" /></a></cfoutput>
+					<!--- Link the logo to the parent site if it exists, otherwise, link to the blog. No logo picture: see the mobile header above. --->
+					<cfif len(trim(logoSourcePath))><cfoutput><a href="#logoLink#" aria-label="#logoAriaLabel#"><img src="#logoSourcePath#" style="padding-left: #logoPaddingLeft#px;" align="left" valign="center" alt="Header Logo" /></a></cfoutput></cfif>
 				</td>
 				<td id="blogNameContainer">
 					<!-- The blog name may not always be displayed. The blog name maybe in the logo for example. -->
