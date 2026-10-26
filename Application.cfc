@@ -1461,6 +1461,14 @@
 			<cfif isDefined("application.serverSupportsWebP") and not arguments.reset>
 				<cfset webp = application.serverSupportsWebP>
 			<cfelse>
+			<!--- Saved in blog.ini.cfm after the first check (2026-10-26, owner: "can't that only be called during install?"): a server's
+			file types don't change on their own, so later starts and reinits read the saved answer and never call the site. To check
+			again after changing them, reinit with &recheckServer=1. --->
+			<cfset local.savedAnswer = "">
+			<cftry><cfset local.savedAnswer = getProfileString(getBlogIniPath(), "default", "serverSupportsWebP")><cfcatch type="any"></cfcatch></cftry>
+			<cfif isBoolean(local.savedAnswer) and not isDefined("url.recheckServer")>
+				<cfset webp = local.savedAnswer>
+			<cfelse>
 			<cftry>
 				<cfif CGI.Server_Port eq '443'>
 					<cfset thisUrl = application.blogHostUrl>
@@ -1485,6 +1493,8 @@
 					<cfset webp = true>	
 				</cfcatch>
 			</cftry>
+				<cftry><cfset setProfileString(getBlogIniPath(), "default", "serverSupportsWebP", webp)><cfcatch type="any"></cfcatch></cftry>
+			</cfif>
 				<cfset application.serverSupportsWebP = webp>
 			</cfif>
 			</cflock>
@@ -1533,6 +1543,14 @@
 			<cfif isDefined("application.serverSupportsWoff2") and not arguments.reset>
 				<cfset woff2 = application.serverSupportsWoff2>
 			<cfelse>
+			<!--- Saved in blog.ini.cfm after the first check (2026-10-26, owner: "can't that only be called during install?"): a server's
+			file types don't change on their own, so later starts and reinits read the saved answer and never call the site. To check
+			again after changing them, reinit with &recheckServer=1. --->
+			<cfset local.savedAnswer = "">
+			<cftry><cfset local.savedAnswer = getProfileString(getBlogIniPath(), "default", "serverSupportsWoff2")><cfcatch type="any"></cfcatch></cftry>
+			<cfif isBoolean(local.savedAnswer) and not isDefined("url.recheckServer")>
+				<cfset woff2 = local.savedAnswer>
+			<cfelse>
 			<cftry>
 				<!--- Try to get a known font --->
 				<cfhttp method="get" URL="#getBaseUrl()#/common/fonts/eras-demi.woff2" timeout="5">
@@ -1547,6 +1565,8 @@
 					<cfset woff2 = false>	
 				</cfcatch>
 			</cftry>
+				<cftry><cfset setProfileString(getBlogIniPath(), "default", "serverSupportsWoff2", woff2)><cfcatch type="any"></cfcatch></cftry>
+			</cfif>
 					
 				<cfset application.serverSupportsWoff2 = woff2>
 			</cfif>
