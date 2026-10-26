@@ -472,7 +472,9 @@ $(function () {
 	var previewView = "site";
 	function addQuery(url, query) { return url + (url.indexOf("?") >= 0 ? "&" : "?") + query; }
 	function previewUrl() {
-		var q = "theme=" + encodeURIComponent(state.theme) + "&setupPreview=" + Date.now();
+		// previewTheme, not theme (2026-10-26): ?theme= is only used when no theme is selected, and a new install selects one, so the
+		// preview always showed the selected theme. previewTheme (the Themes window's preview) wins for a signed-in owner and skips the page caches.
+		var q = "previewTheme=" + encodeURIComponent(state.theme) + "&setupPreview=" + Date.now();
 		if (previewView === "home") { return addQuery(baseUrl + "/index.cfm", q + "&previewHome=" + encodeURIComponent(homeLayout())); }
 		if (previewView === "post") { return addQuery(saved.welcomeUrl || saved.aboutUrl || (baseUrl + "/index.cfm"), q + "&previewHeroStyle=" + encodeURIComponent(state.heroStyle)); }
 		if (previewView === "welcome" && saved.welcomeUrl) { return addQuery(saved.welcomeUrl, q); }
