@@ -568,6 +568,7 @@ $(function () {
 			if (!mine) { mine = doc.createElement("div"); mine.setAttribute("data-setup", "footerLogo"); mine.style.cssText = "text-align:center;padding:10px 0"; foot.insertBefore(mine, foot.firstChild); }
 			mine.innerHTML = state.footerMode === "none" ? "" : state.footerMode === "upload"
 				? (state.footerUpload ? '<img data-setup="1" src="' + state.footerUpload + '" alt="" style="max-width:min(300px,100%);height:auto;display:inline-block">' : "")
+				: followsTheme() ? (state.way === "sample" ? markHtml(marks[state.sample], 96) : "")
 				: '<span style="display:inline-block">' + logoHtml(30) + '</span>';
 		}
 	}

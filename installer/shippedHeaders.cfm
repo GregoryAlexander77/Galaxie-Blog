@@ -4,7 +4,8 @@ in, so only a NEW install gets them; an upgraded blog's themes stay as they were
 26 of the 30 built-in themes start with a solid header (Themes > Customize > Header > Style: A solid color) in a deep color taken
 from the theme's own picture, chosen to go with its Kendo buttons, and a site name color to suit (the menu text uses it too). Each
 also starts with its own sample logo mark (images/logo/themes, 48 pixels, made from images/logo/samples) beside the theme's site
-name, until the owner picks a logo in the Site Wizard (which then goes on every theme).
+name, and the same mark at twice the size in the footer (footer.cfm siteFooterMark), until the owner picks a logo in the Site
+Wizard (which then goes on every theme).
 Delicate Arch, Golden Gate, Joshua Tree and Abstract Blue keep their header pictures. Mock-up: test/headerColorIdeas.html.
 
 The header style is kept in the blog's settings (Events setSetting, the same as ThemeEditor.setHeaderStyle). application.events
@@ -47,7 +48,7 @@ A failure is logged and skipped: the themes then simply keep their header pictur
 	<cfloop collection="#shippedHeaders#" item="shippedHeaderTheme">
 		<cfset shippedHeaderRows = ormExecuteQuery("SELECT t.ThemeId, t.ThemeSettingRef.ThemeSettingId FROM Theme t WHERE t.ThemeName = :name", { name = shippedHeaderTheme })>
 		<cfif arrayLen(shippedHeaderRows)>
-			<cfset ormExecuteQuery("UPDATE ThemeSetting SET HeaderBackgroundColor = :header, BlogNameTextColor = :nameColor, LogoImage = :logo, LogoImageMobile = :logo, DisplayBlogName = :showName WHERE ThemeSettingId = :id",
+			<cfset ormExecuteQuery("UPDATE ThemeSetting SET HeaderBackgroundColor = :header, BlogNameTextColor = :nameColor, LogoImage = :logo, LogoImageMobile = :logo, FooterImage = :logo, DisplayBlogName = :showName WHERE ThemeSettingId = :id",
 				{ header = shippedHeaders[shippedHeaderTheme][1], nameColor = shippedHeaders[shippedHeaderTheme][2], logo = "/images/logo/themes/" & shippedHeaders[shippedHeaderTheme][3] & ".svg", showName = true, id = shippedHeaderRows[1][2] })>
 			<cfset shippedHeaderEvents.setSetting(0, "themeHeaderStyle_" & shippedHeaderRows[1][1], "color")>
 			<cfset shippedHeadersSet++>
@@ -56,7 +57,7 @@ A failure is logged and skipped: the themes then simply keep their header pictur
 	<cfloop collection="#shippedLogos#" item="shippedHeaderTheme">
 		<cfset shippedHeaderRows = ormExecuteQuery("SELECT t.ThemeId, t.ThemeSettingRef.ThemeSettingId FROM Theme t WHERE t.ThemeName = :name", { name = shippedHeaderTheme })>
 		<cfif arrayLen(shippedHeaderRows)>
-			<cfset ormExecuteQuery("UPDATE ThemeSetting SET LogoImage = :logo, LogoImageMobile = :logo, DisplayBlogName = :showName WHERE ThemeSettingId = :id",
+			<cfset ormExecuteQuery("UPDATE ThemeSetting SET LogoImage = :logo, LogoImageMobile = :logo, FooterImage = :logo, DisplayBlogName = :showName WHERE ThemeSettingId = :id",
 				{ logo = "/images/logo/themes/" & shippedLogos[shippedHeaderTheme] & ".svg", showName = true, id = shippedHeaderRows[1][2] })>
 		</cfif>
 	</cfloop>

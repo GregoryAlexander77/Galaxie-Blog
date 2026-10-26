@@ -202,7 +202,8 @@
 	<cfset var hasPicture = not (arguments.themeName and not len(arguments.logo))>
 	<cfset var logoData = hasPicture ? decodeDataUrl(arguments.logo) : { ext = "", bytes = [] }>
 	<cfset var socialData = len(arguments.social) ? decodeDataUrl(arguments.social) : {}>
-	<cfset var logoFile = hasPicture ? "site-logo-" & stamp & "." & logoData.ext : "">
+	<!--- A mark beside the theme's name is named site-mark-*, so the footer shows it at twice its size (footer.cfm). --->
+	<cfset var logoFile = hasPicture ? (arguments.themeName ? "site-mark-" : "site-logo-") & stamp & "." & logoData.ext : "">
 	<cfset var logoPath = hasPicture ? "/images/logo/" & logoFile : "">
 	<cfset var socialFile = "">
 	<cfset var settings = "">

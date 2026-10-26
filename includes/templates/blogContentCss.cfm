@@ -1570,6 +1570,11 @@
 			max-width: min(300px, 100%);
 			height: auto;
 		}
+		<!--- A logo mark in the footer (2026-10-26, owner): twice its 48 pixel header size. Change the height here to resize it. --->
+		#footerInnerContainer img.siteFooterLogo.siteFooterMark {
+			height: 96px;
+			width: auto;
+		}
 		
 		<!--- Center the logo --->
 		#footerInnerContainer a {
