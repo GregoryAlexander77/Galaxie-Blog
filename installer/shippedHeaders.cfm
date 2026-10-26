@@ -38,6 +38,9 @@ A failure is logged and skipped: the themes then simply keep their header pictur
 	"Yellowstone" = ["##2a2f36", "##f4af03", "personal-phoenix"],
 	"Zion" = ["##6a2e1f", "##fbe9d7", "outdoors-sun-cloud"]
 }>
+<!--- Abstract Blue (the theme a new install starts on) keeps its header picture, and starts with the orange-flame hex mark (owner,
+2026-10-26: tech-hex-flame recolored with the coffee cup's orange) beside its site name. --->
+<cfset shippedLogos = { "Abstract Blue" = "tech-hex-flame-orange" }>
 <cfset shippedHeadersSet = 0>
 <cftry>
 	<cfset shippedHeaderEvents = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.Events" : "common.cfc.Events")>
@@ -48,6 +51,13 @@ A failure is logged and skipped: the themes then simply keep their header pictur
 				{ header = shippedHeaders[shippedHeaderTheme][1], nameColor = shippedHeaders[shippedHeaderTheme][2], logo = "/images/logo/themes/" & shippedHeaders[shippedHeaderTheme][3] & ".svg", showName = true, id = shippedHeaderRows[1][2] })>
 			<cfset shippedHeaderEvents.setSetting(0, "themeHeaderStyle_" & shippedHeaderRows[1][1], "color")>
 			<cfset shippedHeadersSet++>
+		</cfif>
+	</cfloop>
+	<cfloop collection="#shippedLogos#" item="shippedHeaderTheme">
+		<cfset shippedHeaderRows = ormExecuteQuery("SELECT t.ThemeId, t.ThemeSettingRef.ThemeSettingId FROM Theme t WHERE t.ThemeName = :name", { name = shippedHeaderTheme })>
+		<cfif arrayLen(shippedHeaderRows)>
+			<cfset ormExecuteQuery("UPDATE ThemeSetting SET LogoImage = :logo, LogoImageMobile = :logo, DisplayBlogName = :showName WHERE ThemeSettingId = :id",
+				{ logo = "/images/logo/themes/" & shippedLogos[shippedHeaderTheme] & ".svg", showName = true, id = shippedHeaderRows[1][2] })>
 		</cfif>
 	</cfloop>
 	<cfcatch type="any">
