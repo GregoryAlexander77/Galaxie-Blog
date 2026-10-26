@@ -1454,6 +1454,13 @@
 		<cfif isDefined("application.serverSupportsWebP") and not arguments.reset>
 			<cfset webp = application.serverSupportsWebP>
 		<cfelse>
+			<!--- One request checks at a time, with a timeout (2026-10-26): right after a restart every incoming request ran this self-request at once,
+			with no timeout, and under load they waited on each other (gregoryalexander.com hung after restarts; its log showed thousands of these
+			calls from the server's own address). The others wait for this answer; if the check fails, the format is assumed to work. --->
+			<cflock name="galaxieMimeCheck_webp_#this.name#" type="exclusive" timeout="10" throwontimeout="false">
+			<cfif isDefined("application.serverSupportsWebP") and not arguments.reset>
+				<cfset webp = application.serverSupportsWebP>
+			<cfelse>
 			<cftry>
 				<cfif CGI.Server_Port eq '443'>
 					<cfset thisUrl = application.blogHostUrl>
@@ -1463,18 +1470,24 @@
 				</cfif>
 				
 				<!--- The headerBodyDivider image is a tiny .webp image (around 1k). We are going to read this, and if it was found and the mime type is correct, we will assumed that the mime type is correct. Otherwise, we will determine that the server does not support the webp mime type. --->
-				<cfhttp method="get" URL="#trim(thisUrl)#/images/divider/headerBodyDivider.webp">
+				<cfhttp method="get" URL="#trim(thisUrl)#/images/divider/headerBodyDivider.webp" timeout="5">
 
 				<!--- Was the webp image found? --->
 				<cfif cfhttp.mimeType contains 'webp'>
 					<cfset webp = true>
-				<cfelse>
+				<cfelseif left(cfhttp.statusCode ?: "", 3) eq "200">
 					<cfset webp = false>
+					<cfelse>
+					<!--- No answer in time: the format is assumed to work. --->
+					<cfset webp = true>
 				</cfif>
 				<cfcatch type="any">
-					<cfset webp = false>	
+					<cfset webp = true>	
 				</cfcatch>
 			</cftry>
+				<cfset application.serverSupportsWebP = webp>
+			</cfif>
+			</cflock>
 		</cfif>
 
 		<!--- Return it. --->
@@ -1513,9 +1526,16 @@
 		<cfif isDefined("application.serverSupportsWoff2") and not arguments.reset>
 			<cfset woff2 = application.serverSupportsWoff2>
 		<cfelse>
+			<!--- One request checks at a time, with a timeout (2026-10-26): right after a restart every incoming request ran this self-request at once,
+			with no timeout, and under load they waited on each other (gregoryalexander.com hung after restarts; its log showed thousands of these
+			calls from the server's own address). The others wait for this answer; a failed check still means no woff2, as before. --->
+			<cflock name="galaxieMimeCheck_woff2_#this.name#" type="exclusive" timeout="10" throwontimeout="false">
+			<cfif isDefined("application.serverSupportsWoff2") and not arguments.reset>
+				<cfset woff2 = application.serverSupportsWoff2>
+			<cfelse>
 			<cftry>
 				<!--- Try to get a known font --->
-				<cfhttp method="get" URL="#getBaseUrl()#/common/fonts/eras-demi.woff2">
+				<cfhttp method="get" URL="#getBaseUrl()#/common/fonts/eras-demi.woff2" timeout="5">
 
 				<!--- Was the woff2 font found? --->
 				<cfif cfhttp.mimeType contains 'woff2'>
@@ -1528,6 +1548,9 @@
 				</cfcatch>
 			</cftry>
 					
+				<cfset application.serverSupportsWoff2 = woff2>
+			</cfif>
+			</cflock>
 		</cfif>
 					
 		<!--- Return it. --->
