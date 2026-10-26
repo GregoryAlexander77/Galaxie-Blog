@@ -10,7 +10,7 @@ AI-generated images, not photographs:
   goldenGate*            Golden Gate Bridge, San Francisco - AI-generated image
   joshua2*               Joshua Tree National Park, California - AI-generated image
   portofinoLowRes*       Portofino, Italy - AI-generated image
-  redwoodDrive*          Avenue of the Giants redwoods, California - AI-generated image
+  redwoodDrive*          A road through a redwood forest - AI-generated image
   antelopCanyon*         Slot canyon in the style of Antelope Canyon, Arizona - AI-generated image
   woodCreek*             A Pacific Northwest forest creek - AI-generated image
   onTheRoad*             A mountain pass road - AI-generated image
