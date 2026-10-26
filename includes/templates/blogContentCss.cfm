@@ -2192,6 +2192,31 @@
 		.kendo-warning-color {background-color: #<cfoutput>#warningColor#</cfoutput>; }
 		.kendo-success-color {background-color: #<cfoutput>#successColor#</cfoutput>; }
 		.kendo-info-color {background-color: #<cfoutput>#infoColor#</cfoutput>; }
+	<cfif len(headerSolidColor)>
+		<!--- A solid header color (5.0, 2026-10-25): only for a theme set to it in the Themes window (pageSettings.cfm), laid over the
+		header and menu picture rules above. The menu in the header is see-through so the header color shows behind it; the bar that
+		appears on scrolling down (#fixedNavMenu, otherwise Kendo's own menu color) takes the header color and the site name color. --->
+		.headerBackground, #fixedNavHeader, #fixedNavMenu.k-menu {
+			background: <cfoutput>#headerSolidColor#</cfoutput> none !important;
+		}
+		#fixedNavMenu.k-menu > .k-item > .k-link {
+			color: <cfoutput>#blogNameTextColor#</cfoutput> !important;
+		}
+		#topMenu, #topMenuPreview, .topMenu.k-menu,
+		.topMenu.k-menu > .k-item, .topMenu.k-menu > .k-item > .k-link, #fixedNavMenu.k-menu > .k-item {
+			background-color: transparent !important;
+			background-image: none !important;
+		}
+		.topMenu.k-menu > .k-item.k-state-hover, .topMenu.k-menu > .k-item.k-state-border-down,
+		#fixedNavMenu.k-menu > .k-item.k-state-hover, #fixedNavMenu.k-menu > .k-item.k-state-border-down {
+			background-color: rgba(127, 127, 127, .2) !important;
+			background-image: none !important;
+		}
+		<!--- Kendo greys a hovered or open item's text, which is lost on a dark color. --->
+		.topMenu.k-menu > .k-item.k-state-hover > .k-link, .topMenu.k-menu > .k-item.k-state-border-down > .k-link {
+			color: <cfoutput>#blogNameTextColor#</cfoutput> !important;
+		}
+	</cfif>
 <cfif not standAlone>
 	</style>
 	<!--- Script to resize the square thumnails. --->

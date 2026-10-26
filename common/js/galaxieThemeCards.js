@@ -49,7 +49,10 @@
 			"background-image": bool(t.IncludeBackgroundImages) && t.BlogBackgroundImage ? 'url("' + img(t.BlogBackgroundImage, o.baseUrl) + '")' : "none",
 			"background-color": t.BlogBackgroundColor || "rgb(136,136,136)"
 		});
-		var header = $('<div class="themeCardHeader"></div>').css({ "background-image": t.HeaderBackgroundImage ? 'url("' + img(t.HeaderBackgroundImage, o.baseUrl) + '")' : "none", width: width + "%" });
+		// A theme set to a solid header color (2026-10-25) shows that color instead of its header picture.
+		var solidHeader = t.HeaderStyle === "color" && t.HeaderBackgroundColor;
+		var header = $('<div class="themeCardHeader"></div>').css({ "background-image": !solidHeader && t.HeaderBackgroundImage ? 'url("' + img(t.HeaderBackgroundImage, o.baseUrl) + '")' : "none", width: width + "%" });
+		if (solidHeader) { header.css("background-color", t.HeaderBackgroundColor); }
 		if (t.LogoImage) { header.append($('<img alt="">').attr("src", img(t.LogoImage, o.baseUrl))); }
 		if (bool(t.DisplayBlogName)) { header.append($('<span class="themeCardName"></span>').text(o.siteName || "").css({ "font-family": fontCss(t.BlogNameFont, t.BlogNameFontType), color: t.BlogNameTextColor || "white" })); }
 		header.append($('<span class="themeCardMenu">Menu &nbsp; About &nbsp; Themes</span>').css({ "font-family": fontCss(t.MenuFont, t.MenuFontType), color: t.BlogNameTextColor || "white" }));

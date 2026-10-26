@@ -414,6 +414,22 @@ before in other projects. I suspect that it is reading the entire object when it
 <!--- If the menuBackgroundImage is not defined, assign it to the headerBackgroundImage. Without it, there will be a ghosted bar above the menu. --->
 <cfif len(trim(menuBackgroundImage)) eq 0>
 	<cfset menuBackgroundImage = headerBackgroundImage>
+</cfif>
+
+<!--- A solid header color (5.0, 2026-10-25), picked per theme in the Themes window's Header section. A theme uses its header picture
+unless it is set to color there, so the themes look as they always have. The choice is in the blog's settings (ThemeEditor
+getHeaderStyle; the preview frame's draft brings its own HeaderStyle), and the color is the theme's HeaderBackgroundColor, which
+emails already use for their header. blogContentCss.cfm lays it over the picture rules when headerSolidColor is set. --->
+<cfset headerSolidColor = "">
+<cfset headerStyle = "picture">
+<cftry>
+	<cfset headerStyle = structKeyExists(getTheme[1], "HeaderStyle") ? getTheme[1]["HeaderStyle"] : application.blog.getThemeEditor().getHeaderStyle(getTheme[1]["ThemeId"])>
+	<!--- Uploaded before a reinit, the remembered ThemeEditor has no getHeaderStyle yet: the picture until then. --->
+	<cfcatch type="any"></cfcatch>
+</cftry>
+<cfif headerStyle eq "color" and structKeyExists(getTheme[1], "HeaderBackgroundColor") and not isNull(getTheme[1]["HeaderBackgroundColor"])
+		and reFindNoCase("^(##[0-9a-f]{3,8}|rgba?\([0-9., %]+\)|[a-z]{3,20})$", trim(getTheme[1]["HeaderBackgroundColor"]))>
+	<cfset headerSolidColor = trim(getTheme[1]["HeaderBackgroundColor"])>
 </cfif>	
 	
 <!--- don't allow the alignBlogMenuWithBlogContent to be set to true unless the stretchHeaderAcrossPage is set to true. Otherwise, the header will be scrunched up as there will be padding on both the left and the right of the centered header.--->

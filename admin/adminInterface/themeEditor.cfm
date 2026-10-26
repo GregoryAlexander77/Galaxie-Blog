@@ -14,7 +14,7 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 </cfquery>
 
 <!--- The data for the script, with bracket keys so Adobe ColdFusion keeps their case. --->
-<cfset themeKeys = "ThemeId,ThemeAlias,ThemeName,SelectedTheme,KendoThemeId,Breakpoint,ContentWidth,MainContainerWidth,SideBarContainerWidth,SiteOpacity,AlignBlogMenuWithBlogContent,StretchHeaderAcrossPage,FontId,FontSize,FontSizeMobile,MenuFontId,BlogNameFontId,BlogNameFontSize,BlogNameFontSizeMobile,BlogNameTextColor,DisplayBlogName,IncludeBackgroundImages,BlogBackgroundImage,BlogBackgroundImageMobile,BlogBackgroundColor,BlogBackgroundImagePosition,BlogBackgroundImageRepeat,HeaderBackgroundImage,HeaderBodyDividerImage,MenuBackgroundImage,TopMenuAlign,CoverKendoMenuWithMenuBackgroundImage,LogoImage,LogoImageMobile,DefaultLogoImageForSocialMediaShare,FooterImage,Font,FontType,MenuFont,MenuFontType,BlogNameFont,BlogNameFontType,DarkTheme">
+<cfset themeKeys = "ThemeId,ThemeAlias,ThemeName,SelectedTheme,KendoThemeId,Breakpoint,ContentWidth,MainContainerWidth,SideBarContainerWidth,SiteOpacity,AlignBlogMenuWithBlogContent,StretchHeaderAcrossPage,FontId,FontSize,FontSizeMobile,MenuFontId,BlogNameFontId,BlogNameFontSize,BlogNameFontSizeMobile,BlogNameTextColor,DisplayBlogName,IncludeBackgroundImages,BlogBackgroundImage,BlogBackgroundImageMobile,BlogBackgroundColor,BlogBackgroundImagePosition,BlogBackgroundImageRepeat,HeaderBackgroundImage,HeaderStyle,HeaderBackgroundColor,HeaderBodyDividerImage,MenuBackgroundImage,TopMenuAlign,CoverKendoMenuWithMenuBackgroundImage,LogoImage,LogoImageMobile,DefaultLogoImageForSocialMediaShare,FooterImage,Font,FontType,MenuFont,MenuFontType,BlogNameFont,BlogNameFontType,DarkTheme">
 <cfset themeData = []>
 <cfloop array="#editorThemes#" index="thisTheme">
 	<cfset row = {}>
@@ -343,7 +343,7 @@ $(function () {
 		draftTimer = setTimeout(function () { sendDraft(false); }, 500);
 	}
 	// The look as the server takes it: only the editable settings.
-	var LOOK_KEYS = ["KendoThemeId", "Breakpoint", "ContentWidth", "MainContainerWidth", "SideBarContainerWidth", "SiteOpacity", "AlignBlogMenuWithBlogContent", "StretchHeaderAcrossPage", "FontId", "FontSize", "FontSizeMobile", "MenuFontId", "BlogNameFontId", "BlogNameFontSize", "BlogNameFontSizeMobile", "BlogNameTextColor", "DisplayBlogName", "IncludeBackgroundImages", "BlogBackgroundImage", "BlogBackgroundImageMobile", "BlogBackgroundColor", "BlogBackgroundImagePosition", "BlogBackgroundImageRepeat", "HeaderBackgroundImage", "HeaderBodyDividerImage", "MenuBackgroundImage", "TopMenuAlign", "CoverKendoMenuWithMenuBackgroundImage"];
+	var LOOK_KEYS = ["KendoThemeId", "Breakpoint", "ContentWidth", "MainContainerWidth", "SideBarContainerWidth", "SiteOpacity", "AlignBlogMenuWithBlogContent", "StretchHeaderAcrossPage", "FontId", "FontSize", "FontSizeMobile", "MenuFontId", "BlogNameFontId", "BlogNameFontSize", "BlogNameFontSizeMobile", "BlogNameTextColor", "DisplayBlogName", "IncludeBackgroundImages", "BlogBackgroundImage", "BlogBackgroundImageMobile", "BlogBackgroundColor", "BlogBackgroundImagePosition", "BlogBackgroundImageRepeat", "HeaderBackgroundImage", "HeaderStyle", "HeaderBackgroundColor", "HeaderBodyDividerImage", "MenuBackgroundImage", "TopMenuAlign", "CoverKendoMenuWithMenuBackgroundImage"];
 	function lookJson() {
 		var look = {};
 		$.each(LOOK_KEYS, function (i, k) { var v = current[k]; look[k] = (v === undefined || v === null) ? "" : String(v); });
@@ -498,15 +498,24 @@ $(function () {
 			row("Color", colour("BlogBackgroundColor", true), "Used when there's no background picture.");
 		} else {
 			heading("Header");
-			row("Picture", pictures("HeaderBackgroundImage", true));
+			// A solid color instead of the picture (2026-10-25). Every theme starts on its picture.
+			row("Style", choice("HeaderStyle", [["picture", "The header picture"], ["color", "A solid color"]], function (v) { showHeaderStyle(v); }));
+			row("Picture", pictures("HeaderBackgroundImage", true), "", "themeLookHeaderPicture");
+			row("Color", colour("HeaderBackgroundColor", false), "For a dark color, make the site name white (Fonts): the menu uses that color too.", "themeLookHeaderColor");
 			row("Divider", pictures("HeaderBodyDividerImage", true), "The line under the header.");
 			row("", checkbox("StretchHeaderAcrossPage", "Stretch the header across the page"));
 			heading("Menu");
-			row("Picture", pictures("MenuBackgroundImage", true));
-			row("", checkbox("CoverKendoMenuWithMenuBackgroundImage", "Cover the whole menu with the menu picture"));
+			row("Picture", pictures("MenuBackgroundImage", true), "", "themeLookHeaderPicture");
+			row("", checkbox("CoverKendoMenuWithMenuBackgroundImage", "Cover the whole menu with the menu picture"), "", "themeLookHeaderPicture");
 			row("Position", choice("TopMenuAlign", [["left", "Left"], ["center", "Centre"], ["right", "Right"]]));
+			showHeaderStyle(current.HeaderStyle);
 		}
 		spacer(false);
+	}
+	// The header color's rows, or the picture rows (the menu picture too: a solid header has no menu picture).
+	function showHeaderStyle(style) {
+		$(".themeLookHeaderPicture").toggle(style !== "color");
+		$(".themeLookHeaderColor").toggle(style === "color");
 	}
 	$("#themeLookSave").on("click", function () {
 		var button = $(this).prop("disabled", true);

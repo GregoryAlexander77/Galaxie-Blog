@@ -36,6 +36,8 @@
 	"BlogBackgroundImagePosition" = { kind = "choice", options = "center center|center top|center bottom|50% 25%|left top|left bottom", delimiter = "|" },
 	"BlogBackgroundImageRepeat" = { kind = "choice", options = "no-repeat,repeat,repeat-x,repeat-y" },
 	"HeaderBackgroundImage" = { kind = "picture" },
+	"HeaderStyle" = { kind = "choice", options = "picture,color" },
+	"HeaderBackgroundColor" = { kind = "colour" },
 	"HeaderBodyDividerImage" = { kind = "picture" },
 	"MenuBackgroundImage" = { kind = "picture" },
 	"TopMenuAlign" = { kind = "choice", options = "left,center,right" },
@@ -80,6 +82,7 @@
 			<cfset themeObj = entityLoadByPK("Theme", themeId)>
 			<cfset data[1]["ThemeAlias"] = themeObj.getThemeAlias()>
 			<cfset data[1]["ThemeName"] = themeObj.getThemeName()>
+			<cfset data[1]["HeaderStyle"] = getHeaderStyle(themeId)>
 			<cfset arrayAppend(list, data[1])>
 		</cfif>
 	</cfloop>
@@ -89,7 +92,7 @@
 <cffunction name="getThemeCards" access="public" returntype="struct" output="false"
 		hint="What the theme cards need (2026-10-20, common/js/galaxieThemeCards.js, shared by the Themes window and the Site Wizard): { themes: [{ the card's keys, Dark, UseTheme }], fontFaces: the @font-face rules for the fonts the cards use }.">
 	<cfargument name="onlyInUse" type="boolean" required="false" default="false" hint="Only the themes offered to visitors (Theme.UseTheme).">
-	<cfset var keys = "ThemeId,ThemeAlias,ThemeName,KendoThemeId,Breakpoint,ContentWidth,SideBarContainerWidth,SiteOpacity,IncludeBackgroundImages,BlogBackgroundImage,BlogBackgroundColor,HeaderBackgroundImage,LogoImage,DisplayBlogName,BlogNameFont,BlogNameFontType,BlogNameTextColor,MenuFont,MenuFontType,Font,FontType">
+	<cfset var keys = "ThemeId,ThemeAlias,ThemeName,KendoThemeId,Breakpoint,ContentWidth,SideBarContainerWidth,SiteOpacity,IncludeBackgroundImages,BlogBackgroundImage,BlogBackgroundColor,HeaderBackgroundImage,HeaderStyle,HeaderBackgroundColor,LogoImage,DisplayBlogName,BlogNameFont,BlogNameFontType,BlogNameTextColor,MenuFont,MenuFontType,Font,FontType">
 	<cfset var result = { "themes": [], "fontFaces": "" }>
 	<cfset var renderer = createObject("component", application.rendererComponentPath)>
 	<cfset var fontsDone = {}>
@@ -262,6 +265,8 @@
 				<cfcase value="FontId"><cfset setting.setFontRef(entityLoadByPK("Font", clean[key]))></cfcase>
 				<cfcase value="MenuFontId"><cfset setting.setMenuFontRef(clean[key])></cfcase>
 				<cfcase value="BlogNameFontId"><cfset setting.setBlogNameFontRef(clean[key])></cfcase>
+				<!--- Not a ThemeSetting column: saved to the blog's settings below. --->
+				<cfcase value="HeaderStyle"></cfcase>
 				<cfdefaultcase>
 					<!--- The rest are ThemeSetting columns of the same name (only the names above can get here). --->
 					<cfinvoke component="#setting#" method="set#key#">
@@ -275,8 +280,27 @@
 		<cfset entitySave(themeObj)>
 	</cftransaction>
 	<cfset ormFlush()>
+	<cfif structKeyExists(clean, "HeaderStyle")><cfset setHeaderStyle(arguments.themeId, clean.HeaderStyle)></cfif>
 	<cfset clearDraft()>
 	<cfset application.blog.flushGalaxieCache(type = "all")>
+</cffunction>
+
+<cffunction name="getHeaderStyle" access="public" returntype="string" output="false"
+		hint="How a theme draws its header (5.0, 2026-10-25): picture (its header picture, what every theme does unless it is changed) or color (its HeaderBackgroundColor as a solid color). Kept in the blog's settings (Events.getSetting), so there is no new column, and remembered here so a page doesn't ask the database each time.">
+	<cfargument name="themeId" type="numeric" required="true">
+	<cfif not structKeyExists(variables, "headerStyles")><cfset variables.headerStyles = {}></cfif>
+	<cfif not structKeyExists(variables.headerStyles, arguments.themeId)>
+		<cfset variables.headerStyles[arguments.themeId] = application.events.getSetting(0, "themeHeaderStyle_" & arguments.themeId, "picture") eq "color" ? "color" : "picture">
+	</cfif>
+	<cfreturn variables.headerStyles[arguments.themeId]>
+</cffunction>
+
+<cffunction name="setHeaderStyle" access="public" returntype="void" output="false" hint="Saves a theme's header style (picture or color; see getHeaderStyle). saveLook calls it.">
+	<cfargument name="themeId" type="numeric" required="true">
+	<cfargument name="style" type="string" required="true">
+	<cfset application.events.setSetting(0, "themeHeaderStyle_" & arguments.themeId, arguments.style)>
+	<cfif not structKeyExists(variables, "headerStyles")><cfset variables.headerStyles = {}></cfif>
+	<cfset variables.headerStyles[arguments.themeId] = arguments.style>
 </cffunction>
 
 <!---//*****************************************************************************************************
