@@ -581,8 +581,10 @@ $(function () {
 	$("#siteDescription").val(saved.description).on("input", function () { dirty.site = true; });
 	$("#siteEmail").val(saved.email).on("input", function () { dirty.site = true; });
 	var browserZone = (window.Intl && Intl.DateTimeFormat().resolvedOptions().timeZone) || "";
+	// Shown as people write them (2026-10-26, owner): "America / Los Angeles", not America/Los_Angeles; the id is still what's saved.
 	$("#siteTimeZone").kendoDropDownList({
-		dataSource: zones, filter: "contains",
+		dataSource: zones.map(function (z) { return { value: z, text: z.replace(/_/g, " ").replace(/\//g, " / ") }; }),
+		dataTextField: "text", dataValueField: "value", filter: "contains",
 		// Until the owner has saved this screen, the browser's own time zone is the better guess than the installer's default.
 		value: stepsDone().indexOf("site") >= 0 || zones.indexOf(browserZone) < 0 ? saved.timeZone : browserZone,
 		change: function () { dirty.site = true; }
