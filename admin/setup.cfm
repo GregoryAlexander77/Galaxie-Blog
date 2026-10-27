@@ -355,9 +355,9 @@ takes the same options and events. --->
 		</div>
 		<div class="block k-alt">
 			<h4>Footer</h4>
-			<p class="hint" style="margin-top:0" id="footerHint">Made from what you entered: About and Contact links and your social links, never your email address. It is made when you press Next; change it any time in Themes, Content.</p>
+			<p class="hint" style="margin-top:0" id="footerHint">Made from what you entered: About and Contact links, never your email address. It is made when you press Next; change it any time in Themes, Content.</p>
 			<div class="choiceList" id="footerChoices">
-				<label class="choice"><input type="radio" name="footerStyle" value="simple"><div><strong>Simple</strong><span>About and Contact, and your social links.</span></div></label>
+				<label class="choice"><input type="radio" name="footerStyle" value="simple"><div><strong>Simple</strong><span>About and Contact links.</span></div></label>
 				<label class="choice"><input type="radio" name="footerStyle" value="blurb"><div><strong>With a short about blurb</strong><span>The first lines of what you wrote about yourself, above the links.</span></div></label>
 				<label class="choice"><input type="radio" name="footerStyle" value="none"><div><strong>Just the basics</strong><span>Only the logo and the version line every footer has, without links.</span></div></label>
 			</div>
