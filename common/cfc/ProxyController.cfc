@@ -10060,6 +10060,13 @@
 					</cfif>
 					<cfset response[ "success" ] = true>
 					<cfset response[ "message" ] = "Success! The mail server accepted a test email to #address#. Check that inbox (and the spam folder) in a minute.">
+					<!--- Mail works (2026-10-27): the menu shows Contact from now on (blog.cfc mailIsSetUp). --->
+					<cftry>
+						<cfset application.events.setSetting(0, "mailTestPassed", "1")>
+						<cfset structDelete(application, "galaxieMailIsSetUp")>
+						<cfset application.blog.flushGalaxieCache(type = "all")>
+						<cfcatch type="any"></cfcatch>
+					</cftry>
 					<cfcatch type="any">
 						<cfset response[ "message" ] = "The mail server didn't accept it: " & left(trim(reReplace(cfcatch.message & " " & (cfcatch.detail ?: ""), "<[^>]*>", "", "all")), 500)>
 					</cfcatch>
@@ -10228,6 +10235,8 @@
 				<cfset BlogDbObj.setBlogDsnPassword(arguments.dsnPassword)>
 				<!--- Mail server settings --->
 				<cfset BlogDbObj.setBlogMailServer(arguments.mailServer)>
+				<!--- The menu's Contact depends on it (blog.cfc mailIsSetUp, 2026-10-27). --->
+				<cfset structDelete(application, "galaxieMailIsSetUp")>
 				<cfset BlogDbObj.setBlogMailServerUserName(arguments.mailUserName)>
 				<cfset BlogDbObj.setBlogMailServerPassword(arguments.mailPassword)>
 				<cfset BlogDbObj.setBlogEmailFailToAddress(arguments.failTo)>	

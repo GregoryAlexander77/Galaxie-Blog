@@ -1588,7 +1588,10 @@
 		<cfargument name="eventName" type="string" required=true />
 		<cfargument name="disable" type="string" default="#disableErrorLogging#" />
 		<cfargument name="showOnlyCFErrors" type="string" default="true" />
-		
+		<!--- Room to finish (2026-10-27): after a request ran out of time, every tag here timed out again, so this handler failed and
+		ColdFusion showed its own error page - with the stack trace when Robust Exception Information is on. --->
+		<cftry><cfsetting requesttimeout="120"><cfcatch type="any"></cfcatch></cftry>
+
 		<!--- Preset params that may not exist --->
 		<cfparam name="errorOrigin" default="">
 		<cfparam name="errorLine" default="">

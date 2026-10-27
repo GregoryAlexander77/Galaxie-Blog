@@ -2348,6 +2348,8 @@
 				<cfset success = false>
 			</cfcatch>
 			</cftry>
+			<!--- isVisitorBanned reads the banned lists from memory: reload them. --->
+			<cfset structDelete(application, "galaxieBannedLists")>
 		<cfelse>
 			<!--- Nothing to do, but not an error. --->
 			<cfset success = true>
@@ -2355,7 +2357,7 @@
 		<cfreturn success>
 	</cffunction>
 
-	<cffunction name="setHttpUserAgentBan" access="public" returnType="boolean" output="false" hint="Bans or unbans one or more HTTP User-Agent strings. Called from the Ban Visitors admin interface (createAdminInterfaceWindow(66)) via ProxyController.saveAnonymousUserBan.">
+	<cffunction name="setHttpUserAgentBan"access="public" returnType="boolean" output="false" hint="Bans or unbans one or more HTTP User-Agent strings. Called from the Ban Visitors admin interface (createAdminInterfaceWindow(66)) via ProxyController.saveAnonymousUserBan.">
 		<cfargument name="httpUserAgents" type="array" required="true" hint="Array of User-Agent strings to ban/unban.">
 		<cfargument name="banned" type="boolean" required="false" default="true">
 		<cfargument name="note" type="string" required="false" default="">
@@ -2391,6 +2393,8 @@
 				<cfset success = false>
 			</cfcatch>
 			</cftry>
+			<!--- isVisitorBanned reads the banned lists from memory: reload them. --->
+			<cfset structDelete(application, "galaxieBannedLists")>
 		<cfelse>
 			<!--- Nothing to do, but not an error. --->
 			<cfset success = true>
@@ -2398,39 +2402,55 @@
 		<cfreturn success>
 	</cffunction>
 
-	<cffunction name="isVisitorBanned" access="public" returnType="boolean" output="false" hint="Checks whether the given IP address or HTTP User-Agent string has been banned via the Ban Visitors admin interface. Called from visitorTracking.cfm on every blog page view, before any content is served, so brand new IP/User-Agent combinations are blocked even if this exact AnonymousUser pairing has never been seen before.">
+	<cffunction name="mailIsSetUp" access="public" returnType="boolean" output="false" hint="Whether this blog can be expected to send email (2026-10-27, for the menu's Contact): a mail server in Blog Settings, a test email that went through (Blog Settings), or a blog that was upgraded (it sent email before 5.0). A brand-new install shows Contact once mail is set up.">
+		<cfif structKeyExists(application, "galaxieMailIsSetUp")>
+			<cfreturn application.galaxieMailIsSetUp>
+		</cfif>
+		<cftry>
+			<cfset application.galaxieMailIsSetUp = len(trim(application.BlogDbObj.getBlogMailServer() ?: "")) gt 0
+				or application.events.getSetting(0, "mailTestPassed", "") eq "1"
+				or getSetup().isUpgradedBlog()>
+			<cfcatch type="any">
+				<!--- When in doubt, keep the menu as it was. --->
+				<cfreturn true>
+			</cfcatch>
+		</cftry>
+		<cfreturn application.galaxieMailIsSetUp>
+	</cffunction>
+
+	<cffunction name="isVisitorBanned"access="public" returnType="boolean" output="false" hint="Checks whether the given IP address or HTTP User-Agent string has been banned via the Ban Visitors admin interface. Called from visitorTracking.cfm on every blog page view, before any content is served, so brand new IP/User-Agent combinations are blocked even if this exact AnonymousUser pairing has never been seen before.">
 		<cfargument name="ipAddress" type="string" required="false" default="">
 		<cfargument name="httpUserAgent" type="string" required="false" default="">
 
-		<cfset var banned = false>
-		<cfset var checkIp = "">
-		<cfset var checkUserAgent = "">
-
-		<cfif len(arguments.ipAddress)>
-			<cfquery name="checkIp" dbtype="hql" ormoptions="#{maxresults=1}#">
-				SELECT new Map ( IpAddressId as IpAddressId )
-				FROM IpAddress
-				WHERE	IpAddress = <cfqueryparam value="#arguments.ipAddress#" cfsqltype="cf_sql_varchar" maxlength="25">
-				AND		Ban = <cfqueryparam value="true" cfsqltype="cf_sql_bit">
-			</cfquery>
-			<cfif arrayLen(checkIp)>
-				<cfset banned = true>
-			</cfif>
+		<!--- From memory (2026-10-27): this runs on every page view, and the two queries it made read the whole IpAddress (30,000+
+		rows on gregoryalexander.com) and HttpUserAgent tables each time, with no index - from disk when the server was short of
+		memory. Only a handful of rows are ever banned, so the banned lists are kept in the application and reloaded after
+		setIpAddressBan / setHttpUserAgentBan change them. Compared without case, as SQL Server did. --->
+		<cfset var lists = getBannedLists()>
+		<cfif len(arguments.ipAddress) and structKeyExists(lists.ips, lCase(trim(arguments.ipAddress)))>
+			<cfreturn true>
 		</cfif>
-
-		<cfif not banned and len(arguments.httpUserAgent)>
-			<cfquery name="checkUserAgent" dbtype="hql" ormoptions="#{maxresults=1}#">
-				SELECT new Map ( HttpUserAgentId as HttpUserAgentId )
-				FROM HttpUserAgent
-				WHERE	HttpUserAgent = <cfqueryparam value="#arguments.httpUserAgent#" cfsqltype="cf_sql_varchar" maxlength="500">
-				AND		Ban = <cfqueryparam value="true" cfsqltype="cf_sql_bit">
-			</cfquery>
-			<cfif arrayLen(checkUserAgent)>
-				<cfset banned = true>
-			</cfif>
+		<cfif len(arguments.httpUserAgent) and structKeyExists(lists.userAgents, lCase(trim(arguments.httpUserAgent)))>
+			<cfreturn true>
 		</cfif>
+		<cfreturn false>
+	</cffunction>
 
-		<cfreturn banned>
+	<cffunction name="getBannedLists" access="public" returnType="struct" output="false" hint="The banned IP addresses and User-Agents, as { ips, userAgents } (lower-case keys), loaded once and kept in the application until a ban changes (isVisitorBanned, 2026-10-27).">
+		<cfset var lists = "">
+		<cfset var row = "">
+		<cfif structKeyExists(application, "galaxieBannedLists")>
+			<cfreturn application.galaxieBannedLists>
+		</cfif>
+		<cfset lists = { ips = {}, userAgents = {} }>
+		<cfloop array="#ormExecuteQuery('SELECT IpAddress FROM IpAddress WHERE Ban = :yes', { yes = true })#" index="row">
+			<cfif not isNull(row) and len(trim(row))><cfset lists.ips[lCase(trim(row))] = true></cfif>
+		</cfloop>
+		<cfloop array="#ormExecuteQuery('SELECT HttpUserAgent FROM HttpUserAgent WHERE Ban = :yes', { yes = true })#" index="row">
+			<cfif not isNull(row) and len(trim(row))><cfset lists.userAgents[lCase(trim(row))] = true></cfif>
+		</cfloop>
+		<cfset application.galaxieBannedLists = lists>
+		<cfreturn lists>
 	</cffunction>
 
 	<cffunction name="getBannedAnonymousUsers" access="public" returnType="array" output="false" hint="Returns every anonymous visitor (AnonymousUser) whose IP address or HTTP User-Agent is currently banned, along with the IP, User-Agent, ban reason and ban date. Used to populate the Banned Users grid (createAdminInterfaceWindow(67)). Note: an IP or User-Agent can be banned pre-emptively (see setIpAddressBan/setHttpUserAgentBan) before any AnonymousUser record exists for it - such entries will not appear here until a visitor is actually logged with that IP or User-Agent.">

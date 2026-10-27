@@ -68,7 +68,9 @@ Note: the following logic should not be cached as each theme may return a differ
 											<!--- Until the owner saves their own Menu links, keep showing the older single "parent site" link from Blog Settings. --->
 											<li><a href="<cfoutput>#application.parentSiteLink#</cfoutput>"><cfoutput>#application.parentSiteName#</cfoutput></a></li>
 										</cfif>
-											<li><a href="javascript:createAddCommentSubscribeWindow('', 'contact', <cfoutput>#session.isMobile#</cfoutput>);">Contact</a></li>
+											<!--- Only when the blog can send email (2026-10-27): the contact window emails the message, and a new blog without
+											mail settings hung, then lost it (blog.cfc mailIsSetUp). --->
+											<cfif application.blog.mailIsSetUp()><li><a href="javascript:createAddCommentSubscribeWindow('', 'contact', <cfoutput>#session.isMobile#</cfoutput>);">Contact</a></li></cfif>
 											<cfif menuDivName eq 'fixedNavMenu'><li onclick="javascript:scrollToBottom();"><span class="fa fa-arrow-circle-down"></span> Bottom</li></cfif>
 										</ul>
 									</li>

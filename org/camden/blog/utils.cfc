@@ -55,6 +55,8 @@
 			<cfabort>
 		</cfif>
 
+		<!--- timeout="10" (2026-10-27): a mail server that doesn't answer made the page that sent the email (a contact message, the
+		copy of an error) wait until it ran out of time - gregorysblog.org, with no mail settings yet. --->
 		<cfif arguments.mailserver is "">
 			<cfmail to="#arguments.to#" 
 				from="#arguments.from#" 
@@ -62,7 +64,8 @@
 				cc="#arguments.cc#" 
 				bcc="#arguments.bcc#" 
 				subject="#arguments.subject#" 
-				type="#arguments.type#" 
+				type="#arguments.type#"
+				timeout="10"
 				failto="#arguments.failto#">#arguments.body#<cfif len(arguments.attachmentContent)><cfmailparam file="#arguments.attachmentName#" content="#arguments.attachmentContent#" type="#arguments.attachmentType#"></cfif></cfmail>
 		<cfelse>
 			<cfmail to="#arguments.to#" 
@@ -74,7 +77,8 @@
 				type="#arguments.type#"
 				server="#arguments.mailserver#" 
 				username="#arguments.mailusername#" 
-				password="#arguments.mailpassword#" 
+				password="#arguments.mailpassword#"
+				timeout="10"
 				failto="#arguments.failto#">#arguments.body#<cfif len(arguments.attachmentContent)><cfmailparam file="#arguments.attachmentName#" content="#arguments.attachmentContent#" type="#arguments.attachmentType#"></cfif></cfmail>
 		</cfif>
 	
