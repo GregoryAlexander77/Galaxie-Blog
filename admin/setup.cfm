@@ -157,6 +157,7 @@ takes the same options and events. --->
 	/* Home and starter */
 	.choiceList { display: grid; gap: 10px; }
 	.choice { display: flex; gap: 12px; align-items: flex-start; border: 2px solid var(--line); border-radius: 8px; padding: 12px; cursor: pointer; background: #fff; }
+	.choice[hidden] { display: none; }
 	.choice:has(input:checked) { border-color: var(--accent); }
 	.choice input { margin-top: 3px; }
 	.choice strong { display: block; margin-bottom: 2px; }
@@ -363,15 +364,17 @@ takes the same options and events. --->
 		</div>
 	</div>
 	<div id="stepStarter">
-		<div class="block k-content"><p class="lead">A few things to start with, so the site doesn't look empty. Each is an ordinary post or page; nothing is made until you press Next. The preview on the right shows how they will look.</p></div>
+		<div class="block k-content"><p class="lead">A first post to start with, so the site doesn't look empty. It's an ordinary post; nothing is made until you press Next. The preview on the right shows how it will look.</p></div>
 		<div class="block k-alt">
 			<p class="hint" id="starterUpgradedNote" style="display:none;margin-top:0">Your blog already has its posts and pages, so nothing is ticked. Tick anything you would like to add.</p>
 			<div class="choiceList">
 				<label class="choice"><input type="checkbox" id="starterWelcome" checked><div><strong>A welcome post</strong><span>Your first post, ready to change. The next step uses it to show the post picture styles.</span></div></label>
-				<label class="choice"><input type="checkbox" id="starterAbout" checked><div><strong>An About page</strong><span>Made from what you wrote about yourself. Needed for an About home page.</span></div></label>
-				<label class="choice"><input type="checkbox" id="starterContact" checked><div><strong>A contact form</strong><span>At the end of your About page, so visitors can reach you. Their messages come to your email. Change its questions any time in Forms.</span></div></label>
+				<!--- The About page and contact form are off in 5.0 (owner, 2026-10-27: to revisit in the next version): unticked and hidden, so
+				nothing is made and the Home page screen leaves out the About layouts (aboutAvailable). --->
+				<label class="choice" hidden><input type="checkbox" id="starterAbout"><div><strong>An About page</strong><span>Made from what you wrote about yourself. Needed for an About home page.</span></div></label>
+				<label class="choice" hidden><input type="checkbox" id="starterContact"><div><strong>A contact form</strong><span>At the end of your About page, so visitors can reach you. Their messages come to your email. Change its questions any time in Forms.</span></div></label>
 			</div>
-			<p class="hint">To change them later: in the administration, open <b>Posts and Pages</b>, then <b>Posts</b> (or <b>Pages</b> for the About page), and click the title in the list to open it in the editor. The last step also links straight to them.</p>
+			<p class="hint">To change them later: in the administration, open <b>Posts and Pages</b>, then <b>Posts</b>, and click the title in the list to open it in the editor. The last step also links straight to them.</p>
 		</div>
 	</div>
 	<div id="stepDone">
