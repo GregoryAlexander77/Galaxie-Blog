@@ -15,8 +15,18 @@
 		State
 //******************************************************************************************************--->
 
+<cffunction name="applyShippedLook" access="private" returntype="void" output="false"
+		hint="A new blog's built-in themes get their solid headers, name colors and logo marks (installer/shippedHeaders.cfm), once, the first time the wizard opens. Never on an upgraded blog.">
+	<cfif isUpgradedBlog() or application.events.getSetting(0, "shippedLookApplied", "") eq "1"><cfreturn></cfif>
+	<cfinclude template="../../installer/shippedHeaders.cfm">
+	<cfset application.events.setSetting(0, "shippedLookApplied", "1")>
+	<cfset application.blog.flushGalaxieCache(type = "all")>
+</cffunction>
+
 <cffunction name="getState" access="public" returntype="struct" output="false" hint="What the wizard shows on opening: the blog's current settings, the owner's profile and the screens already done.">
-	<cfset var blogObj = application.BlogDbObj>
+	<cfset var blogObj = "">
+	<cfset applyShippedLook()>
+	<cfset blogObj = application.BlogDbObj>
 	<cfset var optionObj = application.BlogOptionDbObj>
 	<cfset var owner = getOwner()>
 	<cfset var selected = ormExecuteQuery("SELECT ThemeAlias FROM Theme WHERE SelectedTheme = 1")>

@@ -1,5 +1,7 @@
-<!--- Solid header colors for the built-in themes (5.0, 2026-10-26, owner). Included by installer/insertData.cfm once the themes are
-in, so only a NEW install gets them; an upgraded blog's themes stay as they were.
+<!--- Solid header colors for the built-in themes (5.0, 2026-10-26, owner). Included by Setup.cfc applyShippedLook the first time the
+Site Wizard opens on a NEW blog (the installer sends the new owner straight there), once; an upgraded blog's themes stay as they were.
+Not run inside installer/insertData.cfm: the installer's themes are only committed when its request ends, and an extra transaction
+in the middle (found on the 10-26 fresh-install test) threw away 29 of the 30 themes.
 
 26 of the 30 built-in themes start with a solid header (Themes > Customize > Header > Style: A solid color) in a deep color taken
 from the theme's own picture, chosen to go with its Kendo buttons, and a site name color to suit (the menu text uses it too). Each
@@ -8,8 +10,7 @@ name, and the same mark at twice the size in the footer (footer.cfm siteFooterMa
 Wizard (which then goes on every theme).
 Delicate Arch, Golden Gate, Joshua Tree and Abstract Blue keep their header pictures. Mock-up: test/headerColorIdeas.html.
 
-The header style is kept in the blog's settings (Events setSetting, the same as ThemeEditor.setHeaderStyle). application.events
-doesn't exist yet while the installer runs (Application.cfc makes it after insertData.cfm), so a copy of Events.cfc is made here.
+The header style is saved with ThemeEditor.setHeaderStyle (the blog's settings, and the editor's remembered copy).
 A failure is logged and skipped: the themes then simply keep their header pictures. --->
 <cfset shippedHeaders = {
 	"Abstract Red" = ["##7a0d16", "##ffffff", "club-flame-ring"],
@@ -45,13 +46,13 @@ A failure is logged and skipped: the themes then simply keep their header pictur
 <cfset shippedLogos = { "Abstract Blue" = "tech-hex-flame-orange", "Delicate Arch" = "personal-camera", "Golden Gate" = "personal-aperture", "Joshua Tree" = "outdoors-sprout" }>
 <cfset shippedHeadersSet = 0>
 <cftry>
-	<cfset shippedHeaderEvents = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.Events" : "common.cfc.Events")>
+	<cfset shippedHeaderEditor = application.blog.getThemeEditor()>
 	<cfloop collection="#shippedHeaders#" item="shippedHeaderTheme">
 		<cfset shippedHeaderRows = ormExecuteQuery("SELECT t.ThemeId, t.ThemeSettingRef.ThemeSettingId FROM Theme t WHERE t.ThemeName = :name", { name = shippedHeaderTheme })>
 		<cfif arrayLen(shippedHeaderRows)>
 			<cfset ormExecuteQuery("UPDATE ThemeSetting SET HeaderBackgroundColor = :header, BlogNameTextColor = :nameColor, LogoImage = :logo, LogoImageMobile = :logo, FooterImage = :logo, DisplayBlogName = :showName WHERE ThemeSettingId = :id",
 				{ header = shippedHeaders[shippedHeaderTheme][1], nameColor = shippedHeaders[shippedHeaderTheme][2], logo = "/images/logo/themes/" & shippedHeaders[shippedHeaderTheme][3] & ".svg", showName = true, id = shippedHeaderRows[1][2] })>
-			<cfset shippedHeaderEvents.setSetting(0, "themeHeaderStyle_" & shippedHeaderRows[1][1], "color")>
+			<cfset shippedHeaderEditor.setHeaderStyle(shippedHeaderRows[1][1], "color")>
 			<cfset shippedHeadersSet++>
 		</cfif>
 	</cfloop>
@@ -63,7 +64,7 @@ A failure is logged and skipped: the themes then simply keep their header pictur
 		</cfif>
 	</cfloop>
 	<cfcatch type="any">
-		<cflog file="galaxieBlogErrors" type="error" text="Installer: the built-in themes' solid headers couldn't be set (they keep their header pictures): #cfcatch.message#">
+		<cflog file="galaxieBlogErrors" type="error" text="Site Wizard: the built-in themes' solid headers couldn't be set (they keep their header pictures): #cfcatch.message#">
 	</cfcatch>
 </cftry>
 <cfif isDefined("debug") and debug><cfoutput>Solid headers set on #shippedHeadersSet# built-in themes.<br/></cfoutput></cfif>

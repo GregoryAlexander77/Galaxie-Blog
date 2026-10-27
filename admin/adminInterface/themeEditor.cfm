@@ -197,7 +197,7 @@ owner sees is exactly what visitors will see once saved. The old screen (window 
 </div>
 </cfoutput>
 
-<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/js/galaxieThemeCards.js"></script>
+<script src="<cfoutput>#application.baseUrl#/common/js/galaxieThemeCards.js?v=#dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/galaxieThemeCards.js")).lastModified, "yyyymmddHHnnss")#</cfoutput>"></script>
 <script>
 $(function () {
 	var BASE = "<cfoutput>#jsStringFormat(application.baseUrl)#</cfoutput>";

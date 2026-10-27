@@ -937,8 +937,6 @@ Populate the Theme and Theme Setting tables at the same time. This one is tricky
 	<cfset themeSettingId = ThemeSettingDbObj.getThemeSettingId()> 
 		
 	<cfif isDefined("debug") and debug>Theme Setting Table succesfully populated.<br/></cfif>
-	<!--- 5.0 (2026-10-26): 26 built-in themes start with a solid header color (new installs only). --->
-	<cfinclude template="shippedHeaders.cfm">
 </cfif>
 
 		

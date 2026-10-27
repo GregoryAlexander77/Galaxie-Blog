@@ -104,7 +104,7 @@ takes the same options and events. --->
 <script src="#application.baseUrl#/common/libs/kendoCore/js/jquery.min.js"></script>
 <script src="#application.baseUrl#/common/libs/kendoCore/js/kendo.ui.core.min.js"></script>
 <script src="#application.baseUrl#/common/js/galaxieWizard.js"></script>
-<script src="#application.baseUrl#/common/js/galaxieThemeCards.js"></script>
+<script src="#application.baseUrl#/common/js/galaxieThemeCards.js?v=#dateTimeFormat(getFileInfo(expandPath(application.baseUrl & "/common/js/galaxieThemeCards.js")).lastModified, "yyyymmddHHnnss")#"></script>
 #fontFaces#
 #setupThemeCards.fontFaces#
 </cfoutput>
@@ -193,7 +193,8 @@ takes the same options and events. --->
 	.previewBar { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; font-size: 14px; color: var(--muted); }
 	.previewBar a { color: var(--accent); }
 	.previewStage { flex: 1; position: relative; overflow: hidden; margin: 0 16px 16px; border-radius: 8px; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.18); }
-	.previewStage iframe { position: absolute; top: 0; left: 0; border: 0; width: 166.67%; height: 166.67%; transform: scale(.6); transform-origin: 0 0; }
+	/* The preview is a 1440 pixel wide window scaled to fit (fitPreview), like a typical laptop, whatever the owner's own screen. */
+	.previewStage iframe { position: absolute; top: 0; left: 0; border: 0; width: 1440px; height: 166.67%; transform: scale(.6); transform-origin: 0 0; }
 	.previewStage.mobile { width: 390px; max-width: calc(100% - 32px); margin-left: auto; margin-right: auto; }
 	.previewStage.mobile iframe { width: 100%; height: 100%; transform: none; }
 	.loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.7); font-size: 14px; color: var(--muted); z-index: 2; }
@@ -598,6 +599,18 @@ $(function () {
 			+ '<p>Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur.</p>'
 			+ '</span></span></div></article>';
 	}
+	// The preview frame as a 1440 pixel window (2026-10-26, owner: the content looked far too small): on a very wide screen the old fixed
+	// 0.6 scale made a window as wide as the screen, where themes show their content narrowest. Phone view keeps its own size (CSS).
+	function fitPreview() {
+		var stage = document.getElementById("previewStage");
+		if (!stage) { return; }
+		if ($(stage).hasClass("mobile")) { frame.style.width = frame.style.height = frame.style.transform = ""; return; }
+		var scale = Math.min(1, stage.clientWidth / 1440);
+		frame.style.width = "1440px"; frame.style.height = Math.ceil(stage.clientHeight / scale) + "px"; frame.style.transform = "scale(" + scale + ")";
+	}
+	fitPreview();
+	$(window).on("resize", fitPreview);
+	$("#toggleMobile").on("click", function () { setTimeout(fitPreview, 0); });
 	$("#toggleMobile").on("click", function (e) {
 		e.preventDefault();
 		var mobile = !$("#previewStage").hasClass("mobile");
