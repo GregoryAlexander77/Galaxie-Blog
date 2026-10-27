@@ -12244,6 +12244,11 @@
 		<cfset var PostReadDbObj = "">
 		<cfset var getAnonymousUser = "">
 			
+		<!--- Visitor Logging off (Blog Options): reads aren't saved (2026-10-28). --->
+		<cfif not application.logVisitors>
+			<cfreturn 0>
+		</cfif>
+
 		<!--- Load the post entity. --->
 		<cfset PostDbObj = entityLoad("Post", { PostId = arguments.postId }, "true" )>
 
@@ -12803,6 +12808,11 @@
 		<cfset var getAnonymousUser = "">
 		<cfset var sanitizedSearchTerm = "">
 			
+		<!--- Visitor Logging off (Blog Options): searches aren't saved either (2026-10-28). --->
+		<cfif not application.logVisitors>
+			<cfreturn>
+		</cfif>
+
 		<!--- Sanitize the search term --->
 		<cfset sanitizedSearchTerm = sanitizeString(arguments.searchTerm)>
 			

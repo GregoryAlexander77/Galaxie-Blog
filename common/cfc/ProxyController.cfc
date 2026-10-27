@@ -9953,6 +9953,8 @@
 			open, without waiting for the blog to restart. --->
 			<cfset application.includeGsap = includeGsap>
 			<cfset application.azureMapsApiKey = arguments.azureMapsApiKey>
+			<!--- Visitor Logging takes effect now, not after a reinit (2026-10-28). --->
+			<cfset application.logVisitors = enableVisitorLog>
 
 			<!--- 2026-09-26: same class of bug as saveBlogSettings() (see its own comment on this exact fix) - this
 			function loads and saves its own separate BlogOption entity instance (OptionDbObj, local-scoped),

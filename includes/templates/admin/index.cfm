@@ -602,7 +602,9 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 					</div>
 					<!--- Traffic this week (owner, 2026-10-20): four cards drawn by the page itself (no chart library), filled after the page
 					shows from ProxyController getAdminTraffic -> AdminHome.cfc getTraffic. Only for someone who may open the Visitor Log. --->
-					<cfif listFindNoCase(iconList, "VisitorLog") or comingUp.show>
+					<!--- The visitor cards only while Visitor Logging is on (owner, 2026-10-28): with it off they'd show old or empty numbers. --->
+					<cfset showVisitorCards = listFindNoCase(iconList, "VisitorLog") and application.logVisitors>
+					<cfif showVisitorCards or comingUp.show>
 					<cfset homeBlock = homeBlock eq "k-content" ? "k-alt" : "k-content">
 					<div class="adminHomeSection #homeBlock#" id="adminTraffic">
 						<h5 class="adminHomeHeading">This week</h5>
@@ -623,8 +625,8 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 								</div>
 							</div>
 							</cfif>
-							<cfif listFindNoCase(iconList, "VisitorLog")>
-							<!--- Clicking the card opens the Visitor Log with this week's people only, bots left out (owner, 2026-10-20). --->
+							<cfif showVisitorCards>
+							<!--- Clicking the card opensthe Visitor Log with this week's people only, bots left out (owner, 2026-10-20). --->
 							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See these visitors in the Visitor Log" onclick="createAdminInterfaceWindow(48, 'people');" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(48, 'people'); }"><div class="adminTrafficTitle">Visitors</div><div id="trafficVisitors" class="adminTrafficBody">Loading...</div></div>
 							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Most read</div><div id="trafficTop" class="adminTrafficBody"></div></div>
 							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See the sites in Traffic Sources" onclick="createAdminInterfaceWindow(117, 7);" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(117, 7); }"><div class="adminTrafficTitle">Where they came from</div><div id="trafficSources" class="adminTrafficBody"></div></div>

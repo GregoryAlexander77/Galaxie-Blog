@@ -19,7 +19,9 @@
 	isHomePage is true, regardless of which of these pageTypeIds got it there, so this must set it up for all of
 	them or that reference throws. pageTypeId 22/23/24 don't reference it directly, but are included here anyway so
 	bot-blocking/visitor-logging apply consistently everywhere. --->
-	<cfif (pageTypeId eq 1 or pageTypeId eq 9 or pageTypeId eq 20 or pageTypeId eq 21 or pageTypeId eq 22 or pageTypeId eq 23 or pageTypeId eq 24 or pageTypeId eq 25) and application.logVisitors>
+	<!--- The timeout and ban checks no longer depend on Visitor Logging (2026-10-28): with logging off, banned visitors and bad bots
+	got in. Both checks are in memory (isVisitorBanned keeps the banned lists in the application). --->
+	<cfif (pageTypeId eq 1 or pageTypeId eq 9 or pageTypeId eq 20 or pageTypeId eq 21 or pageTypeId eq 22 or pageTypeId eq 23 or pageTypeId eq 24 or pageTypeId eq 25)>
 
 		<!--- Block a visitor under a temporary timeout first. Temporary timeouts are applied automatically by blog.cfc's recordDatabaseLockError (called from Application.cfc's onError) when the same IP causes a burst of org.hibernate.exception.LockAcquisitionException database lock errors - typically a bot hammering the site. isTemporarilyTimedOut() is a pure in-memory struct lookup (see Application.cfc's OnRequestStart), so checking it here, ahead of the DB-backed isVisitorBanned() check below, blocks that IP's subsequent requests without spending a single extra query on a database that may already be under strain. --->
 		<cfif application.blog.isTemporarilyTimedOut(application.blog.getIpAddress())>
@@ -32,6 +34,10 @@
 			<cfheader statuscode="403">
 			<cfcontent type="text/html" reset="true">You have been blocked from accessing this site.<cfabort>
 		</cfif>
+	</cfif>
+
+	<!--- Visitor Logging off (Blog Options) = nothing about the visit is saved: no visitor, referrer or visit rows (owner, 2026-10-28). --->
+	<cfif (pageTypeId eq 1 or pageTypeId eq 9 or pageTypeId eq 20 or pageTypeId eq 21 or pageTypeId eq 22 or pageTypeId eq 23 or pageTypeId eq 24 or pageTypeId eq 25) and application.logVisitors>
 
 		<cfif not structKeyExists(cookie, "gauid")>
 			<!--- Get client properties. These cookies only exist when an admin user has logged on and are used to set the interfaces depending upon the screen size --->
