@@ -355,11 +355,13 @@ takes the same options and events. --->
 		</div>
 		<div class="block k-alt">
 			<h4>Footer</h4>
-			<p class="hint" style="margin-top:0" id="footerHint">Made from what you entered: About and Contact links, never your email address. It is made when you press Next; change it any time in Themes, Content.</p>
+			<p class="hint" style="margin-top:0" id="footerHint">Your logo and the version line, as on every Galaxie blog. It never shows your email address. It is made when you press Next; change it any time in Themes, Content.</p>
 			<div class="choiceList" id="footerChoices">
-				<label class="choice"><input type="radio" name="footerStyle" value="simple"><div><strong>Simple</strong><span>About and Contact links.</span></div></label>
-				<label class="choice"><input type="radio" name="footerStyle" value="blurb"><div><strong>With a short about blurb</strong><span>The first lines of what you wrote about yourself, above the links.</span></div></label>
-				<label class="choice"><input type="radio" name="footerStyle" value="none"><div><strong>Just the basics</strong><span>Only the logo and the version line every footer has, without links.</span></div></label>
+				<label class="choice"><input type="radio" name="footerStyle" value="simple"><div><strong>Simple</strong><span>Your logo and the version line.</span></div></label>
+				<label class="choice"><input type="radio" name="footerStyle" value="blurb"><div><strong>With a short about blurb</strong><span>The first lines of what you wrote about yourself, above the version line.</span></div></label>
+				<!--- No links in the footer in 5.0 (owner, 2026-10-27: no About page or Contact yet, to revisit next version), so Simple is the
+				standard footer and "Just the basics" would be the same: hidden. --->
+				<label class="choice" hidden><input type="radio" name="footerStyle" value="none"><div><strong>Just the basics</strong><span>Only the logo and the version line every footer has, without links.</span></div></label>
 			</div>
 		</div>
 	</div>
@@ -918,7 +920,7 @@ $(function () {
 		});
 		$("#heroCards").append(card);
 	});
-	$("input[name=footerStyle][value=" + (saved.footer || "simple") + "]").prop("checked", true);
+	$("input[name=footerStyle][value=" + (saved.footer === "blurb" ? "blurb" : "simple") + "]").prop("checked", true);
 	$("#footerChoices").on("change", "input", function () { dirty.home = true; });
 	if (saved.footerIsCustom) {
 		$("#footerChoices input").prop("disabled", true).closest(".choice").addClass("disabled");

@@ -415,15 +415,16 @@
 	<cfset application.events.setSetting(0, "setupFooter", arguments.style)>
 	<!--- None: just the basics - footer.cfm's own logo and version lines, without links. (A footer can't be switched off: footer.cfm
 	always adds the version and copyright.) Only reached for the default footer or one this wizard wrote, never the owner's own. --->
-	<cfif arguments.style eq "none">
+	<!--- 5.0 (owner, 2026-10-27): no links in the footer - no About page or Contact yet (to revisit next version) - so Simple is the
+	standard footer, the same as "none": the logo and the version line, like gregoryalexander.com and galaxieblog.org. --->
+	<cfif arguments.style eq "none" or arguments.style eq "simple">
 		<cfset application.blog.saveContentOutput(contentTemplate = "compositeFooter", themeId = "", revertDesktop = "true")>
 		<cfset application.blog.saveContentOutput(contentTemplate = "compositeFooter", themeId = "", revertMobile = "true")>
 		<cfset application.events.setSetting(0, "setupFooterHash", "")>
 		<cfset application.blog.flushGalaxieCache(type = "all")>
 		<cfreturn>
 	</cfif>
-	<cfif len(links.aboutUrl)><cfset arrayAppend(parts, '<a href="' & encodeForHtmlAttribute(links.aboutUrl) & '">About</a>')></cfif>
-	<cfset arrayAppend(parts, '<a href="' & encodeForHtmlAttribute(application.blogHostUrl & "/?contact") & '">Contact</a>')>
+	<!--- No About or Contact links in 5.0 (see above). --->
 	<!--- No social icons in the footer (owner, 2026-10-27): they are in the Bio window. --->
 	<cfif not isNull(owner)>
 		<cfif arguments.style eq "blurb">
@@ -432,9 +433,14 @@
 			<cfif len(bio) gt 220><cfset bio = left(bio, 217) & "..."></cfif>
 		</cfif>
 	</cfif>
+	<!--- A blurb with nothing written about yourself would be an empty footer: the standard one instead. --->
+	<cfif not len(bio) and not arrayLen(parts)>
+		<cfset saveFooter("simple")>
+		<cfreturn>
+	</cfif>
 	<cfset html = '<div class="siteFooter" style="text-align: center;">'>
 	<cfif len(bio)><cfset html = html & '<p>' & encodeForHtml(bio) & '</p>'></cfif>
-	<cfset html = html & '<p>' & arrayToList(parts, ' &middot; ') & '</p>'>
+	<cfif arrayLen(parts)><cfset html = html & '<p>' & arrayToList(parts, ' &middot; ') & '</p>'></cfif>
 	<cfset html = html & '</div>'>
 	<cfset application.blog.saveContentOutput(contentTemplate = "compositeFooter", themeId = "", contentOutputDesktop = html, contentOutputMobile = html, active = "true")>
 	<!--- Remember exactly what was written, so a later run can tell this footer from one the owner changed. --->
