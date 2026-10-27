@@ -260,6 +260,8 @@
 			<cfset application.installed = getInstalled(true)>
 			<!--- Ini file. Lucee change from application.blogIniPath to getIniPath() --->
 			<cfset application.iniFile = expandPath(getBlogIniPath())>
+			<!--- The off switches (blog.cfc isOff) are read again from blog.ini.cfm. --->
+			<cfset structDelete(application, "galaxieSwitchesOff")>
 			<!--- Set the common component paths --->
 			<cfset application.baseProxyUrl = getBaseProxyUrl(true)>
 			<cfset application.baseComponentPath = getBaseComponentPath(true)>

@@ -2436,7 +2436,23 @@
 		<cfreturn false>
 	</cffunction>
 
-	<cffunction name="getBannedLists" access="public" returnType="struct" output="false" hint="The banned IP addresses and User-Agents, as { ips, userAgents } (lower-case keys), loaded once and kept in the application until a ban changes (isVisitorBanned, 2026-10-27).">
+	<cffunction name="isOff" access="public" returnType="boolean" output="false" hint="Off switches for the newer page features, to find a slow one by turning them off one at a time (owner, 2026-10-27). blog.ini.cfm, [default] section: switchesOff=feedPod,popularPosts (any of: feedPod, eventsPod, visitorTracking, banCheck, autoBan, errorDigest, memberLink, popularPosts, recentReads, postViews, cardEvents). Read once; ?reinit=1 reads it again. Everything is on when the line is missing.">
+		<cfargument name="feature" type="string" required="true">
+		<cfset var off = {}>
+		<cfset var item = "">
+		<cfif not structKeyExists(application, "galaxieSwitchesOff")>
+			<cftry>
+				<cfloop list="#getProfileString(application.blogIniPath, 'default', 'switchesOff')#" index="item">
+					<cfif len(trim(item))><cfset off[lCase(trim(item))] = true></cfif>
+				</cfloop>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+			<cfset application.galaxieSwitchesOff = off>
+		</cfif>
+		<cfreturn structKeyExists(application.galaxieSwitchesOff, lCase(arguments.feature))>
+	</cffunction>
+
+	<cffunction name="getBannedLists" access="public"returnType="struct" output="false" hint="The banned IP addresses and User-Agents, as { ips, userAgents } (lower-case keys), loaded once and kept in the application until a ban changes (isVisitorBanned, 2026-10-27).">
 		<cfset var lists = "">
 		<cfset var row = "">
 		<cfif structKeyExists(application, "galaxieBannedLists")>
@@ -10490,6 +10506,10 @@
 		<cfif structKeyExists(application, cacheKey) and dateDiff("n", application[cacheKey].made, now()) lt 5>
 			<cfreturn application[cacheKey].data>
 		</cfif>
+		<!--- Off switch (2026-10-27): no reads; Popular posts falls back to the old ranking. --->
+		<cfif isOff("recentReads")>
+			<cfreturn {}>
+		</cfif>
 		<cftry>
 			<cfset q = queryExecute("
 				SELECT v.PostRef AS PostId, COUNT(*) AS Reads
@@ -12846,6 +12866,10 @@
 		<cfargument name="postId" type="numeric" required="true">
 		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
 		<cfset var Data = "">
+		<!--- Off switch (2026-10-27). --->
+		<cfif isOff("postViews")>
+			<cfreturn>
+		</cfif>
 			
 		<cfquery name="Data" dbtype="hql">
 			UPDATE Post

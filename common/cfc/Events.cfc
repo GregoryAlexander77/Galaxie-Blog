@@ -1581,7 +1581,8 @@ each shows that location, name or Sign up button, so editing one of them has to 
 	<cfloop array="#arguments.postIds#" index="id">
 		<cfif isNumeric(id) and id gt 0><cfset arrayAppend(ids, int(id))></cfif>
 	</cfloop>
-	<cfif not arrayLen(ids)>
+	<!--- Off switch (2026-10-27, blog.cfc isOff): the cards show as before events. --->
+	<cfif not arrayLen(ids) or application.blog.isOff("cardEvents")>
 		<cfreturn events>
 	</cfif>
 	<cftry>

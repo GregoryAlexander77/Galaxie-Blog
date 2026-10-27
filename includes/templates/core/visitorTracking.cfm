@@ -6,7 +6,9 @@
 	<!--- The nightly error summary (2026-10-18, common/cfc/ErrorDigest.cfc): the first page view after the summary time sends it,
 	in its own thread. Almost always just one date compare in memory. Not a scheduled task - ColdFusion's outbound network policy can silently block those. --->
 	<cftry>
-		<cfset application.blog.getErrorDigest().maybeSend()>
+		<cfif not application.blog.isOff("errorDigest")>
+			<cfset application.blog.getErrorDigest().maybeSend()>
+		</cfif>
 		<cfcatch type="any"></cfcatch>
 	</cftry>
 
@@ -21,7 +23,8 @@
 	bot-blocking/visitor-logging apply consistently everywhere. --->
 	<!--- The timeout and ban checks no longer depend on Visitor Logging (2026-10-28): with logging off, banned visitors and bad bots
 	got in. Both checks are in memory (isVisitorBanned keeps the banned lists in the application). --->
-	<cfif (pageTypeId eq 1 or pageTypeId eq 9 or pageTypeId eq 20 or pageTypeId eq 21 or pageTypeId eq 22 or pageTypeId eq 23 or pageTypeId eq 24 or pageTypeId eq 25)>
+	<!--- Off switches (2026-10-27, blog.cfc isOff): banCheck skips the timeout and ban checks, autoBan the bad-bot list. --->
+	<cfif (pageTypeId eq 1 or pageTypeId eq 9 or pageTypeId eq 20 or pageTypeId eq 21 or pageTypeId eq 22 or pageTypeId eq 23 or pageTypeId eq 24 or pageTypeId eq 25) and not application.blog.isOff("banCheck")>
 
 		<!--- Block a visitor under a temporary timeout first. Temporary timeouts are applied automatically by blog.cfc's recordDatabaseLockError (called from Application.cfc's onError) when the same IP causes a burst of org.hibernate.exception.LockAcquisitionException database lock errors - typically a bot hammering the site. isTemporarilyTimedOut() is a pure in-memory struct lookup (see Application.cfc's OnRequestStart), so checking it here, ahead of the DB-backed isVisitorBanned() check below, blocks that IP's subsequent requests without spending a single extra query on a database that may already be under strain. --->
 		<cfif application.blog.isTemporarilyTimedOut(application.blog.getIpAddress())>
@@ -30,14 +33,14 @@
 		</cfif>
 
 		<!--- Block banned visitors before doing any further tracking or rendering. Banning is managed via the Ban Visitors admin interface (createAdminInterfaceWindow(66)), which can ban by IP address or by HTTP User-Agent string. This check is done directly against the IpAddress/HttpUserAgent tables (not the AnonymousUser combination), so it also catches a banned IP or User-Agent the very first time it is seen. autoBanBadBot() (blog.cfc, alongside the other ban functions) runs second - via short-circuit evaluation it is skipped entirely once isVisitorBanned() is already true - and checks the User-Agent against getBadBots()'s known bad bot/scraper list, automatically banning (and blocking) it with no admin action required. --->
-		<cfif application.blog.isVisitorBanned(ipAddress=application.blog.getIpAddress(), httpUserAgent=CGI.Http_User_Agent) or application.blog.autoBanBadBot(CGI.Http_User_Agent)>
+		<cfif application.blog.isVisitorBanned(ipAddress=application.blog.getIpAddress(), httpUserAgent=CGI.Http_User_Agent) or (not application.blog.isOff("autoBan") and application.blog.autoBanBadBot(CGI.Http_User_Agent))>
 			<cfheader statuscode="403">
 			<cfcontent type="text/html" reset="true">You have been blocked from accessing this site.<cfabort>
 		</cfif>
 	</cfif>
 
 	<!--- Visitor Logging off (Blog Options) = nothing about the visit is saved: no visitor, referrer or visit rows (owner, 2026-10-28). --->
-	<cfif (pageTypeId eq 1 or pageTypeId eq 9 or pageTypeId eq 20 or pageTypeId eq 21 or pageTypeId eq 22 or pageTypeId eq 23 or pageTypeId eq 24 or pageTypeId eq 25) and application.logVisitors>
+	<cfif (pageTypeId eq 1 or pageTypeId eq 9 or pageTypeId eq 20 or pageTypeId eq 21 or pageTypeId eq 22 or pageTypeId eq 23 or pageTypeId eq 24 or pageTypeId eq 25) and application.logVisitors and not application.blog.isOff("visitorTracking")>
 
 		<cfif not structKeyExists(cookie, "gauid")>
 			<!--- Get client properties. These cookies only exist when an admin user has logged on and are used to set the interfaces depending upon the screen size --->
@@ -66,7 +69,7 @@
 		<cfelse><!---<cfif not structKeyExists(cookie, "gauid")>--->
 			<cfset anonymousUserId = cookie.gauid>
 			<!--- A signed-in member (2026-10-17): the admin's visitor screens show them by picture and name (Members.cfc linkVisitor). --->
-			<cfif structKeyExists(session, "galaxieMember") and structKeyExists(application, "members")>
+			<cfif structKeyExists(session, "galaxieMember") and structKeyExists(application, "members") and not application.blog.isOff("memberLink")>
 				<cfset application.members.linkVisitor(anonymousUserId)>
 			</cfif>
 			<!--- Load the anonymousUser entity --->

@@ -84,7 +84,7 @@
 						Cached for an hour, so finished events drop off, and cleared when an event changes (Events.cfc flushListings).
 					**********************************************************************************************************--->
 					<cfset isActive = false>
-					<cfif structKeyExists(application, "events")>
+					<cfif structKeyExists(application, "events") and not application.blog.isOff("eventsPod")>
 						<cfset application.events.ensurePodTemplate()>
 						<cfinvoke component="#application.blog#" method="isContentTemplateActive" returnvariable="isActive">
 							<cfinvokeargument name="contentTemplate" value="upcomingEventsPod">
@@ -125,7 +125,7 @@
 						<cfset cacheName = "podRssFeed">
 					</cfif>
 				</cfsilent>
-				<cfif isActive>
+				<cfif isActive and not application.blog.isOff("feedPod")>
 					<!--- Not cached as html (2026-10-27): feed.cfm keeps the feed in memory and refreshes it in the background, so the newest copy shows as soon as it has been read. --->
 					<div class="widget k-content flexItem">
 						<span class="innerContentContainer">
