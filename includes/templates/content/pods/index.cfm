@@ -126,14 +126,13 @@
 					</cfif>
 				</cfsilent>
 				<cfif isActive>
-					<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/pods/#cacheName#.cfm" timeout="#(60*30)#" debug="false" disabled="#application.disableCache#">
+					<!--- Not cached as html (2026-10-27): feed.cfm keeps the feed in memory and refreshes it in the background, so the newest copy shows as soon as it has been read. --->
 					<div class="widget k-content flexItem">
 						<span class="innerContentContainer">
 							<h3 class="topContent"><i class="fas fa-rss-square"></i> CfBlogs.org Feed</h3>
 							<cfinclude template="feed.cfm">
 						</span>
 					</div>
-					</cfmodule>
 				</cfif>
 				<cfsilent>
 					<!--- *******************************************************************************************************
