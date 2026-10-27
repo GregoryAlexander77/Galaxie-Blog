@@ -26,6 +26,7 @@ count here. --->
 <cfelse>
 	<cfset postCount = application.blog.getPostCount(params, false, true)>
 </cfif>
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "postCount=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 <!--- Allow the admin to preview if the showPendingPosts URL var is present and if we are looking at a single entry. This is needed as we don't want to accidently cache the main blog page (with multiple posts) when previewing the page --->
 <cfif ( isDefined("URL.showPendingPosts") and application.Udf.isLoggedIn() and (url.mode eq "alias" or URL.mode eq 'entry' or URL.mode eq 'page' or pageTypeId eq 9))>
 	<cfset showPendingPosts = true>

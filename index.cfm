@@ -13,6 +13,13 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 <!--- Straight after a new install (5.0): on to the Site Wizard, which asks the new owner to sign in first. Only the one
 request that finished the install has this flag (Application.cfc), so every other visit is unaffected. --->
 <!--- Section timings (2026-10-27): ?galaxieTimings=1 adds an X-Galaxie-Timings response header with the milliseconds at the end of each part of the page (curl -sI "...?galaxieTimings=1"). Nothing is shown on the page, and without the parameter it does nothing. ---><cfset request.galaxieTimeIt = structKeyExists(url, "galaxieTimings")><cfset request.galaxieT0 = getTickCount()><cfset request.galaxieMarks = "">
+<!--- With timings on (2026-10-27): two trivial database calls first, so a slow connection (dbPing: a plain query; ormPing: Hibernate) shows apart from the page's own queries. --->
+<cfif request.galaxieTimeIt>
+	<cftry><cfset queryExecute("SELECT 1 AS x", {}, { datasource = application.dsn })><cfcatch type="any"><cfset request.galaxieMarks &= "dbPingError "></cfcatch></cftry>
+	<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "dbPing=" & (getTickCount() - request.galaxieT0) & " "></cfif>
+	<cftry><cfset ormExecuteQuery("SELECT count(b) FROM Blog b")><cfcatch type="any"><cfset request.galaxieMarks &= "ormPingError "></cfcatch></cftry>
+	<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "ormPing=" & (getTickCount() - request.galaxieT0) & " "></cfif>
+</cfif>
 <cfif isDefined("request.blogJustInstalled") and request.blogJustInstalled>
 	<cflocation url="#application.baseUrl#/admin/setup.cfm" addToken="false">
 </cfif>
