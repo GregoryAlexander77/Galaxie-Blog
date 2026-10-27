@@ -12,6 +12,7 @@ Note: for html5, this doctype needs to be the first line on the page. (ga 10/27/
 <!---<cfset pagePoolClear()>--->
 <!--- Straight after a new install (5.0): on to the Site Wizard, which asks the new owner to sign in first. Only the one
 request that finished the install has this flag (Application.cfc), so every other visit is unaffected. --->
+<!--- Section timings (2026-10-27): ?galaxieTimings=1 adds an X-Galaxie-Timings response header with the milliseconds at the end of each part of the page (curl -sI "...?galaxieTimings=1"). Nothing is shown on the page, and without the parameter it does nothing. ---><cfset request.galaxieTimeIt = structKeyExists(url, "galaxieTimings")><cfset request.galaxieT0 = getTickCount()><cfset request.galaxieMarks = "">
 <cfif isDefined("request.blogJustInstalled") and request.blogJustInstalled>
 	<cflocation url="#application.baseUrl#/admin/setup.cfm" addToken="false">
 </cfif>
@@ -170,6 +171,7 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 //********************************************************************************************************************--->
 
 <cfinclude template="#application.baseUrl#/includes/templates/getPost.cfm">
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "getPost=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 <!---<cfdump var="#getPost#" label="getPost">--->
 	
 <!--- //******************************************************************************************************************
@@ -208,6 +210,7 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 </cfif>
 <!--- Get post information from the db --->
 <cfinclude template="#application.baseUrl#/includes/templates/coreLogic.cfm">
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "coreLogic=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 
 <!--- //******************************************************************************************************************
 			Page output
@@ -215,6 +218,7 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 </cfsilent>
 <cfsavecontent variable="pageHtml"><html lang="en-US"><head><cfoutput>
 <cfinclude template="#application.baseUrl#/includes/templates/head.cfm" />
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "head=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 </head>
 </cfoutput>	
 <cfsilent>
@@ -255,6 +259,7 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 <!--- Cache notes: this template contains dynamic images and other elements that are dependent upon the theme. It should not be cached. --->
 </cfsilent>
 <cfinclude template="#application.baseUrl#/includes/templates/blogContentCss.cfm" />
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "css=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 <cfsilent>		
 <!---//*******************************************************************************************************************
 			Top menu html
@@ -295,6 +300,7 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
    <tr>
 	<td>
 		<cfinclude template="#application.baseUrl#/includes/templates/blogJsContent.cfm" />
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "js=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 	<cfsilent>
 	<!---//***************************************************************************************************************
 				Blog content html
@@ -309,6 +315,7 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 	--->
 	</cfsilent>		
 	
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "beforeContent=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 	<!-- Blog body -->
 	<main>
 		<cfif pageTypeId eq 1>
@@ -376,7 +383,8 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 		<cfif breakpoint gt 0>
 			<div id="sidebar">
 				<!--- The cfmodule below identical to a cfinclude and has no end tag and is not part of galaxieCache. Make sure to supply the sidebar type. This is a duplicate sidebar when using desktop and the theme type is classic --->
-				<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#"  materialtheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
+				<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "beforePodsDiv=" & (getTickCount() - request.galaxieT0) & " "></cfif>
+<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="div" scriptTypeString="#scriptTypeString#"  materialtheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 			</div><!---<nav id="sidebar">--->
 		</cfif>
 		</div><!---<div id="mainPanel" class="flexParent">--->
@@ -391,7 +399,8 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 		<nav id="sidebarPanel" class="k-content">
 			<div id="sidebarPanelWrapper" name="sidebarPanelWrapper" class="flexScroll"> 
 				<!--- This cfmodule acts like a cfinclude and is not part of galaxieCache. Make sure to suppply the sideBarType argument. DIV --->
-				<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#"  materialTheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
+				<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "beforePodsPanel=" & (getTickCount() - request.galaxieT0) & " "></cfif>
+<cfmodule template="#application.baseUrl#/includes/templates/content/pods/index.cfm" sideBarType="panel" scriptTypeString="#scriptTypeString#"  materialTheme="#materialTheme#" modernTheme="#modernTheme#" darkTheme="#darktheme#">
 			</div>
 		</nav><!---<nav id="sidebar">--->
 		<!--- This script must be placed underneath the layer that is being used in order to effectively work as a flyout menu.--->
@@ -432,6 +441,7 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 	</cfsilent>			
 	<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="application" timeout="#(60*30)#" disabled="#disableCache#">
 	<cfinclude template="#application.baseUrl#/includes/templates/sideBarPanel.cfm" />
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "sideBarPanel=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 	</cfmodule>
 </cfif><!---<cfif pageTypeId gt 1>--->
 <cfsilent>
@@ -445,6 +455,7 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 <!--- galaxieCache will read content between the cfmodule tags (or a normal tag) and save the content to the file system. This can't be in a cfsilent block --->
 <cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cacheName#" scope="html" file="#application.baseUrl#/cache/footer/#cacheName#.cfm" debug="false" disabled="#disableCache#">
 	<cfinclude template="#application.baseUrl#/includes/templates/content/footer/footer.cfm" />
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "footer=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 </cfmodule>  
 <!--- The footer above is cached for every visitor, so its "customize this footer" hint for admins is revealed here, outside the cache. --->
 <cfif application.Udf.isLoggedIn()><script>var footerHint = document.getElementById("footerCustomizeHint"); if (footerHint) { footerHint.hidden = false; }</script></cfif>
@@ -454,11 +465,13 @@ once showSidebar is known, the same way curatedHomepageContentHtml.cfm already s
 	//****************************************************************************************************************--->	
 </cfsilent>
 <cfinclude template="#application.baseUrl#/includes/templates/tailEndScripts.cfm" />
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "tailEnd=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 <!--- 
 Note: if the Zion theme is screwed up, check the use custom theme setting in the ini file.
 --->
 </body>
 </html>
 </cfsavecontent>
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfheader name="X-Galaxie-Timings" value="#request.galaxieMarks#total=#getTickCount() - request.galaxieT0#"></cfif>
 <cfinclude template="#application.baseUrl#/includes/templates/core/pageOutput.cfm" />
 </cfprocessingdirective>

@@ -3,6 +3,7 @@
 
 	<cfinclude template="#application.baseUrl#/includes/templates/core/securityTokens.cfm">
 	<cfinclude template="#application.baseUrl#/includes/templates/core/visitorTracking.cfm">
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "visitorTracking=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 
 	<!--- //**************************************************************************************************************
 			Determine what to get based upon the URL and set parameters to get the articles
@@ -13,6 +14,7 @@
 
 	<cfif postFound>
 		<cfinclude template="#application.baseUrl#/includes/templates/core/postViewTracking.cfm">
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "postViewTracking=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 		<cfinclude template="#application.baseUrl#/includes/templates/core/seoMetaTags.cfm">
 		<cfinclude template="#application.baseUrl#/includes/templates/core/videoMetadata.cfm">
 	</cfif><!---<cfif postFound>--->

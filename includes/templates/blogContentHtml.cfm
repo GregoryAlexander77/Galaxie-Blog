@@ -60,6 +60,7 @@
 		</cfif><!---<cfif arrayLen(getPost)>--->
 	</cfmodule>
 	</cfif><!---<cfif showPopularPosts>--->
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "popularStrip=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 		</div>
 
 		<cfsilent><!--- Default blog modes --->
@@ -193,6 +194,7 @@
 				</div><!---<div id="cardContainer" style="width: 100%">--->	
 			</cfloop>
 			<br/><!-- Give an extra space between the cards and pagination --->
+<cfif structKeyExists(request, "galaxieTimeIt") and request.galaxieTimeIt><cfset request.galaxieMarks &= "cards=" & (getTickCount() - request.galaxieT0) & " "></cfif>
 			<!--- End Card Cache --->
 		<cfelse><!---<cfif condensedGridView>--->	
 			<cfsilent>
