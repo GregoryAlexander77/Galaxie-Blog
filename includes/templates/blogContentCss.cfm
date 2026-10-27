@@ -1250,6 +1250,10 @@
 			border-radius: 50%;
 			-moz-border-radius: 50%;
 			-webkit-border-radius: 50%;
+			<!--- Crop, never squeeze (2026-10-27, owner: his author picture looked skewed): a photo that isn't square was stretched to
+			the avatar's square size. Kept a little above the middle, where a face usually is. --->
+			object-fit: cover;
+			object-position: 50% 30%;
 		}
 	<cfif isDefined("condensedGridView") and condensedGridView or (isDefined("postFound") and postFound and getPageMode() eq 'post')>
 		<!--- --- Cards (displays popular and related posts) --- --->
