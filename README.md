@@ -71,11 +71,12 @@ Galaxie Blog 5.0 is about how your blog looks and moves.
 
 - **Scenes.** Scrolling stories at the top of a post or page, animated with GreenSock: layered heroes whose layers move at different speeds, photo, animated, gradient and video heroes, text blocks, slideshows, maps, forms and products. Every blog starts with six ready-made scenes, the gallery has many more, and the Scene editor builds your own with a live preview.
 - **Post heroes.** The Enclosure is now the Hero, with four styles (Classic, Tall and held, Tall band, Magazine), hero text with its own font, color, shadow and glow, and a parallax hero picked from ready-made pictures right in the Hero editor.
-- **The Site Wizard.** A new blog is set up in a few screens: name, theme, logo, about you, starter content and home page, with a live preview. The installer is now one page.
+- **The Site Wizard.** A new blog is set up in a few screens: name, theme, logo, about you, starter content and home page, with a live preview. The installer is now one page. Until your first post, the home page shows a getting-started post with what's left to set up.
 - **The Shop.** Products, downloads and services, a cart and checkout through your own Stripe account, orders with shipping and refunds, and download links.
 - **A new administrative home page** with Up next and this week's visitors, a Themes window with a live preview, one-step Delete in the grids, test buttons for the mail, database and Stripe settings, and private notes.
 - **Comment replies,** a Remember me that works, and visitors see only approved comments.
-- **Faster and lighter:** the visitor log is tidied once a day in the background instead of on every visit to the administrative site, and the Visitors grid loads one page at a time.
+- **Faster and lighter:** the home page reads its posts in two quick steps, the visitor logs get the indexes they need, the cfblogs.org feed is read in the background, the visitor log is tidied once a day instead of on every visit to the administrative site, and the Visitors grid loads one page at a time. Public pages always use the lighter Kendo Core, even when you're signed in.
+- **When a page gets slow:** `?galaxieTimings=1` shows where a page spends its time, and single features can be switched off in `blog.ini.cfm` while you look into it.
 
 The full list is in the [Release Notes: 5.0](https://galaxieblog.org/release-notes-50).
 
