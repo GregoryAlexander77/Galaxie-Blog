@@ -511,9 +511,11 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 					<cfset upNext = []>
 					<cftry>
 						<cfset upNext = application.blog.getAdminHome().getSuggestions(iconList, linkList, listFindNoCase(currentUserCapabilityList, "EditServerSetting") gt 0, listFindNoCase(titleList, "Blog Updates (update needed)") gt 0)>
-						<cfcatch type="any"><cfset upNext = []></cfcatch>
+						<!--- Its fingerprint, so the page can tell when Up next would change (2026-10-28, see the script below). --->
+						<cfset upNextSignature = application.blog.getAdminHome().rememberSignature(upNext, iconList, linkList, listFindNoCase(currentUserCapabilityList, "EditServerSetting") gt 0, listFindNoCase(titleList, "Blog Updates (update needed)") gt 0)>
+						<cfcatch type="any"><cfset upNext = []><cfset upNextSignature = ""></cfcatch>
 					</cftry>
-					<cfset upNextIcons = { setup: "SiteSetup", bookings: "Bookings", newBookings: "Bookings", shipOrders: "Orders", comments:"Comments", update: "BlogUpdate", signups: "Forms", errors: "ErrorLog", draft: "Posts", scheduled: "Posts" }>
+					<cfset upNextIcons= { setup: "SiteSetup", bookings: "Bookings", newBookings: "Bookings", shipOrders: "Orders", comments:"Comments", update: "BlogUpdate", signups: "Forms", errors: "ErrorLog", draft: "Posts", scheduled: "Posts" }>
 					<cfset upNextShown = []>
 					<cfloop array="#upNext#" index="suggestion">
 						<cfif arrayLen(upNextShown) lt 2><cfset arrayAppend(upNextShown, suggestion)></cfif>
@@ -566,7 +568,7 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 				<div id="adminHome">
 					<!--- The sections take turns, k-content first, then k-alt, with a line between them, like the admin windows (owner, 2026-10-21). --->
 					<cfset homeBlock = "k-content">
-					<div class="adminHomeSection adminHomeQuick #homeBlock#">
+					<div class="adminHomeSection adminHomeQuick #homeBlock#" id="adminUpNext" data-signature="#encodeForHtmlAttribute(upNextSignature ?: "")#">
 						<h5 class="adminHomeHeading">Up next</h5>
 						<cfif not arrayLen(upNextShown)><p class="adminHomeCaughtUp">All caught up. Here are some things to do.</p></cfif>
 						<div class="adminHomeGrid">
@@ -719,6 +721,46 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 							$("#trafficNow").html('<div class="adminTrafficBig">' + n(t.nowCount) + '</div><div class="adminTrafficNote">' + (n(t.nowCount) === 1 ? "person" : "people") + ' in the last 15 minutes</div>'
 								+ now.map(function (r) { return '<div class="adminTrafficRow"><span class="adminTrafficLabel">' + esc(r.page) + '</span><span class="adminTrafficCount">' + (n(r.minutesAgo) ? n(r.minutesAgo) + " min" : "now") + '</span></div>'; }).join(""));
 						}).fail(function () { $("#trafficVisitors").text("The visitor numbers couldn't be read."); });
+					})();
+					<!--- Up next refreshes itself (owner, 2026-10-28): once a minute while this tab is in view, and as soon as it comes back
+					into view, ask whether Up next would look different (ProxyController getUpNextSignature - a fingerprint kept in memory,
+					worked out again at most once a minute, or at once after a new comment or a new kind of error). If it would, read this
+					page again in the background and swap in its Up next row and the group tiles' notes. Nothing is asked while the tab is
+					hidden or a group's page is open. --->
+					(function () {
+						var box = document.getElementById("adminUpNext");
+						if (!box) { return; }
+						var busy = false;
+						function swapIn(html) {
+							var doc = new DOMParser().parseFromString(html, "text/html");
+							var fresh = doc.getElementById("adminUpNext");
+							if (!fresh) { return; }
+							box.innerHTML = fresh.innerHTML;
+							box.setAttribute("data-signature", fresh.getAttribute("data-signature") || "");
+							// The group tiles' notes (comments waiting, new errors) - only the notes, so the tiles keep their click handlers.
+							Array.prototype.forEach.call(doc.querySelectorAll(".adminHomeGroup"), function (tile) {
+								var mine = document.querySelector('.adminHomeGroup[data-group="' + tile.getAttribute("data-group") + '"]');
+								if (!mine) { return; }
+								var oldNote = mine.querySelector(".adminHomeStatus"), newNote = tile.querySelector(".adminHomeStatus");
+								if (oldNote) { oldNote.remove(); }
+								if (newNote) { mine.appendChild(newNote.cloneNode(true)); }
+							});
+						}
+						function check() {
+							if (busy || document.visibilityState !== "visible" || document.getElementById("adminHome").style.display === "none") { return; }
+							busy = true;
+							jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getUpNextSignature",
+								data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>" }, dataType: "json" })
+								.done(function (r) {
+									if (typeof r === "string") { try { r = JSON.parse(r); } catch (e) { r = null; } }
+									if (!r || !r.success || !r.signature || r.signature === box.getAttribute("data-signature")) { busy = false; return; }
+									jQuery.ajax({ url: window.location.pathname + window.location.search, dataType: "html", cache: false })
+										.done(swapIn).always(function () { busy = false; });
+								})
+								.fail(function () { busy = false; });
+						}
+						setInterval(check, 60000);
+						document.addEventListener("visibilitychange", check);
 					})();
 					<!--- Up next: the x hides a suggestion until something new happens (AdminHome.cfc hide). --->
 					$(document).on("click", ".adminHomeHide", function () {

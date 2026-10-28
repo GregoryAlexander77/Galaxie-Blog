@@ -11867,6 +11867,24 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="getUpNextSignature" access="remote" returnformat="json" output="false"
+			hint="The admin home's Up next row (5.0, 2026-10-28): the fingerprint of the cards this person would see now (AdminHome.cfc upNextSignature), so the page can redraw them when it changes.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfset var response = { "success": false, "signature": "" }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfif application.Udf.isLoggedIn()>
+			<cftry>
+				<cfset response[ "signature" ] = application.blog.getAdminHome().upNextSignature()>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any"><cfset response[ "message" ] = cfcatch.message></cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="hideUpNext" access="remote" returnformat="json" output="false"
 			hint="The admin home's Up next row (5.0): hides one suggestion (its x) until something new happens (AdminHome.cfc hide).">
 		<cfargument name="csrfToken" type="string" default="" required="true">

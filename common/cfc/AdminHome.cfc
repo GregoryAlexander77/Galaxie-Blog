@@ -31,6 +31,61 @@
 	<cfreturn {}>
 </cffunction>
 
+<!---
+	Up next refreshes itself (5.0, owner 2026-10-28). The admin home asks once a minute, and when its tab comes back into view, for
+	upNextSignature(): a short fingerprint of the Up next cards this person would see now. It is worked out with the same
+	getSuggestions() that draws them (with the lists the page last used for them, kept in the session), and kept for a minute per
+	person, so open admin tabs cost at most one round of those queries a minute. changed() - called when a comment is added and
+	when a new kind of error is logged - forgets every kept fingerprint, so those show at the next check. When the fingerprint
+	differs from the page's, the page redraws its Up next row (admin/index.cfm). Ready for more events in later versions.
+--->
+<cffunction name="signatureOf" access="public" returntype="string" output="false" hint="The fingerprint of a list of Up next suggestions.">
+	<cfargument name="suggestions" type="array" required="true">
+	<cfset var parts = []>
+	<cfset var s = {}>
+	<cfloop array="#arguments.suggestions#" index="s">
+		<cfset arrayAppend(parts, (s.kind ?: "") & "|" & (s.label ?: "") & "|" & (s.detail ?: "") & "|" & (s.signature ?: ""))>
+	</cfloop>
+	<cfreturn left(hash(arrayToList(parts, chr(10)), "MD5"), 12)>
+</cffunction>
+
+<cffunction name="rememberSignature" access="public" returntype="string" output="false" hint="Called by the admin home as it draws Up next: keeps the lists it used and the fingerprint of what it drew, and returns the fingerprint.">
+	<cfargument name="suggestions" type="array" required="true">
+	<cfargument name="iconList" type="string" required="true">
+	<cfargument name="linkList" type="string" required="true">
+	<cfargument name="canSetUp" type="boolean" required="true">
+	<cfargument name="updateNeeded" type="boolean" required="true">
+	<cfset var sig = signatureOf(arguments.suggestions)>
+	<cfset session.galaxieUpNextArgs = { iconList = arguments.iconList, linkList = arguments.linkList, canSetUp = arguments.canSetUp, updateNeeded = arguments.updateNeeded }>
+	<cfset keepSignature(sig)>
+	<cfreturn sig>
+</cffunction>
+
+<cffunction name="keepSignature" access="private" returntype="void" output="false">
+	<cfargument name="sig" type="string" required="true">
+	<cfif not structKeyExists(application, "galaxieUpNextSignatures")><cfset application.galaxieUpNextSignatures = {}></cfif>
+	<cfset application.galaxieUpNextSignatures[settingKey("upNext")] = { sig = arguments.sig, made = now() }>
+</cffunction>
+
+<cffunction name="upNextSignature" access="public" returntype="string" output="false" hint="This person's Up next fingerprint now (kept for a minute), or empty before the admin home has been drawn in this session.">
+	<cfset var kept = "">
+	<cfset var args = "">
+	<cfset var sig = "">
+	<cfif not structKeyExists(session, "galaxieUpNextArgs")><cfreturn ""></cfif>
+	<cfif structKeyExists(application, "galaxieUpNextSignatures") and structKeyExists(application.galaxieUpNextSignatures, settingKey("upNext"))>
+		<cfset kept = application.galaxieUpNextSignatures[settingKey("upNext")]>
+		<cfif dateDiff("s", kept.made, now()) lt 60><cfreturn kept.sig></cfif>
+	</cfif>
+	<cfset args = session.galaxieUpNextArgs>
+	<cfset sig = signatureOf(getSuggestions(args.iconList, args.linkList, args.canSetUp, args.updateNeeded))>
+	<cfset keepSignature(sig)>
+	<cfreturn sig>
+</cffunction>
+
+<cffunction name="changed" access="public" returntype="void" output="false" hint="Something that Up next shows has happened (a comment, a new error): every kept fingerprint is worked out again at the next check.">
+	<cfset application.galaxieUpNextSignatures = {}>
+</cffunction>
+
 <cffunction name="hide" access="public" returntype="void" output="false" hint="Hides one suggestion until its signature changes.">
 	<cfargument name="kind" type="string" required="true">
 	<cfargument name="signature" type="string" required="true">

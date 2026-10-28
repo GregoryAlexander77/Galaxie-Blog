@@ -1643,6 +1643,10 @@
 			I will only send email if this is a new error. I don't want to spam everyone
 			Do not send any form values via email as they may contain sensitive login information
 		*********************************************************************************************************--->
+		<!--- A new kind of error: the admin home's Up next notices it at its next check (AdminHome.cfc changed, 2026-10-28). --->
+		<cfif isNewError>
+			<cftry><cfset getAdminHome().changed()><cfcatch type="any"></cfcatch></cftry>
+		</cfif>
 		<!--- Only in 'Right away' mode (2026-10-18). With the nightly summary (the default), new errors are in tonight's email - see common/cfc/ErrorDigest.cfc. --->
 		<cfif isNewError and application.sendDiagnostics and errorEmailMode() eq "immediate" and application.blog.shouldSendErrorEmail()>
 		<!---<cfif !arrayLen(getErrorLog) and !arrayLen(previousRecordsWithinPreviousMinute) and application.sendDiagnostics>--->
@@ -8957,9 +8961,11 @@
 
 			<!--- Refresh the Galaxie Cache comment objects --->
 			<cfset flushGalaxieCache(type='comment', postId='#arguments.postId#')>
-				
+			<!--- The admin home's Up next notices it at its next check (AdminHome.cfc changed, 2026-10-28). --->
+			<cftry><cfset getAdminHome().changed()><cfcatch type="any"></cfcatch></cftry>
+
 		</cfif><!---<cfif arrayLen(getPost)>--->
-			
+
 		<cfreturn returnValue>
 		
 	</cffunction>
