@@ -808,6 +808,10 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 			#adminHome, .adminGroupPage { max-width: 980px; margin: 0 auto; }
 			.adminHomeSection { margin-top: 0; padding: 2px 12px 16px; }
 			.adminHomeSection + .adminHomeSection { border-top: 1px solid rgba(128, 128, 128, .35); }
+			<!--- Less room above Up next (owner, 2026-10-28): the paragraph and menu wrapper around the home add no space of their own, and the first heading sits close under the page title. --->
+			#innerContentContainer > p.bottomContent { margin: 0; padding: 0; }
+			#iconNavMenu { margin-top: 0; }
+			#adminHome > .adminHomeSection:first-child .adminHomeHeading { margin-top: 4px; }
 			.adminHomeHeading { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; opacity: .75; margin: 18px 0 10px; text-align: left; }
 			.adminHomeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(<cfif session.isMobile>130<cfelse>150</cfif>px, 1fr)); gap: 14px;  grid-auto-rows: 1fr; }
 			.adminHomeTile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 8px 12px; border: 1px solid rgba(128,128,128,.35); border-radius: 8px; text-align: center; text-decoration: none; color: inherit; cursor: pointer; font: inherit; }
