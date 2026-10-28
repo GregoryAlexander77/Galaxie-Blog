@@ -498,10 +498,20 @@
 	<cfset var existingForm = {}>
 	<cfif isNull(owner)><cfset fail("The blog owner's account couldn't be found.")></cfif>
 	<cfif arguments.welcomePost>
+		<!--- The getting-started post (5.0, owner 2026-10-27): what visitors see is this short welcome; the owner, signed in, also sees
+		what is left to set up and the features under it (renderGettingStarted). It is the home page until another post is released. --->
+		<cfset made.welcomePostId = makePost("blogPost", owner.getUserId(), "Welcome to " & blogTitle,
+			"A new site: the first post is on its way.",
+			"<p>Welcome to " & encodeForHtml(blogTitle) & "! This site is brand new, and the first post is on its way. Please come back soon.</p>",
+			"linear-gradient(135deg, ##1d4350 0%, ##a43931 100%)")>
+		<cfset application.events.setSetting(0, "gettingStartedPostId", made.welcomePostId)>
+		<cfset structDelete(application, "galaxieGettingStarted")>
+		<!--- The 4.x welcome text, kept for reference:
 		<cfset made.welcomePostId = makePost("blogPost", owner.getUserId(), "Welcome to " & blogTitle,
 			"The first post on " & blogTitle & ".",
 			"<p>Welcome to " & encodeForHtml(blogTitle) & "! This is the first post. <a href=""{editLink}"">Edit it</a> to say hello in your own words, or delete it once you have written your own. (Later you will find it in the administration under Posts and Pages, then Posts: click its title in the list.)</p><p>To write a new post, sign in and choose Create Post on the administration page.</p>",
 			"linear-gradient(135deg, ##1d4350 0%, ##a43931 100%)")>
+		--->
 	</cfif>
 	<cfif arguments.contactForm and structKeyExists(application, "webForms")>
 		<cfloop array="#application.webForms.getForms()#" index="existingForm">
@@ -526,7 +536,124 @@
 	<cfreturn made>
 </cffunction>
 
-<cffunction name="makePost" access="private" returntype="numeric" output="false" hint="A released post or page with this title, made now - or the existing one with this title.">
+<!---//*****************************************************************************************************
+		Getting started (5.0, owner 2026-10-27): the wizard's first post. Shown on its own as the home page until another post is
+		released, then hidden (Remove) automatically. Visitors see its short welcome; the signed-in owner also sees, under it, what is
+		left to set up (worked out each time, so it ticks itself off) and a short tour of the features (renderGettingStarted).
+//******************************************************************************************************--->
+
+<cffunction name="gettingStartedPostId" access="public" returntype="numeric" output="false" hint="The getting-started post's id while it is the home page, or 0. Once another blog post is released it hides the getting-started post (Remove) and returns 0 from then on. Looked up at most once a minute.">
+	<cfset var id = 0>
+	<cfset var others = 0>
+	<cfset var live = 0>
+	<cfif structKeyExists(application, "galaxieGettingStarted") and dateDiff("s", application.galaxieGettingStarted.checked, now()) lt 60>
+		<cfreturn application.galaxieGettingStarted.id>
+	</cfif>
+	<cftry>
+		<cfset id = val(application.events.getSetting(0, "gettingStartedPostId", ""))>
+		<cfif id>
+			<cfset live = ormExecuteQuery("SELECT Post.Released FROM Post as Post WHERE Post.PostId = :id AND Post.Remove = :no", { id = id, no = false })>
+			<cfif not arrayLen(live)>
+				<!--- Deleted or removed by the owner: it's done for good. --->
+				<cfset application.events.setSetting(0, "gettingStartedPostId", "")>
+				<cfset id = 0>
+			<cfelseif not (isBoolean(live[1]) and live[1])>
+				<!--- Unreleased for now: not shown, but it comes back if it's released again. --->
+				<cfset id = 0>
+			<cfelse>
+				<cfset others = ormExecuteQuery("SELECT count(Post.PostId) FROM Post as Post WHERE Post.PostId <> :id AND Post.Released = :yes AND Post.Remove = :no AND (Post.IsPage = :no OR Post.IsPage IS NULL) AND Post.BlogRef.BlogId = :blogId",
+					{ id = id, yes = true, no = false, blogId = application.BlogDbObj.getBlogId() })[1]>
+				<cfif val(others)>
+					<!--- The first real post is out: the getting-started post steps aside (kept, as a removed post). --->
+					<cfset queryExecute("UPDATE Post SET Remove = :yes WHERE PostId = :id", { yes = { value = true, cfsqltype = "cf_sql_bit" }, id = { value = id, cfsqltype = "cf_sql_integer" } }, { datasource = application.dsn })>
+					<cfset application.events.setSetting(0, "gettingStartedPostId", "")>
+					<cfset id = 0>
+					<cftry><cfset application.blog.flushGalaxieCache(type = "all")><cfcatch type="any"></cfcatch></cftry>
+				</cfif>
+			</cfif>
+		</cfif>
+		<cfcatch type="any">
+			<cfset id = 0>
+		</cfcatch>
+	</cftry>
+	<cfset application.galaxieGettingStarted = { id = id, checked = now() }>
+	<cfreturn id>
+</cffunction>
+
+<cffunction name="renderGettingStarted" access="public" returntype="string" output="false" hint="The signed-in owner's part of the getting-started post: what is left to set up (live) and the features, each with a link that opens its window in the administrator (admin/?open=).">
+	<cfset var admin = application.baseUrl & "/admin/">
+	<cfset var steps = []>
+	<cfset var features = []>
+	<cfset var html = "">
+	<cfset var item = {}>
+	<cfset var stepsDone = "">
+	<cfset var owner = "">
+	<cfset var paymentsReady = false>
+	<cfset var i = 0>
+	<cftry><cfset stepsDone = application.BlogOptionDbObj.getSetupStepsDone() ?: ""><cfcatch type="any"></cfcatch></cftry>
+	<cftry><cfset owner = getOwner()><cfcatch type="any"></cfcatch></cftry>
+	<cftry><cfset paymentsReady = structKeyExists(application, "payments") and application.payments.getStatus().ready><cfcatch type="any"></cfcatch></cftry>
+	<cfset arrayAppend(steps, { done = application.blog.mailIsSetUp(), title = "Email",
+		text = "Add your mail server in Blog Settings, then press Send a test email. Comment notices, subscriber emails and the Contact link in the menu need it.",
+		link = admin & "?open=settings", label = "Blog Settings" })>
+	<cfset arrayAppend(steps, { done = listFindNoCase(stepsDone, "look") and listFindNoCase(stepsDone, "logo"), title = "Your look and logo",
+		text = "Pick a theme and a logo in the Site Wizard. You can change the look any time in Themes.",
+		link = admin & "setup.cfm", label = "Site Wizard" })>
+	<cfset arrayAppend(steps, { done = not isNull(owner) and isObject(owner) and (len(owner.getProfilePicture() ?: "") or len(trim(owner.getBiography() ?: ""))), title = "About you",
+		text = "Add your picture and a few lines about yourself. They show under your posts.",
+		link = admin & "?open=profile", label = "Your profile" })>
+	<cfset arrayAppend(steps, { done = paymentsReady, title = "Payments (only to sell)",
+		text = "The shop, paid bookings and paid events take payment through Stripe. Add your Stripe keys in Blog Options when you are ready.",
+		link = admin & "?open=payments", label = "Payments" })>
+	<cfset arrayAppend(steps, { done = false, title = "Your first post",
+		text = "Write and release your first post. This page then steps aside, and your posts take its place on the home page.",
+		link = admin & "?open=post", label = "Create Post" })>
+
+	<cfset features = [
+		{ title = "Pictures, galleries and video", text = "In the post editor's Insert menu: pictures, galleries, carousels, YouTube and your own videos, and maps with routes.", link = admin & "?open=post", label = "Create Post" },
+		{ title = "Heroes and scenes", text = "A large picture, a gradient or an animated parallax scene at the top of a post or page, with your own heading.", link = admin & "?open=scenes", label = "Scenes" },
+		{ title = "Bookings", text = "Let people book a time with you: free consultations or paid sessions, with your own availability.", link = admin & "?open=bookings", label = "Bookings" },
+		{ title = "Shop", text = "Sell products and downloads, with a cart and Stripe checkout.", link = admin & "?open=shop", label = "Shop" },
+		{ title = "Events", text = "Event posts with a date card, sign-ups and paid tickets.", link = admin & "?open=events", label = "Events" },
+		{ title = "Forms", text = "Contact and sign-up forms you can place in any post or page.", link = admin & "?open=forms", label = "Forms" },
+		{ title = "Members and subscribers", text = "Visitors can subscribe to new posts, or sign in as members with an emailed link.", link = admin & "?open=members", label = "Members" },
+		{ title = "Visitors and traffic", text = "Who reads what, where they came from, and the bots kept out of the counts.", link = admin & "?open=traffic", label = "Traffic Sources" },
+		{ title = "Themes", text = "Over 25 themes, each with its own colors, fonts and header; customize any of them beside a live preview.", link = admin & "?open=themes", label = "Themes" }
+	]>
+
+	<cfsavecontent variable="html"><cfoutput>
+<style>
+	.galaxieGettingStarted { margin: 24px 0; }
+	.galaxieGettingStarted h2 { margin: 26px 0 6px; }
+	.galaxieGettingStarted .gsNote { opacity: .8; font-size: 90%; }
+	.galaxieGettingStarted .gsList { list-style: none; padding: 0; margin: 10px 0; }
+	.galaxieGettingStarted .gsList li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 8px; margin-bottom: 8px; }
+	.galaxieGettingStarted .gsMark { flex: 0 0 26px; height: 26px; border-radius: 50%; border: 2px solid currentColor; display: flex; align-items: center; justify-content: center; font-weight: bold; opacity: .55; }
+	.galaxieGettingStarted .gsDone .gsMark { opacity: 1; background: ##1a7f37; border-color: ##1a7f37; color: white; }
+	.galaxieGettingStarted .gsBody { flex: 1; }
+	.galaxieGettingStarted .gsBody strong { display: block; }
+	.galaxieGettingStarted .gsDone .gsBody strong { text-decoration: line-through; opacity: .7; }
+	.galaxieGettingStarted .gsBody a { white-space: nowrap; }
+</style>
+<div class="galaxieGettingStarted">
+	<blockquote class="k-notification-info"><p><strong>Only you see this part</strong> (you are signed in). Visitors see the welcome above.
+	This post stays on your home page until you release your first post, then it steps aside by itself.</p></blockquote>
+	<h2>What's left to set up</h2>
+	<ul class="gsList"><cfloop array="#steps#" index="item">
+		<li class="#item.done ? 'gsDone k-content' : 'k-alt'#"><span class="gsMark">#item.done ? "&##10003;" : ""#</span>
+			<span class="gsBody"><strong>#encodeForHtml(item.title)#</strong>#encodeForHtml(item.text)# <a href="#encodeForHtmlAttribute(item.link)#">#encodeForHtml(item.label)# &rsaquo;</a></span></li>
+	</cfloop></ul>
+	<h2>What Galaxie can do</h2>
+	<p class="gsNote">Each link opens its window in the administrator.</p>
+	<ul class="gsList"><cfloop from="1" to="#arrayLen(features)#" index="i">
+		<li class="#i mod 2 ? 'k-content' : 'k-alt'#"><span class="gsBody"><strong>#encodeForHtml(features[i].title)#</strong>#encodeForHtml(features[i].text)# <a href="#encodeForHtmlAttribute(features[i].link)#">#encodeForHtml(features[i].label)# &rsaquo;</a></span></li>
+	</cfloop></ul>
+</div>
+</cfoutput></cfsavecontent>
+	<cfreturn html>
+</cffunction>
+
+<cffunction name="makePost" access="private"returntype="numeric" output="false" hint="A released post or page with this title, made now - or the existing one with this title.">
 	<cfargument name="postType" type="string" required="true">
 	<cfargument name="authorId" type="numeric" required="true">
 	<cfargument name="title" type="string" required="true">

@@ -307,12 +307,18 @@ customPageTemplate: path allows to use a custom template using a hardcoded cfinc
 <!--- Opened at a window (2026-10-22): /admin/?open=payments opens Blog Options at the Payments (Stripe) section, ?open=shop the
 Shop window (?open=products too, its first name) - for links from the site itself, like the owner's note under a product when the shop shows as closed. Only these
 named windows, and only for someone signed in. --->
-<cfif application.Udf.isLoggedIn() and structKeyExists(URL, "open") and listFindNoCase("payments,shop,products", URL.open)>
+<!--- More names (2026-10-27) for the getting-started post's links (Setup.cfc renderGettingStarted). --->
+<cfset openWindows = { payments = "createAdminInterfaceWindow(38, 'payments');", shop = "createAdminInterfaceWindow(111);", products = "createAdminInterfaceWindow(111);",
+	post = "createAdminInterfaceWindow(24);", settings = "createAdminInterfaceWindow(39);", options = "createAdminInterfaceWindow(38);",
+	profile = "createAdminInterfaceWindow(7);", themes = "createAdminInterfaceWindow(110);", scenes = "createAdminInterfaceWindow(106);",
+	bookings = "createAdminInterfaceWindow(87);", members = "createAdminInterfaceWindow(97);", events = "createAdminInterfaceWindow(24, 'newEvent');",
+	forms = "createAdminInterfaceWindow(84, 0);", traffic = "createAdminInterfaceWindow(117, 30);", subscribers = "createAdminInterfaceWindow(27);" }>
+<cfif application.Udf.isLoggedIn() and structKeyExists(URL, "open") and structKeyExists(openWindows, URL.open)>
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">
 	<!--- Ready, not window load: the page's scripts can run after the load event has already gone by. --->
 	$(function () {
 		setTimeout(function () {
-			<cfif URL.open eq "payments">createAdminInterfaceWindow(38, 'payments');<cfelse>createAdminInterfaceWindow(111);</cfif>
+			<cfoutput>#openWindows[lCase(URL.open)]#</cfoutput>
 		}, 300);
 	});
 </script>

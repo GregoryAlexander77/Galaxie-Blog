@@ -366,11 +366,11 @@ takes the same options and events. --->
 		</div>
 	</div>
 	<div id="stepStarter">
-		<div class="block k-content"><p class="lead">A first post to start with, so the site doesn't look empty. It's an ordinary post; nothing is made until you press Next. The preview on the right shows how it will look.</p></div>
+		<div class="block k-content"><p class="lead">A getting-started post for your home page, so the site doesn't look empty. Visitors see a short welcome; signed in, you also see what's left to set up and what Galaxie can do. It steps aside by itself when you release your first post. Nothing is made until you press Next.</p></div>
 		<div class="block k-alt">
 			<p class="hint" id="starterUpgradedNote" style="display:none;margin-top:0">Your blog already has its posts and pages, so nothing is ticked. Tick anything you would like to add.</p>
 			<div class="choiceList">
-				<label class="choice"><input type="checkbox" id="starterWelcome" checked><div><strong>A welcome post</strong><span>Your first post, ready to change. The next step uses it to show the post picture styles.</span></div></label>
+				<label class="choice"><input type="checkbox" id="starterWelcome" checked><div><strong>A getting-started post</strong><span>Your home page until your first post is out. The next step uses it to show the post picture styles.</span></div></label>
 				<!--- The About page and contact form are off in 5.0 (owner, 2026-10-27: to revisit in the next version): unticked and hidden, so
 				nothing is made and the Home page screen leaves out the About layouts (aboutAvailable). --->
 				<label class="choice" hidden><input type="checkbox" id="starterAbout"><div><strong>An About page</strong><span>Made from what you wrote about yourself. Needed for an About home page.</span></div></label>
@@ -516,7 +516,7 @@ $(function () {
 		var bio = $.trim($("#aboutBio").val() || "");
 		var paras = bio ? bio.split(/\n\s*\n/).map(function (x) { return "<p>" + esc(x).replace(/\n/g, "<br>") + "</p>"; }).join("") : "<p>Tell your visitors who you are and what this site is about. <u>Edit this page</u> to make it yours.</p>";
 		var body = kind === "welcome"
-			? '<h1 style="font-size:26px;margin:0 0 6px">Welcome to ' + name + '</h1><div style="font:12px Arial,sans-serif;color:gray;margin-bottom:12px">Today</div><div style="height:160px;border-radius:6px;margin-bottom:14px;background:linear-gradient(135deg,rgb(29,67,80) 0%,rgb(164,57,49) 100%)"></div><p>Welcome to ' + name + '! This is the first post. <u>Edit it</u> to say hello in your own words, or delete it once you have written your own.</p>'
+			? '<h1 style="font-size:26px;margin:0 0 6px">Welcome to ' + name + '</h1><div style="font:12px Arial,sans-serif;color:gray;margin-bottom:12px">Today</div><div style="height:160px;border-radius:6px;margin-bottom:14px;background:linear-gradient(135deg,rgb(29,67,80) 0%,rgb(164,57,49) 100%)"></div><p>Welcome to ' + name + '! This site is brand new, and the first post is on its way. Please come back soon.</p><p style="font:13px Arial,sans-serif;background:rgba(0,120,212,.08);border-left:4px solid rgb(0,120,212);padding:8px 12px">Signed in, you also see what is left to set up (email, look, about you, payments) and a tour of the features.</p>'
 			: '<h1 style="font-size:26px;margin:0 0 12px">About</h1>' + paras + ($("#starterContact").is(":checked") ? '<h2 style="font-size:20px">Get in touch</h2><div style="border:1px solid silver;border-radius:6px;padding:12px;font:13px Arial,sans-serif">Name<div style="height:26px;border:1px solid silver;border-radius:4px;margin:4px 0 8px"></div>Email<div style="height:26px;border:1px solid silver;border-radius:4px;margin:4px 0 8px"></div>Message<div style="height:60px;border:1px solid silver;border-radius:4px;margin-top:4px"></div></div>' : "");
 		return '<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;font-family:Georgia,serif;color:rgb(40,40,40);background:silver url(\'' + (t.bg || "") + '\') center/cover fixed">' + head
 			+ '<div style="max-width:760px;margin:22px auto;background:rgba(255,255,255,.96);border-radius:6px;padding:20px 26px;line-height:1.6">'
@@ -1022,7 +1022,7 @@ $(function () {
 			return '<li><span>' + s.title + '</span><span><span class="state' + (ok ? " done" : "") + '">' + (ok ? "Done" : "Skipped") + '</span><a href="#" data-go="' + i + '">Change</a></span></li>';
 		}).join("")
 			// The starter posts, straight into the editor (2026-10-20).
-			+ (saved.welcomePostId ? '<li><span>Your welcome post</span><span><a href="' + baseUrl + '/admin/?editPost=' + saved.welcomePostId + '">Edit it</a></span></li>' : "")
+			+ (saved.welcomePostId ? '<li><span>Your getting-started post</span><span><a href="' + baseUrl + '/">See it</a></span></li>' : "")
 			+ (saved.aboutPageId ? '<li><span>Your About page</span><span><a href="' + baseUrl + '/admin/?editPost=' + saved.aboutPageId + '">Edit it</a></span></li>' : ""));
 	}
 	$("#doneSummary").on("click", "a[data-go]", function (e) { e.preventDefault(); wizard.select(+$(this).data("go")); });

@@ -757,6 +757,11 @@
 						</cfif><!---<cfif arrayLen(getTags)>--->
 						</cfoutput>
 						</cfmodule><!--- End Post Cache --->
+						<!--- The getting-started post (5.0, 2026-10-27): what's left to set up and the features, for the signed-in owner only,
+						outside the post cache because it changes as things are set up. --->
+						<cfif getPageMode() eq 'post' and application.Udf.isLoggedIn() and postId eq application.blog.getSetup().gettingStartedPostId()>
+							<cfoutput>#application.blog.getSetup().renderGettingStarted()#</cfoutput>
+						</cfif>
 						<cfsilent>
 						<cfif getPageMode() eq 'post' and application.logVisitors>
 							<!--- Log that the post has been read --->

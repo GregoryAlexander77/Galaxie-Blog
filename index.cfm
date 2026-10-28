@@ -66,6 +66,17 @@ request that finished the install has this flag (Application.cfc), so every othe
 		}
 		// Neither showPages, showCollections, nor showBlogPosts is on: falls through to the untouched default,
 		// pageTypeId 1 (the plain paginated main blog listing) - the same behavior a fresh/default blog always had.
+
+		// A new blog's getting-started post (5.0, 2026-10-27) is the whole home page, shown like a single page, until another post
+		// is released (Setup.cfc gettingStartedPostId then hides it and returns 0).
+		gettingStartedId = 0;
+		try { gettingStartedId = application.blog.getSetup().gettingStartedPostId(); } catch (any e) {}
+		if (gettingStartedId) {
+			pageId = gettingStartedId;
+			pageName = "FrontPage";
+			pageTypeId = 9;
+			postId = gettingStartedId;
+		}
 	}
 
 	// A Page Collection's own URL (e.g. /portfolio), independent of the homepage setting above. Only a
