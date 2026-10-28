@@ -1269,6 +1269,7 @@
 		<cfargument name="anonymousUserId" type="string" required="true" default="">
 		<cfargument name="userId" type="string" required="false" default="">
 		<cfargument name="httReferrer" type="string" required="false" default="">
+		<cfargument name="knownReferrerId" type="string" required="false" default="" hint="The referrer's id when the caller already saved it (visitorTracking.cfm, 2026-10-27), so it isn't looked up again.">
 		<cfargument name="visitingHomePage" type="string" required="false" default="false">
 		<cfargument name="postId" type="string" required="false" default="">
 		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
@@ -1295,9 +1296,13 @@
 			<cfset UserDbObj = entityLoadByPk("Users", arguments.userId)>
 		</cfif>
 		<!--- Save the http referrer. This will pass back the id. --->
-		<cfinvoke component="#application.blog#" method="saveHttpReferrer" returnVariable="httpReferrerId">
-			<cfinvokeargument name="HttpReferrer" value="#CGI.Http_Referer#"><!--- This is mispelled and adopted as a standard --->
-		</cfinvoke>
+		<cfif isNumeric(arguments.knownReferrerId)>
+			<cfset httpReferrerId = arguments.knownReferrerId>
+		<cfelse>
+			<cfinvoke component="#application.blog#" method="saveHttpReferrer" returnVariable="httpReferrerId">
+				<cfinvokeargument name="HttpReferrer" value="#CGI.Http_Referer#"><!--- This is mispelled and adopted as a standard --->
+			</cfinvoke>
+		</cfif>
 		<!--- Load the referrer entity if it was passed in. val(): an empty id is no referrer, never an error. --->
 		<cfset httpReferrerId = val(httpReferrerId)>
 		<cfif httpReferrerId>
@@ -1915,7 +1920,39 @@
 		<cfargument name="isBot" type="string" required="false" default="">
 
 		<cfset var Data = "[]">
-					
+
+		<!--- Looking a visitor up by IP address and browser (2026-10-27): every page view of a visitor without the gauid cookie - almost
+		every bot - does this. The query below starts FROM VisitorLog and joins six tables, so it read through the visit log each time
+		and got slower as the log grew (galaxieblog.org: visitor tracking went from 0.4 to 2.2 seconds a page in one day). The visitor is
+		an AnonymousUser row, so look there directly. Same columns back; the newest matching visitor. --->
+		<cfif len(arguments.ipAddress) and len(arguments.httpUserAgent) and not len(arguments.anonymousUserId) and not len(arguments.ipAddressId) and not len(arguments.httpUserAgentId) and not len(arguments.isBot)>
+			<cfquery name="Data" dbtype="hql" ormoptions="#{maxresults=1}#">
+				SELECT new Map (
+					AnonymousUser.AnonymousUserId as AnonymousUserId,
+					Users.UserId as UserId,
+					Users.FullName as FullName,
+					IpAddress.IpAddressId as IpAddressId,
+					IpAddress.IpAddress as IpAddress,
+					IpAddress.Ban as IpBanned,
+					HttpUserAgent.HttpUserAgentId as HttpUserAgentId,
+					HttpUserAgent.HttpUserAgent as HttpUserAgent,
+					HttpUserAgent.Ban as UserAgentBanned,
+					AnonymousUser.IsBot as IsBot,
+					AnonymousUser.HitCount as HitCount,
+					AnonymousUser.ScreenHeight as ScreenHeight,
+					AnonymousUser.ScreenWidth as ScreenWidth
+				)
+				FROM AnonymousUser as AnonymousUser
+					JOIN AnonymousUser.IpAddressRef as IpAddress
+					JOIN AnonymousUser.HttpUserAgentRef as HttpUserAgent
+					LEFT OUTER JOIN AnonymousUser.UserRef as Users
+				WHERE IpAddress.IpAddress = <cfqueryparam value="#arguments.ipAddress#" cfsqltype="varchar">
+				AND HttpUserAgent.HttpUserAgent = <cfqueryparam value="#left(arguments.httpUserAgent, 500)#" cfsqltype="varchar">
+				ORDER BY AnonymousUser.AnonymousUserId DESC
+			</cfquery>
+			<cfreturn Data>
+		</cfif>
+
 		<!--- Note: the following query does not work with cfqueryparam. I get an invalid integer message no matter what I do (and this is typical of some ORM queries). It is not a security issue here as I am checking to see if it is a siple numeric value --->			
 		<cfquery name="Data" dbtype="hql" ormoptions="#{maxresults=1}#">
 			SELECT new Map (

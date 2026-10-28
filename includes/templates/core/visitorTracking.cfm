@@ -105,6 +105,8 @@
 					<cfinvokeargument name="userId" value="#application.blog.getUsersId()#">
 				</cfif>
 				<!--- Pass in the HTTP Referrer Object if it exists --->
+				<!--- Already saved above: not looked up a second time (2026-10-27). A direct visit has none: 0. --->
+				<cfinvokeargument name="knownReferrerId" value="#isDefined('httpReferrerId') ? val(httpReferrerId) : 0#">
 				<cfif len(application.blog.getIpAddress()) and isDefined("httpReferrerId") and httpReferrerId gt 0>
 					<cfinvokeargument name="httpReferrer" value="#CGI.Http_Referer#">
 				</cfif>
