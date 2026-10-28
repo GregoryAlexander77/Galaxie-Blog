@@ -309,7 +309,7 @@ Shop window (?open=products too, its first name) - for links from the site itsel
 named windows, and only for someone signed in. --->
 <!--- More names (2026-10-27) for the getting-started post's links (Setup.cfc renderGettingStarted). --->
 <cfset openWindows = { payments = "createAdminInterfaceWindow(38, 'payments');", shop = "createAdminInterfaceWindow(111);", products = "createAdminInterfaceWindow(111);",
-	post = "createAdminInterfaceWindow(24);", settings = "createAdminInterfaceWindow(39);", options = "createAdminInterfaceWindow(38);",
+	post = "createAdminInterfaceWindow(24);", page = "createAdminInterfaceWindow(24, 'newPage');", homepage = "createAdminInterfaceWindow(70);", settings = "createAdminInterfaceWindow(39);", options = "createAdminInterfaceWindow(38);",
 	profile = "createAdminInterfaceWindow(7);", themes = "createAdminInterfaceWindow(110);", scenes = "createAdminInterfaceWindow(106);",
 	bookings = "createAdminInterfaceWindow(87);", members = "createAdminInterfaceWindow(97);", events = "createAdminInterfaceWindow(24, 'newEvent');",
 	forms = "createAdminInterfaceWindow(84, 0);", traffic = "createAdminInterfaceWindow(117, 30);", subscribers = "createAdminInterfaceWindow(27);" }>

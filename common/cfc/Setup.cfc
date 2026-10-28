@@ -563,7 +563,17 @@
 			<cfelse>
 				<cfset others = ormExecuteQuery("SELECT count(Post.PostId) FROM Post as Post WHERE Post.PostId <> :id AND Post.Released = :yes AND Post.Remove = :no AND (Post.IsPage = :no OR Post.IsPage IS NULL) AND Post.BlogRef.BlogId = :blogId",
 					{ id = id, yes = true, no = false, blogId = application.BlogDbObj.getBlogId() })[1]>
-				<cfif val(others)>
+				<cfif not val(others)>
+					<!--- A site built from pages (2026-10-28): once Configure Homepage shows pages or collections, those are the home page.
+					Not shown then, but kept: it comes back if the home page goes back to the post list before a post is out. --->
+					<cftry>
+						<cfset var homeSettings = application.blog.getHomepageSettings()>
+						<cfif (homeSettings.showPages and listLen(homeSettings.pageIdList)) or homeSettings.showCollections>
+							<cfset id = 0>
+						</cfif>
+						<cfcatch type="any"></cfcatch>
+					</cftry>
+				<cfelse>
 					<!--- The first real post is out: the getting-started post steps aside (kept, as a removed post). --->
 					<cfset queryExecute("UPDATE Post SET Remove = :yes WHERE PostId = :id", { yes = { value = true, cfsqltype = "cf_sql_bit" }, id = { value = id, cfsqltype = "cf_sql_integer" } }, { datasource = application.dsn })>
 					<cfset application.events.setSetting(0, "gettingStartedPostId", "")>
@@ -605,9 +615,10 @@
 	<cfset arrayAppend(steps, { done = paymentsReady, title = "Payments (only to sell)",
 		text = "The shop, paid bookings and paid events take payment through Stripe. Add your Stripe keys in Blog Options when you are ready.",
 		link = admin & "?open=payments", label = "Payments" })>
-	<cfset arrayAppend(steps, { done = false, title = "Your first post",
-		text = "Write and release your first post. This page then steps aside, and your posts take its place on the home page.",
-		link = admin & "?open=post", label = "Create Post" })>
+	<!--- A post or a page (owner, 2026-10-28: Galaxie builds sites, not only blogs). --->
+	<cfset arrayAppend(steps, { done = false, title = "Your first post or page",
+		text = "Write a blog post, or build a page: an About page, a service with bookings, a shop page. Release a post and it takes this page's place on the home page; for a site built from pages, set your home page to show them in Configure Homepage, and this page steps aside.",
+		link = admin & "?open=post", label = "Create Post", link2 = admin & "?open=page", label2 = "Create Page", link3 = admin & "?open=homepage", label3 = "Configure Homepage" })>
 
 	<cfset features = [
 		{ title = "Pictures, galleries and video", text = "In the post editor's Insert menu: pictures, galleries, carousels, YouTube and your own videos, and maps with routes.", link = admin & "?open=post", label = "Create Post" },
@@ -641,7 +652,7 @@
 	<h2>What's left to set up</h2>
 	<ul class="gsList"><cfloop array="#steps#" index="item">
 		<li class="#item.done ? 'gsDone k-content' : 'k-alt'#"><span class="gsMark">#item.done ? "&##10003;" : ""#</span>
-			<span class="gsBody"><strong>#encodeForHtml(item.title)#</strong>#encodeForHtml(item.text)# <a href="#encodeForHtmlAttribute(item.link)#">#encodeForHtml(item.label)# &rsaquo;</a></span></li>
+			<span class="gsBody"><strong>#encodeForHtml(item.title)#</strong>#encodeForHtml(item.text)# <a href="#encodeForHtmlAttribute(item.link)#">#encodeForHtml(item.label)# &rsaquo;</a><cfif structKeyExists(item, "link2")> &nbsp; <a href="#encodeForHtmlAttribute(item.link2)#">#encodeForHtml(item.label2)# &rsaquo;</a></cfif><cfif structKeyExists(item, "link3")> &nbsp; <a href="#encodeForHtmlAttribute(item.link3)#">#encodeForHtml(item.label3)# &rsaquo;</a></cfif></span></li>
 	</cfloop></ul>
 	<h2>What Galaxie can do</h2>
 	<p class="gsNote">Each link opens its window in the administrator.</p>
