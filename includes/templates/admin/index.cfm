@@ -477,7 +477,6 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 		<!-- Content --> 
 		<span id="iconNavMenu" class="postContent">	
 
-			<span style="text-align: center">What's up next, then everything else in groups.</span>
 
 			<!--- Until the owner finishes the Site Wizard (5.0): how many screens are done, and a button to carry on. --->
 			<!--- A brand new blog (5.0): the first visit to the administration page in a session opens the wizard, until the owner has

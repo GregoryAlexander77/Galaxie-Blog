@@ -1213,7 +1213,9 @@
 			<cfset column = arguments.columns[item.field]>
 			<cfset op = lCase(item.operator ?: "eq")>
 			<cfset name = "f" & (structCount(arguments.params) + 1)>
-			<cfset value = item.value ?: "">
+			<!--- Not item.value ?: "" (2026-10-28): Adobe ColdFusion's ?: treats false as missing, so a Yes/No column's "No" became "" and
+			the filter was dropped - "Bot? is No" showed every visit. --->
+			<cfset value = structKeyExists(item, "value") and not isNull(item.value) ? item.value : "">
 			<cfif op eq "isnull"><cfset arrayAppend(parts, column.path & " IS NULL")><cfcontinue></cfif>
 			<cfif op eq "isnotnull"><cfset arrayAppend(parts, column.path & " IS NOT NULL")><cfcontinue></cfif>
 			<cfswitch expression="#column.type#">
