@@ -169,13 +169,10 @@ Note: the following logic should not be cached as each theme may return a differ
 									<cfif not session.isMobile>
 									<li class="galaxieAdminMenuItem">
 									<!--- Admin. --->
-									<a href="<cfoutput>#application.baseUrl#/admin/</cfoutput>" aria-label="<cfif not application.Udf.isLoggedIn()>Login<cfelse>Blog Administration</cfif>"><span class="k-icon k-i-user"></span></a>
-									<!--- Allow the user to logout. --->
-									<cfif application.Udf.isLoggedIn()>
-										<ul>
-											<li><a href="<cfoutput>#application.baseUrl#/admin/?logout=1</cfoutput>">Logout</a></li>
-										</ul>
-									</cfif>
+									<!--- The same for everyone (2026-10-28): this menu is cached for all visitors, so a signed-in administrator's
+									Administration / Log out menu is added by tailEndScripts.cfm, outside the cache. It used to be decided here, and
+									showed only when an administrator happened to be the one whose visit made the cached menu. --->
+									<a href="<cfoutput>#application.baseUrl#/admin/</cfoutput>" aria-label="Sign in or administration"><span class="k-icon k-i-user"></span></a>
 									</li>
 									</cfif>
 									<li class="siteSearchButton">

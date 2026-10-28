@@ -49,6 +49,29 @@
 	})();
 </script>
 
+<!--- A signed-in administrator (2026-10-28): the person icon in the top menu opens a small menu - Administration and Log out -
+instead of going straight to the administrative site. Added here, outside the cached menu (navigationMenu.cfm). --->
+<cfif application.Udf.isLoggedIn()>
+<script type="<cfoutput>#scriptTypeString#</cfoutput>">
+	$(function () {
+		$("li.galaxieAdminMenuItem").each(function () {
+			var li = $(this), menu = li.closest("ul.k-menu").data("kendoMenu");
+			if (!menu || li.data("galaxieAdminItems")) { return; }
+			li.data("galaxieAdminItems", true);
+			menu.append([
+				{ text: "Administration", url: "<cfoutput>#application.baseUrl#/admin/</cfoutput>" },
+				{ text: "Log out", url: "<cfoutput>#application.baseUrl#/admin/?logout=1</cfoutput>" }
+			], li);
+			// A click on the icon opens the menu (a phone or tablet has no hover); the items themselves still go where they say.
+			li.children(".k-link, a").first().on("click", function (e) {
+				e.preventDefault();
+				menu.open(li);
+			});
+		});
+	});
+</script>
+</cfif>
+
 <!--- Member accounts (2026-10-15): "Sign in" in the menu, and the page an emailed sign-in link opens. Only when the owner has turned them on in Blog Options. See common/js/members.js. --->
 <cfif structKeyExists(application, "members") and application.members.isEnabled()>
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">
