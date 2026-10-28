@@ -42,7 +42,9 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 					<cfset application.cfblogsFeed.nextRead = dateAdd("n", 10, now())>
 					<cfthread action="run" name="cfblogsFeedRead_#createUUID()#">
 						<cftry>
-							<cfhttp url="https://www.cfblogs.org/rss.cfm" timeout="10" result="feedHttp" throwonerror="true">
+							<!--- ?galaxie= tells cfblogs.org which Galaxie version is reading the feed (5.0, 2026-10-28): a rough count of installs
+							and versions from its web log. Only the version; nothing about the site. --->
+							<cfhttp url="https://www.cfblogs.org/rss.cfm?galaxie=#urlEncodedFormat(application.blog.getVersion())#" timeout="10" result="feedHttp" throwonerror="true">
 							<cfset feedXml = xmlParse(feedHttp.fileContent)>
 							<cfset feedNodes = xmlSearch(feedXml, "//*[local-name() = 'item']")>
 							<cfset feedItems = []>
