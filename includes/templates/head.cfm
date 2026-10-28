@@ -233,7 +233,8 @@ a hero cover image, or one typed into a directive) gets the blog's scheme and ho
 				<cfset application.kendoGalaxieBundlesExist = fileExists(expandPath(application.baseUrl & "/common/libs/kendoCore/js/kendo.galaxie.public.min.js")) and fileExists(expandPath(application.baseUrl & "/common/libs/kendoCore/js/kendo.galaxie.admin.min.js"))>
 			</cfif>
 			<cfif application.kendoGalaxieBundlesExist>
-				<cfif pageTypeId eq 2 or application.Udf.isLoggedIn()>
+				<!--- The administrative site only (owner, 2026-10-28): public pages get the smaller public bundle even when an administrator is signed in - nothing on them needs more. --->
+				<cfif pageTypeId eq 2>
 					<cfset kendoJsFile = "kendo.galaxie.admin.min">
 				<cfelse>
 					<cfset kendoJsFile = "kendo.galaxie.public.min">

@@ -191,7 +191,7 @@
 			<cfif findNoCase("kendoCommercial", xmlKeywords) gt 0>
 				<!--- An explicit per-post directive always wins over the automatic detection below. --->
 				<cfset thisKendoCommercial = application.blog.getXmlKeywordValue(getPost[1]["PostHeader"], 'kendoCommercial')>
-			<cfelseif pageTypeId neq 2 and application.deferKendoCommercialOnPublicSite>
+			<cfelseif pageTypeId neq 2><!--- Always (owner, 2026-10-28): public pages use Kendo Core unless a post needs a Professional widget. --->
 				<!--- No explicit directive on this post, and the blog owner wants public-facing pages to default to Kendo Core, only pulling in the larger Kendo Professional download when this specific post actually needs it (eg. it embeds a Kendo Grid). Never applies to admin pages (pageTypeId 2), which always use the site-wide kendoCommercial setting. --->
 				<cfset thisKendoCommercial = application.blog.postNeedsKendoCommercial(getPost[1]["Body"], getPost[1]["MoreBody"])>
 			</cfif>
@@ -209,7 +209,7 @@
 			<cfset facebookImageMetaTagValue = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "facebookImageUrlMetaData", facebookImageMetaTagValue)>
 			<cfset twitterImageMetaTagValue = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "twitterImageUrlMetaData", twitterImageMetaTagValue)>
 
-		<cfelseif pageTypeId neq 2 and application.deferKendoCommercialOnPublicSite>
+		<cfelseif pageTypeId neq 2><!--- Always (owner, 2026-10-28): public pages use Kendo Core unless a post needs a Professional widget. --->
 			<!--- Listing-style pages (home, category, tag, month, day, search, etc.) only ever show post excerpts, never the full Body/MoreBody, so a Kendo Grid embed here is not a realistic case - default straight to Kendo Core instead of scanning every displayed excerpt. Never applies to admin pages (pageTypeId 2), which always use the site-wide kendoCommercial setting. --->
 			<cfset thisKendoCommercial = false>
 		</cfif><!---<cfif isDefined("URL.mode") and (URL.mode is "entry" or URL.mode eq 'alias')>--->

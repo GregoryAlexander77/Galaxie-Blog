@@ -672,7 +672,7 @@
 		  </tr>
 		  <tr valign="middle" height="30px">
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="<cfoutput>#thisColSpan#</cfoutput>">
-				Kendo UI Professional is a much larger download than Kendo Core. Defer it on public-facing pages and only load it when a post actually needs it (e.g. it embeds a Kendo Grid)? Admin pages always get Kendo Professional regardless of this setting. 
+				Kendo UI Professional is a much larger download than Kendo Core. Since 5.0, public-facing pages always load Kendo Core, also when you are signed in, and a post that needs a Professional widget (e.g. it embeds a Kendo Grid) loads Professional by itself. The administrative pages use Kendo Professional. 
 			</td>
 		  </tr>
 		  <tr height="1px">
@@ -686,7 +686,7 @@
 		   </tr>
 		   <tr>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-				<input type="checkbox" class="k-checkbox" name="deferKendoCommercialOnPublicSite" id="deferKendoCommercialOnPublicSite" <cfif deferKendoCommercialOnPublicSite>checked</cfif>>
+				<input type="checkbox" class="k-checkbox" name="deferKendoCommercialOnPublicSite" id="deferKendoCommercialOnPublicSite" checked disabled title="Always on since 5.0">
 			</td>
 		  </tr>
 		<cfelse><!---<cfif session.isMobile>--->
@@ -695,7 +695,7 @@
 				<label for="deferKendoCommercialOnPublicSite">Defer Kendo Commercial on Public Site?</label>
 			</td>
 			<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="width:80%">
-				<input type="checkbox" class="k-checkbox" name="deferKendoCommercialOnPublicSite" id="deferKendoCommercialOnPublicSite" <cfif deferKendoCommercialOnPublicSite>checked</cfif>>
+				<input type="checkbox" class="k-checkbox" name="deferKendoCommercialOnPublicSite" id="deferKendoCommercialOnPublicSite" checked disabled title="Always on since 5.0">
 			</td>
 		  </tr>
 		</cfif>
