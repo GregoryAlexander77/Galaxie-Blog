@@ -28,6 +28,8 @@ added them when the blog restarted with the new files). --->
 <!--- Scenes (Scene, SceneSection, SceneLayer, SceneSetting, SceneTemplate): Scenes.cfc creates its tables the first time it is
 used, so listing the scenes makes sure they exist now. --->
 <cfset application.blog.getScenes().listScenes()>
+<!--- The visitor log's indexes (2026-10-27): only the missing ones; never stops the update. --->
+<cfset ensureLogIndexes()>
 <cfset addToLog("The Scenes tables are in place.")>
 <!--- The shop (2026-10-20): Product, ShopOrder and ShopOrderItem. ORM also adds Payment.ShopOrderRef when it creates them. The shop
 stays closed until the owner switches it on in Blog Options. --->

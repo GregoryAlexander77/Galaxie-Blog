@@ -388,7 +388,126 @@
 
 	</cffunction>
 
-	<cffunction name="columnExists" access="private" returnType="boolean" output="false" hint="Whether a column exists: selecting it from no rows succeeds if it does.">
+	<cffunction name="ensureLogIndexes" access="public" returnType="void" output="false"
+			hint="The indexes the visitor log and its lookups need (2026-10-27). ORM creates these tables with primary keys only, so a blog's visitor tracking, ban checks, traffic cards and log clean-up read through whole tables, and got slower as the logs grew (gregoryalexander.com and galaxieblog.org, 10-23 to 10-27). Run by a new install and by the 5.0 update; adds only what is missing, never fails the caller.">
+		<cfset ensureIndexes([
+			{ name: "IX_IpAddress_IpAddress", table: "IpAddress", columns: [ { name: "IpAddress", prefix: 64 } ] },
+			{ name: "IX_HttpUserAgent_HttpUserAgent", table: "HttpUserAgent", columns: [ { name: "HttpUserAgent", prefix: 191 } ] },
+			{ name: "IX_HttpReferrer_HttpReferrer", table: "HttpReferrer", columns: [ { name: "HttpReferrer", prefix: 191 } ] },
+			{ name: "IX_AnonymousUser_IpAddressRef_HttpUserAgentRef", table: "AnonymousUser", columns: [ { name: "IpAddressRef" }, { name: "HttpUserAgentRef" } ] },
+			{ name: "IX_AnonymousUser_Date", table: "AnonymousUser", columns: [ { name: "Date" } ] },
+			{ name: "IX_VisitorLog_AnonymousUserRef", table: "VisitorLog", columns: [ { name: "AnonymousUserRef" } ] },
+			{ name: "IX_VisitorLog_Date", table: "VisitorLog", columns: [ { name: "Date" } ] },
+			{ name: "IX_VisitorLog_HttpReferrerRef", table: "VisitorLog", columns: [ { name: "HttpReferrerRef" } ] },
+			{ name: "IX_VisitorLog_PostRef_Date", table: "VisitorLog", columns: [ { name: "PostRef" }, { name: "Date" } ] },
+			{ name: "IX_PostRead_AnonymousUserRef", table: "PostRead", columns: [ { name: "AnonymousUserRef" } ] },
+			{ name: "IX_PostRead_Date_PostRef", table: "PostRead", columns: [ { name: "Date" }, { name: "PostRef" } ] },
+			{ name: "IX_AdminLog_AnonymousUserRef", table: "AdminLog", columns: [ { name: "AnonymousUserRef" } ] },
+			{ name: "IX_ErrorLog_AnonymousUserRef", table: "ErrorLog", columns: [ { name: "AnonymousUserRef" } ] },
+			{ name: "IX_PostRating_AnonymousUserRef", table: "PostRating", columns: [ { name: "AnonymousUserRef" } ] },
+			{ name: "IX_Subscriber_AnonymousUserRef", table: "Subscriber", columns: [ { name: "AnonymousUserRef" } ] },
+			{ name: "IX_SearchQuery_AnonymousUserRef", table: "SearchQuery", columns: [ { name: "AnonymousUserRef" } ] }
+		])>
+	</cffunction>
+
+	<cffunction name="ensureIndexes" access="public" returnType="void" output="false"
+			hint="Adds indexes that are missing (2026-10-27). Each is an { name, table, columns: [ { name, prefix (optional: how many characters of a text column MySQL/MariaDB index) } ] }. Skipped when the table or a column is missing, or when the table already has an index that starts with the same column (whatever its name: one made by hand, or the one MySQL makes for a foreign key). Errors are logged, never thrown.">
+		<cfargument name="indexes" type="array" required="true">
+		<cfset var ix = "">
+		<cfset var col = "">
+		<cfset var flavorName = "">
+		<cfset var databaseOrmTypesObj = "">
+		<cfset var found = "">
+		<cfset var colList = "">
+		<cfset var createSql = "">
+		<cfset var valid = true>
+		<cftry>
+			<cfif not len(application.databaseType ?: "")>
+				<cfset application.databaseType = getProfileString(variables.iniPath, "default", "databaseType")>
+			</cfif>
+			<cfif len(application.baseProxyUrl ?: "") gt 0>
+				<cfset databaseOrmTypesObj = createObject("component", application.baseComponentPath & ".common.cfc.DatabaseOrmTypes")>
+			<cfelse>
+				<cfset databaseOrmTypesObj = createObject("component", "common.cfc.DatabaseOrmTypes")>
+			</cfif>
+			<cfset flavorName = databaseOrmTypesObj.getFlavorName(application.databaseType)>
+			<cfcatch type="any">
+				<cfset addToLog("Indexes skipped: the database type could not be read (#cfcatch.message#).")>
+				<cfreturn>
+			</cfcatch>
+		</cftry>
+		<cfloop array="#arguments.indexes#" index="ix">
+			<cftry>
+				<cfset valid = reFind("^[A-Za-z][A-Za-z0-9_]*$", ix.name) and tableExists(ix.table)>
+				<cfif valid>
+					<cfloop array="#ix.columns#" index="col">
+						<cfif not reFind("^[A-Za-z][A-Za-z0-9_]*$", col.name) or not columnExists(ix.table, col.name, flavorName eq "postgre" ? '"' : "")><cfset valid = false></cfif>
+					</cfloop>
+				</cfif>
+				<cfif not valid>
+					<cfcontinue>
+				</cfif>
+				<!--- Already indexed on this column? --->
+				<cfswitch expression="#flavorName#">
+					<cfcase value="sqlServer">
+						<cfquery name="found" datasource="#application.dsn#">
+							SELECT COUNT(*) AS n FROM sys.index_columns ic JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+							WHERE ic.object_id = OBJECT_ID(<cfqueryparam value="#ix.table#" cfsqltype="cf_sql_varchar">) AND ic.key_ordinal = 1
+							AND c.name = <cfqueryparam value="#ix.columns[1].name#" cfsqltype="cf_sql_varchar">
+						</cfquery>
+					</cfcase>
+					<cfcase value="mySql">
+						<cfquery name="found" datasource="#application.dsn#">
+							SELECT COUNT(*) AS n FROM information_schema.STATISTICS
+							WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = <cfqueryparam value="#ix.table#" cfsqltype="cf_sql_varchar">
+							AND COLUMN_NAME = <cfqueryparam value="#ix.columns[1].name#" cfsqltype="cf_sql_varchar"> AND SEQ_IN_INDEX = 1
+						</cfquery>
+					</cfcase>
+					<cfcase value="postgre">
+						<cfquery name="found" datasource="#application.dsn#">
+							SELECT COUNT(*) AS n FROM pg_indexes WHERE indexname IN (<cfqueryparam value="#lCase(ix.name)#" cfsqltype="cf_sql_varchar">, <cfqueryparam value="#ix.name#" cfsqltype="cf_sql_varchar">)
+						</cfquery>
+					</cfcase>
+					<cfdefaultcase>
+						<cfset addToLog("Index #ix.name# not added: no index statement for this database (#application.databaseType#).")>
+						<cfcontinue>
+					</cfdefaultcase>
+				</cfswitch>
+				<cfif val(found.n) gt 0>
+					<cfcontinue>
+				</cfif>
+				<cfset colList = "">
+				<cfloop array="#ix.columns#" index="col">
+					<cfswitch expression="#flavorName#">
+						<cfcase value="sqlServer"><cfset colList = listAppend(colList, "[#col.name#]")></cfcase>
+						<cfcase value="mySql">
+							<!--- A prefix only on a text column longer than it (MySQL refuses a prefix as long as the column, eg. IpAddress). --->
+							<cfif structKeyExists(col, "prefix")>
+								<cfquery name="found" datasource="#application.dsn#">
+									SELECT CHARACTER_MAXIMUM_LENGTH AS len FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+									AND TABLE_NAME = <cfqueryparam value="#ix.table#" cfsqltype="cf_sql_varchar"> AND COLUMN_NAME = <cfqueryparam value="#col.name#" cfsqltype="cf_sql_varchar">
+								</cfquery>
+							</cfif>
+							<cfset colList = listAppend(colList, "`#col.name#`" & (structKeyExists(col, "prefix") and (not isNumeric(found.len) or found.len gt col.prefix) ? "(#int(col.prefix)#)" : ""))>
+						</cfcase>
+						<cfcase value="postgre"><cfset colList = listAppend(colList, '"#col.name#"')></cfcase>
+					</cfswitch>
+				</cfloop>
+				<cfswitch expression="#flavorName#">
+					<cfcase value="sqlServer"><cfset createSql = "CREATE NONCLUSTERED INDEX [#ix.name#] ON [#ix.table#] (#colList#)"></cfcase>
+					<cfcase value="mySql"><cfset createSql = "CREATE INDEX `#ix.name#` ON `#ix.table#` (#colList#)"></cfcase>
+					<cfcase value="postgre"><cfset createSql = 'CREATE INDEX IF NOT EXISTS "#ix.name#" ON "#ix.table#" (#colList#)'></cfcase>
+				</cfswitch>
+				<cfquery datasource="#application.dsn#">#createSql#</cfquery>
+				<cfset addToLog("Added the index #ix.name#.")>
+				<cfcatch type="any">
+					<cfset addToLog("Index #ix.name# not added: #cfcatch.message#")>
+				</cfcatch>
+			</cftry>
+		</cfloop>
+	</cffunction>
+
+	<cffunction name="columnExists" access="private"returnType="boolean" output="false" hint="Whether a column exists: selecting it from no rows succeeds if it does.">
 		<cfargument name="tableName" type="string" required="true">
 		<cfargument name="columnName" type="string" required="true">
 		<cfargument name="quote" type="string" required="false" default="">

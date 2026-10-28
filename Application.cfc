@@ -720,6 +720,11 @@
 		<cfif isDefined("request.blogJustInstalled") and request.blogJustInstalled>
 			<!--- Starting at the current version means the update scripts never run, so create the tables that only the update scripts used to create (see DatabaseUpdater.cfc's ensureRawSqlTables). --->
 			<cfset application.databaseUpdater.ensureRawSqlTables()>
+			<!--- And the visitor log's indexes, which ORM doesn't create (2026-10-27). Never stops the install. --->
+			<cftry>
+				<cfset application.databaseUpdater.ensureLogIndexes()>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
 			<cfset application.blog.updateBlogVersion(application.blog.getVersion(), application.blog.getVersionName())>
 			<!--- Another request may have replaced application.BlogDbObj with its own copy while this one was installing, and Hibernate can't reload an object from another request ("Transient object cannot be reloaded"). Load it again instead. --->
 			<cftry>
