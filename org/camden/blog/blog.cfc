@@ -10555,15 +10555,16 @@
 		<cfif isOff("recentReads")>
 			<cfreturn {}>
 		</cfif>
+		<!--- ReadCount, not Reads: READS is a reserved word in MySQL and MariaDB (2026-10-29). --->
 		<cftry>
 			<cfset q = queryExecute("
-				SELECT v.PostRef AS PostId, COUNT(*) AS Reads
+				SELECT v.PostRef AS PostId, COUNT(*) AS ReadCount
 				FROM VisitorLog v JOIN Post p ON p.PostId = v.PostRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
 				WHERE v.Date >= :since AND p.BlogRef = :blogId AND (a.IsBot = 0 OR a.IsBot IS NULL)
 				GROUP BY v.PostRef",
 				{ since = { value = dateAdd("d", -int(arguments.days), blogNow()), cfsqltype = "cf_sql_timestamp" }, blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } },
 				{ datasource = application.dsn })>
-			<cfloop query="q"><cfset result[q.PostId] = val(q.Reads)></cfloop>
+			<cfloop query="q"><cfset result[q.PostId] = val(q.ReadCount)></cfloop>
 			<cfcatch type="any">
 				<cflog file="galaxieBlogErrors" type="warning" text="getRecentPostReads: #cfcatch.message#">
 			</cfcatch>
