@@ -1576,6 +1576,8 @@
 			<cfset EntitySave(CommentDbObj)>
 
 		</cftransaction>
+		<!--- The post's cached comment list (2026-10-29): an approved comment was counted but not listed until the cache was cleared. --->
+		<cftry><cfset application.blog.flushGalaxieCache(type = "comment", postId = CommentDbObj.getPostRef().getPostId())><cfcatch type="any"></cfcatch></cftry>
 		<!--- A reply just approved tells the person it answers (2026-10-22). --->
 		<cfif isBoolean(arguments.approved) and arguments.approved and not local.wasApproved>
 			<cftry><cfset application.blog.sendCommentReplyEmail(val(arguments.commentId))><cfcatch type="any"></cfcatch></cftry>
@@ -2078,6 +2080,7 @@
 		to the first subscriber only. Now the approvals are saved first, and the emails go out afterwards, only for comments that
 		were just approved, so a mail problem can't undo the save. --->
 		<cfset local.justApproved = []>
+		<cfset local.changedPostIds = {}>
 		<cftransaction>
 			<cfloop array="#thisStruct#" index="local.row">
 				<cfif isStruct(local.row) and structKeyExists(local.row, "CommentId") and isNumeric(local.row["CommentId"]) and structKeyExists(local.row, "Approved") and isBoolean(local.row["Approved"])>
@@ -2087,11 +2090,16 @@
 						<cfset local.commentEntity.setApproved(local.row["Approved"] ? true : false)>
 						<cfset entitySave(local.commentEntity)>
 						<cfif local.row["Approved"] and not local.wasApproved><cfset arrayAppend(local.justApproved, val(local.row["CommentId"]))></cfif>
+						<cfset local.changedPostIds[local.commentEntity.getPostRef().getPostId()] = true>
 					</cfif>
 				</cfif>
 			</cfloop>
 		</cftransaction>
 		<cfset ormFlush()>
+		<!--- The post's cached comment list (2026-10-29): an approved comment was counted but not listed until the cache was cleared. --->
+		<cfloop collection="#local.changedPostIds#" item="local.changedPostId">
+			<cftry><cfset application.blog.flushGalaxieCache(type = "comment", postId = local.changedPostId)><cfcatch type="any"></cfcatch></cftry>
+		</cfloop>
 
 		<!--- Comments just approved: tell the person a reply answers, and email the post's subscribers. --->
 		<cfloop array="#local.justApproved#" index="local.approvedId">

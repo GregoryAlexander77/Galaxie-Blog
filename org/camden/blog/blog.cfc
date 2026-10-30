@@ -8918,7 +8918,12 @@
 					<!---<cfset Post.addComment(CommentDbObj)>--->
 					<cfset EntitySave(CommentDbObj)>
 
-				</cftransaction>	
+				</cftransaction>
+
+				<!--- The post's cached comment list (2026-10-29): an approved comment was counted but not listed until the cache was cleared. --->
+				<cfif approved>
+					<cftry><cfset flushGalaxieCache(type = "comment", postId = PostRefDbObj.getPostId())><cfcatch type="any"></cfcatch></cftry>
+				</cfif>
 
 				<!--- Send out email to the subscribers if the comment was approved and the sendEmail argument is true (which it is by default). --->
 				<cfif approved and arguments.sendEmail>
@@ -9568,7 +9573,9 @@
 			<!--- Save the commenter --->
 			<cfset EntitySave(CommenterDbObj)>
 			<!--- Save the comment. --->
-			<cfset EntitySave(CommentDbObj)>			
+			<cfset EntitySave(CommentDbObj)>
+			<!--- The post's cached comment list (2026-10-29): an approved or edited comment was counted but not listed until the cache was cleared. --->
+			<cftry><cfset flushGalaxieCache(type = "comment", postId = CommentDbObj.getPostRef().getPostId())><cfcatch type="any"></cfcatch></cftry>
 				
 			<!--- **********************************************************************************************
 			Email the post subscribers
