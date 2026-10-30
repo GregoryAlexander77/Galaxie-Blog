@@ -134,7 +134,9 @@
 		if (stylesAdded) { return; }
 		stylesAdded = true;
 		var css = [
-			".gScene{position:relative;overflow-x:hidden}",
+			// clip, not hidden (2026-10-30): overflow-x:hidden turned the scene into a scroll box with its own scrollbar, a dark
+			// strip down the right of a scene inside a post. hidden stays for browsers without clip.
+			".gScene{position:relative;overflow-x:hidden;overflow-x:clip}",
 			".gScene *{box-sizing:border-box}",
 			".gScene .gs-section{position:relative;z-index:2}",
 			".gScene .gs-softTop{position:relative;z-index:2;pointer-events:none}",
@@ -412,7 +414,10 @@
 		var joinColour = (nextSection && gradientTopColour(nextSection.gradient)) || section.fadeColour || (nextSection && nextSection.colour) || data.pageColour || "#000000";
 		root.style.backgroundColor = joinColour;
 		var back = el("div", "gs-heroBack", root);
-		var phone = isPhone();
+		// The phone pictures also in a box taller than it is wide (2026-10-30, owner: the wolf showed only a slice): a scene
+		// inside a post on a desktop is the post's width but a screen tall, and wide art keeps only its middle there.
+		var boxWidth = root.parentNode ? root.parentNode.clientWidth : window.innerWidth;
+		var phone = isPhone() || boxWidth < (section.height ? root.offsetHeight : window.innerHeight);
 
 		if (section.kind === "layeredHero") {
 			(section.layers || []).forEach(function (layer, i, all) {
@@ -423,6 +428,8 @@
 				var img = el("img", "", wrap);
 				img.src = phone && layer.srcPhone ? layer.srcPhone : layer.src;
 				img.alt = ""; img.decoding = "async";
+				// Where wide art is cropped from (2026-10-30): focus "40%" keeps the left of middle, e.g. the wolf and the moon.
+				if (section.focus && !(phone && layer.srcPhone) && /^\d{1,3}%$/.test(section.focus)) { img.style.objectPosition = section.focus + " 50%"; }
 				// The fade travels with the front layer, so the picture melts into the next section.
 				if (i === all.length - 1) { addFade(section, data, wrap, joinColour); }
 			});
