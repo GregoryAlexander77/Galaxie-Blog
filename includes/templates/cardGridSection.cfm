@@ -56,7 +56,10 @@ and "eventOverlayHtml": the event's calendar page, centred over the card's pictu
 								<cfif len(cardGridOneItem.mediaHtml)>
 									<cfoutput>#cardGridOneItem.mediaHtml#</cfoutput>
 								<cfelseif len(cardGridOneItem.imageUrl)>
-									<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#cardGridOneItem.imageUrl#</cfoutput>" alt="<cfoutput>#cardGridOneItem.title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardGridOneItem.imageUrl#</cfoutput>"></div>
+									<!--- The card-sized copy of the picture when there is one (2026-10-31, Image.cfc getCardImageUrl). --->
+									<cfif not structKeyExists(request, "galaxieImageObj")><cfset request.galaxieImageObj = createObject("component", application.imageComponentPath)></cfif>
+									<cfset thisCardImage = request.galaxieImageObj.getCardImageUrl(cardGridOneItem.imageUrl)>
+									<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#thisCardImage#</cfoutput>" alt="<cfoutput>#cardGridOneItem.title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#thisCardImage#</cfoutput>"></div>
 								<cfelseif not cardGridOneItem.suppressImage>
 									<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#application.baseUrl#</cfoutput>/images/icons/noMedia.png" alt="<cfoutput>#cardGridOneItem.title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#application.baseUrl#</cfoutput>/images/icons/noMedia.png"></div>
 								</cfif>

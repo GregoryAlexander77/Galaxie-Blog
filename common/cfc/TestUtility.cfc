@@ -2159,4 +2159,47 @@ END CATCH;
 	</cfif>
 	<cfreturn isNumeric(arguments.value) and arguments.value neq 0>
 </cffunction>
+<cffunction name="makeCardImages" access="remote" returntype="void" output="yes"
+		hint="Makes the card-sized copy (Image.cfc createCardImage, 640px wide) of every picture in /enclosures/ that has none yet, for the home page and the other card lists (2026-10-31, owner: the cards showed the full-size uploads). New uploads get one automatically. Without confirm it only counts. With confirm=true it works for up to 45 seconds and stops; run it again until it says nothing is left. Then reinitialize, so the saved (cached) pages pick the new pictures up.">
+	<cfargument name="confirm" type="boolean" required="false" default="false">
+	<cfset requireEditSiteAccess()>
+	<cfcontent type="text/html; charset=utf-8" reset="true">
+	<cfset var enclosureFolder = expandPath(application.baseUrl & "/enclosures")>
+	<cfset var cardFolder = enclosureFolder & "/cards">
+	<cfset var files = directoryList(enclosureFolder, false, "name", "*.*", "name asc", "file")>
+	<cfset var todo = []>
+	<cfset var name = "">
+	<cfset var baseName = "">
+	<cfset var made = 0>
+	<cfset var failed = []>
+	<cfset var started = getTickCount()>
+	<cfset var ImageObj = createObject("component", application.imageComponentPath)>
+	<cfloop array="#files#" index="name">
+		<cfif reFindNoCase("\.(jpe?g|png|webp|gif)$", name)>
+			<cfset baseName = reReplaceNoCase(name, "\.[^.]+$", "")>
+			<cfif not fileExists(cardFolder & "/" & baseName & ".webp") and not fileExists(cardFolder & "/" & name)>
+				<cfset arrayAppend(todo, name)>
+			</cfif>
+		</cfif>
+	</cfloop>
+	<cfoutput><h2>Card images</h2><p>#arrayLen(todo)# picture(s) in /enclosures/ have no card image yet.</p></cfoutput>
+	<cfif not arguments.confirm>
+		<cfoutput><p>Nothing was changed. Add <b>&amp;confirm=true</b> to the address to make them (45 seconds at a time; run it again until none are left).</p></cfoutput>
+		<cfreturn>
+	</cfif>
+	<cfloop array="#todo#" index="name">
+		<cfif getTickCount() - started gt 45000><cfbreak></cfif>
+		<cfif len(ImageObj.createCardImage(enclosureFolder & "/" & name))>
+			<cfset made++>
+		<cfelse>
+			<cfset arrayAppend(failed, name)>
+		</cfif>
+	</cfloop>
+	<cfoutput>
+		<p>Made #made# card image(s) in #numberFormat((getTickCount() - started) / 1000, "0.0")# seconds. #arrayLen(todo) - made - arrayLen(failed)# left.</p>
+		<cfif arrayLen(failed)><p>Could not be read (left as they are; the card keeps using the original): #encodeForHtml(arrayToList(failed, ", "))#</p></cfif>
+		<cfif arrayLen(todo) - made - arrayLen(failed) gt 0><p><b>Run this again</b> to make the rest.</p><cfelse><p><b>Done.</b> Now reinitialize the blog (?reinit=1) so the saved pages use them.</p></cfif>
+	</cfoutput>
+</cffunction>
+
 </cfcomponent>

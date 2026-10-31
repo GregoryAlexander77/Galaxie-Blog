@@ -177,6 +177,12 @@
 			</cfif>
 		</cfif>
 	</cfif>
+	<!--- The card-sized copy of the picture when there is one (2026-10-31, owner): 640px wide instead of the full upload (up to
+	1580px and 200KB) or the 235px thumbnail (Image.cfc createCardImage / getCardImageUrl). --->
+	<cfif len(cardImage)>
+		<cfif not structKeyExists(request, "galaxieImageObj")><cfset request.galaxieImageObj = createObject("component", application.imageComponentPath)></cfif>
+		<cfset cardImage = request.galaxieImageObj.getCardImageUrl(cardImage)>
+	</cfif>
 	<cfif isDebug>
 		<cfoutput>showSidebar: #showSidebar# renderMediumCard: #renderMediumCard# cardImage: #cardImage#</cfoutput><br/>
 	</cfif>

@@ -71,7 +71,10 @@ case (blog.cfc) for invalidation - covers any Page Collection change and any Con
 								<cfelse>
 								<a href="<cfoutput>#collectionUrl#</cfoutput>" aria-label="<cfoutput>#oneCollection.title#</cfoutput>">
 									<cfif len(oneCollection.heroImageUrl)>
-										<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#oneCollection.heroImageUrl#</cfoutput>" alt="<cfoutput>#oneCollection.title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#oneCollection.heroImageUrl#</cfoutput>"></div>
+										<!--- The card-sized copy of the picture when there is one (2026-10-31, Image.cfc getCardImageUrl). --->
+										<cfif not structKeyExists(request, "galaxieImageObj")><cfset request.galaxieImageObj = createObject("component", application.imageComponentPath)></cfif>
+										<cfset thisCardImage = request.galaxieImageObj.getCardImageUrl(oneCollection.heroImageUrl)>
+										<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#thisCardImage#</cfoutput>" alt="<cfoutput>#oneCollection.title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#thisCardImage#</cfoutput>"></div>
 									<cfelse>
 										<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#application.baseUrl#</cfoutput>/images/icons/noMedia.png" alt="<cfoutput>#oneCollection.title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#application.baseUrl#</cfoutput>/images/icons/noMedia.png"></div>
 									</cfif>

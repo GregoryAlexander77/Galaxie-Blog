@@ -200,6 +200,53 @@
 		<cfreturn destination>
 		
 	</cffunction>
+
+	<cffunction name="createCardImage" access="public" output="false" returntype="string"
+			hint="The picture for a post's card on the home page and the other card lists (2026-10-31, owner: the cards showed the full-size upload - up to 1580px and 200KB - in a card a few hundred pixels wide). The picture scaled down to 640px wide, its shape kept (the card's CSS crops it), as WebP where the engine writes WebP, else in the picture's own format. Saved in /enclosures/cards/ under the picture's name. Returns its address (application.baseUrl/enclosures/cards/name), or an empty string when it could not be made. A picture already 640px wide or smaller is copied as it is.">
+		<cfargument name="imagePath" type="string" required="yes" hint="The full path to the uploaded picture.">
+		<cfargument name="quality" type="numeric" required="no" default="0.8">
+		<cfset var cardWidth = 640>
+		<cfset var folder = expandPath(application.baseUrl & "/enclosures/cards")>
+		<cfset var baseName = reReplaceNoCase(getFileFromPath(arguments.imagePath), "\.[^.]+$", "")>
+		<cfset var extension = lCase(listLast(getFileFromPath(arguments.imagePath), "."))>
+		<cfset var fileName = "">
+		<cfset var picture = "">
+		<cftry>
+			<cfif not directoryExists(folder)><cfdirectory action="create" directory="#folder#"></cfif>
+			<!--- An animated GIF keeps its animation only as a GIF, so it is copied as it is. --->
+			<cfif extension eq "gif">
+				<cfset fileName = getFileFromPath(arguments.imagePath)>
+				<cffile action="copy" source="#arguments.imagePath#" destination="#folder#/#fileName#" nameconflict="overwrite">
+			<cfelse>
+				<cfset fileName = baseName & "." & (application.imageEngineSupportsWebP ? "webp" : extension)>
+				<cfset picture = imageRead(arguments.imagePath)>
+				<cfif imageGetWidth(picture) gt cardWidth>
+					<cfset imageResize(picture, cardWidth, "", "highQuality")>
+				</cfif>
+				<cfset imageWrite(picture, folder & "/" & fileName, arguments.quality, true)>
+			</cfif>
+			<cftry><cfset fileSetAccessMode(folder & "/" & fileName, "644")><cfcatch type="any"></cfcatch></cftry>
+			<cfreturn application.baseUrl & "/enclosures/cards/" & fileName>
+			<cfcatch type="any">
+				<cfreturn "">
+			</cfcatch>
+		</cftry>
+	</cffunction>
+
+	<cffunction name="getCardImageUrl" access="public" output="false" returntype="string"
+			hint="The card-sized copy of a post's picture (createCardImage) when it exists, or else the address given. Takes a picture's address (/blog/enclosures/name.jpg) and looks for /enclosures/cards/name.webp, then name.jpg (or the picture's own format).">
+		<cfargument name="imageUrl" type="string" required="yes">
+		<cfset var fileName = getFileFromPath(arguments.imageUrl)>
+		<cfset var baseName = reReplaceNoCase(fileName, "\.[^.]+$", "")>
+		<cfset var candidate = "">
+		<cfif not len(fileName) or not reFindNoCase("\.(jpe?g|png|webp|gif)$", fileName)><cfreturn arguments.imageUrl></cfif>
+		<cfloop list="#baseName#.webp,#fileName#" index="candidate">
+			<cfif fileExists(expandPath(application.baseUrl & "/enclosures/cards/" & candidate))>
+				<cfreturn application.baseUrl & "/enclosures/cards/" & candidate>
+			</cfif>
+		</cfloop>
+		<cfreturn arguments.imageUrl>
+	</cffunction>
 			
 	<cffunction name="createSocialMediaImages" access="public" output="false" returntype="any" hint="Creates images for social media sharing.">
 		<cfargument name="imagePath" type="string" required="yes" hint="Provide the path to the image.">

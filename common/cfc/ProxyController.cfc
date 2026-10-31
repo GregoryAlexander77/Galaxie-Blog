@@ -8114,6 +8114,13 @@
 						</cfif>
 						<cfif debug><cfdump var="#thumbnail#"></cfif>
 					</cfif>
+					<!--- The card-sized copy for the home page and the other card lists (2026-10-31, owner: the cards showed the full-size
+					upload). A post's picture, a hero cover image or a page collection's picture. --->
+					<cfif mediaProcessType eq 'enclosure' or mediaProcessType eq 'heroCoverImage' or mediaProcessType eq 'pageCollectionHero'>
+						<cfif len(ImageObj.createCardImage(image.ServerDirectory & '/' & image.ServerFile))>
+							<cfset mediaActions = listAppend(mediaActions, 'Card Image')>
+						</cfif>
+					</cfif>
 					
 					<!--- Get image data. --->
 					<!--- Get the image height and width. Note: as a matter of principle, this should always be done after uploading the image as there may be errors and we want to extract them in the cffile logic. This also allows us to read the saved object rather than the file field name which may be different depending upon the interface. --->
