@@ -77,6 +77,9 @@
 		<cfset twitterImageMetaTagValue = seoFileBaseUrl & getTheme[1]["DefaultLogoImageForSocialMediaShare"]>
 		<!--- Only ever set (non-empty) for an actual post whose Pinterest crop exists - see the pinterest block below. Preset empty here so head.cfm's <cfif len(pinterestImageMetaTagValue)> check always has a defined variable to read on every page type. --->
 		<cfset pinterestImageMetaTagValue = "">
+		<!--- og:image:width and og:image:height, only when the picture's size is known (2026-10-31). --->
+		<cfset facebookImageWidth = "">
+		<cfset facebookImageHeight = "">
 
 		<!--- Default twitter card type. We will rewrite this if the twitterMediaUrlMetaData is defined. --->
 		<cfset twitterCardType = "summary_large_image">
@@ -89,103 +92,65 @@
 			************************************************************************************************************--->
 			<!--- Determine if there is an enclosure, and if the social media images exist for this enclosure. We may over-ride these variables later if the social media images are embedded in xml in the post. --->
 
+			<!--- The post's share pictures (2026-10-31, owner): from its image enclosure or, failing that, its Hero Cover Image -
+			createSocialMediaImages() made the same crops for either at upload time (see ProxyController.cfc uploadImage()).
+			Per platform: its own crop -> the classic 1200x900 crop -> the uploaded picture as it is. Each crop is kept in the
+			picture's own format (JPG or PNG) and as WebP; the JPG or PNG is used first (it was WebP first): Slack, LinkedIn, some
+			chat apps and older Facebook crawlers show no picture for a WebP. A manually typed directive still wins below. --->
+			<cfset shareSourceUrl = "">
 			<cfif len(getPost[1]["MediaUrl"]) and (getPost[1]["MediaUrl"] contains '.jpg' or getPost[1]["MediaUrl"] contains '.gif' or getPost[1]["MediaUrl"] contains '.png' or getPost[1]["MediaUrl"] contains '.webp')>
-
-				<!--- Fallback chain per platform: the platform's own crop (webp preferred, since createSocialMediaImages()
-				now always writes a webp companion alongside the original-format file) -> the classic GalaxieBlog
-				1200x900 crop (also always generated, see Image.cfc) -> whatever's already preset above (the theme's
-				DefaultLogoImageForSocialMediaShare) -> the raw, uncropped original as the very last resort. Only that
-				last step used to run - a missing platform crop (eg. an old post from before this pipeline existed, or
-				before the webp companion existed) silently served the full-size original as the og:image/twitter:image
-				instead of falling back to anything sized sensibly. --->
-				<cfset socialMediaEnclosureFileName = getFileFromPath(getPost[1]["MediaUrl"])>
-				<cfset socialMediaEnclosureFileNameNoExt = reReplaceNoCase(socialMediaEnclosureFileName, "\.[^.]+$", "")>
-				<cfset classicGalaxieBlogImageUrl = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileName>
-
-				<cfset facebookImageUrl = seoFileBaseUrl & "/enclosures/facebook/" & socialMediaEnclosureFileName>
-				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset facebookImageMetaTagValue = seoFileBaseUrl & "/enclosures/facebook/" & socialMediaEnclosureFileNameNoExt & '.webp'>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileName))>
-					<cfset facebookImageMetaTagValue = facebookImageUrl>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset facebookImageMetaTagValue = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
-					<cfset facebookImageMetaTagValue = classicGalaxieBlogImageUrl>
-				<cfelse>
-					<cfset facebookImageMetaTagValue = getPost[1]["MediaUrl"]>
-				</cfif>
-
-				<cfset twitterImageUrl = seoFileBaseUrl & "/enclosures/twitter/" & socialMediaEnclosureFileName>
-				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset twitterImageMetaTagValue = seoFileBaseUrl & "/enclosures/twitter/" & socialMediaEnclosureFileNameNoExt & '.webp'>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileName))>
-					<cfset twitterImageMetaTagValue = twitterImageUrl>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset twitterImageMetaTagValue = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
-					<cfset twitterImageMetaTagValue = classicGalaxieBlogImageUrl>
-				<cfelse>
-					<cfset twitterImageMetaTagValue = getPost[1]["MediaUrl"]>
-				</cfif>
-
-				<!--- Pinterest only gets an extra og:image tag when its own 1000x1500 crop actually exists - unlike
-				facebook/twitter/classic, there's no fallback tier for it (see Image.cfc), so most images simply won't
-				have one. Multiple og:image tags are valid per the Open Graph spec; Pinterest evaluates all of them
-				when generating a Rich Pin, so this is additive, not a replacement for the primary og:image below. --->
-				<cfset pinterestImageMetaTagValue = "">
-				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset pinterestImageMetaTagValue = seoFileBaseUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileNameNoExt & '.webp'>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileName))>
-					<cfset pinterestImageMetaTagValue = seoFileBaseUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileName>
-				</cfif>
-
-			<!--- 2026-10-01: a Hero Cover Image - a static uploaded photo for a post with no real Image enclosure
-			(Gradient/animation/generated fallback) - drives the social-share image the same way a real enclosure
-			image does, via the exact same platform-crop fallback chain above (createSocialMediaImages() ran on
-			it the same way at upload time - see ProxyController.cfc's uploadImage()). This is what replaces the
-			old per-post practice of hand-typing facebookImageUrlMetaData/twitterImageUrlMetaData directives for
-			exactly this case - a manually-typed directive, if one still exists on an older post, still wins
-			below (getXmlOverride() runs after this block regardless of which branch set these values). --->
+				<cfset shareSourceUrl = getPost[1]["MediaUrl"]>
 			<cfelseif len(getPost[1]["HeroCoverImageUrl"])>
-
-				<cfset socialMediaEnclosureFileName = getFileFromPath(getPost[1]["HeroCoverImageUrl"])>
-				<cfset socialMediaEnclosureFileNameNoExt = reReplaceNoCase(socialMediaEnclosureFileName, "\.[^.]+$", "")>
-				<cfset classicGalaxieBlogImageUrl = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileName>
-
-				<cfset facebookImageUrl = seoFileBaseUrl & "/enclosures/facebook/" & socialMediaEnclosureFileName>
-				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset facebookImageMetaTagValue = seoFileBaseUrl & "/enclosures/facebook/" & socialMediaEnclosureFileNameNoExt & '.webp'>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/facebook/' & socialMediaEnclosureFileName))>
-					<cfset facebookImageMetaTagValue = facebookImageUrl>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset facebookImageMetaTagValue = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
-					<cfset facebookImageMetaTagValue = classicGalaxieBlogImageUrl>
-				<cfelse>
-					<cfset facebookImageMetaTagValue = getPost[1]["HeroCoverImageUrl"]>
-				</cfif>
-
-				<cfset twitterImageUrl = seoFileBaseUrl & "/enclosures/twitter/" & socialMediaEnclosureFileName>
-				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset twitterImageMetaTagValue = seoFileBaseUrl & "/enclosures/twitter/" & socialMediaEnclosureFileNameNoExt & '.webp'>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/twitter/' & socialMediaEnclosureFileName))>
-					<cfset twitterImageMetaTagValue = twitterImageUrl>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset twitterImageMetaTagValue = seoFileBaseUrl & "/enclosures/classic/" & socialMediaEnclosureFileNameNoExt & '.webp'>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/classic/' & socialMediaEnclosureFileName))>
-					<cfset twitterImageMetaTagValue = classicGalaxieBlogImageUrl>
-				<cfelse>
-					<cfset twitterImageMetaTagValue = getPost[1]["HeroCoverImageUrl"]>
-				</cfif>
-
-				<cfset pinterestImageMetaTagValue = "">
-				<cfif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileNameNoExt & '.webp'))>
-					<cfset pinterestImageMetaTagValue = seoFileBaseUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileNameNoExt & '.webp'>
-				<cfelseif fileExists(expandPath(application.baseUrl & '/enclosures/pinterest/' & socialMediaEnclosureFileName))>
-					<cfset pinterestImageMetaTagValue = seoFileBaseUrl & "/enclosures/pinterest/" & socialMediaEnclosureFileName>
-				</cfif>
-
-			</cfif><!---<cfif (getPost[1]["MediaUrl"] contains '.jpg' or getPost[1]["MediaUrl"] contains '.gif' or getPost[1]["MediaUrl"] contains '.png' or getPost[1]["MediaUrl"] contains '.mp3')>--->
+				<cfset shareSourceUrl = getPost[1]["HeroCoverImageUrl"]>
+			</cfif>
+			<cfif len(shareSourceUrl)>
+				<cfscript>
+					shareFileName = getFileFromPath(shareSourceUrl);
+					shareFileNoExt = reReplaceNoCase(shareFileName, "\.[^.]+$", "");
+					// One platform's crop: the picture's own format first, then WebP. Empty when neither file is there.
+					pickShareImage = function (required string folder) {
+						var webPath = application.baseUrl & "/enclosures/" & arguments.folder & "/";
+						var candidates = [];
+						if (!reFindNoCase("\.webp$", shareFileName)) { arrayAppend(candidates, shareFileName); }
+						arrayAppend(candidates, shareFileNoExt & ".webp");
+						for (var name in candidates) {
+							var localPath = expandPath(webPath & name);
+							if (fileExists(localPath)) { return { url: seoFileBaseUrl & "/enclosures/" & arguments.folder & "/" & name, path: localPath }; }
+						}
+						return {};
+					};
+					// A picture's size for og:image:width and og:image:height, read once (a few milliseconds) and kept until the file
+					// changes. Empty when it can't be read.
+					shareImageSize = function (required string localPath) {
+						var size = { width: "", height: "" };
+						try {
+							var stamp = getFileInfo(arguments.localPath).lastModified;
+							if (!structKeyExists(application, "galaxieShareImageSizes") || structCount(application.galaxieShareImageSizes) > 2000) { application.galaxieShareImageSizes = {}; }
+							var kept = application.galaxieShareImageSizes[arguments.localPath] ?: "";
+							if (isStruct(kept) && kept.stamp == stamp) { return kept; }
+							var picture = imageRead(arguments.localPath);
+							size = { width: imageGetWidth(picture), height: imageGetHeight(picture), stamp: stamp };
+							application.galaxieShareImageSizes[arguments.localPath] = size;
+						} catch (any e) {}
+						return size;
+					};
+					shareFacebook = pickShareImage("facebook");
+					if (structIsEmpty(shareFacebook)) { shareFacebook = pickShareImage("classic"); }
+					shareTwitter = pickShareImage("twitter");
+					if (structIsEmpty(shareTwitter)) { shareTwitter = pickShareImage("classic"); }
+					facebookImageMetaTagValue = structIsEmpty(shareFacebook) ? shareSourceUrl : shareFacebook.url;
+					twitterImageMetaTagValue = structIsEmpty(shareTwitter) ? shareSourceUrl : shareTwitter.url;
+					if (!structIsEmpty(shareFacebook)) {
+						shareSize = shareImageSize(shareFacebook.path);
+						facebookImageWidth = shareSize.width;
+						facebookImageHeight = shareSize.height;
+					}
+					// Pinterest's 1000x1500 crop only exists when the picture was big enough; there is no fallback for it.
+					// Multiple og:image tags are valid; Pinterest looks at all of them for a Rich Pin.
+					sharePinterest = pickShareImage("pinterest");
+					pinterestImageMetaTagValue = structIsEmpty(sharePinterest) ? "" : sharePinterest.url;
+				</cfscript>
+			</cfif>
 					
 			<!--- Galaxie Blog Directive to change the Kendo library for a post. This is handy in order to use the much smaller Kendo Core library for the main site but still be able to include the professional Kendo version (if you have a license) to occassionally handle more advanced stuff, like Kendo grids --->
 			<cfif findNoCase("kendoCommercial", xmlKeywords) gt 0>
@@ -206,7 +171,9 @@
 			<cfset socialMediaDescMetaTagValue = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "socialMediaDescMetaData", socialMediaDescMetaTagValue)>
 
 			<!--- Social Media Sharing for Images. --->
+			<cfset shareImageBeforeOverride = facebookImageMetaTagValue>
 			<cfset facebookImageMetaTagValue = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "facebookImageUrlMetaData", facebookImageMetaTagValue)>
+			<cfif facebookImageMetaTagValue neq shareImageBeforeOverride><cfset facebookImageWidth = ""><cfset facebookImageHeight = ""></cfif>
 			<cfset twitterImageMetaTagValue = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "twitterImageUrlMetaData", twitterImageMetaTagValue)>
 
 		<cfelseif pageTypeId neq 2><!--- Always (owner, 2026-10-28): public pages use Kendo Core unless a post needs a Professional widget. --->

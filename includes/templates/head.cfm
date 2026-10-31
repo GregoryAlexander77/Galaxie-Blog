@@ -104,6 +104,11 @@ a hero cover image, or one typed into a directive) gets the blog's scheme and ho
 </cfif><!---<cfif videoType neq "" and getPageMode() eq 'post'>--->
 <!-- Open graph meta tags for Facebook. See notes. -->
 <meta property="og:image" content="#facebookImageMetaTagValue#">
+<!--- The picture's size when known (2026-10-31), so Facebook, LinkedIn and others can show it on the first share instead of fetching it first. --->
+<cfif isNumeric(facebookImageWidth ?: "") and isNumeric(facebookImageHeight ?: "")>
+<meta property="og:image:width" content="#facebookImageWidth#">
+<meta property="og:image:height" content="#facebookImageHeight#">
+</cfif>
 <!-- Additional og:image for Pinterest's own 1000x1500 crop, only present when Image.cfc actually generated one for this post (see seoMetaTags.cfm) - multiple og:image tags are valid per the Open Graph spec and Pinterest evaluates all of them for a Rich Pin. -->
 <cfif len(pinterestImageMetaTagValue)>
 <meta property="og:image" content="#pinterestImageMetaTagValue#">
