@@ -202,6 +202,17 @@
 		<cfreturn serializeJSON(session.loggedin)>	
 	</cffunction>
 	
+	<cffunction name="getAdminCsrfToken" access="remote" returnformat="json" output="false"
+			hint="The signed-in session's security token (2026-10-31): a page that was open when the session ended asks for it after signing back in through the sign-in window, and uses it in place of its old one (blogJsContent.cfm galaxieSignedBackIn). Only for someone signed in; another site can't read the answer.">
+		<cfset var response = { "token": "" }>
+		<cfif application.Udf.isLoggedIn()>
+			<cfset response[ "token" ] = csrfGenerateToken("admin", false)>
+		<cfelse>
+			<cfheader statuscode="403">
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<!---******************  Functions to create a random phrase and a key ******************--->
 	<cffunction name="createEncryptionPhrase" access="package" returntype="string" hint="Generates an key to use for encryption. This is a private function only available to other functions on this page. This function is deprecated.">
 		<!--- Use the rand function to create a new phrase. --->

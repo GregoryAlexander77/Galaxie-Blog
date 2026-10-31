@@ -138,6 +138,9 @@
 			if (JSON.parse(response) == true){
 				<!--- Close the login window --->
 				jQuery('#loginWindow').kendoWindow('destroy');	
+				<!--- Signed back in on a page that was already open (2026-10-31): it takes the new session's token and reloads
+				admin windows that came up empty (blogJsContent.cfm galaxieSignedBackIn, only on pages drawn while signed in). --->
+				if (typeof window.galaxieSignedBackIn === "function") { window.galaxieSignedBackIn(); }
 			} else {
 				<!--- Alert the user that the login has failed. --->
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Login Failed", message: "Please try again", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", icon: "k-ext-warning" }) // or k-ext-error, k-ext-question

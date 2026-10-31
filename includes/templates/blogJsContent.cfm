@@ -2329,3 +2329,58 @@
 		};
 		
 	</script>
+
+<cfif application.Udf.isLoggedIn()>
+	<!--- Sign back in where you are (5.0.x, 2026-10-31, owner). Only on pages drawn for someone signed in. When the session ends
+	(a 403, or "Invalid token" because the page's security token belonged to the old session), the small sign-in window opens
+	over the page instead of a request failing quietly. After signing in, the new session's token is fetched
+	(ProxyController getAdminCsrfToken) and swapped into every later request in place of the page's old one - the page has it
+	written into dozens of addresses and forms - and admin windows that came up empty are loaded again. The action that failed
+	is not repeated on its own: the person does it again. --->
+	<script>
+		(function () {
+			var pageTokens = ["<cfoutput>#csrfGenerateToken('admin', false)#</cfoutput>"];
+			var currentToken = pageTokens[0];
+			var emptyWindows = [];
+			function expired(xhr) {
+				if (!xhr) { return false; }
+				if (xhr.status === 403) { return true; }
+				var text = $.trim(xhr.responseText || "");
+				return text === "Invalid token" || text === '"Invalid token"' || /<string>Invalid token<\/string>/.test(text);
+			}
+			$(document).ajaxComplete(function (e, xhr, settings) {
+				var url = (settings && settings.url) || "";
+				if (!expired(xhr) || /method=(ajaxLogin|getAdminCsrfToken)/.test(url)) { return; }
+				if (/adminInterface\.cfm/.test(url)) { emptyWindows.push(url); }
+				if (!$("#loginWindow").length) { createLoginWindow(); }
+			});
+			// Every request after signing in again carries the new token instead of the page's old one.
+			$.ajaxPrefilter(function (options) {
+				$.each(pageTokens, function (i, oldToken) {
+					if (!oldToken || oldToken === currentToken) { return; }
+					if (typeof options.url === "string") { options.url = options.url.split(oldToken).join(currentToken); }
+					if (typeof options.data === "string") { options.data = options.data.split(oldToken).join(currentToken); }
+				});
+			});
+			// Called by the sign-in window (admin/adminInterface/ajaxLogin.cfm) once the password is accepted.
+			window.galaxieSignedBackIn = function () {
+				jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getAdminCsrfToken", dataType: "json" })
+					.done(function (r) {
+						if (typeof r === "string") { try { r = JSON.parse(r); } catch (e) { r = null; } }
+						if (r && r.token) {
+							if (pageTokens.indexOf(currentToken) < 0) { pageTokens.push(currentToken); }
+							currentToken = r.token;
+						}
+						// Admin windows that opened empty while signed out: load them again.
+						$(".k-window-content").each(function () {
+							var w = $(this).data("kendoWindow"), content = w && w.options.content;
+							var url = content && (content.url || content);
+							if (w && typeof url === "string" && emptyWindows.indexOf(url) >= 0) { w.refresh(); }
+						});
+						emptyWindows = [];
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Signed in again", message: "You're signed in again. Please do your last step once more: it didn't go through while you were signed out.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+					});
+			};
+		})();
+	</script>
+</cfif>
