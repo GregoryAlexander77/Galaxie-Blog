@@ -4349,6 +4349,47 @@
     
 	</cffunction>
 					
+	<cffunction name="exportErrorLog" access="remote" returnformat="plain" output="false"
+			hint="The Error Log as an Excel file (5.0.x, 2026-10-31, owner): the same rows the grid shows (the newest 10,000, or one IP's with ipAddressId) with more columns, written by ExcelExport.cfc. A download, so it is opened as a link, not by Ajax.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="ipAddressId" required="no" default="">
+		<cfset var rows = []>
+		<cfset var columns = []>
+		<cfset var exporter = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfheader statuscode="403">
+			<cfreturn "Invalid token">
+		</cfif>
+		<!--- The same rights as the Error Log grid. --->
+		<cfset secureFunction('EditUser')>
+		<cfif len(arguments.ipAddressId) and isNumeric(arguments.ipAddressId)>
+			<cfset rows = application.blog.getErrorLog(ipAddressId = arguments.ipAddressId)>
+		<cfelse>
+			<cfset rows = application.blog.getErrorLog()>
+		</cfif>
+		<!--- The stack trace is left out: it is long, and in the error's own window. --->
+		<cfset columns = [
+			{ field: "ErrorLogId", title: "Error Id", type: "number", width: 10 },
+			{ field: "Date", title: "Date", type: "date" },
+			{ field: "ErrorMessage", title: "Error message", width: 60 },
+			{ field: "ErrorDetail", title: "Detail", width: 60 },
+			{ field: "ErrorURL", title: "Address", width: 45 },
+			{ field: "ErrorTemplate", title: "Template", width: 45 },
+			{ field: "ErrorLine", title: "Line", type: "number" },
+			{ field: "ErrorType", title: "Type" },
+			{ field: "ErrorEvent", title: "Event" },
+			{ field: "NumErrors", title: "Hits", type: "number" },
+			{ field: "Resolved", title: "Resolved", type: "boolean" },
+			{ field: "ResolutionNotes", title: "Resolution notes", width: 40 },
+			{ field: "IpAddress", title: "IP address", width: 18 },
+			{ field: "IsBot", title: "Bot", type: "boolean" },
+			{ field: "FullName", title: "Signed-in user", width: 20 },
+			{ field: "HttpUserAgent", title: "Browser (user agent)", width: 50 }
+		]>
+		<cfset exporter = createObject("component", "ExcelExport")>
+		<cfset exporter.send(exporter.build(rows, columns, "Error Log"), "error-log-" & dateFormat(now(), "yyyy-mm-dd") & ".xlsx")>
+	</cffunction>
+
 	<cffunction name="saveErrorLog" access="remote" returnformat="json" output="false" 
 			hint="Saves the resolved and notes fields to the database. Used by the errorDetail form.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">

@@ -18,6 +18,11 @@ The arguments are: createAdminInterfaceWindow(59[,ipAddressId]) (createAdminInte
 </cfif>
 <!--- Finally, attach the csrfToken --->
 <cfset getUrl = getUrl & '&csrfToken=' & csrfToken>
+<!--- Export to Excel (5.0.x, 2026-10-31, owner): the same rows as the grid, as an .xlsx file (ProxyController exportErrorLog). --->
+<cfset exportUrl = application.baseUrl & '/common/cfc/ProxyController.cfc?method=exportErrorLog&csrfToken=' & csrfToken>
+<cfif structKeyExists(URL, "optArgs") and isNumeric(URL.optArgs) and URL.optArgs gt 0>
+	<cfset exportUrl = exportUrl & '&ipAddressId=' & URL.optArgs>
+</cfif>
 	
 
 </cfsilent>
@@ -88,6 +93,7 @@ The arguments are: createAdminInterfaceWindow(59[,ipAddressId]) (createAdminInte
 <body>
 	
 <!--- Container for the grid --->
+<p><a class="k-button" href="<cfoutput>#exportUrl#</cfoutput>" download><i class="fas fa-file-excel"></i>&nbsp; Export to Excel</a></p>
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
 	<script>
