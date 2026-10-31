@@ -115,7 +115,7 @@ var scenes = [{
 		
 <p><b>A hybrid server side and client side approach</b></p>
 		
-<p>Most web servers support the webp image format as well. However, on web servers that are not current, you may need to add the webp mime type. Consult with your ISP or server documentation to find out how to add webp mime type on your server. Here is the function that I developed to test webp support on the server and save the result as a persistent application variable. You will have to create a small webp image and upload to your own server for this to work (see headerBodyDivider.webp below).</p
+<p>Most web servers support the webp image format as well. However, on web servers that are not current, you may need to add the webp mime type. Consult with your ISP or server documentation to find out how to add webp mime type on your server. Here is the function that I developed to test webp support on the server and save the result as a persistent application variable. You will have to create a small webp image and upload to your own server for this to work (see headerBodyDivider.webp below).</p>
 	
 
 <code>

@@ -451,7 +451,7 @@ DBCC CHECKIDENT ('[Role]', RESEED, 0);
 
 <!--- Use a transaction --->
 <cftransaction>
-	<cfparam name"newRoleLoopCount" default="0">
+	<cfparam name="newRoleLoopCount" default="0">
 	<cfloop list="#newRoles#" index="role">
 
 		<!--- Load the entity. --->
