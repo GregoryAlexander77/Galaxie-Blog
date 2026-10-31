@@ -2882,8 +2882,14 @@
 		<!--- Flush all of the html cache files. This is used by the Refresh Site button (?reinit=1). These are all of the folders that galaxieCache saves html files to. Each file is rebuilt the next time it is needed. --->
 		<cfif arguments.type eq 'all'>
 
+			<!--- Each folder on its own: a folder that can't be read doesn't stop the others (2026-10-31). --->
 			<cfloop list="posts,comments,bio,cards,pods,header,footer,fonts,rss,pageCollections,events" index="cacheFolder">
-				<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/' & cacheFolder, '.cfm')>
+				<cftry>
+					<cfset flushGalaxieCacheFiles(application.baseUrl & '/cache/' & cacheFolder, '.cfm')>
+					<cfcatch type="any">
+						<cflog file="galaxieBlogErrors" type="warning" text="Cache folder not flushed: #cacheFolder# - #cfcatch.message#">
+					</cfcatch>
+				</cftry>
 			</cfloop>
 			<!--- Map thumbnails are saved as files, not in the cache folders above, so clear them here too. Only Azure Maps thumbnails are cleared, because they are rebuilt on the next view. Bing Maps thumbnails are left alone, since Bing no longer serves them. --->
 			<cftry>
@@ -3175,11 +3181,18 @@
 			<!--- Get all of the files within the directory --->
 			<cfdirectory action="list" directory="#expandPath(arguments.directory)#" recurse="#arguments.recursive#" name="cacheFiles"/>
 		</cfif>
-		<!--- Loop through the files found in the directory. --->
+		<!--- Loop through the files found in the directory. One file that can't be deleted (held open on Windows, owned by another
+		user on Linux) is logged and skipped (2026-10-31): it used to stop the whole flush, so a reinit left every folder after it -
+		the card lists among them - showing old pages. --->
 		<cfloop query="cacheFiles">
-			<cflock name="#arguments.directory#" type="exclusive" timeout="30">
-				<cffile action="delete" file="#expandPath(arguments.directory)#/#name#" />
-			</cflock>
+			<cftry>
+				<cflock name="#arguments.directory#" type="exclusive" timeout="30">
+					<cffile action="delete" file="#expandPath(arguments.directory)#/#name#" />
+				</cflock>
+				<cfcatch type="any">
+					<cflog file="galaxieBlogErrors" type="warning" text="Cache file not deleted: #arguments.directory#/#name# - #cfcatch.message#">
+				</cfcatch>
+			</cftry>
 		</cfloop>
 
 		<cfreturn 1>
