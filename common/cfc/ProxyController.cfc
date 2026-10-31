@@ -9933,6 +9933,7 @@
 		<cfargument name="disqusAuthUrl" default="" required="false">
 		<cfargument name="disqusAuthTokenUrl" default="" required="false">
 		<cfargument name="defaultImageQuality" default="0.8" required="false" hint="Site-wide default for the image-upload compression slider, 0.1-1.0.">
+		<cfargument name="popularPostsMinPosts" default="" required="false" hint="Blog posts needed before the home page shows Popular Blogs (2026-10-31); 0 shows it always. Saved as a setting, not a BlogOption column.">
 		<cfargument name="videoMaxFileSizeMB" default="100" required="false" hint="Rejects an enclosure video upload over this size (see uploadVideo).">
 		<cfargument name="postHeroStyle" default="classic" required="false" hint="5.0: classic, held, band or magazine - how a post's image, gradient or animated hero is shown on its own page.">
 		<cfargument name="noImageFallbackMode" default="generic" required="false" hint="What shows in place of noImage.jpg for a post with no enclosure - 'generic', 'generated', 'pool', or 'none'. See Renderer.cfc's getHeroFallbackHtml().">
@@ -10108,6 +10109,11 @@
 				<cfset OptionDbObj.setDisqusAuthUrl(arguments.disqusAuthUrl)>
 				<cfset OptionDbObj.setDisqusAuthTokenUrl(arguments.disqusAuthTokenUrl)>
 				<cfset OptionDbObj.setDefaultImageQuality(val(arguments.defaultImageQuality))>
+				<!--- Popular Blogs threshold (2026-10-31): a setting (Events.cfc), and the kept post count is dropped so it applies at once. --->
+				<cfif isNumeric(arguments.popularPostsMinPosts)>
+					<cfset application.events.setSetting(0, "popularPostsMinPosts", max(0, min(1000, int(arguments.popularPostsMinPosts))))>
+					<cfset structDelete(application, "galaxieBlogPostCount")>
+				</cfif>
 				<cfset OptionDbObj.setVideoMaxFileSizeMB(val(arguments.videoMaxFileSizeMB))>
 				<cfset OptionDbObj.setNoImageFallbackMode(arguments.noImageFallbackMode)>
 				<!--- 5.0: how post heroes are shown (Renderer.cfc getPostHeroStyle). The post pages are cleared below. --->

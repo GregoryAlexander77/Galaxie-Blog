@@ -849,7 +849,21 @@
 		<cfsilent>
 		<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		</cfsilent>
+		  		  <!--- Popular Blogs (2026-10-31, owner): the home page's Popular Blogs strip waits until the blog has this many posts, so a new
+		  blog does not show the same few posts twice. Saved as a setting (saveBlogOptions, blog.cfc getPopularPostsMinPosts). --->
 		  <tr height="2px">
+			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<h4 class="adminBlockHeading">Popular Blogs</h4>
+				<p>The home page shows a strip of your most-read posts once the blog has enough posts. Until then it would only repeat the same few posts shown below it. Set how many blog posts that takes; 0 shows it always.</p>
+				<label for="popularPostsMinPosts">Show Popular Blogs once the blog has</label>
+				<input type="number" class="k-textbox" id="popularPostsMinPosts" name="popularPostsMinPosts" min="0" max="1000" step="1" style="width: 90px;" value="<cfoutput>#application.blog.getPopularPostsMinPosts()#</cfoutput>"> posts
+				<div class="k-form-hint">Your blog has <cfoutput>#application.blog.getBlogPostCount()#</cfoutput> blog posts now.</div>
+			</td>
+		  </tr>
+<tr height="2px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 		  <tr>

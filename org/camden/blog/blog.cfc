@@ -11511,6 +11511,27 @@
 		<cfreturn Data[1]["PostCount"]>
 	</cffunction>
 						
+	<cffunction name="getPopularPostsMinPosts" access="public" returnType="numeric" output="false"
+			hint="The number of blog posts a blog needs before the home page shows its Popular Blogs strip (2026-10-31, owner: a new blog showed the same few posts twice on its home page). Blog Options; 20 until set; 0 shows it always. Kept as a setting (Events.cfc getSetting, post 0), not a BlogOption column, so no database change.">
+		<cfset var value = application.events.getSetting(0, "popularPostsMinPosts", "20")>
+		<cfreturn isNumeric(value) ? max(0, int(value)) : 20>
+	</cffunction>
+
+	<cffunction name="showPopularPostsStrip" access="public" returnType="boolean" output="false"
+			hint="Whether the home page shows the Popular Blogs strip: not switched off (isOff), and the blog has at least getPopularPostsMinPosts() blog posts. The count is kept for ten minutes, since it is asked on every home page view.">
+		<cfset var minPosts = 0>
+		<cfset var kept = "">
+		<cfif isOff("popularPosts")><cfreturn false></cfif>
+		<cfset minPosts = getPopularPostsMinPosts()>
+		<cfif minPosts eq 0><cfreturn true></cfif>
+		<cfset kept = application.galaxieBlogPostCount ?: "">
+		<cfif not isStruct(kept) or dateDiff("n", kept.made, now()) gte 10>
+			<cfset kept = { made = now(), count = getBlogPostCount() }>
+			<cfset application.galaxieBlogPostCount = kept>
+		</cfif>
+		<cfreturn kept.count gte minPosts>
+	</cffunction>
+
 	<cffunction name="insertNewPost" access="public" returnType="numeric" output="false"
 			hint="Saves an entry.">
 		<cfargument name="postType" type="string" required="true" hint="Pass in the post type- either blogPost or page">

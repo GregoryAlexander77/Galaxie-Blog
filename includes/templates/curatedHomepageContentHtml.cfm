@@ -111,6 +111,8 @@ homepage, handled in index.cfm.) --->
 	top of the page) per explicit instruction, inside the same showBlogPosts gate since the two are shown/hidden
 	together. --->
 	<cfobject component="#application.rendererComponentPath#" name="RendererObj">
+	<!--- Only once the blog has enough posts, and not when switched off (2026-10-31, blog.cfc showPopularPostsStrip). --->
+	<cfif application.blog.showPopularPostsStrip()>
 	<div id="hero">
 		<cfsilent>
 			<cfif session.isMobile>
@@ -141,6 +143,7 @@ homepage, handled in index.cfm.) --->
 			</cfif>
 		</cfmodule>
 	</div>
+	</cfif>
 
 	<!--- The 7-row budget: Featured Pages + Featured Collections rows come out of a shared total of 7 "icon rows"
 	across page 1. Blog Posts always gets at least enough rows for 3 posts and never more than 5 (the plain
