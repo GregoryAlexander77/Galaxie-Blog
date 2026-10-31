@@ -2177,7 +2177,7 @@ END CATCH;
 	<cfloop array="#files#" index="name">
 		<cfif reFindNoCase("\.(jpe?g|png|webp|gif)$", name)>
 			<cfset baseName = reReplaceNoCase(name, "\.[^.]+$", "")>
-			<cfif not fileExists(cardFolder & "/" & baseName & ".webp") and not fileExists(cardFolder & "/" & name)>
+			<cfif not fileExists(cardFolder & "/" & baseName & ".webp") and not fileExists(cardFolder & "/" & name) and not fileExists(cardFolder & "/" & baseName & ".jpg")>
 				<cfset arrayAppend(todo, name)>
 			</cfif>
 		</cfif>

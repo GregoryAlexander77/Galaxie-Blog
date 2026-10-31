@@ -218,7 +218,9 @@
 				<cfset fileName = getFileFromPath(arguments.imagePath)>
 				<cffile action="copy" source="#arguments.imagePath#" destination="#folder#/#fileName#" nameconflict="overwrite">
 			<cfelse>
-				<cfset fileName = baseName & "." & (application.imageEngineSupportsWebP ? "webp" : extension)>
+				<!--- WebP where the engine writes it; otherwise JPG (2026-10-31: ColdFusion 2023 can't write WebP, so a WebP picture's
+				card failed there - PNG keeps its own format, for transparency). --->
+				<cfset fileName = baseName & "." & (application.imageEngineSupportsWebP ? "webp" : (extension eq "png" ? "png" : "jpg"))>
 				<cfset picture = imageRead(arguments.imagePath)>
 				<cfif imageGetWidth(picture) gt cardWidth>
 					<cfset imageResize(picture, cardWidth, "", "highQuality")>
@@ -240,7 +242,7 @@
 		<cfset var baseName = reReplaceNoCase(fileName, "\.[^.]+$", "")>
 		<cfset var candidate = "">
 		<cfif not len(fileName) or not reFindNoCase("\.(jpe?g|png|webp|gif)$", fileName)><cfreturn arguments.imageUrl></cfif>
-		<cfloop list="#baseName#.webp,#fileName#" index="candidate">
+		<cfloop list="#baseName#.webp,#fileName#,#baseName#.jpg" index="candidate">
 			<cfif fileExists(expandPath(application.baseUrl & "/enclosures/cards/" & candidate))>
 				<cfreturn application.baseUrl & "/enclosures/cards/" & candidate>
 			</cfif>
