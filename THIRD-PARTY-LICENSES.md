@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-Galaxie Blog is released under the Apache License 2.0 (see `LICENSE-2.0.txt`). It also includes the third-party libraries listed below, each under its own license. Those licenses apply to the bundled copies of the libraries, not to the rest of Galaxie Blog.
+Galaxie Blog is released under the Apache License 2.0 (see `LICENSE`). It also includes the third-party libraries listed below, each under its own license. Those licenses apply to the bundled copies of the libraries, not to the rest of Galaxie Blog.
 
 This file is a summary, not legal advice. The license text that ships with each library controls.
 
