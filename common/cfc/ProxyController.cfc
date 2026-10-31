@@ -695,6 +695,15 @@
 						</cfif>
 						<cfinvokeargument name="parentCommentId" value="#val(arguments.parentCommentId)#">
 					</cfinvoke>	
+					<!--- Nothing saved (2026-10-31): addComment returns 0 for a post that can't take comments (removed, or not out yet),
+					and the page used to say the comment was posted. --->
+					<cfif not val(commentId)>
+						<cfset response[ "success" ] = false />
+						<cfset response[ "dbSuccess" ] = false />
+						<cfset response[ "dbErrorMessage" ] = "This post isn't taking comments." />
+						<cfset response[ "errorMessage" ] = "This post isn't taking comments." />
+						<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+					</cfif>
 					<!--- A reply that is approved straight away tells the person it answers (2026-10-22); a waiting one does when it's approved. --->
 					<cfif val(arguments.parentCommentId) gt 0>
 						<cftry><cfset application.blog.sendCommentReplyEmail(commentId)><cfcatch type="any"></cfcatch></cftry>

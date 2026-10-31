@@ -1632,6 +1632,10 @@
 				if (response.validCaptcha === false){
 					var errorMessage = errorMessage + ' The text from the image did not match. Please try again.<br/>';
 				}
+				// Nothing could be saved, such as a comment on a post that isn't taking comments (2026-10-31).
+				if (dbSuccess === false && dbErrorMessage){
+					var errorMessage = errorMessage + ' ' + $("<div/>").text(dbErrorMessage).html() + '<br/>';
+				}
 				if (!errorMessage){
 					var errorMessage = errorMessage + ' ' + errorMessage + '<br/>';
 				}

@@ -3476,7 +3476,8 @@
 					
 		<!--- Create comments if necessary --->
 		<cfif len(arguments.commentId)>
-			<cfset returnStr = returnStr & "#chr(35)#" & arguments.commentId>	
+			<!--- #c and the id, matching the comment's row (id="c60") and every other comment link (2026-10-31; it was #60). --->
+			<cfset returnStr = returnStr & "#chr(35)#c" & arguments.commentId>
 		</cfif>
 					
 		<!--- Remove the index.cfm if there is a rewrite rule in place --->

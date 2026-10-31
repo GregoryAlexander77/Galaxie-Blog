@@ -259,7 +259,9 @@ chose "this server only" (Scenes window settings). --->
 		<label for="sceneAlias">Name in posts:</label>
 		<input type="text" id="sceneAlias" class="k-textbox" maxlength="80" style="width: 220px;" value="<cfif not isNewScene>#encodeForHtmlAttribute(scene.alias)#</cfif>"<cfif not isNewScene> readonly title="A saved scene keeps its name, so the posts that show it keep working."</cfif>>
 		<label><input type="checkbox" id="sceneActive" class="k-checkbox"<cfif isNewScene or scene.active> checked</cfif>> Active</label>
-		<button id="sceneSave" type="button" class="k-button k-primary">Save</button>
+		<!--- Save closes the window like the other admin windows; Apply saves and keeps it open (2026-10-31, owner). --->
+		<button id="sceneSave" type="button" class="k-button k-primary" title="Save the scene and close this window">Save</button>
+		<button id="sceneApply" type="button" class="k-button" title="Save the scene and keep editing">Apply</button>
 		<button id="scenePreviewFull" type="button" class="k-button" title="The scene as it is here, saved or not, full size in a new tab">Preview</button>
 		<button id="sceneReset" type="button" class="k-button" title="Throw away the changes since the scene was last saved">Reset</button>
 		<button id="sceneSaveTemplate" type="button" class="k-button" title="Keep this scene as a starting point in the New scene gallery">Save as ready-made</button>
@@ -1808,7 +1810,9 @@ $(document).ready(function () {
 	});
 
 	<!--- ---------- Save --->
-	$("#sceneSave").on("click", function () {
+	$("#sceneSave").on("click", function () { startSave(true); });
+	$("#sceneApply").on("click", function () { startSave(false); });
+	function startSave(closeAfter) {
 		var alias = $.trim($("#sceneAlias").val());
 		var problem = "";
 		if (!$.trim(scene.name || "").length) { problem = "The scene needs a title (Scene settings)."; }
@@ -1817,19 +1821,19 @@ $(document).ready(function () {
 			$.when(kendo.ui.ExtAlertDialog.show({ title: "Please check the scene", message: problem, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 			return;
 		}
-		$("#sceneSave").prop("disabled", true);
+		$("#sceneSave, #sceneApply").prop("disabled", true);
 		$("#sceneSaved").text("Saving...");
 		<!--- The ready-made forms picked since the last save are made now, one by one, each named after this scene; then the scene
 		is saved with them in place. If one can't be made, the scene isn't saved, so nothing points at a missing form. --->
 		var waiting = $.grep(scene.sections, function (s) { return s.kind === "form" && s.pendingReadyMade; });
 		(function makeNext() {
 			var s = waiting.shift();
-			if (!s) { saveNow(); return; }
+			if (!s) { saveNow(closeAfter); return; }
 			makeReadyForm(s.pendingReadyMade, function (f) { s.form = f.alias; s.formTitle = f.title; delete s.pendingReadyMade; makeNext(); },
-				function () { $("#sceneSave").prop("disabled", false); $("#sceneSaved").text(""); });
+				function () { $("#sceneSave, #sceneApply").prop("disabled", false); $("#sceneSaved").text(""); });
 		})();
-	});
-	function saveNow() {
+	}
+	function saveNow(closeAfter) {
 		var alias = $.trim($("#sceneAlias").val());
 		jQuery.ajax({
 			type: "post",
@@ -1837,7 +1841,7 @@ $(document).ready(function () {
 			data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", sceneId: sceneId, alias: alias, active: $("#sceneActive").is(":checked"), sceneJson: JSON.stringify(scene) },
 			dataType: "json",
 			success: function (response) {
-				$("#sceneSave").prop("disabled", false);
+				$("#sceneSave, #sceneApply").prop("disabled", false);
 				if (response && response.success) {
 					<!--- Saved: from now on this is an existing scene, and its name in posts stays as it is. --->
 					sceneId = response.sceneId;
@@ -1853,13 +1857,15 @@ $(document).ready(function () {
 					$(document).trigger("galaxieSceneSaved", [{ sceneId: sceneId, alias: alias }]);
 					<!--- A form just made for this scene can now be changed here (its quick edit). --->
 					renderSettings();
+					<!--- Save (not Apply) closes the window; there is nothing unsaved, so it closes without asking. --->
+					if (closeAfter && kendoWindow) { kendoWindow.close(); }
 				} else {
 					$("#sceneSaved").text("");
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The scene could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 				}
 			},
 			error: function (jqXHR, textStatus, error) {
-				$("#sceneSave").prop("disabled", false);
+				$("#sceneSave, #sceneApply").prop("disabled", false);
 				$("#sceneSaved").text("");
 				if (jqXHR.status === 403) { createLoginWindow(); }
 				else { $.when(kendo.ui.ExtAlertDialog.show({ title: "Error while saving the scene", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); }

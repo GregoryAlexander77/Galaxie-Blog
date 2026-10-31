@@ -977,7 +977,9 @@
 										 <!--- The blog's own author (a signed-in admin's comment is linked to their account). --->
 										 <cfset commentByAuthor = structKeyExists(c, "UserName") and len(c["UserName"])>
 										 <cfset commentDatePosted = c["DatePosted"]>
-										 <cfset commentLink = application.blog.makeLink(isPage=c["IsPage"], postAlias=c["PostAlias"], datePosted=c["DatePosted"], commentId=c["CommentId"])>
+										 <!--- The post's own link plus #c and the comment's id (2026-10-31): it was built from the comment's date, not the
+										 post's, so a comment made on a later day linked to a page that does not exist, and with #60 instead of #c60. --->
+										 <cfset commentLink = postLink & "##c" & c["CommentId"]>
 										 </cfsilent>
 										 <!--- Note: the URL is appended with an extra 'c' in front of the commentId. --->
 										 <tr id="c#commentId#" name="" class="#rowClass#">
