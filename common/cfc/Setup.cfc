@@ -715,4 +715,29 @@
 	<cfset application.blog.flushGalaxieCache(type = "all")>
 </cffunction>
 
+<cffunction name="sendHello" access="public" returntype="boolean" output="false"
+		hint="Say hello (5.0.x, 2026-10-31, owner): on the owner's say-so (two boxes on the Site Wizard's last screen), tells Galaxie Blog's author that this blog is running - its name, address, Galaxie version, engine and database - and, with addToCfblogs, asks to be added to cfblogs.org with its feed and the owner's email. Posted to galaxieblog.org (common/services/newBlogHello.cfm there), which emails the author. Waits at most 5 seconds; a failure never stops the wizard. Returns true when the note was taken.">
+	<cfargument name="addToCfblogs" type="boolean" required="false" default="false">
+	<cfargument name="toUrl" type="string" required="false" default="https://www.galaxieblog.org/common/services/newBlogHello.cfm" hint="Where the note goes; another address only for testing.">
+	<cfset var engine = application.serverProduct & " " & (server.coldfusion.productVersion ?: "")>
+	<cfset var result = {}>
+	<cfif application.serverProduct eq "Lucee" and structKeyExists(server, "lucee")><cfset engine = "Lucee " & server.lucee.version></cfif>
+	<cftry>
+		<cfhttp url="#arguments.toUrl#" method="post" timeout="5" result="result" redirect="true">
+			<cfhttpparam type="formfield" name="siteName" value="#application.BlogDbObj.getBlogTitle()#">
+			<cfhttpparam type="formfield" name="siteUrl" value="#application.blogHostUrl#">
+			<cfhttpparam type="formfield" name="version" value="#application.blog.getVersion()#">
+			<cfhttpparam type="formfield" name="engine" value="#engine#">
+			<cfhttpparam type="formfield" name="database" value="#application.databaseType ?: ''#">
+			<cfhttpparam type="formfield" name="addToCfblogs" value="#arguments.addToCfblogs#">
+			<cfif arguments.addToCfblogs>
+				<cfhttpparam type="formfield" name="feedUrl" value="#application.blogHostUrl#/rss.cfm">
+				<cfhttpparam type="formfield" name="email" value="#application.BlogDbObj.getBlogEmail()#">
+			</cfif>
+		</cfhttp>
+		<cfreturn left(result.statusCode ?: "", 3) eq "200">
+		<cfcatch type="any"><cfreturn false></cfcatch>
+	</cftry>
+</cffunction>
+
 </cfcomponent>

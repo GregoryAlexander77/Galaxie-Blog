@@ -14149,6 +14149,8 @@
 		<cfargument name="social" type="string" default="" required="false">
 		<cfargument name="hasName" type="string" default="true" required="false">
 		<cfargument name="themeName" type="string" default="false" required="false" hint="The logo leaves the site name to the theme (2026-10-26; Setup.cfc saveLogo).">
+		<cfargument name="sayHello" type="string" default="false" required="false" hint="finish: tell Galaxie Blog's author this blog is running (2026-10-31; Setup.cfc sendHello). Only when the owner ticks it.">
+		<cfargument name="addToCfblogs" type="string" default="false" required="false" hint="finish: also ask to be added to cfblogs.org (sends the feed and the owner's email).">
 		<cfargument name="firstName" type="string" default="" required="false">
 		<cfargument name="lastName" type="string" default="" required="false">
 		<cfargument name="biography" type="string" default="" required="false">
@@ -14201,7 +14203,13 @@
 						<cfset response[ "welcomePostId" ] = local.starterLinks.welcomePostId><cfset response[ "welcomeUrl" ] = local.starterLinks.welcomeUrl>
 						<cfset response[ "aboutPageId" ] = local.starterLinks.aboutPageId><cfset response[ "aboutUrl" ] = local.starterLinks.aboutUrl>
 					</cfcase>
-					<cfcase value="finish"><cfset setup.finish()></cfcase>
+					<cfcase value="finish">
+						<cfset setup.finish()>
+						<!--- Say hello / cfblogs (2026-10-31): only when ticked, and never a reason for Done to fail. --->
+						<cfif (isBoolean(arguments.sayHello) and arguments.sayHello) or (isBoolean(arguments.addToCfblogs) and arguments.addToCfblogs)>
+							<cftry><cfset setup.sendHello(addToCfblogs = isBoolean(arguments.addToCfblogs) and arguments.addToCfblogs)><cfcatch type="any"></cfcatch></cftry>
+						</cfif>
+					</cfcase>
 					<cfdefaultcase><cfthrow type="GalaxieBlog.Setup" message="Unknown setup step."></cfdefaultcase>
 				</cfswitch>
 				<cfset response[ "success" ] = true>

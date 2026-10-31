@@ -384,6 +384,13 @@ takes the same options and events. --->
 		<div class="block k-alt"><ul class="summary" id="doneSummary"></ul></div>
 		<div class="block k-content"><p>Nothing here is final. Come back to the Site Wizard any time from the administration page (Settings, then Site Wizard) and change any step, or change each part in its own place: your theme and logo in Look and Layout, your photo and words in User Profile.</p>
 			<p class="hint">Press Done to finish and open your site.</p></div>
+		<!--- Say hello (2026-10-31, owner): two opt-ins, both off until ticked (Setup.cfc sendHello). --->
+		<div class="block k-alt">
+			<p><label><input type="checkbox" class="k-checkbox" id="doneSayHello"> <b>Say hello</b>: let Galaxie Blog's author know a new blog is running.</label><br>
+			<span class="hint">Sends your site's name and address, the Galaxie version, and ColdFusion or Lucee. It helps decide what to work on next. Nothing else is sent.</span></p>
+			<p><label><input type="checkbox" class="k-checkbox" id="doneCfblogs"> <b>Add my blog to cfblogs.org</b>, the ColdFusion and Lucee blog aggregator, so your posts reach the CFML community.</label><br>
+			<span class="hint">Also sends your blog's feed address and your email address, so the author can add it and let you know.</span></p>
+		</div>
 	</div>
 </div>
 
@@ -1011,7 +1018,7 @@ $(function () {
 		activate: function (e) { fillHolders(); if (e.step.options.index === 2) { drawLogos(); } if (e.step.options.index === 6) { drawSummary(); } previewForStep(e.step.options.index); },
 		done: function (e) {
 			e.preventDefault();
-			save("finish", {}).then(function () { window.location.href = baseUrl + "/"; }, function (message) { $("[data-note=6]").css("color", "#b00020").text(message); });
+			save("finish", { sayHello: $("#doneSayHello").is(":checked"), addToCfblogs: $("#doneCfblogs").is(":checked") }).then(function () { window.location.href = baseUrl + "/"; }, function (message) { $("[data-note=6]").css("color", "#b00020").text(message); });
 		}
 	}).data("galaxieWizard");
 	function fillHolders() { $("#wizard .stepHolder").each(function () { if (!$(this).children().length) { $(this).append($("#" + $(this).data("id"))); } }); }
