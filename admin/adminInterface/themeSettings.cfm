@@ -2916,7 +2916,7 @@
 				<label for="<cfoutput>#contentTemplateStr#</cfoutput>Enable">Enable:</label>
 			</td>
 			<td class="<cfoutput>#thisContentClass#</cfoutput>">
-				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>
+				<input class="k-checkbox" type="checkbox" id="<cfoutput>#contentTemplateStr#</cfoutput>Enable" name="<cfoutput>#contentTemplateStr#</cfoutput>Enable" <cfif contentTemplateIsActive>checked</cfif>>
 			</td>
 		  </tr>
 		</cfif><!---<cfif session.isMobile>--->	
