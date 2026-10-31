@@ -433,6 +433,9 @@ $(document).ready(function () {
 			{ key: "settings.scrub", label: "Movement", type: "select", options: [["true", "Follows the scroll exactly"], ["0.5", "Smooth"], ["1", "Smoother"]] },
 			{ key: "settings.intensity", label: "Depth (how far the layers move)", type: "number", min: 0.25, max: 2, step: 0.05, placeholder: "1" },
 			{ key: "settings.pinLength", label: "How long a hero stays in place", type: "select", options: [["", "Default (twice the screen)"], ["150%", "1.5 screens"], ["200%", "2 screens"], ["250%", "2.5 screens"], ["300%", "3 screens"]] },
+			<!--- How a held hero that ends the scene gives way to the post (2026-10-31, owner): galaxieScene.js settings.ending. --->
+			{ key: "settings.ending", label: "How a hero at the end gives way to the post", type: "select", options: [["", "Soft edge (the post's text rises with a soft edge above it)"], ["sharp", "Sharp edge (the post slides up over the scene)"], ["fade", "Fade (the scene fades out over the text)"], ["scroll", "Scroll away (held, then the scene scrolls off)"]],
+				hint: "For a held hero that is the scene's last section, like a post hero. The post's text comes up a screen sooner, except with Scroll away." },
 			{ key: "settings.fadeHeight", label: "Fade height", type: "select", options: [["", "Default"], ["0vh", "No fade"], ["20vh", "Short"], ["35vh", "Medium"], ["50vh", "Tall"], ["70vh", "Very tall"]] },
 			{ key: "settings.rise", label: "How far the text rises (pixels)", type: "number", min: 0, max: 600, step: 10, placeholder: "160" },
 			{ key: "settings.phoneMotion", label: "On mobile", type: "select", options: [["", "Full movement"], ["light", "Half the movement"]] }

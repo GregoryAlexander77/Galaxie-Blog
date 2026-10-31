@@ -30,6 +30,9 @@
 				rise: 160,                          // how far headings and text rise as they come in, in pixels
 				guides: false,                      // ScrollTrigger markers - for the editor's preview only
 				phoneMotion: "full",                // "full" or "light" (half the movement on phones)
+				ending: "edge",                     // how a held hero that ends the scene gives way to what follows (2026-10-31): "edge"
+				                                    // (a soft edge just above it), "sharp", "fade" (the hero fades out) or "scroll"
+				                                    // (as in 5.0: held, then it scrolls away)
 				baseUrl: ""                         // the blog's base URL, for loading Three.js and Vanta on demand
 			},
 			sections: [ { kind: ..., ... }, ... ]
@@ -65,7 +68,7 @@
 (function (window, document) {
 	"use strict";
 
-	var DEFAULTS = { scrub: true, intensity: 1, pinLength: "200%", fadeHeight: "35vh", rise: 160, guides: false, phoneMotion: "full", baseUrl: "" };
+	var DEFAULTS = { scrub: true, intensity: 1, pinLength: "200%", fadeHeight: "35vh", rise: 160, guides: false, phoneMotion: "full", ending: "edge", baseUrl: "" };
 	var HERO_KINDS = { layeredHero: 1, photoHero: 1, vantaHero: 1, gradientHero: 1, videoHero: 1 };
 	var SHADOWS = {
 		soft: function (c) { return "0 2px 6px " + rgba(c, 0.65); },
@@ -573,21 +576,39 @@
 		var held = section.pin !== false;
 		// A held hero that ends the scene (2026-10-31, owner: a long dark stretch before the post's text): by the end of its hold
 		// the layers have risen off the screen and it is nearly all its fade color, which then took another whole screen to scroll
-		// away. Now what follows comes up a screen sooner, behind it, and the hero fades out over the last third of its hold, so
-		// the text shows through as the art leaves. The art and its movement are unchanged.
+		// away. Now what follows comes up a screen sooner, behind it, and the hero stops just above it in a soft edge that rises
+		// with it (owner's pick B of three mock-ups: fading the whole hero showed the text through a grey veil), so the text is
+		// always on its own background. The art and its movement are unchanged.
+		// The way it ends is the scene's choice (settings.ending, the Scene editor's Motion settings): a soft edge (the default),
+		// a sharp edge, the whole hero fading out, or scrolling away as before.
 		var pinScreens = parseFloat(setting(data, section, "pinLength")) / 100;
-		var ending = held && section._ending && pinScreens > 1;
+		var endStyle = setting(data, section, "ending") || "edge";
+		var ending = held && section._ending && pinScreens > 1 && endStyle !== "scroll";
+		var endMask = ending && endStyle !== "fade";
 		if (ending) {
 			var endSpacer = el("div", "gs-endSpacer");
 			endSpacer.style.height = "calc(" + (pinScreens * 100) + "vh - 100vh)";
 			root.parentNode.insertBefore(endSpacer, root.nextSibling);
 			section._endSpacer = endSpacer;
 		}
+		// The soft edge: the hero is masked from where what follows starts (the spacer's foot, on screen), fading out over the
+		// 18% of the hero above it.
+		function endEdge() {
+			if (!section._endSpacer) { return; }
+			var box = root.getBoundingClientRect(), edge = section._endSpacer.getBoundingClientRect().bottom - box.top;
+			var mask = "";
+			if (edge < box.height) {
+				var soft = endStyle === "sharp" ? 0 : box.height * 0.18;
+				mask = "linear-gradient(to bottom, #000 0px, #000 " + Math.max(0, edge - soft).toFixed(1) + "px, transparent " + Math.max(0, edge).toFixed(1) + "px, transparent 100%)";
+			}
+			root.style.webkitMaskImage = mask; root.style.maskImage = mask;
+		}
 		var tl = gsap.timeline({
 			scrollTrigger: {
 				trigger: root, start: "top top", end: held ? "+=" + setting(data, section, "pinLength") : "bottom top",
 				pin: held, pinSpacing: held && !section._curtain && !ending, anticipatePin: held ? 1 : 0,
 				scrub: setting(data, section, "scrub"), markers: guides,
+				onUpdate: endMask ? endEdge : null, onRefresh: endMask ? endEdge : null,
 				onToggle: function (self) { self.isActive ? startLive(data, section, root) : stopLive(section, root); }
 			}
 		});
@@ -616,7 +637,8 @@
 		if (text) {
 			tl.to(text, { y: function () { return -window.innerHeight * 0.45 * phoneFactor; }, opacity: 0, ease: "none" }, 0);
 		}
-		if (ending) {
+		if (endMask) { endEdge(); }
+		if (ending && !endMask) {
 			var whole = tl.duration();
 			tl.to(root, { opacity: 0, duration: whole / 3, ease: "power1.in" }, whole * 2 / 3);
 		}
@@ -772,7 +794,7 @@
 				splits.forEach(function (split) { try { split.revert(); } catch (e) {} });
 				built.forEach(function (b) {
 					if (HERO_KINDS[b.section.kind]) { stopLive(b.section, b.root); }
-					if (b.section._endSpacer) { b.section._endSpacer.remove(); b.section._endSpacer = null; }
+					if (b.section._endSpacer) { b.section._endSpacer.remove(); b.section._endSpacer = null; b.root.style.webkitMaskImage = b.root.style.maskImage = ""; }
 				});
 			};
 		});
