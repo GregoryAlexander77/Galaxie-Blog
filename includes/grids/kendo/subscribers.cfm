@@ -25,6 +25,8 @@
 
 <body>
 
+<cfset exportUrl = replace(getUrl, 'method=getSubscribersForGrid', 'method=exportSubscribers')>
+<cfinclude template="../exportButton.cfm">
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
 <!--- Delete asks, then deletes at once (2026-10-24). --->

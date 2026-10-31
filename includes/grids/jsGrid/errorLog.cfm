@@ -93,7 +93,7 @@ The arguments are: createAdminInterfaceWindow(59[,ipAddressId]) (createAdminInte
 <body>
 	
 <!--- Container for the grid --->
-<p><a class="k-button" href="<cfoutput>#exportUrl#</cfoutput>" download><i class="fas fa-file-excel"></i>&nbsp; Export to Excel</a></p>
+<cfinclude template="../exportButton.cfm">
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
 	<script>

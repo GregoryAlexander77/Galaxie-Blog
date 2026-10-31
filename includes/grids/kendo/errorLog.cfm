@@ -32,7 +32,7 @@
 
 <body>
 
-<p><a class="k-button" href="<cfoutput>#exportUrl#</cfoutput>" download><i class="fas fa-file-excel"></i>&nbsp; Export to Excel</a></p>
+<cfinclude template="../exportButton.cfm">
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
 <script type="text/x-kendo-template" id="errorIdTemplate">

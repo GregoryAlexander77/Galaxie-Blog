@@ -69,6 +69,8 @@
 <body>
 	
 <!--- Container for the grid --->
+<cfset exportUrl = application.baseUrl & '/common/cfc/ProxyController.cfc?method=exportComments&csrfToken=' & csrfToken>
+<cfinclude template="../exportButton.cfm">
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
 	<script>

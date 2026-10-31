@@ -112,7 +112,9 @@ The arguments are: createAdminInterfaceWindow(26[,ipAddressId]) (createAdminInte
 	  <tr valign="middle" height="30px">
 		<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- Container for the grid --->
-			<div id="<cfoutput>#gridName#</cfoutput>"></div>
+			<cfset exportUrl = replace(getUrl, 'method=getSubscribersForGrid', 'method=exportSubscribers')>
+<cfinclude template="../exportButton.cfm">
+<div id="<cfoutput>#gridName#</cfoutput>"></div>
 		</td>
 	  </tr>
 	</table>

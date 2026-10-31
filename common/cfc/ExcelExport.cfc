@@ -11,7 +11,8 @@
  *   var xlsx = new ExcelExport().build(rows, columns, "Error Log");
  *   new ExcelExport().send(xlsx, "error-log.xlsx");
  * rows is an array of structs (an HQL "new Map" result) or a query. A column's type is "text" (the default), "number",
- * "date" or "boolean" (shown as Yes / No); width is in Excel's character units (a guess from the title when left out).
+ * "date", "boolean" (shown as Yes / No) or "html" (text with its tags taken out, such as a comment); width is in Excel's
+ * character units (a guess from the title when left out).
  */
 component output="false" {
 
@@ -118,6 +119,8 @@ component output="false" {
 			case "boolean":
 				if (isBoolean(arguments.value)) { return textCell(arguments.ref, arguments.value ? "Yes" : "No"); }
 				break;
+			case "html":
+				return textCell(arguments.ref, plainText(arguments.value));
 		}
 		return textCell(arguments.ref, arguments.value);
 	}
@@ -127,6 +130,38 @@ component output="false" {
 	}
 
 	/* ---------- helpers ---------- */
+
+	// HTML as plain text: line breaks and paragraphs become new lines, the other tags go, and the common entities are decoded.
+	private string function plainText(required string html) {
+		var text = reReplaceNoCase(arguments.html, "<(br|/p|/div|/li)[^>]*>", chr(10), "all");
+		text = reReplace(text, "<[^>]*>", "", "all");
+		text = replace(text, "&nbsp;", " ", "all");
+		text = replace(text, "&lt;", "<", "all");
+		text = replace(text, "&gt;", ">", "all");
+		text = replace(text, "&quot;", '"', "all");
+		text = replace(text, "&##39;", "'", "all");
+		text = replace(text, "&apos;", "'", "all");
+		// Characters saved as numbers, as the blog saves comments (encodeForHTML): &#x21; and &#33; are both "!".
+		text = decodeNumbered(text, "&##x([0-9a-fA-F]{1,6});", 16);
+		text = decodeNumbered(text, "&##([0-9]{1,7});", 10);
+		text = replace(text, "&amp;", "&", "all");
+		// No more than one empty line in a row.
+		return trim(reReplace(text, "(" & chr(10) & "\s*){3,}", chr(10) & chr(10), "all"));
+	}
+
+	private string function decodeNumbered(required string text, required string pattern, required numeric radix) {
+		var result = arguments.text;
+		var found = reFind(arguments.pattern, result, 1, true);
+		var guard = 0;
+		while (found.pos[1] && guard < 100000) {
+			var code = inputBaseN(mid(result, found.pos[2], found.len[2]), arguments.radix);
+			var character = (code > 0 && code <= 1114111) ? chr(code) : "";
+			result = left(result, found.pos[1] - 1) & character & mid(result, found.pos[1] + found.len[1], len(result));
+			found = reFind(arguments.pattern, result, found.pos[1] + len(character), true);
+			guard++;
+		}
+		return result;
+	}
 
 	// A row's value for a field: struct keys and HQL map keys, either case.
 	private any function valueOf(required any row, required string field) {

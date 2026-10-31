@@ -4390,6 +4390,112 @@
 		<cfset exporter.send(exporter.build(rows, columns, "Error Log"), "error-log-" & dateFormat(now(), "yyyy-mm-dd") & ".xlsx")>
 	</cffunction>
 
+	<cffunction name="exportVisitorLog" access="remote" returnformat="plain" output="false"
+			hint="The Visitor Log as an Excel file (2026-10-31, owner): the newest 10,000 visits, within the same limits as the grid it is opened from (a visitor, an IP address, a post, people this week, or visits from one site). Takes either grid's names for them. ExcelExport.cfc.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="anonymousUserId" required="no" default="">
+		<cfargument name="ipAddressId" required="no" default="">
+		<cfargument name="postId" required="no" default="">
+		<cfargument name="fixedAnonymousUserId" required="no" default="">
+		<cfargument name="fixedIpAddressId" required="no" default="">
+		<cfargument name="fixedPostId" required="no" default="">
+		<cfargument name="peopleOnly" required="no" default="">
+		<cfargument name="sinceDays" required="no" default="">
+		<cfargument name="referrerHost" required="no" default="">
+		<cfset var page = {}>
+		<cfset var exporter = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfheader statuscode="403">
+			<cfreturn "Invalid token">
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfset page = application.blog.getVisitorLogPage(
+			skip = 0,
+			take = 10000,
+			maxTake = 10000,
+			anonymousUserId = listFirst(len(arguments.fixedAnonymousUserId) ? arguments.fixedAnonymousUserId : arguments.anonymousUserId),
+			ipAddressId = listFirst(len(arguments.fixedIpAddressId) ? arguments.fixedIpAddressId : arguments.ipAddressId),
+			postId = listFirst(len(arguments.fixedPostId) ? arguments.fixedPostId : arguments.postId),
+			peopleOnly = isBoolean(arguments.peopleOnly) and arguments.peopleOnly,
+			sinceDays = isNumeric(arguments.sinceDays) ? min(int(arguments.sinceDays), 366) : 0,
+			referrerHost = lCase(trim(arguments.referrerHost))
+		)>
+		<!--- A visit with no post is the home page (or another page that is not a post). --->
+		<cfloop array="#page.rows#" index="local.row">
+			<cfif not len(local.row["PostTitle"] ?: "")><cfset local.row["PostTitle"] = (local.row["VisitingHomePage"] ?: false) eq true ? "The home page" : ""></cfif>
+		</cfloop>
+		<cfset exporter = createObject("component", "ExcelExport")>
+		<cfset exporter.send(exporter.build(page.rows, [
+			{ field: "Date", title: "Date", type: "date" },
+			{ field: "PostTitle", title: "Page", width: 50 },
+			{ field: "IpAddress", title: "IP address", width: 18 },
+			{ field: "FullName", title: "Signed-in user", width: 20 },
+			{ field: "IsBot", title: "Bot", type: "boolean" },
+			{ field: "HitCount", title: "Visitor's hits", type: "number" },
+			{ field: "HttpReferrer", title: "Came from", width: 45 },
+			{ field: "HttpUserAgent", title: "Browser (user agent)", width: 50 },
+			{ field: "AnonymousUserId", title: "Visitor Id", type: "number" }
+		], "Visitor Log"), "visitor-log-" & dateFormat(now(), "yyyy-mm-dd") & ".xlsx")>
+	</cffunction>
+
+	<cffunction name="exportSubscribers" access="remote" returnformat="plain" output="false"
+			hint="The subscribers as an Excel file (2026-10-31, owner): the same rows as the Subscribers grid (one IP's with ipAddressId). The unsubscribe token is left out: it works like a password for that subscriber. ExcelExport.cfc.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="ipAddressId" required="no" default="">
+		<cfset var rows = []>
+		<cfset var exporter = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfheader statuscode="403">
+			<cfreturn "Invalid token">
+		</cfif>
+		<cfset secureFunction('EditSubscriber')>
+		<cfinvoke component="#application.blog#" method="getSubscriber" returnvariable="rows">
+			<cfinvokeargument name="ipAddressId" value="#arguments.ipAddressId#">
+			<cfinvokeargument name="verifiedOnly" value="false">
+			<cfinvokeargument name="subscribeAll" value="true">
+		</cfinvoke>
+		<cfset exporter = createObject("component", "ExcelExport")>
+		<cfset exporter.send(exporter.build(rows, [
+			{ field: "SubscriberId", title: "Subscriber Id", type: "number" },
+			{ field: "SubscriberEmail", title: "Email", width: 36 },
+			{ field: "SubscriberVerified", title: "Verified", type: "boolean" },
+			{ field: "SubscribeAll", title: "All posts", type: "boolean" },
+			{ field: "Date", title: "Subscribed", type: "date" },
+			{ field: "IpAddress", title: "IP address", width: 18 }
+		], "Subscribers"), "subscribers-" & dateFormat(now(), "yyyy-mm-dd") & ".xlsx")>
+	</cffunction>
+
+	<cffunction name="exportComments" access="remote" returnformat="plain" output="false"
+			hint="The comments as an Excel file (2026-10-31, owner): the same rows as the Comments grid (commentType recentComments for the new ones only). ExcelExport.cfc.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="commentType" required="no" default="all">
+		<cfset var rows = []>
+		<cfset var exporter = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfheader statuscode="403">
+			<cfreturn "Invalid token">
+		</cfif>
+		<cfset secureFunction('AssetEditor,EditComment,EditPost,ReleasePost')>
+		<cfinvoke component="#application.blog#" method="getComments" returnvariable="rows">
+			<cfif arguments.commentType eq 'recentComments'>
+				<cfinvokeargument name="new" value="1"/>
+			</cfif>
+		</cfinvoke>
+		<cfset exporter = createObject("component", "ExcelExport")>
+		<cfset exporter.send(exporter.build(rows, [
+			{ field: "CommentId", title: "Comment Id", type: "number" },
+			{ field: "DatePosted", title: "Date", type: "date" },
+			{ field: "PostTitle", title: "Post", width: 45 },
+			{ field: "CommenterFullName", title: "Name", width: 24 },
+			{ field: "CommenterEmail", title: "Email", width: 30 },
+			{ field: "CommenterWebsite", title: "Website", width: 30 },
+			{ field: "Comment", title: "Comment", type: "html", width: 80 },
+			{ field: "Approved", title: "Approved", type: "boolean" },
+			{ field: "Spam", title: "Spam", type: "boolean" },
+			{ field: "ParentCommentId", title: "Reply to", type: "number" }
+		], "Comments"), "comments-" & dateFormat(now(), "yyyy-mm-dd") & ".xlsx")>
+	</cffunction>
+
 	<cffunction name="saveErrorLog" access="remote" returnformat="json" output="false" 
 			hint="Saves the resolved and notes fields to the database. Used by the errorDetail form.">
 		<cfargument name="csrfToken" required="yes" default="" hint="Pass in the csrfToken">

@@ -46,6 +46,8 @@ made from one site in the last 30 days (0 is everything in the log), bots left o
 
 <body>
 
+<cfset exportUrl = replace(getUrl, 'method=getVisitorLogForVirtualGrid', 'method=exportVisitorLog')>
+<cfinclude template="../exportButton.cfm">
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
 <script type="text/x-kendo-template" id="anonymousUserIdTemplate">

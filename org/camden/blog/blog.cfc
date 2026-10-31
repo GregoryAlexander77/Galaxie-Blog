@@ -1112,6 +1112,8 @@
 		<cfargument name="sinceDays" type="numeric" required="false" default="0">
 		<!--- Visits from one site (2026-10-25, the Traffic Sources window): google.com matches https://google.com/... and https://www.google.com/... --->
 		<cfargument name="referrerHost" type="string" required="false" default="">
+		<!--- The most rows one call returns: 500 for the grid's pages, up to 10,000 for the Excel export (2026-10-31). --->
+		<cfargument name="maxTake" type="numeric" required="false" default="500">
 		<cfset var columns = {
 			AnonymousUserId: { path: "AnonymousUser.AnonymousUserId", type: "int" },
 			IpAddress: { path: "IpAddress.IpAddress", type: "string" },
@@ -1180,7 +1182,7 @@
 				Users.UserId as UserId, Users.FullName as FullName, Post.PostId as PostId, Post.Title as PostTitle,
 				VisitorLog.VisitingHomePage as VisitingHomePage, VisitorLog.Date as Date
 			)" & fromClause & whereSql & " ORDER BY " & arrayToList(orderBy, ", "), params, false,
-			{ offset = max(0, int(arguments.skip)), maxresults = min(max(1, int(arguments.take)), 500) })>
+			{ offset = max(0, int(arguments.skip)), maxresults = min(max(1, int(arguments.take)), min(max(1, int(arguments.maxTake)), 10000)) })>
 		<cfreturn { rows: rows, total: val(total) }>
 	</cffunction>
 

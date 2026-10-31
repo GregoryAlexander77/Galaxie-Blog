@@ -116,6 +116,8 @@ made from one site in the last 30 days (0 is everything in the log), bots left o
 <body>
 	
 <!--- Container for the grid --->
+<cfset exportUrl = replace(getUrl, 'method=getVisitorLogForJsGrid', 'method=exportVisitorLog')>
+<cfinclude template="../exportButton.cfm">
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
 	<script>
