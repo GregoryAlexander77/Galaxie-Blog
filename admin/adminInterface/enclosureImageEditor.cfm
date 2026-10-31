@@ -1025,6 +1025,21 @@
 	  <!--- Quality slider, moved underneath the image/enclosure editor above per feedback - label and slider each get
 	  their own row rather than sharing one td, and the label lost its 12px override (way too small) so it now
 	  matches the size of every other plain instructional line in this window. --->
+	  <!--- On a phone the label gets its own line and the slider fills the width, up to 260px (2026-10-31, owner: a fixed
+	  260px slider beside the label ran off the right of the screen). --->
+	  <cfif session.isMobile>
+	  <tr valign="middle">
+		<td align="left" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px 0 12px;">
+			<label for="imageQualitySlider">Image Quality</label>
+		</td>
+	  </tr>
+	  <tr valign="middle">
+		<td align="left" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
+			<div id="imageQualitySlider" style="width: 100%; max-width: 260px;"></div>
+			<span class="k-form-hint">Left = smaller file, right = sharper image.</span>
+		</td>
+	  </tr>
+	  <cfelse>
 	  <tr valign="middle">
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%; padding: 8px 12px;">
 			<label for="imageQualitySlider">Image Quality</label>
@@ -1034,6 +1049,7 @@
 			<span class="k-form-hint">Left = smaller file, right = sharper image.</span>
 		</td>
 	  </tr>
+	  </cfif>
 	  <!--- Estimates the CURRENT enclosure image's size at the slider's quality, not an arbitrary picked file - a
 	  file picker here previously let you test any local file, but that read as ambiguous next to an editor full of
 	  controls that genuinely do act on the current enclosure (would someone assume it was reporting on their

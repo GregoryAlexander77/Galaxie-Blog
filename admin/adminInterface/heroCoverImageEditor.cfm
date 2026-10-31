@@ -133,6 +133,19 @@ upload already has. --->
 	  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
   </tr>
   <!-- Quality slider -->
+  <!--- On a phone the label gets its own line and the slider fills the width, up to 260px (2026-10-31, owner: a fixed 260px
+  slider beside the label ran off the right of the screen). --->
+  <cfif session.isMobile>
+  <tr valign="middle">
+	<td align="left" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 6px 12px 0 12px;">Image Quality</td>
+  </tr>
+  <tr valign="middle">
+	<td align="left" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 6px 12px;">
+		<div id="imageQualitySlider" style="width: 100%; max-width: 260px;"></div>
+		<span class="k-form-hint">Left = smaller file, right = sharper image.</span>
+	</td>
+  </tr>
+  <cfelse>
   <tr valign="middle">
 	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">Image Quality</td>
 	<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 6px 12px;">
@@ -140,6 +153,7 @@ upload already has. --->
 		<span class="k-form-hint">Left = smaller file, right = sharper image.</span>
 	</td>
   </tr>
+  </cfif>
   <cfsilent>
   <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
   </cfsilent>
