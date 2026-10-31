@@ -382,8 +382,73 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 //******************************************************************************************************--->
 
 <cffunction name="getTraffic" access="public" returntype="struct" output="false"
-		hint="The admin home's traffic cards, from the visitor log: people (not bots) this week and last week, a 30-day line, the bots this week, the five most-read posts this week, where people came from this week, and who is reading now (the last 15 minutes). Kept for five minutes. Times are the blog's (VisitorLog.Date is blogNow()).">
+		hint="The admin home's traffic cards, from the visitor log: people (not bots) this week and last week, a 30-day line, the bots this week, the five most-read posts this week, where people came from this week, and who is reading now (the last 15 minutes). Times are the blog's (VisitorLog.Date is blogNow()).
+		2026-10-30 (GA stalls): the counts are kept for 15 minutes and worked out again in the background, one at a time, while the last ones are shown, so reloading the admin home never waits on them or starts the same big queries twice (they asked SQL Server for query memory that the public pages then waited on). Reading now is kept for a minute on its own.">
 	<cfset var cacheKey = "galaxieAdminTraffic" & application.BlogDbObj.getBlogId()>
+	<cfset var result = {}>
+	<cfset var reading = {}>
+	<cfif not structKeyExists(application, cacheKey)>
+		<!--- Nothing kept yet (after a restart): the first request works it out, and anyone else waits for it rather than starting their own. --->
+		<cflock name="#cacheKey#_build" type="exclusive" timeout="60" throwontimeout="false">
+			<cfif not structKeyExists(application, cacheKey)>
+				<cfset application[cacheKey] = { made = now(), data = buildTraffic() }>
+			</cfif>
+		</cflock>
+	<cfelseif dateDiff("n", application[cacheKey].made, now()) gte 15 and dateDiff("n", application[cacheKey].refreshStarted ?: createDate(2000, 1, 1), now()) gte 5>
+		<cfset application[cacheKey].refreshStarted = now()>
+		<cfthread action="run" name="galaxieAdminTraffic_#createUUID()#" cacheKey="#cacheKey#">
+			<cflock name="#attributes.cacheKey#_build" type="exclusive" timeout="1" throwontimeout="false">
+				<cftry>
+					<cfset application[attributes.cacheKey] = { made = now(), data = buildTraffic() }>
+					<cfcatch type="any">
+						<cflog file="galaxieBlogErrors" type="error" text="Admin traffic cards could not be worked out: #cfcatch.message#">
+					</cfcatch>
+				</cftry>
+			</cflock>
+		</cfthread>
+	</cfif>
+	<cfif structKeyExists(application, cacheKey)>
+		<cfset result = structCopy(application[cacheKey].data)>
+	<cfelse>
+		<cfset result = { "peopleThisWeek": 0, "peopleLastWeek": 0, "botsThisWeek": 0, "days": [], "topPosts": [], "sources": { "search": 0, "social": 0, "sites": 0, "direct": 0 } }>
+	</cfif>
+	<cfset reading = getReadingNow()>
+	<cfset result[ "nowCount" ] = reading.nowCount>
+	<cfset result[ "now" ] = reading.now>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="getReadingNow" access="public" returntype="struct" output="false"
+		hint="Reading now on the admin home: people in the last 15 minutes, each with the newest page they opened (at most 8 listed). Kept for a minute.">
+	<cfset var cacheKey = "galaxieAdminReadingNow" & application.BlogDbObj.getBlogId()>
+	<cfset var nowTime = application.blog.blogNow()>
+	<cfset var result = { "nowCount": 0, "now": [] }>
+	<cfset var seen = {}>
+	<cfset var q = "">
+	<cfif structKeyExists(application, cacheKey) and dateDiff("s", application[cacheKey].made, now()) lt 60>
+		<cfreturn application[cacheKey].data>
+	</cfif>
+	<cfset q = queryExecute("
+		SELECT v.AnonymousUserRef, v.Date, p.Title, v.VisitingHomePage
+		FROM VisitorLog v LEFT JOIN Post p ON p.PostId = v.PostRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+		WHERE v.Date >= :since AND (a.IsBot = 0 OR a.IsBot IS NULL)
+		ORDER BY v.Date DESC",
+		{ since = { value = dateAdd("n", -15, nowTime), cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn, maxrows = 200 })>
+	<cfloop query="q">
+		<cfif not structKeyExists(seen, q.AnonymousUserRef)>
+			<cfset seen[q.AnonymousUserRef] = true>
+			<cfif arrayLen(result.now) lt 8>
+				<cfset arrayAppend(result.now, { "page": len(toString(q.Title)) ? toString(q.Title) : "The home page", "minutesAgo": max(0, dateDiff("n", q.Date, nowTime)) })>
+			</cfif>
+		</cfif>
+	</cfloop>
+	<cfset result.nowCount = structCount(seen)>
+	<cfset application[cacheKey] = { made = now(), data = result }>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="buildTraffic" access="private" returntype="struct" output="false"
+		hint="Works out getTraffic's counts (all but Reading now) from the visitor log. Not kept here: getTraffic keeps them.">
 	<cfset var nowTime = application.blog.blogNow()>
 	<cfset var result = {}>
 	<cfset var q = "">
@@ -391,13 +456,9 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 	<cfset var day = "">
 	<cfset var i = 0>
 	<cfset var sources = { "search": 0, "social": 0, "sites": 0, "direct": 0 }>
-	<cfset var seen = {}>
 	<cfset var weekAgo = dateAdd("d", -7, nowTime)>
 	<cfset var people = "(a.IsBot = 0 OR a.IsBot IS NULL)">
-	<cfif structKeyExists(application, cacheKey) and dateDiff("n", application[cacheKey].made, now()) lt 5>
-		<cfreturn application[cacheKey].data>
-	</cfif>
-	<cfset result = { "peopleThisWeek": 0, "peopleLastWeek": 0, "botsThisWeek": 0, "days": [], "topPosts": [], "sources": sources, "nowCount": 0, "now": [] }>
+	<cfset result = { "peopleThisWeek": 0, "peopleLastWeek": 0, "botsThisWeek": 0, "days": [], "topPosts": [], "sources": sources }>
 
 	<!--- This week and last week: each visitor counted once. --->
 	<cfset q = queryExecute("
@@ -425,13 +486,15 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 		<cfset arrayAppend(result.days, { "day": day, "people": days[day] ?: 0 })>
 	</cfloop>
 
-	<!--- The five most-read posts this week (people only). --->
+	<!--- The five most-read posts this week (people only). Counted by post id, and the titles joined after (2026-10-30): grouping on the title asked SQL Server for far more query memory. --->
 	<cfset q = queryExecute("
-		SELECT p.PostId, p.Title, COUNT(*) AS ReadCount
-		FROM VisitorLog v JOIN Post p ON p.PostId = v.PostRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
-		WHERE v.Date >= :weekAgo AND #people#
-		GROUP BY p.PostId, p.Title
-		ORDER BY COUNT(*) DESC",
+		SELECT p.PostId, p.Title, g.ReadCount
+		FROM (SELECT v.PostRef, COUNT(*) AS ReadCount
+			FROM VisitorLog v LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+			WHERE v.Date >= :weekAgo AND v.PostRef IS NOT NULL AND #people#
+			GROUP BY v.PostRef) g
+		JOIN Post p ON p.PostId = g.PostRef
+		ORDER BY g.ReadCount DESC",
 		{ weekAgo = { value = weekAgo, cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn, maxrows = 5 })>
 	<cfloop query="q"><cfset arrayAppend(result.topPosts, { "postId": q.PostId, "title": toString(q.Title), "reads": val(q.ReadCount) })></cfloop>
 
@@ -440,25 +503,6 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 	<cfset q = getTrafficSources(days = 7).types>
 	<cfset sources = { "search": q["Search"], "social": q["Social"], "sites": q["Other site"], "direct": q["Straight in"] }>
 	<cfset result.sources = sources>
-
-	<!--- Reading now: people in the last 15 minutes, each with the newest page they opened. --->
-	<cfset q = queryExecute("
-		SELECT v.AnonymousUserRef, v.Date, p.Title, v.VisitingHomePage
-		FROM VisitorLog v LEFT JOIN Post p ON p.PostId = v.PostRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
-		WHERE v.Date >= :since AND #people#
-		ORDER BY v.Date DESC",
-		{ since = { value = dateAdd("n", -15, nowTime), cfsqltype = "cf_sql_timestamp" } }, { datasource = application.dsn, maxrows = 200 })>
-	<cfloop query="q">
-		<cfif not structKeyExists(seen, q.AnonymousUserRef)>
-			<cfset seen[q.AnonymousUserRef] = true>
-			<cfif arrayLen(result.now) lt 8>
-				<cfset arrayAppend(result.now, { "page": len(toString(q.Title)) ? toString(q.Title) : "The home page", "minutesAgo": max(0, dateDiff("n", q.Date, nowTime)) })>
-			</cfif>
-		</cfif>
-	</cfloop>
-	<cfset result.nowCount = structCount(seen)>
-
-	<cfset application[cacheKey] = { made = now(), data = result }>
 	<cfreturn result>
 </cffunction>
 
@@ -519,11 +563,14 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 	</cfif>
 
 	<!--- Each address and visitor once, with their visits. The address becomes its site here, since the database keeps whole addresses. --->
+	<!--- 2026-10-30: grouped by the referrer's id and the address joined after; grouping on the 500-character address asked SQL Server for far more query memory. --->
 	<cfset q = queryExecute("
-		SELECT h.HttpReferrer AS Referrer, v.AnonymousUserRef AS Visitor, COUNT(*) AS Visits, MIN(v.Date) AS FirstVisit, MAX(v.Date) AS LastVisit
-		FROM VisitorLog v LEFT JOIN HttpReferrer h ON h.HttpReferrerId = v.HttpReferrerRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
-		WHERE #where#
-		GROUP BY h.HttpReferrer, v.AnonymousUserRef", params, { datasource = application.dsn })>
+		SELECT h.HttpReferrer AS Referrer, g.Visitor, g.Visits, g.FirstVisit, g.LastVisit
+		FROM (SELECT v.HttpReferrerRef, v.AnonymousUserRef AS Visitor, COUNT(*) AS Visits, MIN(v.Date) AS FirstVisit, MAX(v.Date) AS LastVisit
+			FROM VisitorLog v LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+			WHERE #where#
+			GROUP BY v.HttpReferrerRef, v.AnonymousUserRef) g
+		LEFT JOIN HttpReferrer h ON h.HttpReferrerId = g.HttpReferrerRef", params, { datasource = application.dsn })>
 	<cfloop query="q">
 		<cfset host = sourceHost(q.Referrer)>
 		<cfset key = len(host) ? host : "(straight in)">
@@ -543,11 +590,12 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 
 	<!--- Where each site sent people: the post (or the home page) it sent them to most. --->
 	<cfset q = queryExecute("
-		SELECT h.HttpReferrer AS Referrer, p.Title, COUNT(*) AS Visits
-		FROM VisitorLog v LEFT JOIN HttpReferrer h ON h.HttpReferrerId = v.HttpReferrerRef LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
-			LEFT JOIN Post p ON p.PostId = v.PostRef
-		WHERE #where#
-		GROUP BY h.HttpReferrer, p.Title", params, { datasource = application.dsn })>
+		SELECT h.HttpReferrer AS Referrer, p.Title, g.Visits
+		FROM (SELECT v.HttpReferrerRef, v.PostRef, COUNT(*) AS Visits
+			FROM VisitorLog v LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+			WHERE #where#
+			GROUP BY v.HttpReferrerRef, v.PostRef) g
+		LEFT JOIN HttpReferrer h ON h.HttpReferrerId = g.HttpReferrerRef LEFT JOIN Post p ON p.PostId = g.PostRef", params, { datasource = application.dsn })>
 	<cfloop query="q">
 		<cfset host = sourceHost(q.Referrer)>
 		<cfset key = len(host) ? host : "(straight in)">
