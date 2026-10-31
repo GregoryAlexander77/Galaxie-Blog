@@ -136,7 +136,9 @@
 		var css = [
 			// clip, not hidden (2026-10-30): overflow-x:hidden turned the scene into a scroll box with its own scrollbar, a dark
 			// strip down the right of a scene inside a post. hidden stays for browsers without clip.
-			".gScene{position:relative;overflow-x:hidden;overflow-x:clip}",
+			// z-index 0 (2026-10-31, owner): its own layer under the blog's floating menu (#fixedNavHeader, z-index 1) - a held hero
+			// is fixed to the screen while it plays and, coming later in the page at the same level, was drawn over the menu.
+			".gScene{position:relative;z-index:0;overflow-x:hidden;overflow-x:clip}",
 			".gScene *{box-sizing:border-box}",
 			".gScene .gs-section{position:relative;z-index:2}",
 			".gScene .gs-softTop{position:relative;z-index:2;pointer-events:none}",
@@ -569,10 +571,22 @@
 		var guides = !!setting(data, section, "guides");
 		// No hold (section.pin false): the same changes, spread over the hero scrolling off the top of the screen.
 		var held = section.pin !== false;
+		// A held hero that ends the scene (2026-10-31, owner: a long dark stretch before the post's text): by the end of its hold
+		// the layers have risen off the screen and it is nearly all its fade color, which then took another whole screen to scroll
+		// away. Now what follows comes up a screen sooner, behind it, and the hero fades out over the last third of its hold, so
+		// the text shows through as the art leaves. The art and its movement are unchanged.
+		var pinScreens = parseFloat(setting(data, section, "pinLength")) / 100;
+		var ending = held && section._ending && pinScreens > 1;
+		if (ending) {
+			var endSpacer = el("div", "gs-endSpacer");
+			endSpacer.style.height = "calc(" + (pinScreens * 100) + "vh - 100vh)";
+			root.parentNode.insertBefore(endSpacer, root.nextSibling);
+			section._endSpacer = endSpacer;
+		}
 		var tl = gsap.timeline({
 			scrollTrigger: {
 				trigger: root, start: "top top", end: held ? "+=" + setting(data, section, "pinLength") : "bottom top",
-				pin: held, pinSpacing: held && !section._curtain, anticipatePin: held ? 1 : 0,
+				pin: held, pinSpacing: held && !section._curtain && !ending, anticipatePin: held ? 1 : 0,
 				scrub: setting(data, section, "scrub"), markers: guides,
 				onToggle: function (self) { self.isActive ? startLive(data, section, root) : stopLive(section, root); }
 			}
@@ -601,6 +615,10 @@
 		if (heroHeading) { splitIn(heroHeading, data, section, setting(data, section, "rise") * phoneFactor, splits, root); }
 		if (text) {
 			tl.to(text, { y: function () { return -window.innerHeight * 0.45 * phoneFactor; }, opacity: 0, ease: "none" }, 0);
+		}
+		if (ending) {
+			var whole = tl.duration();
+			tl.to(root, { opacity: 0, duration: whole / 3, ease: "power1.in" }, whole * 2 / 3);
 		}
 		// A hero at the top of the page is already on screen before any scrolling.
 		if (root.getBoundingClientRect().top < window.innerHeight) { startLive(data, section, root); }
@@ -699,6 +717,8 @@
 			// covers it exactly when the pin ends. A hero that is the scene's last section (the usual post hero) has nothing to
 			// slide over it - the post's own text follows - so it pins normally and then scrolls away.
 			section._curtain = HERO_KINDS[section.kind] && !!next;
+			// A hero that ends the scene (the usual post hero), see animateHero.
+			section._ending = HERO_KINDS[section.kind] && !next;
 			if (section._curtain) {
 				var spacer = el("div", "gs-curtainSpacer", container);
 				spacer.style.height = "calc(" + parseFloat(setting(data, section, "pinLength")) + "vh - 100vh)";
@@ -750,7 +770,10 @@
 			});
 			return function () {
 				splits.forEach(function (split) { try { split.revert(); } catch (e) {} });
-				built.forEach(function (b) { if (HERO_KINDS[b.section.kind]) { stopLive(b.section, b.root); } });
+				built.forEach(function (b) {
+					if (HERO_KINDS[b.section.kind]) { stopLive(b.section, b.root); }
+					if (b.section._endSpacer) { b.section._endSpacer.remove(); b.section._endSpacer = null; }
+				});
 			};
 		});
 

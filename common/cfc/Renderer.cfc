@@ -218,8 +218,9 @@
 	function fit() {
 		var area = host.closest("##blogContent") || document.body;
 		host.style.width = ""; host.style.marginLeft = "";
-		<!--- In a post (2026-10-22, owner): inside the post's own box on a desktop, lined up with its title; edge to edge on a phone. --->
-		if (host.closest(".blogPost") && window.innerWidth >= 700) { return; }
+		<!--- In a post (2026-10-22, owner): inside the post's own box, lined up with its title - on a phone too (2026-10-31, owner:
+		edge to edge ran over the post's border, the orange one of a promoted post). --->
+		if (host.closest(".blogPost")) { return; }
 		var a = area.getBoundingClientRect(), border = parseFloat(getComputedStyle(area).borderLeftWidth) || 0;
 		host.style.width = area.clientWidth + "px";
 		host.style.marginLeft = (a.left + border - host.getBoundingClientRect().left) + "px";
