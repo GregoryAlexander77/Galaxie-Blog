@@ -409,6 +409,8 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 	</cfif>
 	<cfif structKeyExists(application, cacheKey)>
 		<cfset result = structCopy(application[cacheKey].data)>
+		<!--- How old the counts are, for the admin home's "updated" line. --->
+		<cfset result[ "countsAgeMinutes" ] = max(0, dateDiff("n", application[cacheKey].made, now()))>
 	<cfelse>
 		<cfset result = { "peopleThisWeek": 0, "peopleLastWeek": 0, "botsThisWeek": 0, "days": [], "topPosts": [], "sources": { "search": 0, "social": 0, "sites": 0, "direct": 0 } }>
 	</cfif>

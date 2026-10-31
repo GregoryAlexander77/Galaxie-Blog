@@ -609,6 +609,7 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 					<cfset homeBlock = homeBlock eq "k-content" ? "k-alt" : "k-content">
 					<div class="adminHomeSection #homeBlock#" id="adminTraffic">
 						<h5 class="adminHomeHeading">This week</h5>
+						<cfif showVisitorCards><div class="adminTrafficNote" id="trafficUpdated"></div></cfif>
 						<div class="adminTrafficGrid">
 							<cfif comingUp.show>
 							<!--- Coming up (owner, 2026-10-21): the next bookings, soonest first; the card opens the bookings list, a booking opens that booking. --->
@@ -681,15 +682,29 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 				</cfloop>
 				</cfoutput>
 				<script>
-					<!--- Traffic cards: drawn here from the numbers (a trend line, bars), so no chart library is downloaded. --->
+					<!--- Traffic cards: drawn here from the numbers (a trend line, bars), so no chart library is downloaded.
+					They refresh themselves (owner, 2026-10-30): asked again once a minute while this tab is in view (and when it comes back
+					into view). The server keeps the counts 15 minutes and Reading now 1 minute (AdminHome.cfc getTraffic), so asking is cheap. --->
 					(function () {
 						if (!document.getElementById("trafficVisitors")) { return; }
 						var esc = function (t) { return $("<div/>").text(t).html(); };
-						jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getAdminTraffic",
-							data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>" }, dataType: "json" }).done(function (response) {
+						var drawn = false, busy = false;
+						function load() {
+							if (busy || document.visibilityState !== "visible" || document.getElementById("adminHome").style.display === "none") { return; }
+							busy = true;
+							jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getAdminTraffic",
+								data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>" }, dataType: "json" }).done(draw)
+								.fail(function () { if (!drawn) { $("#trafficVisitors").text("The visitor numbers couldn't be read."); } })
+								.always(function () { busy = false; });
+						}
+						function draw(response) {
 							if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
-							if (!response || !response.success) { $("#trafficVisitors").text("The visitor numbers couldn't be read."); return; }
+							// A failed refresh keeps the cards already drawn.
+							if (!response || !response.success) { if (!drawn) { $("#trafficVisitors").text("The visitor numbers couldn't be read."); } return; }
+							drawn = true;
 							var t = response.traffic, n = function (x) { return Math.round(+x || 0); };
+							var age = n(t.countsAgeMinutes);
+							$("#trafficUpdated").text("Visitor counts are updated every 15 minutes (these are " + (age < 1 ? "from just now" : age + (age === 1 ? " minute" : " minutes") + " old") + "). Reading now is updated every minute.");
 							// Visitors: this week, the change on last week, a 30-day line.
 							var change = "";
 							if (n(t.peopleLastWeek) > 0) {
@@ -719,7 +734,10 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 							var now = t.now || [];
 							$("#trafficNow").html('<div class="adminTrafficBig">' + n(t.nowCount) + '</div><div class="adminTrafficNote">' + (n(t.nowCount) === 1 ? "person" : "people") + ' in the last 15 minutes</div>'
 								+ now.map(function (r) { return '<div class="adminTrafficRow"><span class="adminTrafficLabel">' + esc(r.page) + '</span><span class="adminTrafficCount">' + (n(r.minutesAgo) ? n(r.minutesAgo) + " min" : "now") + '</span></div>'; }).join(""));
-						}).fail(function () { $("#trafficVisitors").text("The visitor numbers couldn't be read."); });
+						}
+						load();
+						setInterval(load, 60000);
+						document.addEventListener("visibilitychange", load);
 					})();
 					<!--- Up next refreshes itself (owner, 2026-10-28): once a minute while this tab is in view, and as soon as it comes back
 					into view, ask whether Up next would look different (ProxyController getUpNextSignature - a fingerprint kept in memory,
