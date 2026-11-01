@@ -250,6 +250,8 @@
 								<div class="k-card-body">
 									<!-- The font should be 14pt for this compact widget. No extra margins are necessary for the popular posts -->
 									<h2 class="k-card-title" style="font-size: 14pt;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h4>
+									<!--- Author and published date (2026-11-01, owner), Renderer.cfc renderCardByline. --->
+									<cfoutput>#RendererObj.renderCardByline(getPosts[i])#</cfoutput>
 									<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(ev=cardEvent, compact=true, hasTile=cardEventTile or cardEventOverlay)#</cfoutput></cfif>
 								</div>
 							<cfif postScrollWidgetType eq 'popularPosts'><!--- Only show the read more button for popular posts. --->

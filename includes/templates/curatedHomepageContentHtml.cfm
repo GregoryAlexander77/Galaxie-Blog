@@ -265,6 +265,7 @@ homepage, handled in index.cfm.) --->
 			imageUrl: thisBlogPostImageUrl,
 			mediaHtml: thisBlogPostMediaHtml,
 			suppressImage: thisBlogPostSuppressImage,
+			bylineHtml: RendererObj.renderCardByline(recentBlogPostsForHomepage[i]),
 			eventHtml: structIsEmpty(cardEvent) ? "" : application.events.renderCardStripHtml(ev = cardEvent, hasTile = cardEventTile or cardEventOverlay),
 			eventOverlayHtml: cardEventOverlay ? application.events.renderSheetOverlayHtml(cardEvent) : "",
 			<!--- 2026-10-01: the "thin border around promoted posts" treatment (cardGridSection.cfm's own

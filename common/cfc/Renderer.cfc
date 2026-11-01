@@ -1121,6 +1121,24 @@
 		<cfreturn '<style>@font-face { font-family: "' & arguments.fontName & '"; src: url(' & application.baseUrl & '/common/fonts/' & fontRows[1]["FileName"] & '.' & fontExtension & ') format("' & fontExtension & '"); font-display: swap; }</style>'>
 	</cffunction>
 
+	<cffunction name="renderCardByline" access="public" output="false" returntype="string"
+			hint="The author and published date under a post card's title (2026-11-01, owner), the same on the card grid (renderKendoCardGrid.cfm), the home page cards (cardGridSection.cfm) and the Popular strip (popularPosts.cfm). Pages show no date, as on their own page. Empty when there is neither.">
+		<cfargument name="post" type="struct" required="true" hint="A row from blog.cfc getPost: FullName, DisplayName, DatePosted, IsPage.">
+		<cfset var fullName = arguments.post["FullName"] ?: "">
+		<cfset var shownName = len(arguments.post["DisplayName"] ?: "") ? arguments.post["DisplayName"] : fullName>
+		<cfset var posted = arguments.post["DatePosted"] ?: "">
+		<cfset var isPage = isBoolean(arguments.post["IsPage"] ?: false) and (arguments.post["IsPage"] ?: false)>
+		<cfset var parts = []>
+		<cfif len(fullName)>
+			<cfset arrayAppend(parts, 'by <a href="' & encodeForHtmlAttribute(application.blog.makeUserLink(fullName)) & '" class="k-content">' & encodeForHtml(shownName) & '</a>')>
+		</cfif>
+		<cfif not isPage and isDate(posted)>
+			<cfset arrayAppend(parts, '<time datetime="' & dateFormat(posted, "yyyy-mm-dd") & '">' & dateFormat(posted, "mmm d, yyyy") & '</time>')>
+		</cfif>
+		<cfif not arrayLen(parts)><cfreturn ""></cfif>
+		<cfreturn '<p class="cardByline" style="margin: 0 0 8px; font-size: 13px; opacity: .8;">' & arrayToList(parts, " &middot; ") & '</p>'>
+	</cffunction>
+
 	<cffunction name="renderHeroGradientHtml" access="public" output="false" returntype="string"
 			hint="Renders a Post/PageCollection's explicitly-picked HeroGradient as ready-to-insert HTML - single
 			point of truth used by renderMediaPreview()/renderEnclosure() below AND the three card-view templates

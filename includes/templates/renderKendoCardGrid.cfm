@@ -314,6 +314,8 @@
 					</a>
 					<hr class="k-card-separator" />
 					<h2 class="k-card-title" style="font-size: 14pt; margin: 10px 0px;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" style="font-size: 14pt" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h2>
+					<!--- Author and published date (2026-11-01, owner), Renderer.cfc renderCardByline. --->
+					<cfoutput>#RendererObj.renderCardByline(getPost[i])#</cfoutput>
 					<hr class="k-card-separator" />
 					<cfif not structIsEmpty(cardEvent)><cfoutput>#application.events.renderCardStripHtml(ev = cardEvent, hasTile = cardEventTile or cardEventOverlay)#</cfoutput></cfif>
 					<span class="blog-content"><cfoutput>#postContent#</cfoutput></span>
