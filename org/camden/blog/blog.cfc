@@ -18,7 +18,7 @@
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
 	<cfset version = "5.01" />
-	<cfset versionName = "5.01 (Howl at the Moon Edition)" />
+	<cfset versionName = "5.01 (Howl at the Moon)" />
 	<cfset versionDate =  "October 31st 2026">
 
 	<!--- Require version 9 or higher as we are using ORM --->
@@ -3902,7 +3902,7 @@
 			<cfquery name="updateBlogVersion" dbtype="hql">
 				UPDATE Blog
 				SET BlogVersion = <cfqueryparam value="#arguments.blogVersion#" cfsqltype="varchar">,
-				BlogVersionName = <cfqueryparam value="#arguments.blogVersionName#" cfsqltype="varchar">
+				BlogVersionName = <cfqueryparam value="#left(arguments.blogVersionName, 30)#" cfsqltype="varchar"><!--- The column holds 30 characters (Blog.cfc); 5.01 (Howl at the Moon Edition) was 31 and stopped the install and the update (2026-10-31). --->
 				WHERE BlogId = <cfqueryparam value="1" cfsqltype="integer">
 			</cfquery>
 
