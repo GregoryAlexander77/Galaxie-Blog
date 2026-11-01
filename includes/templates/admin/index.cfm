@@ -32,6 +32,11 @@ at most once a day, one at a time, in the background. --->
 <cfset currentUserRole = application.blog.getUserBlogRoles(session.userName, 'roleList')>
 <!--- Return a list of capabilities. We need this to determine whether to show the log button that displays all of the user logins (by looking at the editUser capability) --->
 <cfset currentUserCapabilityList = application.blog.getCapabilitiesByRole(currentUserRole, 'capabilityList')>
+<!--- The privacy page (2026-10-31, Privacy.cfc): made once, the first time someone who may change the site's pages opens the admin
+home. A failure here never stops the admin home. --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditPage') or listFindNoCase(currentUserCapabilityList, 'EditPost') or listFindNoCase(currentUserCapabilityList, 'EditServerSetting')>
+	<cftry><cfset application.blog.getPrivacy().ensurePage(val(session.userId ?: 0))><cfcatch type="any"><cflog file="galaxieBlogErrors" type="warning" text="Privacy page not made: #cfcatch.message#"></cfcatch></cftry>
+</cfif>
 	
 <!--- Determine if the post should be shown --->
 	

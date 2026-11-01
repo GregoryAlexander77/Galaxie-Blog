@@ -1777,6 +1777,17 @@
 		<cfreturn variables.scenesObj>
 	</cffunction>
 
+	<cffunction name="getPrivacy" access="public" returnType="any" output="false" hint="The privacy page and the analytics consent banner (common/cfc/Privacy.cfc, 2026-10-31). Created on first use, like getAdminNotes.">
+		<cfif not structKeyExists(variables, "privacyObj")>
+			<cflock name="galaxiePrivacyCreate_#application.applicationName#" type="exclusive" timeout="10">
+				<cfif not structKeyExists(variables, "privacyObj")>
+					<cfset variables.privacyObj = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.Privacy" : "common.cfc.Privacy")>
+				</cfif>
+			</cflock>
+		</cfif>
+		<cfreturn variables.privacyObj>
+	</cffunction>
+
 	<cffunction name="getEmailLog" access="public" returnType="any" output="false" hint="The email sent log (common/cfc/EmailLog.cfc, 2026-10-31): what the blog sent, written by utils.cfc mail(). Created on first use, like getAdminNotes.">
 		<cfif not structKeyExists(variables, "emailLogObj")>
 			<cflock name="galaxieEmailLogCreate_#application.applicationName#" type="exclusive" timeout="10">

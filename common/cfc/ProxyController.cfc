@@ -9974,6 +9974,8 @@
 		<cfargument name="jQueryCDNPath" default="" required="false">
 		<cfargument name="kendoFolderPath" default="" required="false">
 		<cfargument name="googleAnalyticsString" default="" required="false">
+		<cfargument name="analyticsConsentBanner" default="" required="false" hint="Ask visitors before Google Analytics runs (2026-10-31); a ticked box sends 1.">
+		<cfargument name="analyticsConsentBannerOnForm" default="" required="false" hint="1 when the box was on the form, so an unticked box means off.">
 		<cfargument name="addThisApiKey" default="" required="false">
 		<cfargument name="addThisToolboxString" default="" required="false">
 		<cfargument name="bingMapsApiKey" default="" required="false">
@@ -10149,6 +10151,9 @@
 				<cfset OptionDbObj.setMonthsToRetainVisitorLog(arguments.visitorLogMonths)>
 				<cfset OptionDbObj.setMonthsToRetainAdminLog(arguments.adminLogMonths)>
 				<cfset OptionDbObj.setGoogleAnalyticsString(arguments.googleAnalyticsString)>
+				<cfif arguments.analyticsConsentBannerOnForm eq "1">
+					<cfset application.events.setSetting(0, "analyticsConsentBanner", arguments.analyticsConsentBanner eq "1" ? "1" : "0")>
+				</cfif>
 				<cfset OptionDbObj.setAddThisApiKey(arguments.addThisApiKey)>
 				<cfset OptionDbObj.setAddThisToolboxString(arguments.addThisToolboxString)>
 				<cfset OptionDbObj.setAddThisApiKey(arguments.addThisApiKey)>

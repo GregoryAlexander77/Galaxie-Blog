@@ -47,6 +47,72 @@
 </cfsilent>
 <!--- Don't show the Google Analytics script on the admin page or if the string does not exist in the database. Note: there can be many gtag measurement Ids, we are going to grab the first one for the script and loop through all of them in the config line at the bottom of the script --->
 <cfif pageId neq 2 and len(application.googleAnalyticsString)>
+<!--- Ask first (2026-10-31, owner; Privacy.cfc consentNeeded): unless the owner switched the banner off in Blog Options, Google
+Analytics is not loaded until the visitor agrees. The choice is kept in their browser; "Privacy choices" in the footer asks again. --->
+<cftry><cfset analyticsConsent = application.blog.getPrivacy().consentNeeded()><cfcatch type="any"><cfset analyticsConsent = true></cfcatch></cftry>
+<cfif analyticsConsent>
+<cftry><cfset analyticsPrivacyUrl = application.blog.getPrivacy().getPageUrl()><cfcatch type="any"><cfset analyticsPrivacyUrl = ""></cfcatch></cftry>
+<script>
+	(function () {
+		var ids = <cfoutput>#serializeJSON(listToArray(application.googleAnalyticsString))#</cfoutput>, key = "galaxieAnalyticsConsent";
+		var privacyUrl = <cfoutput>#serializeJSON(analyticsPrivacyUrl)#</cfoutput>;
+		function choice() { try { return localStorage.getItem(key); } catch (e) { return null; } }
+		function remember(value) { try { localStorage.setItem(key, value); } catch (e) {} }
+		function loadAnalytics() {
+			if (window.galaxieAnalyticsLoaded || !ids.length) { return; }
+			window.galaxieAnalyticsLoaded = true;
+			var tag = document.createElement("script");
+			tag.async = true;
+			tag.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(String(ids[0]).trim());
+			document.head.appendChild(tag);
+			window.dataLayer = window.dataLayer || [];
+			window.gtag = function () { dataLayer.push(arguments); };
+			gtag("js", new Date());
+			ids.forEach(function (id) { gtag("config", String(id).trim()); });
+		}
+		// Saying no after yes: Google Analytics' own cookies are cleared; it no longer loads from the next page on.
+		function clearAnalyticsCookies() {
+			document.cookie.split(";").forEach(function (c) {
+				var name = c.split("=")[0].trim();
+				if (/^_ga/.test(name)) {
+					var host = location.hostname.replace(/^www\./, "");
+					[location.hostname, "." + host, host].forEach(function (d) { document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=" + d; });
+					document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+				}
+			});
+		}
+		function showBanner() {
+			var old = document.getElementById("analyticsConsentBanner");
+			if (old) { old.parentNode.removeChild(old); }
+			var box = document.createElement("div");
+			box.id = "analyticsConsentBanner";
+			box.className = "k-content";
+			box.setAttribute("role", "dialog");
+			box.setAttribute("aria-label", "Privacy choices");
+			box.style.cssText = "position:fixed;left:12px;right:12px;bottom:12px;z-index:100000;max-width:640px;margin:0 auto;padding:14px 16px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:15px;line-height:1.45";
+			var text = document.createElement("p");
+			text.style.margin = "0 0 10px";
+			text.appendChild(document.createTextNode("This site would like to use Google Analytics to count visits. It only runs if you agree. "));
+			if (privacyUrl) { var more = document.createElement("a"); more.href = privacyUrl; more.textContent = "Privacy"; text.appendChild(more); }
+			var yes = document.createElement("button"), no = document.createElement("button");
+			yes.type = no.type = "button";
+			yes.className = "k-button k-primary"; no.className = "k-button";
+			yes.textContent = "OK"; no.textContent = "No thanks";
+			no.style.marginLeft = "8px";
+			yes.onclick = function () { remember("yes"); box.parentNode.removeChild(box); loadAnalytics(); };
+			no.onclick = function () { remember("no"); box.parentNode.removeChild(box); clearAnalyticsCookies(); };
+			box.appendChild(text); box.appendChild(yes); box.appendChild(no);
+			document.body.appendChild(box);
+		}
+		if (choice() === "yes") { loadAnalytics(); }
+		document.addEventListener("DOMContentLoaded", function () {
+			var wrap = document.getElementById("privacyChoicesWrap"), link = document.getElementById("privacyChoicesLink");
+			if (wrap && link) { wrap.hidden = false; link.onclick = function (e) { e.preventDefault(); showBanner(); }; }
+			if (!choice()) { showBanner(); }
+		});
+	})();
+</script>
+<cfelse>
 <!-- Global site tag (gtag.js) - Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=<cfoutput>#listGetAt(application.googleAnalyticsString, 1)#</cfoutput>"></script>
 <script>
@@ -57,6 +123,7 @@
 	gtag('config', '<cfoutput>#i#</cfoutput>');
 </cfloop>
 </script></cfif>
+</cfif>
 <cfoutput><title>#titleMetaTagValue#</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1">

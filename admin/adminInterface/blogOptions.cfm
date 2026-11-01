@@ -1601,6 +1601,15 @@
 			</td>
 		  </tr>
 		</cfif>
+		  <!--- Ask visitors first (2026-10-31, owner; Privacy.cfc consentNeeded): on by default. The hidden field tells the save that the
+		  box was on the form, so an unticked box (which browsers don't send) switches the banner off. --->
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
+				<input type="hidden" name="analyticsConsentBannerOnForm" value="1">
+				<label><input type="checkbox" class="k-checkbox" name="analyticsConsentBanner" value="1"<cfif application.events.getSetting(0, "analyticsConsentBanner", "1") neq "0"> checked</cfif>> Ask visitors before Google Analytics runs</label>
+				<div class="k-form-hint">A small banner asks each visitor; Google Analytics loads only for those who agree, and a "Privacy choices" link in the footer lets them change their mind. Many countries require this. Untick it only if you have another way of asking.</div>
+			</td>
+		  </tr>
 		  <!-- Border -->
 		  <tr height="2px" class="containerWidths">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>

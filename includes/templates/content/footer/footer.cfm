@@ -59,6 +59,11 @@ theme's own site name (site-mark-*) shows in the footer at twice its header size
 			<p>
 				Powered by <a href="https://www.galaxieblog.org">Galaxie Blog</a> Version <cfoutput>#application.blog.getVersionName()# #application.blog.getVersionDate()# #getTheme[1]["Theme"]# theme</cfoutput><br/>
 				&copy; <cfoutput>#dateFormat(now(), 'yyyy')# #encodeForHtml(application.BlogDbObj.getBlogTitle())#</cfoutput>
+				<!--- Privacy (2026-10-31, Privacy.cfc): the privacy page on every blog, and "Privacy choices", which the consent banner's
+				script shows only when the banner is in use (this footer is a saved page part, the same for every visitor). --->
+				<cftry><cfset footerPrivacyUrl = application.blog.getPrivacy().getPageUrl()><cfcatch type="any"><cfset footerPrivacyUrl = ""></cfcatch></cftry>
+				<cfif len(footerPrivacyUrl)> &middot; <a href="<cfoutput>#footerPrivacyUrl#</cfoutput>">Privacy</a></cfif>
+				<span id="privacyChoicesWrap" hidden> &middot; <a href="#" id="privacyChoicesLink">Privacy choices</a></span>
 			</p>
 		</span>
 	</footer>
