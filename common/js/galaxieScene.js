@@ -588,7 +588,10 @@
 		if (ending) {
 			var endSpacer = el("div", "gs-endSpacer");
 			endSpacer.style.height = "calc(" + (pinScreens * 100) + "vh - 100vh)";
-			root.parentNode.insertBefore(endSpacer, root.nextSibling);
+			// After the scene, not inside it (2026-11-01, owner): inside, the spacer took the scene's page color, so the soft edge
+			// faded into a dark band with a hard line above the post's text. Outside, what shows through is the post's own background.
+			var scene = root.closest(".gScene") || root.parentNode;
+			scene.parentNode.insertBefore(endSpacer, scene.nextSibling);
 			section._endSpacer = endSpacer;
 		}
 		// The soft edge: the hero is masked from where what follows starts (the spacer's foot, on screen), fading out over the
@@ -602,13 +605,17 @@
 				mask = "linear-gradient(to bottom, #000 0px, #000 " + Math.max(0, edge - soft).toFixed(1) + "px, transparent " + Math.max(0, edge).toFixed(1) + "px, transparent 100%)";
 			}
 			root.style.webkitMaskImage = mask; root.style.maskImage = mask;
+			// Hidden or half hidden, it still lies over the post's text; clicks and selecting go through to the text (2026-11-01).
+			root.style.pointerEvents = mask ? "none" : "";
 		}
+		// Fading out over the last third: from then on clicks go through to the post's text under it.
+		function endFade(self) { root.style.pointerEvents = self.progress > 2 / 3 ? "none" : ""; }
 		var tl = gsap.timeline({
 			scrollTrigger: {
 				trigger: root, start: "top top", end: held ? "+=" + setting(data, section, "pinLength") : "bottom top",
 				pin: held, pinSpacing: held && !section._curtain && !ending, anticipatePin: held ? 1 : 0,
 				scrub: setting(data, section, "scrub"), markers: guides,
-				onUpdate: endMask ? endEdge : null, onRefresh: endMask ? endEdge : null,
+				onUpdate: endMask ? endEdge : ending ? endFade : null, onRefresh: endMask ? endEdge : null,
 				onToggle: function (self) { self.isActive ? startLive(data, section, root) : stopLive(section, root); }
 			}
 		});
@@ -794,7 +801,7 @@
 				splits.forEach(function (split) { try { split.revert(); } catch (e) {} });
 				built.forEach(function (b) {
 					if (HERO_KINDS[b.section.kind]) { stopLive(b.section, b.root); }
-					if (b.section._endSpacer) { b.section._endSpacer.remove(); b.section._endSpacer = null; b.root.style.webkitMaskImage = b.root.style.maskImage = ""; }
+					if (b.section._endSpacer) { b.section._endSpacer.remove(); b.section._endSpacer = null; b.root.style.webkitMaskImage = b.root.style.maskImage = b.root.style.pointerEvents = ""; }
 				});
 			};
 		});
