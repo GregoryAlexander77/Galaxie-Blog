@@ -113,9 +113,9 @@
 	<cfproperty name="RedirectType" ormtype="string" length="35" default="" hint="Either permanent or tempoary">
 	<cfproperty name="NumViews" ormtype="int" default="0">
 	<cfproperty name="Mailed" ormtype="boolean" default="false">
-	<cfproperty name="BlogSortDate" ormtype="timestamp" default="" hint="This is used change the sort order of the articles on the main blog.">
-	<cfproperty name="DatePosted" ormtype="timestamp" default="">
+	<cfproperty name="BlogSortDate" ormtype="timestamp" hint="This is used change the sort order of the articles on the main blog.">
+	<cfproperty name="DatePosted" ormtype="timestamp">
 	<!--- We need an actual date property without the timestamp for the date search. --->
-	<cfproperty name="Date" ormtype="date" default="">
+	<cfproperty name="Date" ormtype="date">
 
 </cfcomponent>

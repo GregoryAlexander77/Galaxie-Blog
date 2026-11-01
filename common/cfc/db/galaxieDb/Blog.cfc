@@ -30,11 +30,11 @@
 	<cfproperty name="ServiceKeyEncryptionPhrase" ormtype="string" length="255" default="">
 	<cfproperty name="BlogVersion" ormtype="string" default="3">
 	<cfproperty name="BlogVersionName" ormtype="string" default="Galaxie Blog 4.0" length="30">
-	<cfproperty name="BlogVersionDate" ormtype="timestamp" default="">
+	<cfproperty name="BlogVersionDate" ormtype="timestamp">
 	<cfproperty name="IsProd" ormtype="boolean" default="true">
 	<cfproperty name="BlogInstalled" ormtype="boolean" default="false">
-	<cfproperty name="BlogInstallDate" ormtype="timestamp" default="">
-	<cfproperty name="Date" ormtype="timestamp" default="">
+	<cfproperty name="BlogInstallDate" ormtype="timestamp">
+	<cfproperty name="Date" ormtype="timestamp">
 		
 	<!--- Foreign keys. ---> 
 	<!--- One blog to to one options (everything is stored in one row)

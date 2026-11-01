@@ -9,8 +9,8 @@
 	<cfproperty name="ContainerContent" ormtype="string" sqltype="varchar(max)" default="">
 	<cfproperty name="ContainerPath" ormtype="string" length="250" default="">
 	<cfproperty name="ContainerUrl" ormtype="string" length="250" default="">
-	<cfproperty name="LastCached" ormtype="date" default="">
+	<cfproperty name="LastCached" ormtype="date">
 	<!--- We need an actual date property without the timestamp for the date search. --->
-	<cfproperty name="Date" ormtype="date" default="">
+	<cfproperty name="Date" ormtype="date">
 
 </cfcomponent>

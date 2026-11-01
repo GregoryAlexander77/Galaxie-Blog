@@ -12,8 +12,8 @@
 	<cfproperty name="Banned" ormtype="boolean" default="false">
 	<cfproperty name="ShadowBanned" ormtype="boolean" default="false">
 	<cfproperty name="TemporaryBan" ormtype="boolean" default="false">
-	<cfproperty name="BanDateStart" ormtype="timestamp" default="">
-	<cfproperty name="BanDateEnd" ormtype="timestamp" default="">
+	<cfproperty name="BanDateStart" ormtype="timestamp">
+	<cfproperty name="BanDateEnd" ormtype="timestamp">
 	<cfproperty name="HideComments" ormtype="boolean" default="false">
 	<cfproperty name="Date" ormtype="timestamp">
 

@@ -27,7 +27,7 @@
 	<cfproperty name="CustomOutput" ormtype="boolean" default="false" hint="This changes from false to true when the owner wants to change the template path or create custom content using an output template.">
 	<cfproperty name="ContentTemplateCacheName" ormtype="string" length="75" default="">
 	<cfproperty name="ContentTemplateCachePath" ormtype="string" length="240" default="">
-	<cfproperty name="LastCached" ormtype="date" default="">
+	<cfproperty name="LastCached" ormtype="date">
 	<cfproperty name="Cache" ormtype="boolean" default="true">
 	<cfproperty name="Active" ormtype="boolean" default="true">
 	<cfproperty name="Date" ormtype="timestamp">

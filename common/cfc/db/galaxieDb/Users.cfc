@@ -38,8 +38,8 @@
 	<cfproperty name="SecurityRandomQuestion" ormtype="string" default="" length="125">
 	<cfproperty name="SecurityRandomAnswer" ormtype="string" default="" length="35">
 	<cfproperty name="Salt" ormtype="string" default="" length="255">
-	<cfproperty name="LastLogin" ormtype="timestamp" default="">
+	<cfproperty name="LastLogin" ormtype="timestamp">
 	<cfproperty name="Active" ormtype="boolean" default="false">
-	<cfproperty name="Date" ormtype="timestamp" default="">
+	<cfproperty name="Date" ormtype="timestamp">
 
 </cfcomponent>

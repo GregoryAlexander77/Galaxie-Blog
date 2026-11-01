@@ -13,6 +13,6 @@
 	<cfproperty name="SelectedTheme" ormtype="boolean" default="true" hint="This will be set to true if this is the theme that you want to be displayed at all times. The user can also choose other themes for a single post however.">
 	<cfproperty name="UseTheme" ormtype="boolean" default="true" hint="What themes do you want available for the blog? If the SelectedTheme is not selected, multiple themes will be displayed that rotate.">
 	<cfproperty name="DarkTheme" ormtype="boolean" default="false">
-	<cfproperty name="Date" ormtype="timestamp" default="">
+	<cfproperty name="Date" ormtype="timestamp">
 
 </cfcomponent>

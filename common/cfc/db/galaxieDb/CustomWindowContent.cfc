@@ -17,6 +17,6 @@
 	<cfproperty name="CfincludePath" ormtype="string"  length="225" default="">
 	<cfproperty name="Content" ormtype="string" sqltype="varchar(max)" default="">
 	<cfproperty name="Active" ormtype="boolean" default="true">
-	<cfproperty name="Date" ormtype="timestamp" default="" >
+	<cfproperty name="Date" ormtype="timestamp" >
 
 </cfcomponent>

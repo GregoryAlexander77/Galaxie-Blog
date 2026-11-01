@@ -6,6 +6,6 @@
 	<cfproperty name="KendoThemeCssFileLocation" ormtype="string" length="255" default="">
 	<cfproperty name="KendoThemeMobileCssFileLocation" ormtype="string" length="255" default="text">
 	<cfproperty name="DarkTheme" ormtype="boolean" default="false">
-	<cfproperty name="Date" ormtype="timestamp" default="">
+	<cfproperty name="Date" ormtype="timestamp">
 
 </cfcomponent>

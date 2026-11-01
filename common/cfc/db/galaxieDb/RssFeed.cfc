@@ -11,6 +11,6 @@
 	<cfproperty name="RssFeedUrl" ormtype="string" length="250" default="">
 	<cfproperty name="Active" ormtype="boolean" default="false">
 	<!--- We need an actual date property without the timestamp for the date search. --->
-	<cfproperty name="Date" ormtype="date" default="">
+	<cfproperty name="Date" ormtype="date">
 
 </cfcomponent>

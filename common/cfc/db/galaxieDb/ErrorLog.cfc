@@ -15,6 +15,6 @@
 	<cfproperty name="NumErrors" ormtype="integer" default="1">
 	<cfproperty name="Resolved" ormtype="boolean" default="false">
 	<cfproperty name="ResolutionNotes" ormtype="string" default="" length="2500"> 
-	<cfproperty name="Date" ormtype="timestamp" default="">
+	<cfproperty name="Date" ormtype="timestamp">
 		
 </cfcomponent>

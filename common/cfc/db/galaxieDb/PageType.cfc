@@ -6,6 +6,6 @@
 	<cfproperty name="PageTypeName" ormtype="string" length="155" default="">
 	<cfproperty name="PageTypeDescription" ormtype="string" length="250" default="">
 	<!--- We need an actual date property without the timestamp for the date search. --->
-	<cfproperty name="Date" ormtype="date" default="">
+	<cfproperty name="Date" ormtype="date">
 
 </cfcomponent>

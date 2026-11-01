@@ -10,6 +10,6 @@
 	<cfproperty name="PodOrder" ormtype="int">
 	<cfproperty name="Active" ormtype="boolean" default="true">
 	<!--- We need an actual date property without the timestamp for the date search. --->
-	<cfproperty name="Date" ormtype="date" default="">
+	<cfproperty name="Date" ormtype="date">
 
 </cfcomponent>
