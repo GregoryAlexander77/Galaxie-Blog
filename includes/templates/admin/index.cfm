@@ -267,6 +267,13 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(117);")>
 	<cfset imageList = listAppend(imageList, "/images/icons/trafficSources.gif")>
 </cfif>
+<!--- Email Log (2026-10-31, owner): what the blog sent. The same rights as the Error Log (EditUser). --->
+<cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
+	<cfset iconList = listAppend(iconList, 'EmailLog')>
+	<cfset titleList = listAppend(titleList, 'Email Log')>
+	<cfset linkList = listAppend(linkList, "javascript:createAdminInterfaceWindow(118);")>
+	<cfset imageList = listAppend(imageList, "/images/icons/emailLog.gif")>
+</cfif>
 <cfif listFindNoCase(currentUserCapabilityList, 'EditUser') gt 0>
 	<!--- Ban Visitors by IP address or HTTP User-Agent string --->
 	<cfset iconList = listAppend(iconList, 'BanVisitors')>
@@ -501,7 +508,7 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 						<!--- Tools (owner, 2026-10-20): the upkeep that isn't a setting, out of Posts and Settings. --->
 						{ key: "tools", name: "Tools", image: "/images/icons/tools.gif", what: "Import, refresh and other upkeep", icons: "ImportData,RefreshSite,ReloadOrm" },
 						<!--- Logs last (owner, 2026-10-20): Up next brings forward new errors and This week the visitors, so it is opened least. --->
-						{ key: "logs", name: "Logs", image: "/images/icons/adminLog.gif", what: "What happened on the site", icons: "ErrorLog,AdminLog,MemberLog,VisitorLog,TrafficSources,reactionLog,SearchQuery" }
+						{ key: "logs", name: "Logs", image: "/images/icons/adminLog.gif", what: "What happened on the site", icons: "ErrorLog,EmailLog,AdminLog,MemberLog,VisitorLog,TrafficSources,reactionLog,SearchQuery" }
 					]>
 					<!--- Up next (owner, 2026-10-20): three tiles - Create Post, then the two things that need this person most now
 					(AdminHome.cfc getSuggestions, most important first), each with an x to hide it until something new happens, which

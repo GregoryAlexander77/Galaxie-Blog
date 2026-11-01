@@ -1777,6 +1777,17 @@
 		<cfreturn variables.scenesObj>
 	</cffunction>
 
+	<cffunction name="getEmailLog" access="public" returnType="any" output="false" hint="The email sent log (common/cfc/EmailLog.cfc, 2026-10-31): what the blog sent, written by utils.cfc mail(). Created on first use, like getAdminNotes.">
+		<cfif not structKeyExists(variables, "emailLogObj")>
+			<cflock name="galaxieEmailLogCreate_#application.applicationName#" type="exclusive" timeout="10">
+				<cfif not structKeyExists(variables, "emailLogObj")>
+					<cfset variables.emailLogObj = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.EmailLog" : "common.cfc.EmailLog")>
+				</cfif>
+			</cflock>
+		</cfif>
+		<cfreturn variables.emailLogObj>
+	</cffunction>
+
 	<cffunction name="getAdminNotes" access="public" returnType="any" output="false" hint="Private admin notes on posts, products, orders and the like (common/cfc/AdminNotes.cfc, 2026-10-22), created on first use, like getScenes.">
 		<cfif not structKeyExists(variables, "adminNotesObj")>
 			<cflock name="galaxieAdminNotesCreate_#application.applicationName#" type="exclusive" timeout="10">

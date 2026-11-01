@@ -48,6 +48,7 @@
 		<cfargument name="attachmentName" type="string" required="false" default="">
 		<cfargument name="attachmentContent" type="string" required="false" default="">
 		<cfargument name="attachmentType" type="string" required="false" default="text/plain">
+		<cfargument name="kind" type="string" required="false" default="" hint="What the email is, for the Email Log (2026-10-31); empty: worked out from the function that sent it (EmailLog.cfc).">
 			
 		<!--- Detemine if the blog email address is set up --->
 		<cfif application.BlogDbObj.getBlogEmail() eq ''>
@@ -57,30 +58,41 @@
 
 		<!--- timeout="10" (2026-10-27): a mail server that doesn't answer made the page that sent the email (a contact message, the
 		copy of an error) wait until it ran out of time - gregorysblog.org, with no mail settings yet. --->
-		<cfif arguments.mailserver is "">
-			<cfmail to="#arguments.to#" 
-				from="#arguments.from#" 
-				replyto="#len(arguments.replyTo) ? arguments.replyTo : arguments.from#"
-				cc="#arguments.cc#" 
-				bcc="#arguments.bcc#" 
-				subject="#arguments.subject#" 
-				type="#arguments.type#"
-				timeout="10"
-				failto="#arguments.failto#">#arguments.body#<cfif len(arguments.attachmentContent)><cfmailparam file="#arguments.attachmentName#" content="#arguments.attachmentContent#" type="#arguments.attachmentType#"></cfif></cfmail>
-		<cfelse>
-			<cfmail to="#arguments.to#" 
-				from="#arguments.from#" 
-				replyto="#len(arguments.replyTo) ? arguments.replyTo : arguments.from#"
-				cc="#arguments.cc#"
-				bcc="#arguments.bcc#" 
-				subject="#arguments.subject#" 
-				type="#arguments.type#"
-				server="#arguments.mailserver#" 
-				username="#arguments.mailusername#" 
-				password="#arguments.mailpassword#"
-				timeout="10"
-				failto="#arguments.failto#">#arguments.body#<cfif len(arguments.attachmentContent)><cfmailparam file="#arguments.attachmentName#" content="#arguments.attachmentContent#" type="#arguments.attachmentType#"></cfif></cfmail>
-		</cfif>
+		<!--- Every email goes in the Email Log (2026-10-31, EmailLog.cfc): when, to whom, what kind, the subject, sent or failed - never
+		the message. "Sent" means the mail server (or ColdFusion's mail spool) took it. --->
+		<cftry>
+			<cfif arguments.mailserver is "">
+				<cfmail to="#arguments.to#" 
+					from="#arguments.from#" 
+					replyto="#len(arguments.replyTo) ? arguments.replyTo : arguments.from#"
+					cc="#arguments.cc#" 
+					bcc="#arguments.bcc#" 
+					subject="#arguments.subject#" 
+					type="#arguments.type#"
+					timeout="10"
+					failto="#arguments.failto#">#arguments.body#<cfif len(arguments.attachmentContent)><cfmailparam file="#arguments.attachmentName#" content="#arguments.attachmentContent#" type="#arguments.attachmentType#"></cfif></cfmail>
+			<cfelse>
+				<cfmail to="#arguments.to#" 
+					from="#arguments.from#" 
+					replyto="#len(arguments.replyTo) ? arguments.replyTo : arguments.from#"
+					cc="#arguments.cc#"
+					bcc="#arguments.bcc#" 
+					subject="#arguments.subject#" 
+					type="#arguments.type#"
+					server="#arguments.mailserver#" 
+					username="#arguments.mailusername#" 
+					password="#arguments.mailpassword#"
+					timeout="10"
+					failto="#arguments.failto#">#arguments.body#<cfif len(arguments.attachmentContent)><cfmailparam file="#arguments.attachmentName#" content="#arguments.attachmentContent#" type="#arguments.attachmentType#"></cfif></cfmail>
+			</cfif>
+			<cfcatch type="any">
+				<!--- Kept before logging, so the caller gets the mail error itself, not one from the log. --->
+				<cfset var mailError = cfcatch>
+				<cftry><cfset application.blog.getEmailLog().add(to = arguments.to, subject = arguments.subject, status = "Failed", kind = arguments.kind, errorMessage = mailError.message)><cfcatch type="any"></cfcatch></cftry>
+				<cfthrow object="#mailError#">
+			</cfcatch>
+		</cftry>
+		<cftry><cfset application.blog.getEmailLog().add(to = arguments.to, subject = arguments.subject, status = "Sent", kind = arguments.kind)><cfcatch type="any"></cfcatch></cftry>
 	
 	</cffunction>
 	

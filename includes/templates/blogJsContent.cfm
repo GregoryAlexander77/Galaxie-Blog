@@ -1131,6 +1131,12 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
 				var windowTitle = "Traffic Sources";
+			} else if (Id == 118){
+				// Email Log (2026-10-31): what the blog sent. See includes/grids/*/emailLog.cfm.
+				var windowName = "emailLogWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
+				var windowTitle = "Email Log";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";

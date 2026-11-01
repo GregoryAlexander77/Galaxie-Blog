@@ -1230,6 +1230,14 @@ for everything in the log). A site opens the Visitor Log (48) with its visits. -
 		<cfinclude template="../grids/jsGrid/trafficSources.cfm">
 	</cfif>
 </cfcase>
+<!--- 118 Email Log (2026-10-31, owner): what the blog sent in the last 90 days (EmailLog.cfc). Read-only. --->
+<cfcase value=118>
+	<cfif application.kendoCommercial>
+		<cfinclude template="../grids/kendo/emailLog.cfm">
+	<cfelse>
+		<cfinclude template="../grids/jsGrid/emailLog.cfm">
+	</cfif>
+</cfcase>
 <!--- 110 Themes (5.0): pick the theme in use, customize a theme with a live preview, the site's pictures, content and custom code.
 See admin/adminInterface/themeEditor.cfm. The old Themes grid (29) and settings (30) stay for the settings not moved yet. --->
 <cfcase value=110>

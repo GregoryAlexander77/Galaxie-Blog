@@ -4410,6 +4410,47 @@
 		<cfset exporter.send(exporter.build(rows, columns, "Error Log"), "error-log-" & dateFormat(now(), "yyyy-mm-dd") & ".xlsx")>
 	</cffunction>
 
+	<cffunction name="getEmailLogForGrid" access="remote" returnformat="json" output="false"
+			hint="The Email Log window (118, 2026-10-31): what the blog sent in the last 90 days, newest first (EmailLog.cfc). The grids filter and sort it in the browser. jsGrid gets { data: [...] }, Kendo the array.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfargument name="gridType" required="false" default="kendo">
+		<cfset var rows = []>
+		<cfset var row = "">
+		<cfset var response = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<!--- The same rights as the Error Log: the addresses are the blog's subscribers, commenters and members. --->
+		<cfset secureFunction('EditUser')>
+		<cfset rows = application.blog.getEmailLog().getRows()>
+		<cfloop array="#rows#" index="row">
+			<cfset row["Sent"] = dateTimeFormat(row["Sent"], "yyyy-mm-dd'T'HH:nn:ss")>
+		</cfloop>
+		<cfset response = arguments.gridType eq "jsGrid" ? { "data": rows } : rows>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="exportEmailLog" access="remote" returnformat="plain" output="false"
+			hint="The Email Log as an Excel file (2026-10-31): the same rows as the window. ExcelExport.cfc.">
+		<cfargument name="csrfToken" default="" required="true">
+		<cfset var exporter = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfheader statuscode="403">
+			<cfreturn "Invalid token">
+		</cfif>
+		<cfset secureFunction('EditUser')>
+		<cfset exporter = createObject("component", "ExcelExport")>
+		<cfset exporter.send(exporter.build(application.blog.getEmailLog().getRows(), [
+			{ field: "Sent", title: "Sent", type: "date" },
+			{ field: "ToAddress", title: "To", width: 36 },
+			{ field: "Kind", title: "Kind", width: 20 },
+			{ field: "Subject", title: "Subject", width: 60 },
+			{ field: "Status", title: "Status", width: 10 },
+			{ field: "ErrorMessage", title: "Error", width: 50 }
+		], "Email Log"), "email-log-" & dateFormat(now(), "yyyy-mm-dd") & ".xlsx")>
+	</cffunction>
+
 	<cffunction name="exportVisitorLog" access="remote" returnformat="plain" output="false"
 			hint="The Visitor Log as an Excel file (2026-10-31, owner): the newest 10,000 visits, within the same limits as the grid it is opened from (a visitor, an IP address, a post, people this week, or visits from one site). Takes either grid's names for them. ExcelExport.cfc.">
 		<cfargument name="csrfToken" default="" required="true">
@@ -10248,6 +10289,7 @@
 						<cfmail to="#address#" from="#address#" subject="Test email from #application.BlogDbObj.getBlogTitle()#" type="text"
 							spoolenable="false" timeout="20">This is a test email from your blog's Blog Settings window. Your mail settings work.</cfmail>
 					</cfif>
+					<cftry><cfset application.blog.getEmailLog().add(to = address, subject = "Test email from #application.BlogDbObj.getBlogTitle()#", status = "Sent", kind = "Test")><cfcatch type="any"></cfcatch></cftry>
 					<cfset response[ "success" ] = true>
 					<cfset response[ "message" ] = "Success! The mail server accepted a test email to #address#. Check that inbox (and the spam folder) in a minute.">
 					<!--- Mail works (2026-10-27): the menu shows Contact from now on (blog.cfc mailIsSetUp). --->
@@ -10259,6 +10301,7 @@
 					</cftry>
 					<cfcatch type="any">
 						<cfset response[ "message" ] = "The mail server didn't accept it: " & left(trim(reReplace(cfcatch.message & " " & (cfcatch.detail ?: ""), "<[^>]*>", "", "all")), 500)>
+						<cftry><cfset application.blog.getEmailLog().add(to = address, subject = "Test email from #application.BlogDbObj.getBlogTitle()#", status = "Failed", kind = "Test", errorMessage = cfcatch.message)><cfcatch type="any"></cfcatch></cftry>
 					</cfcatch>
 				</cftry>
 			</cfif>
