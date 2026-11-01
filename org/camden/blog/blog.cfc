@@ -154,10 +154,20 @@
 		Helper functions
 	//******************************************************************************************--->
 			
+	<cffunction name="currentRequestUri" access="public" returntype="string" output="false"
+			hint="The path of the page being viewed, ie /blog/index.cfm/privacy (2026-10-31). Adobe ColdFusion and Lucee give it through getPageContext().getRequest().getRequestURI(); BoxLang's page context has no getRequestURI, so there it is made from the CGI scope.">
+		<cftry>
+			<cfreturn getPageContext().getRequest().getRequestURI()>
+			<cfcatch type="any">
+				<cfreturn cgi.script_name & cgi.path_info>
+			</cfcatch>
+		</cftry>
+	</cffunction>
+
 	<cffunction name="getWebPath" access="public" output="false" returntype="string" 
 		hint="Gets the absolute path to the current web folder. If your blog is at https://www.gregoryalexander.com/blog/ for example, this should return '/blog/'. There is another script that Dan wrote (see  https://blog.pengoworks.com/index.cfm/2008/5/8/Getting-the-URLweb-folder-path-in-ColdFusion) with the same name, however, that particular function does not provide a path if you just provide a simple URL (ie http://www.google.com). I need to return a blank string if the URL does not contain a forward slash.">
 
-		<cfargument name="url" required="false" default="#getPageContext().getRequest().getRequestURI()#" hint="Defaults to the current path_info. When viewing pages outside of the main site, we can pass in the root URL, for example from the database." />
+		<cfargument name="url" required="false" default="#currentRequestUri()#" hint="Defaults to the current path_info. When viewing pages outside of the main site, we can pass in the root URL, for example from the database." />
 
 		<!--- Replace the index.cfm, index2.cfm, etc (I often develop a new page by appending a 2 after 'index'). Note: we also want to remove the forward slash in the URL. --->
 		<cfset cleanedUrl = replaceNoCase(arguments.url, "/index.cfm", "")>
@@ -193,7 +203,7 @@
 		
 	<cffunction name="getBaseUrlFromPage" access="public" returntype="string" output="no" hint="This returns the path of the blog by inspecting the page that the blog resides in.">
 		
-		<cfset baseUrl = reReplace(getPageContext().getRequest().getRequestURI(), "(.*)/.cfm", "\1") />
+		<cfset baseUrl = reReplace(currentRequestUri(), "(.*)/.cfm", "\1") />
 		
 		<cfreturn baseUrl>
 	</cffunction>
@@ -3299,7 +3309,8 @@
 
 	<cffunction name="getServerJavaTimeZone" access="private" returntype="any" output="false"
 			hint="The java.util.TimeZone that now() and the date functions use on this server. Lucee has its own time zone setting, which can differ from the JVM's; Adobe ColdFusion uses the JVM's.">
-		<cfif structKeyExists(server, "lucee")>
+		<!--- BoxLang's CFML compatibility module says it is Lucee too, but its page context has no getTimeZone; BoxLang uses the JVM's, like Adobe ColdFusion. --->
+		<cfif structKeyExists(server, "lucee") and not structKeyExists(server, "boxlang")>
 			<cfreturn getPageContext().getTimeZone()>
 		</cfif>
 		<cfreturn createObject("java", "java.util.TimeZone").getDefault()>
@@ -16595,15 +16606,22 @@
 	<cffunction name="getPageUrl" returntype="string" output="true">
 		<cfargument name="includePort" required="false" default="false" type="boolean" />
 
-		<!--- Get request object from the jsp pageContext object --->
+		<!--- Get request object from the jsp pageContext object. BoxLang's page context has getRequestURL but not getQueryString or
+		getServerPort (2026-10-31); those come from the CGI scope there. --->
 		<cfset PageRequestObj = getPageContext().getRequest()>
 		<!--- Get the URL. This does not include the port or the query string --->
 		<cfset pageUrl = PageRequestObj.getRequestURL().toString()>
-		<cfset pageQueryString = PageRequestObj.getQueryString()>
+		<cftry>
+			<cfset pageQueryString = PageRequestObj.getQueryString()>
+			<cfcatch type="any"><cfset pageQueryString = cgi.query_string></cfcatch>
+		</cftry>
 
 		<!--- Build the URL string --->
 		<cfif arguments.includePort>
-			<cfset pagePort = PageRequestObj.getServerPort()>
+			<cftry>
+				<cfset pagePort = PageRequestObj.getServerPort()>
+				<cfcatch type="any"><cfset pagePort = cgi.server_port></cfcatch>
+			</cftry>
 			<cfset pageUrl = pageUrl & ':' & pagePort>
 		</cfif>
 		<!--- Note: the pageQueryString may be undefined when there is an index.cfm. This may throw an error if I don't use an isDefined --->

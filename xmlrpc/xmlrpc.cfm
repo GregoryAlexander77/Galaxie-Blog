@@ -1,10 +1,14 @@
 <cfprocessingdirective pageencoding="utf-8" />
 
 <!---// this is required for Live Writer to ensure that the request is processed as UTF-8 //--->
+<!--- BoxLang's page context has no getHttpRequest (2026-10-31); BoxLang reads requests as UTF-8 already. --->
+<cftry>
 <cfset responseCharset = getPageContext().getRequest().getHttpRequest().getCharacterEncoding() />
 <cfif not structKeyExists(variables, "responseCharset")>
   <cfset getPageContext().getRequest().getHttpRequest().setCharacterEncoding("UTF-8") />
 </cfif>
+<cfcatch type="any"></cfcatch>
+</cftry>
 
 <cfcontent type="text/xml; charset=utf-8">
 

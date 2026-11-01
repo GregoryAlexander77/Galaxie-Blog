@@ -172,11 +172,18 @@ otherwise the caller-supplied fallback (already computed by the caller) is used.
 			
 <!--- Helper function to get the base URL. This was found at https://blog.pengoworks.com/index.cfm/2008/5/8/Getting-the-URLweb-folder-path-in-ColdFusion  --->
 <cffunction name="getWebPath" access="public" output="false" returntype="string" hint="Gets the absolute path to the current web folder.">
-	<cfargument name="url" required="false" default="#getPageContext().getRequest().getRequestURI()#" hint="Defaults to the current path_info" />
+	<cfargument name="url" required="false" default="" hint="Defaults to the current path_info" />
 	<cfargument name="ext" required="false" default="\.(cfml?.*|html?.*|[^.]+)" hint="Define the regex to find the extension. The default will work in most cases, unless you have really funky urls like: /folder/file.cfm/extra.path/info" />
 
 	<!---// trim the path to be safe //--->
 	<cfset var sPath = trim(arguments.url) />
+	<!--- The current page's path. BoxLang's page context has no getRequestURI (2026-10-31); there it comes from the CGI scope. --->
+	<cfif not len(sPath)>
+		<cftry>
+			<cfset sPath = getPageContext().getRequest().getRequestURI() />
+			<cfcatch type="any"><cfset sPath = cgi.script_name & cgi.path_info /></cfcatch>
+		</cftry>
+	</cfif>
 	<!---// find the where the filename starts (should be the last wherever the last period (".") is) //--->
 	<cfset var sEndDir = reFind("/[^/]+#arguments.ext#$", sPath) />
 

@@ -84,7 +84,7 @@
 		</cfif><!---<cfif len(CGI.Http_Referer)>--->
 			
 		<!--- Determine if the visitor is on the home page --->
-		<cfif application.siteUrl contains getPageContext().getRequest().getRequestURI()>
+		<cfif application.siteUrl contains application.blog.currentRequestUri()>
 			<cfset isHomePage = true>
 		<cfelse>
 			<cfset isHomePage = false>
