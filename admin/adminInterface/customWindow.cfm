@@ -334,7 +334,7 @@
 						<!--- Get the titleAlias from the response. This will be appended to the URL to make the link --->
 						titleAlias = JSON.parse(JSON.stringify(response.titleAlias));
 						<!--- To set content, typically get use the tinymce.activeEditor. However, this will not work since there are now two active editors (this one and the post editor). We need to use the editor name to set the content. The post editor name is set using the minute and seconds appended to a 'postEditor' string, and we write a cookie when we create it to get to the proper name. Get this name --->
-						postEditorName = <cfoutput>'#evaluate("cookie.postEditor")#'</cfoutput>;
+						postEditorName = <cfoutput>'#cookie.postEditor#'</cfoutput>;
 						<!--- Insert the content into the active tinymce editor. The response is json coming from the server --->
 						tinymce.get(postEditorName).insertContent(JSON.parse(JSON.stringify(response.buttonHtml)));
 						<!--- Display the link to the user --->

@@ -429,7 +429,7 @@ Image.cfc's generateHeroArt()/generateAnimationDefault(). --->
 			<cfset getter = "get" & fn>
 			<cfset val = "">
 			<cftry>
-				<cfset val = evaluate("ts.#getter#()")>
+				<cfset val = invoke(ts, getter)>
 				<cfcatch type="any">
 					<cfset val = "">
 				</cfcatch>
@@ -712,7 +712,7 @@ Image.cfc's generateHeroArt()/generateAnimationDefault(). --->
 			<cfset setter = "set" & fn>
 			<cfset val = "">
 			<cftry>
-				<cfset val = evaluate("ts.#getter#()")>
+				<cfset val = invoke(ts, getter)>
 				<cfcatch type="any">
 					<cfcontinue>
 				</cfcatch>
@@ -721,7 +721,7 @@ Image.cfc's generateHeroArt()/generateAnimationDefault(). --->
 				<cfset newVal = replace(val, arguments.find, arguments.replace, "all")>
 				<cfset arrayAppend(changes, {"theme": t.getThemeAlias(), "field": fn, "before": val, "after": newVal})>
 				<cfif arguments.confirm>
-					<cfset evaluate("ts.#setter#(newVal)")>
+					<cfset invoke(ts, setter, [newVal])>
 				</cfif>
 			</cfif>
 		</cfloop>

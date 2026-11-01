@@ -4858,7 +4858,8 @@
 			</cfdefaultcase>
 		</cfswitch>
 		<!--- Return the setting that was requested --->
-		<cfreturn evaluate("#arguments.setting#")>
+		<!--- The setting is one of the variables set above (unscoped: the local scope on BoxLang, variables on Adobe ColdFusion and Lucee). No evaluate() (2026-11-01). --->
+		<cfreturn structKeyExists(local, arguments.setting) ? local[arguments.setting] : variables[arguments.setting]>
 	</cffunction>
 
 	<!--- 2026-10-01: complementary/rotated-hue color helpers, for seeding the fallback CSS gradients
