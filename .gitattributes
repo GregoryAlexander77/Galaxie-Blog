@@ -1,2 +1,5 @@
 # GSAP files are checked by their SHA-512 hash in the browser (common/js/galaxieScene.js), so their bytes must never change.
 common/libs/gsap3/*.js -text
+
+# Third-party libraries: GitHub leaves them out of the repository's language count, so it shows as ColdFusion, not JavaScript (2026-11-01).
+common/libs/** linguist-vendored
