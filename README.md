@@ -65,6 +65,18 @@ Be sure to write down your chosen user name and password. You will need to retai
 7. Once installed, you should see your new blog with a 'No Entries' message on the front page. You will not see any blog posts until you make them using the administrative site; see below.
 8. Check the blog's email address. The Site Wizard's first screen fills it in with your own email; if you skipped it, open Blog Settings and fill in the Blog Email Address. The blog sends no email until it is filled in (member sign-in links, comment notices, subscriber email and error summaries). If you leave the Mail Server empty, the blog uses the mail server set in the ColdFusion or Lucee administrator.
     
+## What's new in 5.02
+
+A small update to 5.01. Update as usual (see [UPGRADING.md](UPGRADING.md)).
+
+- **A Privacy page.** Every blog gets a released page named Privacy, linked from the footer. It says what the blog keeps about visitors and for how long, written from the features your blog uses. A page already titled Privacy is used as it is. Edit it like any other page.
+- **Google Analytics asks first.** When the blog uses Google Analytics, visitors see a small banner and Analytics only starts after they choose OK. It can be switched off in Blog Options.
+- **Email Log.** A new window in the Logs group lists every email the blog sent or failed to send, such as new posts to subscribers, bookings, orders and test emails. Rows are kept for 90 days.
+- **Author and date on the post cards.** The card grid, the home page cards and the Popular strip show who wrote each post and when it was published.
+- **Hero editor:** a parallax hero can be held on screen and then give way to the post with a soft edge, a sharp edge or a fade, and an **Open in the Scene editor** button opens the scene a post shows.
+- **Fixes:** a held scene hero's soft edge fades into the post instead of a dark band, and the post's links under it can be clicked; the hero style cards no longer show the blog's style twice.
+- **Getting ready for BoxLang:** the blog no longer depends on page context methods BoxLang lacks, and date columns no longer have an empty default. Nothing changes on Adobe ColdFusion or Lucee.
+
 ## What's new in 5.01
 
 A small update to 5.0, mostly fixes. Update from 5.0 as usual (see [UPGRADING.md](UPGRADING.md)), then **run the card tool once** (below).

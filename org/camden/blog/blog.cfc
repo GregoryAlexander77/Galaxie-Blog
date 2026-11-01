@@ -17,9 +17,9 @@
 	//******************************************************************************************--->
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "5.01" />
-	<cfset versionName = "5.01 (Howl at the Moon)" />
-	<cfset versionDate =  "October 31st 2026">
+	<cfset version = "5.02" />
+	<cfset versionName = "5.02 (Howl at the Moon)" />
+	<cfset versionDate =  "November 1st 2026">
 
 	<!--- Require version 9 or higher as we are using ORM --->
 	<cfset majorVersion = listFirst(server.coldfusion.productversion)>

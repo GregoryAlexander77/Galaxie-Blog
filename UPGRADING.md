@@ -1,6 +1,6 @@
 # Updating Galaxie Blog
 
-This page explains how to update an existing Galaxie Blog to the current version (5.01). It works for any older version, including 4.32, 4.5, 4.66, 4.8 and 4.9. An older blog can go straight to 5.0 in one step: the update runs every database change that is missing, in order, and it is safe to run more than once.
+This page explains how to update an existing Galaxie Blog to the current version (5.02). It works for any older version, including 4.32, 4.5, 4.66, 4.8 and 4.9. An older blog can go straight to 5.0 in one step: the update runs every database change that is missing, in order, and it is safe to run more than once.
 
 You do not need to run the installer again, and your posts, comments, users, settings and `blog.ini.cfm` are kept.
 
@@ -36,6 +36,7 @@ After this, the **Blog Updates** window of the administrative site shows when a 
 * **4.8:** the update fills in the new settings, creates the tables that Page Collections use, and moves the old single *parent site* link of Blog Settings to the new **Configure Menu** window. The top menu is now built from Configure Menu (your own links), Categories and your Page Collections (mark a collection *Show in the top menu*). The footer is the neutral default unless you saved a Composite Footer (see *Before you start*).
 * **4.9:** the update creates the tables for Forms, Events, Bookings, Payments and Members, and adds the Upcoming Events pod. Everything starts empty and switched off until you set it up. **Member accounts start switched off** on an updated blog: turn them on in Blog Options, after the blog's email address is filled in under Blog Settings. To take payments, connect Stripe in Blog Options, Payments. **Error emails now come as one summary a night** (Blog Options, Error emails); the first page view after the update sends a summary of the last 24 hours.
 * **5.0:** the update creates the tables for Scenes and the Shop and adds the new columns for post heroes, the Site Wizard and the menu. Six starter scenes are added the first time you open the Scenes window. It puts back any missing background picture of a built-in theme, and in themes you haven't changed it removes the favicons that were loaded from gregoryalexander.com and uses the theme's background picture as the picture for shared posts. Your posts, theme settings and home page stay as they are: the Site Wizard does not open by itself on an updated blog, and if you open it, it starts with nothing checked and keeps your home page. The blog's application name changes with this version, so everyone is signed out once after the update; just sign in again. The update also adds indexes to the visitor log tables; on a blog with a large visitor log this can take a minute or two, so let the Update the database page finish.
+* **5.02:** the update makes the Privacy page (linked from every footer) and the Email Log table. If your blog already has a page titled Privacy, that page is used as it is.
 
 ## Tips for uploading the files
 
