@@ -1,0 +1,36 @@
+{
+	"dataSources": {
+		"galaxie": {
+			"class": "org.mariadb.jdbc.Driver",
+			"bundleName": "mariadb-java-client",
+			"dsn": "jdbc:mariadb://{host}:{port}/{database}",
+			"host": "{env:DB_HOST}",
+			"port": "3306",
+			"database": "{env:DB_NAME}",
+			"username": "{env:DB_USER}",
+			"password": "{env:DB_PASSWORD}",
+			"connectionLimit": "-1",
+			"connectionTimeout": "10",
+			"liveTimeout": "15",
+			"blob": "false",
+			"clob": "false",
+			"validate": "false",
+			"storage": "false",
+			"allow": "511",
+			"dbdriver": "MariaDB",
+			"custom": {
+				"tinyInt1isBit": "true",
+				"sslMode": "disable",
+				"allowLocalInfile": "true"
+			}
+		}
+	},
+	"mailServers": [
+		{
+			"smtp": "mail",
+			"port": 1025,
+			"tls": false,
+			"ssl": false
+		}
+	]
+}

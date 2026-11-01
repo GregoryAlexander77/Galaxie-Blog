@@ -1,0 +1,13 @@
+.git
+.gitattributes
+.env
+.env.example
+docker-compose.yml
+DOCKER.md
+cache/*
+# The docker folder only brings the Lucee settings file into the build.
+docker/*
+!docker/lucee/
+docker/lucee/*
+!docker/lucee/.CFConfig.json
+!docker/lucee/start.sh

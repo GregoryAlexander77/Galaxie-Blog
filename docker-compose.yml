@@ -1,0 +1,64 @@
+# Galaxie Blog on Lucee, with MariaDB and a mail catcher (2026-11-01, DRAFT - not tested yet).
+# Start:  docker compose up -d --build     then open http://localhost:8888 for the installer.
+# Settings (passwords, ports, the Lucee version) come from .env; copy .env.example to .env first.
+
+services:
+
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-galaxie}
+      MARIADB_USER: ${DB_USER:-galaxie}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
+      TZ: ${TZ:-America/Los_Angeles}
+    # utf8mb4 so posts and comments can hold any character, emoji included.
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Catches every email the blog sends; read them at http://localhost:8025. Nothing leaves the computer.
+  mail:
+    image: axllent/mailpit:v1.33
+    restart: unless-stopped
+    ports:
+      - "${MAIL_VIEWER_PORT:-8025}:8025"
+
+  lucee:
+    build:
+      context: .
+      dockerfile: docker/lucee/Dockerfile
+      args:
+        LUCEE_IMAGE: ${LUCEE_IMAGE:-lucee/lucee:7.1}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    # The same port inside and outside: the blog's scheduled tasks call its own address (docker/lucee/start.sh).
+    ports:
+      - "${BLOG_PORT:-8888}:${BLOG_PORT:-8888}"
+    environment:
+      BLOG_PORT: ${BLOG_PORT:-8888}
+      LUCEE_JAVA_OPTS: ${LUCEE_JAVA_OPTS:--Xms256m -Xmx1024m}
+      # Installed by Lucee when it starts: the MariaDB driver and the ORM (Hibernate), which Galaxie needs.
+      LUCEE_EXTENSIONS: "F2FA5DB2-0C27-499C-B1171D2D812FDAF9,D062D72F-F8A2-46F0-8CBC91325B2F067B"
+      # Read by docker/lucee/.CFConfig.json for the "galaxie" datasource.
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-galaxie}
+      DB_USER: ${DB_USER:-galaxie}
+      DB_PASSWORD: ${DB_PASSWORD}
+      TZ: ${TZ:-America/Los_Angeles}
+    volumes:
+      # The whole blog folder lives in a volume, filled from the image the first time. Uploads, the cache and the
+      # blog.ini.cfm the installer writes are kept when the container is rebuilt or restarted. See DOCKER.md for updating.
+      - blog-files:/var/www
+
+volumes:
+  db-data:
+  blog-files:
