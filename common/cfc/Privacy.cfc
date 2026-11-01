@@ -72,7 +72,7 @@
 	<cfif uses.members><cfset arrayAppend(headings, "accounts")></cfif>
 	<cfif arrayLen(headings)><cfset headings[1] = uCase(left(headings[1], 1)) & mid(headings[1], 2, 100)></cfif>
 	<cfsavecontent variable="html"><cfoutput>
-<blockquote class="k-notification-info"><p><b>This page was written for you by Galaxie Blog</b> from what your blog collects today. Please read it, change anything that doesn't fit your site, and add how people can reach you. Then delete this note.</p></blockquote>
+<blockquote class="k-notification-info"><p><b>This page was written for you by Galaxie Blog</b> from what your blog collects today. Please read it and change anything that doesn't fit your site. Then delete this note.</p></blockquote>
 <p>This page explains what #title# collects when you visit, why, how long it's kept, and who else sees it. In short: we keep what we need to run the site, we don't sell it, and we delete it on a schedule.</p>
 <h2>When you visit</h2>
 <p>Like most websites, this one keeps a log of visits: your IP address, your browser (its "user agent"), the page you opened, the site you came from, and the time. We use it to count visits, to see which pages are read, and to spot and block bots and abuse. <cfif visitorMonths gt 0>Visits are deleted automatically after #visitorMonths# month<cfif visitorMonths neq 1>s</cfif>.</cfif> When something goes wrong on a page, the error is logged with the same details so it can be fixed<cfif logMonths gt 0>; error records are deleted after #logMonths# month<cfif logMonths neq 1>s</cfif></cfif>.</p>
@@ -101,7 +101,7 @@
 <h2>What we don't do</h2>
 <p>We don't sell or rent your information, and we don't share it except as described here or when the law requires it.</p>
 <h2>Your choices</h2>
-<p>You can ask to see the information we hold about you, have it corrected, or have it deleted. To ask, contact us. <!--- The owner adds how: an email address or the Contact page. ---></p>
+<p>You can ask to see the information we hold about you, have it corrected, or have it deleted. To ask, <a href="#application.blogHostUrl#/?contact">contact us</a>.</p>
 <p><i>Last updated #dateFormat(application.blog.blogNow(), "mmmm d, yyyy")#.</i></p>
 	</cfoutput></cfsavecontent>
 	<cfreturn trim(html)>
