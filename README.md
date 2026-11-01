@@ -65,6 +65,18 @@ Be sure to write down your chosen user name and password. You will need to retai
 7. Once installed, you should see your new blog with a 'No Entries' message on the front page. You will not see any blog posts until you make them using the administrative site; see below.
 8. Check the blog's email address. The Site Wizard's first screen fills it in with your own email; if you skipped it, open Blog Settings and fill in the Blog Email Address. The blog sends no email until it is filled in (member sign-in links, comment notices, subscriber email and error summaries). If you leave the Mail Server empty, the blog uses the mail server set in the ColdFusion or Lucee administrator.
     
+## What's new in 5.01
+
+A small update to 5.0, mostly fixes. Update from 5.0 as usual (see [UPGRADING.md](UPGRADING.md)), then **run the card tool once** (below).
+
+- **Card pictures are small again.** Cards on the home page and in collections no longer load the full-size upload: each picture gets a 640px card copy in `/enclosures/cards/` (WebP where the server can write it, JPG on ColdFusion 2023). New uploads get theirs by themselves. For the pictures you already have, sign in and open `/common/cfc/TestUtility.cfc?method=makeCardImages&confirm=true` once (run it again if it says there are more), then reinit.
+- **Share pictures** (Facebook, LinkedIn, X) use the JPG or PNG copy before the WebP one, and say their size.
+- **Export to Excel** on the Error Log, Visitor Log, Subscribers and Comments grids.
+- **Popular Blogs** stays hidden until your blog has enough posts (20 by default, Blog Options).
+- **Signed out in the middle of something?** The administrative site signs you back in where you were.
+- **Site Wizard:** two opt-in boxes, to say hello to the Galaxie Blog project and to ask for your blog to be added to cfblogs.org. Both are off unless you tick them.
+- **Fixes:** the Scene editor's Save closes the window, links to comments go to the comment, the image quality slider on phones, the traffic cards on the administrative home page refresh themselves one at a time, scenes in posts sit under the floating menu, a comment's cached list is cleared when it's approved, and a reinit no longer stops clearing the cache at the first file it can't delete.
+
 ## What's new in 5.0 (Howl at the Moon Edition)
 
 Galaxie Blog 5.0 is about how your blog looks and moves.
