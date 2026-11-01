@@ -7,7 +7,9 @@ Set before including:
 	heroCardsId          the hidden input's id
 	heroCardsName        its name ('' for none)
 	heroCardsValue       the chosen style: classic, held, band or magazine ('' = the blog's choice)
-	heroCardsBlogChoice  '' for the blog's own setting; else the blog's style, and a first card "Blog's choice" is shown
+	heroCardsBlogChoice  '' for the blog's own setting; else the blog's style: its card is tagged "Blog's default" and choosing it
+	                     saves '' (the post follows the blog). There was a separate "Blog's choice" card first, but it repeated
+	                     a card that was already there (2026-11-01, owner).
 	heroCardsSmall       true for the smaller cards (the Hero text window)
 --->
 <cfparam name="heroCardsName" default="">
@@ -28,12 +30,13 @@ Set before including:
 <cfset request.heroStyleCardsCss = true>
 <style>
 	.heroCards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 10px; }
-	.heroCards.small { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-	@media (max-width: 900px) { .heroCards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .heroCards.small { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+	.heroCards.small { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+	@media (max-width: 900px) { .heroCards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .heroCards.small { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 	@media (max-width: 480px) { .heroCards, .heroCards.small { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 	.heroCard { display: flex; flex-direction: column; justify-content: flex-start; text-align: left; padding: 10px; border: 2px solid rgba(128,128,128,.35); border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 	.heroCard[aria-checked="true"] { border-color: currentColor; }
 	.heroCard .heroCardName { display: block; margin: 8px 0 2px; }
+	.heroCard .heroCardDefault { display: inline-block; margin-left: 4px; padding: 0 6px; border: 1px solid rgba(128,128,128,.5); border-radius: 8px; font-size: 11px; opacity: .85; }
 	.heroCard .heroCardWhat { display: block; font-size: 13px; opacity: .75; line-height: 1.35; }
 	.heroCards.small .heroCardWhat { display: none; }
 	.heroCard .heroCardPick { display: block; margin-top: 6px; font-size: 13px; opacity: 0; }
@@ -79,7 +82,6 @@ Set before including:
 	.heroMini.magazine .pic .kicker { position: absolute; left: 7%; bottom: 46%; width: 18%; height: 5px; border-radius: 3px; }
 	.heroMini.magazine .fade { height: 18px; margin-top: -18px; position: relative; }
 	.heroMini.magazine .body { padding-top: 6%; }
-	.heroMini.blogChoice { display: flex; align-items: center; justify-content: center; text-align: center; font-size: 12px; opacity: .8; padding: 0 8px; box-sizing: border-box; }
 	@keyframes heroCardScroll { 0%, 22% { transform: translateY(0); } 62%, 82% { transform: translateY(-46%); } 100% { transform: translateY(0); } }
 	@keyframes heroCardSlide { 0%, 22% { transform: translateY(0); } 62%, 82% { transform: translateY(-62%); } 100% { transform: translateY(0); } }
 	/* Only the chosen card and the one under the pointer play; the rest rest at the top. */
@@ -92,15 +94,10 @@ Set before including:
 <cfoutput>
 <input type="hidden" id="#heroCardsId#"<cfif len(heroCardsName)> name="#heroCardsName#"</cfif> value="#encodeForHtmlAttribute(heroCardsValue)#">
 <div class="heroCards<cfif heroCardsSmall> small</cfif>" id="#heroCardsGroupId#" role="radiogroup" aria-label="Post hero style" data-for="#heroCardsId#">
-	<cfif len(heroCardsBlogChoice)>
-	<button type="button" class="heroCard" role="radio" data-style="" aria-checked="#len(heroCardsValue) ? 'false' : 'true'#">
-		<span class="heroMini blogChoice">Blog's choice<br/>(#encodeForHtml(heroCardNames[heroCardsBlogChoice] ?: heroCardsBlogChoice)#)</span>
-		<span class="heroCardName">Blog's choice</span>
-		<span class="heroCardPick">&##10003; Chosen</span>
-	</button>
-	</cfif>
 	<cfloop array="#heroCardStyles#" index="hcs">
-	<button type="button" class="heroCard" role="radio" data-style="#hcs.key#" aria-checked="#heroCardsValue eq hcs.key ? 'true' : 'false'#" title="#encodeForHtmlAttribute(hcs.what)#">
+	<!--- The blog's own style: chosen when the post has none of its own, and choosing it saves '' so the post keeps following the blog. --->
+	<cfset hcsIsDefault = len(heroCardsBlogChoice) and hcs.key eq heroCardsBlogChoice>
+	<button type="button" class="heroCard" role="radio" data-style="#hcsIsDefault ? '' : hcs.key#" aria-checked="#(heroCardsValue eq hcs.key or (hcsIsDefault and not len(heroCardsValue))) ? 'true' : 'false'#" title="#encodeForHtmlAttribute(hcs.what & (hcsIsDefault ? ' This is the blog''s default (Blog Options); the post follows it if that changes.' : ''))#">
 		<span class="heroMini #hcs.key#" aria-hidden="true"><span class="bar"><i></i><i></i><i></i></span><span class="view">
 		<cfif hcs.key eq "classic">
 			<span class="page"><span class="title"></span><span class="pic" style="background-image: url('#heroCardPicture#')"></span><cfloop from="1" to="9" index="i"><span class="ln#i mod 3 eq 0 ? ' mid' : ''#"></span></cfloop></span>
@@ -113,7 +110,7 @@ Set before including:
 			<span class="page"><span class="pic" style="background-image: url('#heroCardPicture#')"><span class="kicker light"></span><span class="big a light"></span><span class="big b light"></span></span><span class="fade"></span><span class="body"><cfloop from="1" to="10" index="i"><span class="ln#i mod 3 eq 0 ? ' mid' : ''#"></span></cfloop></span></span>
 		</cfif>
 		</span></span>
-		<span class="heroCardName">#hcs.name#</span>
+		<span class="heroCardName">#hcs.name#<cfif hcsIsDefault> <span class="heroCardDefault">Blog's default</span></cfif></span>
 		<span class="heroCardWhat">#hcs.what#</span>
 		<span class="heroCardPick">&##10003; Chosen</span>
 	</button>
