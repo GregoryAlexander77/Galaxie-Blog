@@ -212,7 +212,12 @@
 		<cfset var fileName = "">
 		<cfset var picture = "">
 		<cftry>
-			<cfif not directoryExists(folder)><cfdirectory action="create" directory="#folder#"></cfif>
+			<!--- Readable by the web server (2026-10-31): on galaxieblog.org Lucee runs as root and made the folder root-only, so Apache
+			answered 403 for every card picture. Windows ignores the mode. --->
+			<cfif not directoryExists(folder)>
+				<cfdirectory action="create" directory="#folder#">
+				<cftry><cfset fileSetAccessMode(folder, "755")><cfcatch type="any"></cfcatch></cftry>
+			</cfif>
 			<!--- An animated GIF keeps its animation only as a GIF, so it is copied as it is. --->
 			<cfif extension eq "gif">
 				<cfset fileName = getFileFromPath(arguments.imagePath)>
