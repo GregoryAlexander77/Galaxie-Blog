@@ -845,6 +845,14 @@
 						<input type="text" id="parallaxHeroLine" class="k-textbox" maxlength="300" style="width: 95%;">
 						<label style="display: block; margin-top: 6px;">Where the heading sits</label>
 						<div id="parallaxHeroPositions" role="radiogroup" aria-label="Where the heading sits"></div>
+						<!--- How it gives way to the post (2026-11-01, owner): Scenes.cfc usePostHeroParallax ending. --->
+						<label for="parallaxHeroEnding" style="display: block; margin-top: 6px;">How it gives way to the post</label>
+						<select id="parallaxHeroEnding" style="width: 95%;">
+							<option value="">Scrolls away (the layers move as it goes)</option>
+							<option value="edge">Held, then a soft edge (the post's text rises with a soft edge above it)</option>
+							<option value="sharp">Held, then a sharp edge (the post slides up over it)</option>
+							<option value="fade">Held, then it fades out over the text</option>
+						</select>
 						<div style="margin-top: 10px;">
 							<button type="button" class="k-button k-primary" id="parallaxHeroSave">Use this parallax hero</button>
 							<button type="button" class="k-button" id="parallaxHeroCancel">Cancel</button>
@@ -863,6 +871,7 @@
 					var postTitle = <cfoutput>#replace(serializeJSON(parallaxTitle), "</", "<\/", "all")#</cfoutput>;
 					var POSITIONS = [["center", "", "Middle, center"], ["left", "", "Middle, left"], ["right", "", "Middle, right"], ["left", "bottom", "Low, left (magazine)"], ["center", "bottom", "Low, center"], ["right", "bottom", "Low, right"]];
 					var chosen = null, align = state.align || "center", low = state.textPosition === "bottom", timer = null;
+					var ending = $("#parallaxHeroEnding").kendoDropDownList().data("kendoDropDownList");
 					function withBase(v) { return String(v || "").split("{baseUrl}").join(BASE); }
 					function starterByKey(k) { for (var i = 0; i < starters.length; i++) { if (starters[i].key === k) { return starters[i]; } } return null; }
 					function art(pick) {
@@ -924,13 +933,13 @@
 							type: "post",
 							url: BASE + "/common/cfc/ProxyController.cfc?method=savePostHeroParallax",
 							data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId, starter: chosen || "", heading: $.trim($("#parallaxHeroHeading").val()),
-								line: $.trim($("#parallaxHeroLine").val()), align: align, textPosition: low ? "bottom" : "", remove: remove ? "true" : "false" },
+								line: $.trim($("#parallaxHeroLine").val()), align: align, textPosition: low ? "bottom" : "", ending: ending.value(), remove: remove ? "true" : "false" },
 							dataType: "json",
 							success: function (response) {
 								if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
 								if (response && response.success) {
 									state.active = !remove; state.otherScene = "";
-									if (!remove) { state.starter = chosen; state.heading = $.trim($("#parallaxHeroHeading").val()); state.align = align; state.textPosition = low ? "bottom" : ""; }
+									if (!remove) { state.starter = chosen; state.heading = $.trim($("#parallaxHeroHeading").val()); state.align = align; state.textPosition = low ? "bottom" : ""; state.ending = ending.value(); }
 									$("#parallaxHeroStatus").text(remove ? "Removed. The post shows its hero above again." : "Saved. The post shows it now.");
 									$("#parallaxHeroPanel").hide(); clearInterval(timer);
 									showStatus();
@@ -951,6 +960,7 @@
 						if ($("#parallaxHeroPanel").is(":visible")) {
 							drawCards();
 							$("#parallaxHeroLine").val(state.line || "");
+							ending.value(state.ending || "");
 							if (state.active && state.starter) { $("#parallaxHeroHeading").val(state.heading || ""); choose(state.starter); }
 						} else { clearInterval(timer); }
 					});

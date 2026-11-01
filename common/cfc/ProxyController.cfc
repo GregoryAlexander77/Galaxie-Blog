@@ -14172,6 +14172,7 @@
 		<cfargument name="align" type="string" default="center" required="false">
 		<cfargument name="textPosition" type="string" default="" required="false">
 		<cfargument name="remove" type="string" default="false" required="false">
+		<cfargument name="ending" type="string" default="" required="false">
 		<cfset var response = { "success": false, "errorMessage": "" }>
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
 			<cfset response = "Invalid token">
@@ -14183,7 +14184,7 @@
 				<cfif isBoolean(arguments.remove) and arguments.remove>
 					<cfset application.blog.getScenes().setPostScene(val(arguments.postId), "")>
 				<cfelse>
-					<cfset application.blog.getScenes().usePostHeroParallax(val(arguments.postId), arguments.starter, arguments.heading, arguments.line, arguments.align, arguments.textPosition)>
+					<cfset application.blog.getScenes().usePostHeroParallax(val(arguments.postId), arguments.starter, arguments.heading, arguments.line, arguments.align, arguments.textPosition, arguments.ending)>
 				</cfif>
 				<cfset flushWebFormPosts([val(arguments.postId)])>
 				<cfset response[ "success" ] = true>

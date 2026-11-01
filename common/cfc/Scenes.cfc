@@ -445,9 +445,9 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 </cffunction>
 
 <cffunction name="getPostHeroParallax" access="public" returntype="struct" output="false"
-		hint="The post's parallax hero for the Hero editor: { active, starter, heading, line, align, textPosition, otherScene }. otherScene is the alias of a scene the post shows that the panel didn't make (set in the Scene window), or empty.">
+		hint="The post's parallax hero for the Hero editor: { active, starter, heading, line, align, textPosition, ending, otherScene }. ending is empty for one that scrolls away, or how a held one gives way (edge, sharp, fade). otherScene is the alias of a scene the post shows that the panel didn't make (set in the Scene window), or empty.">
 	<cfargument name="postId" type="numeric" required="true">
-	<cfset var result = { "active": false, "starter": "", "heading": "", "line": "", "align": "center", "textPosition": "", "otherScene": "" }>
+	<cfset var result = { "active": false, "starter": "", "heading": "", "line": "", "align": "center", "textPosition": "", "ending": "", "otherScene": "" }>
 	<cfset var alias = getPostScene(arguments.postId)>
 	<cfset var data = "">
 	<cfset var section = "">
@@ -465,6 +465,7 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 		<cfset result.line = trim(reReplace(section.html ?: "", "<[^>]*>", "", "all"))>
 		<cfset result.align = section.align ?: "center">
 		<cfset result.textPosition = section.textPosition ?: "">
+		<cfset result.ending = (data.settings.type ?: "") eq "heroParallax" ? "" : (data.settings.ending ?: "edge")>
 		<cfcatch type="any"></cfcatch>
 	</cftry>
 	<cfreturn result>
@@ -478,7 +479,11 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 	<cfargument name="line" type="string" required="false" default="">
 	<cfargument name="align" type="string" required="false" default="center">
 	<cfargument name="textPosition" type="string" required="false" default="">
+	<!--- How it gives way to the post (2026-11-01, owner): empty scrolls away (a hero parallax scene); edge, sharp or fade hold it
+	in place first, then it gives way as galaxieScene.js settings.ending. --->
+	<cfargument name="ending" type="string" required="false" default="">
 	<cfset var alias = "post-hero-" & arguments.postId>
+	<cfset var held = listFind("edge,sharp,fade", arguments.ending) gt 0>
 	<!--- The title and picture as the post page has them (the picture is in the media table, not on Post). --->
 	<cfset var posts = application.blog.getPostByPostId(arguments.postId, true, true)>
 	<cfset var post = arrayLen(posts) ? posts[1] : {}>
@@ -510,6 +515,8 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 		</cfif>
 		<cfset section = { "kind": "layeredHero", "layers": source.sections[1].layers }>
 		<cfif len(source.sections[1].shadow ?: "")><cfset section["shadow"] = source.sections[1].shadow></cfif>
+		<!--- Held, the layers rise off and show the color the picture was made to fade into. --->
+		<cfif held and len(source.sections[1].fadeColour ?: "")><cfset section["fadeColour"] = source.sections[1].fadeColour></cfif>
 		<cfset sourceName = source.name ?: arguments.starter>
 	</cfif>
 	<cfset section["heading"] = left(trim(arguments.heading), 300)>
@@ -522,6 +529,10 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 		"settings": { "type": "heroParallax", "scrub": true, "heroStarter": arguments.starter },
 		"sections": [ section ]
 	}>
+	<cfif held>
+		<cfset scene.settings = { "scrub": true, "heroStarter": arguments.starter, "pinLength": "150%", "ending": arguments.ending }>
+		<cfif isStruct(source) and len(source.pageColour ?: "") and source.pageColour neq "auto"><cfset scene.pageColour = source.pageColour></cfif>
+	</cfif>
 	<cfset saveScene(alias, serializeJSON(scene))>
 	<cfset setPostScene(arguments.postId, alias)>
 	<cfreturn alias>
