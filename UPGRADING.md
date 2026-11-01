@@ -1,6 +1,6 @@
 # Updating Galaxie Blog
 
-This page explains how to update an existing Galaxie Blog to the current version (5.0). It works for any older version, including 4.32, 4.5, 4.66, 4.8 and 4.9. An older blog can go straight to 5.0 in one step: the update runs every database change that is missing, in order, and it is safe to run more than once.
+This page explains how to update an existing Galaxie Blog to the current version (5.01). It works for any older version, including 4.32, 4.5, 4.66, 4.8 and 4.9. An older blog can go straight to 5.0 in one step: the update runs every database change that is missing, in order, and it is safe to run more than once.
 
 You do not need to run the installer again, and your posts, comments, users, settings and `blog.ini.cfm` are kept.
 
