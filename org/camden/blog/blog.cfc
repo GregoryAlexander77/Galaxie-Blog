@@ -14628,7 +14628,7 @@
 			<cfif action neq 'updateProfile'>
 				<cfset UserDbObj.setChangePasswordOnLogin(false)>
 			</cfif>
-			<cfset UserDbObj.setLastLogin("")>
+			<cfset UserDbObj.setLastLogin(javaCast("null", ""))><!--- No date yet: null. BoxLang's ORM can't store "" in a date column (2026-11-01). --->
 			<cfset UserDbObj.setActive(true)>
 			<cfset UserDbObj.setDate(blogNow())>
 				
@@ -16510,7 +16510,7 @@
 						<cfset UserDbObj.setSecurityAnswer3(securityAnswer3)>
 					</cfif>
 					<cfset UserDbObj.setChangePasswordOnLogin(false)>
-					<cfset UserDbObj.setLastLogin("")>
+					<cfset UserDbObj.setLastLogin(javaCast("null", ""))><!--- No date yet: null. BoxLang's ORM can't store "" in a date column (2026-11-01). --->
 					<cfset UserDbObj.setActive(true)>
 					<cfset UserDbObj.setDate(now())>
 

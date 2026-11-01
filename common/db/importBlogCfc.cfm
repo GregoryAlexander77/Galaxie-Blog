@@ -417,7 +417,7 @@ DBCC CHECKIDENT ('[Users]', RESEED, 0);
 		<cfset UserDbObj.setUserName(username)>
 		<cfset UserDbObj.setPassword(password)>
 		<cfset UserDbObj.setSalt(salt)>
-		<cfset UserDbObj.setLastLogin("")>
+		<cfset UserDbObj.setLastLogin(javaCast("null", ""))><!--- No date yet: null. BoxLang's ORM can't store "" in a date column (2026-11-01). --->
 		<cfset UserDbObj.setActive(true)>
 		<cfset UserDbObj.setDate(now())>
 

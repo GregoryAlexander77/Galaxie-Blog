@@ -99,7 +99,7 @@
 			title: rows.Title,
 			whenText: whenText(ev),
 			status: ev.status,
-			isPast: not nowUtc.isBefore(createObject("java", "java.time.Instant").parse(ev.endUtc)),
+			isPast: (not nowUtc.isBefore(createObject("java", "java.time.Instant").parse(ev.endUtc))),
 			hasRsvp: ev.webFormId gt 0,
 			people: val(rows.People),
 			capacity: val(rows.Capacity),
