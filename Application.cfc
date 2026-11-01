@@ -1092,16 +1092,14 @@
 			Logon
 		//******************************************************************************************--->
 		
-		<!---Logout if the user is on the login page.--->
-		<cflogout>
-			
-		<cflogin>
+		<!--- Galaxie's sign-in is its own session flag (session.loggedin, application.Udf.isLoggedIn()). ColdFusion's
+		cflogin/cflogout/cfloginuser framework that used to wrap it is gone (2026-11-01): it was reset and rebuilt on
+		every request, nothing depended on it, and BoxLang doesn't have it. --->
 			<cfif isDefined("form.userName") and isDefined("form.password") and len(trim(form.username)) and len(trim(form.password))>
 				
 				<!--- Note: there is no way to reconstruct a password. The only thing you can do is to re-create a the same hashed password if you know the existing password and hash key. If you have access to the code, you *can* however add or 1 eq 1 to the following line to log in and change the password. Just change it back after changing it. --->
 				<cfif disableAuth or application.blog.authenticate(left(trim(form.username),255),left(trim(form.password),50), cgi.remote_addr, cgi.http_User_Agent)>
 
-					<cfloginuser name="#trim(form.username)#" password="#trim(form.password)#" roles="admin">
 					<cfset session.userName = trim(form.username)>
 					<cfset session.key = trim(form.password)>
 					<!--- Get the current logged in users Id --->
@@ -1129,12 +1127,10 @@
 				</cfif>
 					
 			</cfif><!---<cfif isDefined("form.userName") and isDefined("form.password") and len(trim(form.username)) and len(trim(form.password))>--->
-		</cflogin>
 
 		<!--- Allow the user to logout --->
 		<cfif isDefined("url.logout") and application.Udf.isLoggedIn()>
 			<cfset structDelete(session,"loggedin")>
-			<cflogout>
 		</cfif>
 
 		<!--- If the database is too old for the site to run (see the function), send the administrator to the update page. This has to be done before the login page is shown, as the login page does not run either. --->
@@ -1152,7 +1148,6 @@
 				
 		<!--- We need to persist the login. It is not persisted with the changes to the application. --->
 		<cfif application.Udf.isLoggedIn()>
-			<cfloginuser name="admin" password="admin" roles="admin">
 			<!--- Set the session var. --->
 			<cfset session.loggedin = true>
 			<!--- Drop a cookie on this machine to allow administators to preview posts that are not yet released (GA) --->

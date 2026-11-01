@@ -123,7 +123,6 @@
 				  
 				  Actually I lie. Sim noted that you won't get unreleased entries w/o this.
 			--->
-			<cfloginuser name="#username#" password="#password#" roles="admin">
 			
 			<cfset params = structNew()>
 			<cfset params.maxEntries = requestData.params[4]>
@@ -192,7 +191,6 @@
 				  
 				  Actually I lie. Sim noted that you won't get unreleased entries w/o this.
 			--->
-			<cfloginuser name="#username#" password="#password#" roles="admin">
 			
 			<!--- This remote method isn't secured, so no need for 
 				  cflogin, but I still do the auth check above to 
@@ -253,7 +251,6 @@
 		<cfset publish = requestData.params[5]>
 		
 		<cfif application.blog.authenticate(username,password)>
-			<cfloginuser name="#username#" password="#password#" roles="admin">
 			<cfset application.blog.deleteEntry(postid)>
 			<cfset result = "$boolean1">
 		<cfelse>
@@ -284,7 +281,6 @@
 			  
 			  Actually I lie. Sim noted that you won't get unreleased entries w/o this.
 		--->
-		<cfloginuser name="#username#" password="#password#" roles="admin">
 		
 		<!---// get existing entry or create empty structure //--->
 		<cfif structKeyExists(variables, "currentId")>
@@ -385,7 +381,6 @@
 
 		<cfif application.blog.authenticate(username, password)>
 
-			<cfloginuser name="#username#" password="#password#" roles="admin">
 	
 			<cfif requestData.method is "metaWeblog.editPost">
 				<cfinvoke component="#application.blog#" method="saveEntry" returnVariable="newid">
@@ -509,7 +504,6 @@
 	
 		<cfif application.blog.authenticate(username,password)>
 
-			<cfloginuser name="#username#" password="#password#" roles="admin">
 
 			<cfif arrayLen(requestData.params) gte 4>
 				

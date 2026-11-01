@@ -594,7 +594,7 @@
 		<cfreturn false>
 	</cfif>
 	<cfset removeMember(member.memberId, member.email, arguments.stopEmails)>
-	<cflog file="galaxieMembers" type="information" text="Member #member.memberId# was deleted by #getAuthUser()#.">
+	<cflog file="galaxieMembers" type="information" text="Member #member.memberId# was deleted by #session.userName ?: "?"#.">
 	<cfreturn true>
 </cffunction>
 
@@ -888,7 +888,7 @@
 			<cfcatch type="database"></cfcatch>
 		</cftry>
 	</cftransaction>
-	<cflog file="galaxieMembers" type="information" text="A person was deleted from Members by #getAuthUser()#.">
+	<cflog file="galaxieMembers" type="information" text="A person was deleted from Members by #session.userName ?: "?"#.">
 	<cfset result.success = true>
 	<cfreturn result>
 </cffunction>

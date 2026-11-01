@@ -167,7 +167,6 @@
 		</cfif>
 
 		<cfif application.blog.authenticate(left(trim(form.username),50),left(trim(form.password),50))>
-			<cfloginuser name="#trim(arguments.username)#" password="#trim(arguments.password)#" roles="admin">
 			<cfset session.userName = trim(username)>
 			<cfset session.key = trim(password)>
 			<!--- Get the current logged in user's Id. Application.cfc's adminRequestStart() (the full-page form
@@ -13016,7 +13015,7 @@
 		<cfset secureFunction('EditUser')>
 		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.memberId) and val(arguments.memberId) gt 0>
 			<cfset application.members.removePicture(val(arguments.memberId))>
-			<cflog file="galaxieMembers" type="information" text="Member #val(arguments.memberId)#'s picture was removed by #getAuthUser()#.">
+			<cflog file="galaxieMembers" type="information" text="Member #val(arguments.memberId)#'s picture was removed by #session.userName ?: "?"#.">
 			<cfset response[ "success" ] = true>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
