@@ -74,7 +74,7 @@ A small update to 5.0, mostly fixes. Update from 5.0 as usual (see [UPGRADING.md
 - **Export to Excel** on the Error Log, Visitor Log, Subscribers and Comments grids.
 - **Popular Blogs** stays hidden until your blog has enough posts (20 by default, Blog Options).
 - **Signed out in the middle of something?** The administrative site signs you back in where you were.
-- **Site Wizard:** two opt-in boxes, to say hello to the Galaxie Blog project and to ask for your blog to be added to cfblogs.org. Both are off unless you tick them.
+- **Site Wizard:** two opt-in boxes, to say hello to the Galaxie Blog project and to ask for your blog to be added to cfblogs.org. Both are off unless you check them.
 - **Fixes:** the Scene editor's Save closes the window, links to comments go to the comment, the image quality slider on phones, the traffic cards on the administrative home page refresh themselves one at a time, scenes in posts sit under the floating menu, a comment's cached list is cleared when it's approved, and a reinit no longer stops clearing the cache at the first file it can't delete.
 
 ## What's new in 5.0 (Howl at the Moon Edition)
