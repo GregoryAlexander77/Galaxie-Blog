@@ -180,6 +180,15 @@ post editor's scene picker aren't empty. Never the private Delicate Arch scene (
 	<cfreturn { sceneId: scene.SceneId, name: scene.Name, alias: scene.Alias, active: (scene.Active eq 1), json: getSceneJson(scene.Alias, false) }>
 </cffunction>
 
+<cffunction name="getSceneIdByAlias" access="public" returntype="numeric" output="false" hint="A scene's SceneId (for the Scene editor, window 107), or 0 when there is no scene with that alias.">
+	<cfargument name="alias" type="string" required="true">
+	<cfset var found = "">
+	<cfset ensureTables()>
+	<cfset found = queryExecute("SELECT SceneId FROM Scene WHERE BlogRef = :blogId AND Alias = :alias",
+		{ blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, alias = { value = arguments.alias, cfsqltype = "cf_sql_varchar" } })>
+	<cfreturn found.recordCount ? val(found.SceneId) : 0>
+</cffunction>
+
 <cffunction name="aliasExists" access="public" returntype="boolean" output="false">
 	<cfargument name="alias" type="string" required="true">
 	<cfset ensureTables()>
@@ -445,13 +454,14 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 </cffunction>
 
 <cffunction name="getPostHeroParallax" access="public" returntype="struct" output="false"
-		hint="The post's parallax hero for the Hero editor: { active, starter, heading, line, align, textPosition, ending, otherScene }. ending is empty for one that scrolls away, or how a held one gives way (edge, sharp, fade). otherScene is the alias of a scene the post shows that the panel didn't make (set in the Scene window), or empty.">
+		hint="The post's parallax hero for the Hero editor: { active, starter, heading, line, align, textPosition, ending, otherScene, sceneId }. sceneId is the scene the post shows (its own or another), for the Scene editor shortcut, or 0. ending is empty for one that scrolls away, or how a held one gives way (edge, sharp, fade). otherScene is the alias of a scene the post shows that the panel didn't make (set in the Scene window), or empty.">
 	<cfargument name="postId" type="numeric" required="true">
-	<cfset var result = { "active": false, "starter": "", "heading": "", "line": "", "align": "center", "textPosition": "", "ending": "", "otherScene": "" }>
+	<cfset var result = { "active": false, "starter": "", "heading": "", "line": "", "align": "center", "textPosition": "", "ending": "", "otherScene": "", "sceneId": 0 }>
 	<cfset var alias = getPostScene(arguments.postId)>
 	<cfset var data = "">
 	<cfset var section = "">
 	<cfif not len(alias)><cfreturn result></cfif>
+	<cfset result.sceneId = getSceneIdByAlias(alias)>
 	<cfif alias neq "post-hero-" & arguments.postId>
 		<cfset result.otherScene = alias>
 		<cfreturn result>

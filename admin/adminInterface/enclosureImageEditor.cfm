@@ -828,6 +828,8 @@
 			<div style="margin-top: 8px;">
 				<button type="button" class="k-button normalFontWeight" id="parallaxHeroOpen"><i class="fontAwesomeIcon fas fa-layer-group"></i> <span id="parallaxHeroOpenText">Choose a parallax hero...</span></button>
 				<button type="button" class="k-button normalFontWeight" id="parallaxHeroRemove" style="display: none;"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove the parallax hero</button>
+				<!--- Shortcut to the Scene editor (window 107, 2026-11-01, owner) for the scene this post shows: colors, timing, how it ends, more sections. --->
+				<button type="button" class="k-button normalFontWeight" id="parallaxHeroSceneEditor" style="display: none;"><i class="fontAwesomeIcon fas fa-pen-to-square"></i> Open in the Scene editor</button>
 				<span id="parallaxHeroStatus" class="k-form-hint" style="margin-left: 6px;"></span>
 			</div>
 			<div id="parallaxHeroPanel" style="display: none;">
@@ -857,7 +859,7 @@
 							<button type="button" class="k-button k-primary" id="parallaxHeroSave">Use this parallax hero</button>
 							<button type="button" class="k-button" id="parallaxHeroCancel">Cancel</button>
 						</div>
-						<div class="k-form-hint" style="margin-top: 6px;">Saved as this post's own copy, so its heading is its own. For colors, more sections or your own layers, open it with the Scene button (the layered icon) and Change it in the Scene editor.</div>
+						<div class="k-form-hint" style="margin-top: 6px;">Saved as this post's own copy, so its heading is its own. For colors, more sections or your own layers, use Open in the Scene editor once it's saved.</div>
 					</div>
 				</div>
 			</div>
@@ -887,6 +889,7 @@
 					function showStatus() {
 						$("#parallaxHeroOpenText").text(state.active ? "Change the parallax hero..." : "Choose a parallax hero...");
 						$("#parallaxHeroRemove").toggle(!!state.active);
+						$("#parallaxHeroSceneEditor").toggle(state.sceneId > 0);
 						var styleRow = $("#enclosureHeroStyleRow");
 						styleRow.toggleClass("phDimmed", !!state.active);
 						$("#enclosureHeroStyleParallaxNote").text(state.active ? "This post's hero is a parallax hero, which has its own look." : "");
@@ -938,7 +941,7 @@
 							success: function (response) {
 								if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
 								if (response && response.success) {
-									state.active = !remove; state.otherScene = "";
+									state.active = !remove; state.otherScene = ""; state.sceneId = remove ? 0 : (+response.sceneId || 0);
 									if (!remove) { state.starter = chosen; state.heading = $.trim($("#parallaxHeroHeading").val()); state.align = align; state.textPosition = low ? "bottom" : ""; state.ending = ending.value(); }
 									$("#parallaxHeroStatus").text(remove ? "Removed. The post shows its hero above again." : "Saved. The post shows it now.");
 									$("#parallaxHeroPanel").hide(); clearInterval(timer);
@@ -967,6 +970,7 @@
 					$("#parallaxHeroCancel").on("click", function () { $("#parallaxHeroPanel").hide(); clearInterval(timer); });
 					$("#parallaxHeroSave").on("click", function () { if (chosen) { save(false); } });
 					$("#parallaxHeroRemove").on("click", function () { save(true); });
+					$("#parallaxHeroSceneEditor").on("click", function () { if (state.sceneId > 0) { createAdminInterfaceWindow(107, state.sceneId); } });
 					$("#parallaxHeroHeading, #parallaxHeroLine").on("input", function () { if (chosen) { drawPreview(); } });
 					$(function () { showStatus(); });
 				})();
