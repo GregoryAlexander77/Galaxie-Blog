@@ -2344,15 +2344,32 @@
 	written into dozens of addresses and forms - and admin windows that came up empty are loaded again. The action that failed
 	is not repeated on its own: the person does it again. --->
 	<script>
+		// Whether an answer (text, or json already parsed) says the page's security token belonged to an ended session (2026-11-01).
+		// Adobe ColdFusion can send json serialized twice, a json string holding the json. Also used by the admin home's Refresh Site
+		// and Reload ORM Objects, so they leave it to the sign-in window instead of showing a failure.
+		window.galaxieIsInvalidToken = function (answer) {
+			var i, key;
+			for (i = 0; i < 2 && typeof answer === "string"; i++) {
+				try { answer = JSON.parse(answer); } catch (e) { return false; }
+			}
+			if (answer === "Invalid token") { return true; }
+			if (!answer || typeof answer !== "object") { return false; }
+			for (key in answer) {
+				if (/^(errormessage|message)$/i.test(key) && /(^|>)Invalid token(<|$)/.test(String(answer[key]))) { return true; }
+			}
+			return false;
+		};
 		(function () {
-			var pageTokens = ["<cfoutput>#csrfGenerateToken('admin', false)#</cfoutput>"];
+			var pageTokens =["<cfoutput>#csrfGenerateToken('admin', false)#</cfoutput>"];
 			var currentToken = pageTokens[0];
 			var emptyWindows = [];
 			function expired(xhr) {
 				if (!xhr) { return false; }
 				if (xhr.status === 403) { return true; }
 				var text = $.trim(xhr.responseText || "");
-				return text === "Invalid token" || text === '"Invalid token"' || /<string>Invalid token<\/string>/.test(text);
+				if (text === "Invalid token" || text === '"Invalid token"' || /<string>Invalid token<\/string>/.test(text)) { return true; }
+				// Some answers are json, such as Refresh Site's { "success": false, "errorMessage": "Invalid token" } (2026-11-01).
+				return window.galaxieIsInvalidToken(text);
 			}
 			$(document).ajaxComplete(function (e, xhr, settings) {
 				var url = (settings && settings.url) || "";

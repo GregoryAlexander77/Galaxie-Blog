@@ -389,14 +389,18 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			cache: false,
 			success: function(data){
 				kendo.ui.ExtWaitDialog.hide();
+				// The session ended: the sign-in window opens instead (blogJsContent.cfm, 2026-11-01).
+				if (window.galaxieIsInvalidToken && galaxieIsInvalidToken(data)){ return; }
 				if (data && data.success){
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Site Refreshed", message: "The site has been successfully refreshed.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
 				} else {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Refresh Failed", message: "Unable to refresh the site" + (data && data.errorMessage ? ": " + data.errorMessage : "."), icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
 				}
 			},
-			error: function(){
+			error: function(xhr){
 				kendo.ui.ExtWaitDialog.hide();
+				// Signed out (403): the sign-in window opens instead.
+				if (xhr && xhr.status === 403){ return; }
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Refresh Failed", message: "Unable to refresh the site.", icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
 			}
 		});
@@ -422,14 +426,18 @@ The icon is a placeholder (a copy of settings.gif) until the owner makes one. --
 			cache: false,
 			success: function(data){
 				kendo.ui.ExtWaitDialog.hide();
+				// The session ended: the sign-in window opens instead (blogJsContent.cfm, 2026-11-01).
+				if (window.galaxieIsInvalidToken && galaxieIsInvalidToken(data)){ return; }
 				if (data && data.success){
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "ORM Objects Reloaded", message: "The ORM objects have been successfully reloaded.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
 				} else {
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Reload Failed", message: "Unable to reload the ORM objects" + (data && data.errorMessage ? ": " + data.errorMessage : "."), icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
 				}
 			},
-			error: function(){
+			error: function(xhr){
 				kendo.ui.ExtWaitDialog.hide();
+				// Signed out (403): the sign-in window opens instead.
+				if (xhr && xhr.status === 403){ return; }
 				$.when(kendo.ui.ExtAlertDialog.show({ title: "Reload Failed", message: "Unable to reload the ORM objects.", icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>", height: "215px"}));
 			}
 		});
