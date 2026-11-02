@@ -1,5 +1,5 @@
+# Galaxie Blog adds a Sitemap line with this blog's own address when the blog is reinitialized.
+# If you write your own robots.txt, remove these two lines and Galaxie Blog will leave the file alone.
 User-agent: *
-Sitemap: https://www.gregoryalexander.com/blog/googlesitemap.cfm
-User-agent: Googlebot
 Disallow: /*?theme=
 Disallow: /*search.cfm

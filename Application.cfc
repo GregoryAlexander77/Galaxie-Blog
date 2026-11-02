@@ -268,6 +268,8 @@
 			<!--- Determine if the server supports webp images and woff fonts --->
 			<cfset application.serverSupportsWebP = serverSupportsWebP(true)>
 			<cfset application.serverSupportsWoff2 = serverSupportsWoff2(true)>
+			<!--- Point robots.txt at this blog's own sitemap (5.03). --->
+			<cfset updateRobotsTxt()>
 
 			<!--- Flush our cache. It will not exist when first installing the blog --->
 			<cftry>
@@ -1398,6 +1400,38 @@
 			Parse the URL. The 3 functions above use this method to parse the URI
 	//*****************************************************************************************--->
 			
+	<cffunction name="updateRobotsTxt" access="private" returnType="void" output="false"
+			hint="Points the Sitemap line in the blog's robots.txt at this blog's own sitemap. Runs on every reinit, so a fresh install and every update get it.">
+		<!--- Until 5.03 the robots.txt that ships with Galaxie Blog said the sitemap was https://www.gregoryalexander.com/blog/googlesitemap.cfm,
+		so every blog installed at the root of its domain sent search engines to that sitemap instead of its own (found on galaxieblog.org,
+		2026-11-02). The shipped file now has no Sitemap line, and this adds the blog's own. Only the shipped file is changed: the old
+		gregoryalexander.com line is replaced, and a file that still has the "# Galaxie Blog" comment and no Sitemap line gets one. A robots.txt
+		the owner wrote is left alone. Crawlers only read robots.txt at the root of a domain, so a blog in a folder (www.example.com/blog/) is
+		skipped. A failure is logged and never stops the reinit. --->
+		<cfset var robotsPath = getRootDirectoryPath() & "robots.txt">
+		<cfset var sitemapLine = "Sitemap: " & application.blogHostUrl & "/googlesitemap.cfm">
+		<cfset var robotsText = "">
+		<cfset var newText = "">
+
+		<cftry>
+			<cfif len(reReplace(parseUri(application.blogHostUrl).path, "/+$", "")) or not fileExists(robotsPath)>
+				<cfreturn>
+			</cfif>
+			<cfset robotsText = fileRead(robotsPath, "utf-8")>
+			<cfset newText = reReplaceNoCase(robotsText, "Sitemap:[ \t]*https?://(www\.)?gregoryalexander\.com/blog/googlesitemap\.cfm", sitemapLine, "all")>
+			<cfif newText eq robotsText and find("## Galaxie Blog", robotsText) and not reFindNoCase("(^|\n)[ \t]*Sitemap:", robotsText)>
+				<cfset newText = reReplace(robotsText, "\s*$", "") & chr(10) & chr(10) & sitemapLine & chr(10)>
+			</cfif>
+			<cfif newText neq robotsText>
+				<cffile action="write" file="#robotsPath#" output="#newText#" charset="utf-8" addnewline="false">
+			</cfif>
+			<cfcatch type="any">
+				<cflog file="galaxieBlogErrors" type="warning" text="robots.txt not updated: #cfcatch.message#">
+			</cfcatch>
+		</cftry>
+
+	</cffunction>
+
 	<!--- parseUri CF v0.2, originally by Steven Levithan: http://stevenlevithan.com. Minor changes by Gregory --->
 	<cffunction name="parseUri" returntype="struct" output="false" hint="Splits any well-formed URI into its components">
 		<cfargument name="sourceUri" type="string" required="no" default=""/>
