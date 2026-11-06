@@ -1,4 +1,4 @@
-# Galaxie Blog on Lucee, with MariaDB and a mail catcher (2026-11-01, DRAFT - not tested yet).
+# Galaxie Blog on Lucee, with MariaDB and a mail catcher (2026-11-01). See DOCKER.md.
 # Start:  docker compose up -d --build     then open http://localhost:8888 for the installer.
 # Settings (passwords, ports, the Lucee version) come from .env; copy .env.example to .env first.
 
@@ -56,7 +56,7 @@ services:
       TZ: ${TZ:-America/Los_Angeles}
     volumes:
       # The whole blog folder lives in a volume, filled from the image the first time. Uploads, the cache and the
-      # blog.ini.cfm the installer writes are kept when the container is rebuilt or restarted. See DOCKER.md for updating.
+      # blog.ini.cfm the installer writes are kept when the container is rebuilt or restarted. Updating: galaxie-update (DOCKER.md).
       - blog-files:/var/www
 
 volumes:

@@ -23,7 +23,7 @@ You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Wind
    * **Database:** MySQL or MariaDB
 
    Press **Check the connection**, then finish the installer and the Site Wizard.
-4. In the administrative site, under **Blog Settings**, set the mail server to `mail` and the port to `1025` so the blog's emails go to Mailpit.
+4. In the administrative site, under **Blog Settings**, set the mail server to `mail:1025`, with no user name or password, and press **Send a test email**. It shows up in Mailpit at http://localhost:8025.
 
 ## Stop and start again
 
@@ -44,7 +44,20 @@ docker compose down -v
 
 ## Updating to a new version of Galaxie
 
-The blog's files live in a volume, so a new download doesn't replace them by itself; that keeps your uploads and `blog.ini.cfm`. Update the way any Galaxie blog is updated (see [UPGRADING.md](UPGRADING.md)): copy the new files into the running container, leaving out `blog.ini.cfm`, then reinit and press **Update the database**.
+The blog runs from a volume, so rebuilding the image doesn't replace its files by itself; that keeps your uploads and the blog's settings (`blog.ini.cfm`).
+
+1. Put the new version's files in this folder (download and unzip it over this folder, or `git pull`). Keep your `.env`.
+2. Rebuild, then copy the new files into the blog:
+
+   ```
+   docker compose up -d --build
+   docker compose exec lucee galaxie-update
+   ```
+
+   `galaxie-update` copies the new version over the blog and leaves `blog.ini.cfm`, your uploads and the cache alone.
+3. Open http://localhost:8888/?reinit=1, then http://localhost:8888/admin/update.cfm, and press **Update the database** if it asks (see [UPGRADING.md](UPGRADING.md)).
+
+Don't copy this folder into the container yourself: it holds your `.env` with the database passwords, and Lucee would serve it to anyone who asks for `/.env`.
 
 ## Notes
 
