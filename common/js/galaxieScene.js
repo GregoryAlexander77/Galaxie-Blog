@@ -46,6 +46,8 @@
 	Heroes can also have (2026-10-19, post heroes): height ("75vh"; a full screen when not set), pin (false: no hold - the hero
 	scrolls away with the page while its picture zooms and its text fades) and textPosition ("center", or "bottom" for a large
 	heading low on the left).
+	A hero that scrolls away (pin false) can also have drift (2026-11-04, the post hero style Parallax): 0 to 0.9, how much slower
+	than the page its picture moves (0.5: half speed), so the post slides over it. Computers only; none with reduced motion.
 
 	Kinds:
 		text          a heading and rich text on a gradient or color
@@ -637,12 +639,38 @@
 			var fade = root.querySelector(".gs-fade");
 			if (fade) { tl.to(fade, { height: held ? "100vh" : "100%", ease: "none" }, 0); }
 		}
+		// Parallax (2026-11-04, owner's pick B of three mock-ups): the hero's picture drifts down while the hero scrolls up, so it
+		// moves slower than the page and the post slides over it. Only once its top has reached the top of the screen: before that,
+		// a picture moving down would open a gap above it.
+		var drift = Math.min(+section.drift || 0, 0.9);
+		if (!held && drift > 0 && !isPhone()) {
+			tl.fromTo(root.querySelector(".gs-heroBack"), { y: 0 }, { y: function () { return root.offsetHeight * drift; }, ease: "none" }, 0);
+		}
 		var text = root.querySelector(".gs-heroText");
+		// How the heading moves (11-05, owner: "no text slide up" on a moving hero; choices like gregoryalexander.com's):
+		// section.textMotion "" rises and fades as the page scrolls, "slideIn" first slides up into place as the page opens,
+		// "still" stays where it is on the picture. headingEffect words or letters (SplitText) come in one at a time instead.
+		var motion = section.textMotion || "";
 		// The heading's entrance, when the hero has a heading effect: plays as the hero comes on screen (at once, for a hero at the top).
 		var heroHeading = root.querySelector(".gs-heading");
-		if (heroHeading) { splitIn(heroHeading, data, section, setting(data, section, "rise") * phoneFactor, splits, root); }
-		if (text) {
-			tl.to(text, { y: function () { return -window.innerHeight * 0.45 * phoneFactor; }, opacity: 0, ease: "none" }, 0);
+		var splitDone = heroHeading ? splitIn(heroHeading, data, section, setting(data, section, "rise") * phoneFactor, splits, root) : false;
+		if (text && motion === "slideIn" && !splitDone) {
+			gsap.from(Array.prototype.slice.call(text.children), { opacity: 0, y: setting(data, section, "rise") * 0.6 * phoneFactor, duration: 1.1, ease: "power3.out", stagger: 0.15, delay: 0.25 });
+		}
+		if (text && motion !== "still") {
+			if (held) {
+				tl.to(text, { y: function () { return -window.innerHeight * 0.45 * phoneFactor; }, opacity: 0, ease: "none" }, 0);
+			} else {
+				// Not held (the usual moving hero, under the post's title): from the first scroll, not only once the hero's top has
+				// reached the top of the screen, which on a post left the heading sitting still for most of the way.
+				gsap.to(text, {
+					y: function () { return -window.innerHeight * 0.45 * phoneFactor; }, opacity: 0, ease: "none",
+					scrollTrigger: {
+						trigger: root, end: "bottom top", scrub: setting(data, section, "scrub"), invalidateOnRefresh: true,
+						start: function () { return Math.max(0, root.getBoundingClientRect().top + (window.pageYOffset || 0) - window.innerHeight); }
+					}
+				});
+			}
 		}
 		if (endMask) { endEdge(); }
 		if (ending && !endMask) {

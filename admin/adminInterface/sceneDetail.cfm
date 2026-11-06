@@ -12,6 +12,9 @@ size check; on the preview, Hold the scroll, and an Exploded view in its own Ken
 Color helper (2026-10-19, option A): a Suggest button on each color field, with colors read from the section's pictures and its
 neighbours, and the browser's eyedropper where there is one. --->
 <cfset sceneId = val(URL.optArgs)>
+<!--- A new scene for a post or page just made with Create, Scene (newPost.cfm, 11-02): optArgs is "new:{postId}". The scene is named
+after it and, when first saved, shows on it. --->
+<cfset sceneForPostId = reFind("^new:[0-9]+$", URL.optArgs ?: "") ? val(listLast(URL.optArgs, ":")) : 0>
 <cfset scene = sceneId gt 0 ? application.blog.getScenes().getScene(sceneId) : {}>
 <cfset isNewScene = structIsEmpty(scene)>
 <cfset sceneStarters = isNewScene ? application.blog.getScenes().getStarters() : []>
@@ -105,6 +108,22 @@ this scene. Drafts are listed too (a scene can go on a post before it is release
 	</cftry>
 </cfif>
 <cfset sceneShownOn = isNewScene ? [] : application.blog.getScenes().getPostIdsUsing(scene.alias)>
+<!--- The post or page from Create, Scene: { id, title, page, url }, or null. Read on its own, as it may not be in the list above yet. --->
+<cfset sceneForPostJson = "null">
+<cfif isNewScene and sceneForPostId gt 0>
+	<cfquery name="sceneForPostRow" datasource="#application.dsn#">
+		SELECT PostId, Title, PostAlias, DatePosted, IsPage
+		FROM Post
+		WHERE PostId = <cfqueryparam value="#sceneForPostId#" cfsqltype="cf_sql_integer">
+		AND BlogRef = <cfqueryparam value="#application.BlogDbObj.getBlogId()#" cfsqltype="cf_sql_integer">
+	</cfquery>
+	<cfif sceneForPostRow.recordCount>
+		<cfset thisLinkUrl = application.blog.makeLink(postId = sceneForPostRow.PostId, isPage = sceneForPostRow.IsPage eq 1, postAlias = sceneForPostRow.PostAlias, datePosted = sceneForPostRow.DatePosted)>
+		<cfif application.serverRewriteRuleInPlace><cfset thisLinkUrl = replaceNoCase(thisLinkUrl, "/index.cfm", "")></cfif>
+		<cfset sceneForPostJson = replace(replace('{"id":' & sceneForPostRow.PostId & ',"title":' & serializeJSON(toString(sceneForPostRow.Title ?: "")) & ',"page":' & (sceneForPostRow.IsPage eq 1 ? 'true' : 'false')
+			& ',"released":false,"url":' & serializeJSON(toString(thisLinkUrl)) & '}', "</", "<\/", "all"), "<!--", "<\!--", "all")>
+	</cfif>
+</cfif>
 <cfset sceneLinksJsonText = replace(replace("[" & arrayToList(sceneLinkParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")>
 <!--- The blog's fonts, for the heading and text font dropdowns. Each self-hosted font is declared below under its own name, so the
 dropdown shows it in its own face, the way the public pages name it (includes/templates/font.cfm). --->
@@ -259,14 +278,13 @@ chose "this server only" (Scenes window settings). --->
 		<label for="sceneAlias">Name in posts:</label>
 		<input type="text" id="sceneAlias" class="k-textbox" maxlength="80" style="width: 220px;" value="<cfif not isNewScene>#encodeForHtmlAttribute(scene.alias)#</cfif>"<cfif not isNewScene> readonly title="A saved scene keeps its name, so the posts that show it keep working."</cfif>>
 		<label><input type="checkbox" id="sceneActive" class="k-checkbox"<cfif isNewScene or scene.active> checked</cfif>> Active</label>
-		<!--- Save closes the window like the other admin windows; Apply saves and keeps it open (2026-10-31, owner). --->
+		<!--- Save closes the window like the other admin windows. There is no Apply (owner, 11-02: no other window has one);
+		"Show it there" saves the changes first and keeps the window open. --->
 		<button id="sceneSave" type="button" class="k-button k-primary" title="Save the scene and close this window">Save</button>
-		<button id="sceneApply" type="button" class="k-button" title="Save the scene and keep editing">Apply</button>
 		<button id="scenePreviewFull" type="button" class="k-button" title="The scene as it is here, saved or not, full size in a new tab">Preview</button>
 		<button id="sceneReset" type="button" class="k-button" title="Throw away the changes since the scene was last saved">Reset</button>
 		<button id="sceneSaveTemplate" type="button" class="k-button" title="Keep this scene as a starting point in the New scene gallery">Save as ready-made</button>
 		<span id="sceneSaved" class="k-form-hint"></span>
-		<span class="k-form-hint" id="sceneUseHint"></span>
 		<!--- Where the scene shows (owner, 10-19): pick a post or a page, show it there, then preview that post or page. With no
 		posts (or pages) yet, the list offers to make one. --->
 		<div id="sceneShowOn" style="flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
@@ -275,13 +293,14 @@ chose "this server only" (Scenes window settings). --->
 			<label for="sceneShowPage">or a page</label><input id="sceneShowPage" style="width: 220px;">
 			<button id="sceneShowApply" type="button" class="k-button" disabled>Show it there</button>
 			<a id="sceneShowPreview" class="k-button" target="_blank" rel="noopener" style="display: none;" title="The post or page as visitors see it - with the scene as last saved">View the post</a>
-			<span id="sceneShownOn" class="k-form-hint"></span>
+			<span id="sceneShownOn" class="k-form-hint" style="display: block;"></span><!--- block: as a flex row (k-form-hint) the spaces between the links were lost --->
 		</div>
 	</div>
 <cfif isNewScene>
 	<!--- New scene: the gallery comes first; the editor below shows once a starting point is picked. --->
 	<div id="sceneGallery" class="#altClass#">
 		<h4 class="adminBlockHeading">Pick a starting point</h4>
+		<div id="sceneForPostNote" class="k-form-hint" style="display: none;"></div>
 		<div>Every part of it can be changed: the words, pictures, fonts, colors and motion. You can also start from nothing.</div>
 		<div id="sceneGalleryCards" class="sceneCards"></div>
 	</div>
@@ -334,6 +353,9 @@ $(document).ready(function () {
 	var starters = <cfoutput>#startersJsonText#</cfoutput>;
 	var LINKS = <cfoutput>#sceneLinksJsonText#</cfoutput>;
 	var SHOWN_ON = <cfoutput>#serializeJSON(sceneShownOn)#</cfoutput>;
+	<!--- The post or page from Create, Scene (11-02): the scene is named after it and shows on it when first saved. --->
+	var FOR_POST = <cfoutput>#sceneForPostJson#</cfoutput>;
+	if (FOR_POST && !$.grep(LINKS, function (l) { return l.id === FOR_POST.id; }).length) { LINKS.push(FOR_POST); }
 	var READY_FORMS = <cfoutput>#replace("[" & arrayToList(sceneReadyParts, ",") & "]", "</", "<\/", "all")#</cfoutput>;   <!--- { key, name } --->
 	var MAPS = <cfoutput>#replace(replace("[" & arrayToList(sceneMapParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;   <!--- { id, title, routes } --->
 	var PRODUCTS = <cfoutput>#replace(replace("[" & arrayToList(sceneProductParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;
@@ -425,9 +447,6 @@ $(document).ready(function () {
 	var FIELDS = {
 		scene: [
 			{ key: "@name", label: "Title", type: "text", hint: "Only you see this, in the Scenes window." },
-			<!--- Kind of scene (2026-10-22, owner): a hero parallax scene is a post's hero - see heroParallax in common/js/galaxieScene.js. --->
-			{ key: "settings.type", label: "Kind of scene", type: "select", options: [["", "Scene"], ["heroParallax", "Hero parallax scene"]],
-				hint: "A hero parallax scene is the hero at the top of a post: its layers move as it scrolls away, and it fades into the post. Its hold, fade color and depth are set for you." },
 			{ key: "@pageColour", label: "Page color", type: "colour", hint: "Behind the scene and between its sections." },
 			{ key: "settings.fontTheme", label: "Fonts from", type: "select", options: [["", "The theme with this scene's name, or the page's theme"]].concat($.map(THEME_FONTS, function (t) { return [[t.alias, t.name + " (" + (t.headerFont || "default") + " / " + (t.bodyFont || "default") + ")"]]; })),
 				hint: "Large headings use that theme's Text font, and the text its Menu font. A font picked for a section still wins." },
@@ -511,6 +530,11 @@ $(document).ready(function () {
 		}
 		<!--- Every section with a heading and text can have a button. --->
 		if (HERO[section.kind] || section.kind === "text" || section.kind === "imageSlide") { fields = fields.concat(BUTTON); }
+		<!--- How a hero's heading moves (11-05, owner): galaxieScene.js textMotion. Word by word is "How it comes in" under Heading. --->
+		if (HERO[section.kind]) {
+			fields = fields.concat([{ group: "Heading motion" }, { key: "textMotion", label: "How the heading moves", type: "select",
+				options: [["", "Rises and fades as you scroll"], ["slideIn", "Slides up into place, then rises and fades"], ["still", "Stays in place on the picture"]] }]);
+		}
 		return fields;
 	}
 
@@ -970,7 +994,7 @@ $(document).ready(function () {
 		if (field.placeholder) { input.attr("placeholder", field.placeholder); }
 		input.on("input change", function () {
 			setValue(field.key, typed(field, $.trim($(this).val())));
-			if (field.key === "@name" && !aliasTyped && sceneId === 0) { $("#sceneAlias").val(aliasFrom(scene.name || "")); updateUseHint(); }
+			if (field.key === "@name" && !aliasTyped && sceneId === 0) { $("#sceneAlias").val(aliasFrom(scene.name || "")); }
 			if (field.key === "heading") { renderList(); }
 			<!--- Another animation has other colors to set. --->
 			if (field.key === "effect") { setTimeout(renderSettings, 0); }
@@ -1157,7 +1181,12 @@ $(document).ready(function () {
 		selected = i + by;
 		renderList(); renderSettings(); schedulePreview();
 	}
+	<!--- Asks first (owner 11-02: the x took a whole section out of a scene in one click). --->
 	function remove(i) {
+		var section = scene.sections[i];
+		galaxieConfirm("Remove section " + (i + 1) + "?", kindLabel(section.kind) + (section.heading ? ": " + section.heading : "") + ". It comes out of the scene when you save. Reset brings it back before then.", function () { removeNow(i); });
+	}
+	function removeNow(i) {
 		scene.sections.splice(i, 1);
 		selected = Math.min(selected, scene.sections.length - 1);
 		renderList(); renderSettings(); schedulePreview();
@@ -1310,7 +1339,7 @@ $(document).ready(function () {
 			var must = $('<input type="checkbox" class="k-checkbox">').prop("checked", q.required).attr("id", "sceneQuickMust" + q.webFormFieldId);
 			row.append($('<input type="text" class="k-textbox sceneQuickLabel">').val(q.label),
 				$("<label></label>").attr("title", "Must be answered").append(must, " Must answer"),
-				$('<button type="button" class="k-button" title="Remove this question">x</button>').on("click", function () { row.remove(); }));
+				$('<button type="button" class="k-button" title="Remove this question">x</button>').on("click", function () { galaxieConfirm("Remove this question?", "It comes off the form when you save.", function () { row.remove(); }); }));
 			list.append(row);
 		});
 		var button = $('<input type="text" class="k-textbox" style="width: 100%;">').val(form.buttonLabel);
@@ -1342,13 +1371,8 @@ $(document).ready(function () {
 
 	<!--- ---------- Name in posts --->
 	function aliasFrom(text) { return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").substr(0, 80); }
-	function updateUseHint() {
-		var alias = $.trim($("#sceneAlias").val());
-		$("#sceneUseHint").text(alias.length ? "To show it on a post, put <galaxieScene>" + alias + "</galaxieScene> in the post's header." : "");
-	}
 	if (sceneId === 0) { $("#sceneAlias").val(aliasFrom(scene.name || "")); }
-	$("#sceneAlias").on("input", function () { aliasTyped = true; updateUseHint(); });
-	updateUseHint();
+	$("#sceneAlias").on("input", function () { aliasTyped = true; });
 
 	<!--- ---------- The gallery (new scenes) --->
 	function cardThumb(data) { return galaxieSceneCardThumb(data, BASE_URL); }
@@ -1366,8 +1390,13 @@ $(document).ready(function () {
 			});
 		});
 		delete scene.description; delete scene.thumbnail;
+		<!--- For a post or page from Create, Scene: the scene and its first heading take the post's title. --->
+		if (FOR_POST && FOR_POST.title) {
+			scene.name = FOR_POST.title;
+			if (scene.sections.length && typeof scene.sections[0].heading === "string") { scene.sections[0].heading = FOR_POST.title; }
+		}
 		savedScene = JSON.stringify(scene);
-		if (!aliasTyped) { $("#sceneAlias").val(aliasFrom(scene.name || "")); updateUseHint(); }
+		if (!aliasTyped) { $("#sceneAlias").val(aliasFrom(scene.name || "")); }
 		$("#sceneGallery").hide();
 		$("#sceneEditorTop").css("display", "");
 		$("#sceneEditorBody").show();
@@ -1395,6 +1424,7 @@ $(document).ready(function () {
 		empty.on("click", function () { startFrom({ name: "New scene", pageColour: "#392630", settings: {}, sections: [] }); });
 		cards.append(empty);
 		$("#sceneEditorBody").hide();
+		if (FOR_POST) { $("#sceneForPostNote").text("For the " + (FOR_POST.page ? "page" : "post") + " \"" + FOR_POST.title + "\". When you save, the scene shows on it.").show(); }
 		<!--- Nothing to name or save until a starting point is picked. --->
 		$("#sceneEditorTop").css("display", "none");
 		$("#sceneGallery").show();
@@ -1500,7 +1530,7 @@ $(document).ready(function () {
 			var tools = $('<div style="display: flex; flex-direction: column; gap: 2px;"></div>');
 			if (i > 0) { tools.append($('<button type="button" class="k-button" aria-label="Move up"><span class="k-icon k-i-arrow-60-up"></span></button>').on("click", function () { slides.splice(i - 1, 0, slides.splice(i, 1)[0]); schedulePreview(); renderSettings(); })); }
 			if (i < slides.length - 1) { tools.append($('<button type="button" class="k-button" aria-label="Move down"><span class="k-icon k-i-arrow-60-down"></span></button>').on("click", function () { slides.splice(i + 1, 0, slides.splice(i, 1)[0]); schedulePreview(); renderSettings(); })); }
-			tools.append($('<button type="button" class="k-button" aria-label="Remove slide"><span class="k-icon k-i-close"></span></button>').on("click", function () { slides.splice(i, 1); schedulePreview(); renderSettings(); }));
+			tools.append($('<button type="button" class="k-button" aria-label="Remove slide"><span class="k-icon k-i-close"></span></button>').on("click", function () { galaxieConfirm("Remove this slide?", "It comes out of the scene when you save. Reset brings it back before then.", function () { slides.splice(i, 1); schedulePreview(); renderSettings(); }); }));
 			row.append(thumb, fields.append(heading, caption), tools);
 			list.append(row);
 		});
@@ -1538,7 +1568,7 @@ $(document).ready(function () {
 			var tools = $('<span class="sceneLayerTools"></span>');
 			if (i > 0) { tools.append($('<button type="button" class="k-button" aria-label="Move back"><span class="k-icon k-i-arrow-60-up"></span></button>').on("click", function (e) { e.stopPropagation(); var l = layers.splice(i, 1)[0]; layers.splice(i - 1, 0, l); selectedLayer = i - 1; layersChanged(true); })); }
 			if (i < layers.length - 1) { tools.append($('<button type="button" class="k-button" aria-label="Move forward"><span class="k-icon k-i-arrow-60-down"></span></button>').on("click", function (e) { e.stopPropagation(); var l = layers.splice(i, 1)[0]; layers.splice(i + 1, 0, l); selectedLayer = i + 1; layersChanged(true); })); }
-			tools.append($('<button type="button" class="k-button" aria-label="Remove layer"><span class="k-icon k-i-close"></span></button>').on("click", function (e) { e.stopPropagation(); layers.splice(i, 1); selectedLayer = Math.min(selectedLayer, layers.length - 1); layersChanged(true); }));
+			tools.append($('<button type="button" class="k-button" aria-label="Remove layer"><span class="k-icon k-i-close"></span></button>').on("click", function (e) { e.stopPropagation(); galaxieConfirm("Remove the layer " + fileName(layer.src) + "?", "It comes out of the scene when you save. Reset brings it back before then.", function () { layers.splice(i, 1); selectedLayer = Math.min(selectedLayer, layers.length - 1); layersChanged(true); }); }));
 			var depth = $('<input type="range" class="sceneLayerDepth" min="0" max="1000" step="10">').attr("aria-label", "Depth of " + fileName(layer.src)).val(layer.depth === undefined ? (i + 1) * 100 : layer.depth);
 			var depthValue = $('<span class="sceneLayerDepthValue"></span>').text(depth.val());
 			depth.on("input", function () {
@@ -1743,7 +1773,7 @@ $(document).ready(function () {
 			var l = linkById(id); if (!l) { return; }
 			if (i) { box.append(document.createTextNode(", ")); }
 			box.append($('<a target="_blank" rel="noopener"></a>').attr("href", l.url).text(l.title));
-			box.append(" ", $('<a href="#" title="Stop showing the scene there">(remove)</a>').on("click", function (e) { e.preventDefault(); showOn(l, ""); }));
+			box.append(" ", $('<a href="#" title="Stop showing the scene there">(remove)</a>').on("click", function (e) { e.preventDefault(); galaxieConfirm("Stop showing the scene there?", "It comes off \"" + l.title + "\". The scene itself is kept.", function () { showOn(l, ""); }); }));
 		});
 	}
 	function newItemTemplate(kind) {
@@ -1766,12 +1796,19 @@ $(document).ready(function () {
 			}
 		});
 	});
+	<!--- The post or page from Create, Scene is picked here already. --->
+	if (FOR_POST) {
+		$(FOR_POST.page ? "#sceneShowPage" : "#sceneShowPost").data("kendoDropDownList").value(FOR_POST.id);
+		showTarget = FOR_POST;
+		$("#sceneShowApply").prop("disabled", false);
+		$("#sceneShowPreview").show().attr("href", FOR_POST.url);
+	}
 	$(document).on("click", ".sceneNewItem", function () {
 		$("#sceneShowPost, #sceneShowPage").each(function () { var d = $(this).data("kendoDropDownList"); if (d) { d.close(); } });
 		if ($(this).data("kind") === "post") { createAdminInterfaceWindow(24); } else { createAdminInterfaceWindow(24, "newPage"); }
 		$("#sceneShownOn").text("Save the new " + $(this).data("kind") + ", then close and reopen this scene to pick it.");
 	});
-	function showOn(link, alias) {
+	function showOn(link, alias, done) {
 		if (alias && sceneId === 0) { alertBox("Save the scene first", "A scene shows on a post or page once it has been saved.", "k-ext-information"); return; }
 		jQuery.ajax({
 			type: "post", url: BASE_URL + "/common/cfc/ProxyController.cfc?method=setPostScene", dataType: "json",
@@ -1782,7 +1819,8 @@ $(document).ready(function () {
 					SHOWN_ON = $.grep(SHOWN_ON, function (id) { return id !== link.id; });
 					if (alias) { SHOWN_ON.push(link.id); }
 					drawShownOn();
-					if (alias) { $("#sceneShownOn").prepend($("<strong></strong>").text("Done. ")); }
+						if (alias) { $("#sceneShownOn").prepend($("<strong></strong>").text("Done. ")); }
+						if (done) { done(); }
 				} else { alertBox("Could not change it", (response && response.errorMessage) || "The post could not be changed.", "k-ext-warning"); }
 			},
 			error: function (jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
@@ -1790,8 +1828,10 @@ $(document).ready(function () {
 	}
 	$("#sceneShowApply").on("click", function () {
 		if (!showTarget) { return; }
-		if (unsaved) { alertBox("Save first", "Save your changes, so the " + (showTarget.page ? "page" : "post") + " shows this scene as it is now.", "k-ext-information"); return; }
-		showOn(showTarget, $.trim($("#sceneAlias").val()));
+		<!--- Unsaved changes are saved first (the window stays open), so the post or page shows the scene as it is now. --->
+		var target = showTarget;
+		if (unsaved || sceneId === 0) { startSave(false, function () { showOn(target, $.trim($("#sceneAlias").val())); }); return; }
+		showOn(target, $.trim($("#sceneAlias").val()));
 	});
 	drawShownOn();
 
@@ -1811,8 +1851,8 @@ $(document).ready(function () {
 
 	<!--- ---------- Save --->
 	$("#sceneSave").on("click", function () { startSave(true); });
-	$("#sceneApply").on("click", function () { startSave(false); });
-	function startSave(closeAfter) {
+	<!--- closeAfter: Save closes the window. afterSave: run once the save worked ("Show it there"). --->
+	function startSave(closeAfter, afterSave) {
 		var alias = $.trim($("#sceneAlias").val());
 		var problem = "";
 		if (!$.trim(scene.name || "").length) { problem = "The scene needs a title (Scene settings)."; }
@@ -1821,19 +1861,19 @@ $(document).ready(function () {
 			$.when(kendo.ui.ExtAlertDialog.show({ title: "Please check the scene", message: problem, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 			return;
 		}
-		$("#sceneSave, #sceneApply").prop("disabled", true);
+		$("#sceneSave").prop("disabled", true);
 		$("#sceneSaved").text("Saving...");
 		<!--- The ready-made forms picked since the last save are made now, one by one, each named after this scene; then the scene
 		is saved with them in place. If one can't be made, the scene isn't saved, so nothing points at a missing form. --->
 		var waiting = $.grep(scene.sections, function (s) { return s.kind === "form" && s.pendingReadyMade; });
 		(function makeNext() {
 			var s = waiting.shift();
-			if (!s) { saveNow(closeAfter); return; }
+			if (!s) { saveNow(closeAfter, afterSave); return; }
 			makeReadyForm(s.pendingReadyMade, function (f) { s.form = f.alias; s.formTitle = f.title; delete s.pendingReadyMade; makeNext(); },
-				function () { $("#sceneSave, #sceneApply").prop("disabled", false); $("#sceneSaved").text(""); });
+				function () { $("#sceneSave").prop("disabled", false); $("#sceneSaved").text(""); });
 		})();
 	}
-	function saveNow(closeAfter) {
+	function saveNow(closeAfter, afterSave) {
 		var alias = $.trim($("#sceneAlias").val());
 		jQuery.ajax({
 			type: "post",
@@ -1841,7 +1881,7 @@ $(document).ready(function () {
 			data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", sceneId: sceneId, alias: alias, active: $("#sceneActive").is(":checked"), sceneJson: JSON.stringify(scene) },
 			dataType: "json",
 			success: function (response) {
-				$("#sceneSave, #sceneApply").prop("disabled", false);
+				$("#sceneSave").prop("disabled", false);
 				if (response && response.success) {
 					<!--- Saved: from now on this is an existing scene, and its name in posts stays as it is. --->
 					sceneId = response.sceneId;
@@ -1857,15 +1897,18 @@ $(document).ready(function () {
 					$(document).trigger("galaxieSceneSaved", [{ sceneId: sceneId, alias: alias }]);
 					<!--- A form just made for this scene can now be changed here (its quick edit). --->
 					renderSettings();
-					<!--- Save (not Apply) closes the window; there is nothing unsaved, so it closes without asking. --->
-					if (closeAfter && kendoWindow) { kendoWindow.close(); }
+					<!--- Save closes the window; there is nothing unsaved, so it closes without asking. --->
+					var finish = function () { if (closeAfter && kendoWindow) { kendoWindow.close(); } else if (afterSave) { afterSave(); } };
+					<!--- The first save of a scene from Create, Scene shows it on its post or page ("Show it there" does that itself). --->
+					var forPost = FOR_POST; FOR_POST = null;
+					if (forPost && !afterSave && $.inArray(forPost.id, SHOWN_ON) < 0) { showOn(forPost, alias, finish); } else { finish(); }
 				} else {
 					$("#sceneSaved").text("");
 					$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The scene could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
 				}
 			},
 			error: function (jqXHR, textStatus, error) {
-				$("#sceneSave, #sceneApply").prop("disabled", false);
+				$("#sceneSave").prop("disabled", false);
 				$("#sceneSaved").text("");
 				if (jqXHR.status === 403) { createLoginWindow(); }
 				else { $.when(kendo.ui.ExtAlertDialog.show({ title: "Error while saving the scene", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); }

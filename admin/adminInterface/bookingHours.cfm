@@ -104,8 +104,8 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 			refreshClosedText();
 		});
 		$("#hoursDays").on("click", ".hoursRemove", function() {
-			$(this).closest(".hoursRange").remove();
-			refreshClosedText();
+			var range = $(this).closest(".hoursRange");
+			galaxieConfirm("Remove these hours?", "They come off this day when you save.", function () { range.remove(); refreshClosedText(); });
 		});
 		$("#hoursOwn").on("change", function() {
 			if ($(this).is(":checked") && !$("#hoursDays .hoursRange").length) {
@@ -226,11 +226,13 @@ and deleteAvailabilityException -> application.bookings (common/cfc/Bookings.cfc
 				})
 			});
 		});
+		<!--- Both ask first (owner 11-02). --->
 		$("#hoursExceptions").on("click", ".exceptionRemove", function() {
-			sendException('<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteAvailabilityException', {
+			var id = $(this).attr("data-id");
+			galaxieConfirm("Remove this date?", "The usual hours apply on that day again.", function () { sendException('<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteAvailabilityException', {
 				csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
-				availabilityExceptionId: $(this).attr("data-id")
-			});
+				availabilityExceptionId: id
+			}); });
 		});
 	});//...document.ready
 </script>

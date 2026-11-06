@@ -164,7 +164,10 @@
 			// staying open for immediate follow-up like it used to.
 			$.when(kendo.ui.ExtAlertDialog.show({ title: "Your video has been uploaded", message: "You can add video captions and an image cover for this video by reopening the enclosure editor.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }) // or k-ext-error, k-ext-information, k-ext-question, k-ext-warning.  You can also specify height.
 				).done(function () {
-				// Do nothing
+			<cfif not isPageCollectionEnclosure>
+				// Then, once, the cover image reminder (owner 11-02): a video can't be a post's share picture.
+				galaxieCoverImageReminder(<cfoutput>#val(URL.optArgs)#</cfoutput>, '<cfoutput>#csrfToken#</cfoutput>');
+			</cfif>
 			});
 		})
 	

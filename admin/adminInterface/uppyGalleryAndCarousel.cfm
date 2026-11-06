@@ -23,6 +23,10 @@
 	<input type="hidden" name="mediaIdList" id="mediaIdList" value=""/>
 	<input type="hidden" name="uppyFileList" id="uppyFileList" value=""/>
 	</form>
+	<!--- The Image Quality slider and its size estimate at the top, the same as the Hero and Cover upload windows (11-05, owner). --->
+	<cfset sliderId = selectorId & "UploadQualitySlider">
+	<cfset estimateHint = "Pick pictures to see about how big they will be.">
+	<cfinclude template="uploadQualitySlider.cfm">
     <div id="<cfoutput>#divId#</cfoutput>"></div>
     <script>
 		var uppy = Uppy.Core({
@@ -95,8 +99,56 @@
 			kendo.ui.ExtWaitDialog.hide();
 		})
 		
+		<!--- The size estimate for all the picked pictures (11-05): each one, after any crop, scaled to the 1920px the server keeps
+		for a gallery or carousel and run through the browser's JPEG encoder at the slider's quality. An estimate; PNG and GIF are
+		counted as they are. --->
+		;(function () {
+			var slider = $("#<cfoutput>#sliderId#</cfoutput>").data("kendoSlider");
+			var say = function (text) { $("#<cfoutput>#sliderId#</cfoutput>Estimate").text(text); };
+			var kb = function (bytes) { return Math.max(1, Math.round(bytes / 1024)).toLocaleString() + " KB"; };
+			var images = {};
+			var timer = null;
+			var run = function () {
+				var files = uppy.getFiles();
+				if (!files.length) { say("<cfoutput>#estimateHint#</cfoutput>"); return; }
+				var quality = slider ? slider.value() : 0.8, before = 0, after = 0, left = files.length;
+				var done = function () {
+					if (--left > 0) { return; }
+					say((files.length === 1 ? "This picture is " : files.length + " pictures, ") + kb(before) + (files.length === 1 ? "" : " in all") + ". At " + Math.round(quality * 100) + "% about " + kb(after) + ".");
+				};
+				files.forEach(function (file) {
+					before += file.size || 0;
+					var img = images[file.id];
+					if (!img || /^image\/(png|gif)$/i.test(file.type || "")) { after += file.size || 0; done(); return; }
+					try {
+						var scale = Math.min(1, 1920 / Math.max(img.naturalWidth, img.naturalHeight));
+						var canvas = document.createElement("canvas");
+						canvas.width = Math.round(img.naturalWidth * scale);
+						canvas.height = Math.round(img.naturalHeight * scale);
+						canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+						canvas.toBlob(function (blob) { after += blob ? blob.size : (file.size || 0); done(); }, "image/jpeg", quality);
+					} catch (e) { after += file.size || 0; done(); }
+				});
+			};
+			var soon = function () { clearTimeout(timer); timer = setTimeout(run, 250); };
+			var load = function (file) {
+				if (!file || !file.data) { return; }
+				var url = URL.createObjectURL(file.data), img = new Image();
+				img.onload = function () { URL.revokeObjectURL(url); images[file.id] = img; soon(); };
+				img.onerror = function () { URL.revokeObjectURL(url); delete images[file.id]; soon(); };
+				img.src = url;
+			};
+			uppy.on('file-added', load);
+			uppy.on('file-editor:complete', load);
+			uppy.on('file-removed', function (file) { delete images[file.id]; soon(); });
+			if (slider) { slider.bind("slide", soon); slider.bind("change", soon); }
+		})();
+
 		<!--- 3) When the upload button was pressed --->
 		uppy.on('upload', (data) => {
+			<!--- The slider's quality goes with the pictures (bundled uploads send Uppy's own meta), read as the upload starts. --->
+			var qualitySliderWidget = $("#<cfoutput>#sliderId#</cfoutput>").data("kendoSlider");
+			if (qualitySliderWidget) { uppy.setMeta({ quality: qualitySliderWidget.value() }); }
 			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait while the images are uploaded.", icon: "k-ext-information" }));
 		})
 		

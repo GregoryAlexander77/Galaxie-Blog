@@ -273,5 +273,267 @@
 		<!--- Return it --->
 		<cfreturn fullyQualifiedMediaUrl>
 	</cffunction>
-			
+
+	<!---//*****************************************************************************************
+		Comment formatting (5.03)
+	//******************************************************************************************--->
+
+	<!--- Visitors can format a comment with a few Markdown marks: **bold**, *italic*, `code`, fenced code blocks, lists, > quotes and
+	links. A visitor's comment is saved as encoded plain text (addComment) and stays that way; the marks are read here, when the comment
+	is shown. Every piece of the visitor's text is encoded, and the only HTML on the page is the handful of fixed tags written below. A
+	link must start with http:// or https://. No HTML from a visitor is ever accepted, so nothing has to be cleaned. A comment that
+	already has HTML in it was written or edited in the administrator's comment editor (or imported from BlogCFC), and is shown as it
+	always was. --->
+	<cffunction name="formatComment" access="public" output="false" returntype="string"
+			hint="Turns a stored comment into the HTML shown on the page and in emails.">
+		<cfargument name="comment" type="string" required="false" default="">
+		<cfscript>
+			var text = arguments.comment;
+			var lines = [];
+			var html = [];
+			var i = 1;
+			var j = 0;
+			var lineCount = 0;
+			var line = "";
+			var block = [];
+			var closing = 0;
+			var lang = "";
+
+			if (not len(trim(text))) {
+				return "";
+			}
+			if (find("<", text)) {
+				return paragraphFormat2(text);
+			}
+			text = commentPlainText(text);
+			lines = listToArray(text, chr(10), true);
+			lineCount = arrayLen(lines);
+
+			while (i lte lineCount) {
+				line = lines[i];
+
+				// A fenced code block: ``` (with an optional language) up to the next ``` line. Without a closing fence the marks are
+				// shown as typed. The code is shown exactly as typed, nothing inside it is formatted.
+				if (left(trim(line), 3) eq "```") {
+					lang = lCase(trim(mid(trim(line), 4, len(trim(line)))));
+					closing = 0;
+					for (j = i + 1; j lte lineCount; j++) {
+						if (trim(lines[j]) eq "```") {
+							closing = j;
+							break;
+						}
+					}
+					if (closing and reFind("^[a-z0-9+-]*$", lang)) {
+						block = [];
+						for (j = i + 1; j lt closing; j++) {
+							arrayAppend(block, lines[j]);
+						}
+						arrayAppend(html, '<pre class="language-' & commentCodeLanguage(lang) & '"><code>' & commentEncode(arrayToList(block, chr(10))) & '</code></pre>');
+						i = closing + 1;
+						continue;
+					}
+				}
+
+				// A blank line ends a paragraph.
+				if (not len(trim(line))) {
+					i++;
+					continue;
+				}
+
+				// A list: lines starting with - * or +, or with a number and a period.
+				if (reFind("^\s*[-*+]\s+\S", line) or reFind("^\s*[0-9]{1,3}[.)]\s+\S", line)) {
+					block = [];
+					lang = reFind("^\s*[-*+]\s", line) ? "ul" : "ol";
+					while (i lte lineCount and ((lang eq "ul" and reFind("^\s*[-*+]\s+\S", lines[i])) or (lang eq "ol" and reFind("^\s*[0-9]{1,3}[.)]\s+\S", lines[i])))) {
+						arrayAppend(block, "<li>" & commentInline(reReplace(lines[i], "^\s*([-*+]|[0-9]{1,3}[.)])\s+", "")) & "</li>");
+						i++;
+					}
+					arrayAppend(html, "<" & lang & ">" & arrayToList(block, "") & "</" & lang & ">");
+					continue;
+				}
+
+				// A quote: lines starting with >.
+				if (reFind("^\s*>", line)) {
+					block = [];
+					while (i lte lineCount and reFind("^\s*>", lines[i])) {
+						arrayAppend(block, commentInline(reReplace(lines[i], "^\s*>\s?", "")));
+						i++;
+					}
+					arrayAppend(html, "<blockquote>" & arrayToList(block, "<br />") & "</blockquote>");
+					continue;
+				}
+
+				// A paragraph: every other line up to a blank line or one of the blocks above. Line breaks are kept, as before. Its first
+				// line is always taken, so a ``` line without a closing fence is shown as text.
+				block = [commentInline(line)];
+				i++;
+				while (i lte lineCount and len(trim(lines[i])) and left(trim(lines[i]), 3) neq "```" and not reFind("^\s*([-*+]\s+\S|[0-9]{1,3}[.)]\s+\S|>)", lines[i])) {
+					arrayAppend(block, commentInline(lines[i]));
+					i++;
+				}
+				arrayAppend(html, "<p>" & arrayToList(block, "<br />") & "</p>");
+			}
+			return arrayToList(html, chr(10));
+		</cfscript>
+	</cffunction>
+
+	<cffunction name="commentSnippet" access="public" output="false" returntype="string"
+			hint="A comment as encoded plain text without the formatting marks, for the short previews in the recent comments lists.">
+		<cfargument name="comment" type="string" required="false" default="">
+		<cfscript>
+			var text = arguments.comment;
+			if (find("<", text)) {
+				return text;
+			}
+			text = commentPlainText(text);
+			text = reReplace(text, "(^|\n)\s*```[^\n]*", "\1", "all");
+			text = reReplace(text, "(^|\n)\s*>\s?", "\1", "all");
+			text = replace(text, "**", "", "all");
+			text = replace(text, "`", "", "all");
+			return commentEncode(trim(text));
+		</cfscript>
+	</cffunction>
+
+	<cffunction name="unpackFromBrowser" access="public" output="false" returntype="string"
+			hint="Decodes text that the browser sent past Global Script Protection (blogJsContent.cfm bypassScriptProtection: 'galaxie64:' and base64). Text without that start is returned as it is, so a page that was open before an update still saves what it sends.">
+		<cfargument name="text" type="string" required="false" default="">
+		<cfscript>
+			var s = "";
+			if (left(arguments.text, 10) neq "galaxie64:") {
+				return arguments.text;
+			}
+			s = replace(replace(trim(mid(arguments.text, 11, len(arguments.text))), "-", "+", "all"), "_", "/", "all");
+			if (not len(s)) {
+				return "";
+			}
+			if (reFind("[^A-Za-z0-9+/]", s)) {
+				throw(type="Galaxie.UnpackFromBrowser", message="The text from the browser could not be read.");
+			}
+			s = s & repeatString("=", (4 - len(s) mod 4) mod 4);
+			return charsetEncode(binaryDecode(s, "base64"), "utf-8");
+		</cfscript>
+	</cffunction>
+
+	<cffunction name="commentPlainText" access="private" output="false" returntype="string"
+			hint="The visitor's text as typed: the stored comment decoded, with Unix line endings and without the two characters commentInline uses as markers.">
+		<cfargument name="comment" type="string" required="true">
+		<cfscript>
+			var text = decodeForHtml(arguments.comment);
+			text = replace(text, chr(13) & chr(10), chr(10), "all");
+			text = replace(text, chr(13), chr(10), "all");
+			text = replace(text, chr(1), "", "all");
+			return replace(text, chr(2), "", "all");
+		</cfscript>
+	</cffunction>
+
+	<cffunction name="commentEncode" access="private" output="false" returntype="string"
+			hint="Encodes text for the page. Only the five characters that matter in HTML text and in a quoted attribute are changed, so the Markdown marks stay readable for commentInline.">
+		<cfargument name="text" type="string" required="true">
+		<cfscript>
+			var s = replace(arguments.text, "&", "&amp;", "all");
+			s = replace(s, "<", "&lt;", "all");
+			s = replace(s, ">", "&gt;", "all");
+			s = replace(s, '"', "&quot;", "all");
+			return replace(s, "'", "&##39;", "all");
+		</cfscript>
+	</cffunction>
+
+	<cffunction name="commentCodeLanguage" access="private" output="false" returntype="string"
+			hint="The Prism language for a code block. CFML tags are highlighted as markup; an unknown name gets no highlighting.">
+		<cfargument name="lang" type="string" required="true">
+		<cfscript>
+			var languages = {
+				"cfml": "markup", "cfm": "markup", "html": "markup", "xml": "markup", "markup": "markup",
+				"cfscript": "cfscript", "cfc": "cfscript",
+				"js": "javascript", "javascript": "javascript", "ts": "typescript", "typescript": "typescript", "json": "json",
+				"css": "css", "sql": "sql", "java": "java", "csharp": "csharp", "cs": "csharp", "php": "php", "python": "python", "py": "python",
+				"ruby": "ruby", "bash": "bash", "sh": "bash", "shell": "bash", "powershell": "powershell", "ps": "powershell",
+				"markdown": "markdown", "md": "markdown"
+			};
+			return structKeyExists(languages, arguments.lang) ? languages[arguments.lang] : "none";
+		</cfscript>
+	</cffunction>
+
+	<cffunction name="commentInline" access="private" output="false" returntype="string"
+			hint="Formats one line of a comment: `code`, [text](link), bare links, **bold** and *italic*.">
+		<cfargument name="line" type="string" required="true">
+		<cfscript>
+			// Code and links are set aside behind a numbered marker (chr(1) number chr(2)) so that nothing inside them is formatted,
+			// and put back at the end. The list is kept in a struct: Adobe ColdFusion passes an array to a function as a copy.
+			var keep = {items: []};
+			var s = commentSetAside(arguments.line, "`([^`]+)`", "code", keep);
+			var k = 0;
+			s = commentEncode(s);
+			s = commentSetAside(s, "\[([^\]" & chr(1) & chr(2) & "]+)\]\((https?://[^\s)]+)\)", "link", keep);
+			s = commentSetAside(s, "https?://[^\s" & chr(1) & chr(2) & "]+", "url", keep);
+			s = reReplace(s, "\*\*([^*]+)\*\*", "<strong>\1</strong>", "all");
+			s = reReplace(s, "\*([^*\s]([^*]*[^*\s])?)\*", "<em>\1</em>", "all");
+			for (k = arrayLen(keep.items); k gte 1; k--) {
+				s = replace(s, chr(1) & k & chr(2), keep.items[k], "all");
+			}
+			return s;
+		</cfscript>
+	</cffunction>
+
+	<cffunction name="commentSetAside" access="private" output="false" returntype="string"
+			hint="Replaces each match of the pattern with a numbered marker and keeps its HTML in keep.items.">
+		<cfargument name="s" type="string" required="true">
+		<cfargument name="pattern" type="string" required="true">
+		<cfargument name="kind" type="string" required="true">
+		<cfargument name="keep" type="struct" required="true">
+		<cfscript>
+			var out = "";
+			var start = 1;
+			var found = reFind(arguments.pattern, arguments.s, start, true);
+			var whole = "";
+			var href = "";
+			var tail = "";
+			var piece = "";
+
+			while (found.pos[1] gt 0) {
+				out = out & mid(arguments.s, start, found.pos[1] - start);
+				whole = mid(arguments.s, found.pos[1], found.len[1]);
+				if (arguments.kind eq "code") {
+					// The code is still the visitor's raw text here; it is encoded on its own.
+					piece = "<code>" & commentEncode(mid(arguments.s, found.pos[2], found.len[2])) & "</code>";
+				} else if (arguments.kind eq "link") {
+					// The text and the address were already encoded with the rest of the line.
+					piece = commentLink(mid(arguments.s, found.pos[3], found.len[3]), mid(arguments.s, found.pos[2], found.len[2]));
+				} else {
+					// A bare address: punctuation at its end belongs to the sentence, not to the address.
+					href = whole;
+					tail = "";
+					while (len(href) and (reFind("[.,;:!?)]$", href) or reFind("&(quot|##39|gt);$", href))) {
+						if (reFind("&(quot|##39|gt);$", href)) {
+							tail = mid(href, reFind("&(quot|##39|gt);$", href), len(href)) & tail;
+							href = left(href, reFind("&(quot|##39|gt);$", href) - 1);
+						} else {
+							tail = right(href, 1) & tail;
+							href = left(href, len(href) - 1);
+						}
+					}
+					piece = (reFind("^https?://[^/\s]", href) ? commentLink(href, href) : href) & tail;
+				}
+				arrayAppend(arguments.keep.items, piece);
+				out = out & chr(1) & arrayLen(arguments.keep.items) & chr(2);
+				start = found.pos[1] + found.len[1];
+				if (start gt len(arguments.s)) {
+					break;
+				}
+				found = reFind(arguments.pattern, arguments.s, start, true);
+			}
+			if (start lte len(arguments.s)) {
+				out = out & mid(arguments.s, start, len(arguments.s) - start + 1);
+			}
+			return out;
+		</cfscript>
+	</cffunction>
+
+	<cffunction name="commentLink" access="private" output="false" returntype="string"
+			hint="A link in a comment. Both values arrive encoded. nofollow and ugc tell search engines the link is a visitor's.">
+		<cfargument name="href" type="string" required="true">
+		<cfargument name="text" type="string" required="true">
+		<cfreturn '<a href="' & arguments.href & '" rel="nofollow ugc noopener" target="_blank">' & arguments.text & '</a>'>
+	</cffunction>
+
 </cfcomponent>			

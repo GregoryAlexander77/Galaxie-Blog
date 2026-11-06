@@ -51,7 +51,8 @@ stays automatic. Saved by ProxyController.cfc's saveMenuSettings; drawn by inclu
 			var row = $(this).closest("tr"); row.next(".menuLinkRow").after(row);
 		});
 		$("#menuLinksBody").on("click", ".menuLinkRemove", function() {
-			$(this).closest("tr").remove(); refreshEmptyMessage();
+			var row = $(this).closest("tr");
+			galaxieConfirm("Remove this link?", "It comes off the menu when you save.", function () { row.remove(); refreshEmptyMessage(); });
 		});
 
 		$("#configureMenuSubmit").on("click", function(e) {

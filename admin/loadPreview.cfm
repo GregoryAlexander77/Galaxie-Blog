@@ -21,13 +21,10 @@
 		<!--- Get the current blog theme --->
 		<cfset kendoTheme = application.blog.getSelectedKendoTheme()>
 
-		<!--- Render the thumnbail HTML. Pass in the getPost obj and if you want to render the thumbnail --->
-		<cfset thumbnailHtml = RendererObj.renderMediaPreview(kendoTheme, getPost, true)>
-
-		<cfoutput>
-			<!-- Rendered by the /admin/loadPreview.cfm template -->
-			#thumbnailHtml#
-		</cfoutput>
+		<!--- The Edit Post window's hero and cover block (11-02), the same template postDetail.cfm shows first. --->
+		<cfsetting enablecfoutputonly="false">
+		<cfinclude template="adminInterface/heroCoverBlock.cfm">
+		<cfsetting enablecfoutputonly="true">
 	</cfcase>
 	<cfcase value="2">
 		<!--- Page Collection hero preview (image/carousel/map/video) - lightweight reload target for
@@ -79,5 +76,40 @@
 				<img src="#application.baseUrl#/images/icons/noMedia.png" alt="">
 			</cfif>
 		</cfoutput>
+	</cfcase>
+	<cfcase value="3">
+		<!--- The Hero editor's preview for a post with no picture, video, carousel or map (11-04): its scene, gradient, animation or
+		cover, the same as enclosureImageEditor.cfm shows when it opens. Called by galaxieRefreshHeroEditorPreview() after the moving
+		hero or the cover is saved. URL.optArgs is the postId. --->
+		<cfobject component="#application.rendererComponentPath#" name="RendererObj">
+		<cfset getPost = application.blog.getPostByPostId(val(URL.optArgs),true,true)>
+		<cfif arrayLen(getPost)>
+			<cfoutput>#RendererObj.renderHeroEditorFallback(getPost)#</cfoutput>
+		</cfif>
+	</cfcase>
+	<cfcase value="6">
+		<!--- The Hero window's Hero text row (11-05): the heading and its window. URL.optArgs is the postId. --->
+		<cfset getPost = application.blog.getPostByPostId(val(URL.optArgs),true,true)>
+		<cfif arrayLen(getPost)>
+			<cfsetting enablecfoutputonly="false">
+			<cfinclude template="adminInterface/heroTextLine.cfm">
+			<cfsetting enablecfoutputonly="true">
+		</cfif>
+	</cfcase>
+	<cfcase value="5">
+		<!--- The Hero window's line under the preview (11-04): what the hero is, and the cover. URL.optArgs is the postId. --->
+		<cfset getPost = application.blog.getPostByPostId(val(URL.optArgs),true,true)>
+		<cfif arrayLen(getPost)>
+			<cfsetting enablecfoutputonly="false">
+			<cfinclude template="adminInterface/heroStatusLine.cfm">
+			<cfsetting enablecfoutputonly="true">
+		</cfif>
+	</cfcase>
+	<cfcase value="4">
+		<!--- The post's cover picture, as JSON (11-04): the Moving hero wizard's cover step reads it again after the cover window saves.
+		URL.optArgs is the postId. --->
+		<cfset getPost = application.blog.getPostByPostId(val(URL.optArgs),true,true)>
+		<cfcontent type="application/json" reset="true">
+		<cfoutput>#serializeJSON({ "coverUrl": arrayLen(getPost) ? (getPost[1]["HeroCoverImageUrl"] ?: "") : "" })#</cfoutput>
 	</cfcase>
 </cfswitch>

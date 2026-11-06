@@ -69,7 +69,7 @@
 					var len = resp.headers.get("Content-Length");
 					var sizeText = len ? (Math.round(parseInt(len, 10) / 1024)).toLocaleString() + " KB" : "an unknown size (couldn't be read)";
 					$("#imageQualityPreviewResult").text(
-						"Your current image is already WebP - " + sizeText + ". The quality slider below does not apply to it - " +
+						"Your current image is already WebP - " + sizeText + ". The quality slider above does not apply to it - " +
 						webpEngineDescriptionJs + " can't create WebP images, so that quality was already decided outside this tool " +
 						"when the file was converted. To get a smaller WebP file, resize or re-compress it in your own image editor " +
 						"first, then use \"Swap in WebP Version\" again to replace it."
@@ -245,37 +245,15 @@
 		<cfset mediaHtml = mediaHtml & RendererObj.renderMapPreview(enclosureMapId)>
 	</cfif>
 
-	<!---*********************    Handle the Hero Cover Image    *********************--->
-	<!--- 2026-10-01: a static uploaded photo for a post with no real Image/Video/Map/Carousel - takes priority
-	over Gradient/the live animation's own placeholder/iframe, same as it does in Renderer.cfc's renderMediaPreview() and
-	every card-grid template, so what the admin sees here always matches what cards/social will actually use.
-	Post-only, same isPageCollectionEnclosure guard as the Gradient/animation block below. --->
-	<cfif not isPageCollectionEnclosure and mediaHtml eq '' and len(getPost[1]["HeroCoverImageUrl"])>
-		<cfset mediaHtml = RendererObj.renderEnclosureImage(mediaUrl=getPost[1]["HeroCoverImageUrl"])>
-	</cfif>
-
-	<!---*********************    Handle the Hero Gradient / Hero Animation    *********************--->
-	<!--- 2026-10-01: a Post whose hero is a picked Gradient or animation effect (not an Image/Video/Carousel/Map)
-	used to open this editor to a BLANK TinyMCE content area - this file never had a branch for either field,
-	only the four plain media types above. Post-only (not isPageCollectionEnclosure): a Page Collection's hero
-	has no TinyMCE editor at all (see azureMap.cfm's window.currentEnclosureEntityType branch, which writes
-	straight to #enclosurePreview instead) and getPageCollectionByPageCollectionId()'s own SELECT doesn't even
-	return these fields, so reading them here for a Page Collection would throw an undefined-key error, not just
-	render wrong. Mirrors renderMediaPreview()'s own Gradient/animation branches (Renderer.cfc) - same priority
-	order, Gradient checked first since the two are mutually exclusive on Post.cfc. --->
-	<cfif not isPageCollectionEnclosure and mediaHtml eq '' and len(getPost[1]["HeroGradient"])>
-		<cfset mediaHtml = RendererObj.renderHeroGradientHtml(getPost[1]["HeroGradient"], getPost[1]["HeroOverlayText"], getPost[1]["HeroOverlayTextColor"], getPost[1]["HeroOverlayFont"], getPost[1]["HeroOverlayFontSize"])>
-	<cfelseif not isPageCollectionEnclosure and mediaHtml eq '' and len(getPost[1]["HeroAnimationEffect"])>
-		<!--- Same live iframe heroAnimationEditor.cfm's own submit handler sets into TinyMCE right after picking
-		(preview/heroAnimation.cfm) - this is what makes reopening the editor later show the same thing instead
-		of resetting to blank. 2026-10-03: renamed from HeroVantaEffect/vantaEditor.cfm/preview/vanta.cfm while
-		still dev-only/unmigrated. --->
-		<!--- 2026-10-04: bumped from 235x130 - this window has plenty of room (66%/85% Kendo Window) and the
-		admin asked for a larger preview specifically here, while keeping the small postDetail.cfm admin-list
-		thumbnail (Renderer.cfc's renderMediaPreview()) unchanged. Same size bump mirrored in
-		heroAnimationEditor.cfm's own submit-handler iframe string - keep both in sync, same reasoning as the
-		comment above (reopening this editor later has to show the same size as right after picking). --->
-		<cfset mediaHtml = '<iframe data-type="animation" data-id="' & URL.optArgs & '" src="' & application.baseUrl & '/preview/heroAnimation.cfm?postId=' & URL.optArgs & '" width="470" height="260" style="border:0;" scrolling="no"></iframe>'>
+	<!---*********************    Handle the scene, Hero Gradient, Hero Animation and Hero Cover Image    *********************--->
+	<!--- A post with no picture, video, carousel or map: its scene (a moving hero or a full scene) as a still, else its gradient,
+	else its animation, else its cover (Renderer.cfc renderHeroEditorFallback; history: 10-01 the gradient and animation opened a
+	blank editor; 11-02 the hero comes before the cover; 11-04, owner: a cover on a post with a scene showed nothing, and neither
+	did the scene). Post-only: a Page Collection's hero has no TinyMCE editor and its query doesn't return these fields. --->
+	<!--- A scene comes first even when the post also has a picture under it (11-05, owner: the window opened on the picture while
+	the post shows its moving hero), as on the post page. --->
+	<cfif not isPageCollectionEnclosure and (mediaHtml eq '' or len(application.blog.getScenes().getPostScene(val(URL.optArgs))))>
+		<cfset mediaHtml = RendererObj.renderHeroEditorFallback(getPost)>
 	</cfif>
 
 	<!---********************* Post Enclosure editor *********************--->
@@ -305,18 +283,32 @@
 	rebuilding it from scratch - see the two "UPPY PIPELINE" markers further down. "editimage" edits an image
 	already in the content (alt text, dimensions). --->
 	<cfif session.isMobile>
-		<cfset toolbarString = "undo redo | image editimage gradient heroAnimation heroCoverImage | scene heroText | media videoUpload">
+		<cfset toolbarString = "undo redo | image gradient heroAnimation heroCoverImage | movingHero heroText heroStyle | media videoUpload | removeHero">
 	<cfelse>
-		<cfset toolbarString = "undo redo | image editimage gradient heroAnimation heroCoverImage | carousel scene | heroText | media videoUpload webVttUpload videoCoverUpload | map mapRouting">
+		<cfset toolbarString = "undo redo | image gradient heroAnimation heroCoverImage | carousel movingHero | heroText heroStyle | media videoUpload webVttUpload videoCoverUpload | map mapRouting | removeHero">
 	</cfif>
+	<!--- No TinyMCE picture tools here (11-05, owner): rotating the preview uploaded a picture of it as the hero, and it took the
+	moving hero off the post. The previews here aren't the real files (a scene's still, a cover drawn as a background), so the tools
+	are off, and Edit picture on the ribbon opens the real picture in the Upload Image window's editor instead. --->
+	<cfset pluginList = "'advlist autolink lists hr link image charmap print preview anchor', 'searchreplace visualblocks code codesample fullscreen', 'insertdatetime media table paste wordcount iconfonts textpattern toc emoticons nonbreaking'">
+	<cfset includeEditPicture = true>
+	<cfset editPictureTarget = "hero">
 	<cfset includeCarousel = true>
 	<cfset includeVideoUpload = true>
 	<cfset includeGradient = true>
 	<cfset includeHeroAnimation = true>
 	<cfset includeHeroCoverImage = true>
-	<!--- Scene and Hero text live here since 2026-10-20 (the post editor's own buttons for them are gone). --->
-	<cfset includeScene = true>
+	<!--- Hero text lives here since 2026-10-20 (the post editor's own button for it is gone). No Scene button on the ribbon since
+	11-02 (owner chose "two separate things"): a moving hero is made below, and a full-page scene is shown on a post from the Scenes
+	window (Show this scene on) or made with Create, Scene. --->
+	<cfset includeScene = false>
+	<!--- The Moving hero button (11-03, owner: users expect it on the ribbon like the other heroes): jumps to the Moving hero
+	section below and opens its picker (galaxieOpenMovingHero). --->
+	<cfset includeMovingHero = true>
 	<cfset includeHeroText = true>
+	<!--- Hero style (window 120) and Remove hero (11-04, owner: they were at the bottom of this window, which made it long). --->
+	<cfset includeHeroStyle = true>
+	<cfset includeRemoveHero = true>
 	<cfset disableVideoCoverAndWebVttButtons = true>
 	</cfsilent>
 	<!--- TinyMCE itself is still Post/Page-only - a Page Collection's hero enclosure supports the same underlying
@@ -501,27 +493,49 @@
 		
 		<!--- Posts only (2026-10-18): it uses the post editor's selectorName, which a Page Collection's window never sets (the error broke its picture editor). --->
 		<cfif not isPageCollectionEnclosure>
-		<!--- Remove the picture (owner, 10-16: a post had no visible way to take its hero picture off - only emptying the editor
-		box and pressing Submit did it). Asks first, removes it, refreshes the post editor's preview and closes this window. --->
-		function removePostHero(){
-			$.when(kendo.ui.ExtYesNoDialog.show({ title: "Remove the picture?", message: "This takes the picture off the post. Nothing is deleted from your media library.", icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function(answer) {
-				if (answer['button'] !== 'Yes') { return; }
+		<!--- Remove hero (11-04; a Remove picture button since 10-16): takes whatever hero the post has off it - picture, video, carousel,
+		map, gradient, animation or moving hero (ProxyController.cfc removePostHero). Asks first; the cover and hero text stay. --->
+		window.galaxieRemoveHero = function () {
+			galaxieConfirm("Remove the hero?", "This takes the hero off the post: its picture, video, carousel, map, gradient, animation or moving hero. Nothing is deleted from your media library, and the cover and hero text stay.", function () {
 				jQuery.ajax({
 					type: 'post',
-					url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removeMediaEnclosure&template=enclosureImageEditor',
+					url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removePostHero',
 					dataType: "json",
 					data: { csrfToken: '<cfoutput>#csrfToken#</cfoutput>', postId: <cfoutput>#URL.optArgs#</cfoutput> }
-				}).done(function() {
-					try { tinymce.get("<cfoutput>#selectorName#</cfoutput>").setContent(""); } catch (e) {}
+				}).done(function (response) {
+					if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+					if (!(response && response.success)) {
+						kendo.ui.ExtAlertDialog.show({ title: "The hero stays", message: (response && response.errorMessage) || "It could not be removed. Please try again.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+						return;
+					}
 					$("#externalImageUrl").val("");
+					try { tinymce.get("<cfoutput>#selectorName#</cfoutput>").setContent(""); } catch (e) {}
+					window.galaxieRefreshHeroEditorPreview();
 					try { reloadEnclosureThumbnailPreview(<cfoutput>#URL.optArgs#</cfoutput>); } catch (e) {}
-					$('#postEnclosureWindow').kendoWindow('destroy');
-				}).fail(function(jqXHR) {
+				}).fail(function (jqXHR) {
 					if (jqXHR.status === 403) { createLoginWindow(); return; }
-					kendo.ui.ExtAlertDialog.show({ title: "The picture stays", message: "It could not be removed. Please try again.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+					kendo.ui.ExtAlertDialog.show({ title: "The hero stays", message: "It could not be removed. Please try again.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
 				});
 			});
-		}
+		};
+
+		<!--- Redraw the preview after the moving hero or the cover is saved in their own windows (11-04), unless it shows a picture,
+		video, carousel or map, which those don't change. --->
+		<!--- force: redraw even over a picture or video, for when the save took it off (11-05: a moving hero clears a video). --->
+		window.galaxieRefreshHeroEditorPreview = function (force) {
+			<!--- And the Hero text row at the top, for a moving hero's heading (11-05). --->
+			$("#heroTextLine").load("<cfoutput>#application.baseUrl#</cfoutput>/admin/loadPreview.cfm?previewId=6&optArgs=<cfoutput>#URL.optArgs#</cfoutput>");
+			$("#heroStatus").load("<cfoutput>#application.baseUrl#</cfoutput>/admin/loadPreview.cfm?previewId=5&optArgs=<cfoutput>#URL.optArgs#</cfoutput>");
+			var editor = window.tinymce && tinymce.get("<cfoutput>#selectorName#</cfoutput>");
+			if (!editor) { return; }
+			<!--- data-mce-p-data-type too: the editor renames a frame's data-type when it wraps it (11-05). --->
+			var keep = 'img:not([data-type]), img[data-type="image"][data-id]:not([data-id=""]), [data-type="video"], [data-type="carousel"], [data-type="map"], [data-type="mapRoute"], [data-mce-p-data-type="video"], [data-mce-p-data-type="carousel"], [data-mce-p-data-type="map"], [data-mce-p-data-type="mapRoute"]';
+			<!--- A moving hero's layers are pictures too, but part of this preview, not a hero picture (11-05). --->
+			if (!force && $(editor.getBody()).find(keep).not('[data-type="movingHero"] *, [data-type="heroAndCover"] *').length) { return; }
+			jQuery.get("<cfoutput>#application.baseUrl#</cfoutput>/admin/loadPreview.cfm", { previewId: 3, optArgs: <cfoutput>#URL.optArgs#</cfoutput> }, function (html) {
+				editor.setContent($.trim(html));
+			});
+		};
 		</cfif>
 
 		function removeMediaEnclosure(){
@@ -552,7 +566,21 @@
 		}
 			
 		<!--- Submit the data and close this window. --->
+		<!--- The windows opened from this one close with it (11-05, owner: Hero style was still open after a video upload closed this
+		window). The cover window is left alone: the cover reminder opens it after a hero save. --->
+		window.galaxieCloseHeroChildWindows = function () {
+			$.each(["postHeroStyleWindow", "postHeroTextWindow", "movingHeroWizardWindow", "gradientEditorWindow", "gradientPasteEditorWindow", "heroAnimationEditorWindow"], function (i, id) {
+				var w = $("#" + id).data("kendoWindow");
+				if (w) { try { w.destroy(); } catch (e) {} }
+			});
+		};
+		$(function () {
+			var heroWindow = $("#postEnclosureWindow").data("kendoWindow");
+			if (heroWindow) { heroWindow.bind("close", window.galaxieCloseHeroChildWindows); }
+		});
+
 		function onPostEnclosureSubmit(){
+			window.galaxieCloseHeroChildWindows();
 			<cfif not isPageCollectionEnclosure>
 				// Get the editor content
 				// Original code that caused problems:
@@ -621,12 +649,23 @@
 	  <cfelse>
 	  <tr height="30px">
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			The hero is what shows at the top of the post: a picture, a video, a carousel, a map, a gradient, an animation or a scene (the layered icon on the ribbon). Hero text, the heading over it, is the H on the ribbon or Format, Hero text. Galaxie Blog will automatically crop your image for Facebook, Twitter, Google, and a classic 1200&times;900 fallback used whenever a platform-specific crop isn't available. To upload media, click on the buttons below.
+			The hero shows at the top of the post: a picture, video, carousel, map, gradient, animation or moving hero (below). For a heading over it, use the H on the ribbon or Format, Hero text. Pictures are cropped for Facebook, X and Google automatically. To add media, use the buttons below. Click a picture to crop, rotate or flip it.
+			<div class="k-form-hint"><small>Pinterest needs a tall (portrait) picture of at least 1000&times;1500. Wide pictures are skipped.</small></div>
 		</td>
 	  </tr>
-	  <tr height="30px">
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			Pinterest is only generated when your image is at least 1000&times;1500 and taller than it is wide - a wide/landscape photo will clear the pixel count but still get skipped, since the resulting crop would look bad regardless of resolution. Upload a portrait-oriented image if you want Pinterest support for this post.
+	  <!--- Hero text first, at the top, the same row as the gradient and animation windows (11-05, owner). heroTextLine.cfm, drawn
+	  again (loadPreview previewId 6) when the Hero text window or the moving hero saves. --->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr valign="middle">
+		<td align="left" id="heroTextLine" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
+			<cfinclude template="heroTextLine.cfm">
+			<script>
+				$(document).off('galaxieHeroTextSaved.heroTextLine').on('galaxieHeroTextSaved.heroTextLine', function () {
+					$("#heroTextLine").load("<cfoutput>#application.baseUrl#</cfoutput>/admin/loadPreview.cfm?previewId=6&optArgs=<cfoutput>#val(URL.optArgs)#</cfoutput>");
+				});
+			</script>
 		</td>
 	  </tr>
 	  </cfif>
@@ -695,7 +734,7 @@
 			<!--- window.currentEnclosureEntityType (set 'pageCollection' above) flows into window 77's own content
 			URL automatically, same as window 14 above - see gradientEditor.cfm. --->
 			<button type="button" class="k-button normalFontWeight" onclick="javascript:createAdminInterfaceWindow(77,<cfoutput>#URL.optArgs#</cfoutput>);"><i class="fontAwesomeIcon fas fa-swatchbook"></i> Gradient</button>
-			<button type="button" class="k-button normalFontWeight" onclick="javascript:removeMediaEnclosure(); $('#enclosurePreview').html('<img src=&quot;<cfoutput>#application.baseUrl#</cfoutput>/images/icons/noMedia.png&quot; alt=&quot;&quot;>');"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove</button>
+			<button type="button" class="k-button normalFontWeight" onclick="javascript:galaxieConfirm('Remove the picture?', 'It comes off the hero of this collection.', function () { removeMediaEnclosure(); $('#enclosurePreview').html('<img src=&quot;<cfoutput>#application.baseUrl#</cfoutput>/images/icons/noMedia.png&quot; alt=&quot;&quot;>'); });"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove</button>
 		</td>
 	  </tr>
 	  <cfelse>
@@ -725,8 +764,27 @@
 						var doc = frameDoc(editor); if (!doc || !doc.body) { return; }
 						var layer = doc.getElementById("galaxieHeroTextLayer");
 						if (!html) { if (layer) { layer.remove(); } return; }
+						// A video, map or carousel hero shows no hero text on the post (a carousel has its own slide text), so none here
+						// either (11-05, owner: the heading was drawn under a video). A moving hero has its own heading, already drawn
+						// on its still (Renderer.renderHeroEditorFallback), so this one would be a second heading on top (11-05, owner).
+						// The editor wraps a frame (video, map, carousel) in its own span and renames its data-type to data-mce-p-data-type.
+						var noText = ["video", "map", "mapRoute", "carousel", "movingHero"].map(function (k) { return '[data-type="' + k + '"], [data-mce-p-data-type="' + k + '"]'; }).join(", ");
+						if (doc.body.querySelector("video, " + noText)) { if (layer) { layer.remove(); } return; }
 						var media = doc.body.querySelector("img, iframe, video, .galaxieHeroGradient, [style*='gradient']") || doc.body.firstElementChild;
 						if (!media) { if (layer) { layer.remove(); } return; }
+						// An animation preview is a frame that draws its own copy of the heading (11-03, owner: tiny and big text at once).
+						// Same site, so hide that copy and keep this layer's.
+						if (media.tagName === "IFRAME") {
+							try {
+								var inner = media.contentDocument;
+								if (inner && inner.documentElement && !inner.getElementById("galaxieHeroTextHide")) {
+									var innerHide = inner.createElement("style");
+									innerHide.id = "galaxieHeroTextHide";
+									innerHide.textContent = ".galaxieHeroText { visibility: hidden !important; }";
+									(inner.head || inner.documentElement).appendChild(innerHide);
+								}
+							} catch (e) {}
+						}
 						if (!layer) {
 							layer = doc.createElement("div");
 							layer.id = "galaxieHeroTextLayer";
@@ -769,265 +827,22 @@
 			</script>
 		</td>
 	  </tr>
-	  <!--- Remove the picture (2026-10-16), only when the post has one. --->
-	  <cfif len(mediaUrl)>
+	  <!--- What the hero is and its cover, in one line (11-04, owner: the bottom of this window had "a lot of stuff"; Remove picture is now
+	  Remove hero on the toolbar, and the moving hero and hero style have windows of their own). heroStatusLine.cfm. --->
+	  <cfif not isPageCollectionEnclosure>
 	  <tr valign="middle">
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
-			<button type="button" class="k-button normalFontWeight" onclick="removePostHero();"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove picture</button>
-			<span class="k-form-hint">Takes the picture off the post. The post then shows your no-picture choice in Blog Options; an event shows its calendar tile on the front page.</span>
-		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;" id="heroStatus"><cfinclude template="heroStatusLine.cfm"></td>
 	  </tr>
 	  </cfif>
-	  <!--- A parallax hero (2026-10-25, owner: "a shortcut for the users who just want a parallax hero image without having to go to the
-	  scene UI"). Pick a ready-made layered picture (or this post's own picture, with a slow zoom), a heading and where it sits; it becomes
-	  the post's own hero parallax scene (Scenes.cfc usePostHeroParallax, alias post-hero-{postId}) and replaces the hero above on the post's
-	  own page. The post's picture stays, for its cards and for sharing. ProxyController.cfc savePostHeroParallax. --->
-	  <cfsilent>
-	  <cfset parallaxScenes = application.blog.getScenes()>
-	  <cfset parallaxState = parallaxScenes.getPostHeroParallax(val(URL.optArgs))>
-	  <cfset parallaxStarters = parallaxScenes.getHeroParallaxStarters()>
-	  <cfset parallaxPost = entityLoadByPK("Post", val(URL.optArgs))>
-	  <cfset parallaxTitle = isNull(parallaxPost) ? "" : (parallaxPost.getTitle() ?: "")>
-	  <cfset parallaxPhoto = (len(mediaUrl ?: "") and (mediaType ?: "") eq "Image") ? mediaUrl : "">
-	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-	  </cfsilent>
-	  <cfif not isNull(parallaxPost)>
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <tr valign="middle">
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
-			<style>
-				#parallaxHeroCards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
-				#parallaxHeroPositions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
-				@media (max-width: 760px) { #parallaxHeroCards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-				.phCard { border: 2px solid rgba(128,128,128,.35); border-radius: 8px; padding: 4px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-				.phCard:hover, .phCard:focus { border-color: rgba(128,128,128,.8); outline: none; }
-				.phCard[aria-checked="true"] { border-color: currentColor; }
-				.phName { display: block; margin-top: 4px; font-size: 12px; line-height: 1.25; }
-				.phArt { display: block; position: relative; aspect-ratio: 16 / 9; border-radius: 4px; overflow: hidden; background: #2b3540; background-size: cover; background-position: center; transition: background-size 1.6s ease-out; }
-				.phArt img { position: absolute; left: 0; top: -7%; width: 100%; height: 115%; object-fit: cover; transition: transform 1.6s ease-out; }
-				.phCard:hover .phArt.phPhoto, .phCard:focus .phArt.phPhoto { background-size: 125%; }
-				.phText { position: absolute; left: 8%; right: 8%; display: flex; flex-direction: column; gap: 3px; }
-				.phText i { display: block; width: 46%; height: 6px; border-radius: 3px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.6); }
-				.phText i + i { width: 30%; height: 4px; opacity: .85; }
-				.phText.middle { top: 50%; transform: translateY(-50%); } .phText.low { bottom: 10%; }
-				.phText.left { align-items: flex-start; } .phText.center { align-items: center; } .phText.right { align-items: flex-end; }
-				#parallaxHeroDetails { display: none; margin-top: 12px; }
-				#parallaxHeroDetails.phOn { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-				@media (max-width: 760px) { #parallaxHeroDetails.phOn { grid-template-columns: 1fr; } }
-				#parallaxHeroPreview .phArt img { height: 125%; top: -12%; transition: transform 2.4s ease-in-out; }
-				#parallaxHeroPreview .phBig { position: absolute; left: 8%; right: 8%; display: flex; flex-direction: column; color: #ffffff; text-shadow: 0 2px 8px rgba(0,0,0,.7); }
-				#parallaxHeroPreview .phBig b { font-size: 22px; }
-				#parallaxHeroPreview .phBig.middle { top: 50%; transform: translateY(-50%); } #parallaxHeroPreview .phBig.low { bottom: 10%; }
-				#parallaxHeroPreview .phBig.left { text-align: left; } #parallaxHeroPreview .phBig.center { text-align: center; } #parallaxHeroPreview .phBig.right { text-align: right; }
-				.phDimmed { opacity: .45; pointer-events: none; }
-			</style>
-			<h4 class="adminBlockHeading">Parallax hero</h4>
-			A picture in layers that move at different speeds as the reader scrolls, at the top of this post. No need for the Scene editor.
-			<div style="margin-top: 8px;">
-				<button type="button" class="k-button normalFontWeight" id="parallaxHeroOpen"><i class="fontAwesomeIcon fas fa-layer-group"></i> <span id="parallaxHeroOpenText">Choose a parallax hero...</span></button>
-				<button type="button" class="k-button normalFontWeight" id="parallaxHeroRemove" style="display: none;"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove the parallax hero</button>
-				<!--- Shortcut to the Scene editor (window 107, 2026-11-01, owner) for the scene this post shows: colors, timing, how it ends, more sections. --->
-				<button type="button" class="k-button normalFontWeight" id="parallaxHeroSceneEditor" style="display: none;"><i class="fontAwesomeIcon fas fa-pen-to-square"></i> Open in the Scene editor</button>
-				<span id="parallaxHeroStatus" class="k-form-hint" style="margin-left: 6px;"></span>
-			</div>
-			<div id="parallaxHeroPanel" style="display: none;">
-				<div class="k-form-hint" style="margin-top: 8px;">Point at a picture to see it move, then click it.</div>
-				<div id="parallaxHeroCards" role="radiogroup" aria-label="Parallax pictures"></div>
-				<div id="parallaxHeroDetails">
-					<div>
-						<div id="parallaxHeroPreview"></div>
-						<div class="k-form-hint">The preview moves on its own here; on the post it follows the scroll.</div>
-					</div>
-					<div>
-						<label for="parallaxHeroHeading">Heading</label>
-						<input type="text" id="parallaxHeroHeading" class="k-textbox" maxlength="300" style="width: 95%;">
-						<label for="parallaxHeroLine" style="display: block; margin-top: 6px;">A line under it (optional)</label>
-						<input type="text" id="parallaxHeroLine" class="k-textbox" maxlength="300" style="width: 95%;">
-						<label style="display: block; margin-top: 6px;">Where the heading sits</label>
-						<div id="parallaxHeroPositions" role="radiogroup" aria-label="Where the heading sits"></div>
-						<!--- How it gives way to the post (2026-11-01, owner): Scenes.cfc usePostHeroParallax ending. --->
-						<label for="parallaxHeroEnding" style="display: block; margin-top: 6px;">How it gives way to the post</label>
-						<select id="parallaxHeroEnding" style="width: 95%;">
-							<option value="">Scrolls away (the layers move as it goes)</option>
-							<option value="edge">Held, then a soft edge (the post's text rises with a soft edge above it)</option>
-							<option value="sharp">Held, then a sharp edge (the post slides up over it)</option>
-							<option value="fade">Held, then it fades out over the text</option>
-						</select>
-						<div style="margin-top: 10px;">
-							<button type="button" class="k-button k-primary" id="parallaxHeroSave">Use this parallax hero</button>
-							<button type="button" class="k-button" id="parallaxHeroCancel">Cancel</button>
-						</div>
-						<div class="k-form-hint" style="margin-top: 6px;">Saved as this post's own copy, so its heading is its own. For colors, more sections or your own layers, use Open in the Scene editor once it's saved.</div>
-					</div>
-				</div>
-			</div>
-			<script>
-				(function () {
-					var BASE = "<cfoutput>#application.baseUrl#</cfoutput>";
-					var postId = <cfoutput>#val(URL.optArgs)#</cfoutput>;
-					var state = <cfoutput>#replace(serializeJSON(parallaxState), "</", "<\/", "all")#</cfoutput>;
-					var starters = <cfoutput>#replace(serializeJSON(parallaxStarters), "</", "<\/", "all")#</cfoutput>;
-					var photo = <cfoutput>#serializeJSON(parallaxPhoto)#</cfoutput>;
-					var postTitle = <cfoutput>#replace(serializeJSON(parallaxTitle), "</", "<\/", "all")#</cfoutput>;
-					var POSITIONS = [["center", "", "Middle, center"], ["left", "", "Middle, left"], ["right", "", "Middle, right"], ["left", "bottom", "Low, left (magazine)"], ["center", "bottom", "Low, center"], ["right", "bottom", "Low, right"]];
-					var chosen = null, align = state.align || "center", low = state.textPosition === "bottom", timer = null;
-					var ending = $("#parallaxHeroEnding").kendoDropDownList().data("kendoDropDownList");
-					function withBase(v) { return String(v || "").split("{baseUrl}").join(BASE); }
-					function starterByKey(k) { for (var i = 0; i < starters.length; i++) { if (starters[i].key === k) { return starters[i]; } } return null; }
-					function art(pick) {
-						var a = $('<span class="phArt" aria-hidden="true"></span>');
-						if (pick === "photo") { a.addClass("phPhoto").css("background-image", 'url("' + String(photo).replace(/"/g, "") + '")'); }
-						else if (pick) { $.each(pick.layers, function (i, l) { a.append($('<img alt="">').attr({ src: withBase(l.src), "data-depth": l.depth })); }); }
-						return a;
-					}
-					function move(box, amount) {
-						box.find("img").each(function () { this.style.transform = "translateY(" + (-amount * (Number(this.getAttribute("data-depth")) || 0) / 700) + "%)"; });
-						if (box.hasClass("phPhoto")) { box.css("background-size", amount ? "125%" : "cover"); }
-					}
-					function showStatus() {
-						$("#parallaxHeroOpenText").text(state.active ? "Change the parallax hero..." : "Choose a parallax hero...");
-						$("#parallaxHeroRemove").toggle(!!state.active);
-						$("#parallaxHeroSceneEditor").toggle(state.sceneId > 0);
-						var styleRow = $("#enclosureHeroStyleRow");
-						styleRow.toggleClass("phDimmed", !!state.active);
-						$("#enclosureHeroStyleParallaxNote").text(state.active ? "This post's hero is a parallax hero, which has its own look." : "");
-						if (state.otherScene && !state.active) { $("#parallaxHeroStatus").text("This post shows the scene \"" + state.otherScene + "\" (the Scene button). Choosing a parallax hero replaces it."); }
-					}
-					function drawCards() {
-						var box = $("#parallaxHeroCards").empty();
-						var picks = (photo ? [{ key: "photo", name: "This post's picture (gentle zoom)" }] : []).concat(starters);
-						$.each(picks, function (i, p) {
-							var card = $('<button type="button" class="phCard" role="radio"></button>').attr("aria-checked", state.active && state.starter === p.key ? "true" : "false");
-							var a = art(p.key === "photo" ? "photo" : p);
-							card.append(a, $('<span class="phName"></span>').text(p.name));
-							card.on("mouseenter focus", function () { move(a, 14); }).on("mouseleave blur", function () { move(a, 0); });
-							card.on("click", function () { box.find(".phCard").attr("aria-checked", "false"); card.attr("aria-checked", "true"); choose(p.key); });
-							box.append(card);
-						});
-					}
-					function drawPreview() {
-						var pick = chosen === "photo" ? "photo" : starterByKey(chosen);
-						var a = art(pick).css("max-width", "100%");
-						var where = (low ? "low " : "middle ") + align;
-						var text = $('<span class="phBig"></span>').addClass(where).append($("<b></b>").text($("#parallaxHeroHeading").val()), $("<span></span>").text($("#parallaxHeroLine").val()));
-						$("#parallaxHeroPreview").empty().append(a.append(text));
-						clearInterval(timer);
-						var up = true, go = function () { move(a, up ? 22 : 0); up = !up; };
-						setTimeout(go, 50); timer = setInterval(go, 2600);
-						var posBox = $("#parallaxHeroPositions").empty();
-						$.each(POSITIONS, function (i, pos) {
-							var c = $('<button type="button" class="phCard" role="radio"></button>').attr("aria-checked", pos[0] === align && (pos[1] === "bottom") === low ? "true" : "false");
-							c.append(art(pick).append('<span class="phText ' + (pos[1] ? "low" : "middle") + ' ' + pos[0] + '"><i></i><i></i></span>'), $('<span class="phName"></span>').text(pos[2]));
-							c.on("click", function () { align = pos[0]; low = pos[1] === "bottom"; drawPreview(); });
-							posBox.append(c);
-						});
-					}
-					function choose(key) {
-						chosen = key;
-						if (!$("#parallaxHeroHeading").val()) { $("#parallaxHeroHeading").val(state.heading || postTitle); }
-						$("#parallaxHeroDetails").addClass("phOn");
-						drawPreview();
-					}
-					function save(remove) {
-						$("#parallaxHeroStatus").text(remove ? "Removing..." : "Saving...");
-						jQuery.ajax({
-							type: "post",
-							url: BASE + "/common/cfc/ProxyController.cfc?method=savePostHeroParallax",
-							data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId, starter: chosen || "", heading: $.trim($("#parallaxHeroHeading").val()),
-								line: $.trim($("#parallaxHeroLine").val()), align: align, textPosition: low ? "bottom" : "", ending: ending.value(), remove: remove ? "true" : "false" },
-							dataType: "json",
-							success: function (response) {
-								if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
-								if (response && response.success) {
-									state.active = !remove; state.otherScene = ""; state.sceneId = remove ? 0 : (+response.sceneId || 0);
-									if (!remove) { state.starter = chosen; state.heading = $.trim($("#parallaxHeroHeading").val()); state.align = align; state.textPosition = low ? "bottom" : ""; state.ending = ending.value(); }
-									$("#parallaxHeroStatus").text(remove ? "Removed. The post shows its hero above again." : "Saved. The post shows it now.");
-									$("#parallaxHeroPanel").hide(); clearInterval(timer);
-									showStatus();
-									if (typeof galaxieHeroSummaryRefresh === "function") { galaxieHeroSummaryRefresh(); }
-								} else {
-									$("#parallaxHeroStatus").text("");
-									$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The parallax hero could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
-								}
-							},
-							error: function (jqXHR, textStatus, error) {
-								$("#parallaxHeroStatus").text("");
-								if (jqXHR.status === 403) { createLoginWindow(); } else { $.when(kendo.ui.ExtAlertDialog.show({ title: "Error while saving", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); }
-							}
-						});
-					}
-					$("#parallaxHeroOpen").on("click", function () {
-						$("#parallaxHeroPanel").toggle();
-						if ($("#parallaxHeroPanel").is(":visible")) {
-							drawCards();
-							$("#parallaxHeroLine").val(state.line || "");
-							ending.value(state.ending || "");
-							if (state.active && state.starter) { $("#parallaxHeroHeading").val(state.heading || ""); choose(state.starter); }
-						} else { clearInterval(timer); }
-					});
-					$("#parallaxHeroCancel").on("click", function () { $("#parallaxHeroPanel").hide(); clearInterval(timer); });
-					$("#parallaxHeroSave").on("click", function () { if (chosen) { save(false); } });
-					$("#parallaxHeroRemove").on("click", function () { save(true); });
-					$("#parallaxHeroSceneEditor").on("click", function () { if (state.sceneId > 0) { createAdminInterfaceWindow(107, state.sceneId); } });
-					$("#parallaxHeroHeading, #parallaxHeroLine").on("input", function () { if (chosen) { drawPreview(); } });
-					$(function () { showStatus(); });
-				})();
-			</script>
-		</td>
-	  </tr>
+	  <!--- The moving hero (2026-10-25 as a section here; 11-04, owner: "the interface is quite long and can be confusing") is a wizard of
+	  its own, window 119 (movingHeroWizard.cfm), opened by the Moving hero button on the toolbar; the preview above shows it. --->
+	  <cfif not isPageCollectionEnclosure>
+	  <script>
+		window.galaxieOpenMovingHero = function () { createAdminInterfaceWindow(119, <cfoutput>#val(URL.optArgs)#</cfoutput>); };
+		window.galaxieMovingHeroSaved = function () {};
+	  </script>
 	  </cfif>
-	  <!--- The hero's style (2026-10-24, owner): it was in the Hero text window, but it is the whole hero's style (its height, whether it
-	  holds while the post scrolls, where the text sits), not only its text, so it is chosen here, with the picture. The cards are
-	  heroStyleCards.cfm, as in Blog Options; a click saves it (ProxyController.cfc savePostHeroStyle). --->
-	  <cfsilent>
-	  <cfset heroStylePost = entityLoadByPK("Post", val(URL.optArgs))>
-	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-	  </cfsilent>
-	  <cfif not isNull(heroStylePost)>
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <tr valign="middle" id="enclosureHeroStyleRow">
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 8px 12px;">
-			<h4 class="adminBlockHeading">Hero style <span id="enclosureHeroStyleParallaxNote" class="k-form-hint" style="font-weight: normal;"></span></h4>
-			How the hero shows on this post's own page. Point at a card to see it move; a click saves it. Carousels, maps and videos always show as they are.
-			<span id="enclosureHeroStyleSaved" class="k-form-hint" style="margin-left: 6px;"></span>
-			<cfset heroCardsId = "enclosureHeroStyle">
-			<cfset heroCardsName = "">
-			<cfset heroCardsValue = heroStylePost.getHeroStyle() ?: "">
-			<cfset heroCardsBlogChoice = createObject("component", application.rendererComponentPath).getPostHeroStyle("")>
-			<cfset heroCardsSmall = true>
-			<cfinclude template="heroStyleCards.cfm">
-			<script>
-				$("#enclosureHeroStyle").off("change.heroStyle").on("change.heroStyle", function () {
-					$("#enclosureHeroStyleSaved").text("Saving...");
-					jQuery.ajax({
-						type: "post",
-						url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=savePostHeroStyle",
-						data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: <cfoutput>#val(URL.optArgs)#</cfoutput>, heroStyle: $(this).val() },
-						dataType: "json",
-						success: function (response) {
-							if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
-							if (response && response.success) {
-								$("#enclosureHeroStyleSaved").text("Saved.");
-								if (typeof galaxieHeroSummaryRefresh === "function") { galaxieHeroSummaryRefresh(); }
-							} else {
-								$("#enclosureHeroStyleSaved").text("");
-								$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (response && response.errorMessage) || "The hero style could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
-							}
-						},
-						error: function (jqXHR, textStatus, error) {
-							$("#enclosureHeroStyleSaved").text("");
-							if (jqXHR.status === 403) { createLoginWindow(); } else { $.when(kendo.ui.ExtAlertDialog.show({ title: "Error while saving", message: error, icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); }
-						}
-					});
-				});
-			</script>
-		</td>
-	  </tr>
-	  </cfif>
+	  <!--- The hero's style moved to a window of its own (11-04), window 120 (postHeroStyle.cfm), on the toolbar. --->
 	  </cfif>
 	  <!-- Border -->
 	  <tr height="2px">
@@ -1041,6 +856,9 @@
 	  matches the size of every other plain instructional line in this window. --->
 	  <!--- On a phone the label gets its own line and the slider fills the width, up to 260px (2026-10-31, owner: a fixed
 	  260px slider beside the label ran off the right of the screen). --->
+	  <!--- A post's slider moved to the top of the Upload Image window (window 74, enclosureUppyUploadWindow.cfm), where the
+	  picture is chosen (11-05, owner: it looked out of place here). A Page Collection keeps it: its upload panel is in this window. --->
+	  <cfif isPageCollectionEnclosure>
 	  <cfif session.isMobile>
 	  <tr valign="middle">
 		<td align="left" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px 0 12px;">
@@ -1049,8 +867,10 @@
 	  </tr>
 	  <tr valign="middle">
 		<td align="left" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
-			<div id="imageQualitySlider" style="width: 100%; max-width: 260px;"></div>
-			<span class="k-form-hint">Left = smaller file, right = sharper image.</span>
+			<!--- A fixed width: Kendo measures the slider when it is made, and a 100% width measured inside the window before it
+			is shown gave a track of 0, so only the round handle showed (owner's phone, 11-02). 260px fits a phone on its own row. --->
+			<div id="imageQualitySlider" style="width: 260px;"></div>
+			<span class="k-form-hint" style="display: block;">Left = smaller file, right = sharper image.</span>
 		</td>
 	  </tr>
 	  <cfelse>
@@ -1060,7 +880,7 @@
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
 			<div id="imageQualitySlider" style="width: 260px;"></div>
-			<span class="k-form-hint">Left = smaller file, right = sharper image.</span>
+			<span class="k-form-hint" style="display: block;">Left = smaller file, right = sharper image.</span>
 		</td>
 	  </tr>
 	  </cfif>
@@ -1074,8 +894,9 @@
 	  the real TinyMCE upload flow at all, so it can't affect anything. --->
 	  <cfif mediaType eq 'Image' and len(mediaUrl)>
 	  <tr valign="middle">
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%;"></td>
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 0px 12px 12px;">
+		<!--- On a phone the estimate gets the full width; beside an empty first cell it was squeezed into a narrow column. --->
+		<cfif not session.isMobile><td class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%;"></td></cfif>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 0px 12px 12px;"<cfif session.isMobile> colspan="<cfoutput>#thisColSpan#</cfoutput>"</cfif>>
 			<!--- Carries mediaUrl (safe to read here - unlike the early script block up top, see that block's own
 			comment) into the DOM as plain markup rather than a second <script> tag, so the early script's single
 			$(document).ready() handler can just read it with jQuery - no dependency on script-tag execution order
@@ -1085,6 +906,7 @@
 		</td>
 	  </tr>
 	  </cfif>
+	  </cfif><!---<cfif isPageCollectionEnclosure>--->
 	  <!--- This server can't read or write WebP through cfimage at all (older ColdFusion), so there's no way to
 	  generate one automatically the way createSocialMediaImages() does elsewhere. If the admin has already converted
 	  this image to WebP some other way (Photoshop, an online converter, etc.), this lets them swap it in as the main

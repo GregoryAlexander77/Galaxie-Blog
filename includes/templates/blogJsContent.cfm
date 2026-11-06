@@ -407,7 +407,8 @@
 		//   windowSelector       - id of the Kendo Window to destroy once the upload completes (required)
 		//   onComplete           - called after the window closes, eg. onPostEnclosureSubmit() (required)
 		//   qualitySliderSelector - jQuery selector for a Kendo Slider widget to read a per-upload quality value
-		//                          from, if this screen has one (optional - only the enclosure editor does)
+		//                          from (optional - every upload window has one since 11-05, uploadQualitySlider.cfm)
+		//   qualityEstimateSelector - where to say about how big the picked picture will be at that quality (optional)
 		function createStandaloneUppyUploadWindow(config) {
 			var uppyInstance = Uppy.Core({
 				restrictions: {
@@ -442,6 +443,62 @@
 			});
 
 			var uppyResponse = null;
+
+			<!--- The size estimate (11-05, owner): the picked picture, after any crop, run through the browser's own JPEG encoder at
+			the slider's quality, again as the slider moves. An estimate: the server makes the real file. PNG and GIF are saved as they
+			are, so they get their size and a note instead. --->
+			if (config.qualitySliderSelector && config.qualityEstimateSelector) {
+				var estimateFile = null;
+				var estimateImage = null;
+				var estimateTimer = null;
+				var estimateSay = function (text) { $(config.qualityEstimateSelector).text(text); };
+				var estimateKb = function (bytes) { return Math.max(1, Math.round(bytes / 1024)).toLocaleString() + " KB"; };
+				var runEstimate = function () {
+					var slider = $(config.qualitySliderSelector).data("kendoSlider");
+					if (!estimateFile || !estimateImage || !slider) { return; }
+					var quality = slider.value();
+					try {
+						var canvas = document.createElement("canvas");
+						canvas.width = estimateImage.naturalWidth;
+						canvas.height = estimateImage.naturalHeight;
+						canvas.getContext("2d").drawImage(estimateImage, 0, 0);
+						canvas.toBlob(function (blob) {
+							if (!blob) { estimateSay("Could not estimate the size of this picture."); return; }
+							estimateSay("This picture is " + estimateKb(estimateFile.size) + ". At " + Math.round(quality * 100) + "% it will be about " + estimateKb(blob.size) + ".");
+						}, "image/jpeg", quality);
+					} catch (err) {
+						estimateSay("Could not estimate the size of this picture.");
+					}
+				};
+				var loadEstimate = function (file) {
+					if (!file || !file.data) { return; }
+					estimateFile = file.data;
+					estimateImage = null;
+					if (/^image\/(png|gif)$/i.test(file.type || "")) {
+						estimateSay("This picture is " + estimateKb(estimateFile.size) + ". PNG and GIF pictures are saved as they are, so the quality does not change them.");
+						return;
+					}
+					estimateSay("Working out the size...");
+					var img = new Image();
+					var url = URL.createObjectURL(estimateFile);
+					img.onload = function () { URL.revokeObjectURL(url); estimateImage = img; runEstimate(); };
+					img.onerror = function () { URL.revokeObjectURL(url); estimateSay("This picture is " + estimateKb(estimateFile.size) + "."); };
+					img.src = url;
+				};
+				uppyInstance.on('file-added', loadEstimate);
+				<!--- After a crop or rotate in Uppy's image editor, the file is the edited one. --->
+				uppyInstance.on('file-editor:complete', loadEstimate);
+				uppyInstance.on('file-removed', function () {
+					estimateFile = null; estimateImage = null;
+					estimateSay("Pick a picture to see about how big it will be.");
+				});
+				var estimateSlider = $(config.qualitySliderSelector).data("kendoSlider");
+				if (estimateSlider) {
+					var estimateSoon = function () { clearTimeout(estimateTimer); estimateTimer = setTimeout(runEstimate, 150); };
+					estimateSlider.bind("slide", estimateSoon);
+					estimateSlider.bind("change", estimateSoon);
+				}
+			}
 
 			uppyInstance.on('upload', function(data) {
 				if (config.qualitySliderSelector) {
@@ -479,6 +536,18 @@
 					}
 				});
 			});
+
+			<!--- Edit picture (11-05): the picture galaxieEditPicture asked for, put in and opened in the editor. --->
+			var pendingEdit = window.galaxiePendingEditPicture;
+			if (pendingEdit && pendingEdit.windowSelector === config.windowSelector) {
+				window.galaxiePendingEditPicture = null;
+				try {
+					var editId = uppyInstance.addFile({ name: pendingEdit.name, type: pendingEdit.blob.type, data: pendingEdit.blob, source: 'Local', isRemote: false });
+					setTimeout(function () {
+						try { uppyInstance.getPlugin('Dashboard').openFileEditor(uppyInstance.getFile(editId)); } catch (e) {}
+					}, 300);
+				} catch (e) {}
+			}
 
 			uppyInstance.on('complete', function(result) {
 				setTimeout(function() { kendo.ui.ExtWaitDialog.hide(); }, 500);
@@ -1082,7 +1151,8 @@
 				// See admin/adminInterface/postHeroText.cfm.
 				var windowName = "postHeroTextWindow";
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>85%</cfif>";
-				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+				<!--- 11-04 (owner): 45% of the screen; the old 60% stretched the fields and the preview. --->
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>45%</cfif>";
 				var windowTitle = "Hero text";
 			} else if (Id == 110){
 				// Themes (2026-10-20, Galaxie 5): the theme in use, a theme's look beside a live preview of the site, the site's
@@ -1137,6 +1207,21 @@
 				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>75%</cfif>";
 				var windowTitle = "Email Log";
+			} else if (Id == 119){
+				// Moving hero wizard (11-04, owner: the Hero window's moving hero section was long and confusing): picture, heading,
+				// style and an optional cover, one step at a time. optArgs is the postId. See admin/adminInterface/movingHeroWizard.cfm.
+				var windowName = "movingHeroWizardWindow";
+				<!--- 860px fits the Picture step's cards with no empty space below (owner 11-04); the taller Heading step scrolls. --->
+				var windowHeight = "<cfif session.isMobile>92%<cfelse>860px</cfif>";
+				var windowWidth = "<cfif session.isMobile>98%<cfelse>940px</cfif>";
+				var windowTitle = "Moving hero";
+			} else if (Id == 120){
+				// A post's hero style (11-04, moved out of the Hero window): the style cards. optArgs is the postId. See
+				// admin/adminInterface/postHeroStyle.cfm.
+				var windowName = "postHeroStyleWindow";
+				var windowHeight = "<cfif session.isMobile>80%<cfelse>460px</cfif>";
+				var windowWidth = "<cfif session.isMobile>98%<cfelse>940px</cfif>";
+				var windowTitle = "Hero style";
 			} else if (Id == 71){
 				var windowName = "addPagesToCollectionWindow";
 				var windowHeight = "50%";
@@ -1157,20 +1242,23 @@
 				// for a Post/Page enclosure - see tinyMce.cfm's OpenWindow listener. optArgs is the postId.
 				// 2026-09-26: renumbered from 68 - see the comment on adminInterface.cfm's cfcase value=74.
 				var windowName = "enclosureUppyUploadWindow";
-				var windowHeight = "480px";
+				<!--- 600px: the Image Quality slider and its size estimate sit above the uploader now (11-05). --->
+				var windowHeight = "600px";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>550px</cfif>";
 				var windowTitle = "Upload Image";
 			} else if (Id == 75){
 				// Same bridge as 74, for a Post/Page video cover image. optArgs is the postId.
 				var windowName = "videoCoverUppyUploadWindow";
-				var windowHeight = "480px";
+				<!--- 600px: the Image Quality slider and its size estimate sit above the uploader now (11-05). --->
+				var windowHeight = "600px";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>550px</cfif>";
 				var windowTitle = "Upload Image";
 			} else if (Id == 76){
 				// Same bridge as 74, for imageUploader.cfm's generic theme/profile image screens. optArgs is the
 				// themeId/userId, otherArgs is the image type (eg. blogBackgroundImage, profilePicture).
 				var windowName = "imageUploadUppyUploadWindow";
-				var windowHeight = "480px";
+				<!--- 600px: the Image Quality slider and its size estimate sit above the uploader now (11-05). --->
+				var windowHeight = "600px";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>550px</cfif>";
 				var windowTitle = "Upload Image";
 			} else if (Id == 77){
@@ -1178,8 +1266,9 @@
 				// entityType='pageCollection' flows in automatically same as the carousel/map windows do) or the
 				// postId (TinyMCE Insert > Gradient body-content insert). See gradientEditor.cfm.
 				var windowName = "gradientEditorWindow";
-				var windowHeight = "<cfif session.isMobile>90%<cfelse>640px</cfif>";
-				var windowWidth = "<cfif session.isMobile>95%<cfelse>620px</cfif>";
+				<!--- 11-04 (owner): wider, so the motion buttons sit on one row and the window doesn't scroll as much. --->
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>760px</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>860px</cfif>";
 				var windowTitle = "Insert/Edit Gradient";
 			} else if (Id == 78){
 				// Paste Custom Gradient - plain textarea popup opened from within window 77. See
@@ -1213,7 +1302,8 @@
 				// Same Uppy cropping bridge as 74/75/76, for the Hero Cover Image editor. optArgs is the postId.
 				// See tinyMce.cfm's OpenWindow listener and heroCoverImageUppyUploadWindow.cfm.
 				var windowName = "heroCoverImageUppyUploadWindow";
-				var windowHeight = "480px";
+				<!--- 600px: the Image Quality slider and its size estimate sit above the uploader now (11-05). --->
+				var windowHeight = "600px";
 				var windowWidth = "<cfif session.isMobile>95%<cfelse>550px</cfif>";
 				var windowTitle = "Upload Image";
 			}
@@ -1282,6 +1372,150 @@
 
 		}//..function createAdminInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) {
 		
+		// A click in a window while the focus is still in another window (owner 11-02: the Scene editor opened from the Hero
+		// editor, whose TinyMCE box kept the focus). Kendo then focuses the clicked window a moment later, and that closed a
+		// dropdown with a search box the moment it opened: the search box is outside the window. Moving the focus into the
+		// window first, before Kendo sees the click, means Kendo has nothing to do later.
+		document.addEventListener('mousedown', function (e) {
+			var win = e.target.closest ? e.target.closest('.k-window') : null;
+			var active = document.activeElement;
+			if (win && active && active !== document.body && active !== win && !win.contains(active)) {
+				win.focus({ preventScroll: true });
+			}
+		}, true);
+
+		// Edit picture (11-05, owner): the hero picture or the cover, opened in the Upload Image window's editor (crop, rotate, flip) and
+		// saved as a new upload, so the share crops, WebP and the quality slider all apply. The Hero and Cover windows' ribbons call it.
+		function galaxieEditPicture(target, postId, csrfToken) {
+			var say = function (title, message) { $.when(kendo.ui.ExtAlertDialog.show({ title: title, message: message, icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); };
+			jQuery.ajax({
+				type: "post", dataType: "json",
+				url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getHeroPictures",
+				data: { csrfToken: csrfToken, postId: postId }
+			}).done(function (result) {
+				if (typeof result === "string") { try { result = JSON.parse(result); } catch (e) { result = {}; } }
+				var url = target === "cover" ? result.coverPicture : result.heroPicture;
+				if (!url) {
+					say("Nothing to edit", target === "cover"
+						? "This post has no cover yet. Add one with the Image button first."
+						: "The hero isn't a single picture (it is a moving hero, scene, video, map or carousel), so there is no picture to edit. A cover can be edited in the Cover window.");
+					return;
+				}
+				<!--- Only pictures on this blog: another site's won't load into the editor (11-05, owner). --->
+				var external = false;
+				try { external = new URL(url, window.location.href).origin !== window.location.origin; } catch (e) {}
+				if (external) {
+					say("Can't edit this picture", "We can only edit pictures uploaded to this blog. This one is linked from another site. To edit it, save it to your computer and upload it with the Image button; you can crop, rotate or flip it as it uploads.");
+					return;
+				}
+				fetch(url, { credentials: "same-origin" }).then(function (r) {
+					if (!r.ok) { throw new Error(r.status); }
+					return r.blob();
+				}).then(function (blob) {
+					var file = (url.split("?")[0].split("/").pop() || "picture.jpg");
+					var dot = file.lastIndexOf(".");
+					var name = (dot > 0 ? file.substring(0, dot) : file) + "-edited" + (dot > 0 ? file.substring(dot) : ".jpg");
+					window.galaxiePendingEditPicture = { windowSelector: target === "cover" ? "heroCoverImageUppyUploadWindow" : "enclosureUppyUploadWindow", blob: blob, name: name };
+					createAdminInterfaceWindow(target === "cover" ? 81 : 74, postId);
+				}).catch(function () {
+					say("Can't open this picture", "This picture can't be opened for editing here, probably because it is on another site. Save it to your computer, then upload it with the Image button and edit it as it uploads.");
+				});
+			}).fail(function (jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } });
+		}
+
+		// Asks before anything is deleted or removed (owner 11-02: every Delete or Remove asks first). onYes runs only when Yes
+		// is pressed. The title and message are plain text.
+		function galaxieConfirm(title, message, onYes) {
+			var text = function (s) { return $('<div/>').text(s || '').html(); };
+			$.when(kendo.ui.ExtYesNoDialog.show({ title: text(title), message: text(message), icon: "k-ext-question", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })).done(function (answer) {
+				if (answer && answer['button'] === 'Yes') { onYes(); }
+			});
+		}
+
+		// When hero media is saved (owner 11-02): if the post's hero is a kind that Google and the social sites can't show as a picture
+		// (a scene, video, map, carousel, gradient or animation) and there is no cover image yet, say what a cover image is for and offer
+		// the Hero Cover Image editor (window 80). The server decides (ProxyController getCoverImageReminder). It asks on every hero save
+		// until the post has a cover image (owner, 11-02: posts are rarely saved again, so once per post was too little).
+		function galaxieCoverImageReminder(postId, csrfToken) {
+			if (!(postId > 0)) { return; }
+			jQuery.ajax({
+				type: "post",
+				url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getCoverImageReminder",
+				data: { csrfToken: csrfToken, postId: postId },
+				dataType: "json",
+				success: function (result) {
+					if (typeof result === "string") { try { result = JSON.parse(result); } catch (e) { return; } }
+					<!--- A picture hero was saved and the post still has a cover, which cards and sharing no longer use (11-05, owner): ask
+					whether to remove it, never remove it on its own. Keeping it is fine: it is used again if the hero changes. --->
+					if (result && result.unusedCover) {
+						$.when(kendo.ui.ExtYesNoDialog.show({
+							title: "Remove the old cover?",
+							message: "Your hero picture is now what cards and sharing show, so the post's cover is not used. Remove the cover? If you keep it, it is used again if you change the hero to something that isn't a picture. The picture file stays on the server either way.",
+							icon: "k-ext-question",
+							width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>"
+						})).done(function (answer) {
+							if (!answer || answer['button'] !== 'Yes') { return; }
+							jQuery.ajax({
+								type: "post",
+								url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removeHeroCoverImage",
+								data: { csrfToken: csrfToken, postId: postId },
+								dataType: "json"
+							}).always(function () {
+								try { reloadEnclosureThumbnailPreview(postId); } catch (e) {}
+								try { galaxieRefreshHeroEditorPreview(); } catch (e) {}
+							});
+						});
+						return;
+					}
+					if (!result || !result.needed) { return; }
+					$("#coverImageReminderWindow").each(function () { var w = $(this).data("kendoWindow"); if (w) { w.destroy(); } });
+					var box = $('<div id="coverImageReminderWindow" style="padding: 4px 6px;"></div>').appendTo("body");
+					var add = $('<button type="button" class="k-button k-primary">Add a cover image</button>');
+					var later = $('<button type="button" class="k-button">Not now</button>');
+					box.append(
+						$("<p></p>").text("This post's hero is " + result.kind + ". It looks good on your site, but Google, Facebook, LinkedIn, X and other sites can't show it as a picture. When someone shares the post, or it comes up in search results, they show your theme's logo instead."),
+						<!--- Cards show a video, map or carousel itself, so for those the cover is only for sharing and search (11-05, owner). A video's
+						own cover (its poster) is shared too, so the reminder doesn't ask once a video has one. --->
+						$("<p></p>").text(/video|map|carousel/.test(result.kind)
+							? "A cover image is a still picture used in those places: the link preview when the post is shared, and search results. Cards on your home page and in lists still show " + result.kind + ", and so does the post's own page."
+								+ (result.kind === "a video" ? " A cover for the video itself (the picture before it plays) does the same job: add one with the Upload video image cover button in the Hero editor." : "")
+							: "A cover image is a still picture used in those places: the link preview when the post is shared, search results, and the post's card on your home page and in lists. The post's own page still shows " + result.kind + "."),
+						$("<p></p>").text("A landscape picture works best, about 1200 by 630 pixels. You can also add one later: open the post's Hero editor (the enclosure editor) and click its Cover Image button."),
+						$('<div style="display: flex; gap: 8px; margin-top: 12px;"></div>').append(add, later));
+					var win = box.kendoWindow({
+						title: "Add a cover image?",
+						width: <cfif session.isMobile>"95%"<cfelse>"480px"</cfif>,
+						modal: true,
+						actions: ["Close"],
+						close: function () { setTimeout(function () { var w = box.data("kendoWindow"); if (w) { w.destroy(); } }, 0); }
+					}).data("kendoWindow");
+					win.center().open();
+					add.on("click", function () { win.close(); createAdminInterfaceWindow(80, postId); });
+					later.on("click", function () { win.close(); });
+				}
+			});
+		}
+		// The saves of a post's hero media in the main hero pipeline (owner 11-02): made while the Hero editor (window 13) is open, from
+		// it or the windows it opens (gradient, animation, map, carousel, Scene, a video address, the parallax hero). Each sends the
+		// postId and csrfToken; a map in the post's text (isEnclosure false) and removing the parallax hero or the scene don't count.
+		// Video uploads (Uppy, not jQuery) call galaxieCoverImageReminder themselves.
+		$(document).ajaxSuccess(function (e, xhr, settings) {
+			if (!$("#postEnclosureWindow").length) { return; }
+			var url = settings.url || '';
+			var found = /[?&]method=(savePostHeroGradient|savePostHeroAnimation|saveMap|saveMapRoute|saveCarousel|saveExternalMediaEnclosure|setPostScene|savePostHeroParallax)(&|$)/.exec(url);
+			if (!found) { return; }
+			var all = url + '&' + (typeof settings.data === 'string' ? settings.data : '');
+			var get = function (name) {
+				var m = new RegExp('(?:^|[?&])' + name + '=([^&]*)').exec(all);
+				try { return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : ''; } catch (err) { return ''; }
+			};
+			if (/^saveMap/.test(found[1]) && get('isEnclosure') !== 'true') { return; }
+			if (found[1] === 'savePostHeroParallax' && get('remove') === 'true') { return; }
+			if (found[1] === 'setPostScene' && !get('alias')) { return; }
+			var postId = parseInt(get('postId'), 10);
+			if (postId > 0 && get('csrfToken')) { setTimeout(function () { galaxieCoverImageReminder(postId, get('csrfToken')); }, 800); }
+		});
+
 		// Administrative Interface window helpers --------------------------------------------------------------------
 
 		// The mobile app has a dedicated button to close the window as the x at the top of the window is small and hard to see 
@@ -1531,6 +1765,9 @@
 			var commenterEmail = $( "#commenterEmail" ).val();
 			var commenterWebSite = $( "#commenterWebSite" ).val();
 			var comments = $( "#comments" ).val();
+			// A comment or message may quote code (5.03): it is sent past Global Script Protection (bypassScriptProtection), and
+			// ProxyController.postCommentSubscribe decodes it. It is encoded for HTML before it is saved or emailed.
+			comments = bypassScriptProtection(comments);
 		<cfif application.useCaptcha and not application.Udf.isLoggedIn()>
 			var captchaText = $( "#captchaText" ).val();
 			var captchaHash = $( "#captchaHash" ).val();
@@ -2139,27 +2376,15 @@
 		
 		// String utilities
 		
-		/* Functions to bypass ColdFusion Global Script Protection
-		These scripts will find any tags that are protected by ColdFusion/Lucee Global Script Protection and replace the tags with the same tags prefixed with an 'attach' string. For example, '<script' will be replaced with '<attachScript', <style will be '<attachStyle', and '<meta' will become '<attachMeta' before these strings are sent to ColdFusion and Lucee for processing. If these strings are not replaced, ColdFusion and Lucee will replace these strings as 'InvalidTag' which would break any desired functionality. When we retrieve these strings from the database or file system, we will use ColdFusion or Lucee to remove our 'attach' strings and change the case using the StringUtils.cfc sanitizeStrForDb method */
-		
+		/* Gets text past ColdFusion's and Lucee's Global Script Protection (5.03). Script protection changes script, style and iframe tags,
+		and on Adobe ColdFusion 2025 also img, form, svg and many more, onclick= and the like, javascript: and alert( into InvalidTag and
+		similar strings. The text is sent as "galaxie64:" and base64 instead: the URL-safe alphabet without the = padding has none of the
+		characters those patterns look for, so the server gets exactly what was typed. Udf.cfc unpackFromBrowser decodes it; StringUtils.cfc
+		sanitizeStrForDb calls it first. This replaces the old approach that renamed '<script' to '<attachScript' and so on. */
 		function bypassScriptProtection(s){
-			// Replace '<script' with '<attachScript'. 
-			var s = replaceNoCase(s,'<script','<attachScript', 'all');
-			// Replace the end tag
-			var s = replaceNoCase(s,'</script','</attachScript', 'all');
-			// Use the same logic for stylesheets
-			var s = replaceNoCase(s,'<style','<attachStyle', 'all');
-			// Replace the end tag
-			var s = replaceNoCase(s,'</style','</attachStyle', 'all');
-			// Replace iframes
-			var s = replaceNoCase(s,'<iframe','<attachIframe', 'all');
-			var s = replaceNoCase(s,'</iframe','</attachIframe', 'all');
-			// Now replace the meta tag. There is no closing '</meta' to worry about
-			var s = replaceNoCase(s,'<meta','<attachMeta', 'all');
-			
-			// Return it
-			return s;
+			return 'galaxie64:' + btoa(unescape(encodeURIComponent(s || ''))).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
 		}
+
 		
 		/* 
 		Generic remove function using jQuery. This is the fastest and cleanest approach that I have found and I don't have to use regex. It will remove content between tags (<postData>), elements using an ID, and classes if you use a '.' to prefix the class name.

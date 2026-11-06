@@ -13,6 +13,9 @@
 	<cffunction name="sanitizeStrForDb" access="public" output="false" returntype="string" 
 			hint="Cleans up the 'attach' strings to bypass script protection and removes any characters that will break tinyMce">
 		<cfargument name="s" type="string" required="yes">
+		<!--- Text sent past Global Script Protection (bypassScriptProtection, 5.03) is decoded first. The attach strings below are still
+		replaced: older pages sent them, and a post can still use <attachScript> as a directive. --->
+		<cfset s = application.Udf.unpackFromBrowser(s)>
 		<!--- Replaces the comment outside of the script tags. The comment is necessary to render the script in the tinymce editor. This may occur when the user is editting an existing post with a script. --->
 		<!--- Replace the opening comment --->
 		<cfset s = replaceNoCase(s, "<!--<attachScript", "<script", "all")>

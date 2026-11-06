@@ -11,6 +11,10 @@
 	<cfset postId = URL.optArgs>
 	<cfset imageHandlerUrl = application.baseUrl & "/common/cfc/ProxyController.cfc?method=uploadImage&mediaProcessType=mediaVideoCoverUrl&mediaType=image&postId=" & postId & "&selectorId=videoCoverEditor&csrfToken=" & csrfToken>
 
+	<!--- The Image Quality slider and its size estimate, at the top like the Hero and Cover upload windows (11-05, owner). --->
+	<cfset sliderId = "videoCoverUploadQualitySlider">
+	<cfinclude template="uploadQualitySlider.cfm">
+
 	<div id="standaloneVideoCoverUppyUpload" style="padding: 12px;"></div>
 
 	<script>
@@ -18,6 +22,8 @@
 			containerId: 'standaloneVideoCoverUppyUpload',
 			endpoint: '<cfoutput>#imageHandlerUrl#</cfoutput>',
 			windowSelector: 'videoCoverUppyUploadWindow',
+			qualitySliderSelector: '#videoCoverUploadQualitySlider',
+			qualityEstimateSelector: '#videoCoverUploadQualitySliderEstimate',
 			onComplete: function() { onVideoImageCoverSubmit(); }
 		});
 	</script>

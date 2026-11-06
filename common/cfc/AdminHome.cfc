@@ -38,6 +38,9 @@
 	person, so open admin tabs cost at most one round of those queries a minute. changed() - called when a comment is added and
 	when a new kind of error is logged - forgets every kept fingerprint, so those show at the next check. When the fingerprint
 	differs from the page's, the page redraws its Up next row (admin/index.cfm). Ready for more events in later versions.
+	2026-11-04 (owner: "when I update the blog, the finish updating card should go away"): whether the database needs updating is
+	worked out now, not taken from when the page was drawn; and the page also asks, with fresh, as soon as its last admin window
+	closes, so what was just done there (an update, a post, a setting) shows at once instead of within a minute or two.
 --->
 <cffunction name="signatureOf" access="public" returntype="string" output="false" hint="The fingerprint of a list of Up next suggestions.">
 	<cfargument name="suggestions" type="array" required="true">
@@ -68,16 +71,19 @@
 </cffunction>
 
 <cffunction name="upNextSignature" access="public" returntype="string" output="false" hint="This person's Up next fingerprint now (kept for a minute), or empty before the admin home has been drawn in this session.">
+	<cfargument name="fresh" type="boolean" required="false" default="false" hint="Work it out again now, not the one kept for a minute (an admin window was just closed).">
 	<cfset var kept = "">
 	<cfset var args = "">
 	<cfset var sig = "">
 	<cfif not structKeyExists(session, "galaxieUpNextArgs")><cfreturn ""></cfif>
 	<cfif structKeyExists(application, "galaxieUpNextSignatures") and structKeyExists(application.galaxieUpNextSignatures, settingKey("upNext"))>
 		<cfset kept = application.galaxieUpNextSignatures[settingKey("upNext")]>
-		<cfif dateDiff("s", kept.made, now()) lt 60><cfreturn kept.sig></cfif>
+		<cfif not arguments.fresh and dateDiff("s", kept.made, now()) lt 60><cfreturn kept.sig></cfif>
 	</cfif>
 	<cfset args = session.galaxieUpNextArgs>
-	<cfset sig = signatureOf(getSuggestions(args.iconList, args.linkList, args.canSetUp, args.updateNeeded))>
+	<!--- Update needed: as now (the same test as the admin home's Blog Updates icon), not as when the page was drawn. --->
+	<cfset sig = signatureOf(getSuggestions(args.iconList, args.linkList, args.canSetUp,
+		args.canSetUp and isDefined("application.dbBlogVersion") and val(application.dbBlogVersion) lt val(application.blog.getVersion())))>
 	<cfset keepSignature(sig)>
 	<cfreturn sig>
 </cffunction>

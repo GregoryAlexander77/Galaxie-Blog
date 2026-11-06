@@ -565,7 +565,7 @@ $(function () {
 			});
 			var buttons = $('<div class="brandCardButtons"></div>').append(file,
 				$('<button type="button" class="k-button">Change</button>').on("click", function () { file.trigger("click"); }));
-			if (value) { buttons.append($('<button type="button" class="k-button">Remove</button>').on("click", function () { saveBrand(b, ""); })); }
+			if (value) { buttons.append($('<button type="button" class="k-button">Remove</button>').on("click", function () { galaxieConfirm("Remove the " + b[2].toLowerCase() + "?", "It comes off every theme.", function () { saveBrand(b, ""); }); })); }
 			if (b[0] === "logo") { buttons.append($('<button type="button" class="k-button" title="The Site Wizard\'s logo maker">Make one from my site name</button>').on("click", function () { window.location.href = BASE + "/admin/setup.cfm"; })); }
 			box.append($('<div class="brandCard"></div>').append(art, $('<div class="brandCardTitle"></div>').text(b[2]), $("<div></div>").text(b[3]), buttons));
 		});

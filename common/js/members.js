@@ -54,6 +54,11 @@ var galaxieMembers = (function($) {
 		return $.ajax({ type: "post", url: proxyUrl + "?method=" + method, data: data || {}, dataType: "json", cache: false });
 	}
 
+	// Asks first (owner 11-02). galaxieConfirm is in blogJsContent.cfm; the browser's own box if it isn't there.
+	function galaxieMembersAsk(title, message, onYes) {
+		if (typeof window.galaxieConfirm === "function") { window.galaxieConfirm(title, message, onYes); }
+		else if (window.confirm(title + " " + message)) { onYes(); }
+	}
 	function esc(text) { return $("<div/>").text(text == null ? "" : String(text)).html(); }
 
 	function openWindow(title, content, width) {
@@ -368,6 +373,9 @@ var galaxieMembers = (function($) {
 				.fail(function() { status.text("The picture could not be uploaded. Please try again."); });
 		});
 		content.find(".galaxieMemberPictureRemove").on("click", function() {
+			galaxieMembersAsk("Remove your picture?", "Your initials show instead.", function () { removePicture(); });
+		});
+		function removePicture() {
 			post("memberRemovePicture", { csrf: state.csrf }).done(function(response) {
 				if (response && response.success) {
 					state.member.picture = "";
@@ -375,7 +383,7 @@ var galaxieMembers = (function($) {
 					updateMenus();
 				}
 			});
-		});
+		}
 		content.find(".galaxieMemberDownload").on("click", function() { downloadData($(this)); });
 		content.find(".galaxieMemberDelete").on("click", function() { openDeleteAccount(dialog); });
 		content.find(".galaxieMemberSignOut, .galaxieMemberSignOutAll").on("click", function() {
@@ -571,14 +579,18 @@ var galaxieMembers = (function($) {
 				if (s.event.canCancel && s.event.token) {
 					var status = $('<div class="galaxieMemberFacts" role="status" aria-live="polite"></div>');
 					$('<button type="button" class="k-button">Cancel my place</button>').appendTo(item).on("click", function() {
-						var button = $(this).prop("disabled", true);
+						var button = $(this);
+						galaxieMembersAsk("Cancel your place?", "Your place goes to someone else.", function () { cancelPlace(button, status); });
+					});
+					var cancelPlace = function(button, status) {
+						button.prop("disabled", true);
 						$.ajax({ type: "post", url: proxyUrl + "?method=cancelManagedRsvp", data: { token: s.event.token }, dataType: "json", cache: false })
 							.done(function(response) {
 								if (response && response.success === true) { button.remove(); status.text("Your place is cancelled."); }
 								else { button.prop("disabled", false); status.text((response && response.message) || "Your place could not be cancelled."); }
 							})
 							.fail(function() { button.prop("disabled", false); status.text("Your place could not be cancelled. Please try again."); });
-					});
+					};
 					item.append(status);
 				}
 			}

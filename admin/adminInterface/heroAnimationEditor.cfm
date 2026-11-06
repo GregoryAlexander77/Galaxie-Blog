@@ -166,13 +166,30 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 				<!--- 2026-10-01: overlay text preview, positioned over wherever VANTA.{effect}() injects its own
 				canvas (see refreshAnimationOverlayPreview() below) - empty/hidden by default, same "always show what
 				you'll actually get" intent as refreshAnimationPreview() itself for the effect/colors. --->
-				<span id="animationOverlayPreview" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;font-size:16px;font-weight:bold;text-align:center;display:none;"></span>
+				<div id="animationOverlayPreview" style="position:absolute;inset:0;z-index:1;display:none;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;font-family:Arial, Helvetica, sans-serif;"></div>
 			</div>
 		</td>
 	</tr>
 	<tr>
 		<td>
-			<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="0">
+			<!--- Alternating rows with dividers, like the gradient window (11-05, owner). Which rows show depends on the effect, so the
+			shading and the dividers are drawn by stripeAnimationRows() over the rows that show. --->
+			<table align="left" class="k-content adminBlocks" id="animationSettings" width="100%" cellpadding="5" cellspacing="0" border="0">
+				<!--- First, at the top (11-05, owner). --->
+				<!--- Hero text (11-03, owner): the heading over the animation is set in the Hero text window, the same one the picture,
+				gradient and moving hero use (font, size, color, shadow and glow), so there is one place for it. The old text, color, font
+				and size fields that were here had no shadow. Saving here leaves the heading as it is. --->
+				<cfif not isBlogOptionContext>
+				<tr>
+					<td align="right" style="width: 20%">
+						Hero text:
+					</td>
+					<td colspan="3">
+						<button type="button" class="k-button normalFontWeight" onclick="createAdminInterfaceWindow(109, <cfoutput>#val(URL.optArgs)#</cfoutput>);"><i class="fontAwesomeIcon fas fa-heading" style="margin-right: 4px;"></i> Hero text...</button>
+						<span style="margin-left: 8px;" id="animationHeroTextSummary"><cfoutput>#len(existingOverlayText) ? encodeForHtml(existingOverlayText) : "None"#</cfoutput></span>
+					</td>
+				</tr>
+				</cfif>
 				<tr>
 					<td align="right" style="width: 20%">
 						<label for="animationEffect">Effect:</label>
@@ -257,61 +274,13 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 						<input class="k-checkbox" type="checkbox" id="animationBool1">
 					</td>
 				</tr>
-				<!--- 2026-10-01: overlay text/color/font, new for the animation hero type - mirrors gradientEditor.cfm's own fields
-				exactly (same shared Post.cfc columns, see that file's and Post.cfc's own comments). Post-only,
-				same as the font list fetch above. --->
-				<cfif not isBlogOptionContext>
-				<tr>
-					<td align="right" style="width: 20%">
-						<label for="animationOverlayText">Overlay Text:</label>
-					</td>
-					<td colspan="3">
-						<input type="text" id="animationOverlayText" class="k-textbox" placeholder="Optional overlay text" style="width:100%;box-sizing:border-box;" value="<cfoutput>#encodeForHTMLAttribute(existingOverlayText)#</cfoutput>">
-					</td>
-				</tr>
-				<tr>
-					<td align="right" style="width: 20%">
-						<label for="animationOverlayTextColor">Text Color:</label>
-					</td>
-					<td colspan="3">
-						<script>
-							$("#animationOverlayTextColor").kendoColorPicker({
-								input: false,
-								preview: false,
-								value: "<cfoutput>#existingOverlayTextColor#</cfoutput>",
-								buttons: false,
-								views: ["gradient"]
-							});
-						</script>
-						<input id="animationOverlayTextColor" name="animationOverlayTextColor">
-					</td>
-				</tr>
-				<tr>
-					<td align="right" style="width: 20%">
-						<label for="animationOverlayFont">Text Font:</label>
-					</td>
-					<td colspan="3">
-						<select id="animationOverlayFont" style="width: 60%"></select>
-					</td>
-				</tr>
-				<!--- 2026-10-03: same plain range-input convention this file's own Speed slider already uses -
-				no Kendo widget needed (kendoTextBox isn't part of Kendo Core, confirmed earlier tonight). --->
-				<tr>
-					<td align="right" style="width: 20%">
-						<label for="animationOverlayFontSize">Text Size:</label>
-					</td>
-					<td colspan="3">
-						<input type="range" id="animationOverlayFontSize" min="12" max="72" step="1" value="<cfoutput>#existingOverlayFontSize#</cfoutput>" style="width:80%;">
-						<span id="animationOverlayFontSizeReadout" style="display:inline-block;width:40px;text-align:right;"><cfoutput>#existingOverlayFontSize#</cfoutput>px</span>
-					</td>
-				</tr>
-				</cfif>
 			</table>
 		</td>
 	</tr>
 	<tr valign="middle" height="30px">
-		<td valign="bottom" align="left">
-			<button id="animationCancelButton" class="k-button normalFontWeight" type="button" onclick="javascript:$('#heroAnimationEditorWindow').kendoWindow('destroy');">Cancel</button>
+		<!--- Plain (k-content), the same as the gradient window's Submit (11-05, owner). --->
+		<td valign="bottom" align="left" class="k-content">
+			<!--- Submit only, like the other admin windows (11-04, owner): the window's own close button cancels. --->
 			<button id="animationSubmitButton" class="k-button k-primary" type="button" onclick="javascript:onHeroAnimationEditorSubmit();">Submit</button>
 		</td>
 	</tr>
@@ -527,24 +496,23 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 		}
 	}
 
-	<!--- 2026-10-01: updates the overlay text preview sitting on top of the live canvas - separate from
-	refreshAnimationPreview() above since this doesn't touch the canvas at all, just the sibling <span>. Guarded
-	element lookups since this file renders the overlay fields at all (BlogOption context has none - see the
-	cfif around them). --->
+	<!--- The heading over the live canvas, drawn as the post page draws it (getHeroTextPreview, Renderer.cfc getHeroTextHtml), scaled
+	to the preview's width the same way the Hero editor's text layer is (the post page draws it for a page about 1100px wide). Redrawn
+	when the Hero text window saves. --->
 	function refreshAnimationOverlayPreview() {
 		var span = $("#animationOverlayPreview");
 		if (!span.length) { return; }
-		var text = $("#animationOverlayText").val() || "";
-		if (!text.length) { span.hide(); return; }
-		var color = $("#animationOverlayTextColor").val() || "#ffffff";
-		if (color.charAt(0) !== "#") { color = "#" + color; }
-		var font = $("#animationOverlayFont").val() || "";
-		var fontSize = $("#animationOverlayFontSize").val() || "16";
-		span.css({
-			color: color,
-			fontFamily: font ? ('"' + font + '"') : "inherit",
-			fontSize: fontSize + "px"
-		}).text(text).show();
+		jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getHeroTextPreview", dataType: "json",
+			data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: <cfoutput>#val(URL.optArgs)#</cfoutput> } })
+			.done(function (response) {
+				if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+				var html = (response && response.html) || "";
+				if (!html) { span.hide().empty(); $("#animationHeroTextSummary").text("None"); return; }
+				span.html(html).css("display", "flex");
+				var text = span.find(".galaxieHeroText");
+				$("#animationHeroTextSummary").text(text.clone().children().remove().end().text() || text.text());
+				text.css({ width: "90%", zoom: Math.max(0.35, Math.min(1, ($("#animationPreviewWrap").width() || 600) / 1100)) });
+			});
 	}
 
 	<!--- Shows/hides and relabels the color/numeric/boolean rows for whichever effect is selected, seeding each
@@ -553,6 +521,21 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 	re-labeled/shown-or-hidden" approach gradientEditor.cfm settled on for its own single swatch, after finding
 	that recreating a Pickr instance on every change was unstable (see that file's own comment on the per-handle
 	Pickr approach it replaced), now generalized to numeric sliders and a checkbox too. --->
+	<!--- Shades the settings rows that show in turn (k-content, k-alt) with a divider above each in its row's shade, the same look as
+	the gradient window (11-05, owner). Run again whenever the effect changes which rows show. --->
+	function stripeAnimationRows() {
+		var table = $("#animationSettings");
+		table.find("> tbody > tr.blockSpacer").remove();
+		var alt = false;
+		table.find("> tbody > tr").each(function () {
+			if ($(this).css("display") === "none") { return; }
+			var cls = alt ? "k-alt" : "k-content";
+			$(this).children("td").removeClass("k-alt k-content").addClass(cls);
+			$('<tr class="blockSpacer"><td colspan="4" class="border ' + cls + '"></td></tr>').insertBefore(this);
+			alt = !alt;
+		});
+	}
+
 	function applyEffectParams() {
 		var effect = $("#animationEffect").val();
 		var colorParams = ANIMATION_EFFECT_PARAMS[effect] || [];
@@ -593,6 +576,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 		} else {
 			boolRow.hide();
 		}
+		stripeAnimationRows();
 		<!--- Switching the dropdown to an effect that hasn't loaded yet this session (eg. the admin opened this
 		editor on a WAVES pick and then tries NET) needs its own engine/effect file fetched before the preview can
 		actually render it - the window-open load only ever covers the initial effect. galaxieLoader.heroAnimationEngine()
@@ -646,49 +630,11 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 		}
 		$("#animationBool1").on("change", refreshAnimationPreview);
 
-		<!--- 2026-10-01: overlay text/color/font - guarded since these rows don't exist at all in the
-		BlogOption context (see the cfif around them above). Kendo ColorPicker's own change/select events don't
-		fire reliably on every edit (same reasoning gradientEditor.cfm's submit-time reads already work around),
-		so poll via 'input' on the hidden bound field like the speed slider does, plus the picker's own explicit
-		events as a belt-and-suspenders. --->
-		if ($("#animationOverlayText").length) {
-			$("#animationOverlayText").on("input", refreshAnimationOverlayPreview);
-			$("#animationOverlayTextColor").on("input change", refreshAnimationOverlayPreview);
-			<!--- 2026-10-03: the JS-side $("#animationOverlayText").length check above only gates what the
-			BROWSER runs - it does nothing to stop ColdFusion itself from trying to evaluate
-			#serializeJson(animationThemeFonts)# at template-render time, since CFML has no awareness of
-			JavaScript's own runtime conditions. animationThemeFonts is only ever defined in the Post context
-			(see the <cfif not isBlogOptionContext> near the top of this file) - evaluating it unconditionally
-			here threw "Variable ANIMATIONTHEMEFONTS is undefined" on every single load of the BlogOption
-			context ("Configure Animation Defaults"), before this fix. A real CFML-side guard, not just the JS
-			one, is required to actually skip the <cfoutput> below in that context. --->
-			<cfif not isBlogOptionContext>
-			<!--- 2026-10-03: shows each font rendered in its own face while browsing the list - same
-			kendo.data.DataSource + template pattern themeSettings.cfm's own bodyFontDropdown (and now
-			gradientEditor.cfm's identical field) use. Local inline data since animationThemeFonts is already
-			the exact theme-scoped, self-hosted+web-safe list this field needs. --->
-			var animationFontDs = new kendo.data.DataSource({
-				data: <cfoutput>#serializeJson(animationThemeFonts)#</cfoutput>
-			});
-			var animationFontDropdown = $("#animationOverlayFont").kendoDropDownList({
-				dataTextField: "Font",
-				dataValueField: "Font",
-				dataSource: animationFontDs,
-				optionLabel: "Default",
-				template: '<label style="font-family:\'#:data.FontFace#\'">#:data.Font#</label>',
-				change: refreshAnimationOverlayPreview
-			}).data("kendoDropDownList");
-			if (animationFontDropdown) {
-				animationFontDropdown.wrapper.css("width", "60%");
-				animationFontDropdown.value("<cfoutput>#existingOverlayFont#</cfoutput>");
-			}
-			</cfif>
-			$("#animationOverlayFontSize").on("input", function() {
-				$("#animationOverlayFontSizeReadout").text(this.value + "px");
-				refreshAnimationOverlayPreview();
-			});
-			refreshAnimationOverlayPreview();
-		}
+		<!--- The heading preview over the canvas (post only: the Blog Options defaults have no heading). --->
+		<cfif not isBlogOptionContext>
+		refreshAnimationOverlayPreview();
+		$(document).off("galaxieHeroTextSaved.animationEditor").on("galaxieHeroTextSaved.animationEditor", refreshAnimationOverlayPreview);
+		</cfif>
 
 		applyEffectParams();
 	}
@@ -719,13 +665,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 				}
 			});
 		<cfelse>
-			<!--- 2026-10-01: shared with Gradient on Post.cfc (see that file's and Post.cfc's own comments) -
-			read the same way gradientEditor.cfm's submit does. --->
-			var overlayText = $("#animationOverlayText").val() || "";
-			var overlayTextColor = $("#animationOverlayTextColor").val() || "#ffffff";
-			if (overlayTextColor.charAt(0) !== "#") { overlayTextColor = "#" + overlayTextColor; }
-			var overlayFont = $("#animationOverlayFont").val() || "";
-			var overlayFontSize = $("#animationOverlayFontSize").val() || "";
+			<!--- The heading is saved by the Hero text window, not here (11-03). --->
 
 			jQuery.ajax({
 				type: "post",
@@ -734,11 +674,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 					csrfToken: "<cfoutput>#csrfToken#</cfoutput>",
 					postId: <cfoutput>#URL.optArgs#</cfoutput>,
 					animationEffect: effect,
-					animationOptions: optionsJson,
-					heroOverlayText: overlayText,
-					heroOverlayTextColor: overlayTextColor,
-					heroOverlayFont: overlayFont,
-					heroOverlayFontSize: overlayFontSize
+					animationOptions: optionsJson
 				},
 				dataType: "json",
 				success: function(response) {

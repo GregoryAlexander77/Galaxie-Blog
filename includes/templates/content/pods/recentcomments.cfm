@@ -307,7 +307,8 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 					<cfset commentLink = application.blog.makeCommentLink(postId=commentPostId, datePosted=PostDatePosted, postAlias=commentPostAlias, commentId=commentId)>
 
 					<!--- Shorten and format the comment.--->
-					<cfset formattedComment = comment>
+					<!--- Without the formatting marks (5.03): **, ` and code fences mean nothing in a short preview. --->
+					<cfset formattedComment = application.Udf.commentSnippet(comment)>
 					<cfif len(formattedComment) gt len(lenComment)>
 						<cfset formattedComment = left(formattedComment, lenComment)>
 					</cfif>

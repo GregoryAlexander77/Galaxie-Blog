@@ -513,8 +513,8 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 				above; this only lays them out. Room is left below the groups for charts of traffic and popular posts, some day. --->
 				<cfsilent>
 					<cfset homeGroups = [
-						{ key: "posts", name: "Posts and Pages", image: "/images/icons/posts.png", what: "Write and organize", icons: "addPost,Posts,CreatePage,Pages,Comments,CreatePageCollection,ConfigurePageCollections,Categories,Tags" },
-						{ key: "look", name: "Look and Layout", image: "/images/icons/themes.png", what: "Themes, scenes, home page and menu", icons: "Themes,Scenes,Fonts,ConfigureHomepage,ConfigureMenu" },
+						{ key: "posts", name: "Posts and Pages", image: "/images/icons/posts.png", what: "Write and organize", icons: "addPost,Posts,CreatePage,Pages,Scenes,Comments,CreatePageCollection,ConfigurePageCollections,Categories,Tags" },
+						{ key: "look", name: "Look and Layout", image: "/images/icons/themes.png", what: "Themes, fonts, home page and menu", icons: "Themes,Fonts,ConfigureHomepage,ConfigureMenu" },
 						{ key: "forms", name: "Forms, Bookings and Shop", image: "/images/icons/forms.gif", what: "Forms, bookings, events and the shop", icons: "Forms,Bookings,Events,Shop,Orders" },
 						{ key: "people", name: "People", image: "/images/icons/users.png", what: "Users, members and subscribers", icons: "Users,Members,Subscriber,userProfile,BanVisitors,BannedUsers" },
 						{ key: "settings", name: "Settings", image: "/images/icons/settings.gif", what: "Set-up, settings and updates", icons: "SiteSetup,BlogSettings,BlogOptions,BlogUpdate" },
@@ -783,11 +783,11 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 								if (newNote) { mine.appendChild(newNote.cloneNode(true)); }
 							});
 						}
-						function check() {
+						function check(fresh) {
 							if (busy || document.visibilityState !== "visible" || document.getElementById("adminHome").style.display === "none") { return; }
 							busy = true;
 							jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getUpNextSignature",
-								data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>" }, dataType: "json" })
+								data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", fresh: fresh === true }, dataType: "json" })
 								.done(function (r) {
 									if (typeof r === "string") { try { r = JSON.parse(r); } catch (e) { r = null; } }
 									if (!r || !r.success || !r.signature || r.signature === box.getAttribute("data-signature")) { busy = false; return; }
@@ -798,6 +798,14 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 						}
 						setInterval(check, 60000);
 						document.addEventListener("visibilitychange", check);
+						// As soon as the last admin window closes (2026-11-04, owner): what was just done in it - running the update, a new post,
+						// a setting - shows in Up next now. Counting the open windows every couple of seconds costs next to nothing.
+						var windowsOpen = 0;
+						setInterval(function () {
+							var open = jQuery(".k-window:visible").length;
+							if (windowsOpen > 0 && open === 0) { setTimeout(function () { check(true); }, 400); }
+							windowsOpen = open;
+						}, 2000);
 					})();
 					<!--- Up next: the x hides a suggestion until something new happens (AdminHome.cfc hide). --->
 					$(document).on("click", ".adminHomeHide", function () {

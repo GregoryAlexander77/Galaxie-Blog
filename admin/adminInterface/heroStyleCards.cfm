@@ -6,7 +6,7 @@ read it as they read the dropdown it replaces.
 Set before including:
 	heroCardsId          the hidden input's id
 	heroCardsName        its name ('' for none)
-	heroCardsValue       the chosen style: classic, held, band or magazine ('' = the blog's choice)
+	heroCardsValue       the chosen style: classic, held, band, magazine or parallax ('' = the blog's choice)
 	heroCardsBlogChoice  '' for the blog's own setting; else the blog's style: its card is tagged "Blog's default" and choosing it
 	                     saves '' (the post follows the blog). There was a separate "Blog's choice" card first, but it repeated
 	                     a card that was already there (2026-11-01, owner).
@@ -20,17 +20,18 @@ Set before including:
 	{ key: "classic", name: "Classic", what: "The picture sits inside the post, under the title. Quiet and simple, good for posts that are mostly text." },
 	{ key: "held", name: "Tall, held", what: "A tall picture that stays put while the post slides up over it. Edge to edge on phones." },
 	{ key: "band", name: "Tall band", what: "A tall picture across the top with the title on it. It scrolls away with the page." },
-	{ key: "magazine", name: "Magazine", what: "Tall, like a magazine cover, with a large heading low on the left. Edge to edge on phones." }
+	{ key: "magazine", name: "Magazine", what: "Tall, like a magazine cover, with a large heading low on the left. Edge to edge on phones." },
+	{ key: "parallax", name: "Parallax", what: "A tall picture that moves slower than the page, so the post slides up over it. Computers only; phones show a tall band." }
 ]>
 <!--- Not "Full screen" (2026-10-25): on a computer a post's hero stays in the post's width (design B, 10-22). --->
-<cfset heroCardNames = { "classic": "Classic", "held": "Tall, held", "band": "Tall band", "magazine": "Magazine" }>
+<cfset heroCardNames = { "classic": "Classic", "held": "Tall, held", "band": "Tall band", "magazine": "Magazine", "parallax": "Parallax" }>
 <!--- A picture that ships with every blog (a theme background). --->
 <cfset heroCardPicture = application.baseUrl & "/images/background/themes/antelopCanyon.webp">
 <cfif not structKeyExists(request, "heroStyleCardsCss")>
 <cfset request.heroStyleCardsCss = true>
 <style>
-	.heroCards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 10px; }
-	.heroCards.small { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+	.heroCards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-top: 10px; }
+	.heroCards.small { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 	@media (max-width: 900px) { .heroCards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .heroCards.small { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 	@media (max-width: 480px) { .heroCards, .heroCards.small { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 	.heroCard { display: flex; flex-direction: column; justify-content: flex-start; text-align: left; padding: 10px; border: 2px solid rgba(128,128,128,.35); border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
@@ -82,12 +83,21 @@ Set before including:
 	.heroMini.magazine .pic .kicker { position: absolute; left: 7%; bottom: 46%; width: 18%; height: 5px; border-radius: 3px; }
 	.heroMini.magazine .fade { height: 18px; margin-top: -18px; position: relative; }
 	.heroMini.magazine .body { padding-top: 6%; }
+	/* Parallax (2026-11-04): a tall band whose picture moves slower than the page, so the post slides up over it. */
+	.heroMini.parallax .page { animation: heroCardScroll 6s ease-in-out infinite; }
+	.heroMini.parallax .pic { position: relative; height: 0; padding-bottom: 42%; overflow: hidden; }
+	.heroMini.parallax .pic .drift { position: absolute; inset: 0; background-position: center; background-size: cover; animation: heroCardDrift 6s ease-in-out infinite; }
+	.heroMini.parallax .pic .title { position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 40%; width: 50%; }
+	.heroMini.parallax .fade { height: 14px; margin-top: -14px; position: relative; }
+	.heroMini.parallax .body { padding-top: 6%; }
+	@keyframes heroCardDrift { 0%, 22% { transform: translateY(0); } 62%, 82% { transform: translateY(55%); } 100% { transform: translateY(0); } }
 	@keyframes heroCardScroll { 0%, 22% { transform: translateY(0); } 62%, 82% { transform: translateY(-46%); } 100% { transform: translateY(0); } }
 	@keyframes heroCardSlide { 0%, 22% { transform: translateY(0); } 62%, 82% { transform: translateY(-62%); } 100% { transform: translateY(0); } }
 	/* Only the chosen card and the one under the pointer play; the rest rest at the top. */
 	.heroCard:not([aria-checked="true"]):not(:hover):not(:focus-visible) .page,
-	.heroCard:not([aria-checked="true"]):not(:hover):not(:focus-visible) .over { animation-play-state: paused; }
-	@media (prefers-reduced-motion: reduce) { .heroMini .page, .heroMini .over { animation: none !important; } }
+	.heroCard:not([aria-checked="true"]):not(:hover):not(:focus-visible) .over,
+	.heroCard:not([aria-checked="true"]):not(:hover):not(:focus-visible) .drift { animation-play-state: paused; }
+	@media (prefers-reduced-motion: reduce) { .heroMini .page, .heroMini .over, .heroMini .drift { animation: none !important; } }
 </style>
 </cfif>
 <cfset heroCardsGroupId = heroCardsId & "Cards">
@@ -106,6 +116,8 @@ Set before including:
 			<span class="over"><span class="heading"><span class="title light"></span><span class="ln light"></span></span><span class="fade"></span><span class="body"><cfloop from="1" to="9" index="i"><span class="ln#i mod 3 eq 0 ? ' mid' : ''#"></span></cfloop></span></span>
 		<cfelseif hcs.key eq "band">
 			<span class="page"><span class="pic" style="background-image: url('#heroCardPicture#')"><span class="title light"></span></span><span class="fade"></span><span class="body"><cfloop from="1" to="10" index="i"><span class="ln#i mod 3 eq 0 ? ' mid' : ''#"></span></cfloop></span></span>
+		<cfelseif hcs.key eq "parallax">
+			<span class="page"><span class="pic"><span class="drift" style="background-image: url('#heroCardPicture#')"></span><span class="title light"></span></span><span class="fade"></span><span class="body"><cfloop from="1" to="10" index="i"><span class="ln#i mod 3 eq 0 ? ' mid' : ''#"></span></cfloop></span></span>
 		<cfelse>
 			<span class="page"><span class="pic" style="background-image: url('#heroCardPicture#')"><span class="kicker light"></span><span class="big a light"></span><span class="big b light"></span></span><span class="fade"></span><span class="body"><cfloop from="1" to="10" index="i"><span class="ln#i mod 3 eq 0 ? ' mid' : ''#"></span></cfloop></span></span>
 		</cfif>

@@ -63,6 +63,9 @@
 		var scheduleReleaseCancel = $('#scheduleReleaseCancel');
 		scheduleReleaseCancel.on('click', function(e) {
 			e.preventDefault();
+			galaxieConfirm("Cancel the scheduled release?", "The post itself isn't changed.", cancelScheduledReleaseNow);
+		});
+		function cancelScheduledReleaseNow() {
 			jQuery.ajax({
 				type: 'post',
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=cancelScheduledRelease',
@@ -78,7 +81,7 @@
 					}
 				}
 			});
-		});
+		}
 		</cfif>
 
 	});//...document.ready

@@ -105,27 +105,7 @@
 				<span class="k-form-hint">Only used by the GL effect.</span>
 			</td>
 		</tr>
-		<tr>
-			<td align="right" class="border" style="width: 20%"><label for="carouselTextShadow">Shadow behind the text:</label></td>
-			<td class="border">
-				<!--- 5.0 (2026-10-19): the same shadows as scenes and post heroes. --->
-				<select id="carouselTextShadow" name="carouselTextShadow" style="width: 50%">
-					<option value="">Faint (as before)</option>
-					<option value="none">None</option>
-					<option value="soft">Soft</option>
-					<option value="strong">Strong</option>
-					<option value="glow">Glow</option>
-				</select>
-				<input id="carouselTextShadowColor" name="carouselTextShadowColor" value="#000000">
-				<span class="k-form-hint">Makes titles stand out on busy pictures. The color is used for soft, strong and glow.</span>
-				<script>
-					$(document).ready(function () {
-						$("#carouselTextShadow").kendoDropDownList();
-						$("#carouselTextShadowColor").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true });
-					});
-				</script>
-			</td>
-		</tr>
+		<!--- The font first, then the shadow behind it (11-05, owner). --->
 		<tr>
 			<td align="right" class="border" style="width: 20%"><label for="carouselFontDropdown">Carousel Font:</label></td>
 			<td class="border">
@@ -162,6 +142,27 @@
 				</script>
 				<select id="carouselFontDropdown" name="carouselFontDropdown" style="width: 50%"></select>
 				<span class="k-form-hint">For the titles and text over the pictures.</span>
+			</td>
+		</tr>
+		<tr>
+			<td align="right" class="border" style="width: 20%"><label for="carouselTextShadow">Shadow behind the text:</label></td>
+			<td class="border">
+				<!--- 5.0 (2026-10-19): the same shadows as scenes and post heroes. --->
+				<select id="carouselTextShadow" name="carouselTextShadow" style="width: 50%">
+					<option value="">Faint (as before)</option>
+					<option value="none">None</option>
+					<option value="soft">Soft</option>
+					<option value="strong">Strong</option>
+					<option value="glow">Glow</option>
+				</select>
+				<input id="carouselTextShadowColor" name="carouselTextShadowColor" value="#000000">
+				<span class="k-form-hint">Makes titles stand out on busy pictures. The color is used for soft, strong and glow.</span>
+				<script>
+					$(document).ready(function () {
+						$("#carouselTextShadow").kendoDropDownList();
+						$("#carouselTextShadowColor").kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true });
+					});
+				</script>
 			</td>
 		</tr>
 	

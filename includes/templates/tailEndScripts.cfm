@@ -165,11 +165,21 @@ JavaScript the link still goes to their posts or website. --->
 	// Show the topMenu
 	$('#topMenu').css('visibility', 'visible');	
 	
-	// Get the width of the main flex container ('mainBlog').
-	var parentContainerWidth = $( "#mainBlog" ).width();
-	
-	// Set the width of the footer
-	$("#footerDiv").width(parentContainerWidth);
+	// Keep the footer as wide as the main flex container ('mainBlog'). This used to be set once, when the page loaded: when the
+	// window was resized or the main container changed width afterwards (for example around a sign-in window), the footer kept
+	// its old width and sat out of line with the page (2026-11-04). Now it follows the main container whenever it changes size.
+	function galaxieSyncFooterWidth() {
+		var parentContainerWidth = $("#mainBlog").width();
+		if (parentContainerWidth) {
+			$("#footerDiv").width(parentContainerWidth);
+		}
+	}
+	galaxieSyncFooterWidth();
+	if (window.ResizeObserver && document.getElementById("mainBlog")) {
+		new ResizeObserver(galaxieSyncFooterWidth).observe(document.getElementById("mainBlog"));
+	} else {
+		$(window).on("resize", galaxieSyncFooterWidth);
+	}
 	
 	// Listeners 
 	// Script to show the sticky header when a certain scroll position has been reached (i.e. the navigation menu that is shown at the top of the page when you scroll down a little bit).

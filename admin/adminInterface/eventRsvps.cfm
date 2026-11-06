@@ -171,7 +171,7 @@ that left without paying (Not paid). See common/cfc/Events.cfc. --->
 							#encodeForHtml(thisRsvp.email)#<br>
 							#thisRsvp.partySize# <cfif thisRsvp.partySize eq 1>person<cfelse>people</cfif><cfif len(thisRsvp.locationLabel)>, #encodeForHtml(thisRsvp.locationLabel)#</cfif><br>
 							Signed up #isDate(thisRsvp.created) ? dateFormat(thisRsvp.created, "mmm d, yyyy") : ""#. #thisStatus#<cfif len(thisPaid)>. Paid #encodeForHtml(thisPaid)#</cfif>
-							<cfif thisRsvp.status eq "confirmed"><br><button type="button" class="k-button eventRsvpCancel" data-id="#thisRsvp.submissionId#">Cancel</button></cfif>
+							<cfif thisRsvp.status eq "confirmed"><br><button type="button" class="k-button eventRsvpCancel" data-id="#thisRsvp.submissionId#">Cancel RSVP</button></cfif>
 						</td>
 					</tr>
 					<cfelse>
@@ -183,7 +183,7 @@ that left without paying (Not paid). See common/cfc/Events.cfc. --->
 						<td style="border-top: 1px solid ##ddd;">#isDate(thisRsvp.created) ? dateFormat(thisRsvp.created, "mmm d, yyyy") : ""#</td>
 						<cfif rsvpIsPaid><td style="border-top: 1px solid ##ddd;">#encodeForHtml(thisPaid)#</td></cfif>
 						<td style="border-top: 1px solid ##ddd;">#thisStatus#</td>
-						<td style="border-top: 1px solid ##ddd;" align="right"><cfif thisRsvp.status eq "confirmed"><button type="button" class="k-button eventRsvpCancel" data-id="#thisRsvp.submissionId#">Cancel</button></cfif></td>
+						<td style="border-top: 1px solid ##ddd;" align="right"><cfif thisRsvp.status eq "confirmed"><button type="button" class="k-button eventRsvpCancel" data-id="#thisRsvp.submissionId#">Cancel RSVP</button></cfif></td>
 					</tr>
 					</cfif>
 				</cfloop>

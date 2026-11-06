@@ -136,10 +136,11 @@ and videos have none. --->
 		<td class="#blockClass#"><input type="range" id="heroTextGlowSoftness" min="4" max="60" step="1" value="#val(p["HeroOverlayGlowSoftness"] ?: "") ? val(p["HeroOverlayGlowSoftness"]) : 24#" style="width: 60%;"> <span id="heroTextGlowSoftnessValue"></span>
 			<div class="k-form-hint">Low is a tight, crisp glow; high spreads it wide and soft.</div></td>
 	</tr>
-	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<!--- The Save row is always plain (k-content), not the next shade, like the other windows' Submit (11-05, owner). --->
+	<tr class="blockSpacer"><td colspan="2" class="border k-content"></td></tr>
 	<tr>
-		<td class="#blockClass#"></td>
-		<td class="#blockClass#"><button id="heroTextSave" type="button" class="k-button k-primary">Save</button></td>
+		<td class="k-content"></td>
+		<td class="k-content"><button id="heroTextSave" type="button" class="k-button k-primary">Save</button></td>
 	</tr>
 </table>
 </cfoutput>

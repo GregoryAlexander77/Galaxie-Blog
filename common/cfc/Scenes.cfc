@@ -395,6 +395,40 @@ post editor's scene picker aren't empty. Never the private Delicate Arch scene (
 	<cfreturn arrayLen(found) ? trim(reReplaceNoCase(found[1], "</?galaxieScene>", "", "all")) : "">
 </cffunction>
 
+<cffunction name="getPostSceneStill" access="public" returntype="struct" output="false"
+		hint="The scene a post shows (a moving hero or a full scene), for previews (11-04): sceneId (0 for none), name, isMovingHero, and art: its first section drawn as a still, as img tags (its layers stacked, or its photo), or an empty string for other kinds.">
+	<cfargument name="postId" type="numeric" required="true">
+	<cfset var still = { sceneId: 0, name: "", isMovingHero: false, art: "" }>
+	<cfset var alias = getPostScene(arguments.postId)>
+	<cfset var scene = "">
+	<cfset var first = "">
+	<cfset var layer = "">
+	<cfif not len(alias)>
+		<cfreturn still>
+	</cfif>
+	<cfset still.sceneId = getSceneIdByAlias(alias)>
+	<cfif still.sceneId eq 0>
+		<cfreturn still>
+	</cfif>
+	<cfset scene = getScene(still.sceneId)>
+	<cfset still.name = scene.name ?: alias>
+	<cfset still.isMovingHero = (alias eq "post-hero-" & arguments.postId)>
+	<cftry>
+		<cfset first = deserializeJSON(scene.json).sections[1]>
+		<cfif (first.kind ?: "") eq "layeredHero" and isArray(first.layers ?: "")>
+			<cfloop array="#first.layers#" index="layer">
+				<cfif len(layer.src ?: "")>
+					<cfset still.art = still.art & '<img src="' & encodeForHtmlAttribute(replace(layer.src, "{baseUrl}", application.baseUrl, "all")) & '" alt="">'>
+				</cfif>
+			</cfloop>
+		<cfelseif (first.kind ?: "") eq "photoHero" and len(first.image ?: "")>
+			<cfset still.art = '<img src="' & encodeForHtmlAttribute(replace(first.image, "{baseUrl}", application.baseUrl, "all")) & '" alt="">'>
+		</cfif>
+		<cfcatch type="any"></cfcatch>
+	</cftry>
+	<cfreturn still>
+</cffunction>
+
 <cffunction name="setPostScene" access="public" returntype="void" output="false"
 		hint="Shows a scene on a post (or none, with an empty alias): adds, replaces or removes the <galaxieScene> directive in the post's header and leaves the rest of the header as it is. Updates the post's last-changed stamp (Post.Date, sent to search engines as dateModified), as saving the post's CSS or JavaScript does; the date visitors see (DatePosted) stays as it is. The Scene window (108) in the post editor.">
 	<cfargument name="postId" type="numeric" required="true">
@@ -445,7 +479,7 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 				<cfloop array="#data.sections[1].layers#" index="layer">
 					<cfif isStruct(layer) and len(layer.src ?: "")><cfset arrayAppend(layers, { "src": layer.src, "depth": val(layer.depth ?: 0) })></cfif>
 				</cfloop>
-				<cfif arrayLen(layers)><cfset arrayAppend(result, { "key": starter.key, "name": data.name ?: starter.key, "layers": layers })></cfif>
+				<cfif arrayLen(layers)><cfset arrayAppend(result, { "key": starter.key, "name": data.name ?: starter.key, "layers": layers, "shadow": data.sections[1].shadow ?: "" })></cfif>
 			</cfif>
 			<cfcatch type="any"></cfcatch>
 		</cftry>
@@ -456,7 +490,8 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 <cffunction name="getPostHeroParallax" access="public" returntype="struct" output="false"
 		hint="The post's parallax hero for the Hero editor: { active, starter, heading, line, align, textPosition, ending, otherScene, sceneId }. sceneId is the scene the post shows (its own or another), for the Scene editor shortcut, or 0. ending is empty for one that scrolls away, or how a held one gives way (edge, sharp, fade). otherScene is the alias of a scene the post shows that the panel didn't make (set in the Scene window), or empty.">
 	<cfargument name="postId" type="numeric" required="true">
-	<cfset var result = { "active": false, "starter": "", "heading": "", "line": "", "align": "center", "textPosition": "", "ending": "", "otherScene": "", "sceneId": 0 }>
+	<cfset var result = { "active": false, "starter": "", "heading": "", "line": "", "align": "center", "textPosition": "", "ending": "", "otherScene": "", "sceneId": 0,
+		"color": "", "font": "", "fontSize": 0, "fontSizePhone": 0, "shadow": "", "shadowColor": "", "glowColor": "", "glowOpacity": 80, "glowSoftness": 24, "textMotion": "" }>
 	<cfset var alias = getPostScene(arguments.postId)>
 	<cfset var data = "">
 	<cfset var section = "">
@@ -475,7 +510,26 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 		<cfset result.line = trim(reReplace(section.html ?: "", "<[^>]*>", "", "all"))>
 		<cfset result.align = section.align ?: "center">
 		<cfset result.textPosition = section.textPosition ?: "">
+		<!--- How the heading moves (11-05): slideIn, still, or words / letters (stored as headingEffect); empty rises as it scrolls. --->
+		<cfset result.textMotion = len(section.headingEffect ?: "") ? section.headingEffect : (section.textMotion ?: "")>
 		<cfset result.ending = (data.settings.type ?: "") eq "heroParallax" ? "" : (data.settings.ending ?: "edge")>
+		<!--- The heading's look (11-04, the Moving hero wizard): the font by name, as the Hero text window has it. --->
+		<cfset result.font = reReplace(section.headingFont ?: "", '^"([^"]+)".*$', "\1")>
+		<cfset result.fontSize = val(section.headingSize ?: "")>
+		<cfset result.fontSizePhone = val(section.headingSizePhone ?: "")>
+		<cfset result.color = section.textColour ?: "">
+		<cfset result.shadow = section.shadow ?: "">
+		<cfset result.shadowColor = section.shadowColour ?: "">
+		<cfif isStruct(section.glow ?: "")>
+			<cfset result.glowColor = section.glow.colour ?: "">
+			<cfset result.glowOpacity = round(val(section.glow.opacity ?: 0.8) * 100)>
+			<cfset result.glowSoftness = val(section.glow.softness ?: 24)>
+		</cfif>
+		<!--- A picture made with a "glow" shadow opens as a glow in the shadow's color, as in the Hero text window. --->
+		<cfif result.shadow eq "glow">
+			<cfif not len(result.glowColor)><cfset result.glowColor = len(result.shadowColor) ? result.shadowColor : "##ffffff"></cfif>
+			<cfset result.shadow = "none">
+		</cfif>
 		<cfcatch type="any"></cfcatch>
 	</cftry>
 	<cfreturn result>
@@ -492,7 +546,22 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 	<!--- How it gives way to the post (2026-11-01, owner): empty scrolls away (a hero parallax scene); edge, sharp or fade hold it
 	in place first, then it gives way as galaxieScene.js settings.ending. --->
 	<cfargument name="ending" type="string" required="false" default="">
+	<!--- The heading's look (11-04, owner: the Moving hero wizard, the same choices as the Hero text window). Left out, the picture's
+	own: an empty shadow keeps the ready-made picture's shadow, "none" takes it off. --->
+	<cfargument name="font" type="string" required="false" default="" hint="A blog font's name (the Font table), or empty for the scene's own.">
+	<cfargument name="color" type="string" required="false" default="" hint="The text color, ##rrggbb; empty for the scene's own (white).">
+	<cfargument name="fontSize" type="string" required="false" default="" hint="The heading's size in pixels on a computer.">
+	<cfargument name="fontSizePhone" type="string" required="false" default="" hint="Its size on phones; empty for about half the computer size.">
+	<cfargument name="shadow" type="string" required="false" default="" hint="none, soft or strong; empty keeps the picture's own.">
+	<cfargument name="shadowColor" type="string" required="false" default="">
+	<cfargument name="glowColor" type="string" required="false" default="" hint="Empty for no glow.">
+	<cfargument name="glowOpacity" type="string" required="false" default="" hint="10 to 100 (percent).">
+	<cfargument name="glowSoftness" type="string" required="false" default="" hint="4 to 60 (pixels).">
+	<cfargument name="textMotion" type="string" required="false" default="" hint="How the heading moves (11-05, owner): empty rises and fades as the page scrolls; slideIn slides up into place first; words or letters come in one at a time (SplitText); still stays put.">
 	<cfset var alias = "post-hero-" & arguments.postId>
+	<cfset var fontRows = "">
+	<cfset var fontRow = "">
+	<cfset var size = 0>
 	<cfset var held = listFind("edge,sharp,fade", arguments.ending) gt 0>
 	<!--- The title and picture as the post page has them (the picture is in the media table, not on Post). --->
 	<cfset var posts = application.blog.getPostByPostId(arguments.postId, true, true)>
@@ -521,7 +590,7 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 		</cfif>
 		<cfset source = deserializeJSON(fileRead(filePath, "utf-8"))>
 		<cfif not (isArray(source.sections ?: "") and arrayLen(source.sections) and (source.sections[1].kind ?: "") eq "layeredHero")>
-			<cfthrow type="GalaxieBlog.Scenes" message="That picture can't be used as a parallax hero.">
+			<cfthrow type="GalaxieBlog.Scenes" message="That picture can't be used as a moving hero.">
 		</cfif>
 		<cfset section = { "kind": "layeredHero", "layers": source.sections[1].layers }>
 		<cfif len(source.sections[1].shadow ?: "")><cfset section["shadow"] = source.sections[1].shadow></cfif>
@@ -533,6 +602,44 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 	<cfif len(trim(arguments.line))><cfset section["html"] = "<p>" & encodeForHtml(left(trim(arguments.line), 300)) & "</p>"></cfif>
 	<cfset section["align"] = listFind("left,center,right", arguments.align) ? arguments.align : "center">
 	<cfif arguments.textPosition eq "bottom"><cfset section["textPosition"] = "bottom"></cfif>
+	<cfif listFind("slideIn,still", arguments.textMotion)>
+		<cfset section["textMotion"] = arguments.textMotion>
+	<cfelseif listFind("words,letters", arguments.textMotion)>
+		<cfset section["headingEffect"] = arguments.textMotion>
+	</cfif>
+	<!--- The heading's look. getFont matches a name with LIKE, so only an exact match counts; headingFontId makes the scene load the
+	font's file wherever it shows (getFontFaceCss). --->
+	<cfif len(trim(arguments.font))>
+		<cfset fontRows = application.blog.getFont(font = trim(arguments.font))>
+		<cfloop array="#fontRows#" index="fontRow">
+			<cfif fontRow["Font"] eq trim(arguments.font)>
+				<cfset section["headingFont"] = '"' & replace(fontRow["Font"], '"', '', 'all') & '", sans-serif'>
+				<cfset section["headingFontId"] = fontRow["FontId"]>
+				<cfbreak>
+			</cfif>
+		</cfloop>
+	</cfif>
+	<cfset size = val(arguments.fontSize)>
+	<cfif size gte 16 and size lte 120>
+		<cfset section["headingSize"] = size & "px">
+		<cfset section["headingSizePhone"] = (val(arguments.fontSizePhone) gte 14 and val(arguments.fontSizePhone) lte 80 ? val(arguments.fontSizePhone) : max(18, round(size * 0.55))) & "px">
+	</cfif>
+	<cfif reFind("^##[0-9A-Fa-f]{6}$", arguments.color)><cfset section["textColour"] = arguments.color></cfif>
+	<cfif arguments.shadow eq "none">
+		<cfset structDelete(section, "shadow")>
+	<cfelseif listFind("soft,strong", arguments.shadow)>
+		<cfset section["shadow"] = arguments.shadow>
+	</cfif>
+	<cfif structKeyExists(section, "shadow") and reFind("^##[0-9A-Fa-f]{6}$", arguments.shadowColor)>
+		<cfset section["shadowColour"] = arguments.shadowColor>
+	</cfif>
+	<cfif reFind("^##[0-9A-Fa-f]{6}$", arguments.glowColor)>
+		<cfset section["glow"] = {
+			"colour": arguments.glowColor,
+			"opacity": val(arguments.glowOpacity) ? min(100, max(10, val(arguments.glowOpacity))) / 100 : 0.8,
+			"softness": val(arguments.glowSoftness) ? min(60, max(4, val(arguments.glowSoftness))) : 24
+		}>
+	</cfif>
 	<cfset scene = {
 		"name": left(sourceName & " (" & (post["Title"] ?: "") & ")", 120),
 		"pageColour": "auto",

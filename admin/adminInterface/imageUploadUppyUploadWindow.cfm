@@ -19,6 +19,10 @@
 	</cfif>
 	<cfset imageHandlerUrl = application.baseUrl & "/common/cfc/ProxyController.cfc?method=uploadImage&mediaProcessType=" & imageType & "&mediaType=image&selectorId=imageUploadEditor&" & processEntityTypeId & "=" & entityId & "&csrfToken=" & csrfToken>
 
+	<!--- The Image Quality slider and its size estimate, at the top like the other upload windows (11-05, owner: for consistency). --->
+	<cfset sliderId = "imageUploadQualitySlider">
+	<cfinclude template="uploadQualitySlider.cfm">
+
 	<div id="standaloneImageUploadUppyUpload" style="padding: 12px;"></div>
 
 	<script>
@@ -26,6 +30,8 @@
 			containerId: 'standaloneImageUploadUppyUpload',
 			endpoint: '<cfoutput>#imageHandlerUrl#</cfoutput>',
 			windowSelector: 'imageUploadUppyUploadWindow',
+			qualitySliderSelector: '#imageUploadQualitySlider',
+			qualityEstimateSelector: '#imageUploadQualitySliderEstimate',
 			onComplete: function() { blogUploadSubmit(); }
 		});
 	</script>

@@ -263,18 +263,18 @@
 	</cffunction>
 
 	<cffunction name="getPostHeroStyle" access="public" returnType="string" output="false"
-			hint="How a post's image, gradient or animated hero is shown on its own page (5.0): the post's own choice (Hero text window), or else the blog's (Blog Options, Post Hero Style). classic (inside the post, as in 4.8), held (full screen, held while the text rises and fades), band (a tall band, three quarters of the screen, that scrolls away) or magazine (full screen, a large heading low on the left). An older 'scene' setting means held.">
+			hint="How a post's image, gradient or animated hero is shown on its own page (5.0): the post's own choice (Hero text window), or else the blog's (Blog Options, Post Hero Style). classic (inside the post, as in 4.8), held (full screen, held while the text rises and fades), band (a tall band, three quarters of the screen, that scrolls away), magazine (full screen, a large heading low on the left) or parallax (a tall band whose picture moves slower than the page, 2026-11-04). An older 'scene' setting means held.">
 		<cfargument name="postHeroStyle" type="string" required="false" default="" hint="The post's own HeroStyle; empty for the blog's.">
 		<cfset var heroStyle = lCase(trim(arguments.postHeroStyle))>
-		<cfif not listFind("classic,held,band,magazine", heroStyle)>
+		<cfif not listFind("classic,held,band,magazine,parallax", heroStyle)>
 			<cfset heroStyle = lCase(trim(application.BlogOptionDbObj.getPostHeroStyle() ?: ""))>
 			<!--- Site Wizard's preview (2026-10-20): a signed-in owner's ?previewHeroStyle= shows the blog's style before it is saved. --->
-			<cfif isDefined("url.previewHeroStyle") and isSimpleValue(url.previewHeroStyle) and listFind("classic,held,band,magazine", url.previewHeroStyle) and application.Udf.isLoggedIn()>
+			<cfif isDefined("url.previewHeroStyle") and isSimpleValue(url.previewHeroStyle) and listFind("classic,held,band,magazine,parallax", url.previewHeroStyle) and application.Udf.isLoggedIn()>
 				<cfset heroStyle = url.previewHeroStyle>
 			</cfif>
 		</cfif>
 		<cfif heroStyle eq "scene"><cfset heroStyle = "held"></cfif>
-		<cfreturn listFind("held,band,magazine", heroStyle) ? heroStyle : "classic">
+		<cfreturn listFind("held,band,magazine,parallax", heroStyle) ? heroStyle : "classic">
 	</cffunction>
 
 	<cffunction name="getPostHeroSceneJson" access="public" returnType="string" output="false"
@@ -294,7 +294,7 @@
 		<cfif arguments.heroKind eq "image">
 			<cfset arrayAppend(parts, '"kind":"photoHero","image":' & jsonText(row["MediaUrl"] ?: "") & ',"zoom":1.12')>
 		<cfelseif arguments.heroKind eq "gradient">
-			<cfset arrayAppend(parts, '"kind":"gradientHero","gradient":' & jsonText(row["HeroGradient"] ?: ""))>
+			<cfset arrayAppend(parts, '"kind":"gradientHero","gradient":' & jsonText(getGradientCss(row["HeroGradient"] ?: "")))>
 		<cfelse>
 			<cfset arrayAppend(parts, '"kind":"vantaHero","effect":' & jsonText(row["HeroAnimationEffect"] ?: "WAVES")
 				& (len(options) and left(options, 1) eq "{" and isJSON(options) ? ',"options":' & options : ''))>
@@ -328,6 +328,9 @@
 		<cfswitch expression="#arguments.heroStyle#">
 			<cfcase value="band"><cfset arrayAppend(parts, '"align":"center","height":"75vh","pin":false')></cfcase>
 			<cfcase value="magazine"><cfset arrayAppend(parts, '"textPosition":"bottom","pinLength":"130%"')></cfcase>
+			<!--- Parallax (2026-11-04, owner's pick B): a tall band whose picture moves at half the page's speed while it scrolls away.
+			Not an animation (the birds, waves...): it moves on its own already, so it scrolls away as a tall band does. --->
+			<cfcase value="parallax"><cfset arrayAppend(parts, '"align":"center","height":"75vh","pin":false,"drift":' & (arguments.heroKind eq "animation" ? '0' : '0.5'))></cfcase>
 			<cfdefaultcase><cfset arrayAppend(parts, '"align":"center","pinLength":"160%"')></cfdefaultcase>
 		</cfswitch>
 		<cfreturn '{"pageColour":"auto","settings":{"fadeHeight":"30vh"},"sections":[{' & arrayToList(parts, ",") & '}]}'>
@@ -766,7 +769,7 @@
 				heroOverlaySubText=getPost[arguments.currentRow]["HeroOverlaySubText"] ?: "", heroOverlayFontSizePhone=getPost[arguments.currentRow]["HeroOverlayFontSizePhone"] ?: "",
 				heroOverlayShadow=getPost[arguments.currentRow]["HeroOverlayShadow"] ?: "", heroOverlayShadowColor=getPost[arguments.currentRow]["HeroOverlayShadowColor"] ?: "",
 				heroOverlayGlowColor=getPost[arguments.currentRow]["HeroOverlayGlowColor"] ?: "", heroOverlayGlowOpacity=getPost[arguments.currentRow]["HeroOverlayGlowOpacity"] ?: "",
-				heroOverlayGlowSoftness=getPost[arguments.currentRow]["HeroOverlayGlowSoftness"] ?: "")>
+				heroOverlayGlowSoftness=getPost[arguments.currentRow]["HeroOverlayGlowSoftness"] ?: "", allowMotion=arguments.isSinglePostPage)>
 			<cfset local.heroKind = "gradient">
 		</cfif>
 
@@ -802,6 +805,22 @@
 				heroOverlayGlowSoftness = getPost[arguments.currentRow]["HeroOverlayGlowSoftness"] ?: "",
 				cardMode = false)>
 			<cfset local.heroKind = "animation">
+		</cfif>
+
+		<!--- The post's own animation can't play here (phones, and the blog roll listings): its cover picture stands in when it has one,
+		the same picture the cards use, instead of the no-picture fallback (11-03, owner). --->
+		<cfif not len(enclosureHtml) and len(getPost[arguments.currentRow]["HeroAnimationEffect"]) and len(getPost[arguments.currentRow]["HeroCoverImageUrl"] ?: "")>
+			<cfset enclosureHtml = this.renderEnclosureImage(mediaUrl = getPost[arguments.currentRow]["HeroCoverImageUrl"], mediaId = "", useFadeClass = true)>
+			<cfif arguments.isSinglePostPage and len(getPost[arguments.currentRow]["HeroOverlayText"] ?: "")>
+				<cfset enclosureHtml = '<div style="position:relative;">' & enclosureHtml & getHeroTextHtml(text = getPost[arguments.currentRow]["HeroOverlayText"],
+					subText = getPost[arguments.currentRow]["HeroOverlaySubText"] ?: "", color = getPost[arguments.currentRow]["HeroOverlayTextColor"] ?: "",
+					font = getPost[arguments.currentRow]["HeroOverlayFont"] ?: "", size = getPost[arguments.currentRow]["HeroOverlayFontSize"] ?: "",
+					sizePhone = getPost[arguments.currentRow]["HeroOverlayFontSizePhone"] ?: "", shadow = getPost[arguments.currentRow]["HeroOverlayShadow"] ?: "",
+					shadowColor = getPost[arguments.currentRow]["HeroOverlayShadowColor"] ?: "", glowColor = getPost[arguments.currentRow]["HeroOverlayGlowColor"] ?: "",
+					glowOpacity = getPost[arguments.currentRow]["HeroOverlayGlowOpacity"] ?: "", glowSoftness = getPost[arguments.currentRow]["HeroOverlayGlowSoftness"] ?: "",
+					positioned = true) & '</div>'>
+			</cfif>
+			<cfset local.heroKind = "cover">
 		</cfif>
 
 		<!--- The post had no map, carousel, or enclosure at all. NoImageFallbackMode='none' (suppressImage=true) means
@@ -854,7 +873,7 @@
 			<cfset heroFallback = this.getHeroFallbackHtml(postId=getPost[arguments.currentRow]["PostId"], cardMode=false, isSinglePostPage=arguments.isSinglePostPage)>
 			<cfif heroFallback.isHtml>
 				<cfset enclosureHtml = heroFallback.content>
-				<cfset local.heroKind = find("entryAnimation", heroFallback.content) ? "animation" : "carousel">
+				<cfset local.heroKind = find("entryAnimation", heroFallback.content) ? "animation" : (find("galaxieMovingPicture", heroFallback.content) ? "fallback" : "carousel")>
 			<cfelseif heroFallback.suppressImage>
 				<!--- 'none' - leave enclosureHtml empty, no image area at all. --->
 				<cfset local.heroKind = "none">
@@ -883,6 +902,7 @@
 		<cfargument name="getPost" type="any" required="yes" hint="Pass in the getPost HQL query">
 		<cfargument name="renderThumbnail" type="boolean" required="yes" hint="You can render a preview for the tinymce editor or a thumbnail">
 		<cfargument name="showSidebar" type="boolean" required="false" default="false" hint="When the sidebar is shown, the popular posts cards need a separate class than the rest of the cards.">
+		<cfargument name="includeCover" type="boolean" required="false" default="true" hint="False for the Edit Post window's Hero side (11-02, heroCoverBlock.cfm): the cover has its own side there.">
 		<!---Debugging: <cfdump var="#getPost#">--->
 			
 		<cfparam name="thumbnailHtml" default="">
@@ -950,20 +970,15 @@
 			<cfset thumbnailHtml = this.renderCarouselPreview(enclosureCarouselId,'postEditor')>
 		</cfif>
 
-		<!---******************    Handle the Hero Cover Image  ******************--->
-		<!--- 2026-10-01: a static uploaded photo for a post with no real Image/Video/Map/Carousel - takes priority
-		over Gradient/the live animation's own card-thumbnail fallback (same "nothing else matched yet" gate), since it's a
-		deliberate real-photo override for exactly the posts that would otherwise show a CSS gradient here. See
-		Post.cfc's own comment on HeroCoverImageUrl. --->
-		<cfif thumbnailHtml eq '' and len(getPost[1]["HeroCoverImageUrl"])>
-			<cfset thumbnailHtml = this.renderEnclosureImage(mediaUrl=getPost[1]["HeroCoverImageUrl"])>
-		</cfif>
-
 		<!---******************    Handle the Hero Gradient  ******************--->
 		<!--- Only when nothing else above already produced something (Image/Video/Map/Carousel all take priority,
 		same as PageCollection's own hero render chain) - see gradientEditor.cfm/Post.cfc's HeroGradient. --->
 		<cfif thumbnailHtml eq '' and len(getPost[1]["HeroGradient"])>
-			<cfset thumbnailHtml = this.renderHeroGradientHtml(getPost[1]["HeroGradient"], getPost[1]["HeroOverlayText"], getPost[1]["HeroOverlayTextColor"], getPost[1]["HeroOverlayFont"], getPost[1]["HeroOverlayFontSize"])>
+			<!--- With the whole heading (11-03, owner: the previews had no shadow), the same choices the post page uses. --->
+			<cfset thumbnailHtml = this.renderHeroGradientHtml(heroGradient = getPost[1]["HeroGradient"], heroOverlayText = getPost[1]["HeroOverlayText"], heroOverlayTextColor = getPost[1]["HeroOverlayTextColor"],
+				heroOverlayFont = getPost[1]["HeroOverlayFont"], heroOverlayFontSize = getPost[1]["HeroOverlayFontSize"], heroOverlaySubText = getPost[1]["HeroOverlaySubText"] ?: "",
+				heroOverlayFontSizePhone = getPost[1]["HeroOverlayFontSizePhone"] ?: "", heroOverlayShadow = getPost[1]["HeroOverlayShadow"] ?: "", heroOverlayShadowColor = getPost[1]["HeroOverlayShadowColor"] ?: "",
+				heroOverlayGlowColor = getPost[1]["HeroOverlayGlowColor"] ?: "", heroOverlayGlowOpacity = getPost[1]["HeroOverlayGlowOpacity"] ?: "", heroOverlayGlowSoftness = getPost[1]["HeroOverlayGlowSoftness"] ?: "")>
 		</cfif>
 
 		<!---******************    Handle the Hero Animation  ******************--->
@@ -978,6 +993,18 @@
 		percentage-sized child. 2026-10-03: renamed from preview/vanta.cfm while still dev-only/unmigrated. --->
 		<cfif thumbnailHtml eq '' and len(getPost[1]["HeroAnimationEffect"])>
 			<cfset thumbnailHtml = '<iframe data-type="animation" data-id="' & getPost[1]["PostId"] & '" src="' & application.baseUrl & '/preview/heroAnimation.cfm?postId=' & getPost[1]["PostId"] & '" width="235" height="130" style="border:0;" scrolling="no"></iframe>'>
+		</cfif>
+
+		<!---******************    Handle the Hero Cover Image  ******************--->
+		<!--- 2026-10-01: a static uploaded photo for a post with no real Image/Video/Map/Carousel - takes priority
+		over Gradient/the live animation's own card-thumbnail fallback (same "nothing else matched yet" gate), since it's a
+		deliberate real-photo override for exactly the posts that would otherwise show a CSS gradient here. See
+		Post.cfc's own comment on HeroCoverImageUrl.
+		11-02 (owner: the Edit Post window showed only the cover of a post whose hero is an animation): this is the admin's preview of
+		the post's hero (postDetail.cfm, loadPreview.cfm only - no card uses it), so the gradient or animation above comes first and the
+		cover shows only when there is no other hero. The cover has its own window, and the cards and sharing still use it. --->
+		<cfif arguments.includeCover and thumbnailHtml eq '' and len(getPost[1]["HeroCoverImageUrl"])>
+			<cfset thumbnailHtml = this.renderEnclosureImage(mediaUrl=getPost[1]["HeroCoverImageUrl"])>
 		</cfif>
 
 		<!--- Insert an circular image with a line to indicate that the media does not exist for this post. --->
@@ -1105,6 +1132,65 @@
 				
 	</cffunction>
 
+	<cffunction name="renderHeroEditorFallback" access="public" output="false" returntype="string"
+			hint="The Hero editor's preview for a post with no picture, video, carousel or map: the hero (renderHeroEditorFallbackHero), with the cover beside it when the post has one (11-05, owner: after adding a cover only the animation showed), or the cover alone when there is no other hero.">
+		<cfargument name="getPost" type="array" required="true">
+		<cfset var post = arguments.getPost[1]>
+		<cfset var cover = post["HeroCoverImageUrl"] ?: "">
+		<cfset var heroHtml = renderHeroEditorFallbackHero(arguments.getPost)>
+		<cfif not len(cover)>
+			<cfreturn heroHtml>
+		</cfif>
+		<!--- The cover alone when there is no other hero (11-02): it has its own window, and cards and sharing use it. --->
+		<cfif not len(heroHtml)>
+			<cfreturn renderEnclosureImage(mediaUrl = cover)>
+		</cfif>
+		<!--- Side by side, the same size, like the Hero and Cover pair on Edit Post (11-02). The cover is a background, not an img, so
+		the editor never takes it for a new hero picture. --->
+		<cfreturn '<div data-type="heroAndCover" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">'
+			& '<div><p style="margin: 0 0 4px;">Hero</p>' & heroHtml & '</div>'
+			& '<div><p style="margin: 0 0 4px;">Cover (cards and sharing)</p><div data-type="coverPreview" style="width: 470px; max-width: 100%; height: 264px; background: url(&quot;' & encodeForHtmlAttribute(cover) & '&quot;) center / cover no-repeat;"></div></div>'
+			& '</div>'>
+	</cffunction>
+
+	<cffunction name="renderHeroEditorFallbackHero" access="private" output="false" returntype="string"
+			hint="The Hero editor's preview for a post with no picture, video, carousel or map (11-04, owner: a cover uploaded on a post with a scene showed nothing, and neither did the scene): the scene the post shows (moving hero or full scene) as a still, else its gradient, else its animation, else its cover. Used by enclosureImageEditor.cfm when it opens and by admin/loadPreview.cfm (previewId=3) when it redraws after a save.">
+		<cfargument name="getPost" type="array" required="true">
+		<cfset var post = arguments.getPost[1]>
+		<cfset var still = application.blog.getScenes().getPostSceneStill(val(post["PostId"]))>
+		<cfset var hero = "">
+		<cfset var heading = "">
+		<!--- The scene comes first: on the post it takes the place of the gradient or animation. --->
+		<cfif still.sceneId gt 0>
+			<cfif len(still.art)>
+				<!--- A moving hero's heading on it (11-04), placed and colored as the wizard set it, at the preview's size (the post page
+				draws it about 1100px wide; this box is 470px). --->
+				<cfif still.isMovingHero>
+					<cfset hero = application.blog.getScenes().getPostHeroParallax(val(post["PostId"]))>
+					<cfif len(hero.heading)>
+						<cfset heading = '<div style="position: absolute; left: 7%; right: 7%; ' & (hero.textPosition eq "bottom" ? "bottom: 10%;" : "top: 50%; transform: translateY(-50%);")
+							& ' text-align: ' & hero.align & '; color: ' & (len(hero.color) ? hero.color : "##ffffff") & '; text-shadow: 0 1px 4px rgba(0,0,0,.7);'
+							& (len(hero.font) ? ' font-family: &quot;' & encodeForHtmlAttribute(hero.font) & '&quot;, sans-serif;' : '')
+							& ' font-size: ' & max(14, round((hero.fontSize ? hero.fontSize : 56) * 0.43)) & 'px; font-weight: bold; line-height: 1.1;">' & encodeForHtml(hero.heading) & '</div>'>
+					</cfif>
+				</cfif>
+				<!--- Its layers stacked in one box, the same size as the animation preview below. --->
+				<cfreturn '<div data-type="movingHero" data-id="' & still.sceneId & '" style="position: relative; width: 470px; max-width: 100%; height: 264px; overflow: hidden;">'
+					& reReplace(still.art, "<img ", '<img style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" ', "all") & heading & '</div>'>
+			</cfif>
+			<cfreturn '<div data-type="movingHero" data-id="' & still.sceneId & '" style="width: 470px; max-width: 100%; height: 264px; display: flex; align-items: center; justify-content: center; background: ##2b3540; color: ##ffffff;">'
+				& encodeForHtml((still.isMovingHero ? "Moving hero: " : "Scene: ") & reReplace(still.name, "\s*\(.*\)$", "")) & '</div>'>
+		</cfif>
+		<cfif len(post["HeroGradient"] ?: "")>
+			<cfreturn renderHeroGradientHtml(post["HeroGradient"], post["HeroOverlayText"], post["HeroOverlayTextColor"], post["HeroOverlayFont"], post["HeroOverlayFontSize"])>
+		</cfif>
+		<cfif len(post["HeroAnimationEffect"] ?: "")>
+			<!--- Keep the size in sync with heroAnimationEditor.cfm's own submit-handler iframe. --->
+			<cfreturn '<iframe data-type="animation" data-id="' & post["PostId"] & '" src="' & application.baseUrl & '/preview/heroAnimation.cfm?postId=' & post["PostId"] & '" width="470" height="260" style="border:0;" scrolling="no"></iframe>'>
+		</cfif>
+		<cfreturn "">
+	</cffunction>
+
 	<cffunction name="getOverlayFontFaceStyle" access="public" output="false" returntype="string"
 			hint="Returns a style tag with the @font-face rule for one hero overlay font, or an empty string for a web-safe font or a font with no file. 2026-10-09: the hero editors offer every self-hosted font, but a page only loads the fonts its theme uses (includes/templates/font.cfm), so most overlay picks rendered in the default font and looked like they had reverted. Carrying the rule with the hero's own HTML covers the post page, the cached homepage card and the editor's preview iframe alike.">
 		<cfargument name="fontName" type="string" required="true">
@@ -1129,8 +1215,10 @@
 		<cfset var posted = arguments.post["DatePosted"] ?: "">
 		<cfset var isPage = isBoolean(arguments.post["IsPage"] ?: false) and (arguments.post["IsPage"] ?: false)>
 		<cfset var parts = []>
+		<!--- The author's picture in a small circle before "by" (2026-11-04, owner): only when the author has one; computers only (blogContentCss.cfm .authorPicture). --->
+		<cfset var picture = trim(arguments.post["ProfilePicture"] ?: "")>
 		<cfif len(fullName)>
-			<cfset arrayAppend(parts, 'by <a href="' & encodeForHtmlAttribute(application.blog.makeUserLink(fullName)) & '" class="k-content">' & encodeForHtml(shownName) & '</a>')>
+			<cfset arrayAppend(parts, (len(picture) ? '<img src="' & encodeForHtmlAttribute(picture) & '" alt="" class="authorPicture" width="20" height="20" loading="lazy">' : '') & 'by <a href="' & encodeForHtmlAttribute(application.blog.makeUserLink(fullName)) & '" class="k-content">' & encodeForHtml(shownName) & '</a>')>
 		</cfif>
 		<cfif not isPage and isDate(posted)>
 			<cfset arrayAppend(parts, '<time datetime="' & dateFormat(posted, "yyyy-mm-dd") & '">' & dateFormat(posted, "mmm d, yyyy") & '</time>')>
@@ -1172,18 +1260,33 @@
 		<cfargument name="heroOverlayGlowSoftness" type="string" required="false" default="">
 		<cfargument name="cardMode" type="boolean" required="false" default="false" hint="Pass true from the three public card-grid templates, whose own .k-card container already bounds width reliably (unlike postDetail.cfm's admin <td>) - sizes to match those cards' real image class (width:100%, height:150px, padding-bottom:5px, no internal padding) instead of the admin thumbnail's fixed 235x130.">
 
+		<cfargument name="allowMotion" type="boolean" required="false" default="true" hint="11-02: false keeps a moving gradient still (the blog roll and listings); it moves on the post's own page, like the animations.">
 		<cfargument name="fullSize" type="boolean" required="false" default="false" hint="2026-10-09: the hero on the post's own page. Until this existed the post page used the 235x130 admin-thumbnail box below, so a gradient hero never got bigger than a thumbnail. Full width, in the same 1200x630 shape as the generated hero art, capped at the animated hero's 564px height.">
 
 		<cfset var html = ''>
+		<!--- Gradient motion (11-02, owner): saved at the end of the gradient as a CSS comment (see getGradientMotion). The cards stay
+		still; the post's own hero and the admin previews move. With motion, the gradient is drawn on a layer behind the text (z-index
+		-1 inside the box's own stacking context), so the color shift and the breathing don't touch the text; blogContentCss.cfm has
+		the keyframes, and visitors who asked their device for less motion get it still. --->
+		<cfset var motion = getGradientMotion(arguments.heroGradient)>
+		<cfset var motionLayer = "">
+		<cfset arguments.heroGradient = getGradientCss(arguments.heroGradient)>
+		<cfif len(motion.motion) and arguments.allowMotion and not arguments.cardMode>
+			<cfif not structKeyExists(request, "galaxieGradientMotionCss")>
+				<cfset request.galaxieGradientMotionCss = true>
+				<cfset motionLayer = getGradientMotionCss()>
+			</cfif>
+			<cfset motionLayer = motionLayer & '<div class="galaxieGradientMotion galaxieGradient-' & motion.motion & (len(motion.speed) ? ' galaxieGradient-' & motion.speed : '') & '" style="background:' & arguments.heroGradient & ';" aria-hidden="true"></div>'>
+		</cfif>
 		<cfif arguments.fullSize>
-			<cfset html = '<div style="width:100%;aspect-ratio:1200/630;max-height:564px;overflow:hidden;background:' & arguments.heroGradient & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;">'>
+			<cfset html = '<div style="width:100%;aspect-ratio:1200/630;max-height:564px;overflow:hidden;background:' & (len(motionLayer) ? 'none;position:relative;isolation:isolate' : arguments.heroGradient) & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;">' & motionLayer>
 		<cfelseif arguments.cardMode>
 			<!--- Same box as the card images (.k-card-image / .k-card-scroll-image in blogContentCss.cfm): 3:2, at most
 			210px tall (2026-10-09 - was a fixed 150px, so gradient cards sat shorter than the picture cards beside
 			them). The 5px gap below is a margin, not padding, so the gradient doesn't paint into it. --->
 			<cfset html = '<div style="width:100%;aspect-ratio:3/2;max-height:210px;overflow:hidden;background:' & arguments.heroGradient & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;margin-bottom:5px;">'>
 		<cfelse>
-			<cfset html = '<div style="width:235px;height:130px;overflow:hidden;background:' & arguments.heroGradient & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;">'>
+			<cfset html = '<div style="width:235px;height:130px;overflow:hidden;background:' & (len(motionLayer) ? 'none;position:relative;isolation:isolate' : arguments.heroGradient) & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;">' & motionLayer>
 		</cfif>
 		<cfif len(arguments.heroOverlayText)>
 			<!--- 2026-10-01: font-family value uses single quotes, not double - this whole <span> is itself
@@ -1199,6 +1302,48 @@
 		</cfif>
 		<cfset html = html & '</div>'>
 		<cfreturn html>
+	</cffunction>
+
+	<!--- Gradient motion (11-02): the gradient editor adds " /* galaxieMotion: drift slow */" to the end of the gradient. A CSS comment,
+	so every place that only paints the gradient (cards, the scene engine, the Hero text window) keeps working without knowing
+	about it, and no database change was needed. Motions: drift, shift, breathe; speeds: slow, fast (empty is normal). --->
+	<cffunction name="getGradientMotion" access="public" output="false" returntype="struct" hint="The motion saved with a gradient: { motion, speed }, both empty when it has none.">
+		<cfargument name="heroGradient" type="string" required="true">
+		<cfset var found = reFindNoCase("/\*\s*galaxieMotion:\s*(drift|shift|breathe)(\s+(slow|fast))?\s*\*/", arguments.heroGradient, 1, true)>
+		<cfset var result = { "motion": "", "speed": "" }>
+		<cfif found.pos[1] gt 0>
+			<cfset result.motion = lCase(mid(arguments.heroGradient, found.pos[2], found.len[2]))>
+			<cfif arrayLen(found.pos) gte 4 and found.pos[4] gt 0>
+				<cfset result.speed = lCase(mid(arguments.heroGradient, found.pos[4], found.len[4]))>
+			</cfif>
+		</cfif>
+		<cfreturn result>
+	</cffunction>
+
+	<!--- The motion CSS, written by the renderer with the first moving gradient of a request (not in blogContentCss.cfm, so an update
+	doesn't depend on that shared file - 11-02). The gradient on its own layer behind the text, larger than the box so drifting never
+	shows an edge. Plain CSS, nothing to download; still for visitors who asked their device for less motion. --->
+	<cffunction name="getGradientMotionCss" access="public" output="false" returntype="string" hint="The style block for moving gradients (the gradient editor's preview uses it too).">
+		<cfreturn '<style>.galaxieGradientMotion { position: absolute; inset: -30%; z-index: -1; will-change: transform; } .galaxieGradient-drift { animation: galaxieGradientDrift 16s ease-in-out infinite alternate; } .galaxieGradient-shift { inset: 0; animation: galaxieGradientShift 20s linear infinite; } .galaxieGradient-breathe { inset: 0; animation: galaxieGradientBreathe 6s ease-in-out infinite alternate; } .galaxieGradient-drift.galaxieGradient-slow { animation-duration: 28s; } .galaxieGradient-drift.galaxieGradient-fast { animation-duration: 8s; } .galaxieGradient-shift.galaxieGradient-slow { animation-duration: 36s; } .galaxieGradient-shift.galaxieGradient-fast { animation-duration: 9s; } .galaxieGradient-breathe.galaxieGradient-slow { animation-duration: 10s; } .galaxieGradient-breathe.galaxieGradient-fast { animation-duration: 3s; } @keyframes galaxieGradientDrift { 0% { transform: translate(-12%, -8%) rotate(0deg); } 50% { transform: translate(10%, 6%) rotate(4deg); } 100% { transform: translate(-6%, 10%) rotate(-3deg); } } @keyframes galaxieGradientShift { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } } @keyframes galaxieGradientBreathe { from { transform: scale(1); filter: brightness(.92); } to { transform: scale(1.12); filter: brightness(1.08); } } @media (prefers-reduced-motion: reduce) { .galaxieGradientMotion { animation: none !important; } }</style>'>
+	</cffunction>
+
+	<cffunction name="renderMovingPictureHtml" access="public" output="false" returntype="string" hint="A picture (the generated hero art) on a moving layer, in the hero's own box: the post's own page only.">
+		<cfargument name="pictureUrl" type="string" required="true">
+		<cfargument name="motion" type="string" required="true">
+		<cfargument name="speed" type="string" required="false" default="">
+		<cfset var html = '<div class="entryImage galaxieMovingPicture" style="position:relative;overflow:hidden;isolation:isolate;width:100%;aspect-ratio:1200/630;max-height:564px;">'>
+		<cfif not structKeyExists(request, "galaxieGradientMotionCss")>
+			<cfset request.galaxieGradientMotionCss = true>
+			<cfset html = html & getGradientMotionCss()>
+		</cfif>
+		<cfset var background = "url(" & chr(39) & encodeForCss(arguments.pictureUrl) & chr(39) & ") center / cover no-repeat">
+		<cfreturn html & '<div class="galaxieGradientMotion galaxieGradient-' & arguments.motion & (listFind("slow,fast", arguments.speed) ? ' galaxieGradient-' & arguments.speed : '')
+			& '" style="background:' & background & ';" aria-hidden="true"></div></div>'>
+	</cffunction>
+
+	<cffunction name="getGradientCss" access="public" output="false" returntype="string" hint="The gradient without its motion comment.">
+		<cfargument name="heroGradient" type="string" required="true">
+		<cfreturn trim(reReplaceNoCase(arguments.heroGradient, "\s*/\*\s*galaxieMotion:[^*]*\*/", "", "all"))>
 	</cffunction>
 
 	<cffunction name="renderPageCollectionHero" access="public" output="false" returntype="string"
@@ -1363,6 +1508,13 @@
 		</cfif>
 
 		<cfif fallbackMode eq "generated">
+			<!--- Motion (11-03, owner): Blog Options can make the generated picture move on the post's own page, the same motions as a
+			gradient hero (getGradientMotionCss). The cards and listings keep the still picture. --->
+			<cfset var artMotion = structKeyExists(application, "events") ? application.events.getSetting(0, "fallbackArtMotion", "") : "">
+			<cfset var artSpeed = structKeyExists(application, "events") ? application.events.getSetting(0, "fallbackArtSpeed", "") : "">
+			<cfif listFind("drift,shift,breathe", artMotion) and arguments.isSinglePostPage and arguments.allowHtml and not arguments.cardMode>
+				<cfreturn {isHtml: true, content: renderMovingPictureHtml(ImageObj.generateHeroArt(arguments.postId), artMotion, artSpeed), suppressImage: false}>
+			</cfif>
 			<cfreturn {isHtml: false, content: ImageObj.generateHeroArt(arguments.postId), suppressImage: false}>
 		</cfif>
 
@@ -1778,6 +1930,11 @@
 				full-size one's GL effect, or the other way round). The same carousel can show twice on one page.
 				Set here, before the style block, so the size rule below can be scoped to it too. --->
 				<cfset swiperElementId = "swiper" & arguments.carouselId & "_" & left(replace(createUUID(), "-", "", "all"), 8)>
+				<!--- The admin previews (card mode with a size, preview/carousel.cfm) show the slide text too, with the carousel's font, scaled
+				to the preview's width like the hero text previews (11-05, owner: the preview didn't show the font or the text after saving). --->
+				<cfset isAdminPreview = arguments.card and not isGridCard>
+				<cfif isAdminPreview and len(carouselFont)><cfoutput>#getOverlayFontFaceStyle(carouselFont)#</cfoutput></cfif>
+				<cfif isAdminPreview><style><cfoutput>###swiperElementId# .swiper-slide-content { zoom: #max(0.5, min(1, val(arguments.width) / 1100))#; }</cfoutput></style></cfif>
 				<style>
 					/** Swiper styles **/
 					:root {
@@ -2001,11 +2158,11 @@
 							<!---<div class="swiper-lazy-preloader swiper-lazy-preloader-white"></div>--->
 							<div class="swiper-slide-content">
 								<div class="swiper-slide-title" data-swiper-parallax="-100"<cfif len(slideTitleStyle)> style="<cfoutput>#encodeForHtmlAttribute(slideTitleStyle)#</cfoutput>"</cfif>>
-									<cfif not arguments.card or isGridCard><cfoutput>#carouselItemTitle#</cfoutput></cfif>
+									<cfoutput>#carouselItemTitle#</cfoutput>
 								</div>
 
 								<div class="swiper-slide-text" data-swiper-parallax="-200"<cfif len(slideBodyStyle)> style="<cfoutput>#encodeForHtmlAttribute(slideBodyStyle)#</cfoutput>"</cfif>>
-									<cfif not arguments.card or isGridCard><cfoutput>#carouselItemBody#</cfoutput></cfif>
+									<cfoutput>#carouselItemBody#</cfoutput>
 								</div>
 							</div><!---<div class="swiper-slide-content">--->
 							<div class="swiper-button-next"></div>
@@ -3883,7 +4040,7 @@
 				</tr>
 				<tr>
 					<td colspan="2">
-						#comments#
+						#application.Udf.formatComment(comments)#
 					</td>
 				</tr>
 			</table>

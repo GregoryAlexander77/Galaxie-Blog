@@ -19,6 +19,9 @@
 
 <body>
 
+<!--- Delete asks, then deletes at once (owner 11-02; Kendo's own destroy only removed the row until Save). --->
+<cfinclude template="deleteCommand.cfm">
+
 <div id="<cfoutput>#gridName#</cfoutput>"></div>
 
 <script type="text/x-kendo-template" id="pcTitleTemplate">
@@ -139,7 +142,7 @@
 						var item = $("#<cfoutput>#gridName#</cfoutput>").data("kendoGrid").dataItem($(e.currentTarget).closest("tr"));
 						createAdminInterfaceWindow(72, item.PageCollectionId);
 					}
-				}, "destroy"],
+				}, galaxieGridDeleteCommand("page collection", ["Title"], "Its pages are not affected. This can't be undone.")],
 				title: "&nbsp;",
 				width: "<cfif session.isMobile>25<cfelse>14</cfif>%"
 			}]

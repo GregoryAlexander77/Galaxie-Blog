@@ -3,6 +3,9 @@ heroes built by common/js/galaxieScene.js. New scene and Edit open the Scene edi
 <galaxieScene>name</galaxieScene> in its header. The work is done by application.blog.getScenes() (common/cfc/Scenes.cfc)
 through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. --->
 <cfset sceneList = application.blog.getScenes().listScenes()>
+<!--- A post's moving hero (alias post-hero-{postId}, made in the Hero editor) belongs to that post, so it isn't listed here (11-02, owner:
+heroes and scenes are two separate things). --->
+<cfset sceneList = queryFilter(sceneList, function (row) { return not reFindNoCase("^post-hero-[0-9]+$", row.Alias); })>
 <!--- Where the animation library (GSAP) comes from (2026-10-19). "This server only" needs the files in common/libs/gsap3/. --->
 <cfset sceneLibrarySource = application.blog.getScenes().getSetting("librarySource", "cdn")>
 <cfset sceneLocalFiles = application.blog.getScenes().getLocalLibraryFiles()>
@@ -62,7 +65,7 @@ through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. -
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
-	<tr><td colspan="2" class="#blockClass#">A scene is a scrolling hero for a post or page: layered pictures that move at different speeds, a photo, an animation or a gradient, with your heading and text rising over it. Start from a ready-made scene and change the words and pictures; the preview shows it as you go.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">A scene is a full-page story for a post or page: a moving picture at the top, then text, pictures and forms that rise in as the reader scrolls. Start from a ready-made scene and change the words and pictures; the preview shows it as you go. To start a new post with a scene, use Create, Scene. For just a moving picture at the top of one post, use Moving hero in that post's Hero editor.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">Scenes look best with a modern theme and the sidebar hidden.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
@@ -128,6 +131,6 @@ through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. -
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Animation library</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<!--- Moved to Blog Options (2026-10-20): GreenSock on or off, and where it loads from, are set in one place. --->
-	<tr><td colspan="2" class="#blockClass#">Scenes move with GreenSock (GSAP), a free animation library. Whether it is on, and whether it loads from Cloudflare or from this server, is set in Blog Options. <button type="button" class="k-button" onclick="createAdminInterfaceWindow(38, 'greensockanimationlibrary');">Open Blog Options</button></td></tr>
+	<tr><td colspan="2" class="#blockClass#">Scenes move with GreenSock (GSAP), a free animation library. Whether it is on, and whether it loads from Cloudflare or from this server, is set in <a href="javascript:createAdminInterfaceWindow(38, 'greensockanimationlibrary');">Blog Options</a>.</td></tr>
 </table>
 </cfoutput>

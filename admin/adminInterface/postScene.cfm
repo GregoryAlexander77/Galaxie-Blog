@@ -59,7 +59,7 @@ $(document).ready(function () {
 	$("#postSceneNew").on("click", function () { createAdminInterfaceWindow(107, 0); });
 	$("#postSceneEdit").on("click", function () { var sc = sceneByAlias(picked); if (sc) { createAdminInterfaceWindow(107, sc.id); } });
 
-	$("#postSceneRemove").on("click", function () { saveScene(""); });
+	$("#postSceneRemove").on("click", function () { galaxieConfirm("Remove the scene from this post?", "The scene itself is kept in Scenes.", function () { saveScene(""); }); });
 	$("#postSceneSave").on("click", function () { if (sceneByAlias(picked)) { saveScene(picked); } });
 
 	function saveScene(alias) {

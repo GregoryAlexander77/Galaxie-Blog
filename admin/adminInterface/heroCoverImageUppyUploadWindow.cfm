@@ -7,17 +7,19 @@ videoCoverUppyUploadWindow.cfm already use - see those files' own comments for t
 <cfset postId = URL.optArgs>
 <cfset imageHandlerUrl = application.baseUrl & "/common/cfc/ProxyController.cfc?method=uploadImage&mediaProcessType=heroCoverImage&mediaType=image&postId=" & postId & "&selectorId=heroCoverImageEditor&csrfToken=" & csrfToken>
 
+<!--- The Image Quality slider and its size estimate, at the top (11-05, owner: it looked out of place in the Cover window). --->
+<cfset sliderId = "heroCoverUploadQualitySlider">
+<cfinclude template="uploadQualitySlider.cfm">
+
 <div id="standaloneHeroCoverImageUppyUpload" style="padding: 12px;"></div>
 
 <script>
-	<!--- The quality slider lives in the parent heroCoverImageWindow's own DOM (#imageQualitySlider, rendered by
-	heroCoverImageEditor.cfm) - a separate Kendo window on the same page, not a separate document, so a plain
-	jQuery selector reaches it directly, same as enclosureUppyUploadWindow.cfm's own. --->
 	createStandaloneUppyUploadWindow({
 		containerId: 'standaloneHeroCoverImageUppyUpload',
 		endpoint: '<cfoutput>#imageHandlerUrl#</cfoutput>',
 		windowSelector: 'heroCoverImageUppyUploadWindow',
-		qualitySliderSelector: '#imageQualitySlider',
+		qualitySliderSelector: '#heroCoverUploadQualitySlider',
+		qualityEstimateSelector: '#heroCoverUploadQualitySliderEstimate',
 		onComplete: function() { onHeroCoverImageSubmit(); }
 	});
 </script>

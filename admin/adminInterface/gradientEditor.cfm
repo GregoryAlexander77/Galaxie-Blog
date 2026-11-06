@@ -60,6 +60,11 @@ post's existing HeroGradient/HeroOverlayText/HeroOverlayTextColor either (a pre-
 this change is fixing) - only the new font field gets real restoration here. --->
 <cfelseif not isPageCollectionEnclosure and len(URL.optArgs) and val(URL.optArgs) gt 0>
 	<cfset editingGradientPost = entityLoadByPK("Post", val(URL.optArgs))>
+	<!--- 11-02: the post's saved gradient is the starting preview too (it wasn't loaded before), so its motion shows as picked. --->
+	<cfif isObject(editingGradientPost) and len(editingGradientPost.getHeroGradient() ?: "")>
+		<cfset existingGradient = editingGradientPost.getHeroGradient()>
+	</cfif>
+	<cfif isObject(editingGradientPost)><cfset existingOverlayText = editingGradientPost.getHeroOverlayText() ?: ""></cfif>
 	<cfif isObject(editingGradientPost) and len(editingGradientPost.getHeroOverlayFont())>
 		<cfset existingOverlayFont = editingGradientPost.getHeroOverlayFont()>
 	</cfif>
@@ -79,6 +84,11 @@ just store a name. --->
 	<cfinvokeargument name="includeWebSafeFonts" value="1">
 </cfinvoke>
 <cfinclude template="#application.baseUrl#/includes/templates/font.cfm">
+<!--- Gradient motion (11-02, owner): saved at the end of the gradient as a comment - see Renderer.cfc getGradientMotion. --->
+<cfset gradientRenderer = createObject("component", application.rendererComponentPath)>
+<cfset existingMotion = gradientRenderer.getGradientMotion(existingGradient)>
+<cfset existingGradient = gradientRenderer.getGradientCss(existingGradient)>
+<cfoutput>#gradientRenderer.getGradientMotionCss()#</cfoutput>
 
 <cfoutput>
 <script>
@@ -119,6 +129,24 @@ just store a name. --->
 		position: absolute;
 		top: 0; left: 0; right: 0; bottom: 0;
 	}
+	<!--- The preview went white when the angle changed with a motion on, but only inside the admin window (11-05, owner). The
+	preview is now a layer of its own (isolation), so the moving background can't drop behind the window's own white, and the
+	moving background isn't kept on a separate GPU layer (will-change), which some browsers don't repaint when the gradient
+	changes mid-animation. --->
+	#gradientPreviewWrap { isolation: isolate; }
+	#gradientPreviewBg.galaxieGradientMotion { will-change: auto; }
+	<!--- The new choices (11-02): the center of a radial or sweep gradient, its shape, and the motion. With a motion picked the
+	preview gets the same classes as the post (blogContentCss.cfm), so it moves the way the post will. --->
+	#gradientPreviewBg.galaxieGradientMotion { z-index: 0; }
+	#gradientPreviewBg.galaxieGradient-drift { top: -30%; left: -30%; right: -30%; bottom: -30%; }
+	#gradientOverlayText { z-index: 1; }
+	.gradientCenter { display: grid; grid-template-columns: repeat(3, 30px); gap: 4px; }
+	.gradientCenter button { width: 30px; height: 30px; min-width: 0; padding: 0; }
+	.gradientCenter .fontAwesomeIcon { font-size: .55em; }
+	.gradientChoices { display: flex; flex-wrap: wrap; gap: 4px; }
+	.gradientChoices .fontAwesomeIcon, .gradientCenter .fontAwesomeIcon { width: 1.25em; text-align: center; }
+	<!--- Kendo buttons are flex boxes, which drop the space between the icon and the word. --->
+	.gradientChoices .fontAwesomeIcon { margin-right: 4px; }
 	<!--- 2026-10-03: kendoTextBox() isn't part of Kendo Core (confirmed - not in the admin bundle,
 	kendo.galaxie.admin.min.js, which only Kendo's free/Core widgets ship in), so this stays a plain <input>
 	styled with the k-textbox CSS class instead - same bundle-independent, class-only convention
@@ -180,7 +208,12 @@ just store a name. --->
 		<td>
 			<div id="gradientPreviewWrap">
 				<div id="gradientPreviewBg" style="background: <cfoutput>#existingGradient#</cfoutput>;"></div>
+				<cfif isPageCollectionEnclosure>
 				<input type="text" id="gradientOverlayText" class="k-textbox" placeholder="Optional overlay text" value="<cfoutput>#encodeForHTMLAttribute(existingOverlayText)#</cfoutput>">
+				<cfelse>
+				<!--- A post's heading is set in the Hero text window (11-03, owner: it has the shadow and glow); shown here as the post draws it. --->
+				<div id="gradientHeroTextPreview" style="position:absolute;inset:0;z-index:1;display:none;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;font-family:Arial, Helvetica, sans-serif;"></div>
+				</cfif>
 			</div>
 		</td>
 	</tr>
@@ -198,42 +231,113 @@ just store a name. --->
 	</tr>
 	<tr>
 		<td>
-			<table align="left" class="k-content" width="100%" cellpadding="5" cellspacing="0" border="0">
+			<!--- The settings, one to a row with alternating shading and dividers (11-04, owner: "this ui is crowded"); the Angle has its own
+			row, and Center and Shape too. Rows that only apply to some types or motions are hidden with their dividers by class. --->
+			<cfset blockClass = "">
+			<cfoutput>
+			<table align="left" class="k-content adminBlocks" id="gradientSettings" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
+				<colgroup><col style="width: 20%"><col></colgroup>
+				<!--- First, at the top (11-05, owner). --->
+				<!--- Hero text (11-03, owner): a post's heading is set in the Hero text window, the same one the picture, animation and
+				moving hero use (font, size, color, shadow and glow). Saving here leaves the heading as it is. A Page Collection keeps its own
+				text and color further down. --->
+				<cfif not isPageCollectionEnclosure>
+				<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+				<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 				<tr>
-					<td align="right" style="width: 20%">
-						<label for="gradientStopColorSwatch">Stop Color:</label>
+					<td class="#blockClass#" align="right">Hero text:</td>
+					<td class="#blockClass#">
+						<button type="button" class="k-button normalFontWeight" onclick="createAdminInterfaceWindow(109, #val(URL.optArgs)#);"><i class="fontAwesomeIcon fas fa-heading" style="margin-right: 4px;"></i> Hero text...</button>
+						<span style="margin-left: 8px;" id="gradientHeroTextSummary">#len(existingOverlayText) ? encodeForHtml(existingOverlayText) : "None"#</span>
 					</td>
-					<td colspan="3">
+				</tr>
+				</cfif>
+				<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+				<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+				<tr>
+					<td class="#blockClass#" align="right"><label for="gradientStopColorSwatch">Stop Color:</label></td>
+					<td class="#blockClass#">
 						<div id="gradientStopColorSwatch"></div>
 					</td>
 				</tr>
+				<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+				<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 				<tr>
-					<td align="right" style="width: 20%">
-						<label for="gradientType">Type:</label>
-					</td>
-					<td style="width: 25%">
-						<select id="gradientType">
+					<td class="#blockClass#" align="right"><label for="gradientType">Type:</label></td>
+					<td class="#blockClass#">
+						<select id="gradientType" style="width: 220px;">
 							<option value="linear">Linear</option>
 							<option value="radial">Radial</option>
+							<option value="conic">Sweep</option>
 						</select>
 					</td>
-					<td align="right" style="width: 20%">
-						<label for="gradientAngle">Angle:</label>
-					</td>
-					<td style="width: 25%">
-						<input type="range" id="gradientAngle" min="0" max="360" value="90" style="width: 100%;">
+				</tr>
+				<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+				<tr class="blockSpacer gradientAngleRow"><td colspan="2" class="border #blockClass#"></td></tr>
+				<tr class="gradientAngleRow">
+					<td class="#blockClass#" align="right"><label for="gradientAngle">Angle:</label></td>
+					<td class="#blockClass#">
+						<input type="range" id="gradientAngle" min="0" max="360" value="90" style="width: 60%;">
 					</td>
 				</tr>
-				<tr>
-					<td align="right" style="width: 20%">
-						<label for="gradientOverlayTextColor">Text Color:</label>
+				<!--- Where a radial or sweep gradient is centered, and a radial one's shape (11-02). --->
+				<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+				<tr class="blockSpacer gradientCenterRow" style="display: none;"><td colspan="2" class="border #blockClass#"></td></tr>
+				<tr class="gradientCenterRow" id="gradientCenterRow" style="display: none;">
+					<td class="#blockClass#" align="right"><label>Center:</label></td>
+					<td class="#blockClass#">
+						<div class="gradientCenter" id="gradientCenter" role="radiogroup" aria-label="Where the gradient is centered"></div>
 					</td>
-					<td colspan="3">
+				</tr>
+				<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+				<tr class="blockSpacer gradientShapeRow" style="display: none;"><td colspan="2" class="border #blockClass#"></td></tr>
+				<tr class="gradientShapeRow" style="display: none;">
+					<td class="#blockClass#" align="right"><label>Shape:</label></td>
+					<td class="#blockClass#">
+						<div class="gradientChoices" id="gradientShape" role="radiogroup" aria-label="Shape">
+							<button type="button" class="k-button normalFontWeight" data-value="ellipse"><i class="fontAwesomeIcon far fa-circle" style="transform: scaleX(1.4);"></i> Ellipse</button>
+							<button type="button" class="k-button normalFontWeight" data-value="circle"><i class="fontAwesomeIcon far fa-circle"></i> Circle</button>
+						</div>
+					</td>
+				</tr>
+				<!--- Motion (11-02, owner): plain CSS on the post's hero; the cards and the cover stay still. --->
+				<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+				<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+				<tr>
+					<td class="#blockClass#" align="right"><label>Motion:</label></td>
+					<td class="#blockClass#">
+						<div class="gradientChoices" id="gradientMotion" role="radiogroup" aria-label="Motion">
+							<button type="button" class="k-button normalFontWeight" data-value=""><i class="fontAwesomeIcon fas fa-pause"></i> None</button>
+							<button type="button" class="k-button normalFontWeight" data-value="drift"><i class="fontAwesomeIcon fas fa-wind"></i> Slow drift</button>
+							<button type="button" class="k-button normalFontWeight" data-value="shift"><i class="fontAwesomeIcon fas fa-palette"></i> Color shift</button>
+							<button type="button" class="k-button normalFontWeight" data-value="breathe"><i class="fontAwesomeIcon fas fa-lungs"></i> Breathe</button>
+						</div>
+						<div class="k-form-hint" style="display: block;">Moves on the post's own page. The cards and the cover stay still, and so does the post for visitors who asked their device for less motion.</div>
+					</td>
+				</tr>
+				<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+				<tr class="blockSpacer gradientSpeedRow" style="display: none;"><td colspan="2" class="border #blockClass#"></td></tr>
+				<tr class="gradientSpeedRow" id="gradientSpeedRow" style="display: none;">
+					<td class="#blockClass#" align="right"><label>Speed:</label></td>
+					<td class="#blockClass#">
+						<div class="gradientChoices" id="gradientSpeed" role="radiogroup" aria-label="Speed">
+							<button type="button" class="k-button normalFontWeight" data-value="slow"><i class="fontAwesomeIcon fas fa-feather"></i> Slow</button>
+							<button type="button" class="k-button normalFontWeight" data-value=""><i class="fontAwesomeIcon fas fa-gauge"></i> Normal</button>
+							<button type="button" class="k-button normalFontWeight" data-value="fast"><i class="fontAwesomeIcon fas fa-bolt"></i> Lively</button>
+						</div>
+					</td>
+				</tr>
+				<cfif isPageCollectionEnclosure>
+				<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
+				<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+				<tr>
+					<td class="#blockClass#" align="right"><label for="gradientOverlayTextColor">Text Color:</label></td>
+					<td class="#blockClass#">
 						<script>
-							$("#gradientOverlayTextColor").kendoColorPicker({
+							$("##gradientOverlayTextColor").kendoColorPicker({
 								input: false,
 								preview: false,
-								value: "<cfoutput>#existingOverlayTextColor#</cfoutput>",
+								value: "#existingOverlayTextColor#",
 								buttons: false,
 								views: ["gradient"]
 							});
@@ -241,36 +345,15 @@ just store a name. --->
 						<input id="gradientOverlayTextColor" name="gradientOverlayTextColor">
 					</td>
 				</tr>
-				<!--- 2026-10-01: Post-only, same scope the animation feature's own overlay fields are - a Page Collection's hero
-				has no HeroOverlayFont column (see the load block above). --->
-				<cfif not isPageCollectionEnclosure>
-				<tr>
-					<td align="right" style="width: 20%">
-						<label for="gradientOverlayFont">Text Font:</label>
-					</td>
-					<td colspan="3">
-						<select id="gradientOverlayFont" style="width: 60%"></select>
-					</td>
-				</tr>
-				<!--- 2026-10-03: plain range input, same widget-free convention heroAnimationEditor.cfm's own
-				Speed slider already uses - no Kendo widget needed (or available - kendoTextBox isn't part of
-				Kendo Core, confirmed earlier tonight). --->
-				<tr>
-					<td align="right" style="width: 20%">
-						<label for="gradientOverlayFontSize">Text Size:</label>
-					</td>
-					<td colspan="3">
-						<input type="range" id="gradientOverlayFontSize" min="12" max="72" step="1" value="<cfoutput>#existingOverlayFontSize#</cfoutput>" style="width:80%;">
-						<span id="gradientOverlayFontSizeReadout" style="display:inline-block;width:40px;text-align:right;"><cfoutput>#existingOverlayFontSize#</cfoutput>px</span>
-					</td>
-				</tr>
 				</cfif>
 			</table>
+			</cfoutput>
 		</td>
 	</tr>
 	<tr valign="middle" height="30px">
-		<td valign="bottom" align="left">
-			<button id="gradientCancelButton" class="k-button normalFontWeight" type="button" onclick="javascript:$('#gradientEditorWindow').kendoWindow('destroy');">Cancel</button>
+		<!--- Plain (k-content), never the shade of the row above it (11-05, owner). --->
+		<td valign="bottom" align="left" class="k-content">
+			<!--- Submit only, like the other admin windows (11-04, owner): the window's own close button cancels. --->
 			<button id="gradientSubmitButton" class="k-button k-primary" type="button" onclick="javascript:onGradientEditorSubmit();">Submit</button>
 		</td>
 	</tr>
@@ -287,6 +370,43 @@ just store a name. --->
 	this replaced (see the big comment on #gradientPickerContainer .grp-handler-cp-c in the <style> block above). --->
 	var stopColorPickr = null;
 	var selectedHandler = null;
+	<!--- The new choices (11-02). Grapick writes "<type>-gradient(<direction>, <stops>)", so the center and shape (radial: "ellipse at
+	top left") and the sweep's start angle and center (conic: "from 90deg at 20% 20%") are given to it as the direction. --->
+	var gradientCenter = "center", gradientShape = "ellipse";
+	var gradientMotion = "<cfoutput>#encodeForJavaScript(existingMotion.motion)#</cfoutput>", gradientSpeed = "<cfoutput>#encodeForJavaScript(existingMotion.speed)#</cfoutput>";
+	var GRADIENT_CENTERS = [["top left", "20% 20%"], ["top", "50% 15%"], ["top right", "80% 20%"], ["left", "15% 50%"], ["center", "50% 50%"], ["right", "85% 50%"], ["bottom left", "20% 80%"], ["bottom", "50% 85%"], ["bottom right", "80% 80%"]];
+	function gradientType() { var w = getGradientTypeWidget(); return w ? w.value() : $('#gradientType').val(); }
+	function gradientDirection() {
+		var type = gradientType(), angle = $('#gradientAngle').val();
+		if (type === 'radial') { return gradientShape + ' at ' + gradientCenter; }
+		if (type === 'conic') { var c = $.grep(GRADIENT_CENTERS, function (x) { return x[0] === gradientCenter; })[0]; return 'from ' + angle + 'deg at ' + (c ? c[1] : '50% 50%'); }
+		return angle + 'deg';
+	}
+	function applyGradientDirection() {
+		var type = gradientType();
+		if (gradientPicker) { gradientPicker.setType(type); gradientPicker.setDirection(gradientDirection()); }
+		$('.gradientAngleRow').toggle(type !== 'radial');
+		stripeGradientRows();
+		$('.gradientCenterRow').toggle(type !== 'linear');
+		$('.gradientShapeRow').toggle(type === 'radial');
+		refreshGradientPreview();
+	}
+	<!--- A row of buttons that work as one choice: the picked one is the primary button. --->
+	function pickChoice(box, value) {
+		$(box).find('button').each(function () { var on = String($(this).data('value')) === String(value); $(this).toggleClass('k-primary', on).attr('aria-checked', on ? 'true' : 'false'); });
+	}
+	<!--- What is saved: the gradient, then the motion as a comment (Renderer.cfc getGradientMotion reads it back). --->
+	function gradientWithMotion(css) {
+		css = String(css || '').replace(/\s*\/\*\s*galaxieMotion:[^*]*\*\//gi, '');
+		return gradientMotion ? css + ' /* galaxieMotion: ' + gradientMotion + (gradientSpeed ? ' ' + gradientSpeed : '') + ' */' : css;
+	}
+	function showGradientMotion() {
+		var bg = $('#gradientPreviewBg');
+		bg.removeClass(function (i, c) { return (c.match(/(^|\s)galaxieGradient\S*/g) || []).join(' '); });
+		if (gradientMotion) { bg.addClass('galaxieGradientMotion galaxieGradient-' + gradientMotion + (gradientSpeed ? ' galaxieGradient-' + gradientSpeed : '')); }
+		$('.gradientSpeedRow').toggle(!!gradientMotion);
+		stripeGradientRows();
+	}
 
 	function refreshGradientPreview() {
 		var value = customGradientValue || (gradientPicker ? gradientPicker.getValue() : '');
@@ -312,6 +432,8 @@ just store a name. --->
 		var typeWidget = getGradientTypeWidget();
 		if (typeWidget) { typeWidget.enable(false); }
 		$('#gradientAngle').prop('disabled', true);
+		$('.gradientCenterRow, .gradientShapeRow').hide();
+		stripeGradientRows();
 		$('#gradientCustomModeNotice').show();
 	}
 	window.applyCustomGradient = applyCustomGradient;
@@ -339,7 +461,11 @@ just store a name. --->
 			if (stopColorPickr && selectedHandler) { stopColorPickr.setColor(selectedHandler.getColor()); }
 		}
 		$('#gradientAngle').val(90);
-		$('#gradientAngle').closest('tr').css('visibility', 'visible');
+		$('.gradientAngleRow').show();
+		gradientCenter = 'center'; gradientShape = 'ellipse';
+		pickChoice('#gradientCenter', gradientCenter); pickChoice('#gradientShape', gradientShape);
+		$('.gradientCenterRow, .gradientShapeRow').hide();
+		stripeGradientRows();
 		refreshGradientPreview();
 	}
 
@@ -398,17 +524,23 @@ just store a name. --->
 		refreshGradientPreview();
 
 		$('#gradientType').kendoDropDownList({
-			change: function() {
-				gradientPicker.setType(this.value());
-				$('#gradientAngle').closest('tr').css('visibility', this.value() === 'linear' ? 'visible' : 'hidden');
-				refreshGradientPreview();
-			}
+			change: function() { applyGradientDirection(); }
 		});
 
-		$('#gradientAngle').on('input', function() {
-			gradientPicker.setDirection($(this).val() + 'deg');
-			refreshGradientPreview();
+		$('#gradientAngle').on('input', function() { applyGradientDirection(); });
+
+		<!--- The center grid, shape, motion and speed (11-02). --->
+		$.each(GRADIENT_CENTERS, function (i, c) {
+			$('#gradientCenter').append($('<button type="button" class="k-button" role="radio"></button>').attr({ 'data-value': c[0], title: c[0], 'aria-label': 'Center: ' + c[0] })
+				.append('<i class="fontAwesomeIcon fas fa-circle"></i>'));
 		});
+		$('#gradientCenter').on('click', 'button', function () { gradientCenter = String($(this).data('value')); pickChoice('#gradientCenter', gradientCenter); applyGradientDirection(); });
+		$('#gradientShape').on('click', 'button', function () { gradientShape = String($(this).data('value')); pickChoice('#gradientShape', gradientShape); applyGradientDirection(); });
+		$('#gradientMotion').on('click', 'button', function () { gradientMotion = String($(this).data('value')); pickChoice('#gradientMotion', gradientMotion); showGradientMotion(); });
+		$('#gradientSpeed').on('click', 'button', function () { gradientSpeed = String($(this).data('value')); pickChoice('#gradientSpeed', gradientSpeed); showGradientMotion(); });
+		pickChoice('#gradientCenter', gradientCenter); pickChoice('#gradientShape', gradientShape);
+		pickChoice('#gradientMotion', gradientMotion); pickChoice('#gradientSpeed', gradientSpeed);
+		showGradientMotion();
 
 		<!--- 2026-10-01: font picker is Post-only (the dropdown isn't rendered at all for a Page Collection -
 		see the cfif around it above), so guard its init the same way. Applies the chosen font to the live
@@ -446,9 +578,48 @@ just store a name. --->
 		}
 	}
 
+	<!--- A post's heading over the preview, drawn as the post page draws it (getHeroTextPreview) and scaled to the preview's width;
+	redrawn when the Hero text window saves. --->
+	function refreshGradientHeroText() {
+		var layer = $('#gradientHeroTextPreview');
+		if (!layer.length) { return; }
+		jQuery.ajax({ type: 'post', url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getHeroTextPreview', dataType: 'json',
+			data: { csrfToken: '<cfoutput>#csrfToken#</cfoutput>', postId: <cfoutput>#val(URL.optArgs)#</cfoutput> } })
+			.done(function (response) {
+				if (typeof response === 'string') { try { response = JSON.parse(response); } catch (e) {} }
+				var html = (response && response.html) || '';
+				if (!html) { layer.hide().empty(); $('#gradientHeroTextSummary').text('None'); return; }
+				layer.html(html).css('display', 'flex');
+				var text = layer.find('.galaxieHeroText');
+				$('#gradientHeroTextSummary').text(text.clone().children().remove().end().text() || text.text());
+				text.css({ width: '90%', zoom: Math.max(0.35, Math.min(1, ($('#gradientPreviewWrap').width() || 600) / 1100)) });
+			});
+	}
+	<cfif not isPageCollectionEnclosure>
+	$(function () {
+		refreshGradientHeroText();
+		$(document).off('galaxieHeroTextSaved.gradientEditor').on('galaxieHeroTextSaved.gradientEditor', refreshGradientHeroText);
+	});
+	</cfif>
+
+	<!--- The settings rows alternate their shading over the rows that show (11-04): Center, Shape and Speed come and go with the type
+	and the motion. Each row's divider takes its row's shade. --->
+	function stripeGradientRows() {
+		var alt = false;
+		$("#gradientSettings > tbody > tr").not(".blockSpacer").each(function () {
+			if ($(this).css("display") === "none") { return; }
+			var cls = alt ? "k-alt" : "k-content";
+			$(this).children("td").removeClass("k-alt k-content").addClass(cls);
+			$(this).prev("tr.blockSpacer").children("td").removeClass("k-alt k-content").addClass(cls);
+			alt = !alt;
+		});
+	}
+
 	function onGradientEditorSubmit() {
 		var gradientCss = customGradientValue || (gradientPicker ? gradientPicker.getValue() : $('#gradientPreviewBg').css('background-image'));
-		var overlayText = $('#gradientOverlayText').val();
+		var gradientPreviewCss = gradientCss;
+		gradientCss = gradientWithMotion(gradientCss);
+		var overlayText = $('#gradientOverlayText').val() || '';
 		<!--- Kendo's ColorPicker keeps its bound <input>'s value attribute in sync (same as carouselItems.cfm's
 		identical widget, read there via plain form post) - defensive against either a "#ffffff" or "ffffff"
 		return format, since that isn't documented consistently across Kendo versions. --->
@@ -508,9 +679,10 @@ just store a name. --->
 			Renderer.cfc's renderHeroGradientHtml()). --->
 			var overlayFontCss = overlayFont ? ("font-family:'" + overlayFont + "';") : '';
 			var overlayFontSizeCss = (overlayFontSize || '16') + 'px';
-			var overlayHtml = overlayText.length
-				? '<div style="width:235px;height:130px;overflow:hidden;background:' + gradientCss + ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;"><span style="color:' + overlayTextColor + ';font-size:' + overlayFontSizeCss + ';font-weight:bold;text-align:center;' + overlayFontCss + '">' + overlayText + '</span></div>'
-				: '<div style="width:235px;height:130px;overflow:hidden;background:' + gradientCss + ';box-sizing:border-box;padding:10px;"></div>';
+			<!--- No heading in the editor's content (11-03): the Hero editor draws the post's heading as its own layer. --->
+			var overlayHtml = false
+				? '<div style="width:235px;height:130px;overflow:hidden;background:' + gradientPreviewCss + ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;"><span style="color:' + overlayTextColor + ';font-size:' + overlayFontSizeCss + ';font-weight:bold;text-align:center;' + overlayFontCss + '">' + overlayText + '</span></div>'
+				: '<div style="width:235px;height:130px;overflow:hidden;background:' + gradientPreviewCss + ';box-sizing:border-box;padding:10px;"></div>';
 			<!--- Post has no plain-string hero field the way PageCollection.HeroImageUrl does - EnclosureMedia/Map/
 			Carousel/PageCollection's own EntitySave calls are what actually persist THEIR hero types, and until
 			today nothing did that for a gradient. Originally this branch only called setContent() (visual only) -
@@ -525,11 +697,7 @@ just store a name. --->
 				data: {
 					csrfToken: '<cfoutput>#csrfToken#</cfoutput>',
 					postId: <cfoutput>#URL.optArgs#</cfoutput>,
-					heroGradient: gradientCss,
-					heroOverlayText: overlayText,
-					heroOverlayTextColor: overlayTextColor,
-					heroOverlayFont: overlayFont,
-					heroOverlayFontSize: overlayFontSize
+					heroGradient: gradientCss 
 				},
 				dataType: "json",
 				success: function(response) {

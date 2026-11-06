@@ -100,10 +100,18 @@
 	<cfparam name="includeGradient" default="false">
 	<cfparam name="includeHeroAnimation" default="false">
 	<cfparam name="includeHeroCoverImage" default="false">
+	<!--- Edit picture (11-05, owner): the hero picture or the cover in the Upload Image window's editor (crop, rotate, flip), saved
+	as a new upload. editPictureTarget is hero or cover. blogJsContent.cfm galaxieEditPicture. --->
+	<cfparam name="includeEditPicture" default="false">
+	<cfparam name="editPictureTarget" default="hero">
 	<!--- The Hero editor (2026-10-20, owner): Scene (Insert menu and ribbon) and Hero text (Format menu and ribbon), which were
 	separate buttons in the post editor. --->
 	<cfparam name="includeScene" default="false">
+	<cfparam name="includeMovingHero" default="false">
 	<cfparam name="includeHeroText" default="false">
+	<!--- The Hero window's Hero style and Remove hero buttons (11-04, moved out of the bottom of the window). --->
+	<cfparam name="includeHeroStyle" default="false">
+	<cfparam name="includeRemoveHero" default="false">
 	<cfparam name="includeFileUpload" default="false">
 	<cfparam name="disableWebVttAndVideoCoverButtons" default="true">
 	<cfparam name="includeMaps" default="true">
@@ -264,10 +272,10 @@
 			menubar: 'file edit insert format view',
 			menu: {
 				file: {title: 'File', items: 'preview print'},
-				edit: {title: 'Edit', items: 'undo redo | cut copy paste | selectall'},
+				edit: {title: 'Edit', items: 'undo redo | cut copy paste | selectall | removeHero'},
 				<!--- Same order as the toolbar buttons (enclosureImageEditor.cfm toolbarString), with Hero text in it too (owner, 10-23). --->
-				insert: {title: 'Insert', items: 'image gradient heroAnimation heroCoverImage | carousel scene | heroText | media videoUpload webVttUpload videoCoverUpload | map mapRouting'},
-				format: {title: 'Format', items: 'heroText'},
+				insert: {title: 'Insert', items: 'image gradient heroAnimation heroCoverImage | carousel scene movingHero | heroText | media videoUpload webVttUpload videoCoverUpload | map mapRouting'},
+				format: {title: 'Format', items: 'heroText heroStyle'},
 				view: {title: 'View', items: 'code | visualaid | preview fullscreen'}
 			},
 		</cfcase>
@@ -708,6 +716,49 @@
 					onAction: function () { createAdminInterfaceWindow(108,<cfoutput>#URL.optArgs#</cfoutput>); }
 				});
 			</cfif>
+			<cfif includeMovingHero>
+				<!--- Moving hero (11-03, owner): the layered picture hero. The button opens the Moving hero window, 119 (enclosureImageEditor.cfm
+				galaxieOpenMovingHero). The same icon as Scene (11-05, owner): a moving hero is a scene for the hero, a scene is one for the page. --->
+				editor.ui.registry.addIcon('movingHero', '<svg><span data-fa-symbol="movingHero" class="fontAwesomeIcon fas fa-layer-group">&nbsp;</span></svg>');
+				editor.ui.registry.addButton('movingHero', {
+					text: '<i class="fontAwesomeIcon fas fa-layer-group"></i>',
+					tooltip: 'Moving hero',
+					onAction: function (_) { if (window.galaxieOpenMovingHero) { galaxieOpenMovingHero(); } }
+				});
+				editor.ui.registry.addMenuItem('movingHero', {
+					icon: 'movingHero',
+					text: 'Moving hero',
+					onAction: function () { if (window.galaxieOpenMovingHero) { galaxieOpenMovingHero(); } }
+				});
+			</cfif>
+			<cfif includeHeroStyle>
+				<!--- Hero style (11-04): how the hero shows on the post's own page, window 120 (postHeroStyle.cfm). --->
+				editor.ui.registry.addIcon('heroStyle', '<svg><span data-fa-symbol="heroStyle" class="fontAwesomeIcon fas fa-brush">&nbsp;</span></svg>');
+				editor.ui.registry.addButton('heroStyle', {
+					text: '<i class="fontAwesomeIcon fas fa-brush"></i>',
+					tooltip: 'Hero style',
+					onAction: function (_) { createAdminInterfaceWindow(120,<cfoutput>#URL.optArgs#</cfoutput>); }
+				});
+				editor.ui.registry.addMenuItem('heroStyle', {
+					icon: 'heroStyle',
+					text: 'Hero style',
+					onAction: function () { createAdminInterfaceWindow(120,<cfoutput>#URL.optArgs#</cfoutput>); }
+				});
+			</cfif>
+			<cfif includeRemoveHero>
+				<!--- Remove hero (11-04): takes whatever hero the post has off it, after asking (enclosureImageEditor.cfm galaxieRemoveHero). --->
+				editor.ui.registry.addIcon('removeHero', '<svg><span data-fa-symbol="removeHero" class="fontAwesomeIcon fas fa-trash-can">&nbsp;</span></svg>');
+				editor.ui.registry.addButton('removeHero', {
+					text: '<i class="fontAwesomeIcon fas fa-trash-can"></i>',
+					tooltip: 'Remove hero',
+					onAction: function (_) { if (window.galaxieRemoveHero) { galaxieRemoveHero(); } }
+				});
+				editor.ui.registry.addMenuItem('removeHero', {
+					icon: 'removeHero',
+					text: 'Remove hero',
+					onAction: function () { if (window.galaxieRemoveHero) { galaxieRemoveHero(); } }
+				});
+			</cfif>
 			<cfif includeHeroText>
 				<!--- Hero text (2026-10-20): the heading over the picture at the top of the post (window 109), in the Format menu (it
 				sits on top of the media rather than being media) and on the ribbon. --->
@@ -721,6 +772,81 @@
 					icon: 'heroText',
 					text: 'Hero text',
 					onAction: function () { createAdminInterfaceWindow(109,<cfoutput>#URL.optArgs#</cfoutput>); }
+				});
+			</cfif>
+			<cfif includeEditPicture>
+				editor.ui.registry.addIcon('editPicture', '<svg><span data-fa-symbol="editPicture" class="fontAwesomeIcon fas fa-crop-simple">&nbsp;</span></svg>');
+				editor.ui.registry.addButton('editPicture', {
+					text: '<i class="fontAwesomeIcon fas fa-crop-simple"></i>',
+					tooltip: 'Edit picture (crop, rotate, flip)',
+					<!--- Greyed out while a picture linked from another site is selected (11-05, owner: better feedback). --->
+					onSetup: function (api) {
+						var update = function (e) { var n = e && e.element; api.setDisabled(!!(n && n.nodeName === 'IMG' && galaxieExternalPicture(n))); };
+						editor.on('NodeChange', update);
+						return function () { editor.off('NodeChange', update); };
+					},
+					onAction: function (_) { galaxieEditPicture('<cfoutput>#encodeForJavaScript(editPictureTarget)#</cfoutput>', <cfoutput>#val(URL.optArgs)#</cfoutput>, '<cfoutput>#csrfToken#</cfoutput>'); }
+				});
+				editor.ui.registry.addMenuItem('editPicture', {
+					icon: 'editPicture',
+					text: 'Edit picture',
+					onAction: function () { galaxieEditPicture('<cfoutput>#encodeForJavaScript(editPictureTarget)#</cfoutput>', <cfoutput>#val(URL.optArgs)#</cfoutput>, '<cfoutput>#csrfToken#</cfoutput>'); }
+				});
+				<!--- One Edit picture button that pops up over the picture when it is clicked or double clicked (11-05, owner: like TinyMCE's own
+				picture ribbon, but the one button). In the Hero window the cover beside the hero (Renderer.cfc coverPreview, a background,
+				not a picture) gets its own, which edits the cover. --->
+				editor.ui.registry.addButton('editPictureHere', {
+					text: '<i class="fontAwesomeIcon fas fa-crop-simple" style="margin-right: 6px;"></i>Edit picture',
+					tooltip: 'Crop, rotate or flip this picture',
+					onAction: function (_) { galaxieEditPicture('<cfoutput>#encodeForJavaScript(editPictureTarget)#</cfoutput>', <cfoutput>#val(URL.optArgs)#</cfoutput>, '<cfoutput>#csrfToken#</cfoutput>'); }
+				});
+				editor.ui.registry.addButton('editCoverHere', {
+					text: '<i class="fontAwesomeIcon fas fa-crop-simple" style="margin-right: 6px;"></i>Edit cover',
+					tooltip: 'Crop, rotate or flip the cover',
+					onAction: function (_) { galaxieEditPicture('cover', <cfoutput>#val(URL.optArgs)#</cfoutput>, '<cfoutput>#csrfToken#</cfoutput>'); }
+				});
+				var galaxieCoverNode = function (node) {
+					for (var n = node; n && n !== editor.getBody(); n = n.parentNode) {
+						if (n.getAttribute && (n.getAttribute('data-type') === 'coverPreview' || n.getAttribute('data-mce-p-data-type') === 'coverPreview')) { return true; }
+					}
+					return false;
+				};
+				<!--- A picture linked from another site can't be opened in the editor (the browser won't let the page read it), so it
+				gets a note instead of the button (11-05, owner). --->
+				var galaxieExternalPicture = function (node) {
+					try { return new URL(node.getAttribute('src') || '', window.location.href).origin !== window.location.origin; } catch (e) { return false; }
+				};
+				editor.ui.registry.addButton('externalPictureNote', {
+					<!--- The Edit picture button, greyed out (Kendo's disabled look as well as TinyMCE's own), with the reason (11-05, owner). --->
+					text: '<span class="k-state-disabled"><i class="fontAwesomeIcon fas fa-crop-simple" style="margin-right: 6px;"></i>Edit picture</span><span class="k-state-disabled" style="margin-left: 10px;">We can only edit pictures uploaded to this blog</span>',
+					tooltip: 'This picture is linked from another site',
+					<!--- Looks disabled, but a click explains why (11-05, owner: keep the message). --->
+					onAction: function () {
+						$.when(kendo.ui.ExtAlertDialog.show({ title: "Can't edit this picture", message: "We can only edit pictures uploaded to this blog. This one is linked from another site. To edit it, save it to your computer and upload it with the Image button; you can crop, rotate or flip it as it uploads.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+					}
+				});
+				editor.ui.registry.addContextToolbar('galaxieExternalPictureBar', {
+					predicate: function (node) { return node.nodeName === 'IMG' && !galaxieCoverNode(node) && galaxieExternalPicture(node); },
+					items: 'externalPictureNote',
+					position: 'node',
+					scope: 'node'
+				});
+				editor.ui.registry.addContextToolbar('galaxieEditPictureBar', {
+					predicate: function (node) { return node.nodeName === 'IMG' && !galaxieCoverNode(node) && !galaxieExternalPicture(node); },
+					items: 'editPictureHere',
+					position: 'node',
+					scope: 'node'
+				});
+				editor.ui.registry.addContextToolbar('galaxieEditCoverBar', {
+					predicate: function (node) { return galaxieCoverNode(node); },
+					items: 'editCoverHere',
+					position: 'node',
+					scope: 'node'
+				});
+				<!--- Double click selects the picture, so its button shows (a double click inside a block would otherwise just place the cursor). --->
+				editor.on('dblclick', function (e) {
+					var node = e.target;
+					if (node && (node.nodeName === 'IMG' || galaxieCoverNode(node))) { editor.selection.select(node); editor.nodeChanged(); }
 				});
 			</cfif>
 			<cfif includeHeroCoverImage>

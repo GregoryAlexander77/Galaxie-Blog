@@ -369,7 +369,7 @@
 		<cfreturn jsonString>
 
 	</cffunction>
-	
+
 	<!--- Helper functions for interfaces (addComments, addSub, etc.). Important note on function tags- they must have a returnFormat="json". Otherwise, ColdFusion will return the value wraped in a wddx tag.--->
 	<cffunction name="validateCaptcha" access="remote" returnType="boolean" returnFormat="json" output="false" 
 			hint="Remote method accessed via ajax. Returns a boolean value to determine if the users entered value matches the captcha image.">
@@ -497,6 +497,9 @@
 		<cfset commenterName = trim(arguments.commenterName)>
 		<cfset commenterEmail = trim(arguments.commenterEmail)>
 		<cfset commenterWebSite = trim(arguments.commenterWebSite)>
+		<!--- The comment or message arrives past Global Script Protection (blogJsContent.cfm bypassScriptProtection, 5.03). It is encoded
+		for HTML before it is saved or emailed, so code in it is only ever shown as text. --->
+		<cfset arguments.comments = application.Udf.unpackFromBrowser(arguments.comments)>
 		<cfset comments = trim(arguments.comments)>
 		<!--- Subscription responses --->
 		<cfset response[ "alreadySubscribed" ] = false />
@@ -606,15 +609,16 @@
 						</tr>
 						<tr>
 							<td align="right">Name:</td>
-							<td align="left">#commenterName# (#commenterEmail#)</td>
+							<td align="left">#encodeForHtml(commenterName)# (#encodeForHtml(commenterEmail)#)</td>
 						</tr>
 						<tr>
 							<td align="right">Message:</td>
-							<td align="left">#comments#</td>
+							<!--- What the visitor typed, encoded (5.03), with the same formatting as a comment. --->
+							<td align="left">#application.Udf.formatComment(encodeForHtml(comments))#</td>
 						</tr>
 						<tr>
 							<td align="right">Website:</td>
-							<td align="left">#commenterWebSite#</td>
+							<td align="left">#encodeForHtml(commenterWebSite)#</td>
 						</tr>
 						<tr>
 							<td align="right">IP Address:</td>
@@ -735,7 +739,7 @@
 							</tr>
 							<tr>
 								<td colspan="2">
-									#(encodeForHTML(arguments.comments))#
+									#application.Udf.formatComment(encodeForHTML(arguments.comments))#
 								</td>
 							</tr>
 						</table>
@@ -5496,7 +5500,7 @@
 				<!--- Save the data --->
 				<cfinvoke component="#application.blog#" method="savePostCss" returnvariable="postId">
 					<cfinvokeargument name="postId" value="#arguments.postId#">
-					<cfinvokeargument name="postCss" value="#postCss#">
+					<cfinvokeargument name="postCss" value="#application.Udf.unpackFromBrowser(arguments.postCss)#">
 				</cfinvoke>
 				
 				<!--- Set the success response --->
@@ -7588,6 +7592,8 @@
 
 										<!--- Set the enclosureCarousel --->
 										<cfset PostDbObj.setEnclosureCarousel(CarouselDbObj)>
+										<!--- A carousel hero takes the place of the post's moving hero (11-05). --->
+										<cfset application.blog.clearMovingHeroOnPost(PostDbObj)>
 
 										<!--- Remove other enclosures --->
 										<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
@@ -8302,7 +8308,12 @@
 					Cover Image drive og:image/twitter:image (seoMetaTags.cfm), replacing the old per-post practice
 					of hand-typing facebookImageUrlMetaData/twitterImageUrlMetaData XML Post Directives for a
 					Gradient/animation post that has no real photo of its own. --->
-					<cfif (arguments.mediaProcessType eq 'enclosure' and arguments.mediaType eq 'image') or arguments.mediaProcessType eq 'heroCoverImage'>
+					<!--- A video's cover (its poster) gets the same share crops (11-05, owner): it is the post's share picture when the post
+					has no Hero Cover Image (seoMetaTags.cfm). The crops go in enclosures/{platform}/videos; skipped if the server's path
+					would make the crop's path the poster's own (the poster would be overwritten). --->
+					<cfset posterCropsSafe = arguments.mediaProcessType eq 'mediaVideoCoverUrl'
+						and ImageObj.getSocialMediaDestination(destination & "\" & image.serverFile, 'facebook') neq destination & "\" & image.serverFile>
+					<cfif (arguments.mediaProcessType eq 'enclosure' and arguments.mediaType eq 'image') or arguments.mediaProcessType eq 'heroCoverImage' or posterCropsSafe>
 						<cftry>
 							<!--- Manipulate the image and save it in the social media sharing folders --->
 							<cfset socialMediaImagePath = destination & "\" & image.serverFile>
@@ -9998,6 +10009,10 @@
 		<cfargument name="defaultImageQuality" default="0.8" required="false" hint="Site-wide default for the image-upload compression slider, 0.1-1.0.">
 		<cfargument name="popularPostsMinPosts" default="" required="false" hint="Blog posts needed before the home page shows Popular Blogs (2026-10-31); 0 shows it always. Saved as a setting, not a BlogOption column.">
 		<cfargument name="videoMaxFileSizeMB" default="100" required="false" hint="Rejects an enclosure video upload over this size (see uploadVideo).">
+		<cfargument name="fallbackArtPosted" default="" required="false" hint="11-03: the generated pictures' Shapes and Motion were on the form (blogOptions.cfm).">
+		<cfargument name="fallbackArtShapes" default="straight" required="false" hint="straight, or mixed (straight, round and two glows) - Image.cfc generateHeroArt.">
+		<cfargument name="fallbackArtMotion" default="" required="false" hint="Empty, drift, shift or breathe - Renderer.cfc getHeroFallbackHtml.">
+		<cfargument name="fallbackArtSpeed" default="" required="false" hint="Empty (normal), slow or fast.">
 		<cfargument name="postHeroStyle" default="classic" required="false" hint="5.0: classic, held, band or magazine - how a post's image, gradient or animated hero is shown on its own page.">
 		<cfargument name="noImageFallbackMode" default="generic" required="false" hint="What shows in place of noImage.jpg for a post with no enclosure - 'generic', 'generated', 'pool', or 'none'. See Renderer.cfc's getHeroFallbackHtml().">
 		<cfargument name="heroCarouselImageCount" default="1" required="false" hint="How many pool images the carousel shows per post when noImageFallbackMode='pool' and heroPoolDisplayMode='carousel'.">
@@ -10021,6 +10036,7 @@
 		<cfargument name="clearLiveKeys" default="" required="false">
 		<!--- Member accounts (2026-10-15), see Members.cfc. Only saved when the Member Accounts panel was posted. --->
 		<cfargument name="errorEmailMode" default="" required="false" hint="daily or immediate (2026-10-18, ErrorDigest.cfc)">
+		<cfargument name="developerCopy" default="" required="false" hint="1 when Send a copy to Galaxie Blog's developer is ticked (2026-11-04); a checkbox that isn't ticked isn't sent.">
 		<cfargument name="errorDigestHour" default="2" required="false">
 		<cfargument name="memberSettingsPosted" default="" required="false">
 		<cfargument name="memberAccountsEnabled" default="" required="false">
@@ -10180,10 +10196,17 @@
 					<cfset application.events.setSetting(0, "popularPostsMinPosts", max(0, min(1000, int(arguments.popularPostsMinPosts))))>
 					<cfset structDelete(application, "galaxieBlogPostCount")>
 				</cfif>
+				<!--- The generated pictures' shapes and motion (11-03): settings, like the Popular Blogs threshold. The page caches are flushed
+				below; changed shapes are new picture files, so the old ones are simply no longer used. --->
+				<cfif len(arguments.fallbackArtPosted)>
+					<cfset application.events.setSetting(0, "fallbackArtShapes", arguments.fallbackArtShapes eq "mixed" ? "mixed" : "straight")>
+					<cfset application.events.setSetting(0, "fallbackArtMotion", listFind("drift,shift,breathe", arguments.fallbackArtMotion) ? arguments.fallbackArtMotion : "")>
+					<cfset application.events.setSetting(0, "fallbackArtSpeed", listFind("slow,fast", arguments.fallbackArtSpeed) ? arguments.fallbackArtSpeed : "")>
+				</cfif>
 				<cfset OptionDbObj.setVideoMaxFileSizeMB(val(arguments.videoMaxFileSizeMB))>
 				<cfset OptionDbObj.setNoImageFallbackMode(arguments.noImageFallbackMode)>
 				<!--- 5.0: how post heroes are shown (Renderer.cfc getPostHeroStyle). The post pages are cleared below. --->
-				<cfset OptionDbObj.setPostHeroStyle(listFind("classic,held,band,magazine", arguments.postHeroStyle) ? arguments.postHeroStyle : "classic")>
+				<cfset OptionDbObj.setPostHeroStyle(listFind("classic,held,band,magazine,parallax", arguments.postHeroStyle) ? arguments.postHeroStyle : "classic")>
 				<cfset OptionDbObj.setHeroCarouselImageCount(val(arguments.heroCarouselImageCount))>
 				<cfset OptionDbObj.setHeroPoolDisplayMode(arguments.heroPoolDisplayMode)>
 				<cfset OptionDbObj.setReleasedPostEmailMode(arguments.releasedPostEmailMode eq "auto" ? "auto" : "prompt")>
@@ -10238,6 +10261,9 @@
 			<!--- Error emails (2026-10-18): a nightly summary or an email for each new error. --->
 			<cfif len(arguments.errorEmailMode)>
 				<cfset application.blog.getErrorDigest().saveSettings(arguments.errorEmailMode, isNumeric(arguments.errorDigestHour) ? arguments.errorDigestHour : 2)>
+				<!--- The developer copy is saved with the error email settings: they are always sent, so an unticked box (not sent) means off. --->
+				<cfset application.events.setSetting(0, "developerCopy", arguments.developerCopy eq "1" ? "1" : "0")>
+				<cfset structDelete(application, "galaxieDeveloperCopy")>
 			</cfif>
 
 			<!--- Return the Id --->
@@ -11087,7 +11113,7 @@
 
 		<cfif application.Udf.isLoggedIn()>
 			<cftry>
-				<cfset application.blog.savePostHeroGradient(postId=val(arguments.postId), heroGradient=arguments.heroGradient, heroOverlayText=arguments.heroOverlayText, heroOverlayTextColor=arguments.heroOverlayTextColor, heroOverlayFont=arguments.heroOverlayFont, heroOverlayFontSize=arguments.heroOverlayFontSize)>
+				<cfset application.blog.savePostHeroGradient(postId=val(arguments.postId), heroGradient=arguments.heroGradient, keepHeroText=not structKeyExists(form, "heroOverlayText"), heroOverlayText=arguments.heroOverlayText, heroOverlayTextColor=arguments.heroOverlayTextColor, heroOverlayFont=arguments.heroOverlayFont, heroOverlayFontSize=arguments.heroOverlayFontSize)>
 				<cfset response[ "success" ] = true />
 				<cfcatch type="any">
 					<cfset response[ "errorMessage" ] = cfcatch.message>
@@ -11131,7 +11157,7 @@
 
 		<cfif application.Udf.isLoggedIn()>
 			<cftry>
-				<cfset application.blog.savePostHeroAnimation(postId=val(arguments.postId), animationEffect=arguments.animationEffect, animationOptions=arguments.animationOptions, heroOverlayText=arguments.heroOverlayText, heroOverlayTextColor=arguments.heroOverlayTextColor, heroOverlayFont=arguments.heroOverlayFont, heroOverlayFontSize=arguments.heroOverlayFontSize)>
+				<cfset application.blog.savePostHeroAnimation(postId=val(arguments.postId), animationEffect=arguments.animationEffect, animationOptions=arguments.animationOptions, keepHeroText=not structKeyExists(form, "heroOverlayText"), heroOverlayText=arguments.heroOverlayText, heroOverlayTextColor=arguments.heroOverlayTextColor, heroOverlayFont=arguments.heroOverlayFont, heroOverlayFontSize=arguments.heroOverlayFontSize)>
 				<cfset response[ "success" ] = true />
 				<cfcatch type="any">
 					<cfset response[ "errorMessage" ] = cfcatch.message>
@@ -12115,6 +12141,7 @@
 	<cffunction name="getUpNextSignature" access="remote" returnformat="json" output="false"
 			hint="The admin home's Up next row (5.0, 2026-10-28): the fingerprint of the cards this person would see now (AdminHome.cfc upNextSignature), so the page can redraw them when it changes.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="fresh" type="string" default="false" required="false" hint="true: work it out again now (an admin window was just closed).">
 		<cfset var response = { "success": false, "signature": "" }>
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
 			<cfset response = "Invalid token">
@@ -12122,7 +12149,7 @@
 		</cfif>
 		<cfif application.Udf.isLoggedIn()>
 			<cftry>
-				<cfset response[ "signature" ] = application.blog.getAdminHome().upNextSignature()>
+				<cfset response[ "signature" ] = application.blog.getAdminHome().upNextSignature(fresh = isBoolean(arguments.fresh) and arguments.fresh)>
 				<cfset response[ "success" ] = true>
 				<cfcatch type="any"><cfset response[ "message" ] = cfcatch.message></cfcatch>
 			</cftry>
@@ -12212,6 +12239,35 @@
 		<cfif application.Udf.isLoggedIn()>
 			<cfset result = application.blog.getErrorDigest().send(dateTimeFormat(dateAdd("h", -24, application.blog.blogNow()), "yyyy-mm-dd HH:nn:ss"))>
 			<cfset response = { "errors": result.errors, "distinct": result.distinct, "sent": result.sent }>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="sendHelloNow" access="remote" returnformat="json" output="false"
+			hint="Blog Options' Say hello (2026-11-04, owner): the Site Wizard's two opt-ins for a blog that is already running - a blog that was updated never saw the wizard's last screen. Sends the note with Setup.cfc sendHello. Returns { success, message, sentOn }.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="sayHello" type="string" default="false" required="false">
+		<cfargument name="addToCfblogs" type="string" default="false" required="false">
+		<cfset var response = { "success": false, "message": "", "sentOn": "" }>
+		<cfset var hello = isBoolean(arguments.sayHello) and arguments.sayHello>
+		<cfset var cfblogs = isBoolean(arguments.addToCfblogs) and arguments.addToCfblogs>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditServerSetting')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfif not hello and not cfblogs>
+				<cfset response[ "message" ] = "Tick Say hello, Add my blog to cfblogs.org, or both, then press Send.">
+			<cfelseif cfblogs and not isValid("email", application.BlogDbObj.getBlogEmail() ?: "")>
+				<cfset response[ "message" ] = "To be added to cfblogs.org, enter the Blog Email Address in Blog Settings first: it is how you will hear back.">
+			<cfelseif application.blog.getSetup().sendHello(addToCfblogs = cfblogs)>
+				<cfset response[ "success" ] = true>
+				<cfset response[ "sentOn" ] = dateFormat(application.blog.blogNow(), "mmmm d, yyyy")>
+				<cfset response[ "message" ] = "Sent. Thank you!" & (cfblogs ? " You will get an email at " & application.BlogDbObj.getBlogEmail() & " when your blog is on cfblogs.org." : "")>
+			<cfelse>
+				<cfset response[ "message" ] = "It could not be sent: galaxieblog.org did not answer. Please try again later.">
+			</cfif>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
@@ -14105,6 +14161,57 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="getCoverImageReminder" access="remote" returnformat="json" output="false"
+			hint="Whether to remind the owner to add a Hero Cover Image after a save (5.03, owner 11-02): the post's hero is a kind that Google and the social sites can't use as its picture (a scene, a video, a map, a carousel, a gradient or an animation), and there is no cover image or share picture set. kind names the hero, eg. 'a scene'.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" default="0" required="true">
+		<cfset var response = { "success": false, "needed": false, "kind": "", "unusedCover": false }>
+		<cfset var post = {}>
+		<cfset var rows = []>
+		<cfset var value = function (key) { return structKeyExists(post, key) and not isNull(post[key]) ? trim(toString(post[key])) : ""; }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId) and val(arguments.postId) gt 0>
+			<cftry>
+				<cfset rows = application.blog.getPostByPostId(val(arguments.postId), true, true)>
+				<cfif arrayLen(rows)>
+					<cfset post = rows[1]>
+					<!--- What seoMetaTags.cfm shares: the hero when it is a picture, otherwise the Hero Cover Image, or a picture named in the
+					post's header (facebookImageUrlMetaData). With one of those there is nothing to remind. --->
+					<cfif not len(value("HeroCoverImageUrl")) and not reFindNoCase("\.(jpe?g|gif|png|webp)(\?|$)", value("MediaUrl"))
+						and not findNoCase("facebookImageUrlMetaData", value("PostHeader")) and not len(value("MediaVideoCoverUrl"))>
+						<cfif len(application.blog.getScenes().getPostScene(val(arguments.postId)))>
+							<cfset response[ "kind" ] = "a scene">
+						<cfelseif len(value("MediaUrl"))>
+							<cfset response[ "kind" ] = "a video">
+						<cfelseif len(value("EnclosureMapId"))>
+							<cfset response[ "kind" ] = "a map">
+						<cfelseif len(value("EnclosureCarouselId"))>
+							<cfset response[ "kind" ] = "a carousel">
+						<cfelseif len(value("HeroAnimationEffect"))>
+							<cfset response[ "kind" ] = "an animation">
+						<cfelseif len(value("HeroGradient"))>
+							<cfset response[ "kind" ] = "a gradient">
+						</cfif>
+						<cfset response[ "needed" ] = len(response.kind) gt 0>
+					<!--- The hero is now a picture and the post still has a cover (11-05, owner): the picture is what cards and sharing
+					show, so the cover is not used. The page offers to remove it (removeHeroCoverImage); keeping it is fine too. --->
+					<cfelseif len(value("HeroCoverImageUrl")) and reFindNoCase("\.(jpe?g|gif|png|webp)(\?|$)", value("MediaUrl"))
+						and value("MediaType") eq "Image" and not len(value("EnclosureCarouselId")) and not len(value("EnclosureMapId"))
+						and not len(application.blog.getScenes().getPostScene(val(arguments.postId)))>
+						<cfset response[ "unusedCover" ] = true>
+					</cfif>
+				</cfif>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="getHeroSummary" access="remote" returnformat="json" output="false"
 			hint="The line under the post editor's Hero button (2026-10-20): the post's scene and hero text, eg. 'Scene: Delicate Arch'. Empty when it has neither.">
 		<cfargument name="csrfToken" type="string" default="" required="true">
@@ -14182,7 +14289,20 @@
 		<cfargument name="textPosition" type="string" default="" required="false">
 		<cfargument name="remove" type="string" default="false" required="false">
 		<cfargument name="ending" type="string" default="" required="false">
-		<cfset var response = { "success": false, "errorMessage": "", "sceneId": 0 }>
+		<!--- The heading's look (11-04, the Moving hero wizard): see Scenes.cfc usePostHeroParallax. --->
+		<cfargument name="color" type="string" default="" required="false">
+		<cfargument name="font" type="string" default="" required="false">
+		<cfargument name="fontSize" type="string" default="" required="false">
+		<cfargument name="fontSizePhone" type="string" default="" required="false">
+		<cfargument name="shadow" type="string" default="" required="false">
+		<cfargument name="shadowColor" type="string" default="" required="false">
+		<cfargument name="glowColor" type="string" default="" required="false">
+		<cfargument name="glowOpacity" type="string" default="" required="false">
+		<cfargument name="glowSoftness" type="string" default="" required="false">
+		<cfargument name="textMotion" type="string" default="" required="false">
+		<cfset var response = { "success": false, "errorMessage": "", "sceneId": 0, "clearedVideo": false }>
+		<cfset var heroRows = []>
+		<cfset var heroPost = "">
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
 			<cfset response = "Invalid token">
 			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
@@ -14193,14 +14313,131 @@
 				<cfif isBoolean(arguments.remove) and arguments.remove>
 					<cfset application.blog.getScenes().setPostScene(val(arguments.postId), "")>
 				<cfelse>
-					<cfset application.blog.getScenes().usePostHeroParallax(val(arguments.postId), arguments.starter, arguments.heading, arguments.line, arguments.align, arguments.textPosition, arguments.ending)>
-					<!--- For the Hero editor's "Open in the Scene editor" button. --->
+					<cfset application.blog.getScenes().usePostHeroParallax(postId = val(arguments.postId), starter = arguments.starter, heading = arguments.heading,
+						line = arguments.line, align = arguments.align, textPosition = arguments.textPosition, ending = arguments.ending,
+						color = arguments.color, font = arguments.font, fontSize = arguments.fontSize, fontSizePhone = arguments.fontSizePhone, shadow = arguments.shadow, shadowColor = arguments.shadowColor,
+						glowColor = arguments.glowColor, glowOpacity = arguments.glowOpacity, glowSoftness = arguments.glowSoftness, textMotion = arguments.textMotion)>
 					<cfset response[ "sceneId" ] = application.blog.getScenes().getSceneIdByAlias("post-hero-" & val(arguments.postId))>
+					<!--- Last hero wins (11-05, owner): a moving hero takes the place of any other hero on the post - a picture, video, map,
+					carousel, gradient or animation - so it comes off (it had been only a video). The cover and the hero text stay.
+					clearedVideo (kept for the Moving hero window) is true when anything came off, so the Hero window's preview is redrawn. --->
+					<cfset heroRows = application.blog.getPostByPostId(val(arguments.postId), true, true)>
+					<cfif arrayLen(heroRows) and (len(heroRows[1]["MediaUrl"] ?: "") or len(heroRows[1]["MediaPath"] ?: "") or len(heroRows[1]["EnclosureMapId"] ?: "")
+						or len(heroRows[1]["EnclosureCarouselId"] ?: "") or len(heroRows[1]["HeroGradient"] ?: "") or len(heroRows[1]["HeroAnimationEffect"] ?: ""))>
+						<cftransaction>
+							<cfset heroPost = entityLoad("Post", { postId = val(arguments.postId) }, true)>
+							<cfif not isNull(heroPost)>
+								<cfset heroPost.setEnclosureMedia(javaCast("null",""))>
+								<cfset heroPost.setEnclosureMap(javaCast("null",""))>
+								<cfset heroPost.setEnclosureCarousel(javaCast("null",""))>
+								<cfset heroPost.setHeroGradient("")>
+								<cfset heroPost.setHeroAnimationEffect("")>
+								<cfset heroPost.setHeroAnimationOptions("")>
+								<cfset entitySave(heroPost)>
+								<cfset response[ "clearedVideo" ] = true>
+							</cfif>
+						</cftransaction>
+						<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
+					</cfif>
 				</cfif>
 				<cfset flushWebFormPosts([val(arguments.postId)])>
 				<cfset response[ "success" ] = true>
 				<cfcatch type="any">
-					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.Scenes" ? cfcatch.message : "The parallax hero could not be saved: " & cfcatch.message>
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.Scenes" ? cfcatch.message : "The moving hero could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="getHeroPictures" access="remote" returnformat="json" output="false"
+			hint="For Edit picture (11-05): heroPicture is the hero's picture when the hero is a picture (no scene, map or carousel), coverPicture the Hero Cover Image; either is empty when there is none.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" default="0" required="true">
+		<cfset var response = { "success": false, "heroPicture": "", "coverPicture": "" }>
+		<cfset var rows = []>
+		<cfset var post = {}>
+		<cfset var value = function (key) { return structKeyExists(post, key) and not isNull(post[key]) ? trim(toString(post[key])) : ""; }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId) and val(arguments.postId) gt 0>
+			<cftry>
+				<cfset rows = application.blog.getPostByPostId(val(arguments.postId), true, true)>
+				<cfif arrayLen(rows)>
+					<cfset post = rows[1]>
+					<cfif value("MediaType") eq "Image" and reFindNoCase("\.(jpe?g|gif|png|webp)(\?|$)", value("MediaUrl"))
+						and not len(value("EnclosureCarouselId")) and not len(value("EnclosureMapId"))
+						and not len(application.blog.getScenes().getPostScene(val(arguments.postId)))>
+						<cfset response[ "heroPicture" ] = value("MediaUrl")>
+					</cfif>
+					<cfset response[ "coverPicture" ] = value("HeroCoverImageUrl")>
+				</cfif>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="removeHeroCoverImage" access="remote" returnformat="json" output="false"
+			hint="Takes the Hero Cover Image off a post (11-05, owner: deleting the picture in the Cover window did nothing). The picture's files stay; cards and sharing go back to the hero picture, a video's cover, or the theme's logo.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" default="0" required="true">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId) and val(arguments.postId) gt 0>
+			<cftry>
+				<cfset application.blog.savePostHeroCoverImage(postId = val(arguments.postId), heroCoverImageUrl = "")>
+				<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = "The cover could not be removed: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="removePostHero" access="remote" returnformat="json" output="false"
+			hint="The Hero window's Remove hero button (11-04): takes whatever hero the post has off it - picture, video, carousel, map, gradient, animation or its moving hero. A full-page scene, the cover and the hero text stay. Nothing is deleted from the media library.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" default="0" required="true">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfset var post = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.postId)>
+			<cftry>
+				<cftransaction>
+					<cfset post = entityLoad("Post", { postId = val(arguments.postId) }, true)>
+					<cfif isNull(post)><cfthrow type="GalaxieBlog.Hero" message="This post no longer exists."></cfif>
+					<!--- The same fields savePostHeroGradient clears to make a gradient the only hero (blog.cfc). --->
+					<cfset post.setEnclosureMedia(javaCast("null",""))>
+					<cfset post.setEnclosureMap(javaCast("null",""))>
+					<cfset post.setEnclosureCarousel(javaCast("null",""))>
+					<cfset post.setHeroGradient("")>
+					<cfset post.setHeroAnimationEffect("")>
+					<cfset post.setHeroAnimationOptions("")>
+					<cfset entitySave(post)>
+				</cftransaction>
+				<!--- The post's own moving hero only; a full-page scene is taken off in the Scene editor. --->
+				<cfif application.blog.getScenes().getPostScene(val(arguments.postId)) eq "post-hero-" & val(arguments.postId)>
+					<cfset application.blog.getScenes().setPostScene(val(arguments.postId), "")>
+				</cfif>
+				<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.Hero" ? cfcatch.message : "The hero could not be removed: " & cfcatch.message>
 				</cfcatch>
 			</cftry>
 		</cfif>
@@ -14412,7 +14649,7 @@
 		<cfset secureFunction('EditPost,ReleasePost')>
 		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId)>
 			<cftry>
-				<cfset application.blog.savePostHeroStyle(val(arguments.postId), listFind("classic,held,band,magazine", arguments.heroStyle) ? arguments.heroStyle : "")>
+				<cfset application.blog.savePostHeroStyle(val(arguments.postId), listFind("classic,held,band,magazine,parallax", arguments.heroStyle) ? arguments.heroStyle : "")>
 				<cfset response[ "success" ] = true>
 				<cfcatch type="any">
 					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.HeroText" ? cfcatch.message : "The hero style could not be saved: " & cfcatch.message>

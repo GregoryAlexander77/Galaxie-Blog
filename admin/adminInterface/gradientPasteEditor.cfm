@@ -43,7 +43,7 @@ global JS scope (iframe: false, same as every createAdminInterfaceWindow popup).
 </cfoutput>
 	<tr valign="middle" height="30px">
 		<td colspan="2" class="<cfoutput>#blockClass#</cfoutput>" valign="bottom" align="right">
-			<button id="gradientPasteCancelButton" class="k-button normalFontWeight" type="button" onclick="javascript:$('#gradientPasteEditorWindow').kendoWindow('destroy');">Cancel</button>
+			<!--- Submit only, like the other admin windows (11-04, owner): the window's own close button cancels. --->
 			<button id="gradientPasteSubmitButton" class="k-button k-primary" type="button" onclick="javascript:onGradientPasteSubmit();">Use This Gradient</button>
 		</td>
 	</tr>

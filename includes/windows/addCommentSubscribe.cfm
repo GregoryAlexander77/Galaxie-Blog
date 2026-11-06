@@ -486,7 +486,9 @@ This section has been completely redesigned by Gregory --->
 		</tr>
 		<tr height="35px" class="k-content">
 			<td>
+				<!--- Formatting buttons, hint and preview for comments (5.03), not for the contact form. --->
 				<textarea name="comments" id="comments" rows="5" cols="25" style="height: #textAreaHeight#; width:<cfoutput>#textInputWidth#</cfoutput>; font-family: 'Arial', Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', 'DejaVu Sans', Verdana, 'sans-serif'" required validationMessage="<cfif URL.uiElement eq 'contact'>Enter your message.<cfelse>Enter comment.</cfif>"></textarea>
+				<cfif URL.uiElement eq 'addComment'><cfinclude template="../templates/commentFormatting.cfm"></cfif>
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->
@@ -651,8 +653,10 @@ This section has been completely redesigned by Gregory --->
 			</td>
 			<td width="5px"></td>
 			<td align="left">
+				<!--- Formatting buttons, hint and preview for comments (5.03), not for the contact form. --->
 				<textarea name="comments" id="comments" rows="5" cols="45" style="height:250px; width:66%;" required 
 						  validationMessage="<cfif URL.uiElement eq 'contact'>Enter your message.<cfelse>Enter comments.</cfif>"></textarea>
+				<cfif URL.uiElement eq 'addComment'><cfinclude template="../templates/commentFormatting.cfm"></cfif>
 			</td>
 		</tr>
 	</cfif><!---<cfif URL.uiElement neq 'subscribe'>--->

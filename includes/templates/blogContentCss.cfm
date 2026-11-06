@@ -581,6 +581,19 @@
 		  display: block;
 		}
 
+		/* The author's picture in a small circle before "by ..." on post cards and the post byline (2026-11-04). Computers only. */
+		img.authorPicture {
+		  width: 20px;
+		  height: 20px;
+		  border-radius: 50%;
+		  object-fit: cover;
+		  vertical-align: middle;
+		  margin: 0 6px 2px 0;
+		}
+		@media (max-width: 767px) {
+		  img.authorPicture { display: none; }
+		}
+
 		.blogPost p.postAuthor {
 		  <!--- background: transparent url(images/post-info.png) no-repeat left top; --->
 		  margin: 0 0 0 <cfif session.isMobile>43<cfelse>0</cfif>px;

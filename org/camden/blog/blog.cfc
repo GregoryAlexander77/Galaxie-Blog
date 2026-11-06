@@ -1696,12 +1696,15 @@
 				</cfoutput>
 			</cfsavecontent>
 
-			<!--- The recipients: the blog owner, and the developer address when one is set in blog.ini.cfm (developerEmail). Empty addresses are left out. --->
+			<!--- The recipients: the blog owner, and the developer address (blog.ini.cfm developerEmail) only when the owner has ticked
+			"Send a copy to Galaxie Blog's developer" in Blog Options (2026-11-04, off unless ticked), and never for a request that looks
+			like a bot probing for files that don't exist (ErrorDigest.cfc isBotError). Empty addresses are left out. --->
 			<cfset errorMessageRecipients = "">
 			<cfif len(trim(application.BlogDbObj.getBlogEmail()))>
 				<cfset errorMessageRecipients = listAppend(errorMessageRecipients, trim(application.BlogDbObj.getBlogEmail()))>
 			</cfif>
-			<cfif len(trim(application.developerEmailAddress)) and not listFindNoCase(errorMessageRecipients, trim(application.developerEmailAddress))>
+			<cfif developerCopyOn() and not isBotErrorSafe(arguments.errorMessage, arguments.errorType)
+				and len(trim(application.developerEmailAddress)) and not listFindNoCase(errorMessageRecipients, trim(application.developerEmailAddress))>
 				<cfset errorMessageRecipients = listAppend(errorMessageRecipients, trim(application.developerEmailAddress))>
 			</cfif>
 
@@ -1732,6 +1735,25 @@
 			
 	</cffunction>
 					
+	<cffunction name="developerCopyOn" access="public" returnType="boolean" output="false" hint="Whether error emails also go to Galaxie Blog's developer (2026-11-04): the owner's choice in Blog Options, off unless ticked. Read once and kept in application.galaxieDeveloperCopy; Blog Options clears it when saved.">
+		<cfif not structKeyExists(application, "galaxieDeveloperCopy")>
+			<cftry>
+				<cfset application.galaxieDeveloperCopy = application.events.getSetting(0, "developerCopy", "0") eq "1">
+				<cfcatch type="any"><cfreturn false></cfcatch>
+			</cftry>
+		</cfif>
+		<cfreturn application.galaxieDeveloperCopy>
+	</cffunction>
+
+	<cffunction name="isBotErrorSafe" access="private" returnType="boolean" output="false" hint="ErrorDigest.cfc isBotError, and true (treat it as a bot: no copy to the developer) if the error summary kept in memory is an older copy without it.">
+		<cfargument name="message" type="string" required="true">
+		<cfargument name="type" type="string" required="false" default="">
+		<cftry>
+			<cfreturn getErrorDigest().isBotError(arguments.message, arguments.type)>
+			<cfcatch type="any"><cfreturn true></cfcatch>
+		</cftry>
+	</cffunction>
+
 	<cffunction name="getErrorDigest" access="public" returnType="any" output="false" hint="The nightly error summary (common/cfc/ErrorDigest.cfc, 2026-10-18), created on first use and kept in application.errorDigest.">
 		<cfif not structKeyExists(application, "errorDigest")>
 			<cflock name="galaxieErrorDigestCreate_#application.applicationName#" type="exclusive" timeout="10">
@@ -1774,6 +1796,16 @@
 			</cflock>
 		</cfif>
 		<cfreturn variables.themeEditorObj>
+	</cffunction>
+
+	<cffunction name="clearMovingHeroOnPost" access="public" returnType="void" output="false"
+			hint="Takes the post's own moving hero (its scene post-hero-{postId}) off a Post entity that is getting a picture, video, map, carousel, gradient or animation hero (last hero wins, owner 11-05) (11-05, owner: a post had both, and the moving hero hid the new picture). Changes the entity's header only, so it saves with the caller's own entitySave, inside the caller's transaction. A full-page scene is left alone.">
+		<cfargument name="post" type="any" required="true" hint="A Post entity.">
+		<cfset var header = arguments.post.getPostHeader() ?: "">
+		<cfset var movingHeroDirective = "\s*<galaxieScene>\s*post-hero-" & arguments.post.getPostId() & "\s*</galaxieScene>">
+		<cfif reFindNoCase(movingHeroDirective, header)>
+			<cfset arguments.post.setPostHeader(trim(reReplaceNoCase(header, movingHeroDirective, "", "all")))>
+		</cfif>
 	</cffunction>
 
 	<cffunction name="getScenes" access="public" returnType="any" output="false" hint="Galaxie 5 scenes in the database (common/cfc/Scenes.cfc, 2026-10-19), created on first use. Kept in this component rather than the application scope, so a reinit (which makes a new application.blog) picks up a changed Scenes.cfc.">
@@ -2573,7 +2605,8 @@
 			<cfcase value="BannedBy"><cfset local.sortColumn = "CASE WHEN IpAddress.Ban = true AND HttpUserAgent.Ban = true THEN 2 WHEN IpAddress.Ban = true THEN 1 WHEN HttpUserAgent.Ban = true THEN 0 ELSE -1 END"></cfcase>
 			<cfcase value="BanReason"><cfset local.sortColumn = "coalesce(IpAddress.Note, HttpUserAgent.Note)"></cfcase>
 			<cfcase value="BannedDate"><cfset local.sortColumn = "coalesce(IpAddress.BanDate, HttpUserAgent.BanDate)"></cfcase>
-			<cfdefaultcase><cfset local.sortColumn = "AnonymousUser.AnonymousUserId"></cfdefaultcase>
+			<!--- The newest ban first (owner 11-02); it was the newest visitor. --->
+			<cfdefaultcase><cfset local.sortColumn = "coalesce(IpAddress.BanDate, HttpUserAgent.BanDate)"></cfdefaultcase>
 		</cfswitch>
 
 		<cfquery name="Data" dbtype="hql" ormoptions="#{maxresults=5000}#">
@@ -2642,7 +2675,7 @@
 					)
 				)
 			</cfif>
-			ORDER BY #local.sortColumn# #local.sortDirection#
+			ORDER BY #local.sortColumn# #local.sortDirection#, AnonymousUser.AnonymousUserId DESC
 		</cfquery>
 		<cfreturn Data>
 	</cffunction>
@@ -6420,16 +6453,22 @@
 		<cfargument name="heroOverlayTextColor" type="string" required="false" default="">
 		<cfargument name="heroOverlayFont" type="string" required="false" default="">
 		<cfargument name="heroOverlayFontSize" type="string" required="false" default="">
+		<!--- 11-03: the Hero text window owns the heading now; the gradient and animation editors no longer send it, so keep it. --->
+		<cfargument name="keepHeroText" type="boolean" required="false" default="false">
 		<cfset var post = entityLoadByPK("Post", arguments.postId)>
 		<cftransaction>
 			<cfset post.setEnclosureMedia(javaCast("null",""))>
 			<cfset post.setEnclosureMap(javaCast("null",""))>
 			<cfset post.setEnclosureCarousel(javaCast("null",""))>
+			<!--- Last hero wins (11-05, owner): a gradient replaces the post's moving hero too. --->
+			<cfif len(trim(arguments.heroGradient))><cfset clearMovingHeroOnPost(post)></cfif>
 			<cfset post.setHeroGradient(arguments.heroGradient)>
-			<cfset post.setHeroOverlayText(arguments.heroOverlayText)>
-			<cfset post.setHeroOverlayTextColor(arguments.heroOverlayTextColor)>
-			<cfset post.setHeroOverlayFont(arguments.heroOverlayFont)>
-			<cfset post.setHeroOverlayFontSize(arguments.heroOverlayFontSize)>
+			<cfif not arguments.keepHeroText>
+				<cfset post.setHeroOverlayText(arguments.heroOverlayText)>
+				<cfset post.setHeroOverlayTextColor(arguments.heroOverlayTextColor)>
+				<cfset post.setHeroOverlayFont(arguments.heroOverlayFont)>
+				<cfset post.setHeroOverlayFontSize(arguments.heroOverlayFontSize)>
+			</cfif>
 			<cfset post.setHeroAnimationEffect("")>
 			<cfset post.setHeroAnimationOptions("")>
 			<cfset EntitySave(post)>
@@ -6457,16 +6496,22 @@
 		<cfargument name="heroOverlayTextColor" type="string" required="false" default="">
 		<cfargument name="heroOverlayFont" type="string" required="false" default="">
 		<cfargument name="heroOverlayFontSize" type="string" required="false" default="">
+		<!--- 11-03: the Hero text window owns the heading now; the gradient and animation editors no longer send it, so keep it. --->
+		<cfargument name="keepHeroText" type="boolean" required="false" default="false">
 		<cfset var post = entityLoadByPK("Post", arguments.postId)>
 		<cftransaction>
 			<cfset post.setEnclosureMedia(javaCast("null",""))>
 			<cfset post.setEnclosureMap(javaCast("null",""))>
 			<cfset post.setEnclosureCarousel(javaCast("null",""))>
+			<!--- Last hero wins (11-05, owner): an animation replaces the post's moving hero too. --->
+			<cfif len(trim(arguments.animationEffect))><cfset clearMovingHeroOnPost(post)></cfif>
 			<cfset post.setHeroGradient("")>
-			<cfset post.setHeroOverlayText(arguments.heroOverlayText)>
-			<cfset post.setHeroOverlayTextColor(arguments.heroOverlayTextColor)>
-			<cfset post.setHeroOverlayFont(arguments.heroOverlayFont)>
-			<cfset post.setHeroOverlayFontSize(arguments.heroOverlayFontSize)>
+			<cfif not arguments.keepHeroText>
+				<cfset post.setHeroOverlayText(arguments.heroOverlayText)>
+				<cfset post.setHeroOverlayTextColor(arguments.heroOverlayTextColor)>
+				<cfset post.setHeroOverlayFont(arguments.heroOverlayFont)>
+				<cfset post.setHeroOverlayFontSize(arguments.heroOverlayFontSize)>
+			</cfif>
 			<cfset post.setHeroAnimationEffect(arguments.animationEffect)>
 			<cfset post.setHeroAnimationOptions(arguments.animationOptions)>
 			<cfset EntitySave(post)>
@@ -7891,7 +7936,9 @@
 			<cfif arguments.date neq ''>
 				AND Tag.Date LIKE <cfqueryparam value="%#arguments.date#%">
 			</cfif>
-				AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#			
+				AND Tag.BlogRef = #application.BlogDbObj.getBlogId()#
+			<!--- In name order (11-02): there was no order, so the Tags grid showed them as the database returned them. --->
+			ORDER BY Tag.Tag
 		</cfquery>
 		<!---<cfdump var="#getCategories#">--->
 
@@ -9051,7 +9098,7 @@
 			<cfset post = reply.getPostRef()>
 			<cfset link = makeLink(post.getPostId()) & "##c" & reply.getCommentId()>
 			<cfsavecontent variable="body"><cfoutput><p>#encodeForHtml(fromName)# replied to your comment on <a href="#link#">#encodeForHtml(post.getTitle())#</a>:</p>
-<blockquote style="margin: 0 0 1em 0; padding: 8px 14px; border-left: 4px solid ##cccccc;">#reply.getComment()#</blockquote>
+<blockquote style="margin: 0 0 1em 0; padding: 8px 14px; border-left: 4px solid ##cccccc;">#application.Udf.formatComment(reply.getComment())#</blockquote>
 <p><a href="#link#">Read the reply and join the conversation</a></p></cfoutput></cfsavecontent>
 			<cfset body = createObject("component", application.rendererComponentPath).renderEmail(email = toEmail, emailTitle = fromName & " replied to your comment", emailTitleLink = link, emailDesc = post.getTitle(), emailBody = body, callToActionText = "Read the reply", callToActionLink = link)>
 			<cfset variables.utils.mail(to = toEmail, subject = fromName & " replied to your comment on " & post.getTitle(), body = body, cc = "")>
@@ -9191,7 +9238,8 @@
 				AND Subscriber.Active = <cfqueryparam value="#arguments.active#" cfsqltype="cf_sql_bit">
 			</cfif>
 				AND Subscriber.BlogRef = #application.BlogDbObj.getBlogId()#
-			ORDER BY Subscriber.SubscriberEmail
+			<!--- The newest subscriber first, for the Subscribers grid (owner 11-02). The other callers look up one subscriber or send to all. --->
+			ORDER BY Subscriber.Date DESC, Subscriber.SubscriberId DESC
 		</cfquery>
 
 		<cfreturn Data>
@@ -9858,11 +9906,12 @@
 				IpAddress as IpAddress ON AnonymousUser.IpAddressRef = IpAddress.IpAddressId INNER JOIN
 				HttpUserAgent as HttpUserAgent ON AnonymousUser.HttpUserAgentRef = HttpUserAgent.HttpUserAgentId
 			WHERE 0=0
-			<cfif len(arguments.postId) and isSimpleValue(arguments.postId) and isNumeric("arguments.postId")>
-				AND PostRating.PostRef = #arguments.postId#
+			<!--- isNumeric was given the names in quotes, which are never numbers, so these two filters never applied (fixed 11-02). --->
+			<cfif isSimpleValue(arguments.postId) and len(arguments.postId) and isNumeric(arguments.postId)>
+				AND PostRating.PostRef = <cfqueryparam value="#arguments.postId#" cfsqltype="integer">
 			</cfif>
-			<cfif len(arguments.anonymousUserId) and isSimpleValue(arguments.anonymousUserId) and isNumeric("arguments.anonymousUserId")>
-				AND PostRating.AnonymousUserRef = #arguments.anonymousUserId#
+			<cfif isSimpleValue(arguments.anonymousUserId) and len(arguments.anonymousUserId) and isNumeric(arguments.anonymousUserId)>
+				AND PostRating.AnonymousUserRef = <cfqueryparam value="#arguments.anonymousUserId#" cfsqltype="integer">
 			</cfif>
 			<cfif len(arguments.postTitle)>
 				AND Post.Title = <cfqueryparam value="#arguments.postTitle#" cfsqltype="varchar">
@@ -9882,6 +9931,8 @@
 			<cfif len(arguments.unhelpful)>
 				AND PostRating.Unhelpful = <cfqueryparam value="#arguments.unhelpful#" cfsqltype="bit">
 			</cfif>
+			<!--- The newest reaction first (owner 11-02). --->
+			ORDER BY PostRating.Date DESC, PostRating.PostRatingId DESC
 		</cfquery>
 				
 		<cfreturn Data>
@@ -10991,6 +11042,7 @@
 				User.UserId as UserId,
 				User.FullName as FullName,
 				User.DisplayName as DisplayName,
+				User.ProfilePicture as ProfilePicture,
 				User.Email as Email,
 				Post.ThemeRef as ThemeRef,
 				Post.PostUuid as PostUuid,
@@ -11129,6 +11181,8 @@
 					<cfelse>
 						<cfset PostStruct["DisplayName"] = "">
 					</cfif>
+					<!--- The author's picture, for the small circle by the byline (2026-11-04). Not every author has one, and a null leaves the key out. --->
+					<cfset PostStruct["ProfilePicture"] = structKeyExists(postRow, "ProfilePicture") ? postRow["ProfilePicture"] : "">
 					<cfset PostStruct["Email"] = Data[i]["Email"]>
 					<cfset PostStruct["PostId"] = Data[i]["PostId"]>
 					<!--- The theme id may not be present. its optional. --->
@@ -13180,6 +13234,8 @@
 				<cfif arguments.enclosure>
 					<!--- Set the enclosureMedia column. Note: this is a psuedo name. The actual column is Post.EnclosureMediaRef --->
 					<cfset PostDbObj.setEnclosureMedia(MediaDbObj)>
+					<!--- A new picture or video hero takes the place of the post's moving hero (11-05). --->
+					<cfset clearMovingHeroOnPost(PostDbObj)>
 					
 					<!--- Remove all other enclosure types --->
 					<!--- Set the enclosureMap column to null. --->
@@ -13332,6 +13388,8 @@
 				<!--- If this is an enclosure, populate the enclosure column with the mediaId --->
 				<!--- Note: this is a psuedo name. The actual column is Post.EnclosureMediaRef --->
 				<cfset PostDbObj.setEnclosureMedia(MediaDbObj)>
+				<!--- A new picture or video hero takes the place of the post's moving hero (11-05). --->
+				<cfset clearMovingHeroOnPost(PostDbObj)>
 					
 				<!--- Remove other enclosures --->
 				<cfset PostDbObj.setEnclosureMap(javaCast("null",""))>
@@ -13668,6 +13726,8 @@
 				<cfif arguments.isEnclosure>
 					<!--- Set the enclosureMap. The actual column is Post.EnclosureMapRef. --->
 					<cfset PostDbObj.setEnclosureMap(MapDbObj)>
+					<!--- A map hero takes the place of the post's moving hero (11-05). --->
+					<cfset clearMovingHeroOnPost(PostDbObj)>
 
 					<!--- Remove other enclosures --->
 					<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
@@ -13805,6 +13865,8 @@
 				<cfif arguments.isEnclosure>
 					<!--- Set the enclosureMap. The actual column is Post.EnclosureMapRef --->
 					<cfset PostDbObj.setEnclosureMap(MapDbObj)>
+					<!--- A map hero takes the place of the post's moving hero (11-05). --->
+					<cfset clearMovingHeroOnPost(PostDbObj)>
 					
 					<!--- Remove other enclosures --->
 					<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
@@ -14299,6 +14361,8 @@
 			</cfif>
 				AND Active = <cfqueryparam value="1">
 				AND BlogRef = #application.BlogDbObj.getBlogId()#
+			<!--- In name order (11-02): there was no order before. --->
+			ORDER BY User.FullName
 		</cfquery>
 
 		<cfreturn Data>

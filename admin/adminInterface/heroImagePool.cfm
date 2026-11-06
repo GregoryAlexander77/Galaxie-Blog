@@ -117,6 +117,10 @@ this is just what lets the button disable itself instead of waiting on a server 
 
 		$(document).on("click", ".heroImagePoolDeleteBtn", function() {
 			var carouselItemId = $(this).data("id");
+			<!--- Asks first (owner 11-02). --->
+			galaxieConfirm("Remove this picture?", "It comes out of the hero picture pool.", function () { removeHeroPoolItem(carouselItemId); });
+		});
+		function removeHeroPoolItem(carouselItemId) {
 			$("#heroImagePoolStatus").text("Removing...");
 			$.ajax({
 				url: '<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteHeroImagePoolItem&csrfToken=<cfoutput>#csrfToken#</cfoutput>&carouselItemId=' + carouselItemId,
@@ -130,7 +134,7 @@ this is just what lets the button disable itself instead of waiting on a server 
 					$("#heroImagePoolStatus").text("Could not remove that image.");
 				}
 			});
-		});
+		}
 
 	});
 </script>

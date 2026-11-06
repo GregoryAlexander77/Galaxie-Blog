@@ -538,6 +538,15 @@ var galaxieLoader = (function() {
 				getScript('#application.baseUrl#/common/js/members.js?v=#encodeForUrl(application.membersJsVersion)#').done(ready);
 			}, callback);
 		},
+		<!--- TinyMCE for the comment box (5.03, owner 11-02): fetched only when the comment window opens. Signed-in admins already
+		have it in the head. tinyMCEPreInit tells it where its skins and plugins are, since it isn't loaded from a script tag. --->
+		tinymce: function(callback) {
+			whenReady('tinymce', function(ready) {
+				if (window.tinymce && window.tinymce.init) { ready(); return; }
+				window.tinyMCEPreInit = { base: '#application.baseUrl#/common/libs/tinymce', suffix: '.min', query: '' };
+				getScript('#application.baseUrl#/common/libs/tinymce/tinymce.min.js').done(ready);
+			}, callback);
+		},
 		prism: function(callback) {
 			whenReady('prism', function(ready) {
 				addCss('#application.baseUrl#/common/libs/prism/prism.min.css');

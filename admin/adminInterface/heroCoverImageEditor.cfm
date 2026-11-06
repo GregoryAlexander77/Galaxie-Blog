@@ -10,9 +10,7 @@ mediaProcessType=heroCoverImage&postId=... baked in, so the upload itself - via 
 dialog or the Uppy bridge, window 81 - is the save; no separate submit step) - but unlike that file, includes
 the #imageQualitySlider Kendo Slider UI (same markup/init as enclosureImageEditor.cfm's own), since there's no
 reason a Hero Cover Image upload shouldn't get the same per-upload quality control every other enclosure image
-upload already has. --->
-<cfparam name="defaultImageQuality" default="">
-<cfset defaultImageQuality = application.BlogOptionDbObj.getDefaultImageQuality()>
+upload already has. The slider itself moved to the top of the Upload Image window, window 81 (11-05, owner). --->
 
 <!--- Instantiate the Render.cfc. This will be used to build the HTML for the image if HeroCoverImageUrl is present. --->
 <cfobject component="#application.rendererComponentPath#" name="RendererObj">
@@ -37,30 +35,27 @@ upload already has. --->
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
 	}
-	<!--- Same "smaller file <-> higher quality" gradient cue as enclosureImageEditor.cfm's own slider. --->
-	#imageQualitySlider .k-slider-track {
-		background: linear-gradient(to right, #d9534f, #f0ad4e, #5cb85c) !important;
-		height: 6px;
-	}
 </style>
 
 <script>
-	$(document).ready(function() {
-		$("#imageQualitySlider").kendoSlider({
-			min: 0.1,
-			max: 1.0,
-			value: <cfoutput>#defaultImageQuality#</cfoutput>,
-			smallStep: 0.05,
-			largeStep: 0.1,
-			tickPlacement: "none",
-			showButtons: false,
-			tooltip: { format: "{0:p0}" }
-		});
-	});
-
 	function onHeroCoverImageSubmit(){
+		<!--- The picture deleted from the editor removes the cover, after asking (11-05, owner: deleting it in the preview did nothing). --->
+		var coverEditor = window.tinymce && tinymce.get($("#heroCoverImageWindow textarea").first().attr("id"));
+		if (<cfoutput>#len(mediaUrl) ? "true" : "false"#</cfoutput> && coverEditor && !$(coverEditor.getBody()).find("img").length && !onHeroCoverImageSubmit.removing) {
+			galaxieConfirm("Remove the cover?", "Cards and sharing will use the hero picture if the post has one, or your theme's logo.", function () {
+				onHeroCoverImageSubmit.removing = true;
+				jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removeHeroCoverImage", dataType: "json",
+					data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: <cfoutput>#val(URL.optArgs)#</cfoutput> } })
+					.always(function () { onHeroCoverImageSubmit(); onHeroCoverImageSubmit.removing = false; });
+			});
+			return;
+		}
 		<!--- Refresh the media preview - pass in the postId --->
 		reloadEnclosureThumbnailPreview(<cfoutput>#URL.optArgs#</cfoutput>);
+		<!--- And the Hero window's preview, when this was opened from it (11-04: the new cover didn't show there). --->
+		if (typeof window.galaxieRefreshHeroEditorPreview === "function") { window.galaxieRefreshHeroEditorPreview(); }
+		<!--- And anything else showing the cover, such as the Moving hero wizard's cover step (11-04). --->
+		$(document).trigger("galaxieHeroCoverSaved");
 		<!--- Use a quick set timeout in order for the data to load. --->
 		setTimeout(function() {
 			<!--- Close this window --->
@@ -83,11 +78,14 @@ upload already has. --->
 <cfset imageMediaIdField = "imageMediaId">
 <cfset imageClass = "entryImage">
 
-<cfif session.isMobile>
-	<cfset toolbarString = "undo redo | image | editimage">
-<cfelse>
-	<cfset toolbarString = "undo redo | image | editimage">
-</cfif>
+<!--- Edit picture pops up over the picture when it is clicked (11-05, owner: no ribbon button; the hint below says so). --->
+<cfset toolbarString = "undo redo | image">
+<!--- No TinyMCE picture tools here (11-05, owner): rotating the preview uploaded a picture of it as the hero, and it took the
+moving hero off the post. The previews here aren't the real files (a scene's still, a cover drawn as a background), so the tools
+are off, and Edit picture on the ribbon opens the real picture in the Upload Image window's editor instead. --->
+<cfset pluginList = "'advlist autolink lists hr link image charmap print preview anchor', 'searchreplace visualblocks code codesample fullscreen', 'insertdatetime media table paste wordcount iconfonts textpattern toc emoticons nonbreaking'">
+<cfset includeEditPicture = true>
+<cfset editPictureTarget = "cover">
 <cfset includeGallery = false>
 </cfsilent>
 <!--- Include the tinymce js template --->
@@ -108,6 +106,7 @@ upload already has. --->
   <tr valign="middle">
 	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
 		<span>A real photo to show on cards, listings, and when this post is shared on social media - for a post whose hero is a Gradient, a live Animation, or the auto-generated fallback art (none of which have a real photo of their own to show there). When set, this always takes priority over the Gradient/Animation on cards and social sharing, but never on this post's own page - the live Gradient/Animation there is unaffected. If the post has a real Image/Video/Map/Carousel enclosure instead, that enclosure is used everywhere and this cover image is ignored.</span>
+		<div class="k-form-hint">Click the picture to crop, rotate or flip it.</div>
 	</td>
   </tr>
   <cfsilent>
@@ -126,34 +125,6 @@ upload already has. --->
 		</div>
 	</td>
   </tr>
-  <cfsilent>
-  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-  </cfsilent>
-  <tr height="2px">
-	  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-  </tr>
-  <!-- Quality slider -->
-  <!--- On a phone the label gets its own line and the slider fills the width, up to 260px (2026-10-31, owner: a fixed 260px
-  slider beside the label ran off the right of the screen). --->
-  <cfif session.isMobile>
-  <tr valign="middle">
-	<td align="left" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 6px 12px 0 12px;">Image Quality</td>
-  </tr>
-  <tr valign="middle">
-	<td align="left" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 6px 12px;">
-		<div id="imageQualitySlider" style="width: 100%; max-width: 260px;"></div>
-		<span class="k-form-hint">Left = smaller file, right = sharper image.</span>
-	</td>
-  </tr>
-  <cfelse>
-  <tr valign="middle">
-	<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">Image Quality</td>
-	<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 6px 12px;">
-		<div id="imageQualitySlider" style="width: 260px;"></div>
-		<span class="k-form-hint">Left = smaller file, right = sharper image.</span>
-	</td>
-  </tr>
-  </cfif>
   <cfsilent>
   <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
   </cfsilent>

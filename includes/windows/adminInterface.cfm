@@ -116,6 +116,12 @@ TinyMce styles
 	.modal {
 		z-index: 30040;
 	}
+
+	<!--- A ribbon button drawn with a Font Awesome icon keeps its color when TinyMCE disables it; grey it like Kendo's disabled
+	look (11-05, owner: Edit picture greyed out for a picture linked from another site). --->
+	.tox .tox-tbtn--disabled .fontAwesomeIcon {
+		opacity: .4;
+	}
 	.modal-backdrop {
 		z-index: 30030;
 	}
@@ -1230,6 +1236,16 @@ for everything in the log). A site opens the Visitor Log (48) with its visits. -
 		<cfinclude template="../grids/jsGrid/trafficSources.cfm">
 	</cfif>
 </cfcase>
+<!--- 119 Moving hero wizard (11-04, owner): the post's moving hero, one step at a time. optArgs is the postId. Opened from the Hero
+window (enclosureImageEditor.cfm galaxieOpenMovingHero). --->
+<cfcase value=119>
+	<cfinclude template="../../admin/adminInterface/movingHeroWizard.cfm">
+</cfcase>
+<!--- 120 Hero style (11-04, owner): a post's hero style cards, moved out of the Hero window. optArgs is the postId. --->
+<cfcase value=120>
+	<cfinclude template="../../admin/adminInterface/postHeroStyle.cfm">
+</cfcase>
+
 <!--- 118 Email Log (2026-10-31, owner): what the blog sent in the last 90 days (EmailLog.cfc). Read-only. --->
 <cfcase value=118>
 	<cfif application.kendoCommercial>

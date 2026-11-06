@@ -155,7 +155,8 @@
 			<cfcontinue>
 		</cfif>
 		<cfset total += delta>
-		<cfif reFindNoCase(variables.botPatterns, rows.ErrorMessage)>
+		<!--- Bots: by the message, and (2026-11-04) Lucee's missing page errors (missinginclude), whose message the patterns miss. --->
+		<cfif isBotError(rows.ErrorMessage, rows.ErrorType)>
 			<cfset bots.count += delta>
 			<cfset bots.distinct++>
 		<cfelse>
@@ -199,7 +200,7 @@
 			</cfif>
 			<p>All the details, with stack traces, are in the <a href="#application.blogHostUrl#/admin/">Error Log</a>. You get this summary once a night at most, and only when there were errors; change it in Blog Options.</p>
 		</cfoutput></cfsavecontent>
-		<cfset result.sent = sendEmail("Galaxie Blog: #numberFormat(total)# error#total eq 1 ? '' : 's'#" & (newCount ? ", #newCount# new" : ""), "Errors since #dateTimeFormat(fromDate, 'mmm d')#", body)>
+		<cfset result.sent = sendEmail("Galaxie Blog: #numberFormat(total)# error#total eq 1 ? '' : 's'#" & (newCount ? ", #newCount# new" : ""), "Errors since #dateTimeFormat(fromDate, 'mmm d')#", body, arrayLen(items) gt 0)>
 	</cfif>
 
 	<!--- Remember the counts, so the next summary only counts what happened after this one. --->
@@ -215,10 +216,17 @@
 		Helpers
 //******************************************************************************************************--->
 
-<cffunction name="sendEmail" access="private" returntype="boolean" output="false" hint="Same recipients as the single error emails: the blog's email, and developerEmail from blog.ini.cfm when it is set.">
+<cffunction name="isBotError" access="public" returntype="boolean" output="false" hint="Whether an error looks like a bot probing for files and pages that don't exist, or sending bad values (2026-11-04): the same test the summary uses to count them apart. Those never go to the developer.">
+	<cfargument name="message" type="string" required="true">
+	<cfargument name="type" type="string" required="false" default="">
+	<cfreturn arguments.type eq "missinginclude" or reFindNoCase(variables.botPatterns, arguments.message) gt 0>
+</cffunction>
+
+<cffunction name="sendEmail" access="private" returntype="boolean" output="false" hint="Same recipients as the single error emails: the blog's email, and developerEmail from blog.ini.cfm when the owner ticked Send a copy to Galaxie Blog's developer (Blog Options, 2026-11-04).">
 	<cfargument name="subject" type="string" required="true">
 	<cfargument name="title" type="string" required="true">
 	<cfargument name="body" type="string" required="true">
+	<cfargument name="toDeveloper" type="boolean" required="false" default="true" hint="false: the owner only (a summary of nothing but bot probes).">
 	<cfset var recipients = "">
 	<cfset var blogEmail = trim(application.BlogDbObj.getBlogEmail())>
 	<cfset var emailBody = "">
@@ -227,7 +235,8 @@
 		<cfreturn false>
 	</cfif>
 	<cfset recipients = blogEmail>
-	<cfif len(trim(application.developerEmailAddress ?: "")) and not listFindNoCase(recipients, trim(application.developerEmailAddress))>
+	<cfif arguments.toDeveloper and application.blog.developerCopyOn()
+		and len(trim(application.developerEmailAddress ?: "")) and not listFindNoCase(recipients, trim(application.developerEmailAddress))>
 		<cfset recipients = listAppend(recipients, trim(application.developerEmailAddress))>
 	</cfif>
 	<cfset emailBody = createObject("component", application.rendererComponentPath).renderEmail(email = recipients, emailTitle = arguments.title, emailTitleLink = application.blogHostUrl & "/admin/", emailBody = arguments.body)>

@@ -200,7 +200,7 @@
 			<cfreturn true>
 		</cfif>
 
-		<!--- Errors are emailed to the blog owner (the email address in the blog settings) when Send Diagnostics is checked in the blog options. A copy also goes to the developer of Galaxie Blog, to help to find bugs. Only the error, its address and the stack trace are sent, no form values. To send the copy to somebody else, or to not send it, put developerEmail=name@example.com (or developerEmail= with nothing after it) in blog.ini.cfm. The file is only read when the application starts or is reinitialized. --->
+		<!--- Errors are emailed to the blog owner (the email address in the blog settings) when Send Diagnostics is checked in the blog options. A copy also goes to the developer of Galaxie Blog, to help to find bugs, but only when the owner ticks Send a copy to Galaxie Blog's developer in Blog Options (2026-11-04; off unless ticked, and never for bot probes - blog.cfc developerCopyOn). Only the error, its address and the stack trace are sent, no form values. To send the copy to somebody else, or to not send it, put developerEmail=name@example.com (or developerEmail= with nothing after it) in blog.ini.cfm. The file is only read when the application starts or is reinitialized. --->
 		<cfif not structKeyExists(application, "developerEmailAddress") or isDefined("URL.init") or isDefined("URL.reinit")>
 			<cfset application.developerEmailAddress = "gregoryalexander77@gmail.com">
 			<cftry>
@@ -270,6 +270,12 @@
 			<cfset application.serverSupportsWoff2 = serverSupportsWoff2(true)>
 			<!--- Point robots.txt at this blog's own sitemap (5.03). --->
 			<cfset updateRobotsTxt()>
+			<!--- Check the content indexes again on this start (DatabaseUpdater.cfc ensureContentIndexes; done once per blog). --->
+			<cfset structDelete(application, "contentIndexesChecked")>
+			<!--- The error summary and the developer copy setting are kept in memory: made again after a reinit, so uploaded changes to
+			ErrorDigest.cfc are used at once (2026-11-04), not only after the server restarts. --->
+			<cfset structDelete(application, "errorDigest")>
+			<cfset structDelete(application, "galaxieDeveloperCopy")>
 
 			<!--- Flush our cache. It will not exist when first installing the blog --->
 			<cftry>
@@ -736,6 +742,22 @@
 				</cfcatch>
 			</cftry>
 			<cfset application.dbBlogVersion = application.blog.getVersion()>
+		</cfif>
+		<!--- The indexes the posts, comments, scenes, forms, bookings, shop and members tables need (2026-11-04, owner; see
+		DatabaseUpdater.cfc ensureContentIndexes): on a new install and, for a blog that already exists, on its next start. Done
+		once; while some of the tables haven't been made yet (they are made when their feature is first used), again on later
+		starts until they have their indexes too. Never stops the start. This code runs on every request, so the check is made
+		once per application start (application.contentIndexesChecked), not on every page. --->
+		<cfif not structKeyExists(application, "contentIndexesChecked") and isBoolean(application.installed ?: "") and application.installed>
+			<cfset application.contentIndexesChecked = true>
+			<cftry>
+				<cfif application.events.getSetting(0, "contentIndexes", "") neq "1">
+					<cfif application.databaseUpdater.ensureContentIndexes() eq 0>
+						<cfset application.events.setSetting(0, "contentIndexes", "1")>
+					</cfif>
+				</cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
 		</cfif>
 		<!--- //****************************************************************************************
 				User defined settings.

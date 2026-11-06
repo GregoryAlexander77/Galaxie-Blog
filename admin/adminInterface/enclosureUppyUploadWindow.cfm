@@ -16,17 +16,23 @@
 	<cfset postId = URL.optArgs>
 	<cfset imageHandlerUrl = application.baseUrl & "/common/cfc/ProxyController.cfc?method=uploadImage&mediaProcessType=enclosure&mediaType=image&postId=" & postId & "&selectorId=enclosureEditor&csrfToken=" & csrfToken>
 
+	<!--- The Image Quality slider and its size estimate, at the top (11-05, owner). --->
+	<cfset sliderId = "enclosureUploadQualitySlider">
+	<cfinclude template="uploadQualitySlider.cfm">
+
 	<div id="standaloneEnclosureUppyUpload" style="padding: 12px;"></div>
 
 	<script>
-		<!--- The quality slider lives in the parent postEnclosureWindow's own DOM (#imageQualitySlider, rendered by
-		enclosureImageEditor.cfm) - this is a separate Kendo window on the same page, not a separate document, so a
-		plain jQuery selector reaches it directly with no extra wiring needed. --->
 		createStandaloneUppyUploadWindow({
 			containerId: 'standaloneEnclosureUppyUpload',
 			endpoint: '<cfoutput>#imageHandlerUrl#</cfoutput>',
 			windowSelector: 'enclosureUppyUploadWindow',
-			qualitySliderSelector: '#imageQualitySlider',
-			onComplete: function() { onPostEnclosureSubmit(); }
+			qualitySliderSelector: '#enclosureUploadQualitySlider',
+			qualityEstimateSelector: '#enclosureUploadQualitySliderEstimate',
+			<!--- Then the cover check (11-05, owner): a picture hero leaves an old cover unused, and the page asks whether to remove it. --->
+			onComplete: function() {
+				onPostEnclosureSubmit();
+				setTimeout(function () { galaxieCoverImageReminder(<cfoutput>#val(postId)#</cfoutput>, '<cfoutput>#csrfToken#</cfoutput>'); }, 800);
+			}
 		});
 	</script>

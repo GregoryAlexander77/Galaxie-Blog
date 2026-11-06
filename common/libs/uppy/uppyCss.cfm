@@ -3454,3 +3454,28 @@ a.uppy-Dashboard-poweredBy {
   outline: 2px solid #39f
 }
 </style>
+<!--- Galaxie (11-05, owner): the image editor's tool bar (rotate, flip, zoom, crop shapes) sat over the bottom of the picture
+and was hard to see. It is now its own strip above the picture: in the flow of the editor's column, first in order. --->
+<style>
+.uppy-ImageCropper-controls {
+  position: static;
+  transform: none;
+  -ms-flex-order: -1;
+  order: -1;
+  align-self: center;
+  margin: 6px auto;
+  border-radius: 4px
+}
+/* The picture fits the space left under the strip (11-05, owner: the picture was cut off). Uppy sized it for a toolbar floating
+   over the picture: up to 400px tall, more than the editor has once the toolbar takes its own row. */
+.uppy-ImageCropper-container {
+  -ms-flex: 1 1 0px;
+  flex: 1 1 0px;
+  min-height: 0;
+  overflow: hidden;
+  position: relative
+}
+.uppy-ImageCropper-image {
+  max-height: 100%
+}
+</style>

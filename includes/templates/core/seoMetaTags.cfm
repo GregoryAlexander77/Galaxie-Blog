@@ -102,20 +102,27 @@
 				<cfset shareSourceUrl = getPost[1]["MediaUrl"]>
 			<cfelseif len(getPost[1]["HeroCoverImageUrl"])>
 				<cfset shareSourceUrl = getPost[1]["HeroCoverImageUrl"]>
+			<!--- A video's own cover (its poster) when the post has no Hero Cover Image (11-05, owner): one picture for both. --->
+			<cfelseif len(getPost[1]["MediaVideoCoverUrl"] ?: "")>
+				<cfset shareSourceUrl = getPost[1]["MediaVideoCoverUrl"]>
 			</cfif>
 			<cfif len(shareSourceUrl)>
 				<cfscript>
 					shareFileName = getFileFromPath(shareSourceUrl);
+					// The folder under /enclosures/ the picture is in ("videos/" for a video's poster, else none): its crops are kept in
+					// the same folder under each platform's folder (Image.cfc getSocialMediaDestination).
+					shareSubFolder = reReplaceNoCase(reReplaceNoCase(shareSourceUrl, "^.*?/enclosures/", ""), "[^/]+$", "");
+					if (!findNoCase("/enclosures/", shareSourceUrl)) { shareSubFolder = ""; }
 					shareFileNoExt = reReplaceNoCase(shareFileName, "\.[^.]+$", "");
 					// One platform's crop: the picture's own format first, then WebP. Empty when neither file is there.
 					pickShareImage = function (required string folder) {
-						var webPath = application.baseUrl & "/enclosures/" & arguments.folder & "/";
+						var webPath = application.baseUrl & "/enclosures/" & arguments.folder & "/" & shareSubFolder;
 						var candidates = [];
 						if (!reFindNoCase("\.webp$", shareFileName)) { arrayAppend(candidates, shareFileName); }
 						arrayAppend(candidates, shareFileNoExt & ".webp");
 						for (var name in candidates) {
 							var localPath = expandPath(webPath & name);
-							if (fileExists(localPath)) { return { url: seoFileBaseUrl & "/enclosures/" & arguments.folder & "/" & name, path: localPath }; }
+							if (fileExists(localPath)) { return { url: seoFileBaseUrl & "/enclosures/" & arguments.folder & "/" & shareSubFolder & name, path: localPath }; }
 						}
 						return {};
 					};

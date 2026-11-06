@@ -474,7 +474,7 @@
 		<cfset saveFooter(arguments.footer)>
 	</cfif>
 	<cfset optionObj.setSetupHomeLayout(arguments.layout)>
-	<cfset optionObj.setPostHeroStyle(listFind("classic,held,band,magazine", arguments.heroStyle) ? arguments.heroStyle : "classic")>
+	<cfset optionObj.setPostHeroStyle(listFind("classic,held,band,magazine,parallax", arguments.heroStyle) ? arguments.heroStyle : "classic")>
 	<cfset entitySave(optionObj)>
 	<cfset ormFlush()>
 	<cfset application.BlogOptionDbObj = entityLoadByPK("BlogOption", optionObj.getBlogOptionId())>
@@ -735,6 +735,14 @@
 				<cfhttpparam type="formfield" name="email" value="#application.BlogDbObj.getBlogEmail()#">
 			</cfif>
 		</cfhttp>
+		<!--- When it was sent (2026-11-04), so Blog Options can say so: from the Site Wizard or from Blog Options' Say hello. --->
+		<cfif left(result.statusCode ?: "", 3) eq "200">
+			<cftry>
+				<cfset application.events.setSetting(0, "helloSentOn", dateFormat(application.blog.blogNow(), "yyyy-mm-dd"))>
+				<cfif arguments.addToCfblogs><cfset application.events.setSetting(0, "cfblogsSentOn", dateFormat(application.blog.blogNow(), "yyyy-mm-dd"))></cfif>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
+		</cfif>
 		<cfreturn left(result.statusCode ?: "", 3) eq "200">
 		<cfcatch type="any"><cfreturn false></cfcatch>
 	</cftry>

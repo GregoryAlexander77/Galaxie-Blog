@@ -264,7 +264,7 @@ the submissions already received - stay matched to it when the label changes. --
 
 		$("#webFormFieldsBody").on("click", ".webFormFieldUp", function() { var row = $(this).closest("tr"); row.prev().before(row); });
 		$("#webFormFieldsBody").on("click", ".webFormFieldDown", function() { var row = $(this).closest("tr"); row.next().after(row); });
-		$("#webFormFieldsBody").on("click", ".webFormFieldRemove", function() { $(this).closest("tr").remove(); });
+		$("#webFormFieldsBody").on("click", ".webFormFieldRemove", function() { var row = $(this).closest("tr"); galaxieConfirm("Remove this question?", "It comes off the form when you save. Answers already sent are kept.", function () { row.remove(); }); });
 		$("#webFormFieldsBody").on("change", ".webFormFieldLimitOn", function() { renderChoiceLimits($(this).closest("tr.webFormFieldRow")); });
 		$("#webFormFieldsBody").on("input", ".webFormFieldOptions", function() { renderChoiceLimits($(this).closest("tr.webFormFieldRow")); });
 		$("#webFormFieldsBody").on("input", ".webFormFieldLimit", function() { readChoiceLimits($(this).closest("tr.webFormFieldRow")); });

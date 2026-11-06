@@ -228,6 +228,7 @@
 				<cfset email = getPost[i]["Email"]>
 				<cfset fullName = getPost[i]["FullName"]>
 				<cfset displayName = getPost[i]["DisplayName"]>
+				<cfset authorPicture = structKeyExists(getPost[i], "ProfilePicture") ? trim(getPost[i]["ProfilePicture"]) : "">
 				<!--- Media (videos and images) --->
 				<cfset mediaType = getPost[1]["MediaType"]>
 				<!--- The mime type may not be available when using external sources due to forbidden errors when trying to read the file. --->
@@ -467,7 +468,7 @@
 							</table>
 							<p class="postAuthor">
 								<span class="info">
-									<cfif len(fullName) and not postIsBookingPage>by <a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
+									<cfif len(fullName) and not postIsBookingPage><cfif len(authorPicture)><img src="#encodeForHtmlAttribute(authorPicture)#" alt="" class="authorPicture" width="20" height="20" loading="lazy"></cfif>by <a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
 								</span>
 							</p>							
 						</cfif><!---<cfif session.isMobile>--->
@@ -996,7 +997,7 @@
 										 <tr class="#rowClass#">
 											<td<cfif isReply> class="galaxieCommentReply"</cfif>>
 												<img src="https://www.gravatar.com/avatar/#lcase(hash(lcase(commenterEmail)))#?s=64&amp;r=pg&amp;d=#application.blogHostUrl#/images/defaultAvatar.gif" title="#commenterFullName#'s Gravatar" alt="#commenterFullName#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"  />
-												#application.Udf.paragraphFormat2(comment)#
+												#application.Udf.formatComment(comment)#
 												<!--- Reply (2026-10-22): a reply to a reply joins the same thread. --->
 												<cfif allowComment><p class="galaxieCommentReplyLink"><button type="button" class="k-button" onclick="createAddCommentSubscribeWindow('#postId#', 'addComment', #session.isMobile#, #topComments[i]["CommentId"]#);" aria-label="Reply to #commenterFullName#">Reply</button></p></cfif>
 											</td>

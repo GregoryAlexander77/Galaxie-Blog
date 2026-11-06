@@ -8,6 +8,8 @@ animation instead of a static placeholder in either spot. 2026-10-01. 2026-10-03
 vantaEffect/.entryVanta/data-vanta-* while still dev-only/unmigrated - the rendering library itself (Vanta.js)
 is unchanged, only our own naming wrapping around it. --->
 <cfparam name="URL.postId" default="">
+<!--- noText=1: no heading (the Hero editor draws its own heading layer over this frame). --->
+<cfparam name="URL.noText" default="0">
 
 <cfset animationEffect = "WAVES">
 <cfset animationOptionsStruct = structNew()>
@@ -15,6 +17,8 @@ is unchanged, only our own naming wrapping around it. --->
 <cfset overlayTextColor = "##ffffff">
 <cfset overlayFont = "">
 <cfset overlayFontSize = "">
+<!--- The rest of the Hero text window's choices (11-03, owner: the preview had no shadow): the second line, phone size, shadow and glow. --->
+<cfset heroTextMore = {}>
 <cfset previewPostId = val(URL.postId)>
 
 <cfif previewPostId gt 0>
@@ -36,6 +40,10 @@ is unchanged, only our own naming wrapping around it. --->
 		<cfif len(editingPost.getHeroOverlayFontSize())>
 			<cfset overlayFontSize = editingPost.getHeroOverlayFontSize()>
 		</cfif>
+		<cfloop list="SubText,FontSizePhone,Shadow,ShadowColor,GlowColor,GlowOpacity,GlowSoftness" index="heroTextKey">
+			<cfset heroTextMore["heroOverlay" & heroTextKey] = invoke(editingPost, "getHeroOverlay" & heroTextKey) ?: "">
+		</cfloop>
+		<cfif URL.noText eq 1><cfset overlayText = ""></cfif>
 	</cfif>
 </cfif>
 
@@ -51,7 +59,28 @@ head.cfm's heroAnimationEngine. --->
 <cfset usesP5 = listFindNoCase("TRUNK,TOPOLOGY", animationEffect) gt 0>
 
 <cfobject component="#application.rendererComponentPath#" name="RendererObj">
-<cfset animationHtml = RendererObj.renderHeroAnimationHtml(postId=previewPostId, animationEffect=animationEffect, animationOptions=animationOptionsStruct, heroOverlayText=overlayText, heroOverlayTextColor=overlayTextColor, heroOverlayFont=overlayFont, heroOverlayFontSize=overlayFontSize, cardMode=false)>
+<!--- The theme's font (2026-11-04, owner: the Edit Post Hero card showed the heading in Times New Roman). With no font of its own
+from the Hero text window, the heading takes the font of the page it is on, the theme's; this frame loads no theme, so the browser
+fell back to its default. The post's own theme when it has one, as on the post's page (pageSettings.cfm), else the blog's. --->
+<cfset previewThemeFont = "">
+<cfset previewThemeFontType = "sans-serif">
+<cfset previewThemeFontCss = "">
+<cftry>
+	<cfset previewTheme = []>
+	<cfif isDefined("editingPost") and isObject(editingPost) and val(editingPost.getThemeRef() ?: 0) gt 0>
+		<cfset previewTheme = application.blog.getTheme(themeId = val(editingPost.getThemeRef()))>
+	</cfif>
+	<cfif not arrayLen(previewTheme)>
+		<cfset previewTheme = application.blog.getTheme(themeAlias = trim(application.blog.getSelectedThemeAlias()))>
+	</cfif>
+	<cfif arrayLen(previewTheme)>
+		<cfset previewThemeFont = previewTheme[1]["Font"] ?: "">
+		<cfset previewThemeFontType = len(previewTheme[1]["FontType"] ?: "") ? previewTheme[1]["FontType"] : "sans-serif">
+		<cfset previewThemeFontCss = RendererObj.getOverlayFontFaceStyle(previewThemeFont)>
+	</cfif>
+	<cfcatch type="any"></cfcatch>
+</cftry>
+<cfset animationHtml = RendererObj.renderHeroAnimationHtml(postId=previewPostId, animationEffect=animationEffect, animationOptions=animationOptionsStruct, heroOverlayText=overlayText, heroOverlayTextColor=overlayTextColor, heroOverlayFont=overlayFont, heroOverlayFontSize=overlayFontSize, cardMode=false, argumentCollection=heroTextMore)>
 </cfsilent>
 <!DOCTYPE html>
 <html>
@@ -71,7 +100,10 @@ head.cfm's heroAnimationEngine. --->
 		height: 100%;
 		position: relative;
 	}
-</style>
+	.galaxieHeroText { width: 90%; }
+<cfif len(previewThemeFont)>	body { font-family: <cfoutput>'#replace(replace(previewThemeFont, "'", "", "all"), '"', '', 'all')#', #reReplace(previewThemeFontType, "[^A-Za-z, -]", "", "all")#</cfoutput>; }
+</cfif></style>
+<cfoutput>#previewThemeFontCss#</cfoutput>
 <cfoutput>
 <cfif usesP5>
 <script src="#application.baseUrl#/common/libs/p5/p5.min.js"></script>
@@ -105,6 +137,9 @@ head.cfm's heroAnimationEngine. --->
 	} else if (effect === 'CLOUDS2') {
 		vantaOptions.texturePath = '<cfoutput>#application.baseUrl#</cfoutput>/common/libs/vanta/noise.png';
 	}
+	// The heading is drawn for a post page about 1100px wide; scale it to this frame, as the Hero editor's text layer does.
+	var heroText = document.querySelector('.galaxieHeroText');
+	if (heroText) { heroText.style.zoom = Math.max(0.35, Math.min(1, window.innerWidth / 1100)); }
 	if (window.VANTA && window.VANTA[effect]) {
 		window.VANTA[effect](vantaOptions);
 	}

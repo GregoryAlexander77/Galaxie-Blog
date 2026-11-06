@@ -410,8 +410,50 @@
 		])>
 	</cffunction>
 
-	<cffunction name="ensureIndexes" access="public" returnType="void" output="false"
-			hint="Adds indexes that are missing (2026-10-27). Each is an { name, table, columns: [ { name, prefix (optional: how many characters of a text column MySQL/MariaDB index) } ] }. Skipped when the table or a column is missing, or when the table already has an index that starts with the same column (whatever its name: one made by hand, or the one MySQL makes for a foreign key). Errors are logged, never thrown.">
+	<cffunction name="ensureContentIndexes" access="public" returnType="numeric" output="false"
+			hint="The indexes the posts, comments, scenes, forms, bookings, shop and members tables need (2026-11-04, owner). SQL Server and PostgreSQL don't index the columns that point to another table (the ...Ref columns), and the ORM doesn't either, so every post list joined its categories, tags and pictures by reading whole tables; the tables Galaxie makes itself had no indexes on any database. MySQL and MariaDB already index the ORM's links, so there only the missing ones are added. Run by a new install and, once, on an application start (Application.cfc); returns how many were left for tables that don't exist yet, so it runs again until they are done. Adds only what is missing, never fails the caller.">
+		<cfreturn ensureIndexes([
+			{ name: "IX_PostCategoryLookup_PostRef", table: "PostCategoryLookup", columns: [ { name: "PostRef" } ] },
+			{ name: "IX_PostCategoryLookup_CategoryRef", table: "PostCategoryLookup", columns: [ { name: "CategoryRef" } ] },
+			{ name: "IX_PostTagLookup_PostRef", table: "PostTagLookup", columns: [ { name: "PostRef" } ] },
+			{ name: "IX_PostTagLookup_TagRef", table: "PostTagLookup", columns: [ { name: "TagRef" } ] },
+			{ name: "IX_PostMedia_PostRef", table: "PostMedia", columns: [ { name: "PostRef" } ] },
+			{ name: "IX_PostMedia_MediaRef", table: "PostMedia", columns: [ { name: "MediaRef" } ] },
+			{ name: "IX_RelatedPost_PostRef", table: "RelatedPost", columns: [ { name: "PostRef" } ] },
+			{ name: "IX_RelatedPost_RelatedPostRef", table: "RelatedPost", columns: [ { name: "RelatedPostRef" } ] },
+			{ name: "IX_PostRssFeed_PostRef", table: "PostRssFeed", columns: [ { name: "PostRef" } ] },
+			{ name: "IX_PostSubscriber_PostRef", table: "PostSubscriber", columns: [ { name: "PostRef" } ] },
+			{ name: "IX_PostSubscriber_SubscriberRef", table: "PostSubscriber", columns: [ { name: "SubscriberRef" } ] },
+			{ name: "IX_Comment_PostRef", table: "Comment", columns: [ { name: "PostRef" } ] },
+			{ name: "IX_CommentMedia_CommentRef", table: "CommentMedia", columns: [ { name: "CommentRef" } ] },
+			{ name: "IX_CommentRead_CommentRef", table: "CommentRead", columns: [ { name: "CommentRef" } ] },
+			{ name: "IX_CommentRead_UserRef", table: "CommentRead", columns: [ { name: "UserRef" } ] },
+			{ name: "IX_Notification_PostRef", table: "Notification", columns: [ { name: "PostRef" } ] },
+			{ name: "IX_BlogEventSetting_PostRef_SettingName", table: "BlogEventSetting", columns: [ { name: "PostRef" }, { name: "SettingName" } ] },
+			{ name: "IX_SceneSection_SceneRef", table: "SceneSection", columns: [ { name: "SceneRef" } ] },
+			{ name: "IX_SceneLayer_SceneSectionRef", table: "SceneLayer", columns: [ { name: "SceneSectionRef" } ] },
+			{ name: "IX_PageCollectionMemberLookup_PageCollectionRef", table: "PageCollectionMemberLookup", columns: [ { name: "PageCollectionRef" } ] },
+			{ name: "IX_PageCollectionMemberLookup_PostRef", table: "PageCollectionMemberLookup", columns: [ { name: "PostRef" } ] },
+			{ name: "IX_LocationOptionLookup_PostRef", table: "LocationOptionLookup", columns: [ { name: "PostRef" } ] },
+			{ name: "IX_AdminNote_Kind_ItemId", table: "AdminNote", columns: [ { name: "Kind" }, { name: "ItemId" } ] },
+			{ name: "IX_WebFormField_WebFormRef", table: "WebFormField", columns: [ { name: "WebFormRef" } ] },
+			{ name: "IX_WebFormSubmission_WebFormRef", table: "WebFormSubmission", columns: [ { name: "WebFormRef" } ] },
+			{ name: "IX_WebFormSubmission_ManageToken", table: "WebFormSubmission", columns: [ { name: "ManageToken" } ] },
+			{ name: "IX_Booking_BookingTypeRef", table: "Booking", columns: [ { name: "BookingTypeRef" } ] },
+			{ name: "IX_Booking_ManageToken", table: "Booking", columns: [ { name: "ManageToken" } ] },
+			{ name: "IX_AvailabilityRule_BookingTypeRef", table: "AvailabilityRule", columns: [ { name: "BookingTypeRef" } ] },
+			{ name: "IX_AvailabilityException_BookingTypeRef", table: "AvailabilityException", columns: [ { name: "BookingTypeRef" } ] },
+			{ name: "IX_ShopOrder_OrderToken", table: "ShopOrder", columns: [ { name: "OrderToken" } ] },
+			{ name: "IX_ShopOrderItem_ShopOrderRef", table: "ShopOrderItem", columns: [ { name: "ShopOrderRef" } ] },
+			{ name: "IX_ShopOrderItem_DownloadToken", table: "ShopOrderItem", columns: [ { name: "DownloadToken" } ] },
+			{ name: "IX_Payment_ProviderSessionId", table: "Payment", columns: [ { name: "ProviderSessionId", prefix: 191 } ] },
+			{ name: "IX_MemberLoginToken_TokenHash", table: "MemberLoginToken", columns: [ { name: "TokenHash" } ] },
+			{ name: "IX_MemberRememberToken_TokenHash", table: "MemberRememberToken", columns: [ { name: "TokenHash" } ] }
+		])>
+	</cffunction>
+
+	<cffunction name="ensureIndexes" access="public" returnType="numeric" output="false"
+			hint="Returns how many of the indexes were left for later because their table doesn't exist yet (2026-11-04). Adds indexes that are missing (2026-10-27). Each is an { name, table, columns: [ { name, prefix (optional: how many characters of a text column MySQL/MariaDB index) } ] }. Skipped when the table or a column is missing, or when the table already has an index that starts with the same column (whatever its name: one made by hand, or the one MySQL makes for a foreign key). Errors are logged, never thrown.">
 		<cfargument name="indexes" type="array" required="true">
 		<cfset var ix = "">
 		<cfset var col = "">
@@ -421,6 +463,7 @@
 		<cfset var colList = "">
 		<cfset var createSql = "">
 		<cfset var valid = true>
+		<cfset var tablesMissing = 0>
 		<cftry>
 			<cfif not len(application.databaseType ?: "")>
 				<cfset application.databaseType = getProfileString(variables.iniPath, "default", "databaseType")>
@@ -433,12 +476,14 @@
 			<cfset flavorName = databaseOrmTypesObj.getFlavorName(application.databaseType)>
 			<cfcatch type="any">
 				<cfset addToLog("Indexes skipped: the database type could not be read (#cfcatch.message#).")>
-				<cfreturn>
+				<cfreturn 0>
 			</cfcatch>
 		</cftry>
 		<cfloop array="#arguments.indexes#" index="ix">
 			<cftry>
 				<cfset valid = reFind("^[A-Za-z][A-Za-z0-9_]*$", ix.name) and tableExists(ix.table)>
+				<!--- Some tables are only made the first time their feature is used (Admin notes, the shop...): count them, so the caller can try again later. --->
+				<cfif not valid and reFind("^[A-Za-z][A-Za-z0-9_]*$", ix.name)><cfset tablesMissing++></cfif>
 				<cfif valid>
 					<cfloop array="#ix.columns#" index="col">
 						<cfif not reFind("^[A-Za-z][A-Za-z0-9_]*$", col.name) or not columnExists(ix.table, col.name, flavorName eq "postgre" ? '"' : "")><cfset valid = false></cfif>
@@ -505,6 +550,7 @@
 				</cfcatch>
 			</cftry>
 		</cfloop>
+		<cfreturn tablesMissing>
 	</cffunction>
 
 	<cffunction name="columnExists" access="private"returnType="boolean" output="false" hint="Whether a column exists: selecting it from no rows succeeds if it does.">

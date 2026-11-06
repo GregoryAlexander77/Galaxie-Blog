@@ -40,6 +40,10 @@
 	<cfset postHeroStyle = createObject("component", application.rendererComponentPath).getPostHeroStyle("")>
 	<cfset heroCarouselImageCount = application.BlogOptionDbObj.getHeroCarouselImageCount()>
 	<cfset heroPoolDisplayMode = application.BlogOptionDbObj.getHeroPoolDisplayMode()>
+	<!--- The generated pictures' shapes and motion (11-03): settings, read here and saved by saveBlogOptions. --->
+	<cfset fallbackArtShapes = application.events.getSetting(0, "fallbackArtShapes", "straight")>
+	<cfset fallbackArtMotion = application.events.getSetting(0, "fallbackArtMotion", "")>
+	<cfset fallbackArtSpeed = application.events.getSetting(0, "fallbackArtSpeed", "")>
 	<cfset releasedPostEmailMode = application.blog.getReleasedPostEmailMode()>
 	<!--- Payments (2026-10-14): never includes a secret - see Payments.cfc getSettings. --->
 	<cfset paymentSettings = application.payments.getSettings()>
@@ -442,13 +446,17 @@
 	  checkbox instead, same "label row, then content row" stacking convention this file already uses elsewhere
 	  (eg. noImageFallbackMode above). Desktop's wider two-column layout had room for both in one cell, so it's
 	  unchanged. --->
+	  <!--- The copy to Galaxie Blog's developer (2026-11-04, owner): off unless ticked, saved with the error email settings
+	  (saveBlogOptions developerCopy). Requests that look like bots probing for missing files never go to the developer. --->
+	  <cfset developerCopyValue = application.blog.developerCopyOn()>
+	  <cfset developerCopyHint = "Helps find bugs in Galaxie: the error, its address and the stack trace, never form values or visitors' details. Requests from bots looking for pages that don't exist are never sent. Off unless you tick it.">
 	  <cfif session.isMobile>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">Send Diagnostics?</td>
 	  </tr>
 	  <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2" style="padding: 0px 12px 8px;">
-			<span style="font-size:smaller">Email errors to the blog owner, as a nightly summary or right away (see Error emails below). A copy also goes to the developer of Galaxie Blog to help to find bugs: the error, its address and the stack trace, never form values. To send the copy to someone else, or not at all, set developerEmail in blog.ini.cfm.</span>
+			<span style="font-size:smaller">Email errors to the blog owner, as a nightly summary or right away (see Error emails below).</span>
 		</td>
 	  </tr>
 	  <tr valign="middle" height="30px">
@@ -456,10 +464,19 @@
 			<input type="checkbox" class="k-checkbox" name="sendDiagnostics" id="sendDiagnostics" value="1" <cfif application.SendDiagnostics>checked</cfif>>
 		</td>
 	  </tr>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><label for="developerCopy">Send a copy to Galaxie Blog's developer?</label></td>
+	  </tr>
+	  <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<input type="checkbox" class="k-checkbox" name="developerCopy" id="developerCopy" value="1" <cfif developerCopyValue>checked</cfif>>
+			<span class="k-form-hint"><cfoutput>#developerCopyHint#</cfoutput></span>
+		</td>
+	  </tr>
 	  <cfelse><!---<cfif session.isMobile>--->
 	  <tr valign="middle" height="30px">
 		<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
-			Email errors to the blog owner, as a nightly summary or right away (see Error emails below). A copy also goes to the developer of Galaxie Blog to help to find bugs: the error, its address and the stack trace, never form values. To send the copy to someone else, or not at all, set developerEmail in blog.ini.cfm.
+			Email errors to the blog owner, as a nightly summary or right away (see Error emails below).
 		</td>
 	  </tr>
 	  <tr height="1px">
@@ -469,6 +486,13 @@
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>">Send Diagnostics?</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input type="checkbox" class="k-checkbox" name="sendDiagnostics" id="sendDiagnostics" value="1" <cfif application.SendDiagnostics>checked</cfif>>
+		</td>
+	  </tr>
+	  <tr valign="middle" height="30px">
+		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>"><label for="developerCopy">Send a copy to the developer?</label></td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<input type="checkbox" class="k-checkbox" name="developerCopy" id="developerCopy" value="1" <cfif developerCopyValue>checked</cfif>>
+			<span class="k-form-hint"><cfoutput>#developerCopyHint#</cfoutput></span>
 		</td>
 	  </tr>
 	  </cfif>
@@ -899,7 +923,8 @@
 						change: function() {
 							$("#manageHeroImagePoolWrapper").toggle(this.value() === "pool");
 							$("#configureAnimationDefaultsWrapper").toggle(this.value() === "animation");
-							$(".poolDisplayModeRow, .poolImageCountRow").toggle(this.value() === "pool");
+								$(".poolDisplayModeRow, .poolImageCountRow").toggle(this.value() === "pool");
+								$(".fallbackArtRow").toggle(this.value() === "generated" || this.value() === "pool");
 						}
 					}).data("kendoDropDownList").wrapper.css("width", "95%");
 				</script>
@@ -939,7 +964,8 @@
 						change: function() {
 							$("#manageHeroImagePoolWrapper").toggle(this.value() === "pool");
 							$("#configureAnimationDefaultsWrapper").toggle(this.value() === "animation");
-							$(".poolDisplayModeRow, .poolImageCountRow").toggle(this.value() === "pool");
+								$(".poolDisplayModeRow, .poolImageCountRow").toggle(this.value() === "pool");
+								$(".fallbackArtRow").toggle(this.value() === "generated" || this.value() === "pool");
 						}
 					}).data("kendoDropDownList").wrapper.css("width", "60%");
 				</script>
@@ -965,6 +991,54 @@
 			</td>
 		  </tr>
 		</cfif>
+		<!--- The generated pictures (11-03, owner): their shapes, and a motion on the post's own page. Shown for Generated, and for Pool,
+		which uses them until the pool has pictures. Buttons that work as one choice each; the hidden fields go with the form. --->
+		  <tr class="fallbackArtRow"<cfif not listFind("generated,pool", noImageFallbackMode)> style="display: none;"</cfif>>
+			<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">
+				<label>Generated pictures:</label>
+			</td>
+			<td class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
+				<input type="hidden" name="fallbackArtPosted" value="1">
+				<input type="hidden" name="fallbackArtShapes" id="fallbackArtShapes" value="<cfoutput>#encodeForHtmlAttribute(fallbackArtShapes)#</cfoutput>">
+				<input type="hidden" name="fallbackArtMotion" id="fallbackArtMotion" value="<cfoutput>#encodeForHtmlAttribute(fallbackArtMotion)#</cfoutput>">
+				<input type="hidden" name="fallbackArtSpeed" id="fallbackArtSpeed" value="<cfoutput>#encodeForHtmlAttribute(fallbackArtSpeed)#</cfoutput>">
+				<div class="fallbackArtChoices" data-field="fallbackArtShapes" role="radiogroup" aria-label="Shapes">
+					<button type="button" class="k-button normalFontWeight" data-value="straight"><i class="fontAwesomeIcon fas fa-grip-lines-vertical"></i>Straight</button>
+					<button type="button" class="k-button normalFontWeight" data-value="mixed"><i class="fontAwesomeIcon fas fa-shapes"></i>Mixed: straight, round and two glows</button>
+				</div>
+				<div class="k-form-hint" style="display: block;">Each post keeps its own colors and shape. Mixed changes the picture of some posts that use one now.</div>
+				<div class="fallbackArtChoices" data-field="fallbackArtMotion" role="radiogroup" aria-label="Motion" style="margin-top: 8px;">
+					<button type="button" class="k-button normalFontWeight" data-value=""><i class="fontAwesomeIcon fas fa-pause"></i>Still</button>
+					<button type="button" class="k-button normalFontWeight" data-value="drift"><i class="fontAwesomeIcon fas fa-wind"></i>Slow drift</button>
+					<button type="button" class="k-button normalFontWeight" data-value="shift"><i class="fontAwesomeIcon fas fa-palette"></i>Color shift</button>
+					<button type="button" class="k-button normalFontWeight" data-value="breathe"><i class="fontAwesomeIcon fas fa-lungs"></i>Breathe</button>
+				</div>
+				<div class="fallbackArtChoices" id="fallbackArtSpeedRow" data-field="fallbackArtSpeed" role="radiogroup" aria-label="Speed" style="margin-top: 6px;<cfif not len(fallbackArtMotion)> display: none;</cfif>">
+					<button type="button" class="k-button normalFontWeight" data-value="slow"><i class="fontAwesomeIcon fas fa-feather"></i>Slow</button>
+					<button type="button" class="k-button normalFontWeight" data-value=""><i class="fontAwesomeIcon fas fa-gauge"></i>Normal</button>
+					<button type="button" class="k-button normalFontWeight" data-value="fast"><i class="fontAwesomeIcon fas fa-bolt"></i>Lively</button>
+				</div>
+				<div class="k-form-hint" style="display: block;">Moves on the post's own page only. The cards stay still, and so does the post for visitors who asked their device for less motion.</div>
+				<style>
+					.fallbackArtChoices { display: flex; flex-wrap: wrap; gap: 4px; }
+					<!--- Every icon the same width; Kendo buttons are flex boxes, which drop the space before the word. --->
+					.fallbackArtChoices .fontAwesomeIcon { width: 1.25em; text-align: center; margin-right: 4px; }
+				</style>
+				<script>
+					$(".fallbackArtChoices").each(function () {
+						var box = $(this), field = $("#" + box.data("field"));
+						var mark = function () { box.find("button").each(function () { var on = String($(this).data("value")) === field.val(); $(this).toggleClass("k-primary", on).attr("aria-checked", on ? "true" : "false"); }); };
+						box.on("click", "button", function () {
+							field.val(String($(this).data("value")));
+							mark();
+							if (box.data("field") === "fallbackArtMotion") { $("#fallbackArtSpeedRow").toggle(!!field.val()); }
+						});
+						mark();
+					});
+				</script>
+			</td>
+		  </tr>
+
 		  <!-- Border -->
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
@@ -2034,6 +2108,71 @@
 	</div>
 	</li>
 			  
+	<!---//***********************************************************************************************
+						Say hello (2026-11-04, owner)
+	The Site Wizard's two opt-ins, for a blog that is already running: a blog that was updated, not installed, never saw the
+	wizard's last screen. Not part of the form: Send sends at once (ProxyController.cfc sendHelloNow, Setup.cfc sendHello).
+	//************************************************************************************************--->
+	<cfset helloSentOn = application.events.getSetting(0, "helloSentOn", "")>
+	<cfset cfblogsSentOn = application.events.getSetting(0, "cfblogsSentOn", "")>
+	<li>
+		Say Hello and cfblogs.org
+	<div class="k-content">
+	<div style="padding: 15px;">
+		<table align="center" class="k-content adminBlocks" width="100%" cellpadding="2" cellspacing="0">
+		  <cfsilent>
+			<cfset thisContentClass = HtmlUtilsObj.getKendoClass('')>
+			<cfset thisColSpan = "2">
+		  </cfsilent>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <cfsilent><cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)></cfsilent>
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<p>Let Galaxie Blog's author know your blog is running, and, if you like, have it added to cfblogs.org, the ColdFusion and Lucee blog aggregator, so your posts reach the CFML community. Nothing is sent until you press Send.</p>
+			</td>
+		  </tr>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+				<p><label><input type="checkbox" class="k-checkbox" id="optionsSayHello"> <b>Say hello</b>: let Galaxie Blog's author know this blog is running.</label><br>
+				<span class="k-form-hint">Sends your site's name and address, the Galaxie version, ColdFusion or Lucee, and the database. It helps decide what to work on next. Nothing else is sent.</span></p>
+				<p><label><input type="checkbox" class="k-checkbox" id="optionsAddToCfblogs"> <b>Add my blog to cfblogs.org</b></label><br>
+				<span class="k-form-hint">Also sends your blog's feed address and the Blog Email Address from <a href="javascript:createAdminInterfaceWindow(39);">Blog Settings</a>, so the author can add it and let you know.</span></p>
+				<p><button type="button" class="k-button" id="optionsSendHello">Send</button></p>
+				<p id="optionsHelloStatus"><cfoutput><cfif len(helloSentOn) and isDate(helloSentOn)>Sent on #dateFormat(helloSentOn, "mmmm d, yyyy")#<cfif len(cfblogsSentOn) and isDate(cfblogsSentOn)>, with the request to be added to cfblogs.org</cfif>.<cfelse>Not sent yet.</cfif></cfoutput></p>
+			</td>
+		  </tr>
+		  <tr height="2px">
+			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+		  </tr>
+		</table>
+		<script>
+			$("#optionsSendHello").on("click", function () {
+				var button = $(this).prop("disabled", true);
+				$.ajax({
+					type: "post",
+					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=sendHelloNow",
+					data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", sayHello: $("#optionsSayHello").is(":checked"), addToCfblogs: $("#optionsAddToCfblogs").is(":checked") },
+					dataType: "json"
+				}).done(function (result) {
+					if (typeof result === "string") { try { result = JSON.parse(result); } catch (e) { result = { message: result }; } }
+					if (result.success) {
+						$("#optionsHelloStatus").text("Sent on " + result.sentOn + ($("#optionsAddToCfblogs").is(":checked") ? ", with the request to be added to cfblogs.org." : "."));
+					}
+					kendo.ui.ExtAlertDialog.show({ title: "Say hello", message: result.message, icon: result.success ? "k-ext-information" : "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+				}).fail(function () {
+					kendo.ui.ExtAlertDialog.show({ title: "Say hello", message: "It could not be sent. Please try again later.", icon: "k-ext-error", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+				}).always(function () { button.prop("disabled", false); });
+			});
+		</script>
+	</div>
+	</div>
+	</li>
+
 	<!---//***********************************************************************************************
 						Bing Maps
 	//************************************************************************************************--->

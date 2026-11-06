@@ -838,8 +838,14 @@
 		recurring pain point elsewhere. Old themes' files just become harmlessly orphaned on disk. --->
 		<!--- "-v2" (2026-10-09): bumped when grey-accent themes got vivid colors (see below), so art already
 		generated as a flat grey box is replaced instead of reused. Bump again whenever the art itself changes. --->
-		<cfset var filePath = destination & "/" & arguments.postId & "-" & kendoTheme & "-v2.svg">
-		<cfset var publicUrl = application.baseUrl & "/images/heroArt/" & arguments.postId & "-" & kendoTheme & "-v2.svg">
+		<!--- Shapes (11-03, owner): Blog Options can mix in round (radial) and two-glow pictures, picked from the postId like the colors,
+		so a post always gets the same one. Straight ones keep their "-v2" files; the others get their own names. A sweep (conic)
+		gradient isn't possible in SVG, so the mix is straight, round and two glows. --->
+		<cfset var shapes = structKeyExists(application, "events") ? application.events.getSetting(0, "fallbackArtShapes", "straight") : "straight">
+		<cfset var shape = shapes eq "mixed" ? listGetAt("straight,round,glows", ((arguments.postId * 7) mod 3) + 1) : "straight">
+		<cfset var fileSuffix = shape eq "straight" ? "-v2" : (shape eq "round" ? "-v3round" : "-v3glows")>
+		<cfset var filePath = destination & "/" & arguments.postId & "-" & kendoTheme & fileSuffix & ".svg">
+		<cfset var publicUrl = application.baseUrl & "/images/heroArt/" & arguments.postId & "-" & kendoTheme & fileSuffix & ".svg">
 		<cfset var svgContent = "">
 		<cfset var colorPair = "">
 		<cfset var angle = 0>
@@ -900,7 +906,18 @@
 		<cfset var gradientX2 = centerX + lineDeltaX>
 		<cfset var gradientY2 = centerY + lineDeltaY>
 
-		<cfsavecontent variable="svgContent"><cfoutput><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="#gradientX1#" y1="#gradientY1#" x2="#gradientX2#" y2="#gradientY2#"><stop offset="0%" stop-color="#colorPair[1]#"/><stop offset="100%" stop-color="#colorPair[2]#"/></linearGradient></defs><rect width="1200" height="630" fill="url(##g)"/></svg></cfoutput></cfsavecontent>
+		<!--- Round: one color glowing from a point (five places, by postId) into the other. Two glows: the second color as the ground,
+		with the first glowing in from two opposite corners. --->
+		<cfset var glowSpots = [[300, 170], [900, 170], [600, 315], [260, 470], [940, 460]]>
+		<cfset var spot = glowSpots[(arguments.postId mod arrayLen(glowSpots)) + 1]>
+		<cfset var corners = (arguments.postId mod 2) eq 0 ? [[150, 120], [1050, 520]] : [[1050, 110], [160, 530]]>
+		<cfif shape eq "round">
+			<cfsavecontent variable="svgContent"><cfoutput><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><defs><radialGradient id="g" gradientUnits="userSpaceOnUse" cx="#spot[1]#" cy="#spot[2]#" r="950"><stop offset="0%" stop-color="#colorPair[1]#"/><stop offset="100%" stop-color="#colorPair[2]#"/></radialGradient></defs><rect width="1200" height="630" fill="url(##g)"/></svg></cfoutput></cfsavecontent>
+		<cfelseif shape eq "glows">
+			<cfsavecontent variable="svgContent"><cfoutput><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><defs><radialGradient id="a" gradientUnits="userSpaceOnUse" cx="#corners[1][1]#" cy="#corners[1][2]#" r="720"><stop offset="0%" stop-color="#colorPair[1]#"/><stop offset="100%" stop-color="#colorPair[1]#" stop-opacity="0"/></radialGradient><radialGradient id="b" gradientUnits="userSpaceOnUse" cx="#corners[2][1]#" cy="#corners[2][2]#" r="620"><stop offset="0%" stop-color="#colorPair[1]#" stop-opacity="0.75"/><stop offset="100%" stop-color="#colorPair[1]#" stop-opacity="0"/></radialGradient></defs><rect width="1200" height="630" fill="#colorPair[2]#"/><rect width="1200" height="630" fill="url(##a)"/><rect width="1200" height="630" fill="url(##b)"/></svg></cfoutput></cfsavecontent>
+		<cfelse>
+			<cfsavecontent variable="svgContent"><cfoutput><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="#gradientX1#" y1="#gradientY1#" x2="#gradientX2#" y2="#gradientY2#"><stop offset="0%" stop-color="#colorPair[1]#"/><stop offset="100%" stop-color="#colorPair[2]#"/></linearGradient></defs><rect width="1200" height="630" fill="url(##g)"/></svg></cfoutput></cfsavecontent>
+		</cfif>
 
 		<cffile action="write" file="#filePath#" output="#svgContent#" addnewline="false" mode="644">
 		<cftry>

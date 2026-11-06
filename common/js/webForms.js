@@ -350,7 +350,14 @@ var galaxieWebForms = (function($) {
 					} else {
 						status.text("Can't come after all? Cancelling frees your place for someone else." + (rsvp.refundNote ? " " + rsvp.refundNote : ""));
 						$('<button type="button" class="k-button k-primary">Cancel my place</button>').appendTo(box).on("click", function() {
-							var button = $(this).prop("disabled", true);
+							var button = $(this);
+							var go = function () { cancelPlace(button); };
+							// Asks first (owner 11-02). galaxieConfirm is in blogJsContent.cfm; the browser's own box if it isn't there.
+							if (typeof window.galaxieConfirm === "function") { window.galaxieConfirm("Cancel your place?", "Your place goes to someone else.", go); }
+							else if (window.confirm("Cancel your place? Your place goes to someone else.")) { go(); }
+						});
+						var cancelPlace = function(button) {
+							button.prop("disabled", true);
 							$.ajax({ type: "post", url: proxyUrl + "?method=cancelManagedRsvp", data: { token: token }, dataType: "json", cache: false })
 								.done(function(response) {
 									if (response && response.success === true) {
@@ -365,7 +372,7 @@ var galaxieWebForms = (function($) {
 									button.prop("disabled", false);
 									status.text("Your place could not be cancelled. Please try again in a moment.");
 								});
-						});
+						};
 					}
 				}
 				dialog.center().open();
