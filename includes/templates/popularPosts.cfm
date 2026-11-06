@@ -110,124 +110,15 @@
 							</cfcatch>
 						</cftry>
 
-						<!--- ************************* Handle enlosure ************************* --->
-						<!--- For the popular posts widget, always use the thumbnail image --->
-						<cfset cardImage = thumbnail>	
-						<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and if not, defer to BlogOption.NoImageFallbackMode - noImage.jpg (default, unchanged), generated CSS/SVG art, a rendered carousel from the shared hero image pool (isHtml=true reuses the thumbnailCarousel slot below, same as a post's own enclosure carousel), or no image area at all ('none' mode). --->
-						<cfset suppressCardImage = false>
-						<cfif not len(cardImage)>
-							<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPosts[i]["PostHeader"], 'facebookImageUrlMetaData')>
-							<cfif len(facebookImageMetaTagValue)>
-								<cfset cardImage = facebookImageMetaTagValue>
-							<!--- 2026-10-01: a Hero Cover Image takes priority over the Gradient/generated-fallback
-							below, but a manually-typed facebookImageUrlMetaData directive (checked just above) still
-							wins for backward compatibility - same relative priority renderKendoCardGrid.cfm and
-							seoMetaTags.cfm use. --->
-							<cfelseif len(getPosts[i]["HeroCoverImageUrl"])>
-								<cfset cardImage = getPosts[i]["HeroCoverImageUrl"]>
-							<!--- An explicit gradient the user picked (see gradientEditor.cfm/Post.cfc's HeroGradient)
-							is a real, deliberate hero choice - checked before the auto-generated-art fallback below,
-							same priority reasoning as Renderer.cfc's renderEnclosure()/renderMediaPreview(). Reuses
-							the thumbnailCarousel HTML slot, same as the hero-pool-carousel fallback does. --->
-							<cfelseif len(getPosts[i]["HeroGradient"])>
-								<!--- Renderer.cfc.renderHeroGradientHtml() - single point of truth for this HTML,
-								shared with Renderer.cfc's own renderMediaPreview()/renderEnclosure() and the other
-								two card templates. --->
-								<!--- Named arguments (2026-10-09) - see renderKendoCardGrid.cfm: a positional "true" here landed in heroOverlayFont, not cardMode. --->
-								<cfset thumbnailCarousel = RendererObj.renderHeroGradientHtml(heroGradient=getPosts[i]["HeroGradient"], heroOverlayText=getPosts[i]["HeroOverlayText"], heroOverlayTextColor=getPosts[i]["HeroOverlayTextColor"], heroOverlayFont=(structKeyExists(getPosts[i], "HeroOverlayFont") ? getPosts[i]["HeroOverlayFont"] : ""), heroOverlayFontSize=(structKeyExists(getPosts[i], "HeroOverlayFontSize") ? getPosts[i]["HeroOverlayFontSize"] : ""), cardMode=true)>
-							<!--- An event with no picture of its own: its date tile (2026-10-16). --->
-							<cfelseif not structIsEmpty(cardEvent)>
-								<cfset thumbnailCarousel = application.events.renderDateTileHtml(cardEvent)>
-								<cfset cardEventTile = true>
-							<cfelse>
-								<cfset heroFallback = RendererObj.getHeroFallbackHtml(postId=getPosts[i]["PostId"], cardMode=true)>
-								<cfif heroFallback.isHtml>
-									<cfset thumbnailCarousel = heroFallback.content>
-								<cfelseif heroFallback.suppressImage>
-									<cfset suppressCardImage = true>
-								<cfelseif len(heroFallback.content)>
-									<cfset cardImage = heroFallback.content>
-								<cfelse>
-									<cfset cardImage = application.baseUrl & "/images/thumbnails/noImage.jpg">
-								</cfif>
-							</cfif>
-						</cfif>
-
-						<!--- ************************* Handle maps ************************* --->
-						<!--- For desktop clients, handle multiple maps on a page. If there are multiple maps, we need to create a script that will load all of the maps at the top of the page. If we are using a mobile device and there are multiple maps- we will use an iframe to display the map. --->
-						<cfif not session.isMobile and i eq 1 and listLen(enclosureMapIdList) gt 1>
-							<!--- Invoke the renderLoadMapScript function --->
-							<cfinvoke component="#RendererObj#" method="renderLoadMapScript" returnvariable="loadMapScript">
-								<cfinvokeargument name="kendoTheme" value="#kendoTheme#">
-								<cfinvokeargument name="enclosureMapIdList" value="#enclosureMapIdList#">
-								<cfinvokeargument name="currentRow" value="#i#">
-							</cfinvoke>
-						<cfelse>
-							<cfset loadMapScript = ''>
-						</cfif>
-						<!--- Render the map --->
-						<cfif len(enclosureMapId)>
-							<!--- Render the map. This returns a iframe renderMapPreview(mapId, thumbnail, renderKCardMediaClass, renderMediumCard, showSidebar) --->
-							<cfset thumbnailMap = RendererObj.renderMapPreview(enclosureMapId, true, true, false, showSidebar)>
-						</cfif>
-						<!--- Render the carousel --->
-						<cfif len(enclosureCarouselId)>
-							<!--- renderCarousel(carouselId,renderCard) --->
-							<cfset thumbnailCarousel = RendererObj.renderCarousel(enclosureCarouselId,true)>
-						</cfif>
-
-						<!--- ************************* Handle self hosted videos ************************* --->
-						<cfif len(mediaId) and mediaType contains 'Video'>								
-							<!--- Note: this will return an iframe. --->
-							<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
-								<cfinvokeargument name="postId" value="#getPosts[i]['PostId']#">
-								<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
-								<cfinvokeargument name="mediaId" value="#mediaId#">
-								<cfinvokeargument name="providerVideoId" value="#providerVideoId#">
-								<cfinvokeargument name="posterUrl" value="#mediaVideoCoverUrl#">
-								<cfinvokeargument name="videoCaptionsUrl" value="#mediaVideoVttFileUrl#">
-								<cfinvokeargument name="renderThumbnail" value="true">
-								<cfinvokeargument name="renderKCardMediaClass" value="true">
-								<cfinvokeargument name="renderMediumCard" value="false">
-								<cfinvokeargument name="showSidebar" value="#showSidebar#">
-							</cfinvoke> 
-						</cfif><!---<cfif len(mediaId) and mediaType contains 'Video'>--->
-
-						<!--- Also see if a video should be rendered using xmlkeywords. This returns a structure. --->
-						<cfset xmlKeywordStruct = application.blog.getXmlKeywordStruct(getPosts[i]["PostHeader"])>
-						<!--- Is there a video directive the xmlKeywords? --->
-						<cfif len(xmlKeywordStruct.VideoDirective)>
-							<!--- Get the smallest video if possible --->
-							<cfif len(xmlKeywordStruct.smallVideoSourceUrl)>
-								<cfset mediaUrl = xmlKeywordStruct.smallVideoSourceUrl>
-							<cfelseif len(xmlKeywordStruct.mediumVideoSourceUrl)>
-								<cfset mediaUrl = xmlKeywordStruct.mediumVideoSourceUrl>
-							<cfelseif len(xmlKeywordStruct.largeVideoSourceUrl)>
-								<cfset mediaUrl = xmlKeywordStruct.largeVideoSourceUrl>
-							<cfelseif len(xmlKeywordStruct.youTubeUrl)>
-								<cfset mediaUrl = xmlKeywordStruct.youTubeUrl>
-							</cfif>
-
-							<!--- Render the video from the directives --->
-							<cfif len(mediaUrl)>	
-								<!--- Render the video, this will return an iframe. --->
-								<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
-									<cfinvokeargument name="postId" value="#getPosts[i]['PostId']#">
-									<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
-									<!--- Galaxie Directives don't have a mediaId or a providerVideoId --->
-									<cfinvokeargument name="mediaId" value="">
-									<cfinvokeargument name="providerVideoId" value="">
-									<cfinvokeargument name="posterUrl" value="#xmlKeywordStruct.videoPosterImageUrl#">
-									<cfinvokeargument name="videoCaptionsUrl" value="#xmlKeywordStruct.videoCaptionsUrl#">
-									<cfinvokeargument name="renderThumbnail" value="true">
-									<cfinvokeargument name="renderKCardMediaClass" value="true">
-									<!--- For popular posts, don't render the medium size card. --->
-									<cfinvokeargument name="renderMediumCard" value="false">
-									<cfinvokeargument name="showSidebar" value="#showSidebar#">
-								</cfinvoke> 
-								<!---<cfdump var="#xmlKeywordStruct#">--->
-							</cfif>
-						</cfif>
+						<!--- ************************* The top of the card ************************* --->
+						<!--- The same answer as the other cards (2026-11-06, the hero pipeline): Renderer.cfc renderCardMedia. The order used to
+						differ here (the map before a picture or video), and a picture with no thumbnail got the no-picture art. --->
+						<cfset cardMedia = RendererObj.renderCardMedia(post = getPosts[i], renderMediumCard = false, showSidebar = showSidebar,
+							cardEvent = cardEvent, defaultImage = application.baseUrl & "/images/thumbnails/noImage.jpg")>
+						<cfset cardMediaHtml = cardMedia.html>
+						<cfset cardImage = cardMedia.imageUrl>
+						<cfset suppressCardImage = cardMedia.suppressImage>
+						<cfset cardEventTile = cardMedia.eventTile>
 
 						<!--- Remove HTML from the string --->
 						<cfinvoke component="#application.jsoupComponentPath#" method="jsoupConvertHtmlToText" returnvariable="postContent">
@@ -245,8 +136,7 @@
 						</cfsilent>
 							<!--- Note: this is using the k-card-deck image --->
 							<div class="k-card k-card-type-rich<cfif promotedPost>highlightedWidget</cfif>" style="width: <cfoutput>#popularPostCardWidthStyle#</cfoutput>;">
-								<!--- Was <cfelseif len(enclosureCarouselId)> - switched to checking thumbnailCarousel itself (the rendered HTML), not the post's own enclosureCarouselId, since the hero image pool fallback above can populate thumbnailCarousel from a different carousel (the shared pool) with no enclosureCarouselId on the post at all. Every existing case is unaffected: a real enclosure carousel always has both set together. --->
-								<a href="<cfoutput>#postUrl#</cfoutput>"><cfif cardEventOverlay><div class="galaxieEventOnPicture"></cfif><cfif len(enclosureMapId)><cfoutput>#thumbnailMap#</cfoutput><cfelseif len(thumbnailCarousel)><cfoutput>#thumbnailCarousel#</cfoutput><cfelseif len(thumbnailMedia)><cfoutput>#thumbnailMedia#</cfoutput><cfelseif not suppressCardImage><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-scroll-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif><cfif cardEventOverlay><cfoutput>#application.events.renderSheetOverlayHtml(cardEvent)#</cfoutput></div></cfif></a>
+								<a href="<cfoutput>#postUrl#</cfoutput>"><cfif cardEventOverlay><div class="galaxieEventOnPicture"></cfif><cfif len(cardMediaHtml)><cfoutput>#cardMediaHtml#</cfoutput><cfelseif not suppressCardImage><div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-scroll-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div></cfif><cfif cardEventOverlay><cfoutput>#application.events.renderSheetOverlayHtml(cardEvent)#</cfoutput></div></cfif></a>
 								<div class="k-card-body">
 									<!-- The font should be 14pt for this compact widget. No extra margins are necessary for the popular posts -->
 									<h2 class="k-card-title" style="font-size: 14pt;"><cfif promotedPost>&nbsp;<i class="fa fa-bullhorn" aria-hidden="true" title="Announcement"></i>&nbsp;&nbsp;</cfif><a href="<cfoutput>#postUrl#</cfoutput>" aria-label="<cfoutput>#title#</cfoutput>"><cfoutput>#title#</cfoutput></a></h4>

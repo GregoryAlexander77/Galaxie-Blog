@@ -1819,6 +1819,17 @@
 		<cfreturn variables.scenesObj>
 	</cffunction>
 
+	<cffunction name="getHeroes" access="public" returnType="any" output="false" hint="What a post's hero is and which picture its cards and sharing use (common/cfc/Hero.cfc, 2026-11-05): getHeroes().getHero(postRow). Created on first use, like getScenes.">
+		<cfif not structKeyExists(variables, "heroObj")>
+			<cflock name="galaxieHeroCreate_#application.applicationName#" type="exclusive" timeout="10">
+				<cfif not structKeyExists(variables, "heroObj")>
+					<cfset variables.heroObj = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.Hero" : "common.cfc.Hero")>
+				</cfif>
+			</cflock>
+		</cfif>
+		<cfreturn variables.heroObj>
+	</cffunction>
+
 	<cffunction name="getPrivacy" access="public" returnType="any" output="false" hint="The privacy page and the analytics consent banner (common/cfc/Privacy.cfc, 2026-10-31). Created on first use, like getAdminNotes.">
 		<cfif not structKeyExists(variables, "privacyObj")>
 			<cflock name="galaxiePrivacyCreate_#application.applicationName#" type="exclusive" timeout="10">

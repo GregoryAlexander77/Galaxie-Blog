@@ -210,8 +210,12 @@
 	<cfset providerVideoId = getPost[1]["ProviderVideoId"]>
 	<cfset mediaVideoCoverUrl = getPost[1]["MediaVideoCoverUrl"]>
 	<cfset mediaVideoVttFileUrl = getPost[1]["MediaVideoVttFileUrl"]>
+	<!--- Which hero the window opens on: the one the post shows (Hero.cfc, 2026-11-06), and only that one. An older post can still hold
+	more than one (before "last hero wins"); they were drawn one under the other. A Page Collection has its own query and keeps its
+	own order. --->
+	<cfset heroShows = isPageCollectionEnclosure ? "" : application.blog.getHeroes().getHero(getPost[1]).kind>
 		
-	<cfif len(mediaUrl)>
+	<cfif len(mediaUrl) and (isPageCollectionEnclosure or listFind("picture,video", heroShows))>
 		<!--- We don't  always have a mime type. External links for example don't  always have a readable extension --->
 		<cfif mediaType eq 'Image'>
 			<!--- Render the image HTML string --->
@@ -232,7 +236,7 @@
 	<!---<cfdump var="#mediaHtml#" label="mediaHtml">--->
 		
 	<!---*********************    Handle the carousel    *********************--->
-	<cfif len(enclosureCarouselId)>
+	<cfif len(enclosureCarouselId) and (isPageCollectionEnclosure or heroShows eq "carousel")>
 		<!--- Render the routes. This returns a iframe --->
 		<cfset mediaHtml = mediaHtml & RendererObj.renderCarouselPreview(enclosureCarouselId,'enclosureEditor')>
 	</cfif>
@@ -240,7 +244,7 @@
 	<!---*********************    Handle the map    *********************--->
 	<!--- Extract the map id --->
 	<cfset enclosureMapId = getPost[1]["EnclosureMapId"]>
-	<cfif len(enclosureMapId)>
+	<cfif len(enclosureMapId) and (isPageCollectionEnclosure or heroShows eq "map")>
 		<!--- Render the routes. This returns a iframe --->
 		<cfset mediaHtml = mediaHtml & RendererObj.renderMapPreview(enclosureMapId)>
 	</cfif>
@@ -252,7 +256,7 @@
 	did the scene). Post-only: a Page Collection's hero has no TinyMCE editor and its query doesn't return these fields. --->
 	<!--- A scene comes first even when the post also has a picture under it (11-05, owner: the window opened on the picture while
 	the post shows its moving hero), as on the post page. --->
-	<cfif not isPageCollectionEnclosure and (mediaHtml eq '' or len(application.blog.getScenes().getPostScene(val(URL.optArgs))))>
+	<cfif not isPageCollectionEnclosure and (mediaHtml eq '' or listFind("scene,movingHero", heroShows))>
 		<cfset mediaHtml = RendererObj.renderHeroEditorFallback(getPost)>
 	</cfif>
 

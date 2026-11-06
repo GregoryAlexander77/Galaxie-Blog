@@ -92,40 +92,16 @@
 			************************************************************************************************************--->
 			<!--- Determine if there is an enclosure, and if the social media images exist for this enclosure. We may over-ride these variables later if the social media images are embedded in xml in the post. --->
 
-			<!--- The post's share pictures (2026-10-31, owner): from its image enclosure or, failing that, its Hero Cover Image -
-			createSocialMediaImages() made the same crops for either at upload time (see ProxyController.cfc uploadImage()).
-			Per platform: its own crop -> the classic 1200x900 crop -> the uploaded picture as it is. Each crop is kept in the
-			picture's own format (JPG or PNG) and as WebP; the JPG or PNG is used first (it was WebP first): Slack, LinkedIn, some
-			chat apps and older Facebook crawlers show no picture for a WebP. A manually typed directive still wins below. --->
-			<cfset shareSourceUrl = "">
-			<cfif len(getPost[1]["MediaUrl"]) and (getPost[1]["MediaUrl"] contains '.jpg' or getPost[1]["MediaUrl"] contains '.gif' or getPost[1]["MediaUrl"] contains '.png' or getPost[1]["MediaUrl"] contains '.webp')>
-				<cfset shareSourceUrl = getPost[1]["MediaUrl"]>
-			<cfelseif len(getPost[1]["HeroCoverImageUrl"])>
-				<cfset shareSourceUrl = getPost[1]["HeroCoverImageUrl"]>
-			<!--- A video's own cover (its poster) when the post has no Hero Cover Image (11-05, owner): one picture for both. --->
-			<cfelseif len(getPost[1]["MediaVideoCoverUrl"] ?: "")>
-				<cfset shareSourceUrl = getPost[1]["MediaVideoCoverUrl"]>
-			</cfif>
+			<!--- The post's share pictures. Which picture: Hero.cfc getHero (2026-11-06, the hero pipeline), the same answer as the cards
+			and the admin: the hero picture, else the cover, else a picture under a scene or under a video typed into the header, else the
+			video's own cover. It used to take any picture-like MediaUrl first, so a cover was passed over for a picture under a scene.
+			createSocialMediaImages() made the crops at upload (ProxyController.cfc uploadImage()). Per platform: its own crop -> the
+			classic 1200x900 crop -> the uploaded picture as it is (Hero.cfc getShareCrop). A share picture typed into the header still
+			wins below. --->
+			<cfset shareHero = application.blog.getHeroes().getHero(getPost[1])>
+			<cfset shareSourceUrl = shareHero.uploadedSharePicture>
 			<cfif len(shareSourceUrl)>
 				<cfscript>
-					shareFileName = getFileFromPath(shareSourceUrl);
-					// The folder under /enclosures/ the picture is in ("videos/" for a video's poster, else none): its crops are kept in
-					// the same folder under each platform's folder (Image.cfc getSocialMediaDestination).
-					shareSubFolder = reReplaceNoCase(reReplaceNoCase(shareSourceUrl, "^.*?/enclosures/", ""), "[^/]+$", "");
-					if (!findNoCase("/enclosures/", shareSourceUrl)) { shareSubFolder = ""; }
-					shareFileNoExt = reReplaceNoCase(shareFileName, "\.[^.]+$", "");
-					// One platform's crop: the picture's own format first, then WebP. Empty when neither file is there.
-					pickShareImage = function (required string folder) {
-						var webPath = application.baseUrl & "/enclosures/" & arguments.folder & "/" & shareSubFolder;
-						var candidates = [];
-						if (!reFindNoCase("\.webp$", shareFileName)) { arrayAppend(candidates, shareFileName); }
-						arrayAppend(candidates, shareFileNoExt & ".webp");
-						for (var name in candidates) {
-							var localPath = expandPath(webPath & name);
-							if (fileExists(localPath)) { return { url: seoFileBaseUrl & "/enclosures/" & arguments.folder & "/" & shareSubFolder & name, path: localPath }; }
-						}
-						return {};
-					};
 					// A picture's size for og:image:width and og:image:height, read once (a few milliseconds) and kept until the file
 					// changes. Empty when it can't be read.
 					shareImageSize = function (required string localPath) {
@@ -141,10 +117,12 @@
 						} catch (any e) {}
 						return size;
 					};
-					shareFacebook = pickShareImage("facebook");
-					if (structIsEmpty(shareFacebook)) { shareFacebook = pickShareImage("classic"); }
-					shareTwitter = pickShareImage("twitter");
-					if (structIsEmpty(shareTwitter)) { shareTwitter = pickShareImage("classic"); }
+					shareHeroes = application.blog.getHeroes();
+					shareFacebook = shareHeroes.getShareCrop(shareSourceUrl, "facebook");
+					if (structIsEmpty(shareFacebook)) { shareFacebook = shareHeroes.getShareCrop(shareSourceUrl, "classic"); }
+					shareTwitter = shareHeroes.getShareCrop(shareSourceUrl, "twitter");
+					if (structIsEmpty(shareTwitter)) { shareTwitter = shareHeroes.getShareCrop(shareSourceUrl, "classic"); }
+					// head.cfm puts the blog's scheme and host in front of an address starting with /.
 					facebookImageMetaTagValue = structIsEmpty(shareFacebook) ? shareSourceUrl : shareFacebook.url;
 					twitterImageMetaTagValue = structIsEmpty(shareTwitter) ? shareSourceUrl : shareTwitter.url;
 					if (!structIsEmpty(shareFacebook)) {
@@ -154,11 +132,11 @@
 					}
 					// Pinterest's 1000x1500 crop only exists when the picture was big enough; there is no fallback for it.
 					// Multiple og:image tags are valid; Pinterest looks at all of them for a Rich Pin.
-					sharePinterest = pickShareImage("pinterest");
+					sharePinterest = shareHeroes.getShareCrop(shareSourceUrl, "pinterest");
 					pinterestImageMetaTagValue = structIsEmpty(sharePinterest) ? "" : sharePinterest.url;
 				</cfscript>
 			</cfif>
-					
+
 			<!--- Galaxie Blog Directive to change the Kendo library for a post. This is handy in order to use the much smaller Kendo Core library for the main site but still be able to include the professional Kendo version (if you have a license) to occassionally handle more advanced stuff, like Kendo grids --->
 			<cfif findNoCase("kendoCommercial", xmlKeywords) gt 0>
 				<!--- An explicit per-post directive always wins over the automatic detection below. --->

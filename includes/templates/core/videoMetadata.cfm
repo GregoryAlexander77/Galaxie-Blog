@@ -16,7 +16,12 @@
 			   
 		<!--- Overwrite the vars if the proper xml is embedded in the post header or the db. getXmlOverride() (common/function/page.cfm) uses the keyword's XML value when present, otherwise the fallback computed on the line above it. --->
 		<!--- YouTube and Vimeo are nearly always .mp4 at this time. We may have to revisit this in the future. --->
-		<cfset videoTypeFallback = (structKeyExists(getPost[1], "MediaType") and getPost[1]["MediaType"] contains 'Video') ? '.mp4' : videoType>
+		<!--- The post's own video (Hero.cfc, 2026-11-06, the hero pipeline): the video the post page shows. A video typed into the header is
+		read from the header below. MediaUrl used to be taken even when it was a picture, so a header videoType directive over a picture
+		gave og:video the picture's address. --->
+		<cfset videoHero = application.blog.getHeroes().getHero(getPost[1])>
+		<cfset videoHeroOwn = videoHero.mediaKind eq "video" and not videoHero.headerVideo>
+		<cfset videoTypeFallback = videoHeroOwn ? '.mp4' : videoType>
 		<cfset videoType = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "videoType", videoTypeFallback)>
 
 		<!--- Media Cover --->
@@ -27,7 +32,7 @@
 		<cfset smallVideoSourceUrl = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "smallVideoSourceUrl", smallVideoSourceUrl)>
 
 		<!--- Medium sized URL --->
-		<cfset mediumVideoSourceFallback = (structKeyExists(getPost[1], "MediaUrl") and len(getPost[1]["MediaUrl"])) ? getPost[1]["MediaUrl"] : mediumVideoSourceUrl>
+		<cfset mediumVideoSourceFallback = videoHeroOwn ? videoHero.mediaUrl : mediumVideoSourceUrl>
 		<cfset mediumVideoSourceUrl = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "mediumVideoSourceUrl", mediumVideoSourceFallback)>
 
 		<cfset largeVideoSourceUrl = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "largeVideoSourceUrl", largeVideoSourceUrl)>

@@ -108,8 +108,6 @@
 	<cfset cardEvent = structKeyExists(cardGridEvents, getPost[i]["PostId"]) ? cardGridEvents[getPost[i]["PostId"]] : {}>
 	<cfset cardEventTile = false>
 		
-	<!--- Also see if a video or enclosure should be rendered using xmlkeywords. This returns a structure. --->
-	<cfset xmlKeywordStruct = application.blog.getXmlKeywordStruct(getPost[i]["PostHeader"])>
 		
 	<!--- The provider variable is determined by a potential blog directive (vimdoVideoId or youTubeVideoId) and can either be vimeo or youTube. --->
 	<cfparam name="provider" default="">
@@ -126,158 +124,19 @@
 		<cfset parentCategory = ""/>
 	</cfif>
 
-	<!--- ************************* Handle enlosure ************************* --->
-	<!--- On desktop devices, use the original image if the sidebar is present, otherwise use the thumbnail image --->
-	<cfif showSidebar>
-		<cfset cardImage = enclosure>
-		<cfset renderMediumCard = true>
-	<cfelse>
-		<cfset cardImage = thumbnail>	
-		<cfset renderMediumCard = false>
-	</cfif>
-	<!--- There may not be a thumbnail. If so, use the enclosure. --->
-	<cfif not len(thumbnail) and len(enclosure)>
-		<cfset cardImage = enclosure>
-	</cfif>
-	<!--- There does not seem to be a enclosure image. Check to see if there is a facebook sharing image, and if not, defer to BlogOption.NoImageFallbackMode - noImage.jpg (default, unchanged), generated CSS/SVG art, a rendered carousel from the shared hero image pool (isHtml=true reuses the thumbnailCarousel slot below, same as a post's own enclosure carousel), or no image area at all ('none' mode). --->
-	<cfset suppressCardImage = false>
-	<cfif not len(cardImage)>
-		<cfset facebookImageMetaTagValue = application.blog.getXmlKeywordValue(getPost[i]["PostHeader"], 'facebookImageUrlMetaData')>
-		<cfif len(facebookImageMetaTagValue)>
-			<cfset cardImage = facebookImageMetaTagValue>
-		<!--- 2026-10-01: a Hero Cover Image (static uploaded photo, for a post with no real Image/Video/Map/
-		Carousel) takes priority over the Gradient/generated-fallback below, but a manually-typed
-		facebookImageUrlMetaData directive (checked just above) still wins for backward compatibility on an
-		older post - same relative priority seoMetaTags.cfm uses for the social-share image. --->
-		<cfelseif len(getPost[i]["HeroCoverImageUrl"])>
-			<cfset cardImage = getPost[i]["HeroCoverImageUrl"]>
-		<!--- An explicit gradient the user picked (see gradientEditor.cfm/Post.cfc's HeroGradient) is a real,
-		deliberate hero choice - checked before the auto-generated-art fallback below, same priority reasoning as
-		Renderer.cfc's renderEnclosure()/renderMediaPreview(). Reuses the thumbnailCarousel HTML slot, same as the
-		hero-pool-carousel fallback does (see this cfif block's own header comment above). --->
-		<cfelseif len(getPost[i]["HeroGradient"])>
-			<!--- Renderer.cfc.renderHeroGradientHtml() - single point of truth for this HTML, shared with
-			Renderer.cfc's own renderMediaPreview()/renderEnclosure() and the other two card templates. --->
-			<!--- Named arguments (2026-10-09): the 4th positional argument became heroOverlayFont when font support was added, so a positional "true" set the font to "true" and left the card at the tiny admin-thumbnail size. --->
-			<cfset thumbnailCarousel = RendererObj.renderHeroGradientHtml(heroGradient=getPost[i]["HeroGradient"], heroOverlayText=getPost[i]["HeroOverlayText"], heroOverlayTextColor=getPost[i]["HeroOverlayTextColor"], heroOverlayFont=(structKeyExists(getPost[i], "HeroOverlayFont") ? getPost[i]["HeroOverlayFont"] : ""), heroOverlayFontSize=(structKeyExists(getPost[i], "HeroOverlayFontSize") ? getPost[i]["HeroOverlayFontSize"] : ""), cardMode=true)>
-		<!--- An event with no picture of its own: its date tile (2026-10-16). --->
-		<cfelseif not structIsEmpty(cardEvent)>
-			<cfset thumbnailCarousel = application.events.renderDateTileHtml(cardEvent)>
-			<cfset cardEventTile = true>
-		<cfelse>
-			<cfset heroFallback = RendererObj.getHeroFallbackHtml(postId=getPost[i]["PostId"], cardMode=true)>
-			<cfif heroFallback.isHtml>
-				<cfset thumbnailCarousel = heroFallback.content>
-			<cfelseif heroFallback.suppressImage>
-				<cfset suppressCardImage = true>
-			<cfelseif len(heroFallback.content)>
-				<cfset cardImage = heroFallback.content>
-			<cfelse>
-				<cfset cardImage = application.baseUrl & "/images/thumbnails/noImage.jpg">
-			</cfif>
-		</cfif>
-	</cfif>
-	<!--- The card-sized copy of the picture when there is one (2026-10-31, owner): 640px wide instead of the full upload (up to
-	1580px and 200KB) or the 235px thumbnail (Image.cfc createCardImage / getCardImageUrl). --->
-	<cfif len(cardImage)>
-		<cfif not structKeyExists(request, "galaxieImageObj")><cfset request.galaxieImageObj = createObject("component", application.imageComponentPath)></cfif>
-		<cfset cardImage = request.galaxieImageObj.getCardImageUrl(cardImage)>
-	</cfif>
+	<!--- ************************* The top of the card ************************* --->
+	<!--- One answer for every card (2026-11-06, the hero pipeline): Renderer.cfc renderCardMedia, which asks Hero.cfc which hero and
+	picture to use. It used to be worked out here, in a different order from the post page and the other card templates. --->
+	<!--- The wider cards beside a sidebar use the full picture when there is no card-sized copy. --->
+	<cfset renderMediumCard = showSidebar>
+	<cfset cardMedia = RendererObj.renderCardMedia(post = getPost[i], renderMediumCard = renderMediumCard, showSidebar = showSidebar, fullPicture = showSidebar,
+		cardEvent = cardEvent, defaultImage = application.baseUrl & "/images/thumbnails/noImage.jpg")>
+	<cfset cardMediaHtml = cardMedia.html>
+	<cfset cardImage = cardMedia.imageUrl>
+	<cfset suppressCardImage = cardMedia.suppressImage>
+	<cfset cardEventTile = cardMedia.eventTile>
 	<cfif isDebug>
-		<cfoutput>showSidebar: #showSidebar# renderMediumCard: #renderMediumCard# cardImage: #cardImage#</cfoutput><br/>
-	</cfif>
-
-	<!--- ************************* Handle maps ************************* --->
-	<!--- For desktop clients, handle multiple maps on a page. If there are multiple maps, we need to create a script that will load all of the maps at the top of the page. If we are using a mobile device and there are multiple maps- we will use an iframe to display the map. --->
-	<cfif not session.isMobile and i eq 1 and listLen(enclosureMapIdList) gt 1>
-		<!--- Invoke the renderLoadMapScript function --->
-		<cfinvoke component="#RendererObj#" method="renderLoadMapScript" returnvariable="loadMapScript">
-			<cfinvokeargument name="kendoTheme" value="#kendoTheme#">
-			<cfinvokeargument name="enclosureMapIdList" value="#enclosureMapIdList#">
-			<cfinvokeargument name="currentRow" value="#i#">
-		</cfinvoke>
-	<cfelse>
-		<cfset loadMapScript = ''>
-	</cfif>
-	
-	<!--- Render the map --->
-	<cfif len(enclosureMapId)>
-		<cfif isDebug>renderMediumCard: #renderMediumCard#</cfif>
-		<!--- Render the map. This returns a iframe renderMapPreview(mapId, thumbnail, renderKCardMediaClass, renderMediumCard, showSidebar) --->
-		<cfset thumbnailMap = RendererObj.renderMapPreview(enclosureMapId, true, true, renderMediumCard, showSidebar)>
-	</cfif>
-
-	<!--- ************************* Handle self hosted videos ************************* --->
-	<cfif isDefined("mediaId") and len(mediaId) and mediaType contains 'Video'>
-		<!--- Note: this will return an iframe. --->
-		<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
-			<cfinvokeargument name="postId" value="#getPost[i]['PostId']#">
-			<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
-			<cfinvokeargument name="mediaId" value="#mediaId#">
-			<cfinvokeargument name="provider" value="#provider#">
-			<cfinvokeargument name="providerVideoId" value="#providerVideoId#">
-			<cfinvokeargument name="posterUrl" value="#mediaVideoCoverUrl#">
-			<cfinvokeargument name="videoCaptionsUrl" value="#mediaVideoVttFileUrl#">
-			<cfinvokeargument name="renderThumbnail" value="true">
-			<cfinvokeargument name="renderKCardMediaClass" value="true">
-			<cfinvokeargument name="renderMediumCard" value="#renderMediumCard#">
-			<cfinvokeargument name="showSidebar" value="#showSidebar#">
-		</cfinvoke> 
-	</cfif><!---<cfif len(mediaId) and mediaType contains 'Video'>--->
-				
-	<!--- Is there a video directive the xmlKeywords? --->
-	<cfif len(xmlKeywordStruct.VideoDirective)>
-		<!--- Get the smallest video if possible --->
-		<cfif len(xmlKeywordStruct.smallVideoSourceUrl)>
-			<cfset mediaUrl = xmlKeywordStruct.smallVideoSourceUrl>
-		<cfelseif len(xmlKeywordStruct.mediumVideoSourceUrl)>
-			<cfset mediaUrl = xmlKeywordStruct.mediumVideoSourceUrl>
-		<cfelseif len(xmlKeywordStruct.largeVideoSourceUrl)>
-			<cfset mediaUrl = xmlKeywordStruct.largeVideoSourceUrl>
-		<cfelseif len(xmlKeywordStruct.youTubeUrl)>
-			<cfset provider = "YouTube">
-			<cfset mediaUrl = xmlKeywordStruct.youTubeUrl>
-		<!---<cfelseif len(xmlKeywordStruct.youTubeVideoId)>
-			<cfset providerVideoId = xmlKeywordStruct.youTubeVideoId>
-		<cfelseif len(xmlKeywordStruct.vimeoUrl)>
-			<cfset provider = "Vimeo">
-			<cfset mediaUrl = xmlKeywordStruct.vimeoUrl>--->
-		<cfelseif len(xmlKeywordStruct.vimeoVideoId)>
-			<cfset provider = "Vimeo">
-			<cfset providerVideoId = xmlKeywordStruct.vimeoVideoId>
-		</cfif>
-		
-		<!--- Render the video from the directives --->
-		<cfif len(mediaUrl) or providerVideoId>	
-			<!--- Render the video, this will return an iframe. --->
-			<cfinvoke component="#RendererObj#" method="renderEnclosureVideoPreview" returnvariable="thumbnailMedia">
-				<cfinvokeargument name="postId" value="#getPost[i]['PostId']#">
-				<cfinvokeargument name="mediaUrl" value="#mediaUrl#">
-				<!--- Galaxie Directives have the providerVideoId in either <vimeoVideoId> or <youTubeVideoId> --->
-				<cfinvokeargument name="mediaId" value="">
-				<cfinvokeargument name="provider" value="#provider#">
-				<cfinvokeargument name="providerVideoId" value="#providerVideoId#">
-				<cfinvokeargument name="posterUrl" value="#xmlKeywordStruct.videoPosterImageUrl#">
-				<cfinvokeargument name="videoCaptionsUrl" value="#xmlKeywordStruct.videoCaptionsUrl#">
-				<cfinvokeargument name="renderThumbnail" value="true">
-				<cfinvokeargument name="renderKCardMediaClass" value="true">
-				<cfinvokeargument name="renderMediumCard" value="#renderMediumCard#">
-				<cfinvokeargument name="showSidebar" value="#showSidebar#">
-			</cfinvoke> 
-		</cfif>
-	</cfif><!---<cfif len(xmlKeywordStruct.VideoDirective)>--->
-					
-	<!--- Handle carousels --->
-	<cfif isDefined("enclosureCarouselId") and len(enclosureCarouselId)>
-		<cfif renderMediumCard>
-			<cfset carouselInterface = "mediumCard">
-		<cfelse>
-			<cfset carouselInterface = "card">
-		</cfif>
-		<!--- Render the carousel and don't specify an editor type as this is used on the main blog page. 
-		renderCarousel(carouselId,renderCard) 
-		--->
-		<cfset thumbnailCarousel = RendererObj.renderCarousel(enclosureCarouselId,true)>
+		<cfoutput>showSidebar: #showSidebar# renderMediumCard: #renderMediumCard# cardImage: #cardImage# card: #cardMedia.hero.cardPictureSource#</cfoutput><br/>
 	</cfif>
 
 	<!--- An event with its own picture, gradient, video, map or carousel: the calendar page goes in the middle of it (owner, 10-16).
@@ -295,18 +154,14 @@
 	</cfif>
 	
 	</cfsilent>	
-		<cfif isDebug><cfoutput>xmlKeywordStruct: <cfdump var="#xmlKeywordStruct#"> Rendering card- i:#i# arrayLen(getPost):#arrayLen(getPost)# isDefined("postUrl"): isDefined("postUrl") len(postUrl):#len(postUrl)# renderMediumCard: #renderMediumCard# <br/></cfoutput></cfif>
+		<cfif isDebug><cfoutput>Rendering card- i:#i# arrayLen(getPost):#arrayLen(getPost)# isDefined("postUrl"): isDefined("postUrl") len(postUrl):#len(postUrl)# renderMediumCard: #renderMediumCard# <br/></cfoutput></cfif>
 		<cfif i lte arrayLen(getPost) and displayCard and isDefined("postUrl") and len(postUrl)>
 			<div class="k-card <cfif promotedPost>highlightedWidget</cfif>" style="width: <cfoutput>#cardWidth#</cfoutput>%;"> 
 				<div class="k-card-body">
 					<a href="<cfoutput>#postUrl#</cfoutput>" aria-label="thumbnail map">
 						<cfif cardEventOverlay><div class="galaxieEventOnPicture"></cfif>
-						<cfif len(thumbnailMedia)>
-							<cfoutput>#thumbnailMedia#</cfoutput>
-						<cfelseif len(enclosureMapId)>
-							<cfoutput>#thumbnailMap#</cfoutput>
-						<cfelseif len(thumbnailCarousel)>
-							<cfoutput>#thumbnailCarousel#</cfoutput>
+						<cfif len(cardMediaHtml)>
+							<cfoutput>#cardMediaHtml#</cfoutput>
 						<cfelseif not suppressCardImage>
 							<div class="img-hover-zoom img-hover-brightzoom"><img class="fade lazied shown k-card-image" data-type="image" data-src="<cfoutput>#cardImage#</cfoutput>" alt="<cfoutput>#title#</cfoutput>" data-lazied="IMG" src="<cfoutput>#cardImage#</cfoutput>"></div>
 						</cfif>

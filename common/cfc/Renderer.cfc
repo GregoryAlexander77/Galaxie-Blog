@@ -1227,6 +1227,87 @@
 		<cfreturn '<p class="cardByline" style="margin: 0 0 8px; font-size: 13px; opacity: .8;">' & arrayToList(parts, " &middot; ") & '</p>'>
 	</cffunction>
 
+	<cffunction name="renderCardMedia" access="public" output="false" returntype="struct"
+			hint="What goes at the top of a post's card (2026-11-06, the hero pipeline): the same answer on the card grid (renderKendoCardGrid.cfm), the Popular strip (popularPosts.cfm) and the home page's All Blogs cards (curatedHomepageContentHtml.cfm). Which picture comes from Hero.cfc getHero; this only draws it. Returns { html (a video, map, carousel, gradient, event date tile or pool carousel, ready to insert), imageUrl (a picture for an img tag), suppressImage (NoImageFallbackMode 'none'), eventTile, hero }. Exactly one of html / imageUrl / suppressImage is set.">
+		<cfargument name="post" type="struct" required="true" hint="One row of a post listing (getPost): the media, map, carousel, gradient, cover and header columns.">
+		<cfargument name="renderMediumCard" type="boolean" required="false" default="false">
+		<cfargument name="showSidebar" type="boolean" required="false" default="false">
+		<cfargument name="fullPicture" type="boolean" required="false" default="false" hint="true: the full picture rather than the thumbnail when there is no card-sized copy (the wider cards beside a sidebar).">
+		<cfargument name="cardEvent" type="struct" required="false" default="#{}#" hint="The post's event (Events.cfc getCardEvents): with no picture of its own, the card shows the event's date tile.">
+		<cfargument name="defaultImage" type="string" required="false" default="" hint="The picture when the no-picture setting gives none.">
+		<cfset var p = arguments.post>
+		<cfset var value = function (key) { return structKeyExists(p, key) and not isNull(p[key]) ? trim(toString(p[key])) : ""; }>
+		<cfset var hero = application.blog.getHeroes().getHero(p)>
+		<cfset var result = { "html": "", "imageUrl": "", "suppressImage": false, "eventTile": false, "hero": hero }>
+		<cfset var keywords = {}>
+		<cfset var videoUrl = "">
+		<cfset var provider = "">
+		<cfset var providerVideoId = "">
+		<cfset var fallback = {}>
+
+		<!--- A video, map or carousel card shows the media itself (Hero.cfc rule 5). --->
+		<cfif hero.cardShowsMedia and hero.mediaKind eq "video" and hero.headerVideo>
+			<!--- A video typed into the post's header (older posts): the smallest file, else YouTube, else Vimeo. --->
+			<cfset keywords = application.blog.getXmlKeywordStruct(value("PostHeader"))>
+			<cfif len(keywords.smallVideoSourceUrl)><cfset videoUrl = keywords.smallVideoSourceUrl>
+			<cfelseif len(keywords.mediumVideoSourceUrl)><cfset videoUrl = keywords.mediumVideoSourceUrl>
+			<cfelseif len(keywords.largeVideoSourceUrl)><cfset videoUrl = keywords.largeVideoSourceUrl>
+			<cfelseif len(keywords.youTubeUrl)><cfset provider = "YouTube"><cfset videoUrl = keywords.youTubeUrl>
+			<cfelseif len(keywords.vimeoVideoId)><cfset provider = "Vimeo"><cfset providerVideoId = keywords.vimeoVideoId>
+			</cfif>
+			<cfif len(videoUrl) or len(providerVideoId)>
+				<cfset result.html = renderEnclosureVideoPreview(postId = value("PostId"), mediaUrl = videoUrl, mediaId = "", provider = provider,
+					providerVideoId = providerVideoId, posterUrl = keywords.videoPosterImageUrl, videoCaptionsUrl = keywords.videoCaptionsUrl,
+					renderThumbnail = true, renderKCardMediaClass = true, renderMediumCard = arguments.renderMediumCard, showSidebar = arguments.showSidebar)>
+			</cfif>
+		<cfelseif hero.cardShowsMedia and hero.mediaKind eq "video">
+			<cfset result.html = renderEnclosureVideoPreview(postId = value("PostId"), mediaUrl = hero.mediaUrl, mediaId = value("MediaId"), provider = "",
+				providerVideoId = value("ProviderVideoId"), posterUrl = hero.videoCoverUrl, videoCaptionsUrl = value("MediaVideoVttFileUrl"),
+				renderThumbnail = true, renderKCardMediaClass = true, renderMediumCard = arguments.renderMediumCard, showSidebar = arguments.showSidebar)>
+		<cfelseif hero.cardShowsMedia and hero.mediaKind eq "map">
+			<cfset result.html = renderMapPreview(value("EnclosureMapId"), true, true, arguments.renderMediumCard, arguments.showSidebar)>
+		<cfelseif hero.cardShowsMedia and hero.mediaKind eq "carousel">
+			<cfset result.html = renderCarousel(value("EnclosureCarouselId"), true)>
+		</cfif>
+		<cfif len(result.html)><cfreturn result></cfif>
+
+		<!--- A picture: the header's share picture, the hero picture or the cover (Hero.cfc). The card-sized copy when there is one
+		(Image.cfc getCardImageUrl, 2026-10-31); a picture typed into the header can be on another site, so it is used as it is. --->
+		<cfif len(hero.cardPicture)>
+			<cfset result.imageUrl = (arguments.fullPicture and hero.cardPictureSource eq "heroPicture") ? hero.heroPictureUrl : hero.cardPicture>
+			<cfif hero.cardPictureSource neq "header">
+				<cfif not structKeyExists(request, "galaxieImageObj")><cfset request.galaxieImageObj = createObject("component", application.imageComponentPath)></cfif>
+				<cfset result.imageUrl = request.galaxieImageObj.getCardImageUrl(result.imageUrl)>
+			</cfif>
+			<cfreturn result>
+		</cfif>
+
+		<!--- No picture. The gradient the author picked. --->
+		<cfif hero.mediaKind eq "gradient">
+			<cfset result.html = renderHeroGradientHtml(heroGradient = value("HeroGradient"), heroOverlayText = value("HeroOverlayText"), heroOverlayTextColor = value("HeroOverlayTextColor"),
+				heroOverlayFont = value("HeroOverlayFont"), heroOverlayFontSize = value("HeroOverlayFontSize"), cardMode = true)>
+			<cfreturn result>
+		</cfif>
+		<!--- An event: its date tile (2026-10-16). --->
+		<cfif not structIsEmpty(arguments.cardEvent) and structKeyExists(application, "events")>
+			<cfset result.html = application.events.renderDateTileHtml(arguments.cardEvent)>
+			<cfset result.eventTile = true>
+			<cfreturn result>
+		</cfif>
+		<!--- The no-picture setting (BlogOption NoImageFallbackMode). --->
+		<cfset fallback = getHeroFallbackHtml(postId = val(value("PostId")), cardMode = true)>
+		<cfif fallback.isHtml>
+			<cfset result.html = fallback.content>
+		<cfelseif fallback.suppressImage>
+			<cfset result.suppressImage = true>
+		<cfelseif len(fallback.content)>
+			<cfset result.imageUrl = fallback.content>
+		<cfelse>
+			<cfset result.imageUrl = arguments.defaultImage>
+		</cfif>
+		<cfreturn result>
+	</cffunction>
+
 	<cffunction name="renderHeroGradientHtml" access="public" output="false" returntype="string"
 			hint="Renders a Post/PageCollection's explicitly-picked HeroGradient as ready-to-insert HTML - single
 			point of truth used by renderMediaPreview()/renderEnclosure() below AND the three card-view templates
@@ -4069,261 +4150,89 @@
 	//**************************************************************************************************--->
 		
 	<cffunction name="renderLdJson" returntype="string" output="false"
-			hint="Renders the enclosure video at the top of a post">
-		<cfargument name="getPost" type="any" required="yes" hint="Pass in the getPost HQL query">
-		<cfargument name="prettify" type="boolean" required="no" default="false">
-		<!--- <cfdump var="#getPost#"> --->
-			
-		<!--- Preset some vars that may not be available --->
-		<cfparam name="imageBasePath" default="">
-		<cfparam name="imageBaseUrl" default="">
-		<cfparam name="ldJson" default="">
-		<cfparam name="numGoogleImages" default="0">
-		<cfparam name="google16_9Thumbnail" default="">
-		<cfparam name="google4_3Thumbnail" default="">
-		<cfparam name="google1_1Thumbnail" default="">
-	
-		<!--- Get the URL. its created dynamically. --->
-		<!--- 
-		Original code
-		<cfset postUrl = application.blog.getPostUrlByPostId(getPost[1]["PostId"])>
-		--->
-		<cfset postUrl = application.blog.makeLink(
-			isPage=getPost[1]["IsPage"], 
-			postAlias=getPost[1]["PostAlias"], 
-			datePosted=getPost[1]["DatePosted"])>
-			
-		<cfset IsPage = getPost[1]["IsPage"]>
-		<cfset title = getPost[1]["Title"]>
-		<cfset description = getPost[1]["Description"]>
-		<cfset body = getPost[1]["Body"]>
-		<cfset datePosted = getPost[1]["DatePosted"]>
-		<cfset fullName = getPost[1]["FullName"]>
-		<!--- Extract our media from the post (videos and images) --->
-		<cfset mediaType = getPost[1]["MediaType"]>
-		<!--- The mime type may not be available when using external sources due to forbidden errors when trying to read the file. --->
-		<cfset mimeType = getPost[1]["MimeType"]>
-		<cfset mediaHeight = getPost[1]["MediaHeight"]>
-		<cfset mediaPath = getPost[1]["MediaPath"]>
-		<cfset mediaTitle = getPost[1]["MediaTitle"]>
-		<cfset mediaPath = getPost[1]["MediaPath"]><!--- An absolute path, ie: D:\home\gregorysblog.org\wwwroot\enclosures\dumDum.png --->
-		<cfset mediaUrl = getPost[1]["MediaUrl"]>
-		<cfset mediaWidth = getPost[1]["MediaWidth"]>
-		<!--- We need the providers video id (i.e. the YouTube or Vimeo video Id.) This is captured when creating or updating the enclosure --->
-		<cfset providerVideoId = getPost[1]["ProviderVideoId"]>
-		<cfset mediaVideoCoverUrl = getPost[1]["MediaVideoCoverUrl"]>
-		<!--- Maps --->
-		<cfset enclosureMapId = getPost[1]["EnclosureMapId"]>
-		<cfset released = getPost[1]["Released"]>
-		<cfset datePosted = getPost[1]["DatePosted"]>
-		<cfset date = getPost[1]["Date"]>
-			
-		<!--- Get data from application variables --->
-		<cfset blogName = application.BlogDbObj.getBlogName()>
-		<cfset logo = application.baseUrl & '/' & application.blog.getLogoPathByTheme(kendoTheme=trim(application.blog.getSelectedKendoTheme()))>
-			
-		<!--- Get the google thumbnails. These have the same name as the enclosure and they are in the google folders. --->
-		<!--- Get the image name and path --->
-		<cfset enclosureImageName = listLast(mediaPath, "\")>
-		<cfif len(enclosureImageName)>
-			<cfset imageBasePath = replaceNoCase(mediaPath, enclosureImageName, '')>
-			<cfset imageBaseUrl = application.blogHostUrl & replaceNoCase(mediaUrl, enclosureImageName, '')>
-		</cfif>
-			
-		<!--- Note: there may not be an enclosure.--->
-		<cfif enclosureImageName neq "">
-			<!--- Set the paths. --->
-			<cfset google16_9ThumbnailPath = imageBasePath & 'google\16_9\' & enclosureImageName>
-			<cfset google16_9Url = imageBaseUrl & 'google/16_9/' & enclosureImageName>
-			<cfset google4_3ThumbnailPath = imageBasePath & 'google\4_3\' & enclosureImageName>
-			<cfset google4_3Url = imageBaseUrl & 'google/4_3/' & enclosureImageName>
-			<cfset google1_1ThumbnailPath = imageBasePath & 'google\1_1\' & enclosureImageName>
-			<cfset google1_1Url = imageBaseUrl & 'google/1_1/' & enclosureImageName>
-			<!--- Debugging:
-			<cfoutput>
-				imageBasePath: #imageBasePath#<br/>
-				enclosureImageName: #enclosureImageName#<br/>
-				google16_9ThumbnailPath: #google16_9ThumbnailPath#<br/>
-				google4_3ThumbnailPath: #google4_3ThumbnailPath#<br/>
-				google1_1ThumbnailPath: #google1_1ThumbnailPath#<br/>
-			</cfoutput>--->
-			
-			<!--- Set the vars if the file exists. We need to know how many google images to use in order to determine if we should use an image array. --->
-			<cfset numGoogleImages = 0>
-			<cfif fileExists(google16_9ThumbnailPath)>
-				<cfset google16_9Thumbnail = google16_9Url>
-				<cfset numGoogleImages = numGoogleImages + 1>
-			</cfif>	
-			<cfif fileExists(google4_3ThumbnailPath)>
-				<cfset google4_3Thumbnail = google4_3Url>
-				<cfset numGoogleImages = numGoogleImages + 1>
-			</cfif>	
-			<cfif fileExists(google1_1ThumbnailPath)>
-				<cfset google1_1Thumbnail = google1_1Url>
-				<cfset numGoogleImages = numGoogleImages + 1>
-			</cfif>
-		</cfif><!---<cfif enclosureImageName neq "">--->
-		
-		<!--- Get the largest thumbnail for the article image --->
-		<cfif isDefined("google16_9Thumbnail") and len(google16_9Thumbnail)>
-			<cfset articleImage = google16_9Thumbnail>
-		<cfelseif isDefined("google4_3Url") and len(google4_3Url)>
-			<cfset articleImage = google4_3Url>
-		<cfelseif isDefined("google1_1ThumbnailPath") and len(google1_1ThumbnailPath)>
-			<cfset articleImage = google1_1ThumbnailPath>	
+			hint="A post's structured data for Google (schema.org JSON-LD), written into the page head (head.cfm) unless the post has its own saved in the JSON-LD window. Rebuilt 2026-11-06 (the hero pipeline): the picture comes from Hero.cfc (the same picture sharing uses, with Google's 16:9, 4:3 and 1:1 crops when they were made), and it is built as a struct and serialized, so it is always valid JSON. The old one wrote two objects with a comma between them when there was a video, didn't escape titles with quotes in them, pointed mainEntityOfPage at google.com/article, gave the publisher the blog's internal name and a //images/... logo address, and only ever looked at the post's own picture.">
+		<cfargument name="getPost" type="any" required="yes" hint="getPost (an array of one post row).">
+		<cfargument name="prettify" type="boolean" required="no" default="false" hint="Not used any more; kept for older callers.">
+		<cfset var post = arguments.getPost[1]>
+		<cfset var value = function (key) { return structKeyExists(post, key) and not isNull(post[key]) ? trim(toString(post[key])) : ""; }>
+		<cfset var hero = application.blog.getHeroes().getHero(post)>
+		<cfset var origin = reReplaceNoCase(application.blogHostUrl, "^(https?://[^/]+).*$", "\1")>
+		<!--- A full address: a picture or file stored as /path gets the blog's scheme and host in front. --->
+		<cfset var absolute = function (address) {
+			if (!len(address) || reFindNoCase("^https?://", address)) return address;
+			if (left(address, 2) == "//") return "https:" & address;
+			if (left(address, 1) == "/") return origin & address;
+			return origin & application.baseUrl & "/" & address;
+		}>
+		<cfset var postUrl = application.blog.makeLink(isPage = post["IsPage"], postAlias = value("PostAlias"), datePosted = post["DatePosted"])>
+		<cfset var isPage = isBoolean(post["IsPage"] ?: false) and (post["IsPage"] ?: false)>
+		<cfset var ld = structNew("ordered")>
+		<cfset var images = []>
+		<cfset var crop = {}>
+		<cfset var folder = "">
+		<cfset var logo = "">
+		<cfset var video = {}>
+		<cfset var videoThumbnail = "">
+		<cfset var json = "">
 
-		<cfelse>
-			<cfset articleImage = "">	
-		</cfif>
-			
-		<!--- The body was removed. It is not necessary for articles. 
-		Use JSoup to clean the HTML out of the body. 
-		<cfinvoke component="#application.jsoupComponentPath#" method="jsoupConvertHtmlToText" returnvariable="articleBody">
-			<cfinvokeargument name="html" value="#body#">
-		</cfinvoke>--->
-			
-		<cfif prettify>
-			<cfset cr = '<br/>'>
-			<cfset tab = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'>
-		</cfif>
-		
-		<!--- Yes, I know that this the best way of doing this, but it is fast and it works. Next version write a function to handle the formatting.--->
-		<cfoutput>
-		<cfset ldJson = ''>
-		<cfset ldJson = ldJson & '{'>
-		  <cfset ldJson = ldJson & '"@context":"http://schema.org",'>
-		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  <cfset ldJson = ldJson & '"@type":"Article",'>
-		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  <!--- If there is only one Google image, set the image string here --->
-		  <cfif numGoogleImages lt 2 and len(articleImage)>
-		  	<cfset ldJson = ldJson & '"image":"' & articleImage & '",'>
-		  	<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  </cfif>
-		  <cfset ldJson = ldJson & '"mainEntityOfPage":{'>
-			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-			<cfif IsPage>
-				<cfset ldJson = ldJson & '"@type":"WebPage",'>
-			<cfelse>
-				<cfset ldJson = ldJson & '"@type":"Article",'>
-			</cfif>
-			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-			<cfset ldJson = ldJson & '"@id":"https://google.com/article"'>
-			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  <cfset ldJson = ldJson & '},'>
-		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  <cfset ldJson = ldJson & '"headline":"' & title & '",'>
-		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  <cfset ldJson = ldJson & '"author":{'>
-			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-			<cfset ldJson = ldJson & '"@type":"Person",'>
-			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-			<cfset ldJson = ldJson & '"name":"' & fullName & '"'>
-			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  <cfset ldJson = ldJson & '},'>
-		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		<cfset ldJson = ldJson & '"publisher":{'>
-		<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-			<cfset ldJson = ldJson & '"@type":"Organization",'>
-			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-			<cfset ldJson = ldJson & '"name":"' & blogName & '",'>
-			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-			<cfset ldJson = ldJson & '"logo":{'>
-			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			  <cfif prettify><cfset ldJson = ldJson & tab & tab></cfif>
-			  <cfset ldJson = ldJson & '"@type":"ImageObject",'>
-			  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			  <cfif prettify><cfset ldJson = ldJson & tab & tab></cfif>
-			  <cfset ldJson = ldJson & '"url":"' & logo & '"'>
-			  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-			<cfset ldJson = ldJson & '}'>
-			<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  <cfset ldJson = ldJson & '},'><cfif prettify>
-		  <cfset ldJson = ldJson & cr></cfif>
-		  <cfset ldJson = ldJson & '"url":"' & postUrl & '",'>
-		  <!--- Image array if there is more than one google image --->
-		  <cfif numGoogleImages gt 1 >
-			  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			  <cfset ldJson = ldJson & '"image":['>
-				<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-				<cfif len(google16_9Thumbnail)>
-					<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-					<cfset ldJson = ldJson & '"' & google16_9Thumbnail & '",'>
-					<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-				</cfif>
-				<cfif len(google4_3Thumbnail)>
+		<!--- The same address as the canonical link (seoMetaTags.cfm). --->
+		<cfif application.serverRewriteRuleInPlace><cfset postUrl = replaceNoCase(postUrl, "/index.cfm", "")></cfif>
 
-					<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-					<cfset ldJson = ldJson & '"' & google4_3Thumbnail & '",'>
-					<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-				</cfif>
-				<cfif len(google1_1Thumbnail)>
-					<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-					<cfset ldJson = ldJson & '"' & google1_1Thumbnail & '"'>
-					<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-				</cfif>
-			  <cfset ldJson = ldJson & '],'>
-		  </cfif>
-		  
-		  <!--- Maps --->
-		  <cfif len(enclosureMapId)>
-		  	<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			<!--- Note: hasMap is not supported by the article schema. We will use image instead. --->
-			<cfset ldJson = ldJson & '"image":"#application.baseUrl#/preview/maps.cfm?mapId=' & enclosureMapId & '",'>
-		  </cfif>
-		  <!---
-		  The body was removed. It is not necessary.
-		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  <cfset ldJson = ldJson & '"articleBody":"' & articleBody & '",'>
-			--->
-		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  <cfset ldJson = ldJson & '"datePublished":"' & application.Udf.getIsoTimeString(datePosted) & '",'>
-		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		  <cfset ldJson = ldJson & '"dateModified":"' & application.Udf.getIsoTimeString(date) & '"'>
-		  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-		<cfset ldJson = ldJson & '}'>
-		<!--- Add the comma if there is a video --->
-		<cfif mimeType eq 'video/mp4'>
-			<cfset ldJson = ldJson & ','>
+		<cfset ld["@context"] = "https://schema.org">
+		<cfset ld["@type"] = isPage ? "Article" : "BlogPosting">
+		<cfset ld["mainEntityOfPage"] = structNew("ordered")>
+		<cfset ld["mainEntityOfPage"]["@type"] = "WebPage">
+		<cfset ld["mainEntityOfPage"]["@id"] = postUrl>
+		<cfset ld["headline"] = value("Title")>
+		<cfif len(value("Description"))><cfset ld["description"] = value("Description")></cfif>
+
+		<!--- The picture: Google's crops of the uploaded share picture (16:9, 4:3, 1:1), else the share picture itself (a picture typed
+		into the header wins, as on Facebook), else none. --->
+		<cfif len(hero.uploadedSharePicture) and hero.sharePictureSource neq "header">
+			<cfloop list="google/16_9,google/4_3,google/1_1" index="folder">
+				<cfset crop = application.blog.getHeroes().getShareCrop(hero.uploadedSharePicture, folder)>
+				<cfif not structIsEmpty(crop)><cfset arrayAppend(images, absolute(crop.url))></cfif>
+			</cfloop>
 		</cfif>
-		<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			
-		<!--- Note: videos should be attached at the end of the document --->
-		<cfif mimeType eq 'video/mp4'>
-			  <cfif prettify><cfset ldJson = ldJson></cfif>
-			  <cfset ldJson = ldJson & '{'>
-			  <cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			  	<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-				<cfset ldJson = ldJson & '"@type":"VideoObject",'>
-				<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-				<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-		  		<cfset ldJson = ldJson & '"name":"' & title & '",'>
-				<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-				<cfif len(mediaVideoCoverUrl)>
-					<cfif prettify><cfset ldJson = ldJson & tab & tab></cfif>
-					<cfset ldJson = ldJson & '"thumbnailUrl":"' & mediaVideoCoverUrl & '",'>
-					<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-				</cfif>
-				<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-				<cfset ldJson = ldJson & '"contentUrl":"#application.baseUrl#/galaxiePlayer.cfm?postId=' & getPost[1]["EnclosureMapId"] & '&videoUrl=' & mediaUrl & '",'>
-				<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-			  	<cfif prettify><cfset ldJson = ldJson & tab></cfif>
-				<cfset ldJson = ldJson & '"uploadDate":"' & application.Udf.getIsoTimeString(datePosted)>
-				<cfif prettify><cfset ldJson = ldJson & cr></cfif>
-				<cfset ldJson = ldJson & '}'>
+		<cfif not arrayLen(images) and len(hero.sharePicture)><cfset arrayAppend(images, absolute(hero.sharePicture))></cfif>
+		<cfif arrayLen(images)><cfset ld["image"] = images></cfif>
+
+		<cfif len(value("FullName"))>
+			<cfset ld["author"] = structNew("ordered")>
+			<cfset ld["author"]["@type"] = "Person">
+			<cfset ld["author"]["name"] = value("FullName")>
+		</cfif>
+		<cfset ld["publisher"] = structNew("ordered")>
+		<cfset ld["publisher"]["@type"] = "Organization">
+		<cfset ld["publisher"]["name"] = application.BlogDbObj.getBlogTitle()>
+		<cfset logo = application.blog.getLogoPathByTheme(kendoTheme = trim(application.blog.getSelectedKendoTheme()))>
+		<cfif len(logo)>
+			<cfset ld["publisher"]["logo"] = structNew("ordered")>
+			<cfset ld["publisher"]["logo"]["@type"] = "ImageObject">
+			<cfset ld["publisher"]["logo"]["url"] = absolute(logo)>
+		</cfif>
+		<cfset ld["url"] = postUrl>
+		<cfif isDate(post["DatePosted"] ?: "")><cfset ld["datePublished"] = application.Udf.getIsoTimeString(post["DatePosted"])></cfif>
+		<cfif isDate(post["Date"] ?: "")><cfset ld["dateModified"] = application.Udf.getIsoTimeString(post["Date"])></cfif>
+
+		<!--- The post's own video file (MP4 or WebM), inside the post's object. Google needs a picture for a video, so none without one. --->
+		<cfif hero.mediaKind eq "video" and not hero.headerVideo and (value("MimeType") eq "video/mp4" or reFindNoCase("\.(mp4|webm)(\?|$)", hero.mediaUrl))>
+			<cfset videoThumbnail = len(hero.videoCoverUrl) ? hero.videoCoverUrl : hero.sharePicture>
+			<cfif len(videoThumbnail)>
+				<cfset video = structNew("ordered")>
+				<cfset video["@type"] = "VideoObject">
+				<cfset video["name"] = value("Title")>
+				<cfset video["description"] = len(value("Description")) ? value("Description") : value("Title")>
+				<cfset video["thumbnailUrl"] = absolute(videoThumbnail)>
+				<cfset video["contentUrl"] = absolute(hero.mediaUrl)>
+				<cfif structKeyExists(ld, "datePublished")><cfset video["uploadDate"] = ld["datePublished"]></cfif>
+				<cfset ld["video"] = video>
 			</cfif>
-		</cfoutput>	
-			  
-		<cfreturn ldJson>
-		
+		</cfif>
+
+		<!--- "</" can't appear inside a script tag: a title with "</script>" in it would end it. --->
+		<cfset json = replace(serializeJSON(ld), "</", "<\/", "all")>
+		<cfreturn json>
 	</cffunction>
 		
 </cfcomponent>			

@@ -6,113 +6,51 @@ Needs getPost (getPostByPostId), RendererObj and kendoTheme. Mock-up: test page 
 <cfsilent>
 <cfset hcPost = getPost[1]>
 <cfset hcPostId = hcPost["PostId"]>
-<cfset hcValue = function (key) { return structKeyExists(hcPost, key) and not isNull(hcPost[key]) ? trim(toString(hcPost[key])) : ""; }>
-<cfset hcMediaUrl = hcValue("MediaUrl")>
-<cfif not len(hcMediaUrl) and len(hcValue("MediaPath"))>
-	<cfset hcMediaUrl = application.blog.getEnclosureUrlFromMediaPath(hcValue("MediaPath"), true)>
-</cfif>
-<cfset hcMediaType = hcValue("MediaType")>
-<cfset hcCoverUrl = hcValue("HeroCoverImageUrl")>
-
-<!--- A scene shown on the post takes the place of its hero (a moving hero is the post's own scene, post-hero-{postId}). --->
-<cfset hcScenes = application.blog.getScenes()>
-<cfset hcSceneAlias = hcScenes.getPostScene(hcPostId)>
-<cfset hcSceneId = len(hcSceneAlias) ? hcScenes.getSceneIdByAlias(hcSceneAlias) : 0>
-<cfset hcSceneName = "">
-<cfset hcSceneArt = "">
-<cfif hcSceneId gt 0>
-	<cfset hcScene = hcScenes.getScene(hcSceneId)>
-	<cfset hcSceneName = hcScene.name ?: hcSceneAlias>
-	<!--- The scene's first section drawn as a still: its layers stacked, or its photo. Other kinds get the layers icon. --->
-	<cftry>
-		<cfset hcSceneData = deserializeJSON(hcScene.json)>
-		<cfset hcFirst = hcSceneData.sections[1]>
-		<cfif (hcFirst.kind ?: "") eq "layeredHero" and isArray(hcFirst.layers ?: "")>
-			<cfloop array="#hcFirst.layers#" index="hcLayer">
-				<cfif len(hcLayer.src ?: "")>
-					<cfset hcSceneArt = hcSceneArt & '<img src="' & encodeForHtmlAttribute(replace(hcLayer.src, "{baseUrl}", application.baseUrl, "all")) & '" alt="">'>
-				</cfif>
-			</cfloop>
-		<cfelseif (hcFirst.kind ?: "") eq "photoHero" and len(hcFirst.image ?: "")>
-			<cfset hcSceneArt = '<img src="' & encodeForHtmlAttribute(replace(hcFirst.image, "{baseUrl}", application.baseUrl, "all")) & '" alt="">'>
-		</cfif>
-		<cfcatch type="any"></cfcatch>
-	</cftry>
-</cfif>
-<cfset hcIsMovingHero = (hcSceneAlias eq "post-hero-" & hcPostId)>
-<cfset hcIsFullScene = hcSceneId gt 0 and not hcIsMovingHero>
-
-<!--- What the hero is, for the line under the previews and for the cover side. --->
-<cfif hcIsMovingHero>
-	<cfset hcHeroKind = "Moving hero (" & reReplace(hcSceneName, "\s*\(.*\)$", "") & ")">
-<cfelseif hcIsFullScene>
-	<cfset hcHeroKind = "scene (" & hcSceneName & ")">
-<cfelseif len(hcValue("EnclosureCarouselId"))>
-	<cfset hcHeroKind = "carousel">
-<cfelseif len(hcValue("EnclosureMapId"))>
-	<cfset hcHeroKind = "map">
-<cfelseif len(hcMediaUrl) and hcMediaType eq "Image">
-	<cfset hcHeroKind = "picture">
-<cfelseif len(hcMediaUrl) and left(hcMediaType, 5) eq "Video">
-	<cfset hcHeroKind = "video">
-<cfelseif len(hcValue("HeroGradient"))>
-	<cfset hcHeroKind = "gradient">
-<cfelseif len(hcValue("HeroAnimationEffect"))>
-	<cfset hcHeroKind = "animation (" & lCase(hcValue("HeroAnimationEffect")) & ")">
-<cfelse>
-	<cfset hcHeroKind = "">
-</cfif>
-<cfset hcHeroIsPicture = hcHeroKind eq "picture">
+<!--- What the hero is, and which picture cards and sharing use, from Hero.cfc (2026-11-06, the hero pipeline: this row, the Hero
+window, the cards and sharing all give the same answer). This template only draws it. --->
+<cfset hcHero = application.blog.getHeroes().getAdminHero(hcPost)>
+<cfset hcSceneId = hcHero.sceneId>
+<cfset hcSceneName = hcHero.sceneName>
+<cfset hcIsFullScene = hcHero.kind eq "scene">
+<cfset hcCoverUrl = hcHero.coverUrl>
+<cfset hcCoverUnused = hcHero.cover.unused>
+<cfset hcCoverState = hcHero.cover.state>
 
 <!--- The hero side. --->
 <cfif hcSceneId gt 0>
-	<cfif len(hcSceneArt)>
-		<cfset hcHeroHtml = '<div class="hcLayers">' & hcSceneArt & '</div>'>
+	<cfif len(hcHero.sceneArt)>
+		<cfset hcHeroHtml = '<div class="hcLayers">' & hcHero.sceneArt & '</div>'>
 	<cfelse>
 		<cfset hcHeroHtml = '<div class="hcPlaceholder k-alt"><i class="fontAwesomeIcon fas fa-layer-group"></i><span>' & encodeForHtml(hcSceneName) & '</span></div>'>
 	</cfif>
-<cfelseif hcHeroIsPicture>
-	<cfset hcHeroHtml = '<img src="' & encodeForHtmlAttribute(hcMediaUrl) & '" alt="">'>
-<cfelseif len(hcHeroKind)>
+<cfelseif hcHero.kind eq "picture">
+	<cfset hcHeroHtml = '<img src="' & encodeForHtmlAttribute(hcHero.heroPictureUrl) & '" alt="">'>
+<cfelseif hcHero.kind neq "none">
 	<cfset hcHeroHtml = RendererObj.renderMediaPreview(kendoTheme = kendoTheme, getPost = getPost, renderThumbnail = true, includeCover = false)>
 <cfelse>
 	<cfset hcHeroHtml = '<div class="hcEmpty"><i class="fontAwesomeIcon fas fa-image"></i><span>No hero yet. The post starts with its title.</span></div>'>
 </cfif>
 
-<!--- The cover side, by the same rule as the cover reminder after a save (ProxyController getCoverImageReminder): a cover is
-needed when the hero isn't a picture, unless a share picture is named in the post's header. --->
-<cfset hcHeaderPicture = findNoCase("facebookImageUrlMetaData", hcValue("PostHeader")) gt 0>
-<!--- While the hero is a picture, cards and sharing show the hero picture and a cover is not used (11-05, owner). --->
-<cfset hcCoverUnused = len(hcCoverUrl) and hcHeroIsPicture and hcSceneId eq 0>
+<!--- The cover side. --->
 <cfif hcCoverUnused>
-	<cfset hcCoverHtml = '<img src="' & encodeForHtmlAttribute(hcCoverUrl) & '" alt="" style="opacity: .55;"><span class="hcUses k-content">Used again if the hero changes to something that isn''t a picture</span>'>
+	<cfset hcCoverHtml = '<img src="' & encodeForHtmlAttribute(hcCoverUrl) & '" alt="" style="opacity: .55;"><span class="hcUses k-content">' & encodeForHtml(hcHero.cover.unusedReason) & '</span>'>
 	<cfset hcCoverButton = "Change cover">
-	<cfset hcCoverState = "set, not used (the hero picture is shared)">
 <cfelseif len(hcCoverUrl)>
 	<cfset hcCoverHtml = '<img src="' & encodeForHtmlAttribute(hcCoverUrl) & '" alt="">'>
 	<cfset hcCoverButton = "Change cover">
-	<cfset hcCoverState = "set">
-<cfelseif hcHeroIsPicture>
-	<cfset hcCoverHtml = '<img src="' & encodeForHtmlAttribute(hcMediaUrl) & '" alt=""><span class="hcUses k-content">Uses the hero picture</span>'>
+<cfelseif len(hcHero.cover.usesUrl)>
+	<cfset hcCoverHtml = '<img src="' & encodeForHtmlAttribute(hcHero.cover.usesUrl) & '" alt=""><span class="hcUses k-content">' & encodeForHtml(hcHero.cover.usesLabel) & '</span>'>
 	<cfset hcCoverButton = "Use a different cover">
-	<cfset hcCoverState = "the hero picture">
-<cfelseif hcHeroKind eq "video" and len(hcValue("MediaVideoCoverUrl"))>
-	<!--- A video's own cover (its poster) is shared when there is no Hero Cover Image (11-05, owner). --->
-	<cfset hcCoverHtml = '<img src="' & encodeForHtmlAttribute(hcValue("MediaVideoCoverUrl")) & '" alt=""><span class="hcUses k-content">Uses the video''s cover</span>'>
-	<cfset hcCoverButton = "Use a different cover">
-	<cfset hcCoverState = "the video's cover">
-<cfelseif hcHeaderPicture>
+<cfelseif hcHero.cover.state eq "in the header">
 	<cfset hcCoverHtml = '<div class="hcEmpty"><i class="fontAwesomeIcon fas fa-code"></i><span>Set in the post''s header (facebookImageUrlMetaData).</span></div>'>
 	<cfset hcCoverButton = "Add a cover">
-	<cfset hcCoverState = "in the header">
-<cfelseif len(hcHeroKind)>
-	<cfset hcCoverHtml = '<blockquote class="hcEmpty k-notification-warning"><i class="fontAwesomeIcon fas fa-triangle-exclamation"></i><b>No cover yet</b><span>Cards and sharing can''t use ' & (left(hcHeroKind, 1) eq "a" ? "an " : "a ") & encodeForHtml(lCase(reReplace(hcHeroKind, "\s*\(.*$", ""))) & '. Add a picture for them.</span></blockquote>'>
+<cfelseif hcHero.kind neq "none">
+	<!--- Cards show a video, map or carousel itself, so only sharing lacks a picture then. --->
+	<cfset hcCoverHtml = '<blockquote class="hcEmpty k-notification-warning"><i class="fontAwesomeIcon fas fa-triangle-exclamation"></i><b>No cover yet</b><span>' & (hcHero.cardShowsMedia ? "Sharing" : "Cards and sharing") & ' can''t use ' & encodeForHtml(hcHero.kind eq "movingHero" ? "a moving hero" : (hcHero.kind eq "scene" ? "a scene" : application.blog.getHeroes().describe(hcHero.kind))) & '. Add a picture for ' & (hcHero.cardShowsMedia ? "it" : "them") & '.</span></blockquote>'>
 	<cfset hcCoverButton = "Add a cover">
-	<cfset hcCoverState = "none">
 <cfelse>
 	<cfset hcCoverHtml = '<div class="hcEmpty"><i class="fontAwesomeIcon fas fa-camera-retro"></i><span>No cover yet. Add a picture for cards and sharing.</span></div>'>
 	<cfset hcCoverButton = "Add a cover">
-	<cfset hcCoverState = "none">
 </cfif>
 <cfset hcHeroAction = hcIsFullScene ? "createAdminInterfaceWindow(107, " & hcSceneId & ")" : "createAdminInterfaceWindow(13, " & hcPostId & ")">
 <cfset hcCoverAction = "createAdminInterfaceWindow(80, " & hcPostId & ")">
@@ -146,7 +84,7 @@ needed when the hero isn't a picture, unless a share picture is named in the pos
 </style>
 <!--- What the hero is and the cover, at the top beside the row's Hero label (11-05, owner: it was at the bottom, and a second bold
 "Hero" heading repeated the label). On a phone there is no label beside it, so the line says Hero itself. --->
-<cfset hcKindText = len(hcHeroKind) ? uCase(left(hcHeroKind, 1)) & mid(hcHeroKind, 2, len(hcHeroKind)) : "None">
+<cfset hcKindText = hcHero.label>
 <div class="heroSummary" style="padding-top: 10px; margin-bottom: 6px;"><cfoutput><cfif session.isMobile>Hero: </cfif>#encodeForHtml(hcKindText)# &middot; Cover: #hcCoverState#</cfoutput></div>
 <div class="hcGrid">
 	<div>
@@ -158,7 +96,7 @@ needed when the hero isn't a picture, unless a share picture is named in the pos
 	need it, and the Hero editor's Cover Image button adds one any time. --->
 	<cfif len(hcCoverUrl)>
 	<div>
-		<div class="k-form-hint" style="display: block;"><cfif hcCoverUnused>The cover, not used while the hero is a picture<cfelseif listFindNoCase("video,map,carousel", hcHeroKind)>The cover, for Facebook, X and Pinterest. Cards show the <cfoutput>#hcHeroKind#</cfoutput>.<cfelse>The cover, on cards, Facebook, X and Pinterest</cfif></div>
+		<div class="k-form-hint" style="display: block;"><cfif hcCoverUnused>The cover, not used now<cfelseif hcHero.cardShowsMedia>The cover, for Facebook, X and Pinterest. Cards show the <cfoutput>#hcHero.mediaKind#</cfoutput>.<cfelse>The cover, on cards, Facebook, X and Pinterest</cfif></div>
 		<div class="hcArt" title="<cfoutput>#hcCoverButton#</cfoutput>"><cfoutput>#hcCoverHtml#</cfoutput><span class="hcClick" onclick="<cfoutput>#hcCoverAction#</cfoutput>"></span></div>
 		<button type="button" class="k-button normalFontWeight" onclick="<cfoutput>#hcCoverAction#</cfoutput>"><i class="fontAwesomeIcon fas fa-camera-retro"></i> <cfoutput>#hcCoverButton#</cfoutput></button>
 	</div>

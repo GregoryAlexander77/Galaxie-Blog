@@ -14166,6 +14166,7 @@
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="postId" default="0" required="true">
 		<cfset var response = { "success": false, "needed": false, "kind": "", "unusedCover": false }>
+		<cfset var hero = {}>
 		<cfset var post = {}>
 		<cfset var rows = []>
 		<cfset var value = function (key) { return structKeyExists(post, key) and not isNull(post[key]) ? trim(toString(post[key])) : ""; }>
@@ -14179,29 +14180,13 @@
 				<cfset rows = application.blog.getPostByPostId(val(arguments.postId), true, true)>
 				<cfif arrayLen(rows)>
 					<cfset post = rows[1]>
-					<!--- What seoMetaTags.cfm shares: the hero when it is a picture, otherwise the Hero Cover Image, or a picture named in the
-					post's header (facebookImageUrlMetaData). With one of those there is nothing to remind. --->
-					<cfif not len(value("HeroCoverImageUrl")) and not reFindNoCase("\.(jpe?g|gif|png|webp)(\?|$)", value("MediaUrl"))
-						and not findNoCase("facebookImageUrlMetaData", value("PostHeader")) and not len(value("MediaVideoCoverUrl"))>
-						<cfif len(application.blog.getScenes().getPostScene(val(arguments.postId)))>
-							<cfset response[ "kind" ] = "a scene">
-						<cfelseif len(value("MediaUrl"))>
-							<cfset response[ "kind" ] = "a video">
-						<cfelseif len(value("EnclosureMapId"))>
-							<cfset response[ "kind" ] = "a map">
-						<cfelseif len(value("EnclosureCarouselId"))>
-							<cfset response[ "kind" ] = "a carousel">
-						<cfelseif len(value("HeroAnimationEffect"))>
-							<cfset response[ "kind" ] = "an animation">
-						<cfelseif len(value("HeroGradient"))>
-							<cfset response[ "kind" ] = "a gradient">
-						</cfif>
-						<cfset response[ "needed" ] = len(response.kind) gt 0>
-					<!--- The hero is now a picture and the post still has a cover (11-05, owner): the picture is what cards and sharing
-					show, so the cover is not used. The page offers to remove it (removeHeroCoverImage); keeping it is fine too. --->
-					<cfelseif len(value("HeroCoverImageUrl")) and reFindNoCase("\.(jpe?g|gif|png|webp)(\?|$)", value("MediaUrl"))
-						and value("MediaType") eq "Image" and not len(value("EnclosureCarouselId")) and not len(value("EnclosureMapId"))
-						and not len(application.blog.getScenes().getPostScene(val(arguments.postId)))>
+					<!--- From Hero.cfc (2026-11-06, the hero pipeline). Nothing to share but the theme's logo: remind. The hero is a picture and
+					the post still has a cover, which nothing uses then (11-05, owner): the page offers to remove it (removeHeroCoverImage). --->
+					<cfset hero = application.blog.getHeroes().getHero(post)>
+					<cfif hero.sharePictureSource eq "none" and hero.kind neq "none">
+						<cfset response[ "kind" ] = hero.kind eq "movingHero" ? "a moving hero" : (hero.kind eq "scene" ? "a scene" : application.blog.getHeroes().describe(hero.kind))>
+						<cfset response[ "needed" ] = true>
+					<cfelseif len(hero.coverUrl) and hero.sharePictureSource eq "heroPicture">
 						<cfset response[ "unusedCover" ] = true>
 					</cfif>
 				</cfif>
@@ -14355,6 +14340,7 @@
 		<cfargument name="csrfToken" type="string" default="" required="true">
 		<cfargument name="postId" default="0" required="true">
 		<cfset var response = { "success": false, "heroPicture": "", "coverPicture": "" }>
+		<cfset var hero = {}>
 		<cfset var rows = []>
 		<cfset var post = {}>
 		<cfset var value = function (key) { return structKeyExists(post, key) and not isNull(post[key]) ? trim(toString(post[key])) : ""; }>
@@ -14368,11 +14354,9 @@
 				<cfset rows = application.blog.getPostByPostId(val(arguments.postId), true, true)>
 				<cfif arrayLen(rows)>
 					<cfset post = rows[1]>
-					<cfif value("MediaType") eq "Image" and reFindNoCase("\.(jpe?g|gif|png|webp)(\?|$)", value("MediaUrl"))
-						and not len(value("EnclosureCarouselId")) and not len(value("EnclosureMapId"))
-						and not len(application.blog.getScenes().getPostScene(val(arguments.postId)))>
-						<cfset response[ "heroPicture" ] = value("MediaUrl")>
-					</cfif>
+					<!--- The hero's picture only when the hero is a picture (Hero.cfc, 2026-11-06). --->
+					<cfset hero = application.blog.getHeroes().getHero(post)>
+					<cfif hero.kind eq "picture"><cfset response[ "heroPicture" ] = hero.heroPictureUrl></cfif>
 					<cfset response[ "coverPicture" ] = value("HeroCoverImageUrl")>
 				</cfif>
 				<cfset response[ "success" ] = true>

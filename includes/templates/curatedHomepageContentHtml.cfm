@@ -202,61 +202,13 @@ homepage, handled in index.cfm.) --->
 	<cfloop from="1" to="#arrayLen(recentBlogPostsForHomepage)#" index="i">
 		<cfset cardEvent = structKeyExists(curatedCardEvents, recentBlogPostsForHomepage[i]["PostId"]) ? curatedCardEvents[recentBlogPostsForHomepage[i]["PostId"]] : {}>
 		<cfset cardEventTile = false>
-		<!--- cardGridSection.cfm supports a ready-to-insert widget via mediaHtml (its own top display priority - see
-		its comment), same as renderKendoCardGrid.cfm/popularPosts.cfm's thumbnailCarousel slot - so this calls
-		getHeroFallbackHtml with allowHtml=true (default) and routes isHtml=true content into mediaHtml, instead of
-		skipping 'pool'/carousel mode with allowHtml=false. Without this, NoImageFallbackMode='pool' with
-		HeroPoolDisplayMode='carousel' silently fell back to 'generated' art here even though every other card view
-		(Popular Blogs, the plain blog listing) rendered the real carousel. --->
-		<cfset thisBlogPostImageUrl = recentBlogPostsForHomepage[i]["MediaUrl"]>
-		<cfset thisBlogPostMediaHtml = "">
-		<cfset thisBlogPostSuppressImage = false>
-		<!--- The no-media fallback chain (gradient aside - see below) should only ever run when the post truly has
-		no media at all. MediaUrl already covers Image/Video (both come off the same Post.EnclosureMedia join), but
-		Map and Carousel are separate joins (Post.EnclosureMap/Post.EnclosureCarousel) that never populate MediaUrl -
-		so a map-only or carousel-only post with no HeroGradient used to fall all the way through to the
-		generic-mode noMedia.png placeholder, wrongly implying the post has nothing when it actually has real media,
-		just not a still image this card can show. "Map Routes" isn't a separate enclosure type (HasMapRoutes is
-		just a flag on the same Map row - see Map.cfc), so checking EnclosureMapId alone covers both. --->
-		<!--- 2026-10-01: a Hero Cover Image (static uploaded photo, for a post with no real Image/Video/Map/
-		Carousel) takes priority over the Gradient/Map/Carousel/generated-fallback chain below, same relative
-		priority renderKendoCardGrid.cfm/popularPosts.cfm give it. Plain imageUrl, same as a real Image
-		enclosure's own thisBlogPostImageUrl - no mediaHtml widget needed, it's just a photo. --->
-		<cfif not len(thisBlogPostImageUrl) and len(recentBlogPostsForHomepage[i]["HeroCoverImageUrl"])>
-			<cfset thisBlogPostImageUrl = recentBlogPostsForHomepage[i]["HeroCoverImageUrl"]>
-		<!--- An explicit gradient the user picked (see gradientEditor.cfm/Post.cfc's HeroGradient) is a real,
-		deliberate hero choice - checked before the Map/Carousel widgets and the auto-generated-art fallback below,
-		same priority reasoning as Renderer.cfc's renderEnclosure()/renderMediaPreview(). Routes into mediaHtml,
-		same as this template's own isHtml=true fallback content (see this loop's own header comment above). --->
-		<cfelseif not len(thisBlogPostImageUrl) and len(recentBlogPostsForHomepage[i]["HeroGradient"])>
-			<!--- Renderer.cfc.renderHeroGradientHtml() - single point of truth for this HTML, shared with
-			Renderer.cfc's own renderMediaPreview()/renderEnclosure() and the other two card templates. --->
-			<!--- Named arguments (2026-10-09) - see renderKendoCardGrid.cfm: a positional "true" here landed in heroOverlayFont, not cardMode. --->
-			<cfset thisBlogPostMediaHtml = RendererObj.renderHeroGradientHtml(heroGradient=recentBlogPostsForHomepage[i]["HeroGradient"], heroOverlayText=recentBlogPostsForHomepage[i]["HeroOverlayText"], heroOverlayTextColor=recentBlogPostsForHomepage[i]["HeroOverlayTextColor"], heroOverlayFont=(structKeyExists(recentBlogPostsForHomepage[i], "HeroOverlayFont") ? recentBlogPostsForHomepage[i]["HeroOverlayFont"] : ""), heroOverlayFontSize=(structKeyExists(recentBlogPostsForHomepage[i], "HeroOverlayFontSize") ? recentBlogPostsForHomepage[i]["HeroOverlayFontSize"] : ""), cardMode=true)>
-		<!--- Render the same widgets renderKendoCardGrid.cfm/popularPosts.cfm already render for these enclosure
-		types, instead of just hiding the image area - renderMapPreview's renderThumbnail=true path returns a
-		cached static snapshot image (via the map provider's static-image API), not a live interactive iframe, so
-		this stays cheap to show on a listing page. renderMediumCard=false/showSidebar matches this grid's own
-		always-small card format (see homepageNumColumns above - this section never renders the wider sidebar-card
-		layout renderKendoCardGrid.cfm's renderMediumCard=true path is for). --->
-		<cfelseif not len(thisBlogPostImageUrl) and len(recentBlogPostsForHomepage[i]["EnclosureMapId"])>
-			<cfset thisBlogPostMediaHtml = RendererObj.renderMapPreview(recentBlogPostsForHomepage[i]["EnclosureMapId"], true, true, false, showSidebar)>
-		<cfelseif not len(thisBlogPostImageUrl) and len(recentBlogPostsForHomepage[i]["EnclosureCarouselId"])>
-			<cfset thisBlogPostMediaHtml = RendererObj.renderCarousel(recentBlogPostsForHomepage[i]["EnclosureCarouselId"], true)>
-		<!--- An event with no picture of its own: its date tile (2026-10-16). --->
-		<cfelseif not len(thisBlogPostImageUrl) and not structIsEmpty(cardEvent)>
-			<cfset thisBlogPostMediaHtml = application.events.renderDateTileHtml(cardEvent)>
-			<cfset cardEventTile = true>
-		<cfelseif not len(thisBlogPostImageUrl)>
-			<cfset thisHeroFallback = RendererObj.getHeroFallbackHtml(postId=recentBlogPostsForHomepage[i]["PostId"], cardMode=true)>
-			<cfif thisHeroFallback.isHtml>
-				<cfset thisBlogPostMediaHtml = thisHeroFallback.content>
-			<cfelseif thisHeroFallback.suppressImage>
-				<cfset thisBlogPostSuppressImage = true>
-			<cfelseif len(thisHeroFallback.content)>
-				<cfset thisBlogPostImageUrl = thisHeroFallback.content>
-			</cfif>
-		</cfif>
+		<!--- The same answer as the other cards (2026-11-06, the hero pipeline): Renderer.cfc renderCardMedia. These cards used to put a
+		video's file in a picture tag, and showed the cover over a map or carousel where the other cards show the map or carousel. --->
+		<cfset thisCardMedia = RendererObj.renderCardMedia(post = recentBlogPostsForHomepage[i], renderMediumCard = false, showSidebar = showSidebar, fullPicture = true, cardEvent = cardEvent)>
+		<cfset thisBlogPostImageUrl = thisCardMedia.imageUrl>
+		<cfset thisBlogPostMediaHtml = thisCardMedia.html>
+		<cfset thisBlogPostSuppressImage = thisCardMedia.suppressImage>
+		<cfset cardEventTile = thisCardMedia.eventTile>
 		<!--- An event with its own picture, gradient, map or carousel: the calendar page in the middle of it (owner, 10-16); clicks go through it. --->
 		<cfset cardEventOverlay = not structIsEmpty(cardEvent) and not cardEventTile and not thisBlogPostSuppressImage and (len(thisBlogPostImageUrl) or len(thisBlogPostMediaHtml))>
 		<cfset arrayAppend(blogPostItems, {

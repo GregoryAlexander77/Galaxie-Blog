@@ -575,10 +575,11 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 		<cfthrow type="GalaxieBlog.Scenes" message="This post no longer exists.">
 	</cfif>
 	<cfif arguments.starter eq "photo">
-		<cfif not len(post["MediaUrl"] ?: "") or (post["MediaType"] ?: "") eq "Video">
+		<!--- The post's picture (Hero.cfc, 2026-11-06; a video passed the old test and became the "photo"). --->
+		<cfset section = { "kind": "photoHero", "image": application.blog.getHeroes().getHero(post).heroPictureUrl, "zoom": 1.15 }>
+		<cfif not len(section.image)>
 			<cfthrow type="GalaxieBlog.Scenes" message="This post has no picture yet. Add one above, or choose one of the ready-made pictures.">
 		</cfif>
-		<cfset section = { "kind": "photoHero", "image": post["MediaUrl"], "zoom": 1.15 }>
 		<cfset sourceName = "Photo hero">
 	<cfelse>
 		<cfif not reFind("^[A-Za-z0-9_-]{1,80}$", arguments.starter)>

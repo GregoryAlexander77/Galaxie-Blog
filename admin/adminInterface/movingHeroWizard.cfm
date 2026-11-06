@@ -14,7 +14,7 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 	<cfset mhwState = mhwScenes.getPostHeroParallax(mhwPostId)>
 	<cfset mhwStarters = mhwScenes.getHeroParallaxStarters()>
 	<!--- The post's own picture, for "This post's picture (gentle zoom)" and for the cover step. --->
-	<cfset mhwPhoto = (len(mhwPost["MediaUrl"] ?: "") and (mhwPost["MediaType"] ?: "") eq "Image") ? mhwPost["MediaUrl"] : "">
+	<cfset mhwPhoto = application.blog.getHeroes().getHero(mhwPost).heroPictureUrl>
 	<cfset mhwCover = mhwPost["HeroCoverImageUrl"] ?: "">
 	<!--- A full-page scene shown on this post (11-02, one rule: a post shows a hero or a full scene, never both). --->
 	<cfset mhwOtherName = "">

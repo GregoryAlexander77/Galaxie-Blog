@@ -9,16 +9,12 @@ and videos have none. --->
 	<cfexit>
 </cfif>
 <cfset p = heroTextPost[1]>
-<!--- Which hero the post shows, in the order the post page picks it (Renderer.cfc renderEnclosure). --->
-<cfset heroKind = "none">
-<cfif len(p["MediaUrl"] ?: "")><cfset heroKind = (p["MediaType"] ?: "") eq "Video" ? "video" : "image">
-<cfelseif val(p["EnclosureCarouselId"] ?: 0)><cfset heroKind = "carousel">
-<cfelseif val(p["EnclosureMapId"] ?: 0)><cfset heroKind = "map">
-<cfelseif len(p["HeroGradient"] ?: "")><cfset heroKind = "gradient">
-<cfelseif len(p["HeroAnimationEffect"] ?: "")><cfset heroKind = "animation">
-</cfif>
+<!--- Which hero the post shows (Hero.cfc, 2026-11-06; it used to count a video as a picture). The hero text sits on the post's own
+media, so a scene above it doesn't count here. --->
+<cfset heroTextHero = application.blog.getHeroes().getHero(p)>
+<cfset heroKind = heroTextHero.mediaKind eq "picture" ? "image" : heroTextHero.mediaKind>
 <!--- The preview's background: the post's own picture or gradient, or a plain dark one. --->
-<cfset previewBackground = heroKind eq "image" ? "url('" & encodeForCss(p["MediaUrl"]) & "') center / cover" : (heroKind eq "gradient" ? p["HeroGradient"] : "linear-gradient(135deg, ##1d4350 0%, ##392630 100%)")>
+<cfset previewBackground = heroKind eq "image" ? "url('" & encodeForCss(heroTextHero.heroPictureUrl) & "') center / cover" : (heroKind eq "gradient" ? p["HeroGradient"] : "linear-gradient(135deg, ##1d4350 0%, ##392630 100%)")>
 <cfset heroFonts = application.blog.getFont()>
 <cfset heroFontCss = "">
 <cfset heroFontExt = application.serverSupportsWoff2 ? "woff2" : "woff">
