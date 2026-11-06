@@ -24,7 +24,14 @@ window, the cards and sharing all give the same answer). This template only draw
 		<cfset hcHeroHtml = '<div class="hcPlaceholder k-alt"><i class="fontAwesomeIcon fas fa-layer-group"></i><span>' & encodeForHtml(hcSceneName) & '</span></div>'>
 	</cfif>
 <cfelseif hcHero.kind eq "picture">
-	<cfset hcHeroHtml = '<img src="' & encodeForHtmlAttribute(hcHero.heroPictureUrl) & '" alt="">'>
+	<!--- The hero text on the picture, as on the post page (11-06, owner: the text didn't show here after saving it). A gradient's and an
+	animation's previews (renderMediaPreview below) already draw their own. --->
+	<cfset hcText = RendererObj.getHeroTextHtml(text = hcPost["HeroOverlayText"] ?: "", subText = hcPost["HeroOverlaySubText"] ?: "",
+		color = hcPost["HeroOverlayTextColor"] ?: "", font = hcPost["HeroOverlayFont"] ?: "", size = hcPost["HeroOverlayFontSize"] ?: "",
+		sizePhone = hcPost["HeroOverlayFontSizePhone"] ?: "", shadow = hcPost["HeroOverlayShadow"] ?: "", shadowColor = hcPost["HeroOverlayShadowColor"] ?: "",
+		glowColor = hcPost["HeroOverlayGlowColor"] ?: "", glowOpacity = hcPost["HeroOverlayGlowOpacity"] ?: "", glowSoftness = hcPost["HeroOverlayGlowSoftness"] ?: "",
+		positioned = true)>
+	<cfset hcHeroHtml = '<div><img src="' & encodeForHtmlAttribute(hcHero.heroPictureUrl) & '" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;">' & hcText & '</div>'>
 <cfelseif hcHero.kind neq "none">
 	<cfset hcHeroHtml = RendererObj.renderMediaPreview(kendoTheme = kendoTheme, getPost = getPost, renderThumbnail = true, includeCover = false)>
 <cfelse>
