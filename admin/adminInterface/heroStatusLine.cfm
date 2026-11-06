@@ -21,5 +21,8 @@ Needs getPost (getPostByPostId). --->
 <cfelse>
 	<cfset hsCover = hsHero.cover.state & ", for sharing." & hsLink("Use a different cover")>
 </cfif>
+<!--- A video typed into the post's header (older posts) shows on the post page instead of any hero saved here (owner, 11-06: warn, never
+edit the header without asking). Post Header is window 42. --->
+<cfset hsHeaderVideo = hsHero.headerVideo ? ' <b>A video is typed into the post''s <a href="javascript:createAdminInterfaceWindow(42, ' & hsPostId & ');">Post Header</a>, so the post page shows that video instead of a hero added here.</b> Take it out of the header to use this window''s hero.' : ''>
 </cfsilent>
-<cfoutput><span id="heroStatusLine">Hero: #encodeForHtml(hsHeroText)#. Cover: #hsCover#</span></cfoutput>
+<cfoutput><span id="heroStatusLine">Hero: #encodeForHtml(hsHeroText)#. Cover: #hsCover##hsHeaderVideo#</span></cfoutput>

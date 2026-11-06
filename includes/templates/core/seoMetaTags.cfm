@@ -158,7 +158,13 @@
 			<!--- Social Media Sharing for Images. --->
 			<cfset shareImageBeforeOverride = facebookImageMetaTagValue>
 			<cfset facebookImageMetaTagValue = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "facebookImageUrlMetaData", facebookImageMetaTagValue)>
-			<cfif facebookImageMetaTagValue neq shareImageBeforeOverride><cfset facebookImageWidth = ""><cfset facebookImageHeight = ""></cfif>
+			<!--- A share picture typed into the header wins everywhere (owner, 2026-11-06): no size for it, and no Pinterest crop of the
+			uploaded picture beside it (a second og:image). --->
+			<cfif facebookImageMetaTagValue neq shareImageBeforeOverride>
+				<cfset facebookImageWidth = "">
+				<cfset facebookImageHeight = "">
+				<cfset pinterestImageMetaTagValue = "">
+			</cfif>
 			<cfset twitterImageMetaTagValue = getXmlOverride(xmlKeywords, getPost[1]["PostHeader"], "twitterImageUrlMetaData", twitterImageMetaTagValue)>
 
 		<cfelseif pageTypeId neq 2><!--- Always (owner, 2026-10-28): public pages use Kendo Core unless a post needs a Professional widget. --->

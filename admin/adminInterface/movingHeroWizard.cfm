@@ -13,6 +13,30 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 	<cfset mhwScenes = application.blog.getScenes()>
 	<cfset mhwState = mhwScenes.getPostHeroParallax(mhwPostId)>
 	<cfset mhwStarters = mhwScenes.getHeroParallaxStarters()>
+	<!--- A new moving hero starts from the post's hero text (owner, 11-06): saving it takes the hero text off (blog.cfc applyLastHeroWins),
+	so the heading, second line and their look carry over here instead of being lost. --->
+	<cfset mhwState["fromHeroText"] = false>
+	<cfif not mhwState.active and len(trim(mhwPost["HeroOverlayText"] ?: ""))>
+		<cfset mhwState["fromHeroText"] = true>
+		<cfset mhwState["heading"] = trim(mhwPost["HeroOverlayText"])>
+		<cfset mhwState["line"] = trim(mhwPost["HeroOverlaySubText"] ?: "")>
+		<cfset mhwState["color"] = mhwPost["HeroOverlayTextColor"] ?: "">
+		<cfset mhwState["font"] = mhwPost["HeroOverlayFont"] ?: "">
+		<cfset mhwState["fontSize"] = val(mhwPost["HeroOverlayFontSize"] ?: "")>
+		<cfset mhwState["fontSizePhone"] = val(mhwPost["HeroOverlayFontSizePhone"] ?: "")>
+		<cfset mhwState["shadow"] = mhwPost["HeroOverlayShadow"] ?: "">
+		<cfset mhwState["shadowColor"] = mhwPost["HeroOverlayShadowColor"] ?: "">
+		<cfset mhwState["glowColor"] = mhwPost["HeroOverlayGlowColor"] ?: "">
+		<cfif len(mhwState.glowColor)>
+			<cfset mhwState["glowOpacity"] = val(mhwPost["HeroOverlayGlowOpacity"] ?: "") ? val(mhwPost["HeroOverlayGlowOpacity"]) : 80>
+			<cfset mhwState["glowSoftness"] = val(mhwPost["HeroOverlayGlowSoftness"] ?: "") ? val(mhwPost["HeroOverlayGlowSoftness"]) : 24>
+		</cfif>
+		<!--- A glow is a checkbox here, as in Scenes.cfc getPostHeroParallax. --->
+		<cfif mhwState.shadow eq "glow">
+			<cfif not len(mhwState.glowColor)><cfset mhwState["glowColor"] = len(mhwState.shadowColor) ? mhwState.shadowColor : "##ffffff"></cfif>
+			<cfset mhwState["shadow"] = "none">
+		</cfif>
+	</cfif>
 	<!--- The post's own picture, for "This post's picture (gentle zoom)" and for the cover step. --->
 	<cfset mhwPhoto = application.blog.getHeroes().getHero(mhwPost).heroPictureUrl>
 	<cfset mhwCover = mhwPost["HeroCoverImageUrl"] ?: "">
@@ -309,7 +333,7 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 			card.on("click", function () {
 				box.find(".mhwCard").attr("aria-checked", "false"); card.attr("aria-checked", "true");
 				// A new picture brings its own shadow, until the heading step changes it.
-				if (chosen !== p.key && !state.active) { var s = starterByKey(p.key); setShadow(s && s.shadow ? s.shadow : "soft"); }
+				if (chosen !== p.key && !state.active && !state.fromHeroText) { var s = starterByKey(p.key); setShadow(s && s.shadow ? s.shadow : "soft"); }
 				chosen = p.key; $("#mhwPickHint").hide();
 			});
 			card.on("dblclick", function () { wizard.go(1); });
@@ -324,7 +348,7 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 
 	// Step 2: the heading. Kendo widgets made once, filled from the post's moving hero (or the defaults for a new one).
 	function initHeading() {
-		$("#mhwHeading").val(state.active ? state.heading : postTitle);
+		$("#mhwHeading").val(state.active || state.fromHeroText ? state.heading : postTitle);
 		$("#mhwLine").val(state.line || "");
 		if (state.fontSize) { $("#mhwSize").val(state.fontSize); }
 		if (state.fontSizePhone) { $("#mhwSizePhone").val(state.fontSizePhone); }
@@ -332,7 +356,7 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 		if (state.shadowColor) { $("#mhwShadowColor").val(state.shadowColor); }
 		if (state.glowColor) { $("#mhwGlowColor").val(state.glowColor); $("#mhwGlowOn").prop("checked", true); }
 		$("#mhwGlowOpacity").val(state.glowOpacity || 80); $("#mhwGlowSoftness").val(state.glowSoftness || 24);
-		$("#mhwShadow").val(state.active ? (state.shadow || "none") : "soft");
+		$("#mhwShadow").val(state.active || state.fromHeroText ? (state.shadow || "none") : "soft");
 		$("#mhwColor, #mhwShadowColor, #mhwGlowColor").each(function () { $(this).kendoColorPicker({ opacity: false, buttons: false, preview: true, input: true, change: drawHeading }); });
 		$("#mhwShadow").kendoDropDownList({ change: drawHeading });
 		$("#mhwFont").kendoDropDownList({

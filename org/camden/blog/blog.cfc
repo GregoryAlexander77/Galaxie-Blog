@@ -1808,6 +1808,61 @@
 		</cfif>
 	</cffunction>
 
+	<cffunction name="applyLastHeroWins" access="public" returnType="boolean" output="false"
+			hint="Last hero wins (owner, 11-05 and 11-06; the hero pipeline's write side): call on a Post entity that is getting a new hero, before the caller's own entitySave (inside its transaction). Takes every other hero off the post: the picture or video, the map, the carousel, the gradient, the animation and the post's own moving hero. Kept: the cover, the video's own cover and captions (they go with the video), a full-page scene on top, and anything else typed into the post header. The hero text (heading, second line and their look) stays when the new hero shows it (a picture, gradient or animation) and is removed when it can't (a video, map, carousel or moving hero; the Moving hero window starts from it instead). newKind: picture, video, map, carousel, gradient, animation, movingHero, or media (a picture or video: read from the post's EnclosureMedia, which the caller has set). Returns true when anything came off.">
+		<cfargument name="post" type="any" required="true" hint="A Post entity.">
+		<cfargument name="newKind" type="string" required="true">
+		<cfset var p = arguments.post>
+		<cfset var kind = arguments.newKind>
+		<cfset var media = "">
+		<cfset var mediaTypeName = "">
+		<cfset var changed = false>
+		<cfset var header = "">
+		<cfif kind eq "media">
+			<cfset kind = "picture">
+			<cfset media = p.getEnclosureMedia()>
+			<cfif not isNull(media) and not isNull(media.getMediaTypeRef())>
+				<cfset mediaTypeName = media.getMediaTypeRef().getMediaType() ?: "">
+				<cfif left(mediaTypeName, 5) eq "Video"><cfset kind = "video"></cfif>
+			</cfif>
+		</cfif>
+		<cfif not listFind("picture,video,map,carousel,gradient,animation,movingHero", kind)>
+			<cfthrow type="GalaxieBlog.Hero" message="Unknown hero kind: #kind#">
+		</cfif>
+		<cfif not listFind("picture,video", kind) and not isNull(p.getEnclosureMedia())>
+			<cfset p.setEnclosureMedia(javaCast("null",""))><cfset changed = true>
+		</cfif>
+		<cfif kind neq "map" and not isNull(p.getEnclosureMap())>
+			<cfset p.setEnclosureMap(javaCast("null",""))><cfset changed = true>
+		</cfif>
+		<cfif kind neq "carousel" and not isNull(p.getEnclosureCarousel())>
+			<cfset p.setEnclosureCarousel(javaCast("null",""))><cfset changed = true>
+		</cfif>
+		<cfif kind neq "gradient" and len(p.getHeroGradient() ?: "")>
+			<cfset p.setHeroGradient("")><cfset changed = true>
+		</cfif>
+		<cfif kind neq "animation" and (len(p.getHeroAnimationEffect() ?: "") or len(p.getHeroAnimationOptions() ?: ""))>
+			<cfset p.setHeroAnimationEffect("")><cfset p.setHeroAnimationOptions("")><cfset changed = true>
+		</cfif>
+		<cfif kind neq "movingHero">
+			<cfset header = p.getPostHeader() ?: "">
+			<cfset clearMovingHeroOnPost(p)>
+			<cfif (p.getPostHeader() ?: "") neq header><cfset changed = true></cfif>
+		</cfif>
+		<cfif listFind("video,map,carousel,movingHero", kind)>
+			<!--- Called one by one (not through invoke): ColdFusion and Lucee both make these ORM accessors, but invoke() on them isn't the same on both. --->
+			<cfif len(p.getHeroOverlayText() ?: "") or len(p.getHeroOverlaySubText() ?: "") or len(p.getHeroOverlayTextColor() ?: "") or len(p.getHeroOverlayFont() ?: "")
+				or len(p.getHeroOverlayFontSize() ?: "") or len(p.getHeroOverlayFontSizePhone() ?: "") or len(p.getHeroOverlayShadow() ?: "") or len(p.getHeroOverlayShadowColor() ?: "")
+				or len(p.getHeroOverlayGlowColor() ?: "") or len(p.getHeroOverlayGlowOpacity() ?: "") or len(p.getHeroOverlayGlowSoftness() ?: "")>
+				<cfset p.setHeroOverlayText("")><cfset p.setHeroOverlaySubText("")><cfset p.setHeroOverlayTextColor("")><cfset p.setHeroOverlayFont("")>
+				<cfset p.setHeroOverlayFontSize("")><cfset p.setHeroOverlayFontSizePhone("")><cfset p.setHeroOverlayShadow("")><cfset p.setHeroOverlayShadowColor("")>
+				<cfset p.setHeroOverlayGlowColor("")><cfset p.setHeroOverlayGlowOpacity("")><cfset p.setHeroOverlayGlowSoftness("")>
+				<cfset changed = true>
+			</cfif>
+		</cfif>
+		<cfreturn changed>
+	</cffunction>
+
 	<cffunction name="getScenes" access="public" returnType="any" output="false" hint="Galaxie 5 scenes in the database (common/cfc/Scenes.cfc, 2026-10-19), created on first use. Kept in this component rather than the application scope, so a reinit (which makes a new application.blog) picks up a changed Scenes.cfc.">
 		<cfif not structKeyExists(variables, "scenesObj")>
 			<cflock name="galaxieScenesCreate_#application.applicationName#" type="exclusive" timeout="10">
@@ -6468,11 +6523,9 @@
 		<cfargument name="keepHeroText" type="boolean" required="false" default="false">
 		<cfset var post = entityLoadByPK("Post", arguments.postId)>
 		<cftransaction>
-			<cfset post.setEnclosureMedia(javaCast("null",""))>
-			<cfset post.setEnclosureMap(javaCast("null",""))>
-			<cfset post.setEnclosureCarousel(javaCast("null",""))>
-			<!--- Last hero wins (11-05, owner): a gradient replaces the post's moving hero too. --->
-			<cfif len(trim(arguments.heroGradient))><cfset clearMovingHeroOnPost(post)></cfif>
+			<!--- Last hero wins (applyLastHeroWins): a gradient takes the place of every other hero. An empty gradient only takes the
+			gradient off. --->
+			<cfif len(trim(arguments.heroGradient))><cfset applyLastHeroWins(post, "gradient")></cfif>
 			<cfset post.setHeroGradient(arguments.heroGradient)>
 			<cfif not arguments.keepHeroText>
 				<cfset post.setHeroOverlayText(arguments.heroOverlayText)>
@@ -6480,8 +6533,6 @@
 				<cfset post.setHeroOverlayFont(arguments.heroOverlayFont)>
 				<cfset post.setHeroOverlayFontSize(arguments.heroOverlayFontSize)>
 			</cfif>
-			<cfset post.setHeroAnimationEffect("")>
-			<cfset post.setHeroAnimationOptions("")>
 			<cfset EntitySave(post)>
 		</cftransaction>
 		<cfreturn true>
@@ -6511,12 +6562,9 @@
 		<cfargument name="keepHeroText" type="boolean" required="false" default="false">
 		<cfset var post = entityLoadByPK("Post", arguments.postId)>
 		<cftransaction>
-			<cfset post.setEnclosureMedia(javaCast("null",""))>
-			<cfset post.setEnclosureMap(javaCast("null",""))>
-			<cfset post.setEnclosureCarousel(javaCast("null",""))>
-			<!--- Last hero wins (11-05, owner): an animation replaces the post's moving hero too. --->
-			<cfif len(trim(arguments.animationEffect))><cfset clearMovingHeroOnPost(post)></cfif>
-			<cfset post.setHeroGradient("")>
+			<!--- Last hero wins (applyLastHeroWins): an animation takes the place of every other hero. An empty one only takes the
+			animation off. --->
+			<cfif len(trim(arguments.animationEffect))><cfset applyLastHeroWins(post, "animation")></cfif>
 			<cfif not arguments.keepHeroText>
 				<cfset post.setHeroOverlayText(arguments.heroOverlayText)>
 				<cfset post.setHeroOverlayTextColor(arguments.heroOverlayTextColor)>
@@ -13245,14 +13293,8 @@
 				<cfif arguments.enclosure>
 					<!--- Set the enclosureMedia column. Note: this is a psuedo name. The actual column is Post.EnclosureMediaRef --->
 					<cfset PostDbObj.setEnclosureMedia(MediaDbObj)>
-					<!--- A new picture or video hero takes the place of the post's moving hero (11-05). --->
-					<cfset clearMovingHeroOnPost(PostDbObj)>
-					
-					<!--- Remove all other enclosure types --->
-					<!--- Set the enclosureMap column to null. --->
-					<cfset PostDbObj.setEnclosureMap(javaCast("null",""))>
-					<!--- And set the enclosureCarousel to null--->
-					<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
+					<!--- Last hero wins (applyLastHeroWins): a new picture or video takes the place of every other hero. --->
+					<cfset applyLastHeroWins(PostDbObj, "media")>
 				</cfif>
 					
 				<!--- Create a new PostMedia entity --->
@@ -13399,13 +13441,8 @@
 				<!--- If this is an enclosure, populate the enclosure column with the mediaId --->
 				<!--- Note: this is a psuedo name. The actual column is Post.EnclosureMediaRef --->
 				<cfset PostDbObj.setEnclosureMedia(MediaDbObj)>
-				<!--- A new picture or video hero takes the place of the post's moving hero (11-05). --->
-				<cfset clearMovingHeroOnPost(PostDbObj)>
-					
-				<!--- Remove other enclosures --->
-				<cfset PostDbObj.setEnclosureMap(javaCast("null",""))>
-				<!---And set the enclosureCarousel to null--->
-				<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
+				<!--- Last hero wins (applyLastHeroWins): a new picture or video takes the place of every other hero. --->
+				<cfset applyLastHeroWins(PostDbObj, "media")>
 			</cfif>
 
 			<!--- Same enclosure handling for a page collection hero - no junction table, always exactly one. --->
@@ -13737,12 +13774,8 @@
 				<cfif arguments.isEnclosure>
 					<!--- Set the enclosureMap. The actual column is Post.EnclosureMapRef. --->
 					<cfset PostDbObj.setEnclosureMap(MapDbObj)>
-					<!--- A map hero takes the place of the post's moving hero (11-05). --->
-					<cfset clearMovingHeroOnPost(PostDbObj)>
-
-					<!--- Remove other enclosures --->
-					<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
-					<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
+					<!--- Last hero wins (applyLastHeroWins): a map takes the place of every other hero. --->
+					<cfset applyLastHeroWins(PostDbObj, "map")>
 
 					<!--- Save it --->
 					<cfset EntitySave(PostDbObj)>
@@ -13876,12 +13909,8 @@
 				<cfif arguments.isEnclosure>
 					<!--- Set the enclosureMap. The actual column is Post.EnclosureMapRef --->
 					<cfset PostDbObj.setEnclosureMap(MapDbObj)>
-					<!--- A map hero takes the place of the post's moving hero (11-05). --->
-					<cfset clearMovingHeroOnPost(PostDbObj)>
-					
-					<!--- Remove other enclosures --->
-					<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
-					<cfset PostDbObj.setEnclosureCarousel(javaCast("null",""))>
+					<!--- Last hero wins (applyLastHeroWins): a map takes the place of every other hero. --->
+					<cfset applyLastHeroWins(PostDbObj, "map")>
 				</cfif>
 				<cfset EntitySave(PostDbObj)>
 			<cfelseif len(arguments.pageCollectionId)>

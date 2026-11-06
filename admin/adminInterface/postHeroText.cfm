@@ -37,9 +37,9 @@ media, so a scene above it doesn't count here. --->
 	<colgroup><col style="width: 20%"><col></colgroup>
 	<tr><td colspan="2" class="#blockClass#">
 	<cfswitch expression="#heroKind#">
-		<cfcase value="carousel">This post's hero is a carousel. Its text (titles, fonts, colors and shadow) is set in the carousel window instead; the text below is kept for if the hero changes.</cfcase>
-		<cfcase value="map">This post's hero is a map, which doesn't show text. The text below is kept for if the hero changes.</cfcase>
-		<cfcase value="video">This post's hero is a video, which doesn't show text. The text below is kept for if the hero changes.</cfcase>
+		<cfcase value="carousel">This post's hero is a carousel. Its text (titles, fonts, colors and shadow) is set in the carousel window instead; text saved here shows if the hero changes to a picture, gradient or animation.</cfcase>
+		<cfcase value="map">This post's hero is a map, which doesn't show text. Text saved here shows if the hero changes to a picture, gradient or animation.</cfcase>
+		<cfcase value="video">This post's hero is a video, which doesn't show text. Text saved here shows if the hero changes to a picture, gradient or animation.</cfcase>
 		<cfcase value="none">This post has no hero picture, gradient or animation yet. The text shows once it has one (or over the generated hero, when Blog Options shows one).</cfcase>
 		<cfdefaultcase>The heading and second line over this post's #heroKind eq "animation" ? "animated" : heroKind# hero. Leave the heading empty for no text.</cfdefaultcase>
 	</cfswitch>

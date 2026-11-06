@@ -7592,12 +7592,8 @@
 
 										<!--- Set the enclosureCarousel --->
 										<cfset PostDbObj.setEnclosureCarousel(CarouselDbObj)>
-										<!--- A carousel hero takes the place of the post's moving hero (11-05). --->
-										<cfset application.blog.clearMovingHeroOnPost(PostDbObj)>
-
-										<!--- Remove other enclosures --->
-										<cfset PostDbObj.setEnclosureMedia(javaCast("null",""))>
-										<cfset PostDbObj.setEnclosureMap(javaCast("null",""))>
+										<!--- Last hero wins (blog.cfc applyLastHeroWins): a carousel takes the place of every other hero. --->
+										<cfset application.blog.applyLastHeroWins(PostDbObj, "carousel")>
 
 										<!--- Save it. We're not going to set the date. --->
 										<cfset EntitySave(PostDbObj)>
@@ -14286,7 +14282,6 @@
 		<cfargument name="glowSoftness" type="string" default="" required="false">
 		<cfargument name="textMotion" type="string" default="" required="false">
 		<cfset var response = { "success": false, "errorMessage": "", "sceneId": 0, "clearedVideo": false }>
-		<cfset var heroRows = []>
 		<cfset var heroPost = "">
 		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
 			<cfset response = "Invalid token">
@@ -14303,27 +14298,17 @@
 						color = arguments.color, font = arguments.font, fontSize = arguments.fontSize, fontSizePhone = arguments.fontSizePhone, shadow = arguments.shadow, shadowColor = arguments.shadowColor,
 						glowColor = arguments.glowColor, glowOpacity = arguments.glowOpacity, glowSoftness = arguments.glowSoftness, textMotion = arguments.textMotion)>
 					<cfset response[ "sceneId" ] = application.blog.getScenes().getSceneIdByAlias("post-hero-" & val(arguments.postId))>
-					<!--- Last hero wins (11-05, owner): a moving hero takes the place of any other hero on the post - a picture, video, map,
-					carousel, gradient or animation - so it comes off (it had been only a video). The cover and the hero text stay.
-					clearedVideo (kept for the Moving hero window) is true when anything came off, so the Hero window's preview is redrawn. --->
-					<cfset heroRows = application.blog.getPostByPostId(val(arguments.postId), true, true)>
-					<cfif arrayLen(heroRows) and (len(heroRows[1]["MediaUrl"] ?: "") or len(heroRows[1]["MediaPath"] ?: "") or len(heroRows[1]["EnclosureMapId"] ?: "")
-						or len(heroRows[1]["EnclosureCarouselId"] ?: "") or len(heroRows[1]["HeroGradient"] ?: "") or len(heroRows[1]["HeroAnimationEffect"] ?: ""))>
-						<cftransaction>
-							<cfset heroPost = entityLoad("Post", { postId = val(arguments.postId) }, true)>
-							<cfif not isNull(heroPost)>
-								<cfset heroPost.setEnclosureMedia(javaCast("null",""))>
-								<cfset heroPost.setEnclosureMap(javaCast("null",""))>
-								<cfset heroPost.setEnclosureCarousel(javaCast("null",""))>
-								<cfset heroPost.setHeroGradient("")>
-								<cfset heroPost.setHeroAnimationEffect("")>
-								<cfset heroPost.setHeroAnimationOptions("")>
-								<cfset entitySave(heroPost)>
-								<cfset response[ "clearedVideo" ] = true>
-							</cfif>
-						</cftransaction>
-						<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
-					</cfif>
+					<!--- Last hero wins (blog.cfc applyLastHeroWins): a moving hero takes the place of every other hero, and the hero text comes
+					off (the moving hero has its own heading; the window starts from the old text). clearedVideo (kept for the Moving hero
+					window) is true when anything came off, so the Hero window's preview is redrawn. --->
+					<cftransaction>
+						<cfset heroPost = entityLoad("Post", { postId = val(arguments.postId) }, true)>
+						<cfif not isNull(heroPost) and application.blog.applyLastHeroWins(heroPost, "movingHero")>
+							<cfset entitySave(heroPost)>
+							<cfset response[ "clearedVideo" ] = true>
+						</cfif>
+					</cftransaction>
+					<cfset application.blog.flushGalaxieCache(type = "post", postId = val(arguments.postId))>
 				</cfif>
 				<cfset flushWebFormPosts([val(arguments.postId)])>
 				<cfset response[ "success" ] = true>
