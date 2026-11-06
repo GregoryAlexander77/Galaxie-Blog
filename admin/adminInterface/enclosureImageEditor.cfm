@@ -491,7 +491,9 @@
 	
 		}
 											
-		function saveExternalUrlResponse(response){ 
+		function saveExternalUrlResponse(response){
+			<!--- The status line under the preview says what the hero is now (2026-11-06). --->
+			<cfif not isPageCollectionEnclosure>try { window.galaxieRefreshHeroEditorPreview(); } catch (e) {}</cfif>
 			<!--- Note: this does not do anything. I suspect because the tinymce editor is modal mode when it is invoked. This is only used for debugging purposes now alert(response.postId) alert(response. mediaId) alert(response.externalUrl) $("#externalImageUrl").val(response.externalUrl); --->
 		}
 		
@@ -589,13 +591,8 @@
 				// Get the editor content
 				// Original code that caused problems:
 				// var enclosureEditorContent = $("#<cfoutput>#imageMediaIdField#</cfoutput>").val();
-				var enclosureEditorContent = tinymce.get("<cfoutput>#selectorName#</cfoutput>").getContent();
-				<!--- Get the media URL if it is an existing image --->
-				var externalImageUrl = $("#externalImageUrl").val();
-				<!--- If there are no enclosures or an existing media URL, remove any enclosures that exists in the db. --->
-				if (enclosureEditorContent == "" && externalImageUrl == ""){
-					removeMediaEnclosure();
-				}
+				<!--- Submit only closes the window (2026-11-06, explicit saves). It used to remove the hero when the editor was empty, so
+				clearing the preview by hand took the hero off; Remove hero on the ribbon does that now, and asks first. --->
 			</cfif>
 			<!--- No TinyMCE for a Page Collection to check the content of - removal there happens immediately via its
 			own explicit "Remove" button instead of being inferred from an empty editor at Submit time. --->

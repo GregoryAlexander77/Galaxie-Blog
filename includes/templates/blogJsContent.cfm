@@ -559,7 +559,17 @@
 				// exactly as it already does for TinyMCE's own native upload path. Has to happen before the
 				// dialog/window closes below, while tinymce.activeEditor still points at this editor.
 				if (typeof tinymce !== 'undefined' && tinymce.activeEditor) {
-					tinymce.activeEditor.insertContent('<img src="' + uppyResponse.location + '" alt="">');
+					<!--- The Hero and Cover windows show one picture: the upload replaces the preview (it was saved on the server by the
+					upload; their editors don't save what appears in them any more, 2026-11-06). --->
+					<!--- The editor ids carry a number (enclosureEditor3337). --->
+					var uploadEditorId = tinymce.activeEditor.id || '';
+					if (uploadEditorId.indexOf('enclosureEditor') === 0 || uploadEditorId.indexOf('heroCoverImageEditor') === 0) {
+						tinymce.activeEditor.setContent('<img src="' + uppyResponse.location + '" alt="">');
+						$("#externalImageUrl").val(uppyResponse.location);
+						if (uploadEditorId.indexOf('enclosureEditor') === 0 && typeof window.galaxieRefreshHeroEditorPreview === 'function') { window.galaxieRefreshHeroEditorPreview(); }
+					} else {
+						tinymce.activeEditor.insertContent('<img src="' + uppyResponse.location + '" alt="">');
+					}
 					try { tinymce.activeEditor.windowManager.close(); } catch(e) {}
 				}
 

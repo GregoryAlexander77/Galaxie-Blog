@@ -406,20 +406,38 @@
 					}
 				});
 
-			<cfif selectorId eq 'enclosureEditor' or selectorId eq 'videoCoverEditor' or selectorId eq 'imageUploadEditor' or selectorId eq 'heroCoverImageEditor'>
+			<!--- The Hero and Cover windows save only when you click Save in the Image dialog (2026-11-06, the hero pipeline: explicit saves).
+			They used to save any new picture that turned up in the editor (NodeChange below), which is how rotating a preview with the old picture
+			tools uploaded a picture of it as the hero (11-05). Uploads save on the server when you click Upload (ProxyController.cfc
+			uploadImage). mceUpdateImage is the command the Image dialog runs on Save, and only then. --->
+			<cfif selectorId eq 'enclosureEditor' or selectorId eq 'heroCoverImageEditor'>
+				editor.on('ExecCommand', function (e) {
+					if (e.command !== 'mceUpdateImage') { return; }
+					var src = (e.value && e.value.src) ? e.value.src : ((editor.selection.getNode() || {}).src || '');
+					if (!src || /^(blob|data):/i.test(src)) { return; }
+				<cfif selectorId eq 'enclosureEditor'>
+					<!--- One hero: the new picture replaces whatever the preview showed. --->
+					editor.setContent('<img src="' + src.replace(/"/g, '&quot;') + '" alt="">');
+					if (src != $("#externalImageUrl").val()) {
+						saveExternalUrl(src, 'image', '<cfoutput>#selectorId#</cfoutput>', '');
+						$("#externalImageUrl").val(src);
+					}
+				<cfelse>
+					<!--- The cover is saved from an upload only. This window has no save of its own for an address: it used to reach the Hero
+					window's (open behind it), which saved the picture as the hero. --->
+					editor.undoManager.undo();
+					kendo.ui.ExtAlertDialog.show({ title: "Upload the cover", message: "The cover needs a picture uploaded to this blog. In the Image dialog, use the Upload tab.", icon: "k-ext-information", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+				</cfif>
+				});
+			</cfif>
+
+			<cfif selectorId eq 'videoCoverEditor' or selectorId eq 'imageUploadEditor'>
 				<!--- Listen to events to determine if a new image or video has been added --->
 				editor.on('NodeChange', function (e) {
 					<!--- The NodeChange may have several thousands of events if your not careful and try to inspect it. I have also tried the following events but have not made them work. editor.on('Change', function (e) { editor.on('SetContent', function(e) { save_callback : "myCustomSaveContent" --->
 
 					<!--- Here, we are looking to see when an image has been added to the editor and save the URL into a hidden form in order to save the url to the database. --->
-					if (e.element.tagName === "IMG" && e.element.currentSrc != e.element.src) { 
-						<!--- console.log('e.element.currentSrc:' + e.element.currentSrc + ' e.element.src:' + e.element.src); alert('newImage') --->
-						<!--- Original logic to find external links. if (e.element.tagName === "IMG" && e.element.currentSrc != e.element.src && e.element.src.indexOf(window.location.host) == -1) { --->
-					<!--- This logic only applies when using the enclosure editor --->
-					<cfif selectorId eq 'enclosureEditor'>
-						<!--- Clear the previous content and send the current URL that was chosen to populate the tinymce control --->
-						clearPreviousEditorContent( e.element.src );
-					</cfif>
+					if (e.element.tagName === "IMG" && e.element.currentSrc != e.element.src) {
 
 						<!--- alert('e.element.src: ' + e.element.src + ' $("#externalImageUrl").val(): ' + $("#externalImageUrl").val() ); --->
 
@@ -490,7 +508,38 @@
 			a safety net, so a dialog gets fixed even if this specific event is ever missed. --->
 			editor.on('OpenWindow', function (e) {
 				setTimeout(galaxieRaiseToxFloatingUi, 0);
+				window.galaxieDialogSaving = false;
 			});
+			editor.on('CloseWindow', function (e) {
+				setTimeout(function () { window.galaxieDialogSaving = false; window.galaxieMediaDialogEditor = null; }, 0);
+			});
+			<!--- Which editor's media dialog is open (mceMedia is the media button's command). --->
+			editor.on('ExecCommand', function (e) {
+				if (e.command === 'mceMedia') { window.galaxieMediaDialogEditor = editor; }
+			});
+			<!--- The media dialog's Save (its main button, or Enter): the video is saved now, through media_url_resolver with
+			galaxieDialogSaving set. Bound once for the page, in the capture phase so it runs before the dialog submits and closes. --->
+			if (!window.galaxieDialogSaveWatch) {
+				window.galaxieDialogSaveWatch = true;
+				var galaxieMediaDialogSave = function () {
+					var ed = window.galaxieMediaDialogEditor;
+					if (!ed) { return; }
+					window.galaxieMediaDialogEditor = null;
+					var input = document.querySelector('.tox-dialog input[type="url"]') || document.querySelector('.tox-dialog .tox-form input.tox-textfield');
+					var url = input ? $.trim(input.value) : '';
+					var resolver = ed.getParam('media_url_resolver');
+					if (!url || typeof resolver !== 'function') { return; }
+					window.galaxieDialogSaving = true;
+					resolver({ url: url }, function () {});
+				};
+				document.addEventListener('mousedown', function (ev) {
+					var b = ev.target.closest && ev.target.closest('.tox-dialog__footer .tox-button');
+					if (b && !b.classList.contains('tox-button--secondary')) { galaxieMediaDialogSave(); }
+				}, true);
+				document.addEventListener('keydown', function (ev) {
+					if (ev.key === 'Enter' && ev.target.closest && ev.target.closest('.tox-dialog') && ev.target.tagName !== 'TEXTAREA') { galaxieMediaDialogSave(); }
+				}, true);
+			}
 
 			<!--- 2026-10-07: FOUND AND CONFIRMED LIVE, after five earlier attempts (each fixed one failure mode and
 			was then disproven by a new one - see the session transcript / memory for the full story). None of
@@ -1287,9 +1336,17 @@
 			<!--- images_upload_url does not set a header on mobile devices. This causes an 'tinymce image upload failed due to a xhr transport error. Code 0' error when using an iPhone. When using mobile, we need to use a custom function that is used with the images_upload_handler argument instead. --->
 			<!--- images_upload_url: 'https://gregorysblog.org/common/cfc/ProxyController.cfc?method=uploadImage', --->
 			images_upload_handler: imageUploadHandler,
+			<!--- The Hero and Cover windows: a picture pasted or dropped into the editor isn't uploaded (and so made the hero) by itself
+			(2026-11-06, explicit saves); pictures come in through the Image dialog or its Upload window. --->
+			<cfif selectorId eq 'enclosureEditor' or selectorId eq 'heroCoverImageEditor'>automatic_uploads: false,</cfif>
 			<!--- Custom function that is called when we embed videos using the media plugin. We need to use this for enclosures in order to save the URL to the database. --->
-			media_url_resolver: function (data, resolve/*, reject*/) { 
+			media_url_resolver: function (data, resolve/*, reject*/) {
 				<!--- Do not try to inspect the events here, there are thousands of them and you're going to crash the browser. --->
+				<!--- Saved only when the media dialog's Save is clicked (2026-11-06, explicit saves). The dialog calls this while the address is
+				typed, for its preview, and it used to save the video then, even if the dialog was cancelled. A click on the dialog's Save (or
+				Enter) calls this again with galaxieDialogSaving set (galaxieDialogSaveWatch, below). --->
+				if (!window.galaxieDialogSaving) { resolve({ html: '' }); return; }
+				window.galaxieDialogSaving = false;
 
 				<!--- Upload post related media --->
 				jQuery.ajax({
