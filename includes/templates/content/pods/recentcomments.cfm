@@ -334,7 +334,10 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 					<cfcatch type="any">
 					</cfcatch>
 				</cftry>
-					<a href="#commentLink#" aria-label="#commentLink#" style="display: block; padding-top: 10px; padding-bottom: 5px;<cfif darkTheme> color:whitesmoke</cfif>">#commentPostTitle#:</a>
+					<a href="#commentLink#" aria-label="#commentLink#" style="display: block; padding-top: 10px; padding-bottom: 2px;<cfif darkTheme> color:whitesmoke</cfif>">#commentPostTitle#:</a>
+					<!--- Who wrote it and when (11-06, owner), in Kendo's subtitle style (owner; k-form-hint takes the table's text size here, see blogContentCss). A plain date, not "2 hours ago": this pod is cached,
+					and a relative time would go stale. The year shows once it isn't this year. --->
+					<span class="recentCommentByline k-card-subtitle" style="display: block;"><cfif len(commenterFullName)>#commenterFullName#</cfif><cfif isDate(commentDatePosted)><cfif len(commenterFullName)> &middot; </cfif><time datetime="#dateFormat(commentDatePosted, 'yyyy-mm-dd')#">#dateFormat(commentDatePosted, year(commentDatePosted) eq year(now()) ? 'mmm d' : 'mmm d, yyyy')#</time></cfif></span>
 					<span style="display: block; padding-bottom: 10px; color:<cfif darkTheme>whitesmoke<cfelse>black</cfif>">#formattedComment#</span>
 				</td>
 			</tr>
