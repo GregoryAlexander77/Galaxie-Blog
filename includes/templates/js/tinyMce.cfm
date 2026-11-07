@@ -819,12 +819,14 @@
 				editor.ui.registry.addButton('heroText', {
 					text: '<i class="fontAwesomeIcon fas fa-heading"></i>',
 					tooltip: 'Hero text',
-					onAction: function (_) { createAdminInterfaceWindow(109,<cfoutput>#URL.optArgs#</cfoutput>); }
+					<!--- The same window as the Hero window's Hero text row (heroTextLine.cfm, 11-06): for a moving hero its heading is in the
+					Moving hero window, not the Hero text window (which edited a second heading that never shows). --->
+					onAction: function (_) { var row = document.getElementById("heroTextRowButton"); if (row) { row.click(); } else { createAdminInterfaceWindow(109,<cfoutput>#URL.optArgs#</cfoutput>); } }
 				});
 				editor.ui.registry.addMenuItem('heroText', {
 					icon: 'heroText',
 					text: 'Hero text',
-					onAction: function () { createAdminInterfaceWindow(109,<cfoutput>#URL.optArgs#</cfoutput>); }
+					onAction: function () { var row = document.getElementById("heroTextRowButton"); if (row) { row.click(); } else { createAdminInterfaceWindow(109,<cfoutput>#URL.optArgs#</cfoutput>); } }
 				});
 			</cfif>
 			<cfif includeEditPicture>

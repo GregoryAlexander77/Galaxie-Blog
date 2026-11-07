@@ -209,9 +209,9 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 				need the SplitText plugin (as in the Scene editor). --->
 				<label for="mhwTextMotion" class="adminBlockHeading" style="display: block; margin: 12px 0 6px;">How the heading moves</label>
 				<select id="mhwTextMotion" style="width: 95%;">
-					<option value="">Rises and fades as you scroll</option>
-					<option value="slideIn">Slides up into place, then rises and fades as you scroll</option>
 					<option value="slideInStay">Slides up into place</option>
+					<option value="">Rises and fades as you scroll</option>
+					<option value="slideIn">Fades up into place, then rises and fades as you scroll</option>
 					<option value="slideInOut">Slides up into place, then up and away as it scrolls off</option>
 					<cfif application.blog.getScenes().getSetting("librarySource", "cdn") neq "local" or arrayFind(application.blog.getScenes().getLocalLibraryFiles(), "SplitText.min.js")>
 					<option value="words">Comes in word by word, then rises and fades</option>
@@ -590,8 +590,11 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 	$("#mhwEnding").data("kendoDropDownList").value(state.ending || "");
 	<!--- A new choice plays in the preview at once. --->
 	$("#mhwTextMotion").kendoDropDownList({ change: function () { if ($("#mhwStylePreview").is(":visible")) { drawStyle(); } } });
-	$("#mhwTextMotion").data("kendoDropDownList").value(state.textMotion || "");
+	<!--- A new moving hero starts on Slides up into place (11-06, owner); one already saved keeps its own choice. --->
+	$("#mhwTextMotion").data("kendoDropDownList").value(state.active ? (state.textMotion || "") : (state.textMotion || "slideInStay"));
 	$(".mhwGlowRow").toggle($("#mhwGlowOn").is(":checked"));
+	<!--- Opened for its heading (otherArgs "heading", 11-06: the Hero window's Hero text buttons on a moving hero): straight to step 2. --->
+	<cfif isDefined("URL.otherArgs") and URL.otherArgs eq "heading">if (chosen) { wizard.go(1); }</cfif>
 	// Stop the moving previews when the window closes.
 	win.closest(".k-window").find(".k-window-action").on("click", stopSway);
 })();
