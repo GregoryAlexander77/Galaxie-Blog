@@ -275,7 +275,8 @@ chose "this server only" (Scenes window settings). --->
 	<div id="sceneEditorAbout" class="#altClass#" style="padding: 8px 12px;">
 		<strong>This is the advanced editor, for changing a scene section by section.</strong> You don't need it to use scenes: the ready-made
 		scenes are complete and work as they are. Pick one when you make a new scene, or use the Moving hero window (in a post's Hero window)
-		for a post's hero. Come here when you want to change a scene's pictures, text, colors or motion in detail.
+		for a post's hero. To make a new scene in a few steps, use the <a href="javascript:createAdminInterfaceWindow(121, 0);">Scene wizard</a>. Come here when you
+		want to change a scene's pictures, text, colors or motion in detail.
 	</div>
 	<div id="sceneEditorTop" class="#blockClass#">
 	<cfif isNewScene>

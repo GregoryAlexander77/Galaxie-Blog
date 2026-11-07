@@ -56,7 +56,8 @@ $(document).ready(function () {
 		if ($("#postSceneWindow").length) { reloadWithPick(saved && saved.alias ? saved.alias : picked); }
 	});
 
-	$("#postSceneNew").on("click", function () { createAdminInterfaceWindow(107, 0); });
+	<!--- A new scene starts in the Scene wizard (11-06, owner), made for this post. --->
+	$("#postSceneNew").on("click", function () { createAdminInterfaceWindow(121, "new:" + postId); });
 	$("#postSceneEdit").on("click", function () { var sc = sceneByAlias(picked); if (sc) { createAdminInterfaceWindow(107, sc.id); } });
 
 	$("#postSceneRemove").on("click", function () { galaxieConfirm("Remove the scene from this post?", "The scene itself is kept in Scenes.", function () { saveScene(""); }); });

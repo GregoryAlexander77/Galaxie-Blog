@@ -261,7 +261,7 @@
 				<!--- A shop page (2026-10-21): the shop page window opens on top, to choose what it shows. --->
 				if ($("input[name='postType']:checked").val() === 'shop') { createAdminInterfaceWindow(116, response.postId); }
 				<!--- A scene (11-02): the Scene editor opens on top, for a new scene that shows on this post or page when saved. --->
-				if ($("input[name='postType']:checked").val() === 'scene') { createAdminInterfaceWindow(107, 'new:' + response.postId); }
+				if ($("input[name='postType']:checked").val() === 'scene') { createAdminInterfaceWindow(121, 'new:' + response.postId); }
 				<!--- Close this window --->
 				jQuery('#newPostWindow').kendoWindow('destroy');
 			} else {

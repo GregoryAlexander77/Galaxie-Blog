@@ -1241,6 +1241,10 @@ window (enclosureImageEditor.cfm galaxieOpenMovingHero). --->
 <cfcase value=119>
 	<cfinclude template="../../admin/adminInterface/movingHeroWizard.cfm">
 </cfcase>
+<!--- 121 Scene wizard (11-06, owner): a whole scene in four steps, for a post or page. optArgs is 0 or "new:{postId}". --->
+<cfcase value=121>
+	<cfinclude template="../../admin/adminInterface/sceneWizard.cfm">
+</cfcase>
 <!--- 120 Hero style (11-04, owner): a post's hero style cards, moved out of the Hero window. optArgs is the postId. --->
 <cfcase value=120>
 	<cfinclude template="../../admin/adminInterface/postHeroStyle.cfm">

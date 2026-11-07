@@ -1239,6 +1239,12 @@
 				var windowHeight = "<cfif session.isMobile>92%<cfelse>860px</cfif>";
 				var windowWidth = "<cfif session.isMobile>98%<cfelse>940px</cfif>";
 				var windowTitle = "Moving hero";
+			} else if (Id == 121){
+				// Scene wizard (11-06, owner): look, words, motion, where it shows, with a live preview. See admin/adminInterface/sceneWizard.cfm.
+				var windowName = "sceneWizardWindow";
+				var windowHeight = "<cfif session.isMobile>92%<cfelse>90%</cfif>";
+				var windowWidth = "<cfif session.isMobile>98%<cfelse>92%</cfif>";
+				var windowTitle = "Scene wizard";
 			} else if (Id == 120){
 				// A post's hero style (11-04, moved out of the Hero window): the style cards. optArgs is the postId. See
 				// admin/adminInterface/postHeroStyle.cfm.

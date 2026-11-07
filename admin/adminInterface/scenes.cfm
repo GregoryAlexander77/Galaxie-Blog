@@ -69,7 +69,7 @@ heroes and scenes are two separate things). --->
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">Scenes look best with a modern theme and the sidebar hidden.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#"><button type="button" class="k-button k-primary" onclick="createAdminInterfaceWindow(107, 0);">New scene</button></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><button type="button" class="k-button k-primary" onclick="createAdminInterfaceWindow(121, 0);">New scene</button></td></tr>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
 	<cfset blockClass = HtmlUtilsObj.getKendoClass(blockClass)>
