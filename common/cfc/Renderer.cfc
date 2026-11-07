@@ -295,12 +295,25 @@
 			<cfset arrayAppend(parts, '"kind":"photoHero","image":' & jsonText(row["MediaUrl"] ?: "") & ',"zoom":1.12')>
 		<cfelseif arguments.heroKind eq "gradient">
 			<cfset arrayAppend(parts, '"kind":"gradientHero","gradient":' & jsonText(getGradientCss(row["HeroGradient"] ?: "")))>
+			<!--- Its motion (11-06, owner: a moving gradient stood still in a scene style). galaxieScene.js puts the gradient on a moving
+			layer; the CSS comes with the scene (renderEnclosure below). --->
+			<cfset var gradientMotion = getGradientMotion(row["HeroGradient"] ?: "")>
+			<cfif len(gradientMotion.motion)>
+				<cfset arrayAppend(parts, '"motion":' & jsonText(gradientMotion.motion) & (len(gradientMotion.speed) ? ',"motionSpeed":' & jsonText(gradientMotion.speed) : ''))>
+			</cfif>
 		<cfelse>
 			<cfset arrayAppend(parts, '"kind":"vantaHero","effect":' & jsonText(row["HeroAnimationEffect"] ?: "WAVES")
 				& (len(options) and left(options, 1) eq "{" and isJSON(options) ? ',"options":' & options : ''))>
 		</cfif>
 		<!--- The hero text. The heading is a second-level heading: the post's title is the page's main one. --->
 		<cfset arrayAppend(parts, '"headingTag":"h2"')>
+		<!--- How the heading moves (5.03, 11-06, owner; Hero style window): as the Moving hero wizard stores it (Scenes.cfc). --->
+		<cfset var textMotion = row["HeroTextMotion"] ?: "">
+		<cfif listFind("slideIn,still", textMotion)>
+			<cfset arrayAppend(parts, '"textMotion":"' & textMotion & '"')>
+		<cfelseif listFind("words,letters", textMotion)>
+			<cfset arrayAppend(parts, '"headingEffect":"' & textMotion & '"')>
+		</cfif>
 		<cfif len(row["HeroOverlayText"] ?: "")><cfset arrayAppend(parts, '"heading":' & jsonText(row["HeroOverlayText"]))></cfif>
 		<cfif len(row["HeroOverlaySubText"] ?: "")><cfset arrayAppend(parts, '"html":' & jsonText("<p>" & encodeForHtml(row["HeroOverlaySubText"]) & "</p>"))></cfif>
 		<cfif reFind("^##[0-9A-Fa-f]{3,8}$", row["HeroOverlayTextColor"] ?: "")><cfset arrayAppend(parts, '"textColour":' & jsonText(row["HeroOverlayTextColor"]))></cfif>
@@ -836,6 +849,10 @@
 				<cftry>
 					<cfset local.sceneHero = renderSceneJson(getPostHeroSceneJson(getPost, arguments.currentRow, local.heroKind, local.heroStyle), getPost[arguments.currentRow]["PostId"])>
 					<cfif len(local.sceneHero)>
+						<!--- A moving gradient's CSS: the classic box above already took the once-per-request copy, and it is replaced here. --->
+						<cfif local.heroKind eq "gradient" and len(getGradientMotion(getPost[arguments.currentRow]["HeroGradient"] ?: "").motion)>
+							<cfset local.sceneHero = getGradientMotionCss() & local.sceneHero>
+						</cfif>
 						<cfset enclosureHtml = local.sceneHero>
 						<cfset local.heroKind = "scene">
 					</cfif>
@@ -967,7 +984,9 @@
 		<!---******************    Handle the carousel  ******************--->
 		<cfif len(enclosureCarouselId)>
 			<!--- Get the HTML for this carousel. renderCarouselPreview(carouselId, interface) --->
-			<cfset thumbnailHtml = this.renderCarouselPreview(enclosureCarouselId,'postEditor')>
+			<!--- heroBox (11-06, owner): Edit Post's 16:9 hero box stretches this iframe, and the carousel fills it (it stayed
+			235x150 inside it). This function is only used by heroCoverBlock.cfm. --->
+			<cfset thumbnailHtml = this.renderCarouselPreview(enclosureCarouselId,'heroBox')>
 		</cfif>
 
 		<!---******************    Handle the Hero Gradient  ******************--->
@@ -1369,7 +1388,7 @@
 			them). The 5px gap below is a margin, not padding, so the gradient doesn't paint into it. --->
 			<cfset html = '<div style="width:100%;aspect-ratio:3/2;max-height:210px;overflow:hidden;background:' & arguments.heroGradient & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;margin-bottom:5px;">'>
 		<cfelse>
-			<cfset html = '<div style="width:235px;height:130px;overflow:hidden;background:' & (len(motionLayer) ? 'none;position:relative;isolation:isolate' : arguments.heroGradient) & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;">' & motionLayer>
+			<cfset html = '<div data-type="gradient" style="width:235px;height:130px;overflow:hidden;background:' & (len(motionLayer) ? 'none;position:relative;isolation:isolate' : arguments.heroGradient) & ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;">' & motionLayer>
 		</cfif>
 		<cfif len(arguments.heroOverlayText)>
 			<!--- 2026-10-01: font-family value uses single quotes, not double - this whole <span> is itself
@@ -1405,9 +1424,10 @@
 
 	<!--- The motion CSS, written by the renderer with the first moving gradient of a request (not in blogContentCss.cfm, so an update
 	doesn't depend on that shared file - 11-02). The gradient on its own layer behind the text, larger than the box so drifting never
-	shows an edge. Plain CSS, nothing to download; still for visitors who asked their device for less motion. --->
+	shows an edge. Plain CSS, nothing to download; still for visitors who asked their device for less motion. The drift starts where
+	the gradient is drawn still, centered (11-06, owner: it jumped when the page loaded, starting 12% off to one side). --->
 	<cffunction name="getGradientMotionCss" access="public" output="false" returntype="string" hint="The style block for moving gradients (the gradient editor's preview uses it too).">
-		<cfreturn '<style>.galaxieGradientMotion { position: absolute; inset: -30%; z-index: -1; will-change: transform; } .galaxieGradient-drift { animation: galaxieGradientDrift 16s ease-in-out infinite alternate; } .galaxieGradient-shift { inset: 0; animation: galaxieGradientShift 20s linear infinite; } .galaxieGradient-breathe { inset: 0; animation: galaxieGradientBreathe 6s ease-in-out infinite alternate; } .galaxieGradient-drift.galaxieGradient-slow { animation-duration: 28s; } .galaxieGradient-drift.galaxieGradient-fast { animation-duration: 8s; } .galaxieGradient-shift.galaxieGradient-slow { animation-duration: 36s; } .galaxieGradient-shift.galaxieGradient-fast { animation-duration: 9s; } .galaxieGradient-breathe.galaxieGradient-slow { animation-duration: 10s; } .galaxieGradient-breathe.galaxieGradient-fast { animation-duration: 3s; } @keyframes galaxieGradientDrift { 0% { transform: translate(-12%, -8%) rotate(0deg); } 50% { transform: translate(10%, 6%) rotate(4deg); } 100% { transform: translate(-6%, 10%) rotate(-3deg); } } @keyframes galaxieGradientShift { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } } @keyframes galaxieGradientBreathe { from { transform: scale(1); filter: brightness(.92); } to { transform: scale(1.12); filter: brightness(1.08); } } @media (prefers-reduced-motion: reduce) { .galaxieGradientMotion { animation: none !important; } }</style>'>
+		<cfreturn '<style>.galaxieGradientMotion { position: absolute; inset: -30%; z-index: -1; will-change: transform; } .galaxieGradient-drift { animation: galaxieGradientDrift 16s ease-in-out infinite alternate; } .galaxieGradient-shift { inset: 0; animation: galaxieGradientShift 20s linear infinite; } .galaxieGradient-breathe { inset: 0; animation: galaxieGradientBreathe 6s ease-in-out infinite alternate; } .galaxieGradient-drift.galaxieGradient-slow { animation-duration: 28s; } .galaxieGradient-drift.galaxieGradient-fast { animation-duration: 8s; } .galaxieGradient-shift.galaxieGradient-slow { animation-duration: 36s; } .galaxieGradient-shift.galaxieGradient-fast { animation-duration: 9s; } .galaxieGradient-breathe.galaxieGradient-slow { animation-duration: 10s; } .galaxieGradient-breathe.galaxieGradient-fast { animation-duration: 3s; } @keyframes galaxieGradientDrift { 0% { transform: translate(0, 0) rotate(0deg); } 35% { transform: translate(-12%, -8%) rotate(-1deg); } 70% { transform: translate(10%, 6%) rotate(4deg); } 100% { transform: translate(-6%, 10%) rotate(-3deg); } } @keyframes galaxieGradientShift { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } } @keyframes galaxieGradientBreathe { from { transform: scale(1); filter: brightness(.92); } to { transform: scale(1.12); filter: brightness(1.08); } } @media (prefers-reduced-motion: reduce) { .galaxieGradientMotion { animation: none !important; } }</style>'>
 	</cffunction>
 
 	<cffunction name="renderMovingPictureHtml" access="public" output="false" returntype="string" hint="A picture (the generated hero art) on a moving layer, in the hero's own box: the post's own page only.">
@@ -3250,6 +3270,11 @@
 				<cfset width = "255">
 				<cfset height = "150">
 			</cfif>
+		<cfelseif arguments.interface eq 'heroBox'>
+			<!--- Sized by the box it sits in (heroCoverBlock.cfm); preview/carousel.cfm fills the iframe. --->
+			<cfset thumbnail = true>
+			<cfset width = "100%">
+			<cfset height = "100%">
 		<cfelseif arguments.interface eq 'enclosureEditor'>
 			<cfset thumbnail = false>
 			<!--- Medium size (not full size like on a post) --->

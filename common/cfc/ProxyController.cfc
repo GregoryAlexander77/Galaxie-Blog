@@ -14628,6 +14628,29 @@
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>
 
+	<cffunction name="savePostHeroTextMotion" access="remote" returnformat="json" output="false"
+			hint="How a post's hero heading moves in a scene style (5.03, 11-06, owner), from the Hero style window: slideIn, words, letters or still, or empty for the default (rises and fades as the page scrolls). Saved on change.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="postId" type="string" default="" required="true">
+		<cfargument name="textMotion" type="string" default="" required="false">
+		<cfset var response = { "success": false, "errorMessage": "" }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditPost,ReleasePost')>
+		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId)>
+			<cftry>
+				<cfset application.blog.savePostHeroTextMotion(val(arguments.postId), listFind("slideIn,words,letters,still", arguments.textMotion) ? arguments.textMotion : "")>
+				<cfset response[ "success" ] = true>
+				<cfcatch type="any">
+					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.HeroText" ? cfcatch.message : "How the heading moves could not be saved: " & cfcatch.message>
+				</cfcatch>
+			</cftry>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
 	<cffunction name="saveSceneSettings" access="remote" returnformat="json" output="false"
 			hint="Blog-wide scene settings from the Scenes window (106): where the animation library is loaded from ('cdn' or 'local'). Clears the cached pages of the posts that show scenes, as they carry this choice.">
 		<cfargument name="csrfToken" type="string" default="" required="true">

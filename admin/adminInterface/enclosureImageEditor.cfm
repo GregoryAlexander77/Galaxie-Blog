@@ -238,7 +238,8 @@
 	<!---*********************    Handle the carousel    *********************--->
 	<cfif len(enclosureCarouselId) and (isPageCollectionEnclosure or heroShows eq "carousel")>
 		<!--- Render the routes. This returns a iframe --->
-		<cfset mediaHtml = mediaHtml & RendererObj.renderCarouselPreview(enclosureCarouselId,'enclosureEditor')>
+		<!--- A post's Hero window: the carousel fills the 16:9 preview box every hero preview here has (tinyMce.cfm, 11-06). --->
+		<cfset mediaHtml = mediaHtml & RendererObj.renderCarouselPreview(enclosureCarouselId, isPageCollectionEnclosure ? 'enclosureEditor' : 'heroBox')>
 	</cfif>
 					
 	<!---*********************    Handle the map    *********************--->

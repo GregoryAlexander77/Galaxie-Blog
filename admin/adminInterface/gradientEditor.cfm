@@ -684,8 +684,8 @@ just store a name. --->
 			var overlayFontSizeCss = (overlayFontSize || '16') + 'px';
 			<!--- No heading in the editor's content (11-03): the Hero editor draws the post's heading as its own layer. --->
 			var overlayHtml = false
-				? '<div style="width:235px;height:130px;overflow:hidden;background:' + gradientPreviewCss + ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;"><span style="color:' + overlayTextColor + ';font-size:' + overlayFontSizeCss + ';font-weight:bold;text-align:center;' + overlayFontCss + '">' + overlayText + '</span></div>'
-				: '<div style="width:235px;height:130px;overflow:hidden;background:' + gradientPreviewCss + ';box-sizing:border-box;padding:10px;"></div>';
+				? '<div data-type="gradient" style="width:235px;height:130px;overflow:hidden;background:' + gradientPreviewCss + ';display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:10px;"><span style="color:' + overlayTextColor + ';font-size:' + overlayFontSizeCss + ';font-weight:bold;text-align:center;' + overlayFontCss + '">' + overlayText + '</span></div>'
+				: '<div data-type="gradient" style="width:235px;height:130px;overflow:hidden;background:' + gradientPreviewCss + ';box-sizing:border-box;padding:10px;"></div>';
 			<!--- Post has no plain-string hero field the way PageCollection.HeroImageUrl does - EnclosureMedia/Map/
 			Carousel/PageCollection's own EntitySave calls are what actually persist THEIR hero types, and until
 			today nothing did that for a gradient. Originally this branch only called setContent() (visual only) -

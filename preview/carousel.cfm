@@ -24,6 +24,11 @@
 		<cfset height = "150px">
 		<cfset width = "235px">
 	</cfif>
+<cfelseif URL.interface eq 'heroBox'>
+	<!--- Edit Post's hero box (11-06): the carousel fills the iframe, whatever size the box is, with no frame or shadow of its own. --->
+	<cfset renderCard = true>
+	<cfset height = "100vh">
+	<cfset width = "100vw">
 <cfelseif URL.interface eq 'enclosureEditor'>
 	<cfset renderCard = true>
 	<cfif session.isMobile>
@@ -61,6 +66,10 @@
 		box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 4px 8px 0 rgba(0, 0, 0, 0.19);
 		overflow: hidden;
 		}
+	<cfif URL.interface eq 'heroBox'>
+	html, body { margin: 0; padding: 0; overflow: hidden; }
+	.carousel-preview { padding: 0; box-shadow: none; box-sizing: border-box; }
+	</cfif>
 </style>
 
 <!--- Get the HTML for this carousel in card mode renderCarousel(carouselId, card, height, width) --->

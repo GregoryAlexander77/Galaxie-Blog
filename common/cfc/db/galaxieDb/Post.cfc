@@ -50,6 +50,10 @@
 	<!--- 5.0 (2026-10-19, owner): how this post's image, gradient or animated hero is shown on its own page - classic, held,
 	band or magazine (Renderer.cfc getPostHeroStyle); empty uses the blog's choice (BlogOption.PostHeroStyle). --->
 	<cfproperty name="HeroStyle" ormtype="string" length="20" default="">
+	<!--- 5.03 (11-06, owner): how the hero's heading moves when the hero is drawn in a scene style (held, band, magazine or parallax):
+	empty rises and fades as the page scrolls, slideIn slides up into place first, words or letters come in one at a time (SplitText),
+	still stays put. The same choices as the Moving hero wizard (Scenes.cfc usePostHeroParallax textMotion). The classic hero ignores it. --->
+	<cfproperty name="HeroTextMotion" ormtype="string" length="20" default="">
 	<!--- A live animated background (currently rendered via Vanta.js, see heroAnimationEditor.cfm) as another
 	alternative hero/enclosure option, alongside EnclosureMedia/Map/Carousel and HeroGradient above. Named
 	generically (not after Vanta specifically) so the rendering library can change later without a column

@@ -450,6 +450,17 @@
 			back.classList.add("gs-vanta");
 		} else if (section.kind === "gradientHero") {
 			back.style.background = section.gradient || joinColour;
+			// A moving gradient (11-06): the gradient on its own layer, moved by the galaxieGradient CSS the page carries with it
+			// (Renderer.cfc getGradientMotionCss). Still for visitors who asked for less motion.
+			if (/^(drift|shift|breathe)$/.test(section.motion || "") && section.gradient) {
+				back.style.isolation = "isolate"; back.style.overflow = "hidden";
+				var moving = el("div", "galaxieGradientMotion galaxieGradient-" + section.motion + (/^(slow|fast)$/.test(section.motionSpeed || "") ? " galaxieGradient-" + section.motionSpeed : ""), back);
+				moving.style.background = section.gradient;
+				moving.setAttribute("aria-hidden", "true");
+				// Faded in over the still gradient once the scene has settled its size (owner: it jumped as the page loaded).
+				moving.style.opacity = "0"; moving.style.transition = "opacity 1.2s ease";
+				setTimeout(function () { moving.style.opacity = "1"; }, 400);
+			}
 		} else if (section.kind === "videoHero") {
 			var v = el("video", "gs-video", back);
 			v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "none";
