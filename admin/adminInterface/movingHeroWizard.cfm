@@ -90,6 +90,10 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 	.mhwBars i { display: block; width: 46%; height: 6px; border-radius: 3px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.6); }
 	.mhwBars i + i { width: 30%; height: 4px; opacity: .85; }
 	.mhwBars.middle { top: 50%; transform: translateY(-50%); } .mhwBars.low { bottom: 10%; }
+	<!--- Above the picture (11-06): a band on top with the heading in it, the picture under it and drawn over it. --->
+	.mhwArt.mhwAbove .mhwBand { position: absolute; left: 0; right: 0; top: 0; height: 30%; background: linear-gradient(#1c1530, #0d0b1a); }
+	.mhwArt.mhwAbove img { top: 30%; height: 100%; z-index: 1; }
+	.mhwText.above, .mhwBars.above { top: 15%; transform: translateY(-50%); z-index: 0; }
 	.mhwBars.left { align-items: flex-start; } .mhwBars.center { align-items: center; } .mhwBars.right { align-items: flex-end; }
 	.mhwPreview { max-width: 620px; margin: 0 auto 10px; }
 	<!--- Step 3's preview acts out the heading's motion (11-06): the hero scrolls up inside this box. --->
@@ -207,7 +211,7 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 				<select id="mhwTextMotion" style="width: 95%;">
 					<option value="">Rises and fades as you scroll</option>
 					<option value="slideIn">Slides up into place, then rises and fades as you scroll</option>
-					<option value="slideInStay">Fades up into place</option>
+					<option value="slideInStay">Slides up into place</option>
 					<option value="slideInOut">Slides up into place, then up and away as it scrolls off</option>
 					<cfif application.blog.getScenes().getSetting("librarySource", "cdn") neq "local" or arrayFind(application.blog.getScenes().getLocalLibraryFiles(), "SplitText.min.js")>
 					<option value="words">Comes in word by word, then rises and fades</option>
@@ -257,13 +261,20 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 	var fonts = $.map(<cfoutput>#replace(serializeJSON(mhwFontNames), "</", "<\/", "all")#</cfoutput>, function (f) { return { name: f }; });
 	var postTitle = <cfoutput>#replace(serializeJSON(mhwPost["Title"] ?: ""), "</", "<\/", "all")#</cfoutput>;
 	// The Hero text window's own lists: the positions (as the old Moving hero section had them) and the shadows (galaxieScene.js SHADOWS).
-	var POSITIONS = [["center", "", "Middle, center"], ["left", "", "Middle, left"], ["right", "", "Middle, right"], ["left", "bottom", "Low, left (magazine)"], ["center", "bottom", "Low, center"], ["right", "bottom", "Low, right"]];
+	var POSITIONS = [["center", "", "Middle, center"], ["left", "", "Middle, left"], ["right", "", "Middle, right"], ["left", "bottom", "Low, left (magazine)"], ["center", "bottom", "Low, center"], ["right", "bottom", "Low, right"],
+		["center", "above", "Above the picture, which rises over it (parallax scenes)"]];
 	var SHADOWS = {
 		soft: function (c) { return "0 2px 6px " + rgba(c, 0.65); },
 		strong: function (c) { return "0 3px 12px " + rgba(c, 0.85) + ", 0 0 2px " + rgba(c, 0.9); }
 	};
 	var chosen = state.active ? state.starter : null;
-	var align = state.align || "center", low = state.textPosition === "bottom";
+	var align = state.align || "center", low = state.textPosition === "bottom", above = state.textPosition === "above";
+	// The heading above the picture: a band on top, the picture (its own picture too) under it.
+	function aboveArt(a) {
+		a.addClass("mhwAbove").prepend('<span class="mhwBand"></span>');
+		if (a.hasClass("mhwPhoto")) { a.css("background-image", "none").append($('<img alt="">').attr({ src: photo, "data-depth": 400 })); }
+		return a;
+	}
 	var timers = [];
 	var win = $("#movingHeroWizardWindow");
 
@@ -323,12 +334,16 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 			var imgs = a.find("img").css("transition", "none"); move(a, 0); void el.offsetWidth; imgs.css("transition", "");
 			// The page opens.
 			if (motion === "slideIn") { fadeUp(lines, Math.round(96 * scale), 1100, "cubic-bezier(.22,1,.36,1)", 150); }
-			else if (motion === "slideInStay" || motion === "slideInOut") { fadeUp(lines, Math.round(50 * scale), 700, "cubic-bezier(.25,.46,.45,.94)", 200); }
+			else if (motion === "slideInOut") { fadeUp(lines, Math.round(50 * scale), 700, "cubic-bezier(.25,.46,.45,.94)", 200); }
+			<!--- Slides up into place: no fade, a moment after the page opens (as recorded on gregoryalexander.com). --->
+			else if (motion === "slideInStay") {
+				lines.forEach(function (t, i) { play(t, [{ visibility: "hidden", translate: "0 " + Math.round(55 * scale) + "px" }, { visibility: "visible", translate: "0 " + Math.round(55 * scale) + "px", offset: 0.001 }, { visibility: "visible", translate: "0 0" }], { duration: 700, easing: "cubic-bezier(.25,.46,.45,.94)", delay: 400 + (i ? 100 + i * 200 : 0) }); });
+			}
 			else if (pieces.length) { fadeUp(pieces, Math.round(56 * scale), 800, "cubic-bezier(.22,1,.36,1)", motion === "letters" ? 30 : 90); }
 			// Then it scrolls down past the hero.
 			later(2000, function () {
 				play(el, [{ translate: "0 0" }, { translate: "0 -45%" }], { duration: 2600, easing: "linear" });
-				move(a, 22);
+				move(a, above ? 45 : 22);
 				if (motion === "slideInOut") {
 					later(1300, function () { lines.forEach(function (t, i) { play(t, [{ opacity: 1, translate: "0 0" }, { opacity: 0, translate: "0 " + (-Math.round(50 * scale)) + "px" }], { duration: 700, easing: "cubic-bezier(.25,.46,.45,.94)", delay: i * 200 }); }); });
 				} else if (motion !== "still" && motion !== "slideInStay") {
@@ -364,12 +379,13 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 	}
 	// The picture with the heading on it; scale is the preview's size against a post page about 1100px wide.
 	function headed(box, scale) {
-		var l = look(), where = (low ? "low " : "middle ") + align;
+		var l = look(), where = (above ? "above " : low ? "low " : "middle ") + align;
 		var font = l.font ? '"' + l.font + '", sans-serif' : "";
 		var text = $('<span class="mhwText"></span>').addClass(where).css({ color: l.color, textShadow: textShadow(l, scale), fontFamily: font });
 		text.append($("<b></b>").text(l.heading).css("font-size", Math.round(l.size * scale) + "px"));
 		if (l.line) { text.append($("<span></span>").text(l.line).css("font-size", Math.max(10, Math.round(20 * scale)) + "px")); }
 		var a = art(chosen).append(text);
+		if (above) { aboveArt(a); }
 		box.empty().append(a);
 		return a;
 	}
@@ -435,9 +451,11 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 		stopSway(); demo(headed($("#mhwStylePreview"), 0.4), 0.4);
 		var box = $("#mhwPositions").empty();
 		$.each(POSITIONS, function (i, pos) {
-			var c = $('<button type="button" class="mhwCard" role="radio"></button>').attr("aria-checked", pos[0] === align && (pos[1] === "bottom") === low ? "true" : "false");
-			c.append(art(chosen).append('<span class="mhwBars ' + (pos[1] ? "low" : "middle") + ' ' + pos[0] + '"><i></i><i></i></span>'), $('<span class="mhwName"></span>').text(pos[2]));
-			c.on("click", function () { align = pos[0]; low = pos[1] === "bottom"; drawStyle(); });
+			var c = $('<button type="button" class="mhwCard" role="radio"></button>').attr("aria-checked", pos[0] === align && pos[1] === (above ? "above" : low ? "bottom" : "") ? "true" : "false");
+			var cardArt = art(chosen).append('<span class="mhwBars ' + (pos[1] === "above" ? "above" : pos[1] ? "low" : "middle") + ' ' + pos[0] + '"><i></i><i></i></span>');
+			if (pos[1] === "above") { aboveArt(cardArt); }
+			c.append(cardArt, $('<span class="mhwName"></span>').text(pos[2]));
+			c.on("click", function () { align = pos[0]; low = pos[1] === "bottom"; above = pos[1] === "above"; drawStyle(); });
 			box.append(c);
 		});
 	}
@@ -523,7 +541,7 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 		$("#movingHeroWizard .gw-buttons .k-primary").prop("disabled", true);
 		jQuery.ajax({
 			type: "post", url: BASE + "/common/cfc/ProxyController.cfc?method=savePostHeroParallax", dataType: "json",
-			data: { csrfToken: CSRF, postId: postId, starter: chosen, heading: l.heading, line: l.line, align: align, textPosition: low ? "bottom" : "",
+			data: { csrfToken: CSRF, postId: postId, starter: chosen, heading: l.heading, line: l.line, align: align, textPosition: above ? "above" : low ? "bottom" : "",
 				ending: $("#mhwEnding").data("kendoDropDownList").value(), textMotion: $("#mhwTextMotion").data("kendoDropDownList").value(), color: l.color, font: l.font, fontSize: l.size, fontSizePhone: l.sizePhone,
 				shadow: l.shadow, shadowColor: l.shadowColor, glowColor: l.glowColor, glowOpacity: l.glowOpacity, glowSoftness: l.glowSoftness, remove: "false" }
 		}).done(function (response) {

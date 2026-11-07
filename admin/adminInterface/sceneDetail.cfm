@@ -533,7 +533,7 @@ $(document).ready(function () {
 		<!--- How a hero's heading moves (11-05, owner): galaxieScene.js textMotion. Word by word is "How it comes in" under Heading. --->
 		if (HERO[section.kind]) {
 			fields = fields.concat([{ group: "Heading motion" }, { key: "textMotion", label: "How the heading moves", type: "select",
-				options: [["", "Rises and fades as you scroll"], ["slideIn", "Slides up into place, then rises and fades"], ["slideInStay", "Fades up into place"], ["slideInOut", "Slides up into place, then up and away as it scrolls off"], ["still", "Stays in place on the picture"]] }]);
+				options: [["", "Rises and fades as you scroll"], ["slideIn", "Slides up into place, then rises and fades"], ["slideInStay", "Slides up into place"], ["slideInOut", "Slides up into place, then up and away as it scrolls off"], ["still", "Stays in place on the picture"]] }]);
 		}
 		return fields;
 	}

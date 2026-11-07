@@ -157,6 +157,13 @@
 			".gScene .gs-align-right{text-align:right;align-items:flex-end}",
 			".gScene .gs-hero{position:relative;height:100vh;overflow:hidden;z-index:1}",
 			".gScene .gs-heroBack{position:absolute;inset:0}",
+			// The heading above the picture (textPosition "above", 11-06, owner: like the parallax scenes on gregoryalexander.com): a band
+			// on top in the picture's own top color with the heading in it, the picture under it, drawn over the band so its layers
+			// rise up over the heading as the page scrolls.
+			".gScene .gs-hero.gs-above{height:134vh}",
+			".gScene .gs-above .gs-heroBand{position:absolute;left:0;right:0;top:0;height:34vh;z-index:0;background:linear-gradient(#1c1530,#0d0b1a)}",
+			".gScene .gs-above .gs-heroBack{top:34vh;z-index:1}",
+			".gScene .gs-above .gs-heroText{bottom:auto;height:34vh;z-index:0}",
 			".gScene .gs-layer{position:absolute;inset:0;will-change:transform}",
 			".gScene .gs-layer img,.gScene .gs-photo img{display:block;width:100%;height:100vh;object-fit:cover;object-position:50% 50%}",
 			".gScene .gs-photo{position:absolute;inset:0;will-change:transform}",
@@ -421,6 +428,12 @@
 		var joinColour = (nextSection && gradientTopColour(nextSection.gradient)) || section.fadeColour || (nextSection && nextSection.colour) || data.pageColour || "#000000";
 		root.style.backgroundColor = joinColour;
 		var back = el("div", "gs-heroBack", root);
+		var above = section.textPosition === "above";
+		if (above) {
+			root.classList.add("gs-above");
+			var band = el("div", "gs-heroBand");
+			root.insertBefore(band, back);
+		}
 		// The phone pictures also in a box taller than it is wide (2026-10-30, owner: the wolf showed only a slice): a scene
 		// inside a post on a desktop is the post's width but a screen tall, and wide art keeps only its middle there.
 		var boxWidth = root.parentNode ? root.parentNode.clientWidth : window.innerWidth;
@@ -469,8 +482,26 @@
 		}
 		addOverlay(section, root);
 		if (section.kind !== "layeredHero") { addFade(section, data, root, joinColour); }
+		// The band takes the color along the top of the picture (its back layer), darker at the top, so the picture carries on from
+		// it. A picture from another site can't be read; the band stays a night sky then.
+		if (above) {
+			var topImg = back.querySelector("img");
+			var paintBand = function () {
+				try {
+					var c = document.createElement("canvas"); c.width = 16; c.height = 2;
+					var g = c.getContext("2d");
+					g.drawImage(topImg, 0, 0, topImg.naturalWidth, Math.max(1, Math.round(topImg.naturalHeight * 0.03)), 0, 0, 16, 2);
+					var d = g.getImageData(0, 0, 16, 2).data, r = 0, gr = 0, bl = 0, n = 0;
+					for (var p = 0; p < d.length; p += 4) { if (d[p + 3] > 127) { r += d[p]; gr += d[p + 1]; bl += d[p + 2]; n++; } }
+					if (!n) { return; }
+					r = Math.round(r / n); gr = Math.round(gr / n); bl = Math.round(bl / n);
+					band.style.background = "linear-gradient(rgb(" + Math.round(r * 0.6) + "," + Math.round(gr * 0.6) + "," + Math.round(bl * 0.6) + "), rgb(" + r + "," + gr + "," + bl + "))";
+				} catch (e) {}
+			};
+			if (topImg) { if (topImg.complete && topImg.naturalWidth) { paintBand(); } else { topImg.addEventListener("load", paintBand, { once: true }); } }
+		}
 
-		var textBox = el("div", "gs-heroText" + (section.textPosition === "bottom" ? " gs-textBottom" : ""), root);
+		var textBox = el("div", "gs-heroText" + (section.textPosition === "bottom" ? " gs-textBottom" : "") + (above ? " gs-textAbove" : ""), root);
 		// Text low on the left, for a hero that starts part way down the page (a post hero under the post's title): raised by
 		// that distance, so the heading sits near the bottom of the first screen the visitor sees, not below it.
 		if (section.textPosition === "bottom") {
@@ -625,7 +656,10 @@
 		function endFade(self) { root.style.pointerEvents = self.progress > 2 / 3 ? "none" : ""; }
 		var tl = gsap.timeline({
 			scrollTrigger: {
-				trigger: root, start: "top top", end: held ? "+=" + setting(data, section, "pinLength") : "bottom top",
+				trigger: root, end: held ? "+=" + setting(data, section, "pinLength") : "bottom top",
+				// A heading above the picture: the layers rise from the first scroll, so they come up over it while it is on screen.
+				start: !held && section.textPosition === "above" ? function () { return Math.max(0, root.getBoundingClientRect().top + (window.pageYOffset || 0) - window.innerHeight); } : "top top",
+				invalidateOnRefresh: !held && section.textPosition === "above",
 				pin: held, pinSpacing: held && !section._curtain && !ending, anticipatePin: held ? 1 : 0,
 				scrub: setting(data, section, "scrub"), markers: guides,
 				onUpdate: endMask ? endEdge : ending ? endFade : null, onRefresh: endMask ? endEdge : null,
@@ -637,7 +671,9 @@
 			// Travel relative to the screen: the deepest layer moves one screen x intensity over the whole pin.
 			var layers = root.querySelectorAll(".gs-layer");
 			var maxDepth = Math.max(1, Math.max.apply(null, Array.prototype.map.call(layers, function (l) { return +l.getAttribute("data-depth"); })));
-			var intensity = setting(data, section, "intensity") * phoneFactor;
+			// Above the picture: the front layer travels 1.6 screens, so it comes up over the heading while the heading is still on screen
+			// (a hero parallax otherwise caps it at 0.6).
+			var intensity = (section.textPosition === "above" ? Math.max(1.6, setting(data, section, "intensity")) : setting(data, section, "intensity")) * phoneFactor;
 			Array.prototype.forEach.call(layers, function (layer) {
 				tl.to(layer, { y: function () { return -(layer.getAttribute("data-depth") / maxDepth) * window.innerHeight * intensity; }, ease: "none" }, 0);
 			});
@@ -680,11 +716,25 @@
 			var lineIn = function () { gsap.fromTo(lines, { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "power1.out", stagger: 0.2, overwrite: true }); };
 			var lineOut = function (up) { gsap.to(lines, { y: up ? -50 : 50, autoAlpha: 0, duration: 0.7, ease: "power1.out", stagger: 0.2, overwrite: true }); };
 			gsap.set(lines, { y: 50, autoAlpha: 0 });
+			// It comes in as soon as the page opens when the hero is already on screen then (in a short window a hero part way down a
+			// post isn't above 85% of the screen, and the heading stayed hidden until the page was scrolled); otherwise as it comes up.
+			var lineStart = function () { var top = root.getBoundingClientRect().top + (window.pageYOffset || 0); return top < window.innerHeight ? -1 : top - window.innerHeight * 0.85; };
 			if (motion === "slideInStay") {
-				ScrollTrigger.create({ trigger: root, start: "top 85%", onEnter: lineIn, onLeaveBack: function () { lineOut(false); } });
+				// Recorded on gregoryalexander.com (11-06, owner: "when you first load the page the text gently scrolls up the screen and
+				// eases into place"): no fade. The lines show at full strength 50px low and glide up into place; it starts a moment after the
+				// page opens, so the travel is seen. Going back out they glide down again and then hide, as the CSS transitions there do.
+				// 55px (owner, 11-06: a little more than the original's 50px; 60 and 65 tried, then "try 55").
+				var firstIn = true, travel = 55;
+				var slideIn = function () {
+					// The lines after the heading wait, as on gregoryalexander.com (0.4 s, 0.6 s...) but a touch sooner (owner): 0.3 s, 0.5 s, 0.7 s.
+					gsap.fromTo(lines, { y: travel, autoAlpha: 1 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "power1.out", stagger: function (i) { return i ? 0.1 + i * 0.2 : 0; }, delay: firstIn ? 0.4 : 0, immediateRender: false, overwrite: true });
+					firstIn = false;
+				};
+				var slideOut = function () { gsap.to(lines, { y: travel, duration: 0.7, ease: "power1.out", stagger: 0.2, overwrite: true, onComplete: function () { gsap.set(lines, { autoAlpha: 0 }); } }); };
+				ScrollTrigger.create({ trigger: root, start: lineStart, onEnter: slideIn, onLeaveBack: slideOut });
 			} else {
 				ScrollTrigger.create({
-					trigger: root, start: "top 85%", end: held ? "bottom top" : "center top",
+					trigger: root, start: lineStart, end: held ? "bottom top" : "center top",
 					onEnter: lineIn, onEnterBack: lineIn,
 					onLeave: function () { lineOut(true); }, onLeaveBack: function () { lineOut(false); }
 				});
