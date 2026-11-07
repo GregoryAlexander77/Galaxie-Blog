@@ -4,77 +4,19 @@
  * For LGPL see License.txt in the project root for license information.
  * For commercial licenses see https://www.tiny.cloud/
  *
- * Version: 5.5.1 (2020-10-01)
+ * Version: 5.10.9 (2023-11-15)
  */
 (function () {
     'use strict';
 
-    var global = tinymce.util.Tools.resolve('tinymce.PluginManager');
+    var global$3 = tinymce.util.Tools.resolve('tinymce.PluginManager');
 
-    var DEFAULT_ID = 'tinymce.plugins.emoticons';
-    var getEmoticonDatabaseUrl = function (editor, pluginUrl) {
-      return editor.getParam('emoticons_database_url', pluginUrl + '/js/emojis' + editor.suffix + '.js');
-    };
-    var getEmoticonDatabaseId = function (editor) {
-      return editor.getParam('emoticons_database_id', DEFAULT_ID, 'string');
-    };
-    var getAppendedEmoticons = function (editor) {
-      return editor.getParam('emoticons_append', {}, 'object');
-    };
-
-    var __assign = function () {
-      __assign = Object.assign || function __assign(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-          s = arguments[i];
-          for (var p in s)
-            if (Object.prototype.hasOwnProperty.call(s, p))
-              t[p] = s[p];
-        }
-        return t;
-      };
-      return __assign.apply(this, arguments);
-    };
-
-    var Cell = function (initial) {
-      var value = initial;
-      var get = function () {
-        return value;
-      };
-      var set = function (v) {
-        value = v;
-      };
-      return {
-        get: get,
-        set: set
+    var eq = function (t) {
+      return function (a) {
+        return t === a;
       };
     };
-
-    var hasOwnProperty = Object.prototype.hasOwnProperty;
-    var shallow = function (old, nu) {
-      return nu;
-    };
-    var baseMerge = function (merger) {
-      return function () {
-        var objects = new Array(arguments.length);
-        for (var i = 0; i < objects.length; i++) {
-          objects[i] = arguments[i];
-        }
-        if (objects.length === 0) {
-          throw new Error('Can\'t merge zero objects');
-        }
-        var ret = {};
-        for (var j = 0; j < objects.length; j++) {
-          var curObject = objects[j];
-          for (var key in curObject) {
-            if (hasOwnProperty.call(curObject, key)) {
-              ret[key] = merger(ret[key], curObject[key]);
-            }
-          }
-        }
-        return ret;
-      };
-    };
-    var merge = baseMerge(shallow);
+    var isNull = eq(null);
 
     var noop = function () {
     };
@@ -83,6 +25,9 @@
         return value;
       };
     };
+    var identity = function (x) {
+      return x;
+    };
     var never = constant(false);
     var always = constant(true);
 
@@ -90,20 +35,14 @@
       return NONE;
     };
     var NONE = function () {
-      var eq = function (o) {
-        return o.isNone();
-      };
       var call = function (thunk) {
         return thunk();
       };
-      var id = function (n) {
-        return n;
-      };
+      var id = identity;
       var me = {
         fold: function (n, _s) {
           return n();
         },
-        is: never,
         isSome: never,
         isNone: always,
         getOr: id,
@@ -120,9 +59,9 @@
         bind: none,
         exists: never,
         forall: always,
-        filter: none,
-        equals: eq,
-        equals_: eq,
+        filter: function () {
+          return none();
+        },
         toArray: function () {
           return [];
         },
@@ -141,9 +80,6 @@
       var me = {
         fold: function (n, s) {
           return s(a);
-        },
-        is: function (v) {
-          return a === v;
         },
         isSome: always,
         isNone: never,
@@ -171,14 +107,6 @@
         },
         toString: function () {
           return 'some(' + a + ')';
-        },
-        equals: function (o) {
-          return o.is(a);
-        },
-        equals_: function (o, elementEq) {
-          return o.fold(never, function (b) {
-            return elementEq(a, b);
-          });
         }
       };
       return me;
@@ -192,8 +120,89 @@
       from: from
     };
 
+    var exists = function (xs, pred) {
+      for (var i = 0, len = xs.length; i < len; i++) {
+        var x = xs[i];
+        if (pred(x, i)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    var map$1 = function (xs, f) {
+      var len = xs.length;
+      var r = new Array(len);
+      for (var i = 0; i < len; i++) {
+        var x = xs[i];
+        r[i] = f(x, i);
+      }
+      return r;
+    };
+    var each$1 = function (xs, f) {
+      for (var i = 0, len = xs.length; i < len; i++) {
+        var x = xs[i];
+        f(x, i);
+      }
+    };
+
+    var Cell = function (initial) {
+      var value = initial;
+      var get = function () {
+        return value;
+      };
+      var set = function (v) {
+        value = v;
+      };
+      return {
+        get: get,
+        set: set
+      };
+    };
+
+    var last = function (fn, rate) {
+      var timer = null;
+      var cancel = function () {
+        if (!isNull(timer)) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      };
+      var throttle = function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+          args[_i] = arguments[_i];
+        }
+        cancel();
+        timer = setTimeout(function () {
+          timer = null;
+          fn.apply(null, args);
+        }, rate);
+      };
+      return {
+        cancel: cancel,
+        throttle: throttle
+      };
+    };
+
+    var insertEmoticon = function (editor, ch) {
+      editor.insertContent(ch);
+    };
+
+    var __assign = function () {
+      __assign = Object.assign || function __assign(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+          s = arguments[i];
+          for (var p in s)
+            if (Object.prototype.hasOwnProperty.call(s, p))
+              t[p] = s[p];
+        }
+        return t;
+      };
+      return __assign.apply(this, arguments);
+    };
+
     var keys = Object.keys;
-    var hasOwnProperty$1 = Object.hasOwnProperty;
+    var hasOwnProperty = Object.hasOwnProperty;
     var each = function (obj, f) {
       var props = keys(obj);
       for (var k = 0, len = props.length; k < len; k++) {
@@ -219,14 +228,102 @@
       return r;
     };
     var has = function (obj, key) {
-      return hasOwnProperty$1.call(obj, key);
+      return hasOwnProperty.call(obj, key);
     };
 
-    var global$1 = tinymce.util.Tools.resolve('tinymce.Resource');
+    var shallow = function (old, nu) {
+      return nu;
+    };
+    var baseMerge = function (merger) {
+      return function () {
+        var objects = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+          objects[_i] = arguments[_i];
+        }
+        if (objects.length === 0) {
+          throw new Error('Can\'t merge zero objects');
+        }
+        var ret = {};
+        for (var j = 0; j < objects.length; j++) {
+          var curObject = objects[j];
+          for (var key in curObject) {
+            if (has(curObject, key)) {
+              ret[key] = merger(ret[key], curObject[key]);
+            }
+          }
+        }
+        return ret;
+      };
+    };
+    var merge = baseMerge(shallow);
 
-    var global$2 = tinymce.util.Tools.resolve('tinymce.util.Delay');
+    var singleton = function (doRevoke) {
+      var subject = Cell(Optional.none());
+      var revoke = function () {
+        return subject.get().each(doRevoke);
+      };
+      var clear = function () {
+        revoke();
+        subject.set(Optional.none());
+      };
+      var isSet = function () {
+        return subject.get().isSome();
+      };
+      var get = function () {
+        return subject.get();
+      };
+      var set = function (s) {
+        revoke();
+        subject.set(Optional.some(s));
+      };
+      return {
+        clear: clear,
+        isSet: isSet,
+        get: get,
+        set: set
+      };
+    };
+    var value = function () {
+      var subject = singleton(noop);
+      var on = function (f) {
+        return subject.get().each(f);
+      };
+      return __assign(__assign({}, subject), { on: on });
+    };
 
-    var global$3 = tinymce.util.Tools.resolve('tinymce.util.Promise');
+    var checkRange = function (str, substr, start) {
+      return substr === '' || str.length >= substr.length && str.substr(start, start + substr.length) === substr;
+    };
+    var contains = function (str, substr) {
+      return str.indexOf(substr) !== -1;
+    };
+    var startsWith = function (str, prefix) {
+      return checkRange(str, prefix, 0);
+    };
+
+    var global$2 = tinymce.util.Tools.resolve('tinymce.Resource');
+
+    var global$1 = tinymce.util.Tools.resolve('tinymce.util.Delay');
+
+    var global = tinymce.util.Tools.resolve('tinymce.util.Promise');
+
+    var DEFAULT_ID = 'tinymce.plugins.emoticons';
+    var getEmoticonDatabase = function (editor) {
+      return editor.getParam('emoticons_database', 'emojis', 'string');
+    };
+    var getEmoticonDatabaseUrl = function (editor, pluginUrl) {
+      var database = getEmoticonDatabase(editor);
+      return editor.getParam('emoticons_database_url', pluginUrl + '/js/' + database + editor.suffix + '.js', 'string');
+    };
+    var getEmoticonDatabaseId = function (editor) {
+      return editor.getParam('emoticons_database_id', DEFAULT_ID, 'string');
+    };
+    var getAppendedEmoticons = function (editor) {
+      return editor.getParam('emoticons_append', {}, 'object');
+    };
+    var getEmotionsImageUrl = function (editor) {
+      return editor.getParam('emoticons_images_url', 'https://twemoji.maxcdn.com/v/13.0.1/72x72/', 'string');
+    };
 
     var ALL_CATEGORY = 'All';
     var categoryNameMap = {
@@ -253,8 +350,18 @@
       });
     };
     var initDatabase = function (editor, databaseUrl, databaseId) {
-      var categories = Cell(Optional.none());
-      var all = Cell(Optional.none());
+      var categories = value();
+      var all = value();
+      var emojiImagesUrl = getEmotionsImageUrl(editor);
+      var getEmoji = function (lib) {
+        if (startsWith(lib.char, '<img')) {
+          return lib.char.replace(/src="([^"]+)"/, function (match, url) {
+            return 'src="' + emojiImagesUrl + url + '"';
+          });
+        } else {
+          return lib.char;
+        }
+      };
       var processEmojis = function (emojis) {
         var cats = {};
         var everything = [];
@@ -262,24 +369,24 @@
           var entry = {
             title: title,
             keywords: lib.keywords,
-            char: lib.char,
+            char: getEmoji(lib),
             category: translateCategory(categoryNameMap, lib.category)
           };
           var current = cats[entry.category] !== undefined ? cats[entry.category] : [];
           cats[entry.category] = current.concat([entry]);
           everything.push(entry);
         });
-        categories.set(Optional.some(cats));
-        all.set(Optional.some(everything));
+        categories.set(cats);
+        all.set(everything);
       };
       editor.on('init', function () {
-        global$1.load(databaseId, databaseUrl).then(function (emojis) {
+        global$2.load(databaseId, databaseUrl).then(function (emojis) {
           var userEmojis = getUserDefinedEmoticons(editor);
           processEmojis(merge(emojis, userEmojis));
         }, function (err) {
           console.log('Failed to load emoticons: ' + err);
-          categories.set(Optional.some({}));
-          all.set(Optional.some([]));
+          categories.set({});
+          all.set([]);
         });
       });
       var listCategory = function (category) {
@@ -298,19 +405,19 @@
       };
       var waitForLoad = function () {
         if (hasLoaded()) {
-          return global$3.resolve(true);
+          return global.resolve(true);
         } else {
-          return new global$3(function (resolve, reject) {
+          return new global(function (resolve, reject) {
             var numRetries = 15;
-            var interval = global$2.setInterval(function () {
+            var interval = global$1.setInterval(function () {
               if (hasLoaded()) {
-                global$2.clearInterval(interval);
+                global$1.clearInterval(interval);
                 resolve(true);
               } else {
                 numRetries--;
                 if (numRetries < 0) {
                   console.log('Could not load emojis from url: ' + databaseUrl);
-                  global$2.clearInterval(interval);
+                  global$1.clearInterval(interval);
                   reject(false);
                 }
               }
@@ -319,7 +426,7 @@
         }
       };
       var hasLoaded = function () {
-        return categories.get().isSome() && all.get().isSome();
+        return categories.isSet() && all.isSet();
       };
       return {
         listCategories: listCategories,
@@ -328,29 +435,6 @@
         listAll: listAll,
         listCategory: listCategory
       };
-    };
-
-    var exists = function (xs, pred) {
-      for (var i = 0, len = xs.length; i < len; i++) {
-        var x = xs[i];
-        if (pred(x, i)) {
-          return true;
-        }
-      }
-      return false;
-    };
-    var map$1 = function (xs, f) {
-      var len = xs.length;
-      var r = new Array(len);
-      for (var i = 0; i < len; i++) {
-        var x = xs[i];
-        r[i] = f(x, i);
-      }
-      return r;
-    };
-
-    var contains = function (str, substr) {
-      return str.indexOf(substr) !== -1;
     };
 
     var emojiMatches = function (emoji, lowerCasePattern) {
@@ -381,56 +465,6 @@
         }
       }
       return matches;
-    };
-
-    var init = function (editor, database) {
-      editor.ui.registry.addAutocompleter('emoticons', {
-        ch: ':',
-        columns: 'auto',
-        minChars: 2,
-        fetch: function (pattern, maxResults) {
-          return database.waitForLoad().then(function () {
-            var candidates = database.listAll();
-            return emojisFrom(candidates, pattern, Optional.some(maxResults));
-          });
-        },
-        onAction: function (autocompleteApi, rng, value) {
-          editor.selection.setRng(rng);
-          editor.insertContent(value);
-          autocompleteApi.hide();
-        }
-      });
-    };
-
-    var last = function (fn, rate) {
-      var timer = null;
-      var cancel = function () {
-        if (timer !== null) {
-          clearTimeout(timer);
-          timer = null;
-        }
-      };
-      var throttle = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-          args[_i] = arguments[_i];
-        }
-        if (timer !== null) {
-          clearTimeout(timer);
-        }
-        timer = setTimeout(function () {
-          fn.apply(null, args);
-          timer = null;
-        }, rate);
-      };
-      return {
-        cancel: cancel,
-        throttle: throttle
-      };
-    };
-
-    var insertEmoticon = function (editor, ch) {
-      editor.insertContent(ch);
     };
 
     var patternName = 'pattern';
@@ -533,9 +567,45 @@
       }
     };
 
-    var register = function (editor, database) {
-      var onAction = function () {
+    var register$1 = function (editor, database) {
+      editor.addCommand('mceEmoticons', function () {
         return open(editor, database);
+      });
+    };
+
+    var setup = function (editor) {
+      editor.on('PreInit', function () {
+        editor.parser.addAttributeFilter('data-emoticon', function (nodes) {
+          each$1(nodes, function (node) {
+            node.attr('data-mce-resize', 'false');
+            node.attr('data-mce-placeholder', '1');
+          });
+        });
+      });
+    };
+
+    var init = function (editor, database) {
+      editor.ui.registry.addAutocompleter('emoticons', {
+        ch: ':',
+        columns: 'auto',
+        minChars: 2,
+        fetch: function (pattern, maxResults) {
+          return database.waitForLoad().then(function () {
+            var candidates = database.listAll();
+            return emojisFrom(candidates, pattern, Optional.some(maxResults));
+          });
+        },
+        onAction: function (autocompleteApi, rng, value) {
+          editor.selection.setRng(rng);
+          editor.insertContent(value);
+          autocompleteApi.hide();
+        }
+      });
+    };
+
+    var register = function (editor) {
+      var onAction = function () {
+        return editor.execCommand('mceEmoticons');
       };
       editor.ui.registry.addButton('emoticons', {
         tooltip: 'Emoticons',
@@ -550,12 +620,14 @@
     };
 
     function Plugin () {
-      global.add('emoticons', function (editor, pluginUrl) {
+      global$3.add('emoticons', function (editor, pluginUrl) {
         var databaseUrl = getEmoticonDatabaseUrl(editor, pluginUrl);
         var databaseId = getEmoticonDatabaseId(editor);
         var database = initDatabase(editor, databaseUrl, databaseId);
-        register(editor, database);
+        register$1(editor, database);
+        register(editor);
         init(editor, database);
+        setup(editor);
       });
     }
 

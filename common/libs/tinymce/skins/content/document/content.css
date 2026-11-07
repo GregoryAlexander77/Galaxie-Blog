@@ -20,7 +20,7 @@ body {
     box-sizing: border-box;
     margin: 1rem auto 0;
     max-width: 820px;
-    min-height: calc(99vh);
+    min-height: calc(100vh - 1rem);
     padding: 4rem 6rem 6rem 6rem;
   }
 }
@@ -30,7 +30,7 @@ table {
 /* Apply a default padding if legacy cellpadding attribute is missing */
 table:not([cellpadding]) th,
 table:not([cellpadding]) td {
-  padding: .4rem;
+  padding: 0.4rem;
 }
 /* Set default table styles if a table has a positive border attribute
    and no inline css */
@@ -52,7 +52,7 @@ table[border]:not([border="0"]):not([style*="border-color"]) td {
 }
 figure figcaption {
   color: #999;
-  margin-top: .25rem;
+  margin-top: 0.25rem;
   text-align: center;
 }
 hr {

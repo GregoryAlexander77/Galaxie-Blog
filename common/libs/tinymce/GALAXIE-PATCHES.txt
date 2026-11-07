@@ -1,17 +1,24 @@
-Changes that Galaxie Blog made to the bundled TinyMCE 5.5.1
-=============================================================
+Changes that Galaxie Blog made to the bundled TinyMCE (5.10.9 since 2026-11-07; 5.5.1 before)
+==============================================================================================
 
-TinyMCE 5.5.1 does not accept .webp images in the Upload tab of the image dialog: the file is silently ignored.
-If TinyMCE is upgraded, check whether the new version accepts .webp. If it does not, apply these changes again.
+TinyMCE 5.10.9 is the last release of TinyMCE 5 (LGPL 2.1), from the npm registry (tinymce-5.10.9.tgz, sha512 checked).
+Version 6 made toc and imagetools paid add-ons and version 7 also template, so the blog stays on 5.
+If TinyMCE is replaced again, apply these changes again.
 
-1. themes/silver/theme.js (and theme.min.js)
-   The list of accepted extensions is '.jpg,.jpeg,.png,.gif'. Add '.webp':
-     var extensionsAccepted = '.jpg,.jpeg,.png,.gif,.webp';
-   In theme.min.js the string is ".jpg,.jpeg,.png,.gif".split(...) .
+1. plugins/media/plugin.js and plugin.min.js
+   Responsive videos: '<div class="video-container">' around the iframe the media plugin writes
+   (search for '<iframe src="' + data.source; in plugin.min.js '<iframe src="'+n.source).
 
-2. tinymce.js (and tinymce.min.js)
-   BlobCache.mimeToExt has no entry for image/webp, so the file name of an uploaded webp image ends in '.dat'.
-   Add:  'image/webp': 'webp'
+2. skins/ui/oxide/content.css
+   Responsive pictures, at the end:  img { max-width: 100%; height: auto; }
 
-The original files are not kept in the repository. The images_file_types setting in includes/templates/js/tinyMce.cfm
-is not used by TinyMCE 5.5.1, and is only there for a newer TinyMCE.
+3. The Kendo-theme skins (skins/ui/black, blueopal, bootstrap, ... and skins/skinMin.cfm) were made for 5.5. The rules that
+   TinyMCE 5.10.9's oxide skin added after 5.5.1 are added at the end of each skin.min.css / skin.css (layout only, no colors;
+   look for "TinyMCE 5.10.9").
+
+No longer needed in 5.10.9 (they were 5.5.1 patches):
+   - .webp in the image dialog's Upload tab: 5.10 uses the images_file_types setting in includes/templates/js/tinyMce.cfm.
+   - 'image/webp': 'webp' in BlobCache.mimeToExt: 5.10 has it.
+
+Not part of TinyMCE: plugins/iconfonts (Galaxie's own) and common/js/galaxieCodeEditor.js (the Source code button in CodeMirror).
+The js/ folder here is an old copy of a few files and is not loaded.

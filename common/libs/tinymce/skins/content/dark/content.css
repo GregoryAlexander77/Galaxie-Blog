@@ -20,7 +20,7 @@ table {
 /* Apply a default padding if legacy cellpadding attribute is missing */
 table:not([cellpadding]) th,
 table:not([cellpadding]) td {
-  padding: .4rem;
+  padding: 0.4rem;
 }
 /* Set default table styles if a table has a positive border attribute
    and no inline css */
@@ -47,7 +47,7 @@ figure {
 figure figcaption {
   color: #8a8f97;
   display: block;
-  margin-top: .25rem;
+  margin-top: 0.25rem;
   text-align: center;
 }
 hr {
@@ -58,7 +58,7 @@ hr {
 code {
   background-color: #6d737b;
   border-radius: 3px;
-  padding: .1rem .2rem;
+  padding: 0.1rem 0.2rem;
 }
 .mce-content-body:not([dir=rtl]) blockquote {
   border-left: 2px solid #6d737b;

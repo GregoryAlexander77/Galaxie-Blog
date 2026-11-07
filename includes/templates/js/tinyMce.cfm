@@ -119,11 +119,9 @@
 	<cfparam name="includeMaps" default="true">
 	<cfparam name="includeCommonCss" default="false">
 	
-	<!--- Code Mirror Code Editor Vars --->
-	<!--- Path to the plugin (plugin.js). --->
-	<cfset codeMirrorPluginPath = application.baseUrl & "/common/libs/tinymce/plugins/codemirror/plugin.js">
-	<!--- Note: this path should point to the foler for the Code Mirror library. Do not point to the folder where codemirror.js is found. --->
-	<cfset codeMirrorLibPath = application.baseUrl & "/common/libs/codemirror5/">
+	<!--- The Galaxie code editor (2026-11-07): the Source code button opens the post's HTML in CodeMirror. It replaces the old
+	third-party codemirror plugin (removed in 4.31 for its security issues); see common/js/galaxieCodeEditor.js for why this one is safe. --->
+	<cfset galaxieCodeEditorPath = application.baseUrl & "/common/js/galaxieCodeEditor.js">
 	
 	<!--- Note: don't use the autosave plugin- its buggy! I removed the codemirror plugin in May of 26. I used to use 'codemirror' as a plugin that replaced 'code', however, it has security issues. --->
 	<cfparam name="pluginList" default="'advlist autolink lists hr link image charmap print preview anchor',
@@ -330,19 +328,12 @@
 			toolbar_sticky: true, // Makes the toolbar float at the top of the page
 			toolbar_sticky: "80px",// This fixes when the toolbar disappears with the toolbar_sticky
 			plugins: [<cfoutput>#pluginList#</cfoutput>],
-			<!--- Code Mirror is our code viewer and is a custom plugin --->
-			/* Depracated in April 2026
+			<!--- The Galaxie code editor, for editors with a Source code button (the code plugin). --->
+			<cfif reFindNoCase("[\s',]code[\s',]", " " & pluginList & " ")>
 			external_plugins: {
-				codemirror: "<cfoutput>#codeMirrorPluginPath#</cfoutput>"
+				galaxiecode: "<cfoutput>#galaxieCodeEditorPath#</cfoutput>"
 			},
-			codemirror: {
-				indentOnInit: true,
-				path: '<cfoutput>#codeMirrorLibPath#</cfoutput>',
-				config: {
-					lineNumbers: true,
-					lineWrapping: true
-				}
-			},*/
+			</cfif>
 			<!--- Change the toc_depth to support h4 tags (the default is h1-3) --->
 			toc_depth: 5,
 			<!--- Allow the Prism folder to be the prism engine instead of the embedded version of Prism within TinyMce. This is required to have line numbers --->
