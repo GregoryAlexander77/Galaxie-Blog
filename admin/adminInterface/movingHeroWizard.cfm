@@ -92,6 +92,8 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 	.mhwBars.middle { top: 50%; transform: translateY(-50%); } .mhwBars.low { bottom: 10%; }
 	.mhwBars.left { align-items: flex-start; } .mhwBars.center { align-items: center; } .mhwBars.right { align-items: flex-end; }
 	.mhwPreview { max-width: 620px; margin: 0 auto 10px; }
+	<!--- Step 3's preview acts out the heading's motion (11-06): the hero scrolls up inside this box. --->
+	#mhwStylePreview { overflow: hidden; border-radius: 4px; }
 	.mhwTwo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 	@media (max-width: 760px) { .mhwTwo { grid-template-columns: 1fr; } }
 	.mhwCoverArt { aspect-ratio: 16 / 9; max-width: 100%; border-radius: 6px; overflow: hidden; border: 2px dashed rgba(128,128,128,.5); display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; box-sizing: border-box; }
@@ -194,7 +196,7 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 
 	<div id="mhwStep3">
 		<div class="mhwTwo">
-			<div><div id="mhwStylePreview"></div><div class="k-form-hint">The preview moves on its own here; on the post it follows the scroll.</div></div>
+			<div><div id="mhwStylePreview"></div><div class="k-form-hint">The preview plays the page opening, then scrolling down past the hero, over and over. On the post it follows the scroll.</div></div>
 			<div>
 				<label class="adminBlockHeading" style="display: block; margin-bottom: 6px;">Where the heading sits</label>
 				<div id="mhwPositions" class="mhwCards mhwThree" role="radiogroup" aria-label="Where the heading sits"></div>
@@ -205,6 +207,8 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 				<select id="mhwTextMotion" style="width: 95%;">
 					<option value="">Rises and fades as you scroll</option>
 					<option value="slideIn">Slides up into place, then rises and fades as you scroll</option>
+					<option value="slideInStay">Fades up into place</option>
+					<option value="slideInOut">Slides up into place, then up and away as it scrolls off</option>
 					<cfif application.blog.getScenes().getSetting("librarySource", "cdn") neq "local" or arrayFind(application.blog.getScenes().getLocalLibraryFiles(), "SplitText.min.js")>
 					<option value="words">Comes in word by word, then rises and fades</option>
 					<option value="letters">Comes in letter by letter, then rises and fades</option>
@@ -285,7 +289,56 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 		var up = true, go = function () { move(box, up ? 22 : 0); up = !up; };
 		setTimeout(go, 50); timers.push(setInterval(go, 2600));
 	}
-	function stopSway() { $.each(timers, function (i, t) { clearInterval(t); }); timers = []; }
+	function stopSway() {
+		$.each(timers, function (i, t) { clearInterval(t); clearTimeout(t); }); timers = [];
+		$.each(demoAnims, function (i, x) { try { x.cancel(); } catch (e) {} }); demoAnims = [];
+	}
+	var demoAnims = [];
+	// Step 3: the heading's motion acted out (11-06, owner: "can the text effects also be shown in the preview"), with the same
+	// timings as galaxieScene.js: the page opens (the heading's entrance), then scrolls down past the hero (the hero moves up, its
+	// layers drift, and the heading does its scroll part), then it starts again. On the post the scroll drives it.
+	function demo(a, scale) {
+		var el = a[0], text = a.find(".mhwText")[0];
+		var list = $("#mhwTextMotion").data("kendoDropDownList");
+		var motion = list ? list.value() : (state.textMotion || "");
+		if (!el.animate || !text) { sway(a); return; }
+		var b = text.querySelector("b");
+		// Word by word and letter by letter: the heading in pieces, as SplitText makes it on the post.
+		if (b && (motion === "words" || motion === "letters")) {
+			var parts = motion === "letters" ? Array.from(b.textContent) : b.textContent.split(/(\s+)/);
+			b.textContent = "";
+			parts.forEach(function (p) {
+				if (/^\s+$/.test(p)) { b.appendChild(document.createTextNode(p)); return; }
+				var s = document.createElement("span"); s.className = "mhwPiece"; s.style.display = "inline-block"; s.textContent = p === " " ? "\u00a0" : p; b.appendChild(s);
+			});
+		}
+		var lines = Array.prototype.slice.call(text.children), pieces = Array.prototype.slice.call(text.querySelectorAll(".mhwPiece"));
+		var play = function (target, frames, opts) { var x = target.animate(frames, $.extend({ fill: "both" }, opts)); demoAnims.push(x); return x; };
+		var later = function (ms, fn) { timers.push(setTimeout(fn, ms)); };
+		var fadeUp = function (targets, rise, duration, easing, stagger) {
+			targets.forEach(function (t, i) { play(t, [{ opacity: 0, translate: "0 " + rise + "px" }, { opacity: 1, translate: "0 0" }], { duration: duration, easing: easing, delay: i * stagger }); });
+		};
+		var cycle = function () {
+			$.each(demoAnims, function (i, x) { try { x.cancel(); } catch (e) {} }); demoAnims = [];
+			var imgs = a.find("img").css("transition", "none"); move(a, 0); void el.offsetWidth; imgs.css("transition", "");
+			// The page opens.
+			if (motion === "slideIn") { fadeUp(lines, Math.round(96 * scale), 1100, "cubic-bezier(.22,1,.36,1)", 150); }
+			else if (motion === "slideInStay" || motion === "slideInOut") { fadeUp(lines, Math.round(50 * scale), 700, "cubic-bezier(.25,.46,.45,.94)", 200); }
+			else if (pieces.length) { fadeUp(pieces, Math.round(56 * scale), 800, "cubic-bezier(.22,1,.36,1)", motion === "letters" ? 30 : 90); }
+			// Then it scrolls down past the hero.
+			later(2000, function () {
+				play(el, [{ translate: "0 0" }, { translate: "0 -45%" }], { duration: 2600, easing: "linear" });
+				move(a, 22);
+				if (motion === "slideInOut") {
+					later(1300, function () { lines.forEach(function (t, i) { play(t, [{ opacity: 1, translate: "0 0" }, { opacity: 0, translate: "0 " + (-Math.round(50 * scale)) + "px" }], { duration: 700, easing: "cubic-bezier(.25,.46,.45,.94)", delay: i * 200 }); }); });
+				} else if (motion !== "still" && motion !== "slideInStay") {
+					play(text, [{ opacity: 1, translate: "0 0" }, { opacity: 0, translate: "0 " + (-Math.round(el.offsetHeight * 0.45)) + "px" }], { duration: 2600, easing: "linear" });
+				}
+			});
+			later(5000, function () { play(el, [{ opacity: 1 }, { opacity: 0 }], { duration: 500, easing: "ease-in" }); });
+		};
+		cycle(); timers.push(setInterval(cycle, 5800));
+	}
 
 	// The heading's look, from the step 2 controls.
 	function look() {
@@ -379,7 +432,7 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 
 	// Step 3: where the heading sits, and the ending.
 	function drawStyle() {
-		stopSway(); sway(headed($("#mhwStylePreview"), 0.4));
+		stopSway(); demo(headed($("#mhwStylePreview"), 0.4), 0.4);
 		var box = $("#mhwPositions").empty();
 		$.each(POSITIONS, function (i, pos) {
 			var c = $('<button type="button" class="mhwCard" role="radio"></button>').attr("aria-checked", pos[0] === align && (pos[1] === "bottom") === low ? "true" : "false");
@@ -517,7 +570,8 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 	initHeading();
 	$("#mhwEnding").kendoDropDownList();
 	$("#mhwEnding").data("kendoDropDownList").value(state.ending || "");
-	$("#mhwTextMotion").kendoDropDownList();
+	<!--- A new choice plays in the preview at once. --->
+	$("#mhwTextMotion").kendoDropDownList({ change: function () { if ($("#mhwStylePreview").is(":visible")) { drawStyle(); } } });
 	$("#mhwTextMotion").data("kendoDropDownList").value(state.textMotion || "");
 	$(".mhwGlowRow").toggle($("#mhwGlowOn").is(":checked"));
 	// Stop the moving previews when the window closes.

@@ -14641,7 +14641,7 @@
 		<cfset secureFunction('EditPost,ReleasePost')>
 		<cfif application.Udf.isLoggedIn() and isNumeric(arguments.postId)>
 			<cftry>
-				<cfset application.blog.savePostHeroTextMotion(val(arguments.postId), listFind("slideIn,words,letters,still", arguments.textMotion) ? arguments.textMotion : "")>
+				<cfset application.blog.savePostHeroTextMotion(val(arguments.postId), listFind("slideIn,slideInStay,slideInOut,words,letters,still", arguments.textMotion) ? arguments.textMotion : "")>
 				<cfset response[ "success" ] = true>
 				<cfcatch type="any">
 					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.HeroText" ? cfcatch.message : "How the heading moves could not be saved: " & cfcatch.message>

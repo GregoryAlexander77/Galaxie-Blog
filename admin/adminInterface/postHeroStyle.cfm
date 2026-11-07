@@ -35,6 +35,8 @@ has its own look, so the cards don't show for one. optArgs is the postId. --->
 			<select id="postHeroTextMotion" style="width: 360px; max-width: 95%;">
 				<option value="">Rises and fades as you scroll</option>
 				<option value="slideIn"<cfif heroTextMotionValue eq "slideIn"> selected</cfif>>Slides up into place, then rises and fades as you scroll</option>
+				<option value="slideInStay"<cfif heroTextMotionValue eq "slideInStay"> selected</cfif>>Fades up into place</option>
+				<option value="slideInOut"<cfif heroTextMotionValue eq "slideInOut"> selected</cfif>>Slides up into place, then up and away as it scrolls off</option>
 				<cfif heroTextMotionSplit or listFind("words,letters", heroTextMotionValue)>
 				<option value="words"<cfif heroTextMotionValue eq "words"> selected</cfif>>Comes in word by word, then rises and fades</option>
 				<option value="letters"<cfif heroTextMotionValue eq "letters"> selected</cfif>>Comes in letter by letter, then rises and fades</option>

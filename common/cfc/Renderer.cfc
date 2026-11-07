@@ -309,7 +309,7 @@
 		<cfset arrayAppend(parts, '"headingTag":"h2"')>
 		<!--- How the heading moves (5.03, 11-06, owner; Hero style window): as the Moving hero wizard stores it (Scenes.cfc). --->
 		<cfset var textMotion = row["HeroTextMotion"] ?: "">
-		<cfif listFind("slideIn,still", textMotion)>
+		<cfif listFind("slideIn,slideInStay,slideInOut,still", textMotion)>
 			<cfset arrayAppend(parts, '"textMotion":"' & textMotion & '"')>
 		<cfelseif listFind("words,letters", textMotion)>
 			<cfset arrayAppend(parts, '"headingEffect":"' & textMotion & '"')>

@@ -603,7 +603,7 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 	<cfif len(trim(arguments.line))><cfset section["html"] = "<p>" & encodeForHtml(left(trim(arguments.line), 300)) & "</p>"></cfif>
 	<cfset section["align"] = listFind("left,center,right", arguments.align) ? arguments.align : "center">
 	<cfif arguments.textPosition eq "bottom"><cfset section["textPosition"] = "bottom"></cfif>
-	<cfif listFind("slideIn,still", arguments.textMotion)>
+	<cfif listFind("slideIn,slideInStay,slideInOut,still", arguments.textMotion)>
 		<cfset section["textMotion"] = arguments.textMotion>
 	<cfelseif listFind("words,letters", arguments.textMotion)>
 		<cfset section["headingEffect"] = arguments.textMotion>

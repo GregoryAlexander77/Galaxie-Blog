@@ -668,16 +668,41 @@
 		if (text && motion === "slideIn" && !splitDone) {
 			gsap.from(Array.prototype.slice.call(text.children), { opacity: 0, y: setting(data, section, "rise") * 0.6 * phoneFactor, duration: 1.1, ease: "power3.out", stagger: 0.15, delay: 0.25 });
 		}
-		if (text && motion !== "still") {
+		// Slides that aren't tied to the scroll (11-06, owner), as in the parallax scenes on gregoryalexander.com
+		// (includes/postContent/parallax/parallaxScript.cfm): as the hero comes up the screen the heading's lines slide up 50px into
+		// place, 0.7 s each, eased out, one after another 0.2 s apart. Measured from the hero itself: a trigger inside a hero that is
+		// held in place gets the wrong positions (the heading never came in).
+		// "slideInStay" is the parallax scenes' own: then it stays on the picture and scrolls away with it; scrolled back above that
+		// point the lines slide back down and out. "slideInOut" also slides the lines up and away once half the hero has scrolled off,
+		// and back up into place from below when it scrolls back (owner: from above, the heading seemed to jump back to the top).
+		if (text && (motion === "slideInStay" || motion === "slideInOut") && !splitDone) {
+			var lines = Array.prototype.slice.call(text.children);
+			var lineIn = function () { gsap.fromTo(lines, { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "power1.out", stagger: 0.2, overwrite: true }); };
+			var lineOut = function (up) { gsap.to(lines, { y: up ? -50 : 50, autoAlpha: 0, duration: 0.7, ease: "power1.out", stagger: 0.2, overwrite: true }); };
+			gsap.set(lines, { y: 50, autoAlpha: 0 });
+			if (motion === "slideInStay") {
+				ScrollTrigger.create({ trigger: root, start: "top 85%", onEnter: lineIn, onLeaveBack: function () { lineOut(false); } });
+			} else {
+				ScrollTrigger.create({
+					trigger: root, start: "top 85%", end: held ? "bottom top" : "center top",
+					onEnter: lineIn, onEnterBack: lineIn,
+					onLeave: function () { lineOut(true); }, onLeaveBack: function () { lineOut(false); }
+				});
+			}
+		}
+		if (text && motion !== "still" && motion !== "slideInOut" && motion !== "slideInStay") {
 			if (held) {
 				tl.to(text, { y: function () { return -window.innerHeight * 0.45 * phoneFactor; }, opacity: 0, ease: "none" }, 0);
 			} else {
 				// Not held (the usual moving hero, under the post's title): from the first scroll, not only once the hero's top has
 				// reached the top of the screen, which on a post left the heading sitting still for most of the way.
+				// Up and out (11-06, owner: "it moves up for a bit and then is stationary with the page"): it rose 45% of a screen over
+				// the whole hero, only a third faster than the page, so it looked like it scrolled with it. Now it rises 70% of a screen
+				// and is gone by the time half the hero has scrolled off: clearly faster than the page, a parallax of its own.
 				gsap.to(text, {
-					y: function () { return -window.innerHeight * 0.45 * phoneFactor; }, opacity: 0, ease: "none",
+					y: function () { return -window.innerHeight * 0.7 * phoneFactor; }, opacity: 0, ease: "none",
 					scrollTrigger: {
-						trigger: root, end: "bottom top", scrub: setting(data, section, "scrub"), invalidateOnRefresh: true,
+						trigger: root, end: "center top", scrub: setting(data, section, "scrub"), invalidateOnRefresh: true,
 						start: function () { return Math.max(0, root.getBoundingClientRect().top + (window.pageYOffset || 0) - window.innerHeight); }
 					}
 				});
