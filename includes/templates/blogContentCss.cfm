@@ -592,9 +592,13 @@
 		}
 		/* With the picture, no "by" (2026-11-06, owner: the picture says who it is). Phones hide the picture, so they keep "by". */
 		img.authorPicture + .authorBy { display: none; }
+		/* On the post cards, a little bigger and a link (2026-11-07, owner: like Quora's): the owner's opens the Bio window. */
+		img.authorPicture.authorPictureCard { width: 32px; height: 32px; margin: 0 8px 1px 0; }
+		a.authorPictureLink { text-decoration: none; }
+		a.authorPictureLink + .authorBy { display: none; }
 		@media (max-width: 767px) {
-		  img.authorPicture { display: none; }
-		  img.authorPicture + .authorBy { display: inline; }
+		  img.authorPicture, a.authorPictureLink { display: none; }
+		  img.authorPicture + .authorBy, a.authorPictureLink + .authorBy { display: inline; }
 		}
 
 		.blogPost p.postAuthor {

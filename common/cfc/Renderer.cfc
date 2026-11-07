@@ -1274,7 +1274,20 @@
 		<cfif len(fullName)>
 			<!--- With the author's picture, no "by" on computers (11-06, owner): the picture says who it is. Phones hide the picture, so
 			they keep "by" (blogContentCss.cfm .authorBy). --->
-			<cfset arrayAppend(parts, (len(picture) ? '<img src="' & encodeForHtmlAttribute(picture) & '" alt="" class="authorPicture" width="20" height="20" loading="lazy"><span class="authorBy">by </span>' : 'by ') & '<a href="' & encodeForHtmlAttribute(application.blog.makeUserLink(fullName)) & '" class="k-content">' & encodeForHtml(shownName) & '</a>')>
+			<!--- A little bigger on the cards (11-07, owner: like Quora's), and a link: the blog owner's picture opens the Bio window
+			(About, Bio; the same as the ?aboutMe URL argument), another author's goes to their posts, as their name does. --->
+			<cfif len(picture)>
+				<cfif not structKeyExists(request, "galaxieBlogOwnerName")>
+					<cftry>
+						<cfset local.owner = application.blog.getBlogOwner()>
+						<cfset request.galaxieBlogOwnerName = arrayLen(local.owner) ? (local.owner[1]["FullName"] ?: "") : "">
+						<cfcatch type="any"><cfset request.galaxieBlogOwnerName = ""></cfcatch>
+					</cftry>
+				</cfif>
+				<cfset local.pictureHref = len(request.galaxieBlogOwnerName) and fullName eq request.galaxieBlogOwnerName ? "javascript:createAboutWindow(2);" : application.blog.makeUserLink(fullName)>
+				<cfset local.pictureHtml = '<a href="' & encodeForHtmlAttribute(local.pictureHref) & '" class="authorPictureLink" title="' & encodeForHtmlAttribute("About " & shownName) & '"><img src="' & encodeForHtmlAttribute(picture) & '" alt="' & encodeForHtmlAttribute(shownName) & '" class="authorPicture authorPictureCard" width="32" height="32" loading="lazy"></a><span class="authorBy">by </span>'>
+			</cfif>
+			<cfset arrayAppend(parts, (len(picture) ? local.pictureHtml : 'by ') & '<a href="' & encodeForHtmlAttribute(application.blog.makeUserLink(fullName)) & '" class="k-content">' & encodeForHtml(shownName) & '</a>')>
 		</cfif>
 		<cfif not isPage and isDate(posted)>
 			<cfset arrayAppend(parts, '<time datetime="' & dateFormat(posted, "yyyy-mm-dd") & '">' & dateFormat(posted, "mmm d, yyyy") & '</time>')>
