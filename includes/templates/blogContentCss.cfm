@@ -1163,6 +1163,10 @@
 		table.k-content, so they get the same line and tint as table.adminBlocks without its padding and column rules. --->
 		table.adminBlocks td.border, .k-window-content table.k-content td.border { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.2)<cfelse>#c8c8c8</cfif> !important; }
 		.k-window-content table.k-content > tbody > tr > td.k-alt { background-image: linear-gradient(<cfif darkTheme>rgba(255,255,255,0.06), rgba(255,255,255,0.06)<cfelse>rgba(0,0,0,0.04), rgba(0,0,0,0.04)</cfif>); }
+		<!--- A row's inner table (eg. Edit Post's Released / Allow Comments row) repeats the row's class, and its plain theme color hid the
+		tint above, so the row showed two shades (owner, 11-06). Let the cell's tint show through. --->
+		.k-window-content table.k-content > tbody > tr > td.k-alt table.k-alt, .k-window-content table.k-content > tbody > tr > td.k-alt table.k-content,
+		table.adminBlocks > tbody > tr > td.k-alt table.k-alt, table.adminBlocks > tbody > tr > td.k-alt table.k-content { background-color: transparent; }
 		<!--- Hub windows (eg. Bookings) list sections side by side; a clearer line marks where each one starts. --->
 		table.adminHub td.border { border-top: 1px solid <cfif darkTheme>rgba(255,255,255,0.35)<cfelse>#b3b3b3</cfif> !important; }
 		<!--- Some themes draw k-alt the same color as k-content (uniform, office365, highcontrast) or barely different, so the
