@@ -16,6 +16,17 @@ neighbours, and the browser's eyedropper where there is one. --->
 after it and, when first saved, shows on it. --->
 <cfset sceneForPostId = reFind("^new:[0-9]+$", URL.optArgs ?: "") ? val(listLast(URL.optArgs, ":")) : 0>
 <cfset scene = sceneId gt 0 ? application.blog.getScenes().getScene(sceneId) : {}>
+<!--- A reusable moving hero picture (11-07, owner): "newHeroPicture" makes one, "heroPicture:{templateId}" changes one. It is kept with
+the owner's own ready-made scenes (SceneTemplate, settings.movingHeroPicture) and offered in every post's Moving hero window; it opens
+in the moving-hero mode below, and Save keeps it there instead of saving a scene. --->
+<cfset scenePictureId = reFind("^heroPicture:[0-9]+$", URL.optArgs ?: "") ? val(listLast(URL.optArgs, ":")) : ((URL.optArgs ?: "") eq "newHeroPicture" ? -1 : 0)>
+<cfif scenePictureId gt 0>
+	<cfset scenePictureRow = application.blog.getScenes().getTemplate(scenePictureId)>
+	<cfif structIsEmpty(scenePictureRow)><p>This moving hero picture no longer exists.</p><cfexit></cfif>
+	<cfset scene = { "sceneId": 0, "alias": "", "active": 1, "json": scenePictureRow.json }>
+<cfelseif scenePictureId eq -1>
+	<cfset scene = { "sceneId": 0, "alias": "", "active": 1, "json": '{"name":"My moving hero","pageColour":"##1b1b1b","settings":{"type":"heroParallax","scrub":true,"movingHeroPicture":true},"sections":[{"kind":"layeredHero","heading":"Your heading here","html":"","align":"center","shadow":"soft","textMotion":"slideInStay","layers":[]}]}' }>
+</cfif>
 <cfset isNewScene = structIsEmpty(scene)>
 <cfset sceneStarters = isNewScene ? application.blog.getScenes().getStarters() : []>
 <!--- The scene as JSON text for the script: a saved scene, or a new one from the first ready-made scene (the arch when there).
@@ -282,15 +293,22 @@ belongs to scrolling scenes (more sections, showing it on another post, saving i
 	<cfset sceneHeroPostTitle = sceneHeroPostRow.recordCount ? sceneHeroPostRow.Title : "a post that was deleted">
 </cfif>
 <cfoutput>
-<cfif sceneHeroPostId gt 0>
+<cfif sceneHeroPostId gt 0 or scenePictureId neq 0>
 <style>
+	.sceneHeroPicture label:has(##sceneActive), .sceneHeroPicture ##sceneNotes, .sceneHeroPicture ##sceneReset { display: none !important; }
 	.sceneHeroMode ##sceneShowOn, .sceneHeroMode ##sceneSaveTemplate, .sceneHeroMode label[for=sceneAlias], .sceneHeroMode ##sceneAlias,
 	.sceneHeroMode .sceneSectionTools, .sceneHeroMode ##sceneAddBlock { display: none !important; }
 </style>
 </cfif>
-<div id="sceneEditor"<cfif sceneHeroPostId gt 0> class="sceneHeroMode"</cfif>>
+<div id="sceneEditor"<cfif sceneHeroPostId gt 0> class="sceneHeroMode"<cfelseif scenePictureId neq 0> class="sceneHeroMode sceneHeroPicture"</cfif>>
 	<!--- What this window is for (11-06, owner): an advanced editor; the ready-made scenes and the Moving hero window need none of it. --->
-	<cfif sceneHeroPostId gt 0>
+	<cfif scenePictureId neq 0>
+	<div id="sceneEditorAbout" class="#altClass#" style="padding: 8px 12px;">
+		<strong>A moving hero picture of your own.</strong> Add its layers, back to front, set how far each one moves, and give it a name
+		(Scene settings, Title). When you save, it is offered in every post's Moving hero window, next to the ready-made pictures. A post
+		that uses it gets its own copy, so changing it here later doesn't change those posts.
+	</div>
+	<cfelseif sceneHeroPostId gt 0>
 	<div id="sceneEditorAbout" class="#altClass#" style="padding: 8px 12px;">
 		<strong>This is the moving hero of &ldquo;#encodeForHtml(sceneHeroPostTitle)#&rdquo;, in the advanced editor.</strong> Its picture, heading and
 		style are set in its <a href="javascript:createAdminInterfaceWindow(119, #sceneHeroPostId#);">Moving hero window</a>. Come here to fine-tune
@@ -441,7 +459,8 @@ $(document).ready(function () {
 	var TEXT_SIZES = [["", "Theme default"], ["0.95rem", "Small"], ["1.15rem", "Medium"], ["1.35rem", "Large"], ["1.6rem", "Very large"]];
 	var TEXT_SIZES_PHONE = [["", "Same as on a computer"], ["0.9rem", "Small"], ["1rem", "Medium"], ["1.15rem", "Large"]];
 	var HEADING = { key: "heading", label: "Heading", type: "text" };
-	var HERO_MODE = <cfoutput>#sceneHeroPostId gt 0 ? "true" : "false"#</cfoutput>;
+	var HERO_MODE = <cfoutput>#sceneHeroPostId gt 0 or scenePictureId neq 0 ? "true" : "false"#</cfoutput>;
+	var PICTURE_ID = <cfoutput>#scenePictureId#</cfoutput>;   <!--- a reusable moving hero picture: -1 new, else its id; 0 for a scene --->
 	<!--- A hero's heading motion choices (11-06, owner: the same list as the Moving hero window, Slides up into place first and the
 	default for a new hero section). "" rises and fades; words and letters are stored as headingEffect. --->
 	var HERO_MOTIONS = [["slideInStay", "Slides up into place"], ["", "Rises and fades as you scroll"], ["slideIn", "Fades up into place, then rises and fades as you scroll"],
@@ -1937,6 +1956,7 @@ $(document).ready(function () {
 	$("#sceneSave").on("click", function () { startSave(true); });
 	<!--- closeAfter: Save closes the window. afterSave: run once the save worked ("Show it there"). --->
 	function startSave(closeAfter, afterSave) {
+		if (PICTURE_ID !== 0) { savePicture(); return; }
 		var alias = $.trim($("#sceneAlias").val());
 		var problem = "";
 		if (!$.trim(scene.name || "").length) { problem = "The scene needs a title (Scene settings)."; }
@@ -1956,6 +1976,31 @@ $(document).ready(function () {
 			makeReadyForm(s.pendingReadyMade, function (f) { s.form = f.alias; s.formTitle = f.title; delete s.pendingReadyMade; makeNext(); },
 				function () { $("#sceneSave").prop("disabled", false); $("#sceneSaved").text(""); });
 		})();
+	}
+	<!--- A reusable moving hero picture is kept with the owner's ready-made scenes (Scenes.cfc saveTemplate), not saved as a scene. --->
+	function savePicture() {
+		var layers = ((scene.sections || [])[0] || {}).layers || [];
+		var problem = !$.trim(scene.name || "").length ? "Give it a name (Scene settings, Title)." : (!layers.length ? "Add at least one layer (the picture section)." : "");
+		if (problem) { $.when(kendo.ui.ExtAlertDialog.show({ title: "Please check the picture", message: problem, icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); return; }
+		scene.settings = scene.settings || {}; scene.settings.movingHeroPicture = true; scene.settings.type = "heroParallax";
+		$("#sceneSave").prop("disabled", true); $("#sceneSaved").text("Saving...");
+		jQuery.ajax({
+			type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=saveSceneTemplate", dataType: "json",
+			data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", name: scene.name, description: "", sceneJson: JSON.stringify(scene), templateId: PICTURE_ID > 0 ? PICTURE_ID : 0 },
+			success: function (r) {
+				$("#sceneSave").prop("disabled", false);
+				if (typeof r === "string") { try { r = JSON.parse(r); } catch (e) {} }
+				if (r && r.success) {
+					PICTURE_ID = r.templateId; unsaved = false; savedScene = JSON.stringify(scene);
+					try { refreshScenesWindow(); } catch (e) {}
+					if (kendoWindow) { kendoWindow.close(); }
+				} else {
+					$("#sceneSaved").text("");
+					$.when(kendo.ui.ExtAlertDialog.show({ title: "Could not save", message: (r && r.errorMessage) || "The picture could not be saved.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" }));
+				}
+			},
+			error: function (jqXHR) { $("#sceneSave").prop("disabled", false); $("#sceneSaved").text(""); if (jqXHR.status === 403) { createLoginWindow(); } }
+		});
 	}
 	function saveNow(closeAfter, afterSave) {
 		var alias = $.trim($("#sceneAlias").val());

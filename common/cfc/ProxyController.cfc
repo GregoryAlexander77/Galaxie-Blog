@@ -14692,6 +14692,7 @@
 		<cfargument name="name" type="string" default="" required="false">
 		<cfargument name="description" type="string" default="" required="false">
 		<cfargument name="sceneJson" type="string" default="{}" required="false">
+		<cfargument name="templateId" default="0" required="false" hint="11-07: an existing one to change; 0 adds a new one.">
 
 		<cfset var response = { "success": false, "errorMessage": "", "templateId": 0 }>
 
@@ -14703,7 +14704,7 @@
 
 		<cfif application.Udf.isLoggedIn()>
 			<cftry>
-				<cfset response[ "templateId" ] = application.blog.getScenes().saveTemplate(arguments.name, arguments.description, arguments.sceneJson)>
+				<cfset response[ "templateId" ] = application.blog.getScenes().saveTemplate(arguments.name, arguments.description, arguments.sceneJson, val(arguments.templateId))>
 				<cfset response[ "success" ] = true>
 				<cfcatch type="any">
 					<cfset response[ "errorMessage" ] = cfcatch.type eq "GalaxieBlog.Scenes" ? cfcatch.message : "The ready-made scene could not be saved: " & cfcatch.message>

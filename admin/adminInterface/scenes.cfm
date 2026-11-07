@@ -8,6 +8,7 @@ per post). Radio buttons above the list pick which kind it shows. A moving hero 
 here, so it can't be turned into a scrolling scene or end up on another post. --->
 <cfset sceneList = queryFilter(sceneAll, function (row) { return not reFindNoCase("^post-hero-[0-9]+$", row.Alias); })>
 <cfset heroList = queryFilter(sceneAll, function (row) { return reFindNoCase("^post-hero-[0-9]+$", row.Alias); })>
+<cfset heroPictures = application.blog.getScenes().getHeroPictures()>
 <cfset heroPostTitles = {}>
 <cfif heroList.recordCount>
 	<cfquery name="heroPostRows" datasource="#application.dsn#">
@@ -58,6 +59,18 @@ here, so it can't be turned into a scrolling scene or end up on another post. --
 		});
 	}
 
+	<!--- A reusable moving hero picture (11-07): posts that used it keep their own copies. --->
+	function deleteHeroPicture(templateId, name) {
+		galaxieConfirm("Delete " + $("<div/>").text(name).html() + "?", "It will no longer be offered in the Moving hero window. Posts that use it keep their own copy.", function () {
+			jQuery.ajax({
+				type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=deleteSceneTemplate", dataType: "json",
+				data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", templateId: templateId },
+				success: function (r) { if (typeof r === "string") { try { r = JSON.parse(r); } catch (e) {} } if (r && r.success) { refreshScenesWindow(); } else { $.when(kendo.ui.ExtAlertDialog.show({ title: "Could not delete", message: (r && r.errorMessage) || "", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" })); } },
+				error: function (jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
+			});
+		});
+	}
+
 	function deleteScene(sceneId, sceneName, usedBy) {
 		<!--- The name is shown as text, never as HTML. --->
 		var safeName = $("<div/>").text(sceneName).html();
@@ -98,7 +111,10 @@ here, so it can't be turned into a scrolling scene or end up on another post. --
 			<label><input type="radio" name="sceneKind" value="hero" class="k-radio"> Moving heroes (#heroList.recordCount#)</label>
 		</div>
 		<div class="sceneKindScrolling"><button type="button" class="k-button k-primary" onclick="createAdminInterfaceWindow(121, 0);">New scrolling scene</button></div>
-		<div class="sceneKindHero" style="display: none;">To make a moving hero, open a post's Hero window and choose Moving hero. Each post has its own.</div>
+		<div class="sceneKindHero" style="display: none;">
+			<button type="button" class="k-button k-primary" onclick="createAdminInterfaceWindow(107, 'newHeroPicture');">New moving hero picture</button>
+			<div class="k-form-hint">Your own layered picture, offered in every post's Moving hero window. To put a moving hero on a post, open the post's Hero window and choose Moving hero.</div>
+		</div>
 	</td></tr>
 
 	<tr class="blockSpacer"><td colspan="2" class="#blockClass#"></td></tr>
@@ -107,8 +123,25 @@ here, so it can't be turned into a scrolling scene or end up on another post. --
 	<tr>
 		<td colspan="2" class="#blockClass#">
 		<div class="sceneKindHero" style="display: none;">
+		<cfif arrayLen(heroPictures)>
+			<h4 class="adminBlockHeading">Your moving hero pictures</h4>
+			<table width="100%" cellpadding="4" cellspacing="0" border="0" style="margin-bottom: 14px;">
+				<tbody>
+				<cfloop array="#heroPictures#" index="thisPicture">
+					<tr>
+						<td style="border-top: 1px solid ##ddd;">#encodeForHtml(thisPicture.name)#</td>
+						<td style="border-top: 1px solid ##ddd;" align="right" nowrap="nowrap">
+							<button type="button" class="k-button" onclick="createAdminInterfaceWindow(107, 'heroPicture:#thisPicture.templateId#');">Edit</button>
+							<button type="button" class="k-button" onclick="deleteHeroPicture(#thisPicture.templateId#, '#encodeForHtmlAttribute(encodeForJavaScript(thisPicture.name))#');">Delete</button>
+						</td>
+					</tr>
+				</cfloop>
+				</tbody>
+			</table>
+			<h4 class="adminBlockHeading">On posts</h4>
+		</cfif>
 		<cfif not heroList.recordCount>
-			No moving heroes yet.
+			No moving heroes on posts yet.
 		<cfelse>
 			<table width="100%" cellpadding="4" cellspacing="0" border="0">
 				<cfif not session.isMobile>

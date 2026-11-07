@@ -213,7 +213,8 @@ optArgs (11-07, owner: scenes go into posts from the post's side, so the wizard 
 
 	<!--- ---------- Step 1: the look. --->
 	function looks() {
-		var list = $.map(STARTERS, function (s) { return { key: s.key, data: s.json }; });
+		<!--- Not the owner's moving hero pictures: they belong to the Moving hero window (11-07). --->
+		var list = $.map(STARTERS, function (s) { return s.json && s.json.settings && s.json.settings.movingHeroPicture ? null : { key: s.key, data: s.json }; });
 		<!--- The post's own picture, on the Photo story scene's layout. --->
 		var photoStarter = starterByKey("photo");
 		if (PHOTO && photoStarter) {

@@ -251,6 +251,7 @@ post editor's scene picker aren't empty. Never the private Delicate Arch scene (
 	<cfargument name="name" type="string" required="true">
 	<cfargument name="description" type="string" required="false" default="">
 	<cfargument name="sceneJson" type="string" required="true">
+	<cfargument name="templateId" type="numeric" required="false" default="0" hint="11-07: an existing one to change (a reusable moving hero picture being edited); 0 adds a new one.">
 	<cfset var nowStamp = now()>
 	<cfif not len(trim(arguments.name))>
 		<cfthrow type="GalaxieBlog.Scenes" message="The ready-made scene needs a name.">
@@ -259,11 +260,46 @@ post editor's scene picker aren't empty. Never the private Delicate Arch scene (
 		<cfthrow type="GalaxieBlog.Scenes" message="The scene could not be read.">
 	</cfif>
 	<cfset ensureTables()>
+	<cfif arguments.templateId gt 0>
+		<cfset queryExecute("UPDATE SceneTemplate SET Name = :name, Description = :description, SceneJson = :json WHERE SceneTemplateId = :id AND BlogRef = :blogId", {
+			id = { value = arguments.templateId, cfsqltype = "cf_sql_integer" }, blogId = { value = blogId(), cfsqltype = "cf_sql_integer" },
+			name = { value = left(trim(arguments.name), 125), cfsqltype = "cf_sql_varchar" }, description = { value = left(trim(arguments.description), 500), cfsqltype = "cf_sql_varchar" },
+			json = { value = trim(arguments.sceneJson), cfsqltype = "cf_sql_longvarchar" } })>
+		<cfreturn arguments.templateId>
+	</cfif>
 	<cfset queryExecute("INSERT INTO SceneTemplate (BlogRef, Name, Description, SceneJson, Created) VALUES (:blogId, :name, :description, :json, :created)", {
 		blogId = { value = blogId(), cfsqltype = "cf_sql_integer" }, name = { value = left(trim(arguments.name), 125), cfsqltype = "cf_sql_varchar" },
 		description = { value = left(trim(arguments.description), 500), cfsqltype = "cf_sql_varchar" }, json = { value = trim(arguments.sceneJson), cfsqltype = "cf_sql_longvarchar" },
 		created = { value = nowStamp, cfsqltype = "cf_sql_timestamp" } })>
 	<cfreturn queryExecute("SELECT MAX(SceneTemplateId) AS NewId FROM SceneTemplate WHERE BlogRef = :blogId", { blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } }).NewId>
+</cffunction>
+
+<cffunction name="getTemplate" access="public" returntype="struct" output="false"
+		hint="One of the owner's own ready-made scenes as stored: { templateId, name, json }, or an empty struct (11-07, for editing a reusable moving hero picture).">
+	<cfargument name="templateId" type="numeric" required="true">
+	<cfset var row = "">
+	<cfset ensureTables()>
+	<cfset row = queryExecute("SELECT SceneTemplateId, Name, SceneJson FROM SceneTemplate WHERE SceneTemplateId = :id AND BlogRef = :blogId",
+		{ id = { value = arguments.templateId, cfsqltype = "cf_sql_integer" }, blogId = { value = blogId(), cfsqltype = "cf_sql_integer" } })>
+	<cfif not row.recordCount or not isJSON(row.SceneJson)><cfreturn {}></cfif>
+	<cfreturn { "templateId": row.SceneTemplateId, "name": row.Name, "json": row.SceneJson }>
+</cffunction>
+
+<cffunction name="getHeroPictures" access="public" returntype="array" output="false"
+		hint="The owner's reusable moving hero pictures (11-07): their own ready-made scenes marked settings.movingHeroPicture, as [{ templateId, name, json }], newest first.">
+	<cfset var result = []>
+	<cfset var starter = "">
+	<cfset var data = "">
+	<cfloop array="#getTemplateStarters()#" index="starter">
+		<cftry>
+			<cfset data = deserializeJSON(starter.json)>
+			<cfif isStruct(data) and isStruct(data.settings ?: "") and (data.settings.movingHeroPicture ?: false) eq true>
+				<cfset arrayAppend(result, { "templateId": val(listLast(starter.key, "-")), "name": starter.name, "json": starter.json })>
+			</cfif>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+	</cfloop>
+	<cfreturn result>
 </cffunction>
 
 <cffunction name="deleteTemplate" access="public" returntype="void" output="false" hint="Removes one of the owner's own ready-made scenes from the gallery. Scenes already made from it are not touched.">
@@ -585,11 +621,15 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 		<cfif not reFind("^[A-Za-z0-9_-]{1,80}$", arguments.starter)>
 			<cfthrow type="GalaxieBlog.Scenes" message="Please choose a picture.">
 		</cfif>
-		<cfset filePath = expandPath(application.baseUrl & "/includes/postContent/scenes/" & arguments.starter & ".json")>
-		<cfif not fileExists(filePath)>
+		<!--- Any picture the Moving hero window offers (getHeroParallaxStarters): the ready-made files and the owner's own ready-made
+		scenes and moving hero pictures ("template-{id}"). It read only the files, so the owner's own failed (11-07). --->
+		<cfset source = "">
+		<cfloop array="#getStarters()#" index="local.thisStarter">
+			<cfif local.thisStarter.key eq arguments.starter><cfset source = deserializeJSON(local.thisStarter.json)><cfbreak></cfif>
+		</cfloop>
+		<cfif not isStruct(source)>
 			<cfthrow type="GalaxieBlog.Scenes" message="That picture isn't on this blog.">
 		</cfif>
-		<cfset source = deserializeJSON(fileRead(filePath, "utf-8"))>
 		<cfif not (isArray(source.sections ?: "") and arrayLen(source.sections) and (source.sections[1].kind ?: "") eq "layeredHero")>
 			<cfthrow type="GalaxieBlog.Scenes" message="That picture can't be used as a moving hero.">
 		</cfif>
