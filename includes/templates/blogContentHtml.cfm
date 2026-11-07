@@ -900,7 +900,10 @@
 								<p>This entry was posted on #dateFormat(datePosted, "mmmm d, yyyy")# at #timeFormat(datePosted, "h:mm tt")# and has received #numViews# views. </p>
 						<cfif not application.includeDisqus> 
 								<h3 class="topContent">Comments</h3>
-								<p>There are <cfif commentCount is "">0<cfelse>#commentCount#</cfif> comments.</p> 
+								<!--- The count in words (2026-11-07, owner: "There are 1 comments" didn't make sense). Live updates rewrite the whole sentence
+								(common/js/galaxieLiveComments.js commentSentence), so keep the two wordings the same. --->
+								<cfset commentCountNumber = val(commentCount)>
+								<p><span class="galaxieCommentCount" data-post-id="#postId#"><cfif commentCountNumber eq 0>No comments yet.<cfelseif commentCountNumber eq 1>There is 1 comment.<cfelse>There are #commentCountNumber# comments.</cfif></span></p> 
 							<cfif not allowComment>
 								<p>Comments are disabled.</p>
 							</cfif>
@@ -948,90 +951,7 @@
 								<cfmodule template="#application.baseUrl#/tags/galaxieCache.cfm" cachename="#cachename#" scope="html" file="#application.baseUrl#/cache/comments/#cacheName#.cfm" debug="false" disabled="#disableCache#">
 								<!-- Comments that are shown when the user clicks on the arrow button to open the container. -->
 								<div id="comment#postId#" class="widget k-content" style="display:none;"> 
-									<table cellpadding="5" cellspacing="0" border="0" class="fixedCommentTable">
-									 <tr width="100%">
-									 <cftry>
-									 <!--- Get the comments and loop through them. --->
-									 <!--- Only approved comments (2026-10-22): comments waiting for approval were shown to everyone. --->
-									 <cfset comments = application.blog.getComments(postId = postId, publicOnly = true)>
-									 <cfsilent>
-									 <!--- Replies (2026-10-22, owner): one level deep, under the comment that started the thread, oldest first. The
-									 comments come newest first; a reply whose comment isn't shown is listed on its own. --->
-									 <cfset commentById = {}>
-									 <cfloop array="#comments#" index="oneComment"><cfset commentById[oneComment["CommentId"]] = true></cfloop>
-									 <cfset topComments = []>
-									 <cfset repliesByParent = {}>
-									 <cfloop array="#comments#" index="oneComment">
-										<cfset oneParentId = structKeyExists(oneComment, "ParentCommentId") and isNumeric(oneComment["ParentCommentId"]) ? oneComment["ParentCommentId"] : 0>
-										<cfif oneParentId gt 0 and structKeyExists(commentById, oneParentId)>
-											<cfif not structKeyExists(repliesByParent, oneParentId)><cfset repliesByParent[oneParentId] = []></cfif>
-											<cfset arrayPrepend(repliesByParent[oneParentId], oneComment)>
-										<cfelse>
-											<cfset arrayAppend(topComments, oneComment)>
-										</cfif>
-									 </cfloop>
-									 </cfsilent>
-									 <cfparam name="commentLoopCount" default="1">
-								<cfloop from="1" to="#arrayLen(topComments)#" index="i">
-									 <cfset thread = [ topComments[i] ]>
-									 <cfif structKeyExists(repliesByParent, topComments[i]["CommentId"])><cfset arrayAppend(thread, repliesByParent[topComments[i]["CommentId"]], true)></cfif>
-									 <cfset rowClass = commentLoopCount mod 2 ? "k-content" : "k-alt">
-									 <cfloop from="1" to="#arrayLen(thread)#" index="threadIndex">
-										 <cfsilent>
-										 <cfset c = thread[threadIndex]>
-										 <cfset isReply = threadIndex gt 1>
-										 <cfset commentId = c["CommentId"]>
-										 <cfset comment = c["Comment"]>
-										 <!--- Visitors type the name and website, so both are encoded for the page; a website that isn't an
-										 http(s) address is left out (2026-10-14). --->
-										 <cfset commenterFullName = encodeForHtml(c["CommenterFullName"] ?: "")>
-										 <cfset commenterEmail = structKeyExists(c, "CommenterEmail") ? c["CommenterEmail"] : "">
-										 <cfset commenterWebsite = structKeyExists(c, "CommenterWebsite") and reFindNoCase("^https?://[^\s""'<>]+$", trim(c["CommenterWebsite"])) ? encodeForHtmlAttribute(trim(c["CommenterWebsite"])) : "">
-										 <!--- The blog's own author (a signed-in admin's comment is linked to their account). --->
-										 <cfset commentByAuthor = structKeyExists(c, "UserName") and len(c["UserName"])>
-										 <cfset commentDatePosted = c["DatePosted"]>
-										 <!--- The post's own link plus #c and the comment's id (2026-10-31): it was built from the comment's date, not the
-										 post's, so a comment made on a later day linked to a page that does not exist, and with #60 instead of #c60. --->
-										 <cfset commentLink = postLink & "##c" & c["CommentId"]>
-										 </cfsilent>
-										 <!--- Note: the URL is appended with an extra 'c' in front of the commentId. --->
-										 <tr id="c#commentId#" name="" class="#rowClass#">
-											<td class="fixedCommentTableContent<cfif isReply> galaxieCommentReply</cfif>">
-												 <cfif isReply>&##8627;<cfelse><a class="comment-id" href="#commentLink#" aria-label="Comment by #commenterFullName#" class="k-content">###i#</a></cfif> by <b>
-												 <cfif len(commenterWebsite)>
-													<a href="#commenterWebsite#" aria-label="#commenterFullName#" rel="nofollow">#commenterFullName#</a>
-												 <cfelse>
-													#commenterFullName#
-												 </cfif></b><cfif commentByAuthor> &middot; Author</cfif>
-												 on #dateFormat(commentDatePosted, "mmmm d, yyyy")# at #timeFormat(commentDatePosted, "h:mm tt")#</p>
-											</td>
-										 </tr>
-										 <tr class="#rowClass#">
-											<td<cfif isReply> class="galaxieCommentReply"</cfif>>
-												<img src="https://www.gravatar.com/avatar/#lcase(hash(lcase(commenterEmail)))#?s=64&amp;r=pg&amp;d=#application.blogHostUrl#/images/defaultAvatar.gif" title="#commenterFullName#'s Gravatar" alt="#commenterFullName#'s Gravatar" border="0" class="avatar avatar-64 photo" height="64" width="64" align="left" style="padding: 5px"  />
-												#application.Udf.formatComment(comment)#
-												<!--- Reply (2026-10-22): a reply to a reply joins the same thread. --->
-												<cfif allowComment><p class="galaxieCommentReplyLink"><button type="button" class="k-button" onclick="createAddCommentSubscribeWindow('#postId#', 'addComment', #session.isMobile#, #topComments[i]["CommentId"]#);" aria-label="Reply to #commenterFullName#">Reply</button></p></cfif>
-											</td>
-										 </tr>
-									 </cfloop>
-									 <!--- If the number of records is even, create the bottom border.--->
-									 <cfif arrayLen(topComments) mod 2 is 0>
-										 <tr class="<cfif commentLoopCount mod 2>k-alt<cfelse>k-content</cfif>">
-											<td class="border"></td>
-										 </tr>
-									 </cfif>
-									 <cfset commentLoopCount = commentLoopCount + 1>
-								</cfloop>
-								 <cfcatch type="any">
-									<tr>
-										<td>
-											#cfcatch.detail#
-										</td>
-									</tr>
-								 </cfcatch>
-								 </cftry>
-								</table>
+									<cfinclude template="content/postComments.cfm">
 							</div><!---<div id="comment#CommentId#" class="widget k-content" style="display:none;">--->
 							</cfmodule><!--- End Cache Comment --->
 						</cfif><!---<cfif application.includeDisqus>--->

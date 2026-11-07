@@ -293,7 +293,8 @@
 						<span class="innerContentContainer">
 							<h3 class="topContent"><i class="fas fa-comments"></i> Recent Comments</h3>
 							<!---Problems with the recent comments code.--->
-							<cfinclude template="recentcomments.cfm">
+							<!--- galaxieRecentComments (2026-11-07): refilled by live updates when a comment comes in. --->
+							<div class="galaxieRecentComments" data-side-bar="<cfoutput>#encodeForHtmlAttribute(sideBarType)#</cfoutput>" data-modern="<cfoutput>#modernTheme ? 1 : 0#</cfoutput>" data-dark="<cfoutput>#darkTheme ? 1 : 0#</cfoutput>"><cfinclude template="recentcomments.cfm"></div>
 						</span>	
 					</div>
 					</cfmodule>

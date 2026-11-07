@@ -10057,6 +10057,10 @@
 		<cfargument name="developerCopy" default="" required="false" hint="1 when Send a copy to Galaxie Blog's developer is ticked (2026-11-04); a checkbox that isn't ticked isn't sent.">
 		<cfargument name="errorDigestHour" default="2" required="false">
 		<cfargument name="memberSettingsPosted" default="" required="false">
+		<!--- Live Updates (2026-11-07): only saved when its panel was posted; an unticked box isn't sent. --->
+		<cfargument name="liveUpdatesPosted" default="" required="false">
+		<cfargument name="liveUpdates" default="" required="false">
+		<cfargument name="liveUpdatesSeconds" default="30" required="false">
 		<cfargument name="memberAccountsEnabled" default="" required="false">
 		<cfargument name="memberRememberDays" default="30" required="false">
 
@@ -10271,6 +10275,12 @@
 			<!--- Payments (2026-10-14): validated above. --->
 			<cfif len(arguments.paymentSettingsPosted)>
 				<cfset application.payments.saveSettings(local.paymentData)>
+			</cfif>
+			<!--- Live Updates (2026-11-07): on or off, and how often pages check (10 seconds to 10 minutes). --->
+			<cfif len(arguments.liveUpdatesPosted)>
+				<cfset application.events.setSetting(0, "liveUpdates", arguments.liveUpdates eq "1" ? "1" : "0")>
+				<cfset application.events.setSetting(0, "liveUpdatesSeconds", isNumeric(arguments.liveUpdatesSeconds) ? max(10, min(600, int(arguments.liveUpdatesSeconds))) : 30)>
+				<cfset structDelete(application, "galaxieLiveUpdates")>
 			</cfif>
 			<!--- Member accounts (2026-10-15): validated above. --->
 			<cfif len(arguments.memberSettingsPosted)>

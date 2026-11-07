@@ -72,6 +72,21 @@ instead of going straight to the administrative site. Added here, outside the ca
 </script>
 </cfif>
 
+<!--- Live updates (2026-11-07, Blog Options > Live Updates): new comments appear on the page as they come in. The poller only
+starts when something on the page shows comments (common/js/galaxieLiveComments.js). --->
+<cfset liveUpdateSettings = application.blog.getLiveUpdates()>
+<cfif liveUpdateSettings.on and not application.includeDisqus>
+<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/js/galaxiePulse.js" defer></script>
+<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/js/galaxieLiveComments.js" defer></script>
+<script>
+	document.addEventListener("DOMContentLoaded", function () {
+		if (!window.galaxiePulse || !window.galaxieLiveComments) { return; }
+		galaxiePulse.init({ url: "<cfoutput>#application.baseUrl#</cfoutput>/common/services/pulse.cfm", seconds: <cfoutput>#liveUpdateSettings.seconds#</cfoutput> });
+		galaxieLiveComments.start("<cfoutput>#application.baseUrl#</cfoutput>");
+	});
+</script>
+</cfif>
+
 <!--- Member accounts (2026-10-15): "Sign in" in the menu, and the page an emailed sign-in link opens. Only when the owner has turned them on in Blog Options. See common/js/members.js. --->
 <cfif structKeyExists(application, "members") and application.members.isEnabled()>
 <script type="<cfoutput>#scriptTypeString#</cfoutput>">

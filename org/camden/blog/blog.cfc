@@ -1905,6 +1905,33 @@
 		<cfreturn variables.privacyObj>
 	</cffunction>
 
+	<cffunction name="getPulse" access="public" returnType="any" output="false" hint="Live updates (common/cfc/Pulse.cfc, 2026-11-07): the in-memory change log that common/services/pulse.cfm answers from. Kept in the application scope itself (application.galaxiePulse), not in this component like getEmailLog: application.blog is made again on every request (Application.cfc OnRequestStart), and the log has to last between requests.">
+		<cfif not structKeyExists(application, "galaxiePulse")>
+			<cflock name="galaxiePulseCreate_#application.applicationName#" type="exclusive" timeout="10">
+				<cfif not structKeyExists(application, "galaxiePulse")>
+					<cfset application.galaxiePulse = createObject("component", len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.Pulse" : "common.cfc.Pulse")>
+				</cfif>
+			</cflock>
+		</cfif>
+		<cfreturn application.galaxiePulse>
+	</cffunction>
+
+	<cffunction name="getLiveUpdates" access="public" returnType="struct" output="false" hint="The Live Updates settings in Blog Options (2026-11-07): { on, seconds } - whether pages check for changes (new comments now, notifications later), and how often. On, every 30 seconds, unless changed. Read once and kept in application.galaxieLiveUpdates; Blog Options clears it when saved.">
+		<cfset var settings = "">
+		<cfif structKeyExists(application, "galaxieLiveUpdates")>
+			<cfreturn application.galaxieLiveUpdates>
+		</cfif>
+		<cfset settings = { on: true, seconds: 30 }>
+		<cftry>
+			<cfset settings.on = application.events.getSetting(0, "liveUpdates", "1") neq "0">
+			<cfset settings.seconds = val(application.events.getSetting(0, "liveUpdatesSeconds", "30"))>
+			<cfcatch type="any"></cfcatch>
+		</cftry>
+		<cfset settings.seconds = max(10, min(600, settings.seconds gt 0 ? settings.seconds : 30))>
+		<cfset application.galaxieLiveUpdates = settings>
+		<cfreturn settings>
+	</cffunction>
+
 	<cffunction name="getEmailLog" access="public" returnType="any" output="false" hint="The email sent log (common/cfc/EmailLog.cfc, 2026-10-31): what the blog sent, written by utils.cfc mail(). Created on first use, like getAdminNotes.">
 		<cfif not structKeyExists(variables, "emailLogObj")>
 			<cflock name="galaxieEmailLogCreate_#application.applicationName#" type="exclusive" timeout="10">
@@ -3166,6 +3193,12 @@
 			<cfset flushGalaxieCacheFiles(thisDirectory,thisFileNameOrFilter)>
 
 		<cfelseif arguments.type eq 'comment'>
+			<!--- Live updates (2026-11-07): pages showing this post's comments, or the Recent Comments pod, fetch them again. Every
+			change to a post's comments comes through here (a new comment, approving, editing, deleting). --->
+			<cftry>
+				<cfset getPulse().touch("comments", { "postId": val(arguments.postId) })>
+				<cfcatch type="any"></cfcatch>
+			</cftry>
 			<!--- Delete the recent comments pod related html files in the cache folder. Note: the recent comments pod is not dependent on a postId --->
 			<cfset thisDirectory = application.baseUrl & '/cache/pods'>
 			<cfset thisFileNameOrFilter = 'recentComments'>

@@ -49,6 +49,8 @@
 	<cfset paymentSettings = application.payments.getSettings()>
 	<!--- Member accounts (2026-10-15) - see Members.cfc. --->
 	<cfset memberSettings = application.members.getSettings()>
+	<!--- Live Updates (2026-11-07) - see blog.cfc getLiveUpdates. --->
+	<cfset liveUpdateSettings = application.blog.getLiveUpdates()>
 	<cfset paymentCurrencies = application.payments.getCurrencies()>
 	<cfset paymentStatus = application.payments.getStatus()>
 		
@@ -1411,6 +1413,44 @@
 		  <tr>
 			<td class="#blockClass#" align="right">Members:</td>
 			<td class="#blockClass#"><button type="button" class="k-button" onclick="createAdminInterfaceWindow(97);">See members</button></td>
+		  </tr>
+		</cfoutput>
+		</table>
+	</div>
+	</div>
+	</li>
+
+	<!---//***********************************************************************************************
+						Live Updates
+	//************************************************************************************************--->
+	<!--- Live updates (2026-11-07, owner): pages check every so often whether anything changed (common/services/pulse.cfm), and show
+	new comments as they come in. The same check will carry notifications later. Saved with the rest of Blog Options
+	(saveBlogOptions, liveUpdatesPosted); read through blog.cfc getLiveUpdates(). --->
+	<li>
+		Live Updates
+	<div class="k-content">
+	<div style="padding: 15px;">
+		<input type="hidden" name="liveUpdatesPosted" value="1">
+		<cfset blockClass = HtmlUtilsObj.getKendoClass('')>
+		<table id="liveUpdatesTable" align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" style="table-layout: fixed">
+		<colgroup><col style="width: 20%"><col></colgroup>
+		<cfoutput>
+		  <tr>
+			<td colspan="2" class="#blockClass#">While someone is reading, the page checks every so often whether anything has changed, and shows new comments as they come in: on the post, under each post on the front page, and in Recent Comments. The open Comments grid in the admin site updates itself too. Each check is tiny: nothing is read from the database unless something changed, and nothing is checked while the page is in a hidden tab.</td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#" align="right"><label for="liveUpdates">Live updates:</label></td>
+			<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="liveUpdates" name="liveUpdates" value="1"<cfif liveUpdateSettings.on> checked</cfif>> <label for="liveUpdates">Check for new comments while people read</label></td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td colspan="2" class="#blockClass#">How often each open page checks. A shorter time shows comments sooner; a longer one means fewer requests to your server when many people are reading. 30 seconds suits most blogs.</td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
+			<td class="#blockClass#" align="right"><label for="liveUpdatesSeconds">Check every:</label></td>
+			<td class="#blockClass#"><input type="number" id="liveUpdatesSeconds" name="liveUpdatesSeconds" class="k-textbox" min="10" max="600" value="#liveUpdateSettings.seconds#" style="width: 90px;"><span class="k-form-hint"> seconds (10 to 600)</span></td>
 		  </tr>
 		</cfoutput>
 		</table>

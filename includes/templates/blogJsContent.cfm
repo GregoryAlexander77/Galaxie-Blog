@@ -1962,7 +1962,13 @@
 						var successMessage = 'Your comment has been sent to the administrator for approval.';
 					} else  {
 						var successTitle = 'Your comment has been posted';
-						var successMessage = 'Your comment has been posted. Refresh the page to display.';
+						// Live updates (2026-11-07) show it on the page in a moment; without them, the page has to be refreshed.
+						if (window.galaxiePulse && galaxiePulse.isOn()) {
+							var successMessage = 'Your comment has been posted.';
+							galaxiePulse.check();
+						} else {
+							var successMessage = 'Your comment has been posted. Refresh the page to display.';
+						}
 					}
 				} else if (uiInterface == 'addComment'){
 					var windowName = "addCommentWindow";

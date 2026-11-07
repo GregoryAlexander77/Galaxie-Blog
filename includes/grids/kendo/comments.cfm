@@ -206,5 +206,30 @@
 	}
 </script>
 
+<!--- Live updates (2026-11-07): the grid reloads itself when a comment comes in or changes (common/js/galaxiePulse.js), except
+while it has changes that aren't saved yet. Stops listening when the window closes. --->
+<cfset gridLiveUpdates = application.blog.getLiveUpdates()>
+<cfif gridLiveUpdates.on>
+<script>
+	(function () {
+		function listen() {
+			if (!window.galaxiePulse) { return; }
+			if (!galaxiePulse.isOn()) { galaxiePulse.init({ url: "<cfoutput>#application.baseUrl#</cfoutput>/common/services/pulse.cfm", seconds: <cfoutput>#gridLiveUpdates.seconds#</cfoutput> }); }
+			var stop = galaxiePulse.subscribe("comments", function () {
+				var grid = $("#commentsGrid");
+				if (!grid.length || !grid.is(":visible")) { stop(); return; }
+				if (grid.data("kendoGrid") && grid.data("kendoGrid").dataSource.hasChanges()) { return; }
+				try { grid.data("kendoGrid").dataSource.read(); } catch (e) {}
+			});
+		}
+		if (window.galaxiePulse) { listen(); return; }
+		var s = document.createElement("script");
+		s.src = "<cfoutput>#application.baseUrl#</cfoutput>/common/js/galaxiePulse.js";
+		s.onload = listen;
+		document.head.appendChild(s);
+	})();
+</script>
+</cfif>
+
 </body>
 </html>
