@@ -1241,7 +1241,11 @@ window (enclosureImageEditor.cfm galaxieOpenMovingHero). --->
 <cfcase value=119>
 	<cfinclude template="../../admin/adminInterface/movingHeroWizard.cfm">
 </cfcase>
-<!--- 121 Scene wizard (11-06, owner): a whole scene in four steps, for a post or page. optArgs is 0 or "new:{postId}". --->
+<!--- 122 Insert Scene (11-07, owner): a scrolling scene at the top of the post or in its text. optArgs is the postId. --->
+<cfcase value=122>
+	<cfinclude template="../../admin/adminInterface/insertScene.cfm">
+</cfcase>
+<!--- 121 Scene wizard (11-06, owner): a scrolling scene in three steps. optArgs is 0, "new:{postId}" or "insert:{postId}". --->
 <cfcase value=121>
 	<cfinclude template="../../admin/adminInterface/sceneWizard.cfm">
 </cfcase>

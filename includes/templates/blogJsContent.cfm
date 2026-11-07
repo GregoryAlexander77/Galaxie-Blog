@@ -1239,6 +1239,12 @@
 				var windowHeight = "<cfif session.isMobile>92%<cfelse>860px</cfif>";
 				var windowWidth = "<cfif session.isMobile>98%<cfelse>940px</cfif>";
 				var windowTitle = "Moving hero";
+			} else if (Id == 122){
+				// Insert Scene (11-07, owner): from the post editor's Insert > Scene. See admin/adminInterface/insertScene.cfm.
+				var windowName = "insertSceneWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>80%</cfif>";
+				var windowWidth = "<cfif session.isMobile>98%<cfelse>70%</cfif>";
+				var windowTitle = "Insert Scene";
 			} else if (Id == 121){
 				// Scene wizard (11-06, owner): look, words, motion, where it shows, with a live preview. See admin/adminInterface/sceneWizard.cfm.
 				var windowName = "sceneWizardWindow";

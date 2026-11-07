@@ -606,8 +606,43 @@
 			</cfif>
 		</cfif><!---<cfif len(postHeader)>--->
 
+		<!--- Scenes placed in the text (Insert, Scene; 11-07, owner). --->
+		<cfif findNoCase("galaxieScene", post)>
+			<cfset post = renderInlineScenes(post, getPost[currentRow]["PostId"], arguments.isSinglePostPage)>
+		</cfif>
 		<!--- Return the entire post --->
 		<cfreturn post />
+	</cffunction>
+
+	<cffunction name="renderInlineScenes" access="public" returntype="string" output="false"
+			hint="Swaps each scene placed in a post's text (Insert, Scene: <div class='galaxieScene' data-scene='alias'>[Scene: Name]</div>, 11-07, owner) for the scene itself on the post's own page. Elsewhere (the blog roll and other listings) it is left out, as a scene at the top of a post is: a listing shows the post's picture and text only. A moving hero (post-hero-{postId}) belongs to its own post and is never drawn here.">
+		<cfargument name="html" type="string" required="true">
+		<cfargument name="postId" type="string" required="true">
+		<cfargument name="isSinglePostPage" type="boolean" required="false" default="false">
+		<cfset var result = arguments.html>
+		<cfset var match = "">
+		<cfset var tag = "">
+		<cfset var alias = "">
+		<cfset var replacement = "">
+		<cfset var position = 1>
+		<cfset var n = 0>
+		<cfloop condition="true">
+			<!--- Our own markup; the class may sit anywhere among the attributes ("galaxieScene" alone, not galaxieSceneHost). --->
+			<cfset match = reFindNoCase('<div[^>]*class="[^"]*\bgalaxieScene\b[^"]*"[^>]*>.*?</div>', result, position, true)>
+			<cfif not match.pos[1]><cfbreak></cfif>
+			<cfset tag = mid(result, match.pos[1], match.len[1])>
+			<cfset alias = reReplaceNoCase(tag, '^.*?data-scene="([A-Za-z0-9_-]{1,80})".*$', "\1")>
+			<cfset replacement = "">
+			<cfif arguments.isSinglePostPage and alias neq tag and not reFindNoCase("^post-hero-[0-9]+$", alias)>
+				<cfset n = n + 1>
+				<!--- Its own container id per scene, so two scenes in one post don't share one. --->
+				<cfset replacement = renderScene(alias, reReplace(arguments.postId, "[^0-9]", "", "all") & "00" & n)>
+			</cfif>
+			<cfset result = (match.pos[1] gt 1 ? left(result, match.pos[1] - 1) : "") & replacement & mid(result, match.pos[1] + match.len[1], len(result))>
+			<cfset position = match.pos[1] + len(replacement)>
+			<cfif position gt len(result)><cfbreak></cfif>
+		</cfloop>
+		<cfreturn result>
 	</cffunction>
 			
 	<cffunction name="renderCssAndScript" returntype="string" output="false"

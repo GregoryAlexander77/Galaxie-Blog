@@ -5,9 +5,12 @@ moving gradient's motion), 4 where it shows. Finish makes any ready-made form, s
 shows it on the post or page (setPostScene). The advanced Scene editor (window 107, sceneDetail.cfm) keeps everything else: layer
 depths, pin length, fades, fonts and colors per section, videos and slideshows. The preview is the editor's own (admin/scenePreview.cfm),
 the cards are sceneCards.cfm, and the steps run on common/js/galaxieWizard.js like the Moving hero wizard.
-optArgs: 0, or "new:{postId}" for a post or page (Create, Scene, or a post's Scene window), which is then picked in step 4. --->
+optArgs (11-07, owner: scenes go into posts from the post's side, so the wizard no longer asks where): 0 saves the scene to the library
+(the Scenes window); "new:{postId}" also puts it at the top of that post or page (Create, Scene, or a post's Scene window);
+"insert:{postId}" hands it to the Insert Scene window (window 122, galaxieInsertSceneChosen), which puts it where the owner chose. --->
 <cfsilent>
-<cfset swForPostId = reFind("^new:[0-9]+$", URL.optArgs ?: "") ? val(listLast(URL.optArgs, ":")) : 0>
+<cfset swMode = reFind("^(new|insert):[0-9]+$", URL.optArgs ?: "") ? listFirst(URL.optArgs, ":") : "">
+<cfset swForPostId = len(swMode) ? val(listLast(URL.optArgs, ":")) : 0>
 <cfset swStarters = application.blog.getScenes().getStarters()>
 <cfset swStarterParts = []>
 <cfloop array="#swStarters#" index="swStarter">
@@ -160,16 +163,6 @@ optArgs: 0, or "new:{postId}" for a post or page (Create, Scene, or a post's Sce
 			</select>
 		</div>
 	</div>
-	<div id="swStep4">
-		<div class="swRow">
-			<label for="swPost">Show this scene on</label>
-			<input id="swPost" style="width: 95%;">
-			<div class="k-form-hint">A post or a page. It takes the place of that post's picture at the top. You can also leave this empty and show it later from the post's Scene window.</div>
-		</div>
-		<div class="swRow">
-			<input type="checkbox" id="swActive" class="k-checkbox" checked> <label for="swActive" class="k-checkbox-label" style="display: inline; font-weight: normal;">Active (visitors see it)</label>
-		</div>
-	</div>
 </div>
 </cfoutput>
 
@@ -183,6 +176,7 @@ optArgs: 0, or "new:{postId}" for a post or page (Create, Scene, or a post's Sce
 	var READY_FORMS = <cfoutput>#replace("[" & arrayToList(swReadyParts, ",") & "]", "</", "<\/", "all")#</cfoutput>;
 	var MAPS = <cfoutput>#replace(replace("[" & arrayToList(swMapParts, ",") & "]", "</", "<\/", "all"), "<!--", "<\!--", "all")#</cfoutput>;
 	var FOR_POST = <cfoutput>#swForPostId#</cfoutput>;
+	var MODE = "<cfoutput>#swMode#</cfoutput>";
 	var PHOTO = <cfoutput>#serializeJSON(swPhoto)#</cfoutput>;
 	var HERO = { layeredHero: 1, photoHero: 1, vantaHero: 1, gradientHero: 1, videoHero: 1 };
 	var KIND_NAMES = { layeredHero: "The picture at the top", photoHero: "The picture at the top", vantaHero: "The animation at the top", gradientHero: "The colors at the top",
@@ -382,18 +376,14 @@ optArgs: 0, or "new:{postId}" for a post or page (Create, Scene, or a post's Sce
 	$("#swMotion").kendoDropDownList({ change: function () { motion.gradient = this.value(); applyMotion(); sendPreview(); } });
 	$("#swSpeed").kendoDropDownList({ change: function () { motion.speed = this.value(); applyMotion(); sendPreview(); } });
 
-	<!--- ---------- Step 4: where it shows. --->
-	$("#swPost").kendoDropDownList({
-		dataSource: [{ id: 0, title: "Not on a post yet", url: "" }].concat($.map(POSTS, function (p) { return { id: p.id, title: (p.page ? "Page: " : "") + p.title, url: p.url }; })),
-		dataTextField: "title", dataValueField: "id", filter: "contains", value: FOR_POST || 0
-	});
-
 	<!--- ---------- Finish: forms, then the scene, then the post. --->
 	function aliasFrom(text) { return String(text || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").substr(0, 60); }
 	function finish() {
 		var missing = $.grep(scene.sections, function (s) { return s.kind === "imageSlide" && !s.image; });
 		if (missing.length) { alert2("A picture is missing", "Upload a picture for each Picture section, or take the section out."); wizard.select(1); return; }
-		var post = $("#swPost").data("kendoDropDownList").dataItem() || { id: 0, title: "" };
+		<!--- The post it's for: Create, Scene puts it at the top of that post; Insert, Scene gets it back to place it. --->
+		var post = { id: 0, title: "", url: "" };
+		if (FOR_POST) { $.each(POSTS, function (i, p) { if (p.id === FOR_POST) { post = { id: p.id, title: (p.page ? "Page: " : "") + p.title, url: p.url }; } }); }
 		var lookName = scene.name || "Scene";
 		scene.name = post.id ? lookName.replace(/\s*\(.*\)$/, "") + " (" + post.title.replace(/^Page: /, "") + ")" : lookName;
 		var alias = (aliasFrom(post.id ? post.title.replace(/^Page: /, "") : lookName) || "scene") + "-" + Date.now().toString(36).slice(-4);
@@ -417,14 +407,18 @@ optArgs: 0, or "new:{postId}" for a post or page (Create, Scene, or a post's Sce
 		var save = function () {
 			jQuery.ajax({
 				type: "post", url: BASE + "/common/cfc/ProxyController.cfc?method=saveScene", dataType: "json",
-				data: { csrfToken: CSRF, sceneId: 0, alias: alias, active: $("#swActive").is(":checked"), sceneJson: JSON.stringify(scene) },
+				data: { csrfToken: CSRF, sceneId: 0, alias: alias, active: true, sceneJson: JSON.stringify(scene) },
 				success: function (r) {
 					if (typeof r === "string") { try { r = JSON.parse(r); } catch (e) {} }
 					if (!(r && r.success)) { failed(); alert2("Could not save", (r && r.errorMessage) || "The scene could not be saved."); return; }
 					var sceneId = r.sceneId;
 					try { refreshScenesWindow(); } catch (e) {}
 					$(document).trigger("galaxieSceneSaved", [{ sceneId: sceneId, alias: alias }]);
-					if (!post.id) { done(sceneId, null); return; }
+					if (MODE === "insert") {
+						if (typeof window.galaxieInsertSceneChosen === "function") { window.galaxieInsertSceneChosen(alias, scene.name); }
+						closeWindow(); return;
+					}
+					if (MODE !== "new" || !post.id) { done(sceneId, null); return; }
 					jQuery.ajax({
 						type: "post", url: BASE + "/common/cfc/ProxyController.cfc?method=setPostScene", dataType: "json",
 						data: { csrfToken: CSRF, postId: post.id, alias: alias },
@@ -443,7 +437,7 @@ optArgs: 0, or "new:{postId}" for a post or page (Create, Scene, or a post's Sce
 	function done(sceneId, post) {
 		var box = $('<div class="swDone"></div>');
 		box.append($("<h3></h3>").html('<i class="fontAwesomeIcon fas fa-check" style="color:#37b400"></i> ' + (post ? "Your scene is on &ldquo;" + esc(post.title.replace(/^Page: /, "")) + "&rdquo;" : "Your scene is saved")));
-		box.append($("<p></p>").text(post ? "Visitors see it at the top of that " + (/^Page: /.test(post.title) ? "page" : "post") + "." : "Show it on a post or page from that post's Scene window."));
+		box.append($("<p></p>").text(post ? "Visitors see it at the top of that " + (/^Page: /.test(post.title) ? "page" : "post") + "." : "To show it, open a post or page in its editor and choose Insert, Scene."));
 		if (post && post.url) { box.append($('<a class="k-button k-primary" target="_blank" rel="noopener"><i class="fontAwesomeIcon fas fa-arrow-up-right-from-square"></i>View it</a>').attr("href", post.url + (post.url.indexOf("?") < 0 ? "?" : "&") + "showPendingPosts")); }
 		box.append($('<button type="button" class="k-button"><i class="fontAwesomeIcon fas fa-sliders"></i>Fine-tune in the advanced editor</button>').on("click", function () { closeWindow(); createAdminInterfaceWindow(107, sceneId); }));
 		box.append($('<button type="button" class="k-button">Close</button>').on("click", closeWindow));
@@ -455,8 +449,7 @@ optArgs: 0, or "new:{postId}" for a post or page (Create, Scene, or a post's Sce
 		steps: [
 			{ title: "Look", content: $("#swStep1"), buttons: ["next"] },
 			{ title: "Words", content: $("#swStep2"), buttons: ["previous", "next"] },
-			{ title: "Motion", content: $("#swStep3"), buttons: ["previous", "next"] },
-			{ title: "Where it shows", content: $("#swStep4"), buttons: ["previous", { name: "done", text: "Finish" }] }
+			{ title: "Motion", content: $("#swStep3"), buttons: ["previous", { name: "done", text: "Finish" }] }
 		],
 		stepper: { linear: false },
 		select: function (e) { if (e.step.options.index > 0 && !scene) { e.preventDefault(); alert2("Pick a look first", "Choose one of the looks to start from."); } },

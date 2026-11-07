@@ -320,7 +320,9 @@ belongs to scrolling scenes (more sections, showing it on another post, saving i
 		<span id="sceneSaved" class="k-form-hint"></span>
 		<!--- Where the scene shows (owner, 10-19): pick a post or a page, show it there, then preview that post or page. With no
 		posts (or pages) yet, the list offers to make one. --->
-		<div id="sceneShowOn" style="flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+		<!--- Retired 11-07 (owner): a scene goes into a post from the post's side, Insert, Scene in the post editor. Kept hidden, so the code
+		that fills it still finds it. --->
+		<div id="sceneShowOn" style="display: none;">
 			<strong>Show this scene on</strong>
 			<label for="sceneShowPost">a post</label><input id="sceneShowPost" style="width: 260px;">
 			<label for="sceneShowPage">or a page</label><input id="sceneShowPage" style="width: 220px;">
