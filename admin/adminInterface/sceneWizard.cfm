@@ -93,6 +93,13 @@ optArgs (11-07, owner: scenes go into posts from the post's side, so the wizard 
 	.swRow { margin-bottom: 12px; }
 	.swRow > label { display: block; font-weight: bold; margin-bottom: 4px; }
 	.swRadio label { display: block; margin: 4px 0; font-weight: normal; }
+	<!--- Step 3's heading demo (11-07, owner: "heading effects in step 3 should have a preview"). --->
+	.swDemo { position: relative; max-width: 360px; margin-top: 8px; overflow: hidden; border-radius: 4px; background: #222; }
+	.swDemo .sceneCardThumb { border-radius: 0; }
+	.swDemoText { position: absolute; left: 0; right: 0; top: 38%; padding: 0 14px; text-align: center; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+	.swDemoText > div { line-height: 1.25; }
+	.swDemoText b { font-size: 20px; }
+	.swDemoText span.swDemoLine { font-size: 12px; display: inline-block; margin-top: 4px; }
 	.swDone { padding: 20px 6px; }
 	.swDone h3 { margin-top: 0; }
 	.swDone .k-button { margin: 4px 8px 4px 0; }
@@ -146,7 +153,8 @@ optArgs (11-07, owner: scenes go into posts from the post's side, so the wizard 
 				</cfif>
 				<option value="still">Stays in place</option>
 			</select>
-			<div class="k-form-hint">For every heading in the scene. The preview plays it; Replay plays it again.</div>
+			<div class="k-form-hint">For every heading in the scene. The small preview acts it out over and over: the page opening, then scrolling down. The live preview plays it once; Replay plays it again.</div>
+			<div class="swDemo" id="swDemo" aria-hidden="true"></div>
 		</div>
 		<div class="swRow" id="swGradientMotion" style="display: none;">
 			<label for="swMotion">The colors at the top</label>
@@ -361,6 +369,67 @@ optArgs (11-07, owner: scenes go into posts from the post's side, so the wizard 
 			else if (v === "slideInStay" || v === "still") { s.textMotion = v; }
 		});
 	}
+	<!--- The heading demo: the scene's first heading on its look's picture, acted out with the timings galaxieScene.js uses (as the Moving
+	hero wizard's step 3 does): the page opens (the heading's entrance), then it scrolls down (the picture moves up unless it's held, and
+	the heading does its scroll part), then it starts again. --->
+	var demoTimers = [], demoAnims = [];
+	function stopDemo() {
+		$.each(demoTimers, function (i, x) { clearInterval(x); clearTimeout(x); }); demoTimers = [];
+		$.each(demoAnims, function (i, x) { try { x.cancel(); } catch (e) {} }); demoAnims = [];
+	}
+	function drawDemo() {
+		stopDemo();
+		var stage = $("#swDemo").empty();
+		if (!scene || !stage.length) { return; }
+		var first = scene.sections[0] || {};
+		var look = $.grep(looks(), function (l) { return l.key === chosenKey; })[0];
+		var data = clone(look ? look.data : scene);
+		if (data.sections && data.sections[0]) { delete data.sections[0].heading; }
+		var thumb = galaxieSceneCardThumb(data, BASE).appendTo(stage);
+		var text = $('<div class="swDemoText"></div>').css({ "font-family": first.headingFont || "", color: first.textColour || "" }).appendTo(thumb);
+		var line = $.trim(htmlToText(first.html || "").split("\n")[0] || "");
+		if (line.length > 70) { line = line.substr(0, 67).replace(/\s+\S*$/, "") + "..."; }
+		text.append($("<div></div>").append($("<b></b>").text(first.heading || "Your heading")));
+		if (line) { text.append($("<div></div>").append($('<span class="swDemoLine"></span>').text(line))); }
+		var el = thumb[0], box = text[0], heads = motion.heads, held = !!(hero() && motion.gives !== "scroll"), scale = 0.4;
+		if (!el.animate) { return; }
+		var b = box.querySelector("b");
+		<!--- Word by word and letter by letter: the heading in pieces, as SplitText makes it on the post. --->
+		if (heads === "words" || heads === "letters") {
+			var parts = heads === "letters" ? Array.from(b.textContent) : b.textContent.split(/(\s+)/);
+			b.textContent = "";
+			parts.forEach(function (p) {
+				if (/^\s+$/.test(p)) { b.appendChild(document.createTextNode(p)); return; }
+				var s = document.createElement("span"); s.className = "swPiece"; s.style.display = "inline-block"; s.textContent = p; b.appendChild(s);
+			});
+		}
+		var lines = Array.prototype.slice.call(box.children), pieces = Array.prototype.slice.call(box.querySelectorAll(".swPiece"));
+		var play = function (target, frames, opts) { var x = target.animate(frames, $.extend({ fill: "both" }, opts)); demoAnims.push(x); return x; };
+		var later = function (ms, fn) { demoTimers.push(setTimeout(fn, ms)); };
+		var fadeUp = function (targets, rise, duration, easing, stagger) {
+			targets.forEach(function (x, i) { play(x, [{ opacity: 0, translate: "0 " + rise + "px" }, { opacity: 1, translate: "0 0" }], { duration: duration, easing: easing, delay: i * stagger }); });
+		};
+		var cycle = function () {
+			<!--- The window closed or the step changed: stop. --->
+			if (!document.body.contains(el)) { stopDemo(); return; }
+			$.each(demoAnims, function (i, x) { try { x.cancel(); } catch (e) {} }); demoAnims = [];
+			<!--- The page opens. --->
+			if (heads === "slideIn") { fadeUp(lines, Math.round(96 * scale), 1100, "cubic-bezier(.22,1,.36,1)", 150); }
+			else if (heads === "slideInStay") {
+				lines.forEach(function (x, i) { play(x, [{ visibility: "hidden", translate: "0 " + Math.round(55 * scale) + "px" }, { visibility: "visible", translate: "0 " + Math.round(55 * scale) + "px", offset: 0.001 }, { visibility: "visible", translate: "0 0" }], { duration: 700, easing: "cubic-bezier(.25,.46,.45,.94)", delay: 400 + (i ? 100 + i * 200 : 0) }); });
+			}
+			else if (pieces.length) { fadeUp(pieces, Math.round(56 * scale), 800, "cubic-bezier(.22,1,.36,1)", heads === "letters" ? 30 : 90); }
+			<!--- Then it scrolls down: the picture moves up, unless it's held in place. --->
+			later(2000, function () {
+				if (!held) { play(el, [{ translate: "0 0" }, { translate: "0 -45%" }], { duration: 2600, easing: "linear" }); }
+				if (heads !== "still" && heads !== "slideInStay") {
+					play(box, [{ opacity: 1, translate: "0 0" }, { opacity: 0, translate: "0 " + (-Math.round(el.offsetHeight * 0.45)) + "px" }], { duration: 2600, easing: "linear" });
+				}
+			});
+			later(5000, function () { play(el, [{ opacity: 1 }, { opacity: 0 }], { duration: 500, easing: "ease-in" }); });
+		};
+		cycle(); demoTimers.push(setInterval(cycle, 5800));
+	}
 	function drawMotion() {
 		var h = hero();
 		if (motion.gives === null) { motion.gives = h && h.pin === false ? "scroll" : "held"; }
@@ -371,9 +440,10 @@ optArgs (11-07, owner: scenes go into posts from the post's side, so the wizard 
 		$("#swHeads").data("kendoDropDownList").value(motion.heads);
 		$("#swMotion").data("kendoDropDownList").value(motion.gradient);
 		$("#swSpeed").data("kendoDropDownList").value(motion.speed);
+		drawDemo();
 	}
-	$("input[name=swGives]").on("change", function () { motion.gives = $(this).val(); applyMotion(); sendPreview(); });
-	$("#swHeads").kendoDropDownList({ change: function () { motion.heads = this.value(); applyMotion(); $("#swReplay").trigger("click"); } });
+	$("input[name=swGives]").on("change", function () { motion.gives = $(this).val(); applyMotion(); sendPreview(); drawDemo(); });
+	$("#swHeads").kendoDropDownList({ change: function () { motion.heads = this.value(); applyMotion(); $("#swReplay").trigger("click"); drawDemo(); } });
 	$("#swMotion").kendoDropDownList({ change: function () { motion.gradient = this.value(); applyMotion(); sendPreview(); } });
 	$("#swSpeed").kendoDropDownList({ change: function () { motion.speed = this.value(); applyMotion(); sendPreview(); } });
 
@@ -457,6 +527,7 @@ optArgs (11-07, owner: scenes go into posts from the post's side, so the wizard 
 		activate: function (e) {
 			var i = e.step.options.index;
 			if (i === 1) { drawSections(); } else if (i === 2) { drawMotion(); }
+			if (i !== 2) { stopDemo(); }
 		},
 		done: function (e) { if (e && e.preventDefault) { e.preventDefault(); } finish(); }
 	}).data("galaxieWizard");
