@@ -157,6 +157,18 @@
 			".gScene .gs-align-right{text-align:right;align-items:flex-end}",
 			".gScene .gs-hero{position:relative;height:100vh;overflow:hidden;z-index:1}",
 			".gScene .gs-heroBack{position:absolute;inset:0}",
+			// A moving gradient (11-06): the same as Renderer.cfc getGradientMotionCss, so a gradient hero in any scene can move.
+			".galaxieGradientMotion{position:absolute;inset:-30%;z-index:-1;will-change:transform}",
+			".galaxieGradient-drift{animation:galaxieGradientDrift 16s ease-in-out infinite alternate}",
+			".galaxieGradient-shift{inset:0;animation:galaxieGradientShift 20s linear infinite}",
+			".galaxieGradient-breathe{inset:0;animation:galaxieGradientBreathe 6s ease-in-out infinite alternate}",
+			".galaxieGradient-drift.galaxieGradient-slow{animation-duration:28s}.galaxieGradient-drift.galaxieGradient-fast{animation-duration:8s}",
+			".galaxieGradient-shift.galaxieGradient-slow{animation-duration:36s}.galaxieGradient-shift.galaxieGradient-fast{animation-duration:9s}",
+			".galaxieGradient-breathe.galaxieGradient-slow{animation-duration:10s}.galaxieGradient-breathe.galaxieGradient-fast{animation-duration:3s}",
+			"@keyframes galaxieGradientDrift{0%{transform:translate(0,0) rotate(0deg)}35%{transform:translate(-12%,-8%) rotate(-1deg)}70%{transform:translate(10%,6%) rotate(4deg)}100%{transform:translate(-6%,10%) rotate(-3deg)}}",
+			"@keyframes galaxieGradientShift{from{filter:hue-rotate(0deg)}to{filter:hue-rotate(360deg)}}",
+			"@keyframes galaxieGradientBreathe{from{transform:scale(1);filter:brightness(.92)}to{transform:scale(1.12);filter:brightness(1.08)}}",
+			"@media (prefers-reduced-motion: reduce){.galaxieGradientMotion{animation:none!important}}",
 			".gScene .gs-layer{position:absolute;inset:0;will-change:transform}",
 			".gScene .gs-layer img,.gScene .gs-photo img{display:block;width:100%;height:100vh;object-fit:cover;object-position:50% 50%}",
 			".gScene .gs-photo{position:absolute;inset:0;will-change:transform}",
@@ -755,6 +767,22 @@
 
 	function animateReveals(data, section, root, phoneFactor, splits) {
 		var rise = setting(data, section, "rise") * phoneFactor;
+		// How a section's heading and text come in (11-06, owner; a hero's textMotion is its own, in animateHero). "still": already
+		// there. "slideInStay": as the parallax scenes on gregoryalexander.com - when the heading is a little below the middle of the
+		// screen, it and the text under it show at full strength 55px low and glide up into place (0.7 s, eased out), the text 0.3 s,
+		// then 0.5 s... behind; scrolled back above that point they glide down again and hide. Otherwise each part fades up as before.
+		var motion = HERO_KINDS[section.kind] ? "" : (section.textMotion || "");
+		var reveals = Array.prototype.slice.call(root.querySelectorAll(".gs-reveal"));
+		if (motion === "still") { gsap.set(reveals, { opacity: 1 }); return; }
+		if (motion === "slideInStay" && reveals.length) {
+			gsap.set(reveals, { y: 55, autoAlpha: 0 });
+			ScrollTrigger.create({
+				trigger: reveals[0], start: "top 60%", markers: !!setting(data, section, "guides"),
+				onEnter: function () { gsap.fromTo(reveals, { y: 55, autoAlpha: 1 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "power1.out", stagger: function (i) { return i ? 0.1 + i * 0.2 : 0; }, immediateRender: false, overwrite: true }); },
+				onLeaveBack: function () { gsap.to(reveals, { y: 55, duration: 0.7, ease: "power1.out", overwrite: true, onComplete: function () { gsap.set(reveals, { autoAlpha: 0 }); } }); }
+			});
+			return;
+		}
 		Array.prototype.forEach.call(root.querySelectorAll(".gs-reveal"), function (x) {
 			// Heading effects that need SplitText: each word or letter rises in turn. Without SplitText, the plain rise below.
 			if (x.classList.contains("gs-heading") && splitIn(x, data, section, rise, splits, x)) { return; }

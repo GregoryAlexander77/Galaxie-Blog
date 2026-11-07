@@ -271,6 +271,12 @@ chose "this server only" (Scenes window settings). --->
 <cfset altClass = HtmlUtilsObj.getKendoClass(blockClass)>
 <cfoutput>
 <div id="sceneEditor">
+	<!--- What this window is for (11-06, owner): an advanced editor; the ready-made scenes and the Moving hero window need none of it. --->
+	<div id="sceneEditorAbout" class="#altClass#" style="padding: 8px 12px;">
+		<strong>This is the advanced editor, for changing a scene section by section.</strong> You don't need it to use scenes: the ready-made
+		scenes are complete and work as they are. Pick one when you make a new scene, or use the Moving hero window (in a post's Hero window)
+		for a post's hero. Come here when you want to change a scene's pictures, text, colors or motion in detail.
+	</div>
 	<div id="sceneEditorTop" class="#blockClass#">
 	<cfif isNewScene>
 		<button id="sceneRestart" type="button" class="k-button" style="display: none;" title="Pick another ready-made scene. What you've changed so far is replaced.">Start again</button>
@@ -339,6 +345,7 @@ chose "this server only" (Scenes window settings). --->
 				<label title="Shows where each animation starts and ends. Visitors never see them."><input type="checkbox" id="scenePreviewGuides" class="k-checkbox"> Guides</label>
 				<label title="What visitors see when they've asked their device for less motion."><input type="checkbox" id="scenePreviewReduced" class="k-checkbox"> Reduced motion</label>
 				<button type="button" class="k-button" id="scenePreviewTop">Back to the top</button>
+				<button type="button" class="k-button" id="scenePreviewReplay" title="Back to the top and build the scene again, as when the page opens, to watch the heading come in">Replay</button>
 			</div>
 			<div id="scenePreviewStage"><iframe id="scenePreviewFrame" title="Scene preview" src="#application.baseUrl#/admin/scenePreview.cfm"></iframe></div>
 		</div>
@@ -405,6 +412,21 @@ $(document).ready(function () {
 	var TEXT_SIZES = [["", "Theme default"], ["0.95rem", "Small"], ["1.15rem", "Medium"], ["1.35rem", "Large"], ["1.6rem", "Very large"]];
 	var TEXT_SIZES_PHONE = [["", "Same as on a computer"], ["0.9rem", "Small"], ["1rem", "Medium"], ["1.15rem", "Large"]];
 	var HEADING = { key: "heading", label: "Heading", type: "text" };
+	<!--- A hero's heading motion choices (11-06, owner: the same list as the Moving hero window, Slides up into place first and the
+	default for a new hero section). "" rises and fades; words and letters are stored as headingEffect. --->
+	var HERO_MOTIONS = [["slideInStay", "Slides up into place"], ["", "Rises and fades as you scroll"], ["slideIn", "Fades up into place, then rises and fades as you scroll"],
+		["slideInOut", "Slides up into place, then up and away as it scrolls off"]<cfif sceneSplitText>, ["words", "Comes in word by word, then rises and fades"], ["letters", "Comes in letter by letter, then rises and fades"]</cfif>,
+		["still", "Stays in place on the picture"]];
+	<!--- Every other section with a heading (11-06, owner): how its heading and text come in as it reaches the screen. Slides up into
+	place is the parallax scenes' own (gregoryalexander.com) and the default for a new section; "" is what they did before. --->
+	var TEXT_MOTIONS = [["slideInStay", "Slides up into place"], ["", "Fades up into place"]<cfif sceneSplitText>, ["words", "Comes in word by word"], ["letters", "Comes in letter by letter"]</cfif>,
+		["still", "Already in place"]];
+	<!--- In Heading and text, after where the heading sits (owner, 11-06). Both are stored as textMotion, or as headingEffect for
+	word by word and letter by letter. --->
+	var HERO_MOTION = { key: "#heroMotion", label: "How the heading moves", type: "heroMotion", options: HERO_MOTIONS,
+		hint: "Replay, above the preview, plays the page opening again to show how the heading comes in." };
+	var TEXT_MOTION = { key: "#textMotion", label: "How the text comes in", type: "heroMotion", options: TEXT_MOTIONS,
+		hint: "As the section reaches the screen. Scroll the preview to it to watch." };
 	<!--- A picture can turn while scrolling (2026-10-19, owner): good for a galaxy, gears, a wheel. --->
 	var SPIN = { key: "spin", label: "Turn while scrolling", type: "select", options: [["", "No"], ["90", "A quarter turn"], ["180", "Half a turn"], ["360", "A full turn"], ["-90", "A quarter turn, the other way"], ["-180", "Half a turn, the other way"], ["-360", "A full turn, the other way"]], hint: "The picture is shown larger while it turns, so its corners never show." };
 	var LOOK = [
@@ -482,7 +504,11 @@ $(document).ready(function () {
 			{ key: "effect", label: "Animation", type: "select", options: [["WAVES", "Waves"], ["NET", "Net"], ["FOG", "Fog"], ["CLOUDS", "Clouds"], ["CLOUDS2", "Clouds 2"], ["BIRDS", "Birds"], ["GLOBE", "Globe"], ["RINGS", "Rings"]] },
 			FADE
 		],
-		gradientHero: [{ key: "gradient", label: "Gradient", type: "gradient" }, FADE],
+		<!--- Motion (11-06, owner: as in the Gradient window): galaxieScene.js puts the gradient on a moving layer. --->
+		gradientHero: [{ key: "gradient", label: "Gradient", type: "gradient" },
+			{ key: "motion", label: "Motion", type: "select", options: [["", "None"], ["drift", "Drift: the colors slowly wander"], ["shift", "Shift: the colors slowly change"], ["breathe", "Breathe: gently grows and shrinks"]] },
+			{ key: "motionSpeed", label: "Speed", type: "select", options: [["", "Normal"], ["slow", "Slow"], ["fast", "Fast"]] },
+			FADE],
 		map: [
 			{ key: "mapId", label: "Map", type: "map" },
 			{ key: "mapHeight", label: "Map height", type: "select", options: [["50", "Half the screen"], ["70", "Most of the screen"], ["100", "The whole screen"]] },
@@ -530,11 +556,6 @@ $(document).ready(function () {
 		}
 		<!--- Every section with a heading and text can have a button. --->
 		if (HERO[section.kind] || section.kind === "text" || section.kind === "imageSlide") { fields = fields.concat(BUTTON); }
-		<!--- How a hero's heading moves (11-05, owner): galaxieScene.js textMotion. Word by word is "How it comes in" under Heading. --->
-		if (HERO[section.kind]) {
-			fields = fields.concat([{ group: "Heading motion" }, { key: "textMotion", label: "How the heading moves", type: "select",
-				options: [["slideInStay", "Slides up into place"], ["", "Rises and fades as you scroll"], ["slideIn", "Fades up into place, then rises and fades as you scroll"], ["slideInOut", "Slides up into place, then up and away as it scrolls off"], ["still", "Stays in place on the picture"]] }]);
-		}
 		return fields;
 	}
 
@@ -983,6 +1004,21 @@ $(document).ready(function () {
 			pending.push(function () { buildGradient(box, field); });
 			return hint();
 		}
+		if (field.type === "heroMotion") {
+			var s = scene.sections[selected] || {};
+			input = $('<select></select>').attr("id", id);
+			$.each(field.options, function (i, o) { input.append($('<option></option>').attr("value", o[0]).text(o[1])); });
+			input.val(String(s.headingEffect || s.textMotion || ""));
+			input.on("change", function () {
+				var v = $(this).val(), sec = scene.sections[selected];
+				if (!sec) { return; }
+				delete sec.textMotion; delete sec.headingEffect;
+				if (v === "words" || v === "letters") { sec.headingEffect = v; } else if (v) { sec.textMotion = v; }
+				schedulePreview();
+			});
+			wrap.append(input);
+			return hint();
+		}
 		if (field.type === "select") {
 			input = $('<select></select>').attr("id", id);
 			$.each(field.options, function (i, o) { input.append($('<option></option>').attr("value", o[0]).text(o[1])); });
@@ -1095,7 +1131,14 @@ $(document).ready(function () {
 			var section = scene.sections[selected];
 			top.append($('<h4 class="adminBlockHeading"></h4>').text(kindLabel(section.kind)));
 			if (!OWN_TEXT[section.kind]) { top.append(fieldHtml(HEADING)); }
-			$.each(sectionFields(section).concat(LOOK), function (i, field) { rest.append(fieldHtml(field)); });
+			$.each(sectionFields(section).concat(LOOK), function (i, field) {
+				<!--- Word by word and letter by letter are in the one motion list. --->
+				if (!OWN_TEXT[section.kind] && field.key === "headingEffect") { return; }
+				rest.append(fieldHtml(field));
+				<!--- The text effects with the other Heading and text settings, straight after where the heading sits (owner, 11-06:
+				"this is where I keep on looking for the text effects"). --->
+				if (!OWN_TEXT[section.kind] && field.key === "align") { rest.append(fieldHtml(HERO[section.kind] ? HERO_MOTION : TEXT_MOTION)); }
+			});
 		}
 		blockSettings();
 		kendoSelects("#sceneSettingsTop, #sceneSettingsRest");
@@ -1223,6 +1266,7 @@ $(document).ready(function () {
 			s.layers = s.layers || [];
 		}
 		if (HERO[kind]) { s.heading = "A new hero"; }
+		if (!OWN_TEXT[kind]) { s.textMotion = "slideInStay"; }
 		return s;
 	}
 	kendoSelects("#sceneEditorTop");
@@ -1734,6 +1778,8 @@ $(document).ready(function () {
 	});
 	$(".scenePreviewSize[data-size=desktop]").addClass("k-primary");
 	$("#scenePreviewTop").on("click", function () { try { document.getElementById("scenePreviewFrame").contentWindow.scrollTo(0, 0); } catch (e) {} });
+	<!--- Replay (11-06): the page opening again, so a heading that slides or fades in plays again. --->
+	$("#scenePreviewReplay").on("click", function () { try { document.getElementById("scenePreviewFrame").contentWindow.scrollTo(0, 0); } catch (e) {} sendPreview(); });
 
 	<!--- The editor fills the window; Kendo gives the window's content a fixed height. --->
 	function fit() {
