@@ -128,7 +128,7 @@ placed as it is without the form editor. Each time one is placed it is made as a
 		# } #
 	</div>
 	<br />
-	<button class="k-button" onclick="createAdminInterfaceWindow(84, 0, #= kendo.htmlEncode(JSON.stringify(encodeURIComponent(instance.filterInput ? instance.filterInput.val() : ''))) #)">Build Form</button>
+	<button class="k-button" onclick="createAdminInterfaceWindow(123, 0, #= kendo.htmlEncode(JSON.stringify(encodeURIComponent(instance.filterInput ? instance.filterInput.val() : ''))) #)">Build Form</button>
 </script>
 
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>

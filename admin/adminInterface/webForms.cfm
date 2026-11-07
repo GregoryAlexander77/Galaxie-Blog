@@ -14,7 +14,7 @@ through ProxyController.cfc. See doc/aiDraftArticles/eventsAndFormsDesign.cfm. -
 </script>
 
 <p>Forms collect information from your visitors: a signup form, a contact form, a request. Build a form here, then place it in a post or page with the Form button in the post editor. What people send is kept under Submissions.</p>
-<p><button type="button" class="k-button k-primary" onclick="createAdminInterfaceWindow(84, 0);">New form</button></p>
+<p><button type="button" class="k-button k-primary" onclick="createAdminInterfaceWindow(123, 0);">New form</button></p>
 
 <cfif application.kendoCommercial>
 	<cfinclude template="../../includes/grids/kendo/webForms.cfm">

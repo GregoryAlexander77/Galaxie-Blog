@@ -1241,6 +1241,10 @@ window (enclosureImageEditor.cfm galaxieOpenMovingHero). --->
 <cfcase value=119>
 	<cfinclude template="../../admin/adminInterface/movingHeroWizard.cfm">
 </cfcase>
+<!--- 123 Forms wizard (11-07, owner): a form in three steps. otherArgs is a title typed in Insert Form's search, or nothing. --->
+<cfcase value=123>
+	<cfinclude template="../../admin/adminInterface/formWizard.cfm">
+</cfcase>
 <!--- 122 Insert Scene (11-07, owner): a scrolling scene at the top of the post or in its text. optArgs is the postId. --->
 <cfcase value=122>
 	<cfinclude template="../../admin/adminInterface/insertScene.cfm">

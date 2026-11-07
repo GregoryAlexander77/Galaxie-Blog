@@ -1239,6 +1239,12 @@
 				var windowHeight = "<cfif session.isMobile>92%<cfelse>860px</cfif>";
 				var windowWidth = "<cfif session.isMobile>98%<cfelse>940px</cfif>";
 				var windowTitle = "Moving hero";
+			} else if (Id == 123){
+				// Forms wizard (11-07, owner): what it's for, questions, after it's sent, with a preview. See admin/adminInterface/formWizard.cfm.
+				var windowName = "formWizardWindow";
+				var windowHeight = "<cfif session.isMobile>92%<cfelse>85%</cfif>";
+				var windowWidth = "<cfif session.isMobile>98%<cfelse>80%</cfif>";
+				var windowTitle = "Forms wizard";
 			} else if (Id == 122){
 				// Insert Scene (11-07, owner): from the post editor's Insert > Scene. See admin/adminInterface/insertScene.cfm.
 				var windowName = "insertSceneWindow";
