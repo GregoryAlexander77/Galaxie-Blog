@@ -358,6 +358,12 @@ the submissions already received - stay matched to it when the label changes. --
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
 	<colgroup><col style="width: 20%"><col></colgroup>
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading"><cfif isNewWebForm>New form<cfelse>#encodeForHtml(webForm.title)#</cfif></h4></td></tr>
+	<!--- What this window is for (11-06, owner: the same as the Scene editor's note): an advanced editor; the ready-made forms need none of it. --->
+	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+	<tr><td colspan="2" class="#blockClass#"><strong>This is the advanced editor, for building a form field by field.</strong> You don't need it to use forms:
+		the ready-made forms (Contact, Newsletter signup, RSVP, Request a quote and more) are complete and work as they are. Pick one from
+		Insert, Form in the post editor, or in a scene's Form section. Come here when you want to change a form's fields, wording or emails
+		in detail.</td></tr>
 <cfif isNewWebForm>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">Start from a ready-made form and change anything below before you save. Picking another one replaces the fields.</td></tr>
