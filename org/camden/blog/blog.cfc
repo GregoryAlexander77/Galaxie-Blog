@@ -1016,6 +1016,8 @@
 		<!--- The admin home's Visitors card (2026-10-20): people only (not bots) in the last few days, as the card counts them. --->
 		<cfargument name="peopleOnly" type="boolean" required="false" default="false">
 		<cfargument name="sinceDays" type="numeric" required="false" default="0">
+		<!--- The admin home's Reading now card (11-07): the last few minutes. --->
+		<cfargument name="sinceMinutes" type="numeric" required="false" default="0">
 		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
 		<cfset var Data = "">
 		<cfset var fiveMinutesAgo = "">
@@ -1101,6 +1103,9 @@
 			<cfif arguments.sinceDays gt 0>
 				AND VisitorLog.Date >= <cfqueryparam value="#dateAdd('d', -int(arguments.sinceDays), blogNow())#" cfsqltype="timestamp">
 			</cfif>
+			<cfif arguments.sinceMinutes gt 0>
+				AND VisitorLog.Date >= <cfqueryparam value="#dateAdd('n', -int(arguments.sinceMinutes), blogNow())#" cfsqltype="timestamp">
+			</cfif>
 				ORDER BY VisitorLog.Date DESC
 		</cfquery>
 			
@@ -1120,6 +1125,7 @@
 		<cfargument name="postId" type="string" required="false" default="">
 		<cfargument name="peopleOnly" type="boolean" required="false" default="false">
 		<cfargument name="sinceDays" type="numeric" required="false" default="0">
+		<cfargument name="sinceMinutes" type="numeric" required="false" default="0" hint="11-07: the admin home's Reading now card.">
 		<!--- Visits from one site (2026-10-25, the Traffic Sources window): google.com matches https://google.com/... and https://www.google.com/... --->
 		<cfargument name="referrerHost" type="string" required="false" default="">
 		<!--- The most rows one call returns: 500 for the grid's pages, up to 10,000 for the Excel export (2026-10-31). --->
@@ -1169,6 +1175,9 @@
 		</cfif>
 		<cfif arguments.sinceDays gt 0>
 			<cfset arrayAppend(where, "VisitorLog.Date >= :sinceDate")><cfset params.sinceDate = dateAdd("d", -int(arguments.sinceDays), blogNow())>
+		</cfif>
+		<cfif arguments.sinceMinutes gt 0>
+			<cfset arrayAppend(where, "VisitorLog.Date >= :sinceTime")><cfset params.sinceTime = dateAdd("n", -int(arguments.sinceMinutes), blogNow())>
 		</cfif>
 		<!--- The grid's own filters. --->
 		<cfif isStruct(arguments.filter)>

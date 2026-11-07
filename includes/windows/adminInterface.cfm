@@ -1241,6 +1241,10 @@ window (enclosureImageEditor.cfm galaxieOpenMovingHero). --->
 <cfcase value=119>
 	<cfinclude template="../../admin/adminInterface/movingHeroWizard.cfm">
 </cfcase>
+<!--- 124 Most read (11-07, owner): every post read this week, from the admin home's Most read card. --->
+<cfcase value=124>
+	<cfinclude template="../../admin/adminInterface/mostRead.cfm">
+</cfcase>
 <!--- 123 Forms wizard (11-07, owner): a form in three steps. otherArgs is a title typed in Insert Form's search, or nothing. --->
 <cfcase value=123>
 	<cfinclude template="../../admin/adminInterface/formWizard.cfm">

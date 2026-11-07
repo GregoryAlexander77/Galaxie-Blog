@@ -650,9 +650,10 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 							<cfif showVisitorCards>
 							<!--- Clicking the card opensthe Visitor Log with this week's people only, bots left out (owner, 2026-10-20). --->
 							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See these visitors in the Visitor Log" onclick="createAdminInterfaceWindow(48, 'people');" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(48, 'people'); }"><div class="adminTrafficTitle">Visitors</div><div id="trafficVisitors" class="adminTrafficBody">Loading...</div></div>
-							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Most read</div><div id="trafficTop" class="adminTrafficBody"></div></div>
+							<!--- Most read and Reading now open their own lists too (11-07, owner), as Visitors and Where they came from do. --->
+							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See every post read this week" onclick="createAdminInterfaceWindow(124, 0);" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(124, 0); }"><div class="adminTrafficTitle">Most read</div><div id="trafficTop" class="adminTrafficBody"></div></div>
 							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See the sites in Traffic Sources" onclick="createAdminInterfaceWindow(117, 7);" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(117, 7); }"><div class="adminTrafficTitle">Where they came from</div><div id="trafficSources" class="adminTrafficBody"></div></div>
-							<div class="adminTrafficCard k-content"><div class="adminTrafficTitle">Reading now</div><div id="trafficNow" class="adminTrafficBody"></div></div>
+							<div class="adminTrafficCard adminTrafficLink k-content" role="button" tabindex="0" title="See these people in the Visitor Log" onclick="createAdminInterfaceWindow(48, 'now');" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); createAdminInterfaceWindow(48, 'now'); }"><div class="adminTrafficTitle">Reading now</div><div id="trafficNow" class="adminTrafficBody"></div></div>
 							</cfif>
 						</div>
 					</div>

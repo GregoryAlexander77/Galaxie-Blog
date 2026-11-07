@@ -1239,6 +1239,12 @@
 				var windowHeight = "<cfif session.isMobile>92%<cfelse>860px</cfif>";
 				var windowWidth = "<cfif session.isMobile>98%<cfelse>940px</cfif>";
 				var windowTitle = "Moving hero";
+			} else if (Id == 124){
+				// Most read (11-07, owner): every post read this week. See admin/adminInterface/mostRead.cfm.
+				var windowName = "mostReadWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>75%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>60%</cfif>";
+				var windowTitle = "Most read";
 			} else if (Id == 123){
 				// Forms wizard (11-07, owner): what it's for, questions, after it's sent, with a preview. See admin/adminInterface/formWizard.cfm.
 				var windowName = "formWizardWindow";

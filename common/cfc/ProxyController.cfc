@@ -3969,6 +3969,7 @@
 		<cfargument name="postId" required="no" default="">
 		<cfargument name="peopleOnly" required="no" default="">
 		<cfargument name="sinceDays" required="no" default="">
+		<cfargument name="sinceMinutes" required="no" default="" hint="11-07: the admin home's Reading now card (whole minutes, at most a day).">
 		<cfargument name="referrerHost" required="no" default="">
 		<cfset var response = { "data": [], "total": 0 }>
 		<cfset var body = {}>
@@ -3993,6 +3994,7 @@
 			postId = listFirst(arguments.postId),
 			peopleOnly = isBoolean(arguments.peopleOnly) and arguments.peopleOnly,
 			sinceDays = isNumeric(arguments.sinceDays) ? min(int(arguments.sinceDays), 366) : 0,
+			sinceMinutes = isNumeric(arguments.sinceMinutes) ? max(0, min(int(arguments.sinceMinutes), 1440)) : 0,
 			referrerHost = lCase(trim(arguments.referrerHost))
 		)>
 		<cfset response[ "data" ] = visitorLogGridRows(page.rows)>
@@ -4062,6 +4064,7 @@
 		<cfargument name="fixedIpAddressId" required="no" default="">
 		<cfargument name="fixedPostId" required="no" default="">
 		<cfargument name="peopleOnly" required="no" default="">
+		<cfargument name="sinceMinutes" required="no" default="" hint="11-07: the admin home's Reading now card.">
 		<cfargument name="sinceDays" required="no" default="">
 		<cfargument name="referrerHost" required="no" default="">
 		<cfset var response = { "data": [], "itemsCount": 0 }>
@@ -4094,6 +4097,7 @@
 			postId = listFirst(arguments.fixedPostId),
 			peopleOnly = isBoolean(arguments.peopleOnly) and arguments.peopleOnly,
 			sinceDays = isNumeric(arguments.sinceDays) ? min(int(arguments.sinceDays), 366) : 0,
+			sinceMinutes = isNumeric(arguments.sinceMinutes) ? max(0, min(int(arguments.sinceMinutes), 1440)) : 0,
 			referrerHost = lCase(trim(arguments.referrerHost))
 		)>
 		<cfset response[ "data" ] = visitorLogGridRows(page.rows)>
@@ -4202,6 +4206,9 @@
 			</cfif>
 			<cfif isNumeric(arguments.sinceDays) and arguments.sinceDays gt 0>
 				<cfinvokeargument name="sinceDays" value="#min(int(arguments.sinceDays), 366)#"/>
+			</cfif>
+			<cfif isNumeric(arguments.sinceMinutes) and arguments.sinceMinutes gt 0>
+				<cfinvokeargument name="sinceMinutes" value="#min(int(arguments.sinceMinutes), 1440)#"/>
 			</cfif>
 		</cfinvoke>
 

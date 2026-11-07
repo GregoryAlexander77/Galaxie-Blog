@@ -494,7 +494,7 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 		<cfset arrayAppend(result.days, { "day": day, "people": days[day] ?: 0 })>
 	</cfloop>
 
-	<!--- The five most-read posts this week (people only). Counted by post id, and the titles joined after (2026-10-30): grouping on the title asked SQL Server for far more query memory. --->
+	<!--- (The Most read window, getMostRead below, lists them all.) The five most-read posts this week (people only). Counted by post id, and the titles joined after (2026-10-30): grouping on the title asked SQL Server for far more query memory. --->
 	<cfset q = queryExecute("
 		SELECT p.PostId, p.Title, g.ReadCount
 		FROM (SELECT v.PostRef, COUNT(*) AS ReadCount
@@ -636,6 +636,29 @@ bookings list or calendar is opened. The owner's own changes aren't counted. ---
 
 	<cfset result = { "rows": rows, "types": types, "days": int(arguments.days) }>
 	<cfif not oneVisitor><cfset application[cacheKey] = { made = now(), data = result }></cfif>
+	<cfreturn result>
+</cffunction>
+
+<cffunction name="getMostRead" access="public" returntype="array" output="false"
+		hint="The Most read window (11-07, owner: the admin home's Most read card opens it): every post read in the last 7 days, most read first, with its reads in the last 7 and 30 days. People only, counted as the card counts them. [{ postId, title, isPage, week, month }].">
+	<cfset var nowTime = application.blog.blogNow()>
+	<cfset var result = []>
+	<cfset var q = queryExecute("
+		SELECT p.PostId, p.Title, p.IsPage, g.WeekCount, g.MonthCount
+		FROM (SELECT v.PostRef,
+				SUM(CASE WHEN v.Date >= :weekAgo THEN 1 ELSE 0 END) AS WeekCount,
+				COUNT(*) AS MonthCount
+			FROM VisitorLog v LEFT JOIN AnonymousUser a ON a.AnonymousUserId = v.AnonymousUserRef
+			WHERE v.Date >= :monthAgo AND v.PostRef IS NOT NULL AND (a.IsBot = 0 OR a.IsBot IS NULL)
+			GROUP BY v.PostRef) g
+		JOIN Post p ON p.PostId = g.PostRef
+		WHERE g.WeekCount > 0
+		ORDER BY g.WeekCount DESC, g.MonthCount DESC",
+		{ weekAgo = { value = dateAdd("d", -7, nowTime), cfsqltype = "cf_sql_timestamp" }, monthAgo = { value = dateAdd("d", -30, nowTime), cfsqltype = "cf_sql_timestamp" } },
+		{ datasource = application.dsn, maxrows = 500 })>
+	<cfloop query="q">
+		<cfset arrayAppend(result, { "postId": q.PostId, "title": toString(q.Title), "isPage": q.IsPage eq 1, "week": val(q.WeekCount), "month": val(q.MonthCount) })>
+	</cfloop>
 	<cfreturn result>
 </cffunction>
 
