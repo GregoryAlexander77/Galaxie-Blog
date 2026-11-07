@@ -513,7 +513,7 @@ was opened at a window from a link (?open=, 2026-10-22): the prompt would cover 
 				above; this only lays them out. Room is left below the groups for charts of traffic and popular posts, some day. --->
 				<cfsilent>
 					<cfset homeGroups = [
-						{ key: "posts", name: "Posts and Pages", image: "/images/icons/posts.png", what: "Write and organize", icons: "addPost,Posts,CreatePage,Pages,Scenes,Comments,CreatePageCollection,ConfigurePageCollections,Categories,Tags" },
+						{ key: "posts", name: "Posts and Pages", image: "/images/icons/posts.png", what: "Write and organize", icons: "addPost,Posts,CreatePage,Pages,Comments,Scenes,CreatePageCollection,ConfigurePageCollections,Categories,Tags" },
 						{ key: "look", name: "Look and Layout", image: "/images/icons/themes.png", what: "Themes, fonts, home page and menu", icons: "Themes,Fonts,ConfigureHomepage,ConfigureMenu" },
 						{ key: "forms", name: "Forms, Bookings and Shop", image: "/images/icons/forms.gif", what: "Forms, bookings, events and the shop", icons: "Forms,Bookings,Events,Shop,Orders" },
 						{ key: "people", name: "People", image: "/images/icons/users.png", what: "Users, members and subscribers", icons: "Users,Members,Subscriber,userProfile,BanVisitors,BannedUsers" },
