@@ -222,6 +222,10 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 					<option value="sharp">Held, then a sharp edge (the post slides up over it)</option>
 					<option value="fade">Held, then it fades out over the text</option>
 				</select>
+				<!--- The fine details (11-07, owner): the same scene in the advanced editor's moving-hero mode. --->
+				<cfif mhwState.active and val(mhwState.sceneId) gt 0>
+				<p class="k-form-hint" style="margin-top: 10px;">To fine-tune the layers, how far each one moves and the fade, open this moving hero in the <a href="javascript:createAdminInterfaceWindow(107, #val(mhwState.sceneId)#);">advanced editor</a>. Save here first if you've changed anything.</p>
+				</cfif>
 			</div>
 		</div>
 	</div>

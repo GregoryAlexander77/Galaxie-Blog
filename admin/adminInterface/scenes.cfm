@@ -127,6 +127,7 @@ here, so it can't be turned into a scrolling scene or end up on another post. --
 						<td style="border-top: 1px solid ##ddd;" align="right" nowrap="nowrap">
 							<cfif structKeyExists(heroPostTitles, thisHeroPostId)>
 							<button type="button" class="k-button" onclick="createAdminInterfaceWindow(119, #thisHeroPostId#);" title="Opens this post's Moving hero window">Edit</button>
+							<button type="button" class="k-button" onclick="createAdminInterfaceWindow(107, #heroList.SceneId#);" title="The layers, fades and other fine details, in the advanced editor">Advanced</button>
 							<cfelse>
 							<button type="button" class="k-button" onclick="deleteScene(#heroList.SceneId#, '#encodeForHtmlAttribute(encodeForJavaScript(thisHeroName))#', 0);">Delete</button>
 							</cfif>

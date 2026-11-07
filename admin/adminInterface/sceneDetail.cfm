@@ -269,15 +269,41 @@ chose "this server only" (Scenes window settings). --->
 
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 <cfset altClass = HtmlUtilsObj.getKendoClass(blockClass)>
+<!--- Moving-hero mode (11-07, owner: "an advanced moving hero editor ... to change the fine details"): a post's moving hero (alias
+post-hero-{postId}) opens here with only what a moving hero has - its one section and the scene settings that change it. Nothing that
+belongs to scrolling scenes (more sections, showing it on another post, saving it as ready-made, its internal name). --->
+<cfset sceneHeroPostId = (not isNewScene and reFindNoCase("^post-hero-[0-9]+$", scene.alias ?: "")) ? val(listLast(scene.alias, "-")) : 0>
+<cfset sceneHeroPostTitle = "">
+<cfif sceneHeroPostId gt 0>
+	<cfquery name="sceneHeroPostRow" datasource="#application.dsn#">
+		SELECT Title FROM Post WHERE PostId = <cfqueryparam value="#sceneHeroPostId#" cfsqltype="cf_sql_integer">
+		AND BlogRef = <cfqueryparam value="#application.BlogDbObj.getBlogId()#" cfsqltype="cf_sql_integer">
+	</cfquery>
+	<cfset sceneHeroPostTitle = sceneHeroPostRow.recordCount ? sceneHeroPostRow.Title : "a post that was deleted">
+</cfif>
 <cfoutput>
-<div id="sceneEditor">
+<cfif sceneHeroPostId gt 0>
+<style>
+	.sceneHeroMode ##sceneShowOn, .sceneHeroMode ##sceneSaveTemplate, .sceneHeroMode label[for=sceneAlias], .sceneHeroMode ##sceneAlias,
+	.sceneHeroMode .sceneSectionTools, .sceneHeroMode ##sceneAddBlock { display: none !important; }
+</style>
+</cfif>
+<div id="sceneEditor"<cfif sceneHeroPostId gt 0> class="sceneHeroMode"</cfif>>
 	<!--- What this window is for (11-06, owner): an advanced editor; the ready-made scenes and the Moving hero window need none of it. --->
+	<cfif sceneHeroPostId gt 0>
+	<div id="sceneEditorAbout" class="#altClass#" style="padding: 8px 12px;">
+		<strong>This is the moving hero of &ldquo;#encodeForHtml(sceneHeroPostTitle)#&rdquo;, in the advanced editor.</strong> Its picture, heading and
+		style are set in its <a href="javascript:createAdminInterfaceWindow(119, #sceneHeroPostId#);">Moving hero window</a>. Come here to fine-tune
+		the details: the layers and how far each one moves, the fade, and the heading's look.
+	</div>
+	<cfelse>
 	<div id="sceneEditorAbout" class="#altClass#" style="padding: 8px 12px;">
 		<strong>This is the advanced editor, for changing a scene section by section.</strong> You don't need it to use scenes: the ready-made
 		scenes are complete and work as they are. Pick one when you make a new scene, or use the Moving hero window (in a post's Hero window)
 		for a post's hero. To make a new scene in a few steps, use the <a href="javascript:createAdminInterfaceWindow(121, 0);">Scene wizard</a>. Come here when you
 		want to change a scene's pictures, text, colors or motion in detail.
 	</div>
+	</cfif>
 	<div id="sceneEditorTop" class="#blockClass#">
 	<cfif isNewScene>
 		<button id="sceneRestart" type="button" class="k-button" style="display: none;" title="Pick another ready-made scene. What you've changed so far is replaced.">Start again</button>
@@ -315,7 +341,7 @@ chose "this server only" (Scenes window settings). --->
 	<div id="sceneEditorBody"<cfif isNewScene> style="display: none;"</cfif>>
 		<div id="sceneEditorList">
 			<div class="adminDivBlock #blockClass#"><div id="sceneSectionList"></div></div>
-			<div class="adminDivBlock #altClass#">
+			<div class="adminDivBlock #altClass#" id="sceneAddBlock">
 				<h4 class="adminBlockHeading sceneAddHeading">Add a section</h4>
 				<button id="sceneAddSection" type="button" class="k-button k-primary">Add section...</button>
 				<div class="k-form-hint">It goes after the selected section.</div>
@@ -413,6 +439,7 @@ $(document).ready(function () {
 	var TEXT_SIZES = [["", "Theme default"], ["0.95rem", "Small"], ["1.15rem", "Medium"], ["1.35rem", "Large"], ["1.6rem", "Very large"]];
 	var TEXT_SIZES_PHONE = [["", "Same as on a computer"], ["0.9rem", "Small"], ["1rem", "Medium"], ["1.15rem", "Large"]];
 	var HEADING = { key: "heading", label: "Heading", type: "text" };
+	var HERO_MODE = <cfoutput>#sceneHeroPostId gt 0 ? "true" : "false"#</cfoutput>;
 	<!--- A hero's heading motion choices (11-06, owner: the same list as the Moving hero window, Slides up into place first and the
 	default for a new hero section). "" rises and fades; words and letters are stored as headingEffect. --->
 	var HERO_MOTIONS = [["slideInStay", "Slides up into place"], ["", "Rises and fades as you scroll"], ["slideIn", "Fades up into place, then rises and fades as you scroll"],
@@ -1127,7 +1154,15 @@ $(document).ready(function () {
 		pending = [];
 		if (selected < 0) {
 			top.append($('<h4 class="adminBlockHeading"></h4>').text("Scene"));
-			$.each(FIELDS.scene, function (i, field) { top.append(fieldHtml(field)); });
+			$.each(FIELDS.scene, function (i, field) {
+				<!--- A moving hero that scrolls away (settings.type heroParallax) is never held and sits on the post's own color, and the
+				engine moves its layers at most 0.6: no page color, no hold settings, and depth up to 0.6. --->
+				if (HERO_MODE && (scene.settings || {}).type === "heroParallax") {
+					if (field.key === "@pageColour" || field.key === "settings.pinLength" || field.key === "settings.ending") { return; }
+					if (field.key === "settings.intensity") { field = $.extend({}, field, { max: 0.6, placeholder: "0.6", hint: "For a moving hero that scrolls away, up to 0.6." }); }
+				}
+				top.append(fieldHtml(field));
+			});
 		} else {
 			var section = scene.sections[selected];
 			top.append($('<h4 class="adminBlockHeading"></h4>').text(kindLabel(section.kind)));
