@@ -115,9 +115,14 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 		<div id="mhwCards" class="mhwCards" role="radiogroup" aria-label="Pictures"></div>
 		<p class="k-form-hint" id="mhwPickHint" style="display: none;">Please choose a picture first.</p>
 		<!--- Remove, when the post has one (11-04: it was a button in the Hero window). --->
-		<cfif mhwState.active>
-		<div class="mhwButtons"><button type="button" class="k-button normalFontWeight" id="mhwRemove"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove the moving hero</button></div>
-		</cfif>
+		<!--- New moving hero picture (11-07, owner), left of Remove: the advanced editor's new-picture mode (sceneDetail.cfm newHeroPicture).
+		When it is saved, this window reloads with the new picture picked (galaxieHeroPictureSaved). --->
+		<div class="mhwButtons">
+			<button type="button" class="k-button normalFontWeight" id="mhwNewPicture"><i class="fontAwesomeIcon fas fa-plus"></i> New moving hero picture</button>
+			<cfif mhwState.active>
+			<button type="button" class="k-button normalFontWeight" id="mhwRemove"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove the moving hero</button>
+			</cfif>
+		</div>
 	</div>
 
 	<!--- The same rows and controls as the Hero text window (owner 11-04: "the new moving hero font stuff needs to be the same as the
@@ -267,6 +272,8 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 		strong: function (c) { return "0 3px 12px " + rgba(c, 0.85) + ", 0 0 2px " + rgba(c, 0.9); }
 	};
 	var chosen = state.active ? state.starter : null;
+	<!--- A picture just made with New moving hero picture is picked when this window reloads. --->
+	if (window.galaxieMovingHeroPick) { chosen = window.galaxieMovingHeroPick; window.galaxieMovingHeroPick = null; }
 	var align = state.align || "center", low = state.textPosition === "bottom";
 	var timers = [];
 	var win = $("#movingHeroWizardWindow");
@@ -505,6 +512,13 @@ common/js/galaxieWizard.js, as the Site Wizard does. optArgs is the postId. --->
 	});
 
 	// Remove the moving hero: the post goes back to its usual hero.
+	$("#mhwNewPicture").on("click", function () { createAdminInterfaceWindow(107, "newHeroPicture"); });
+	$(document).off("galaxieHeroPictureSaved.mhw").on("galaxieHeroPictureSaved.mhw", function (event, saved) {
+		var w = win.data("kendoWindow");
+		if (!w || !saved || !saved.templateId) { return; }
+		window.galaxieMovingHeroPick = "template-" + saved.templateId;
+		stopSway(); w.refresh();
+	});
 	$("#mhwRemove").on("click", function () {
 		galaxieConfirm("Remove the moving hero?", "The post goes back to its usual hero.", function () {
 			jQuery.ajax({ type: "post", url: BASE + "/common/cfc/ProxyController.cfc?method=savePostHeroParallax", dataType: "json", data: { csrfToken: CSRF, postId: postId, remove: "true" } })

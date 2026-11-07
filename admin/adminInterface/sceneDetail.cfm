@@ -1993,6 +1993,8 @@ $(document).ready(function () {
 				if (r && r.success) {
 					PICTURE_ID = r.templateId; unsaved = false; savedScene = JSON.stringify(scene);
 					try { refreshScenesWindow(); } catch (e) {}
+					<!--- An open Moving hero window reloads with it picked. --->
+					$(document).trigger("galaxieHeroPictureSaved", [{ templateId: r.templateId }]);
 					if (kendoWindow) { kendoWindow.close(); }
 				} else {
 					$("#sceneSaved").text("");
