@@ -1230,7 +1230,8 @@
 	<cfargument name="term" type="string" required="false" default="">
 	<cfset var rows = "">
 	<cfset var list = []>
-	<cfset var term = lCase(trim(arguments.term))>
+	<!--- Not "term": Adobe ColdFusion won't compile a local variable with the same name as an argument. --->
+	<cfset var searchTerm = lCase(trim(arguments.term))>
 	<cftry>
 		<cfset ensureTrustedTable()>
 		<cfset rows = queryExecute("
@@ -1238,10 +1239,10 @@
 			FROM BlogMember m
 			WHERE m.BlogRef = :blogId AND m.EmailVerified = :yes AND (m.Status IS NULL OR m.Status = 'active')
 				AND m.MemberId NOT IN (SELECT t.MemberRef FROM TrustedCommenter t WHERE t.BlogRef = :blogId)" &
-				(len(term) ? " AND (LOWER(m.Name) LIKE :term OR LOWER(m.Email) LIKE :term)" : "") & "
+				(len(searchTerm) ? " AND (LOWER(m.Name) LIKE :term OR LOWER(m.Email) LIKE :term)" : "") & "
 			ORDER BY m.Name, m.Email",
 			{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, yes = { value = 1, cfsqltype = "cf_sql_bit" },
-			  term = { value = "%" & left(term, 100) & "%", cfsqltype = "cf_sql_varchar" } },
+			  term = { value = "%" & left(searchTerm, 100) & "%", cfsqltype = "cf_sql_varchar" } },
 			{ maxrows = 20 })>
 		<cfloop query="rows">
 			<cfset arrayAppend(list, { "memberId": rows.MemberId, "name": len(trim(rows.Name)) ? trim(rows.Name) : rows.Email, "email": rows.Email })>
