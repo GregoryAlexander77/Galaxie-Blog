@@ -229,6 +229,18 @@
 				<cfset fullName = getPost[i]["FullName"]>
 				<cfset displayName = getPost[i]["DisplayName"]>
 				<cfset authorPicture = structKeyExists(getPost[i], "ProfilePicture") ? trim(getPost[i]["ProfilePicture"]) : "">
+				<!--- The picture is 32px and a link, as on the post cards (11-07, owner): the blog owner's opens the Bio window (About, Bio),
+				another author's goes to their posts. --->
+				<cfif len(authorPicture)>
+					<cfif not structKeyExists(request, "galaxieBlogOwnerName")>
+						<cftry>
+							<cfset blogOwnerRows = application.blog.getBlogOwner()>
+							<cfset request.galaxieBlogOwnerName = arrayLen(blogOwnerRows) ? (blogOwnerRows[1]["FullName"] ?: "") : "">
+							<cfcatch type="any"><cfset request.galaxieBlogOwnerName = ""></cfcatch>
+						</cftry>
+					</cfif>
+					<cfset authorPictureHref = len(request.galaxieBlogOwnerName) and fullName eq request.galaxieBlogOwnerName ? "javascript:createAboutWindow(2);" : application.blog.makeUserLink(fullName)>
+				</cfif>
 				<!--- Media (videos and images) --->
 				<cfset mediaType = getPost[1]["MediaType"]>
 				<!--- The mime type may not be available when using external sources due to forbidden errors when trying to read the file. --->
@@ -468,7 +480,7 @@
 							</table>
 							<p class="postAuthor">
 								<span class="info">
-									<cfif len(fullName) and not postIsBookingPage><cfif len(authorPicture)><img src="#encodeForHtmlAttribute(authorPicture)#" alt="" class="authorPicture" width="20" height="20" loading="lazy"><span class="authorBy">by </span><cfelse>by </cfif><a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
+									<cfif len(fullName) and not postIsBookingPage><cfif len(authorPicture)><a href="#encodeForHtmlAttribute(authorPictureHref)#" class="authorPictureLink" title="About <cfif len(displayName)>#encodeForHtmlAttribute(displayName)#<cfelse>#encodeForHtmlAttribute(fullName)#</cfif>"><img src="#encodeForHtmlAttribute(authorPicture)#" alt="" class="authorPicture authorPictureCard" width="32" height="32" loading="lazy"></a><span class="authorBy">by </span><cfelse>by </cfif><a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
 								</span>
 							</p>							
 						</cfif><!---<cfif session.isMobile>--->
