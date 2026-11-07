@@ -1241,6 +1241,10 @@ window (enclosureImageEditor.cfm galaxieOpenMovingHero). --->
 <cfcase value=119>
 	<cfinclude template="../../admin/adminInterface/movingHeroWizard.cfm">
 </cfcase>
+<!--- 125 Trusted Commenters (11-07, owner): members whose comments are approved straight away while they're signed in. --->
+<cfcase value=125>
+	<cfinclude template="../../admin/adminInterface/trustedCommenters.cfm">
+</cfcase>
 <!--- 124 Most read (11-07, owner): every post read this week, from the admin home's Most read card. --->
 <cfcase value=124>
 	<cfinclude template="../../admin/adminInterface/mostRead.cfm">

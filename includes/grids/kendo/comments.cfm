@@ -16,7 +16,7 @@
 <head><cfoutput>
 	<script type="text/javascript" src="#application.baseUrl#/common/libs/dayjs/dayjs.min.js"></script>
 	</cfoutput>
-	<p>All columns are sortable and searchable/filterable. Check/uncheck Approved and click Save on the toolbar to approve or unapprove comments (in bulk if you like). Click View to see the full comment and post details, or Delete to remove a comment right away.</p>
+	<p>All columns are sortable and searchable/filterable. Check/uncheck Approved and click Save on the toolbar to approve or unapprove comments (in bulk if you like). Click View to see the full comment and post details, or Delete to remove a comment right away. Comments from people on your <a href="javascript:createAdminInterfaceWindow(125);">Trusted Commenters</a> list appear without waiting for approval.</p>
 </head>
 <body>
 

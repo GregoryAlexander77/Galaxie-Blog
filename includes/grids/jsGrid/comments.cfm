@@ -13,7 +13,7 @@
 	</cfoutput><!-- Fontawesome css -->
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 	
-	<p>All columns are sortable and most are searchable. To search, enter the search term on top of the column and click the search link at the right of the page. You can also approve a comment by clicking the edit icon, selecting the comment that you wish to approve, and click on the update checkmark on the right of the page. Additionally, you can view or edit the comment or post details by clicking on one of the links.</p>
+	<p>All columns are sortable and most are searchable. To search, enter the search term on top of the column and click the search link at the right of the page. You can also approve a comment by clicking the edit icon, selecting the comment that you wish to approve, and click on the update checkmark on the right of the page. Additionally, you can view or edit the comment or post details by clicking on one of the links. Comments from people on your <a href="javascript:createAdminInterfaceWindow(125);">Trusted Commenters</a> list appear without waiting for approval.</p>
 	
 	<style>
 		body {

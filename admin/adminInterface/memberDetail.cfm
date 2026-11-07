@@ -170,7 +170,8 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 		<td class="#blockClass#" align="right">What they've done:</td>
 		<td class="#blockClass#">#encodeForHtml(arrayToList(detailPerson.labels, ", "))#<cfif detailPerson.isUser><br>Also a user: they also sign in to run the blog (<a href="javascript:createAdminInterfaceWindow(28);">Users</a>).</cfif></td>
 	</tr>
-	<cfset detailLabels = detailHasAccount ? "Name,Phone,Time zone,Joined,Last seen,Kept signed in,Status" : "Name,Phone">
+	<cfset detailLabels = detailHasAccount ? "Name,Phone,Time zone,Joined,Last seen,Kept signed in,Status,Trusted commenter" : "Name,Phone">
+	<cfset detailTrusted = detailHasAccount ? application.members.isTrustedCommenter(detailMember.memberId) : false>
 	<cfloop list="#detailLabels#" index="thisLabel">
 		<cfswitch expression="#thisLabel#">
 			<cfcase value="Name"><cfset thisValue = detailHasAccount ? detailMember.name : detailPerson.name></cfcase>
@@ -180,11 +181,12 @@ ProxyController.cfc's setMemberStatus, adminDeleteMember and adminExportPersonDa
 			<cfcase value="Last seen"><cfset thisValue = isDate(detailMember.lastSeen) ? dateFormat(detailMember.lastSeen, "mmmm d, yyyy") & " " & timeFormat(detailMember.lastSeen, "h:mm tt") : ""></cfcase>
 			<cfcase value="Kept signed in"><cfset thisValue = detailDevices eq 0 ? "No devices" : detailDevices & " device" & (detailDevices eq 1 ? "" : "s")></cfcase>
 			<cfcase value="Status"><cfset thisValue = detailMember.status eq "blocked" ? "Blocked" : "Active"></cfcase>
+			<cfcase value="Trusted commenter"><cfset thisValue = detailTrusted ? "Yes: their comments appear straight away while they're signed in" : "No"></cfcase>
 		</cfswitch>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#" align="right">#thisLabel#:</td>
-		<td class="#blockClass#">#len(thisValue) ? encodeForHtml(thisValue) : "-"#</td>
+		<td class="#blockClass#">#len(thisValue) ? encodeForHtml(thisValue) : "-"#<cfif thisLabel eq "Trusted commenter"> (<a href="javascript:createAdminInterfaceWindow(125);">Trusted Commenters</a>)</cfif></td>
 	</tr>
 	</cfloop>
 

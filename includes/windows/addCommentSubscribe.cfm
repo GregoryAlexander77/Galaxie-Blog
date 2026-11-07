@@ -47,6 +47,20 @@ approved straight away and linked to their account by blog.cfc's addComment. ---
 		</cfif>
 		<cfcatch type="any"></cfcatch>
 	</cftry>
+</cfif>
+<!--- A trusted commenter (2026-11-07, Trusted Commenters window): signed in as a member who is on the list. Their comment is
+approved straight away and saved under their account's email (ProxyController.cfc postCommentSubscribe), so the email box shows
+that address and can't be changed here. --->
+<cfset cmtTrustedMember = {}>
+<cfif not application.Udf.isLoggedIn() and structKeyExists(application, "members")>
+	<cftry>
+		<cfset cmtTrustedMember = application.members.getTrustedCommenter()>
+		<cfcatch type="any"><cfset cmtTrustedMember = {}></cfcatch>
+	</cftry>
+</cfif>
+<cfif not structIsEmpty(cmtTrustedMember)>
+	<cfset commenterEmail = cmtTrustedMember.email>
+	<cfif not len(trim(commenterName))><cfset commenterName = cmtTrustedMember.name></cfif>
 </cfif>		
 	
 <cfif isDefined("URL.Id") and URL.id neq ''>
@@ -462,7 +476,7 @@ This section has been completely redesigned by Gregory --->
 		<tr class="<cfif URL.uiElement neq 'subscribe'>k-alt<cfelse>k-content</cfif>">
 			<td>
 				<!--- Note that this forms type is 'email'. This is an HTML5 attribute and it will automatically be validated. --->
-				<input type="email" id="commenterEmail" name="commenterEmail" data-member-fill="email" value="#commenterEmail#" class="k-textbox" 
+				<input type="email" id="commenterEmail" name="commenterEmail" data-member-fill="email" value="#commenterEmail#"<cfif not structIsEmpty(cmtTrustedMember)> readonly title="Your account's email. Your comments appear straight away."</cfif> class="k-textbox" 
 					   required validationMessage="Enter your email." aria-label="Enter your email address"
 					   style="width: <cfoutput>#textInputWidth#</cfoutput>;" />
 			</td>
@@ -621,7 +635,7 @@ This section has been completely redesigned by Gregory --->
 			<td width="5px"></td>
 			<td align="left">
 				<!--- Note that this forms type is 'email'. This is an HTML5 attribute and it will automatically be validated. --->
-				<input type="email" id="commenterEmail" name="commenterEmail" data-member-fill="email" value="#commenterEmail#" class="k-textbox" required validationMessage="Enter your email." aria-label="Enter your email address" style="width: <cfoutput>#textInputWidth#</cfoutput>;" />
+				<input type="email" id="commenterEmail" name="commenterEmail" data-member-fill="email" value="#commenterEmail#"<cfif not structIsEmpty(cmtTrustedMember)> readonly title="Your account's email. Your comments appear straight away."</cfif> class="k-textbox" required validationMessage="Enter your email." aria-label="Enter your email address" style="width: <cfoutput>#textInputWidth#</cfoutput>;" />
 			</td>
 		</tr>
 	<cfif URL.uiElement neq 'subscribe'>

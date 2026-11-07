@@ -1375,6 +1375,10 @@
 		  </tr>
 		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 		  <tr>
+			<td colspan="2" class="#blockClass#">Members you choose in <a href="javascript:createAdminInterfaceWindow(125);">Trusted Commenters</a> have their comments appear straight away, without waiting for your approval, while they're signed in.</td>
+		  </tr>
+		  <tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
+		  <tr>
 			<td class="#blockClass#" align="right"><label for="memberAccountsEnabled">Member accounts:</label></td>
 			<td class="#blockClass#"><input type="checkbox" class="k-checkbox" id="memberAccountsEnabled" name="memberAccountsEnabled" value="1"<cfif memberSettings.enabled> checked</cfif>></td>
 		  </tr>

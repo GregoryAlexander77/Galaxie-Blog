@@ -1239,6 +1239,12 @@
 				var windowHeight = "<cfif session.isMobile>92%<cfelse>860px</cfif>";
 				var windowWidth = "<cfif session.isMobile>98%<cfelse>940px</cfif>";
 				var windowTitle = "Moving hero";
+			} else if (Id == 125){
+				// Trusted Commenters (11-07, owner): see admin/adminInterface/trustedCommenters.cfm.
+				var windowName = "trustedCommentersWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>70%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>55%</cfif>";
+				var windowTitle = "Trusted Commenters";
 			} else if (Id == 124){
 				// Most read (11-07, owner): every post read this week. See admin/adminInterface/mostRead.cfm.
 				var windowName = "mostReadWindow";
@@ -1900,6 +1906,8 @@
 			var alreadySubscribed = response.alreadySubscribed;
 			// Email args
 			var adminEmailedNewComment = response.adminEmailedNewComment;
+			// A trusted commenter's comment is approved straight away (2026-11-07), though the owner is still emailed about it.
+			var autoApproved = response.autoApproved === true;
 			var confirmationEmailSent = response.confirmationEmailSent;
 			var newCommentEmailSentToPostSubscribers = response.newCommentEmailSentToPostSubscribers;
 
@@ -1943,7 +1951,7 @@
 				// The moderateComments will be returned either as 'YES/NO'. 
 				var moderateComments = '<cfoutput>#application.commentmoderation#</cfoutput>'; 
 				if (uiInterface == 'addComment'){
-					if (moderateComments == 'YES' && adminEmailedNewComment){ // a signed-in admin's comment is approved straight away (2026-10-22)
+					if (moderateComments == 'YES' && adminEmailedNewComment && !autoApproved){ // a signed-in admin's comment is approved straight away (2026-10-22)
 						var successTitle = 'Email Sent to moderator';
 						var successMessage = 'Your comment has been sent to the administrator for approval.';
 					} else  {

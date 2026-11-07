@@ -695,7 +695,22 @@
 					
 			<!--- The user is adding a comment. --->
 			<cfelseif arguments.uiInterface eq 'addComment'><!---<cfif arguments.uiInterface eq 'contact'>--->
-
+				<!--- Trusted commenters (2026-11-07): a member on the Trusted Commenters list (window 125) who is signed in as that
+				member gets their comment approved straight away. It is the member sign-in that counts, never the email typed in the
+				form (anyone can type an address), and the comment is saved under the account's own email. --->
+				<cfset trustedMember = {}>
+				<cfif not application.Udf.isLoggedIn() and structKeyExists(application, "members")>
+					<cftry>
+						<cfset trustedMember = application.members.getTrustedCommenter()>
+						<cfcatch type="any"><cfset trustedMember = {}></cfcatch>
+					</cftry>
+				</cfif>
+				<cfset isTrustedComment = not structIsEmpty(trustedMember)>
+				<cfif isTrustedComment>
+					<cfset arguments.commenterEmail = trustedMember.email>
+					<cfset commenterEmail = trustedMember.email>
+				</cfif>
+				<cfset response[ "autoApproved" ] = isTrustedComment />
 				<cftry>
 					<cfinvoke component="#application.blog#" method="addComment" returnVariable="commentId">
 						<cfinvokeargument name="postId" value="#arguments.postId#">
@@ -704,7 +719,7 @@
 						<cfinvokeargument name="website" value="#left(arguments.commenterWebSite, 255)#">
 						<cfinvokeargument name="comments" value="#arguments.comments#">
 						<cfinvokeargument name="subscribe" value="#arguments.subscribe#">
-						<cfif application.Udf.isLoggedIn()>
+						<cfif application.Udf.isLoggedIn() or isTrustedComment>
 							<cfinvokeargument name="overrideModeration" value="true">
 						</cfif>
 						<cfinvokeargument name="parentCommentId" value="#val(arguments.parentCommentId)#">
@@ -751,9 +766,9 @@
 						<cfinvokeargument name="email" value="#application.BlogDbObj.getBlogEmail()#">
 						<cfinvokeargument name="emailTitle" value="Comment added to #arguments.postTitle#">
 						<cfinvokeargument name="emailTitleLink" value="#application.blog.makeLink(arguments.postId)###c#commentId#">
-						<cfinvokeargument name="emailDesc" value="#arguments.commenterName# added a comment">
+						<cfinvokeargument name="emailDesc" value="#arguments.commenterName# added a comment#isTrustedComment ? ' (a trusted commenter: it is already showing)' : ''#">
 						<cfinvokeargument name="emailBody" value="#contentBody#">
-						<cfif application.commentModeration>
+						<cfif application.commentModeration and not isTrustedComment>
 							<cfinvokeargument name="callToActionText" value="Approve Comment">
 							<!--- The full address (2026-10-22): baseUrl is only the path (eg. /blog), which an email can't open. --->
 							<cfinvokeargument name="callToActionLink" value="#application.blogHostUrl#/admin/">
@@ -774,7 +789,7 @@
 						
 					<!--- ************* Render email to all post subscribers informing them of the new comment ************* --->
 					<!--- Note: if one of the admins is creating the comment it does not need to be approved. --->
-					<cfif not application.BlogOptionDbObj.getBlogModerated() or application.Udf.isLoggedIn()>
+					<cfif not application.BlogOptionDbObj.getBlogModerated() or application.Udf.isLoggedIn() or isTrustedComment>
 						
 						<!--- Get all post subscribers --->
 						<cfset postSubscribers = application.blog.getSubscriber(postId=arguments.postId, verifiedOnly=true)>
@@ -12412,6 +12427,74 @@
 		<cfset secureFunction('EditUser')>
 		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.memberId)>
 			<cfset response[ "success" ] = application.members.adminDeleteMember(val(arguments.memberId), isBoolean(arguments.stopEmails) and arguments.stopEmails)>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<!--- ************************************************************************************************************
+		Trusted Commenters (window 125, 2026-11-07): members whose comments are approved straight away while they're signed in.
+	************************************************************************************************************* --->
+
+	<cffunction name="getTrustedCommenters" access="remote" returnformat="json" output="false" hint="The Trusted Commenters list (admin).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfset var response = { "success": false, "data": [] }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditComment')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfset response[ "data" ] = application.members.getTrustedCommenters()>
+			<cfset response[ "success" ] = true>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="findMembersToTrust" access="remote" returnformat="json" output="false" hint="Members who can be added to the Trusted Commenters list (admin).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="term" type="string" required="false" default="">
+		<cfset var response = { "success": false, "data": [] }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditComment')>
+		<cfif application.Udf.isLoggedIn()>
+			<cfset response[ "data" ] = application.members.findMembersToTrust(left(arguments.term, 100))>
+			<cfset response[ "success" ] = true>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="addTrustedCommenter" access="remote" returnformat="json" output="false" hint="Adds a member to the Trusted Commenters list (admin).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="memberId" required="false" default="0">
+		<cfset var response = { "success": false, "message": "" }>
+		<cfset var result = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditComment')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.memberId)>
+			<cfset result = application.members.addTrustedCommenter(val(arguments.memberId))>
+			<cfset response[ "success" ] = result.success>
+			<cfset response[ "message" ] = result.message>
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<cffunction name="removeTrustedCommenter" access="remote" returnformat="json" output="false" hint="Takes a member off the Trusted Commenters list (admin).">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="memberId" required="false" default="0">
+		<cfset var response = { "success": false }>
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditComment')>
+		<cfif application.Udf.isLoggedIn() and isValid("integer", arguments.memberId)>
+			<cfset response[ "success" ] = application.members.removeTrustedCommenter(val(arguments.memberId))>
 		</cfif>
 		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
 	</cffunction>

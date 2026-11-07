@@ -611,6 +611,9 @@
 		<cfset queryExecute("DELETE FROM MemberVisitor WHERE BlogRef = :blogId AND MemberRef = :memberId", params)>
 		<cfset ensureLoginLogTable()>
 		<cfset queryExecute("DELETE FROM MemberLoginLog WHERE BlogRef = :blogId AND MemberRef = :memberId", params)>
+		<!--- Off the Trusted Commenters list (2026-11-07). --->
+		<cfset ensureTrustedTable()>
+		<cfset queryExecute("DELETE FROM TrustedCommenter WHERE BlogRef = :blogId AND MemberRef = :memberId", params)>
 		<cfcatch type="any"></cfcatch>
 	</cftry>
 	<cftransaction>
@@ -1158,6 +1161,147 @@
 		</cfif>
 	</cftransaction>
 	<cfreturn true>
+</cffunction>
+
+<!--- ********************************************************************************************************************
+	Trusted commenters (2026-11-07, owner: "auto approve posts from certain members ... we need another interface to select
+	certain users"). The site owner picks members in the Trusted Commenters window (window 125); a comment from one of them is
+	approved straight away, but only while they are signed in as that member - the comment form's name and email can be typed by
+	anyone, the member sign-in can't (it takes the one-time link sent to their inbox). Nobody is on the list until the owner adds
+	them. The list is its own table (TrustedCommenter), so a member's record is unchanged; it makes itself on first use.
+********************************************************************************************************************* --->
+
+<cffunction name="getTrustedCommenter" access="public" returntype="struct" output="false"
+		hint="The signed-in member when they are on the Trusted Commenters list, otherwise an empty struct. Used when a comment is posted.">
+	<cfset var member = getCurrentMember()>
+	<cfif structIsEmpty(member) or not isTrustedCommenter(member.memberId)>
+		<cfreturn {}>
+	</cfif>
+	<cfreturn member>
+</cffunction>
+
+<cffunction name="isTrustedCommenter" access="public" returntype="boolean" output="false">
+	<cfargument name="memberId" type="numeric" required="true">
+	<cfset var found = "">
+	<cftry>
+		<cfset ensureTrustedTable()>
+		<cfset found = queryExecute("SELECT TrustedCommenterId FROM TrustedCommenter WHERE BlogRef = :blogId AND MemberRef = :memberId",
+			{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" } })>
+		<cfreturn found.recordCount gt 0>
+		<cfcatch type="any">
+			<cflog file="galaxieMembers" type="error" text="The Trusted Commenters list could not be read: #cfcatch.message#">
+			<cfreturn false>
+		</cfcatch>
+	</cftry>
+</cffunction>
+
+<cffunction name="getTrustedCommenters" access="public" returntype="array" output="false"
+		hint="The Trusted Commenters window's list, newest first: [{ memberId, name, email, status, added (yyyy-mm-dd), addedBy, comments }]. comments = their comments showing (approved) since they were added; a comment that only typed their email waits, so it is not counted.">
+	<cfset var rows = "">
+	<cfset var list = []>
+	<cfset var params = { blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" } }>
+	<cftry>
+		<cfset ensureTrustedTable()>
+		<cfset rows = queryExecute("
+			SELECT t.MemberRef, t.Added, t.AddedBy, m.Name, m.Email, m.Status,
+				(SELECT COUNT(*) FROM Comment c INNER JOIN Commenter r ON r.CommenterId = c.CommenterRef
+				 WHERE c.BlogRef = t.BlogRef AND LOWER(r.Email) = LOWER(m.Email) AND c.DatePosted >= t.Added AND c.Approved = 1) AS CommentCount
+			FROM TrustedCommenter t INNER JOIN BlogMember m ON m.MemberId = t.MemberRef
+			WHERE t.BlogRef = :blogId
+			ORDER BY t.Added DESC", params)>
+		<cfloop query="rows">
+			<cfset arrayAppend(list, {
+				"memberId": rows.MemberRef,
+				"name": len(trim(rows.Name)) ? trim(rows.Name) : rows.Email,
+				"email": rows.Email,
+				"status": len(trim(rows.Status)) ? rows.Status : "active",
+				"added": isDate(rows.Added) ? dateFormat(rows.Added, "yyyy-mm-dd") : "",
+				"addedBy": rows.AddedBy ?: "",
+				"comments": val(rows.CommentCount)
+			})>
+		</cfloop>
+		<cfcatch type="any"><cflog file="galaxieMembers" type="error" text="The Trusted Commenters list could not be read: #cfcatch.message#"></cfcatch>
+	</cftry>
+	<cfreturn list>
+</cffunction>
+
+<cffunction name="findMembersToTrust" access="public" returntype="array" output="false"
+		hint="The Trusted Commenters window's Add a person search: active members who have signed in at least once (their address is confirmed by the emailed link) and aren't on the list, matching a name or email. [{ memberId, name, email }], at most 20.">
+	<cfargument name="term" type="string" required="false" default="">
+	<cfset var rows = "">
+	<cfset var list = []>
+	<cfset var term = lCase(trim(arguments.term))>
+	<cftry>
+		<cfset ensureTrustedTable()>
+		<cfset rows = queryExecute("
+			SELECT m.MemberId, m.Name, m.Email
+			FROM BlogMember m
+			WHERE m.BlogRef = :blogId AND m.EmailVerified = :yes AND (m.Status IS NULL OR m.Status = 'active')
+				AND m.MemberId NOT IN (SELECT t.MemberRef FROM TrustedCommenter t WHERE t.BlogRef = :blogId)" &
+				(len(term) ? " AND (LOWER(m.Name) LIKE :term OR LOWER(m.Email) LIKE :term)" : "") & "
+			ORDER BY m.Name, m.Email",
+			{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, yes = { value = 1, cfsqltype = "cf_sql_bit" },
+			  term = { value = "%" & left(term, 100) & "%", cfsqltype = "cf_sql_varchar" } },
+			{ maxrows = 20 })>
+		<cfloop query="rows">
+			<cfset arrayAppend(list, { "memberId": rows.MemberId, "name": len(trim(rows.Name)) ? trim(rows.Name) : rows.Email, "email": rows.Email })>
+		</cfloop>
+		<cfcatch type="any"><cflog file="galaxieMembers" type="error" text="Members could not be searched for the Trusted Commenters list: #cfcatch.message#"></cfcatch>
+	</cftry>
+	<cfreturn list>
+</cffunction>
+
+<cffunction name="addTrustedCommenter" access="public" returntype="struct" output="false" hint="Adds a member to the Trusted Commenters list. { success, message }">
+	<cfargument name="memberId" type="numeric" required="true">
+	<cfset var member = getMember(arguments.memberId)>
+	<cfset var entity = "">
+	<cfif structIsEmpty(member)>
+		<cfreturn { success: false, message: "That member no longer exists." }>
+	</cfif>
+	<cfif member.status neq "active">
+		<cfreturn { success: false, message: "That member is blocked. Unblock them in the Members window first." }>
+	</cfif>
+	<!--- Only someone whose address the sign-in link has confirmed. --->
+	<cfset entity = entityLoadByPK("BlogMember", javacast("int", arguments.memberId))>
+	<cfif isNull(entity) or not (isBoolean(entity.getEmailVerified() ?: false) and entity.getEmailVerified())>
+		<cfreturn { success: false, message: "That member hasn't signed in yet, so their email address isn't confirmed." }>
+	</cfif>
+	<cfif isTrustedCommenter(arguments.memberId)>
+		<cfreturn { success: true, message: "" }>
+	</cfif>
+	<cfset queryExecute("INSERT INTO TrustedCommenter (BlogRef, MemberRef, Added, AddedBy) VALUES (:blogId, :memberId, :now, :addedBy)",
+		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" },
+		  now = { value = now(), cfsqltype = "cf_sql_timestamp" }, addedBy = { value = left(session.userName ?: "", 125), cfsqltype = "cf_sql_varchar" } })>
+	<cflog file="galaxieMembers" type="information" text="Member #arguments.memberId# was added to the Trusted Commenters list by #session.userName ?: "?"#.">
+	<cfreturn { success: true, message: "" }>
+</cffunction>
+
+<cffunction name="removeTrustedCommenter" access="public" returntype="boolean" output="false" hint="Takes a member off the Trusted Commenters list: their next comment waits for approval again.">
+	<cfargument name="memberId" type="numeric" required="true">
+	<cfset ensureTrustedTable()>
+	<cfset queryExecute("DELETE FROM TrustedCommenter WHERE BlogRef = :blogId AND MemberRef = :memberId",
+		{ blogId = { value = application.BlogDbObj.getBlogId(), cfsqltype = "cf_sql_integer" }, memberId = { value = arguments.memberId, cfsqltype = "cf_sql_integer" } })>
+	<cflog file="galaxieMembers" type="information" text="Member #arguments.memberId# was taken off the Trusted Commenters list by #session.userName ?: "?"#.">
+	<cfreturn true>
+</cffunction>
+
+<cffunction name="ensureTrustedTable" access="private" returntype="void" output="false" hint="Creates the TrustedCommenter table if it isn't there yet, once per application start.">
+	<cfset var updaterPath = "">
+	<cfset var updater = "">
+	<cfif structKeyExists(variables, "trustedTableReady")>
+		<cfreturn>
+	</cfif>
+	<cfset updaterPath = len(application.baseProxyUrl) ? application.baseComponentPath & ".common.cfc.DatabaseUpdater" : "common.cfc.DatabaseUpdater">
+	<cfset updater = createObject("component", updaterPath).init(application.rootDirectoryPath, application.blogIniPath)>
+	<cfif not len(application.databaseType ?: "")>
+		<cfset application.databaseType = getProfileString(application.blogIniPath, "default", "databaseType")>
+	</cfif>
+	<cfset updater.createTableIfMissing("TrustedCommenter", {
+		sqlServer: "CREATE TABLE TrustedCommenter (TrustedCommenterId INT IDENTITY(1,1) NOT NULL PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, Added DATETIME NOT NULL, AddedBy NVARCHAR(125) NULL)",
+		mySql: "CREATE TABLE TrustedCommenter (TrustedCommenterId INT NOT NULL AUTO_INCREMENT PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, Added DATETIME NOT NULL, AddedBy VARCHAR(125) NULL) DEFAULT CHARSET=utf8mb4",
+		postgre: "CREATE TABLE TrustedCommenter (TrustedCommenterId SERIAL PRIMARY KEY, BlogRef INT NOT NULL, MemberRef INT NOT NULL, Added TIMESTAMP NOT NULL, AddedBy VARCHAR(125) NULL)"
+	})>
+	<cfset variables.trustedTableReady = true>
 </cffunction>
 
 <!--- ********************************************************************************************************************
