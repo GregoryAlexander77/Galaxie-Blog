@@ -1239,6 +1239,12 @@
 				var windowHeight = "<cfif session.isMobile>92%<cfelse>860px</cfif>";
 				var windowWidth = "<cfif session.isMobile>98%<cfelse>940px</cfif>";
 				var windowTitle = "Moving hero";
+			} else if (Id == 126){
+				// Reply to a comment (11-07, owner): see admin/adminInterface/commentReply.cfm. Closes when the reply is sent.
+				var windowName = "commentReplyWindow";
+				var windowHeight = "<cfif session.isMobile>90%<cfelse>65%</cfif>";
+				var windowWidth = "<cfif session.isMobile>95%<cfelse>50%</cfif>";
+				var windowTitle = "Reply to a comment";
 			} else if (Id == 125){
 				// Trusted Commenters (11-07, owner): see admin/adminInterface/trustedCommenters.cfm.
 				var windowName = "trustedCommentersWindow";

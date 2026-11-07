@@ -1241,6 +1241,10 @@ window (enclosureImageEditor.cfm galaxieOpenMovingHero). --->
 <cfcase value=119>
 	<cfinclude template="../../admin/adminInterface/movingHeroWizard.cfm">
 </cfcase>
+<!--- 126 Reply to a comment (11-07, owner): from the Comments grid's Reply button and the comment's detail window. optArgs = commentId. --->
+<cfcase value=126>
+	<cfinclude template="../../admin/adminInterface/commentReply.cfm">
+</cfcase>
 <!--- 125 Trusted Commenters (11-07, owner): members whose comments are approved straight away while they're signed in. --->
 <cfcase value=125>
 	<cfinclude template="../../admin/adminInterface/trustedCommenters.cfm">

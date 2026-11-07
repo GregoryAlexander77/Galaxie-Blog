@@ -12432,6 +12432,74 @@
 	</cffunction>
 
 	<!--- ************************************************************************************************************
+		Reply to a comment from the admin site (window 126, 2026-11-07, owner: a Reply button in the Comments grid that opens its own
+		window, closed when the reply is sent). The reply is posted as the signed-in admin through the same path as a reply from the
+		post page (postCommentSubscribe), so it shows straight away and the person it answers gets the reply email. The name and
+		email come from the admin's own account, never from the browser.
+	************************************************************************************************************* --->
+	<cffunction name="adminReplyToComment" access="remote" returnformat="json" output="false" hint="Posts the signed-in admin's reply to a comment, approving the comment first when asked.">
+		<cfargument name="csrfToken" type="string" default="" required="true">
+		<cfargument name="commentId" required="false" default="0">
+		<cfargument name="comments" type="string" required="false" default="" hint="The reply, packed in the browser (bypassScriptProtection) as the comment window sends it.">
+		<cfargument name="approveComment" required="false" default="false" hint="Approve the comment being answered first, if it is waiting.">
+		<cfset var response = { "success": false, "message": "" }>
+		<cfset var parent = []>
+		<cfset var admin = "">
+		<cfset var name = "">
+		<cfset var email = "">
+		<cfset var website = "">
+		<cfset var posted = "">
+		<cfif (not isdefined("arguments.csrfToken")) or (not verifyCsrfToken(arguments.csrfToken))>
+			<cfset response = "Invalid token">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset secureFunction('EditComment')>
+		<cfif not (application.Udf.isLoggedIn() and isValid("integer", arguments.commentId) and arguments.commentId gt 0)>
+			<cfset response[ "message" ] = "Please sign in again.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfif not len(trim(application.Udf.unpackFromBrowser(arguments.comments)))>
+			<cfset response[ "message" ] = "Write your reply first.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfset parent = application.blog.getComment(val(arguments.commentId))>
+		<cfif not arrayLen(parent)>
+			<cfset response[ "message" ] = "That comment no longer exists.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<!--- The admin's own name, email and website (as the comment window fills them in for a signed-in admin). --->
+		<cfif structKeyExists(session, "userName") and len(session.userName)>
+			<cfset admin = entityLoad("Users", { UserName = session.userName }, true)>
+			<cfif not isNull(admin)>
+				<cfset name = len(trim(admin.getDisplayName() ?: "")) ? trim(admin.getDisplayName()) : trim(admin.getFullName() ?: "")>
+				<cfset email = trim(admin.getEmail() ?: "")>
+				<cfset website = trim(admin.getWebsite() ?: "")>
+			</cfif>
+		</cfif>
+		<cfif not len(name) or not isValid("email", email)>
+			<cfset response[ "message" ] = "Your account needs a name and an email address to reply. Add them in Users.">
+			<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+		</cfif>
+		<cfif len(website) and not isValid("URL", website)><cfset website = ""></cfif>
+		<!--- Approve the comment first, the same way the grid's Save does (the reply email and the post's subscribers included). --->
+		<cfif isBoolean(arguments.approveComment) and arguments.approveComment and not (parent[1]["Approved"] eq true)>
+			<cfset updateCommentViaKendoGrid(csrfToken = arguments.csrfToken, models = serializeJSON([ { "CommentId": val(arguments.commentId), "Approved": true } ]))>
+		</cfif>
+		<cfset posted = postCommentSubscribe(csrfToken = arguments.csrfToken, postId = parent[1]["PostId"], uiInterface = "addComment",
+			postTitle = parent[1]["PostTitle"], commenterName = name, commenterEmail = email, commenterWebSite = website,
+			comments = arguments.comments, subscribe = false, rememberMe = false, parentCommentId = val(arguments.commentId))>
+		<cfif isSimpleValue(posted) and isJSON(posted)><cfset posted = deserializeJSON(posted)></cfif>
+		<!--- postCommentSubscribe leaves success true when a check fails (it reports each check, and errorMessage, instead). --->
+		<cfif isStruct(posted) and (posted.success ?: false) and not len(trim(posted.errorMessage ?: ""))
+			and (posted.validComment ?: true) and (posted.validName ?: true) and (posted.validEmail ?: true) and (posted.validCaptcha ?: true) and (posted.dbSuccess ?: true)>
+			<cfset response[ "success" ] = true>
+		<cfelse>
+			<cfset response[ "message" ] = isStruct(posted) and len(trim(posted.errorMessage ?: "")) ? posted.errorMessage : "The reply could not be posted.">
+		</cfif>
+		<cfif application.serverProduct eq 'Lucee'><cfreturn response><cfelse><cfreturn serializeJSON(response)></cfif>
+	</cffunction>
+
+	<!--- ************************************************************************************************************
 		Trusted Commenters (window 125, 2026-11-07): members whose comments are approved straight away while they're signed in.
 	************************************************************************************************************* --->
 

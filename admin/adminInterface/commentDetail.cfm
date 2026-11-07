@@ -182,6 +182,8 @@
 		  <tr>
 			<td colspan="2" class="#blockClass#">
 				<button id="commentDetailSubmit" class="k-button k-primary" type="button">Submit</button>
+				<!--- Reply (2026-11-07): answer this comment in its own window (126). --->
+				<button class="k-button" type="button" onclick="createAdminInterfaceWindow(126, <cfoutput>#val(URL.optArgs)#</cfoutput>);">Reply</button>
 			</td>
 		  </tr>
 		</table>
@@ -340,6 +342,8 @@
 			<td class="#blockClass#"></td>
 			<td class="#blockClass#">
 				<button id="commentDetailSubmit" class="k-button k-primary" type="button">Submit</button>
+				<!--- Reply (2026-11-07): answer this comment in its own window (126). --->
+				<button class="k-button" type="button" onclick="createAdminInterfaceWindow(126, <cfoutput>#val(URL.optArgs)#</cfoutput>);">Reply</button>
 			</td>
 		  </tr>
 		</table>

@@ -16,7 +16,7 @@
 <head><cfoutput>
 	<script type="text/javascript" src="#application.baseUrl#/common/libs/dayjs/dayjs.min.js"></script>
 	</cfoutput>
-	<p>All columns are sortable and searchable/filterable. Check/uncheck Approved and click Save on the toolbar to approve or unapprove comments (in bulk if you like). Click View to see the full comment and post details, or Delete to remove a comment right away. Comments from people on your <a href="javascript:createAdminInterfaceWindow(125);">Trusted Commenters</a> list appear without waiting for approval.</p>
+	<p>All columns are sortable and searchable/filterable. Check/uncheck Approved and click Save on the toolbar to approve or unapprove comments (in bulk if you like). Click View to see the full comment and post details, Delete to remove a comment right away, or Reply to answer it. Comments from people on your <a href="javascript:createAdminInterfaceWindow(125);">Trusted Commenters</a> list appear without waiting for approval.</p>
 </head>
 <body>
 
@@ -150,14 +150,22 @@
 					<!--- Not Kendo's own "destroy": the grid is in batch mode (for approving several comments with Save), so destroy
 					only queued the delete until Save was clicked - the row vanished, but the comment came back on the next visit
 					(2026-10-14). This deletes at once. --->
-					{ name: "deleteNow", iconClass: "k-icon k-i-close", text: "Delete", click: deleteCommentNow }
+					{ name: "deleteNow", iconClass: "k-icon k-i-close", text: "Delete", click: deleteCommentNow },
+					<!--- Reply (2026-11-07): the admin answers the comment in its own window (126). --->
+					{ name: "replyNow", iconClass: "k-icon k-i-undo", text: "Reply", click: replyToComment }
 				],
 				title: "&nbsp;",
-				width: "<cfif session.isMobile>10<cfelse>155</cfif>px"
+				width: "<cfif session.isMobile>10<cfelse>235</cfif>px"
 			}]
 		});
 
 	});//document ready
+
+	function replyToComment(e) {
+		e.preventDefault();
+		var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+		createAdminInterfaceWindow(126, dataItem['CommentId']);
+	}
 
 	function showCommentDetails(e) {
 		e.preventDefault();

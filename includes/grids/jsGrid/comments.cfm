@@ -13,7 +13,7 @@
 	</cfoutput><!-- Fontawesome css -->
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 	
-	<p>All columns are sortable and most are searchable. To search, enter the search term on top of the column and click the search link at the right of the page. You can also approve a comment by clicking the edit icon, selecting the comment that you wish to approve, and click on the update checkmark on the right of the page. Additionally, you can view or edit the comment or post details by clicking on one of the links. Comments from people on your <a href="javascript:createAdminInterfaceWindow(125);">Trusted Commenters</a> list appear without waiting for approval.</p>
+	<p>All columns are sortable and most are searchable. To search, enter the search term on top of the column and click the search link at the right of the page. You can also approve a comment by clicking the edit icon, selecting the comment that you wish to approve, and click on the update checkmark on the right of the page. Additionally, you can view or edit the comment or post details by clicking on one of the links, or answer a comment with its Reply button. Comments from people on your <a href="javascript:createAdminInterfaceWindow(125);">Trusted Commenters</a> list appear without waiting for approval.</p>
 	
 	<style>
 		body {
@@ -227,14 +227,14 @@
 					type: "text",
 					title: "Commenter",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>20<cfelse>15</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>20<cfelse>13</cfif>/100)),
 				},
 				<cfif not session.isMobile>
 				{ name: "PostTitle", 
 					type: "text",
 					title: "Post",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>21<cfelse>20</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>21<cfelse>18</cfif>/100)),
 					itemTemplate: function(value, item) {
 					  return '<a href="javascript:createAdminInterfaceWindow(6, ' + item.PostId + ');">' + value + '</a>';
 					}
@@ -245,7 +245,7 @@
 					type: "textarea",
 					title: "Comment",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>30<cfelse>37</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>24<cfelse>26</cfif>/100)),
 					itemTemplate: function(value, item) {
 						<!--- This does not work to strip out the HTML ($(value).text()) --->
 					  	return '<a href="javascript:createAdminInterfaceWindow(2, ' + item.CommentId + ');">' + cleanCommentString(value) + '</a>';
@@ -257,7 +257,7 @@
 					type: "date",
 					title: "Posted",
 					editing: false,
-					width: (pageWidth*(<cfif session.isMobile>10<cfelse>13</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>10<cfelse>12</cfif>/100)),
 					itemTemplate: function (value, item) {
 						<!--- Format the date using the momentJs lib. --->
 						return dayjs(item.DatePosted).format('MM/DD/YYYY h:mm A');
@@ -269,12 +269,27 @@
 					type: "checkbox",
 					<!--- We don't have the room on mobile to put in the approved string. Use a thumbs up icon instead. --->
 					title: '<cfif session.isMobile><i class="fas fa-thumbs-up"></i><cfelse>Approved</cfif>',
-					width: (pageWidth*(<cfif session.isMobile>5<cfelse>9</cfif>/100)),
+					width: (pageWidth*(<cfif session.isMobile>5<cfelse>7</cfif>/100)),
 					<!---editTemplate: function(value, item) {
 						return "<input type='checkbox'>" + item.Approved;
 					}--->
 				},
-				{ 
+				<!--- Reply (2026-11-07): the admin answers the comment in its own window (126). --->
+				{
+					title: "",
+					sorting: false,
+					filtering: false,
+					editing: false,
+					inserting: false,
+					width: (pageWidth*(<cfif session.isMobile>6<cfelse>9</cfif>/100)),
+					itemTemplate: function(value, item) {
+						return $('<button type="button" class="k-button normalFontWeight" title="Reply to this comment"><i class="fas fa-reply"></i><cfif not session.isMobile> Reply</cfif></button>').on("click", function(e) {
+							e.stopPropagation();
+							createAdminInterfaceWindow(126, item.CommentId);
+						});
+					}
+				},
+				{
 					type: "control",
 					width: (pageWidth*(14/100)),
 				}
