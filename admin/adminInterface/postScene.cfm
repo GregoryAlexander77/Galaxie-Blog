@@ -7,6 +7,8 @@ Edit open the Scene editor (107); when it saves, this window reloads with that s
 <cfset postSceneScenes = application.blog.getScenes()>
 <cfset postSceneCurrent = postSceneScenes.getPostScene(postSceneId)>
 <cfset postSceneList = postSceneScenes.listScenes()>
+<!--- Scrolling scenes only (11-07, owner): a moving hero belongs to its own post, so it isn't offered for another one. --->
+<cfset postSceneList = queryFilter(postSceneList, function (row) { return not reFindNoCase("^post-hero-[0-9]+$", row.Alias); })>
 <!--- Each scene with its own data, for the cards. Put together as text so the keys keep their case on Adobe ColdFusion. --->
 <cfset postSceneParts = []>
 <cfloop query="postSceneList">
