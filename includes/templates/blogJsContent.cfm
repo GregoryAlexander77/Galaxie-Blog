@@ -553,6 +553,7 @@
 				setTimeout(function() { kendo.ui.ExtWaitDialog.hide(); }, 500);
 
 				if (!uppyResponse) { return; }
+				try { window.galaxieRemoveDeadEditors(); } catch (e) {}
 
 				// Insert into whichever TinyMCE editor is currently active - the existing NodeChange listener in
 				// tinyMce.cfm takes it from here (clears any prior enclosure image/video, saves the new URL),
@@ -611,7 +612,20 @@
 			});
 		}
 
+		<!--- Text editors left behind by closed windows (11-06): a window's destroy doesn't remove its TinyMCE editor, so the editor lived
+		on with no page under it, and code that asked for "the Hero window's editor" or tinymce.activeEditor got the dead one and failed
+		(the Cover window didn't close on the first Submit). Removed when a window opens and before an upload hands its picture back. --->
+		window.galaxieRemoveDeadEditors = function () {
+			if (!window.tinymce || !tinymce.editors) { return; }
+			$.each(tinymce.editors.slice(), function (i, ed) {
+				var box = null;
+				try { box = ed.getContainer(); } catch (e) {}
+				if (!box || !document.body.contains(box)) { try { ed.remove(); } catch (e) { try { tinymce.remove(ed); } catch (e2) {} } }
+			});
+		};
+
 		function createAdminInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) {
+			try { window.galaxieRemoveDeadEditors(); } catch (e) {}
 			/* Note: the Id is the window, optArgs generally is the post or comment id, otherArgs typically is the name of the tinymce widget, and otherArgs 1 is generally the id of the widget in the database (ie. the mapId). The arguments were meant to be generic. */
 			
 			// Initialize non required args

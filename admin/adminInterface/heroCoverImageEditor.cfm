@@ -105,7 +105,13 @@ are off, and Edit picture on the ribbon opens the real picture in the Upload Ima
   <!-- Description -->
   <tr valign="middle">
 	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>" style="padding: 8px 12px;">
-		<span>A real photo to show on cards, listings, and when this post is shared on social media - for a post whose hero is a Gradient, a live Animation, or the auto-generated fallback art (none of which have a real photo of their own to show there). When set, this always takes priority over the Gradient/Animation on cards and social sharing, but never on this post's own page - the live Gradient/Animation there is unaffected. If the post has a real Image/Video/Map/Carousel enclosure instead, that enclosure is used everywhere and this cover image is ignored.</span>
+		<!--- The rules as they are since the hero pipeline (11-06, owner; Hero.cfc). --->
+		<span>The picture for this post's cards and for sharing on Facebook, X, Pinterest and Google. It never shows on the post's own page.</span>
+		<ul style="margin: 6px 0 0 18px; padding: 0;">
+			<li>A gradient, animation, moving hero or scene: the cover is the picture on cards and when shared.</li>
+			<li>A video, map or carousel: cards show the video, map or carousel itself, and the cover is the picture when shared.</li>
+			<li>A picture: the hero picture is used everywhere, so the cover isn't needed.</li>
+		</ul>
 		<div class="k-form-hint">Click the picture to crop, rotate or flip it.</div>
 	</td>
   </tr>

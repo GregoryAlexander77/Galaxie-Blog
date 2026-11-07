@@ -468,7 +468,7 @@
 							</table>
 							<p class="postAuthor">
 								<span class="info">
-									<cfif len(fullName) and not postIsBookingPage><cfif len(authorPicture)><img src="#encodeForHtmlAttribute(authorPicture)#" alt="" class="authorPicture" width="20" height="20" loading="lazy"></cfif>by <a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
+									<cfif len(fullName) and not postIsBookingPage><cfif len(authorPicture)><img src="#encodeForHtmlAttribute(authorPicture)#" alt="" class="authorPicture" width="20" height="20" loading="lazy"><span class="authorBy">by </span><cfelse>by </cfif><a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
 								</span>
 							</p>							
 						</cfif><!---<cfif session.isMobile>--->

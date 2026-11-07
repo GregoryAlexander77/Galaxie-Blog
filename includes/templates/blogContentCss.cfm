@@ -590,8 +590,11 @@
 		  vertical-align: middle;
 		  margin: 0 6px 2px 0;
 		}
+		/* With the picture, no "by" (2026-11-06, owner: the picture says who it is). Phones hide the picture, so they keep "by". */
+		img.authorPicture + .authorBy { display: none; }
 		@media (max-width: 767px) {
 		  img.authorPicture { display: none; }
+		  img.authorPicture + .authorBy { display: inline; }
 		}
 
 		.blogPost p.postAuthor {

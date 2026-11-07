@@ -186,7 +186,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 					</td>
 					<td colspan="3">
 						<button type="button" class="k-button normalFontWeight" onclick="createAdminInterfaceWindow(109, <cfoutput>#val(URL.optArgs)#</cfoutput>);"><i class="fontAwesomeIcon fas fa-heading" style="margin-right: 4px;"></i> Hero text...</button>
-						<span style="margin-left: 8px;" id="animationHeroTextSummary"><cfoutput>#len(existingOverlayText) ? encodeForHtml(existingOverlayText) : "None"#</cfoutput></span>
+						<span style="margin-left: 8px; display: inline-block; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;" id="animationHeroTextSummary" title="<cfoutput>#encodeForHtmlAttribute(existingOverlayText)#</cfoutput>"><cfoutput>#len(existingOverlayText) ? encodeForHtml(existingOverlayText) : "None"#</cfoutput></span>
 					</td>
 				</tr>
 				</cfif>
@@ -479,7 +479,14 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 	typeof check tells them apart with no effect-specific key list needed - same convention
 	tailEndScripts.cfm's and preview/heroAnimation.cfm's own copies of this logic now use too, 2026-10-03. --->
 	function refreshAnimationPreview() {
-		if ($("#animationEffect").val() === "RANDOM") { $("#animationPreviewWrap").html('<p style="padding:20px;">A random Vanta effect is picked for each post.</p>'); return; }
+		<!--- Random: the note goes beside the hero text layer (11-06). It used to replace everything in the preview, the hero text layer
+		too, so the heading and the Hero text label stopped updating; and the note stayed under the next effect picked. --->
+		$("#animationPreviewWrap .animationRandomNote").remove();
+		if ($("#animationEffect").val() === "RANDOM") {
+			if (liveAnimationEffect) { try { liveAnimationEffect.destroy(); } catch (e) {} liveAnimationEffect = null; }
+			$("#animationPreviewWrap").append('<p class="animationRandomNote" style="padding: 20px; position: relative;">A random Vanta effect is picked for each post.</p>');
+			return;
+		}
 		if (!window.VANTA) { return; }
 		var effect = $("#animationEffect").val();
 		var options = collectAnimationOptions();
@@ -501,16 +508,19 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 	when the Hero text window saves. --->
 	function refreshAnimationOverlayPreview() {
 		var span = $("#animationOverlayPreview");
-		if (!span.length) { return; }
 		jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=getHeroTextPreview", dataType: "json",
 			data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: <cfoutput>#val(URL.optArgs)#</cfoutput> } })
 			.done(function (response) {
 				if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
 				var html = (response && response.html) || "";
-				if (!html) { span.hide().empty(); $("#animationHeroTextSummary").text("None"); return; }
+				if (!html) { span.hide().empty(); $("#animationHeroTextSummary").text("None").attr("title", ""); return; }
+				<!--- The label first: the heading only, without its second line. --->
+				var heading = $("<div>").html(html).find(".galaxieHeroText");
+				var headingText = $.trim(heading.clone().children().remove().end().text() || heading.text());
+				$("#animationHeroTextSummary").text(headingText).attr("title", headingText);
+				if (!span.length) { return; }
 				span.html(html).css("display", "flex");
 				var text = span.find(".galaxieHeroText");
-				$("#animationHeroTextSummary").text(text.clone().children().remove().end().text() || text.text());
 				text.css({ width: "90%", zoom: Math.max(0.35, Math.min(1, ($("#animationPreviewWrap").width() || 600) / 1100)) });
 			});
 	}
@@ -534,6 +544,8 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 			$('<tr class="blockSpacer"><td colspan="4" class="border ' + cls + '"></td></tr>').insertBefore(this);
 			alt = !alt;
 		});
+		<!--- And one after the last row, between the settings and Submit (11-06, owner). --->
+		table.children("tbody").append('<tr class="blockSpacer"><td colspan="4" class="border ' + (alt ? "k-alt" : "k-content") + '"></td></tr>');
 	}
 
 	function applyEffectParams() {

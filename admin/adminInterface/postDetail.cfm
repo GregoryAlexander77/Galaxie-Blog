@@ -94,8 +94,8 @@
 		</cfif>
 	</cfif>
 	
-	<!--- Render the thumnbail HTML. Pass in the getPost obj and if you want to render the thumbnail --->
-	<cfset thumbnailHtml = RendererObj.renderMediaPreview(kendoTheme, getPost, true)>
+	<!--- (11-06) A hero preview was rendered here and never used (heroCoverBlock.cfm draws the hero). It also used up the moving
+	gradient's styles, which Renderer.cfc writes once per request, so the real preview below lost its gradient. --->
 		
 	<cfif not arrayLen(getPost)>
 		<p>Post does not exist</p>

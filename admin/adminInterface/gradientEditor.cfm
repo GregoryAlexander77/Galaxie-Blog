@@ -248,7 +248,7 @@ just store a name. --->
 					<td class="#blockClass#" align="right">Hero text:</td>
 					<td class="#blockClass#">
 						<button type="button" class="k-button normalFontWeight" onclick="createAdminInterfaceWindow(109, #val(URL.optArgs)#);"><i class="fontAwesomeIcon fas fa-heading" style="margin-right: 4px;"></i> Hero text...</button>
-						<span style="margin-left: 8px;" id="gradientHeroTextSummary">#len(existingOverlayText) ? encodeForHtml(existingOverlayText) : "None"#</span>
+						<span style="margin-left: 8px; display: inline-block; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;" id="gradientHeroTextSummary" title="#encodeForHtmlAttribute(existingOverlayText)#">#len(existingOverlayText) ? encodeForHtml(existingOverlayText) : "None"#</span>
 					</td>
 				</tr>
 				</cfif>
@@ -346,6 +346,8 @@ just store a name. --->
 					</td>
 				</tr>
 				</cfif>
+				<!--- A divider between the settings and Submit (11-06, owner). --->
+				<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 			</table>
 			</cfoutput>
 		</td>
@@ -588,10 +590,11 @@ just store a name. --->
 			.done(function (response) {
 				if (typeof response === 'string') { try { response = JSON.parse(response); } catch (e) {} }
 				var html = (response && response.html) || '';
-				if (!html) { layer.hide().empty(); $('#gradientHeroTextSummary').text('None'); return; }
+				if (!html) { layer.hide().empty(); $('#gradientHeroTextSummary').text('None').attr('title', ''); return; }
 				layer.html(html).css('display', 'flex');
 				var text = layer.find('.galaxieHeroText');
-				$('#gradientHeroTextSummary').text(text.clone().children().remove().end().text() || text.text());
+				var headingText = $.trim(text.clone().children().remove().end().text() || text.text());
+				$('#gradientHeroTextSummary').text(headingText).attr('title', headingText);
 				text.css({ width: '90%', zoom: Math.max(0.35, Math.min(1, ($('#gradientPreviewWrap').width() || 600) / 1100)) });
 			});
 	}

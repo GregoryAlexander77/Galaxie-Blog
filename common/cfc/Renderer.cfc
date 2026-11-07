@@ -1218,7 +1218,9 @@
 		<!--- The author's picture in a small circle before "by" (2026-11-04, owner): only when the author has one; computers only (blogContentCss.cfm .authorPicture). --->
 		<cfset var picture = trim(arguments.post["ProfilePicture"] ?: "")>
 		<cfif len(fullName)>
-			<cfset arrayAppend(parts, (len(picture) ? '<img src="' & encodeForHtmlAttribute(picture) & '" alt="" class="authorPicture" width="20" height="20" loading="lazy">' : '') & 'by <a href="' & encodeForHtmlAttribute(application.blog.makeUserLink(fullName)) & '" class="k-content">' & encodeForHtml(shownName) & '</a>')>
+			<!--- With the author's picture, no "by" on computers (11-06, owner): the picture says who it is. Phones hide the picture, so
+			they keep "by" (blogContentCss.cfm .authorBy). --->
+			<cfset arrayAppend(parts, (len(picture) ? '<img src="' & encodeForHtmlAttribute(picture) & '" alt="" class="authorPicture" width="20" height="20" loading="lazy"><span class="authorBy">by </span>' : 'by ') & '<a href="' & encodeForHtmlAttribute(application.blog.makeUserLink(fullName)) & '" class="k-content">' & encodeForHtml(shownName) & '</a>')>
 		</cfif>
 		<cfif not isPage and isDate(posted)>
 			<cfset arrayAppend(parts, '<time datetime="' & dateFormat(posted, "yyyy-mm-dd") & '">' & dateFormat(posted, "mmm d, yyyy") & '</time>')>

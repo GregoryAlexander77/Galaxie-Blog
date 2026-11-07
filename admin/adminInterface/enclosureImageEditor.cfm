@@ -533,7 +533,10 @@
 			$("#heroTextLine").load("<cfoutput>#application.baseUrl#</cfoutput>/admin/loadPreview.cfm?previewId=6&optArgs=<cfoutput>#URL.optArgs#</cfoutput>");
 			$("#heroStatus").load("<cfoutput>#application.baseUrl#</cfoutput>/admin/loadPreview.cfm?previewId=5&optArgs=<cfoutput>#URL.optArgs#</cfoutput>");
 			var editor = window.tinymce && tinymce.get("<cfoutput>#selectorName#</cfoutput>");
-			if (!editor) { return; }
+			<!--- Not when this window has closed (11-06): its editor can outlive it, with no page under it. --->
+			var editorBox = null;
+			try { editorBox = editor && editor.getContainer(); } catch (e) {}
+			if (!editor || !editorBox || !document.body.contains(editorBox)) { return; }
 			<!--- data-mce-p-data-type too: the editor renames a frame's data-type when it wraps it (11-05). --->
 			var keep = 'img:not([data-type]), img[data-type="image"][data-id]:not([data-id=""]), [data-type="video"], [data-type="carousel"], [data-type="map"], [data-type="mapRoute"], [data-mce-p-data-type="video"], [data-mce-p-data-type="carousel"], [data-mce-p-data-type="map"], [data-mce-p-data-type="mapRoute"]';
 			<!--- A moving hero's layers are pictures too, but part of this preview, not a hero picture (11-05). --->
@@ -762,7 +765,7 @@
 					var editorId = "<cfoutput>#selectorName#</cfoutput>", postId = <cfoutput>#val(URL.optArgs)#</cfoutput>, html = "";
 					function frameDoc(editor) { try { return editor.getDoc(); } catch (e) { return null; } }
 					function place(editor) {
-						var doc = frameDoc(editor); if (!doc || !doc.body) { return; }
+						var doc = frameDoc(editor); if (!doc || !doc.body || !doc.defaultView) { return; }
 						var layer = doc.getElementById("galaxieHeroTextLayer");
 						if (!html) { if (layer) { layer.remove(); } return; }
 						// A video, map or carousel hero shows no hero text on the post (a carousel has its own slide text), so none here

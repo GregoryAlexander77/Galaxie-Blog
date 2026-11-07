@@ -17,6 +17,6 @@ the moving hero is saved. Needs getPost (getPostByPostId). --->
 <cfoutput>
 Hero text:
 <button type="button" class="k-button normalFontWeight" style="margin-left: 8px;" onclick="createAdminInterfaceWindow(#htWindow#, #htPostId#);"><i class="fontAwesomeIcon fas fa-heading" style="margin-right: 4px;"></i> Hero text...</button>
-<span style="margin-left: 8px;">#len(htText) ? encodeForHtml(htText) : "None"#</span>
+<span style="margin-left: 8px; display: inline-block; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;" title="#encodeForHtmlAttribute(htText)#">#len(htText) ? encodeForHtml(htText) : "None"#</span>
 <cfif htMoving.active><span class="k-form-hint" style="display: block;">The moving hero's heading, set in its Moving hero window.</span></cfif>
 </cfoutput>
