@@ -32,6 +32,10 @@
 	<cfdump var="#getMediaUrl#"></cfdump>
 	--->
 
+	<!--- The pictures the transition picker plays between: these, in their order. --->
+	<cfset carouselPickerPictures = []>
+	<cfloop array="#getMediaUrl#" item="carouselPickerRow"><cfset arrayAppend(carouselPickerPictures, carouselPickerRow["MediaUrl"] ?: "")></cfloop>
+	<cfinclude template="carouselTransitionPicker.cfm">
 	<h4>Carousel Titles and Body</h4>
 	<p>This is optional and the title and body may use HTML. If you enter text or HTML, the text will overlay the images on each carousel.</p>
 	<form id="carouselDetail" name="carouselDetail" data-role="validator">
@@ -49,60 +53,25 @@
 	<!--- Store the number of galleries that were created by the user. We'll increment this for every gallery --->
 	<input type="hidden" name="numGalleries" id="numGalleries" value="1">
 	<table align="left" class="k-content tableBorder" width="100%" cellpadding="5" cellspacing="0">
+		<!--- One Transition row with a picker (11-06, owner) in place of the Effect and Carousel Shader dropdowns. The picker plays each
+		transition between these pictures (carouselTransitionPicker.cfm). The form still sends effect and shader. --->
 		<tr>
-			<td align="right" style="width: 20%"><label for="effect">Effect:</label></td>
+			<td align="right" style="width: 20%">Transition:</td>
 			<td>
+				<input type="hidden" name="effect" id="effect" value="GL">
+				<input type="hidden" name="shader" id="shader" value="random">
+				<button type="button" class="k-button normalFontWeight" id="carouselTransitionButton"><i class="fontAwesomeIcon fas fa-wand-magic-sparkles" style="margin-right: 4px;"></i> Choose transition...</button>
+				<span id="carouselTransitionSummary" style="margin-left: 8px;">GL &middot; Random</span>
+				<span class="k-form-hint" style="display: block;">How one picture changes to the next.</span>
 				<script>
-					$("#effect").kendoDropDownList({ });
-				</script>
-				<select name="effect" id="effect" name="effect">
-					<option value="GL">GL</option>
-					<option value="slide">slide</option>
-					<option value="fade">fade</option>
-					<option value="cube">cube</option>
-					<option value="flip">flip</option>
-					<option value="coverflow">coverflow</option>
-					<option value="cards">cards</option>
-					<option value="panorama">panorama</option>
-					<option value="carousel">carousel</option>
-					<option value="shutters">shutters</option>
-					<option value="slicer">slicer</option>
-					<option value="tinder">tinder</option>
-					<option value="material">material</option>
-					<option value="creative">creative</option>
-				</select>
-				<span class="k-form-hint">How one picture changes to the next.</span>
-			</td>
-		</tr>
-		<tr>
-			<td align="right" class="border k-alt" style="width: 20%"><label for="shader">Carousel Shader:</label></td>
-			<td class="border k-alt">
-				<script>
-					$("#shader").kendoDropDownList({
+					$("#carouselTransitionButton").on("click", function () {
+						galaxieCarouselTransitionPicker({
+							pictures: <cfoutput>#replace(serializeJSON(carouselPickerPictures), "</", "<\/", "all")#</cfoutput>,
+							effect: $("#effect").val(), shader: $("#shader").val(),
+							onUse: function (effect, shader, label) { $("#effect").val(effect); $("#shader").val(shader); $("#carouselTransitionSummary").text(label); }
+						});
 					});
 				</script>
-				<select name="shader" id="shader" name="shader">
-					<option value="random">random</option>
-					<option value="dots">dots</option>
-					<option value="flyeye">flyeye</option>
-					<option value="morph x">morph x</option>
-					<option value="morph y">morph y</option>
-					<option value="page curl">page curl</option>
-					<option value="peel x">peel x</option>
-					<option value="peel y">peel y</option>
-					<option value="polygons fall">polygons fall</option>
-					<option value="polygons morph">polygons morph</option>
-					<option value="polygons wind">polygons wind</option>
-					<option value="pixelize">pixelize</option>
-					<option value="ripple">ripple</option>
-					<option value="shutters">shutters</option>
-					<option value="slices">slices</option>
-					<option value="squares">squares</option>
-					<option value="stretch">stretch</option>
-					<option value="wave x">wave x</option>
-					<option value="wind">wind</option>
-				</select>
-				<span class="k-form-hint">Only used by the GL effect.</span>
 			</td>
 		</tr>
 		<!--- The font first, then the shadow behind it (11-05, owner). --->

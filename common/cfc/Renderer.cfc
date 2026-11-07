@@ -1995,7 +1995,16 @@
 		<!--- Don't proceed if there is no data --->
 		<cfif arrayLen(getCarousel)>
 			<!--- Set the global vars --->
-			<cfset carouselEffect = getCarousel[1]["CarouselEffect"]><!---This is always GL for now.--->
+			<cfset carouselEffect = getCarousel[1]["CarouselEffect"]>
+			<!--- The effect it plays (11-06, owner: the transition picker). It was always GL whatever was saved. GL, or one of Swiper's own
+			effects in the bundle Galaxie loads; anything else (panorama, carousel, shutters, slicer, tinder and material are paid
+			add-ons that were never installed) plays as slide. --->
+			<cfset local.swiperEffect = lCase(trim(carouselEffect ?: ""))>
+			<cfif not len(local.swiperEffect) or local.swiperEffect eq "gl">
+				<cfset local.swiperEffect = "gl">
+			<cfelseif not listFind("slide,fade,cube,flip,coverflow,cards,creative", local.swiperEffect)>
+				<cfset local.swiperEffect = "slide">
+			</cfif>
 			<cfset carouselShader = getCarousel[1]["CarouselShader"]>
 			<!--- Font properties --->
 			<cfset carouselFont = getCarousel[1]["Font"]>
@@ -2267,7 +2276,7 @@
 				<script>
 					try {
 						var swiper<cfoutput>#carouselId#</cfoutput> = new Swiper("#<cfoutput>#swiperElementId#</cfoutput>", {
-							<cfif not isGridCard>modules: [SwiperGL],</cfif>
+							<cfif not isGridCard and local.swiperEffect eq "gl">modules: [SwiperGL],</cfif>
 							threshold: 5,
 							observer: true,
 							observeParents: true,
@@ -2277,15 +2286,21 @@
 							autoplay: { enabled: true },
 							grabCursor: true,
 							<!--- Cards use Swiper's plain slide effect so their images are cropped, not stretched - see .swiperCard above. --->
-							<cfif not isGridCard>
+							<cfif not isGridCard and local.swiperEffect eq "gl">
 							effect: "gl",
-							<cfif len(carouselShader)>gl: { shader: "<cfoutput>#carouselShader#</cfoutput>" },</cfif>
+							<!--- The GL library names its transitions with hyphens (morph-x, page-curl); the Carousel window saved them with a space ("morph x"),
+							so those nine never worked (11-06). Carousels already saved that way work too. --->
+							<cfif len(carouselShader)>gl: { shader: "<cfoutput>#reReplace(lCase(replace(trim(carouselShader), " ", "-", "all")), "[^a-z-]", "", "all")#</cfoutput>" },</cfif>
+							<cfelseif not isGridCard>
+							effect: "<cfoutput>#local.swiperEffect#</cfoutput>",
 							</cfif>
 							slidesPerGroupAuto: false,
+							<!--- The same settings as the transition picker's preview (carouselTransitionPicker.cfm), so what was chosen is what plays. --->
+							fadeEffect: { crossFade: true },
+							coverflowEffect: { rotate: 50, depth: 120, slideShadows: true },
 							creativeEffect: {
-							  next: { shadow: true },
-							  prev: { shadow: true },
-							  limitProgress: 5,
+							  prev: { shadow: true, translate: [0, 0, -400] },
+							  next: { translate: ["100%", 0, 0] },
 							},
 							navigation: {
 							  nextEl: '.swiper-button-next',

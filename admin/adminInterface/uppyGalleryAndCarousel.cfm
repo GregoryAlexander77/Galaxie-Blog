@@ -89,8 +89,12 @@
 		})
 		
 		<!--- Events 1) When the dashboard icon is clicked Note: there is no event when the dashboard my device button is clicked. This is a work-around. We are going to use jquery's on click event and put in the class of the button. This is required as the uppy button does not have an id. --->
+		<!--- Says what the file window is for while it is open (11-06, owner: "Please wait for the file uploader interface to respond"
+		didn't). It also closes when the file window is cancelled: no file is added then, and the message used to stay up. --->
 		$(".uppy-Dashboard-input").on('click', function(event){
-			$.when(kendo.ui.ExtWaitDialog.show({ title: "Please wait...", message: "Please wait for the file uploader interface to respond.", icon: "k-ext-information" }));
+			$.when(kendo.ui.ExtWaitDialog.show({ title: "Choose your pictures", message: "Choose one or more pictures for the <cfoutput>#selectorId#</cfoutput>. You can pick several at once.", icon: "k-ext-information" }));
+			<!--- The page gets the focus back when the file window closes, chosen or cancelled. --->
+			$(window).off("focus.galaxiePick").one("focus.galaxiePick", function () { setTimeout(function () { kendo.ui.ExtWaitDialog.hide(); }, 300); });
 		});
 		
 		<!--- 2) When a file has been uploaded to uppy --->
