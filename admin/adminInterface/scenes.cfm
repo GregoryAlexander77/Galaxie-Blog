@@ -6,6 +6,11 @@ through ProxyController.cfc. See doc/aiDraftArticles/parallaxScenesDesign.cfm. -
 <!--- Two kinds (11-07, owner): scrolling scenes, and moving heroes (alias post-hero-{postId}, made in a post's Moving hero window, one
 per post). Radio buttons above the list pick which kind it shows. A moving hero is changed in its post's Moving hero window, never
 here, so it can't be turned into a scrolling scene or end up on another post. --->
+<cftry>
+	<cfset sceneThemeRows = application.blog.getTheme(themeAlias = trim(application.blog.getSelectedThemeAlias()))>
+	<cfset sceneThemeId = arrayLen(sceneThemeRows) ? val(sceneThemeRows[1]["ThemeId"]) : 0>
+	<cfcatch type="any"><cfset sceneThemeId = 0></cfcatch>
+</cftry>
 <cfset sceneList = queryFilter(sceneAll, function (row) { return not reFindNoCase("^post-hero-[0-9]+$", row.Alias); })>
 <cfset heroList = queryFilter(sceneAll, function (row) { return reFindNoCase("^post-hero-[0-9]+$", row.Alias); })>
 <cfset heroPictures = application.blog.getScenes().getHeroPictures()>
@@ -36,6 +41,44 @@ here, so it can't be turned into a scrolling scene or end up on another post. --
 		$("input[name=sceneKind][value=" + (kind === "hero" ? "hero" : "scrolling") + "]").prop("checked", true);
 		showSceneKind(kind);
 	});
+	<!--- Theme Settings for the theme in use, scrolled to Blog Theme Style (classic or modern) and lit up for a moment (11-07). --->
+	function galaxieOpenThemeStyle(themeId) {
+		if (!themeId) { createAdminInterfaceWindow(29); return; }
+		createAdminInterfaceWindow(30, themeId);
+		var tries = 0, timer = setInterval(function () {
+			var win = $("#themeSettingsWindow"), bar = win.find("[data-role=panelbar]").data("kendoPanelBar");
+			if ((bar && win.find("input[name=themeStyle]").length) || ++tries > 40) {
+				clearInterval(timer);
+				if (!bar) { return; }
+				<!--- Theme Settings is a set of fold-out sections: open Blog Theme Style and Column Display, then scroll to the choice. --->
+				var item = win.find("[data-role=panelbar] > li").filter(function () { return /^\s*Blog Theme Style/.test($(this).children(".k-link, .k-header").first().text()); }).first();
+				if (item.length) { bar.expand(item); }
+				setTimeout(function () {
+					var row = win.find("input[name=themeStyle]").closest("tr").filter(":visible").first();
+					if (!row.length) { return; }
+					row[0].scrollIntoView({ block: "center" });
+					row.css({ outline: "2px solid #f0a020", outlineOffset: "-2px", transition: "outline-color 1s" });
+					setTimeout(function () { row.css("outline-color", "transparent"); }, 2500);
+				}, 600);
+			}
+		}, 250);
+	}
+	<!--- Blog Options at its GreenSock section (it scrolls there itself), with the setting lit up for a moment (11-07, owner). --->
+	function galaxieOpenGsapSetting() {
+		createAdminInterfaceWindow(38, "greensockanimationlibrary");
+		var tries = 0, timer = setInterval(function () {
+			var box = $("#includeGsap:visible").first();
+			if (box.length || ++tries > 40) {
+				clearInterval(timer);
+				if (!box.length) { return; }
+				setTimeout(function () {
+					var row = box.closest("tr");
+					row.css({ outline: "2px solid #f0a020", outlineOffset: "-2px", transition: "outline-color 1s" });
+					setTimeout(function () { row.css("outline-color", "transparent"); }, 2500);
+				}, 500);
+			}
+		}, 250);
+	}
 	<!--- Called by the Scene editor after a save, so the list stays current. --->
 	function refreshScenesWindow() {
 		try {
@@ -103,7 +146,9 @@ here, so it can't be turned into a scrolling scene or end up on another post. --
 	<colgroup><col style="width: 20%"><col></colgroup>
 	<tr><td colspan="2" class="#blockClass#">There are two kinds of scenes. A <strong>scrolling scene</strong> tells a story as the reader scrolls: a moving picture at the top, then text, pictures and forms that come in one after another. A <strong>moving hero</strong> is just the moving picture at the top of one post, made in that post's Hero window.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
-	<tr><td colspan="2" class="#blockClass#">Scenes look best with a modern theme and the sidebar hidden.</td></tr>
+	<!--- The modern theme style is the setting that hides the sidebar (11-07, owner: link it): Theme Settings for the theme in use,
+	scrolled to Blog Theme Style. --->
+	<tr><td colspan="2" class="#blockClass#">Scenes look best with a <a href="javascript:galaxieOpenThemeStyle(#sceneThemeId#);">modern theme</a>, which hides the sidebar.</td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<tr><td colspan="2" class="#blockClass#">
 		<div id="sceneKinds" role="radiogroup" aria-label="Which scenes to show" style="display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 10px;">
@@ -228,6 +273,6 @@ here, so it can't be turned into a scrolling scene or end up on another post. --
 	<tr><td colspan="2" class="#blockClass#"><h4 class="adminBlockHeading">Animation library</h4></td></tr>
 	<tr class="blockSpacer"><td colspan="2" class="border #blockClass#"></td></tr>
 	<!--- Moved to Blog Options (2026-10-20): GreenSock on or off, and where it loads from, are set in one place. --->
-	<tr><td colspan="2" class="#blockClass#">Scenes move with GreenSock (GSAP), a free animation library. Whether it is on, and whether it loads from Cloudflare or from this server, is set in <a href="javascript:createAdminInterfaceWindow(38, 'greensockanimationlibrary');">Blog Options</a>.</td></tr>
+	<tr><td colspan="2" class="#blockClass#">Scenes move with GreenSock (GSAP), a free animation library. Whether it is on, and whether it loads from Cloudflare or from this server, is set by the <a href="javascript:galaxieOpenGsapSetting();">GreenSock setting</a> in Blog Options.</td></tr>
 </table>
 </cfoutput>
