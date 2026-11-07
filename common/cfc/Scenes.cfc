@@ -602,8 +602,7 @@ post keeps its own heading. The picture it came from is kept in the scene's sett
 	<cfset section["heading"] = left(trim(arguments.heading), 300)>
 	<cfif len(trim(arguments.line))><cfset section["html"] = "<p>" & encodeForHtml(left(trim(arguments.line), 300)) & "</p>"></cfif>
 	<cfset section["align"] = listFind("left,center,right", arguments.align) ? arguments.align : "center">
-	<!--- bottom (low), or above (11-06, owner): the heading in a band above the picture, which rises over it as the page scrolls. --->
-	<cfif listFind("bottom,above", arguments.textPosition)><cfset section["textPosition"] = arguments.textPosition></cfif>
+	<cfif arguments.textPosition eq "bottom"><cfset section["textPosition"] = "bottom"></cfif>
 	<cfif listFind("slideIn,slideInStay,slideInOut,still", arguments.textMotion)>
 		<cfset section["textMotion"] = arguments.textMotion>
 	<cfelseif listFind("words,letters", arguments.textMotion)>

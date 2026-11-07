@@ -1187,7 +1187,7 @@
 				<cfif still.isMovingHero>
 					<cfset hero = application.blog.getScenes().getPostHeroParallax(val(post["PostId"]))>
 					<cfif len(hero.heading)>
-						<cfset heading = '<div style="position: absolute; left: 7%; right: 7%; ' & (hero.textPosition eq "bottom" ? "bottom: 10%;" : hero.textPosition eq "above" ? "top: 8%;" : "top: 50%; transform: translateY(-50%);")
+						<cfset heading = '<div style="position: absolute; left: 7%; right: 7%; ' & (hero.textPosition eq "bottom" ? "bottom: 10%;" : "top: 50%; transform: translateY(-50%);")
 							& ' text-align: ' & hero.align & '; color: ' & (len(hero.color) ? hero.color : "##ffffff") & '; text-shadow: 0 1px 4px rgba(0,0,0,.7);'
 							& (len(hero.font) ? ' font-family: &quot;' & encodeForHtmlAttribute(hero.font) & '&quot;, sans-serif;' : '')
 							& ' font-size: ' & max(14, round((hero.fontSize ? hero.fontSize : 56) * 0.43)) & 'px; font-weight: bold; line-height: 1.1;">' & encodeForHtml(hero.heading) & '</div>'>
