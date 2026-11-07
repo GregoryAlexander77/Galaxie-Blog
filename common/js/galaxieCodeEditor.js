@@ -29,6 +29,33 @@
 		return null;
 	}
 
+	// CodeMirror's styles, made to win inside TinyMCE's dialog. TinyMCE's skin resets every element under .tox
+	// (".tox :not(svg):not(rect) { position: static; width: auto; background: 0 0; ... }"), which beats CodeMirror's own one-class
+	// rules: the line-number gutter then fills the whole width and the code is pushed out of sight. So each CodeMirror stylesheet is
+	// added again with ".tox .galaxieCodeHost " in front of every selector (keyframes and @-rules left as they are).
+	var scopedCss = {};
+	function scopeCss(text) {
+		return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[{}])(\s*)([^{}@]+)\{/g, function (all, before, space, selectors) {
+			if (/^\s*(from|to|\d+(\.\d+)?%)\s*(,|$)/.test(selectors)) { return all; }
+			var scoped = selectors.split(",").map(function (s) {
+				s = s.trim();
+				return s ? ".tox .galaxieCodeHost " + s : s;
+			}).join(", ");
+			return before + space + scoped + " {";
+		});
+	}
+	function addScopedCss(href) {
+		if (scopedCss[href]) { return scopedCss[href]; }
+		scopedCss[href] = fetch(href, { credentials: "same-origin" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (text) {
+			if (!text) { return; }
+			var style = document.createElement("style");
+			style.setAttribute("data-galaxie-code", href);
+			style.textContent = scopeCss(text);
+			document.head.appendChild(style);
+		}).catch(function () {});
+		return scopedCss[href];
+	}
+
 	// The add-ons the head doesn't load, once per page.
 	var addOnsReady = null;
 	function loadAddOns() {
@@ -36,11 +63,7 @@
 		var base = libraryBase();
 		addOnsReady = new Promise(function (resolve) {
 			if (!base) { resolve(); return; }
-			var css = ["addon/dialog/dialog.css", "addon/search/matchesonscrollbar.css"];
-			css.forEach(function (href) {
-				if (document.querySelector('link[href="' + base + href + '"]')) { return; }
-				var link = document.createElement("link"); link.rel = "stylesheet"; link.href = base + href; document.head.appendChild(link);
-			});
+			["addon/dialog/dialog.css", "addon/search/matchesonscrollbar.css"].forEach(function (href) { addScopedCss(base + href); });
 			var scripts = ["addon/dialog/dialog.js", "addon/search/searchcursor.js", "addon/search/search.js", "addon/scroll/annotatescrollbar.js",
 				"addon/search/matchesonscrollbar.js", "addon/search/jump-to-line.js", "addon/edit/closetag.js", "addon/fold/xml-fold.js", "addon/edit/matchtags.js"];
 			var next = function () {
@@ -62,12 +85,9 @@
 		if (!c || (c.length > 3 && Number(c[3]) === 0)) { return false; }
 		return (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) < 110;
 	}
-	var darkThemeLoaded = false;
 	function useDarkTheme() {
 		var base = libraryBase();
-		if (!base || darkThemeLoaded) { return; }
-		var link = document.createElement("link"); link.rel = "stylesheet"; link.href = base + "theme/material-darker.css"; document.head.appendChild(link);
-		darkThemeLoaded = true;
+		return base ? addScopedCss(base + "theme/material-darker.css") : Promise.resolve();
 	}
 
 	function open(editor) {
@@ -101,7 +121,7 @@
 		if (!host) { return; }
 		var dialog = host.closest(".tox-dialog");
 		var dark = dialog && isDark(dialog);
-		if (dark) { useDarkTheme(); }
+		var base = libraryBase();
 		// A bigger dialog than TinyMCE's large one (650px tall), and the code filling it: the window's height less the dialog's title,
 		// buttons, padding and the keys line under the code.
 		var sizeIt = function () {
@@ -131,16 +151,23 @@
 				"Ctrl-H": "replace"
 			}
 		};
-		cm = window.CodeMirror(host, options);
-		sizeIt();
-		window.addEventListener("resize", sizeIt);
-		editor.once("CloseWindow", function () { window.removeEventListener("resize", sizeIt); });
-		setTimeout(function () { cm.refresh(); cm.focus(); }, 30);
-		// The add-ons switch on as they arrive.
-		loadAddOns().then(function () {
-			if (!cm) { return; }
-			cm.setOption("matchTags", { bothTags: true });
-			cm.setOption("autoCloseTags", true);
+		// CodeMirror measures its gutter when it starts, so its styles go in first (they're cached after the first time).
+		var closed = false;
+		editor.once("CloseWindow", function () { closed = true; window.removeEventListener("resize", sizeIt); });
+		Promise.all([base ? addScopedCss(base + "lib/codemirror.css") : null, dark ? useDarkTheme() : null]).then(function () {
+			if (closed || !document.body.contains(host)) { return; }
+			cm = window.CodeMirror(host, options);
+			sizeIt();
+			window.addEventListener("resize", sizeIt);
+			setTimeout(function () { cm.refresh(); cm.focus(); }, 30);
+			// The add-ons switch on as they arrive.
+			loadAddOns().then(function () {
+				if (!cm) { return; }
+				cm.setOption("matchTags", { bothTags: true });
+				cm.setOption("autoCloseTags", true);
+				// Options an add-on defines only reach editors made after it loaded.
+				cm.setOption("search", { bottom: false });
+			});
 		});
 	}
 
