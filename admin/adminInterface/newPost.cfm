@@ -344,8 +344,9 @@
 			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 	  	  <!-- Form content --->
-		<!--- Blog post, Page and Layout: the same rows as Edit Post (postKindRows.cfm, 2026-11-08). --->
+		<!--- Blog post and Page: the same rows as Edit Post (postKindRows.cfm, 2026-11-08). --->
 		<cfset pkMode = "create">
+		<cfset pkPart = "kind">
 		<cfset pkSmall = session.isMobile>
 		<cfinclude template="postKindRows.cfm">
 		  <!-- Border -->
@@ -485,6 +486,9 @@
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
+	<!--- Layout, right under Title (owner, 2026-11-08). --->
+	<cfset pkPart = "layout">
+	<cfinclude template="postKindRows.cfm">
 	  	  <!-- Form content -->
 		<cfif session.isMobile>
 		  <tr valign="middle">

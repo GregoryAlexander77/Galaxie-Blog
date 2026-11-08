@@ -1,9 +1,10 @@
-<!--- The top of the Create and Edit Post windows (2026-11-08, owner: "keep both interfaces identical"): Blog post, Page and Layout, each
-row alternating, with its description above its choices. Included by newPost.cfm (pkMode "create") and postDetail.cfm (pkMode "edit").
-A scrolling scene is a layout of an article or a page, not a kind of post of its own, so making one takes two choices: Article or Page,
-then Scrolling scene. Layout shows only for Article and Page; a real request can add it to the others. Needs thisContentClass and
-HtmlUtilsObj, and leaves thisContentClass on the last row's class so the rows after it carry on alternating. Set first: pkMode, pkSmall,
-and for "edit" postIsEvent, postIsBooking, postIsShop, postEventWhen, postBookingLabel, postShopLabel, postSceneIsFull, getPost. --->
+<!--- The shared rows of the Create and Edit Post windows (2026-11-08, owner: "keep both interfaces identical"), included twice by newPost.cfm
+(pkMode "create") and postDetail.cfm (pkMode "edit"). pkPart "kind" draws Blog post and Page at the top of the window. pkPart "layout" draws
+Layout right under Title (owner), which in Edit Post is right above the Hero or Scene row it changes. A scrolling scene is a layout of an article
+or a page, not a kind of post of its own, so making one takes two choices: Article or Page, then Scrolling scene. Layout shows only for Article
+and Page; a real request can add it to the others. Each row alternates, with its description above its choices. Needs thisContentClass and
+HtmlUtilsObj, and leaves thisContentClass ready for the row after it. Set first: pkMode, pkPart, pkSmall, and for "edit" postIsEvent, postIsBooking,
+postIsShop, postEventWhen, postBookingLabel, postShopLabel, postSceneIsFull, getPost. --->
 <cfsilent>
 <cfset pkCreate = pkMode eq "create">
 <cfif pkCreate>
@@ -29,7 +30,11 @@ and for "edit" postIsEvent, postIsBooking, postIsShop, postEventWhen, postBookin
 	<label class="postTypeChoice" style="display: block; margin-bottom: 4px;"><input class="k-radio" type="radio" name="postLayout" value="standard" <cfif pkLayout neq "scene">checked</cfif> /> <b>Standard:</b> a hero at the top, then your text</label>
 	<label class="postTypeChoice" style="display: block;"><input class="k-radio" type="radio" name="postLayout" value="scene" <cfif pkLayout eq "scene">checked</cfif> /> <b>Scrolling scene:</b> a full-page story that rises in as readers scroll</label>
 </cfoutput></cfsavecontent>
-<cfset pkRows = [ { label: "Blog post:", html: pkBlogPost, rowClass: "" }, { label: "Page:", html: pkPage, rowClass: "" }, { label: "Layout:", html: pkLayoutHtml, rowClass: "postLayoutRow" } ]>
+<cfif pkPart eq "layout">
+	<cfset pkRows = [ { label: "Layout:", html: pkLayoutHtml, rowClass: "postLayoutRow" } ]>
+<cfelse>
+	<cfset pkRows = [ { label: "Blog post:", html: pkBlogPost, rowClass: "" }, { label: "Page:", html: pkPage, rowClass: "" } ]>
+</cfif>
 </cfsilent>
 <cfloop from="1" to="#arrayLen(pkRows)#" index="pkIndex">
 	<cfif pkIndex gt 1>
@@ -44,12 +49,23 @@ and for "edit" postIsEvent, postIsBooking, postIsShop, postEventWhen, postBookin
 	</cfif>
 	</cfoutput>
 </cfloop>
+<cfif pkPart eq "layout">
+	<!--- The row's own borders hide with it, so the row above runs straight into the row below. --->
+	<cfoutput><tr height="2px" class="postLayoutRow"><td align="left" valign="top" colspan="2" class="#thisContentClass#"></td></tr></cfoutput>
+	<cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	<cfoutput><tr height="2px" class="postLayoutRow"><td align="left" valign="top" colspan="2" class="border #thisContentClass#"></td></tr></cfoutput>
 <script>
-	<!--- Layout is for articles and pages. --->
+	<!--- Layout is for articles and pages. With its row hidden, the rows below it swap shades, so the colors still alternate. --->
 	window.galaxiePostLayoutRowSync = function () {
 		var chosen = $("input[name=postType]:checked").val();
-		$(".postLayoutRow").toggle(chosen === "blogPost" || chosen === "page");
+		var show = chosen === "blogPost" || chosen === "page";
+		var rows = $(".postLayoutRow");
+		var wasHidden = rows.first().data("layoutHidden") === true;
+		rows.toggle(show);
+		if (wasHidden === show) { rows.last().nextAll("tr").children("td").filter(".k-content, .k-alt").toggleClass("k-content k-alt"); }
+		rows.first().data("layoutHidden", !show);
 	};
 	$("input[name=postType]").on("change", window.galaxiePostLayoutRowSync);
 	window.galaxiePostLayoutRowSync();
 </script>
+</cfif>

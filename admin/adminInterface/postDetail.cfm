@@ -979,8 +979,9 @@
 	<cfset postSceneIsFull = postSceneId gt 0 and postSceneAlias neq "post-hero-" & getPost[1]['PostId']>
 	<cfset postSceneName = postSceneIsFull ? (postScenes.getScene(postSceneId).name ?: postSceneAlias) : "">
 	</cfsilent>
-	<!--- Blog post, Page and Layout: the same rows as Create (postKindRows.cfm, 2026-11-08). --->
+	<!--- Blog post and Page: the same rows as Create (postKindRows.cfm, 2026-11-08). --->
 	<cfset pkMode = "edit">
+	<cfset pkPart = "kind">
 	<cfset pkSmall = smallScreen>
 	<cfinclude template="postKindRows.cfm">
 	<!--- Event preview (owner, 10-16): the event card exactly as visitors see it at the top of the post - the same
@@ -1157,6 +1158,9 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+	<!--- Layout, right under Title (owner, 2026-11-08). --->
+	<cfset pkPart = "layout">
+	<cfinclude template="postKindRows.cfm">
 		<!-- Form content -->
 	  <!-- Hero and cover -->
 	  <!--- The hero and the cover side by side, each with its own button (11-02, owner) - see heroCoverBlock.cfm. --->
