@@ -1757,7 +1757,7 @@ opens it again. Leaving Event takes the event details off the post after asking 
 		function showRealLayout() { $("input[name=postLayout][value=" + (window.galaxiePostSceneOn ? "scene" : "standard") + "]").prop("checked", true); }
 		window.galaxieTakeSceneOff = function () {
 			showRealLayout();
-			galaxieConfirm("Take the scene off this <cfoutput>#getPost[1]['IsPage'] ? "page" : "post"#</cfoutput>?", "The scene stays in your Scenes library, and any hero saved under it comes back.", function () {
+			galaxieConfirm("Take the scene off this <cfoutput>#getPost[1]['IsPage'] ? "page" : "post"#</cfoutput>?", "The scene stays in your Scenes library, so you can use it again." + (window.galaxiePostHeroUnder && window.galaxiePostHeroUnder !== "none" ? " The hero saved on this <cfoutput>#getPost[1]['IsPage'] ? "page" : "post"#</cfoutput> will show again." : ""), function () {
 				jQuery.ajax({
 					type: "post",
 					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=setPostScene",

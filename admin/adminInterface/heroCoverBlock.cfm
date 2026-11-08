@@ -122,6 +122,7 @@ above the text (postDetail.cfm). --->
 <script>
 	window.galaxiePostSceneOn = <cfoutput>#hcIsFullScene ? "true" : "false"#</cfoutput>;
 	window.galaxiePostHeroKind = "<cfoutput>#encodeForJavaScript(hcHero.kind)#</cfoutput>";
+	window.galaxiePostHeroUnder = "<cfoutput>#encodeForJavaScript(hcHero.mediaKind ?: 'none')#</cfoutput>";
 	$("input[name=postLayout][value=" + (window.galaxiePostSceneOn ? "scene" : "standard") + "]").prop("checked", true);
 	$("#heroRowLabel").text(window.galaxiePostSceneOn ? "Scene:" : "Hero:");
 	$("#postLayoutNote").css("display", window.galaxiePostSceneOn ? "block" : "none");
