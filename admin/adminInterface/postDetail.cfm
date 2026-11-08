@@ -1709,7 +1709,7 @@
 		</td>
 	  </tr>
 	  <!--- Notes (2026-10-22): a private note on this post or page, at the bottom of the window. --->
-	  <cfset blockClass = thisContentClass><cfset notesKind = "post"><cfset notesItemId = getPost[1]['PostId']><cfinclude template="adminNotes.cfm">
+	  <cfset blockClass = thisContentClass><cfset notesKind = "post"><cfset notesItemId = getPost[1]['PostId']><cfset notesPlainLabel = true><cfinclude template="adminNotes.cfm">
 	</table>
 	</form>
 

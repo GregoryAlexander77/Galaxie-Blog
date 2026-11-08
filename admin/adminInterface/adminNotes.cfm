@@ -9,6 +9,8 @@ Before including it, set:
 	             (needs blockClass and HtmlUtilsObj, like the rest of the window); "div": a block of its own, for windows built otherwise.
 	notesDomId   optional: the box's id, for a window that switches records (the Themes window): it then calls
 	             galaxieAdminNoteBoxes[notesDomId].setItem(id) and the box loads that record's note. --->
+<!--- notesPlainLabel, optional: true makes the heading a plain label, for Edit Post, where only the top two labels are bold (owner, 2026-11-08). --->
+<cfparam name="notesPlainLabel" default="false">
 <cfparam name="notesLayout" default="rows">
 <cfparam name="notesDomId" default="">
 <cfset notesItemId = val(notesItemId)>
@@ -22,7 +24,7 @@ Before including it, set:
 	<cfset notesClass = "k-alt">
 </cfif>
 <cfsavecontent variable="notesBody"><cfoutput>
-	<h4 class="adminBlockHeading">Notes</h4>
+	<h4 class="adminBlockHeading"><cfif notesPlainLabel><label>Notes:</label><cfelse>Notes</cfif></h4>
 	<div class="k-form-hint" style="margin: 0 0 6px 0;">Private: only shown here in the admin, never on your site. Saved as you type.</div>
 	<textarea id="#notesDomId#" class="k-textbox" rows="4" style="width: 100%; box-sizing: border-box;<cfif notesItemId lte 0> display: none;</cfif>" maxlength="20000" placeholder="Reminders, sources, why it's set up this way...">#encodeForHtml(notesData.note)#</textarea>
 	<div id="#notesDomId#Status" class="k-form-hint" style="margin-top: 4px;"><cfif notesItemId lte 0>Save this first, then you can add notes.<cfelseif len(notesData.updated)>Last changed #encodeForHtml(notesData.updated)#<cfif len(notesData.updatedBy)> by #encodeForHtml(notesData.updatedBy)#</cfif>.</cfif></div>
