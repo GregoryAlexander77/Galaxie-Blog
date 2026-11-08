@@ -91,13 +91,21 @@ window, the cards and sharing all give the same answer). This template only draw
 </style>
 <!--- What the hero is and the cover, at the top beside the row's Hero label (11-05, owner: it was at the bottom, and a second bold
 "Hero" heading repeated the label). On a phone there is no label beside it, so the line says Hero itself. --->
-<cfset hcKindText = hcHero.label>
-<div class="heroSummary" style="padding-top: 10px; margin-bottom: 6px;"><cfoutput><cfif session.isMobile>Hero: </cfif>#encodeForHtml(hcKindText)# &middot; Cover: #hcCoverState#</cfoutput></div>
+<cfset hcKindText = hcIsFullScene ? hcSceneName : hcHero.label>
+<div class="heroSummary" style="padding-top: 10px; margin-bottom: 6px;"><cfoutput><cfif session.isMobile>#hcIsFullScene ? "Scene" : "Hero"#: </cfif>#encodeForHtml(hcKindText)# &middot; Cover: #hcCoverState#</cfoutput></div>
 <div class="hcGrid">
 	<div>
-		<div class="k-form-hint" style="display: block;"><cfif hcIsFullScene>From the scene <cfoutput>#encodeForHtml(hcSceneName)#</cfoutput><cfelse>At the top of the post</cfif></div>
+		<div class="k-form-hint" style="display: block;"><cfif hcIsFullScene>Readers start here<cfelse>At the top of the post</cfif></div>
 		<div class="hcArt" title="<cfoutput>#hcIsFullScene ? 'Open the scene' : 'Change hero'#</cfoutput>"><cfoutput>#hcHeroHtml#</cfoutput><span class="hcClick" onclick="<cfoutput>#hcHeroAction#</cfoutput>"></span></div>
 		<button type="button" id="enclosure" class="k-button k-primary normalFontWeight" onclick="<cfoutput>#hcHeroAction#</cfoutput>"><cfif hcIsFullScene><i class="fontAwesomeIcon fas fa-layer-group"></i> Open the scene<cfelse><i class="fontAwesomeIcon fas fa-panorama"></i> Change hero</cfif></button>
+		<!--- A scene post (2026-11-08): another scene, or none. With no Hero window to reach it from, its cover is added here too. --->
+		<cfif hcIsFullScene>
+		<div>
+			<button type="button" class="k-button normalFontWeight" onclick="createAdminInterfaceWindow(108, <cfoutput>#hcPostId#</cfoutput>)">Choose another</button>
+			<button type="button" class="k-button normalFontWeight" onclick="galaxieTakeSceneOff()">Take it off</button>
+			<cfif not len(hcCoverUrl)><button type="button" class="k-button normalFontWeight" onclick="<cfoutput>#hcCoverAction#</cfoutput>"><i class="fontAwesomeIcon fas fa-camera-retro"></i> <cfoutput>#hcCoverButton#</cfoutput></button></cfif>
+		</div>
+		</cfif>
 	</div>
 	<!--- The Cover card only once a cover is made (owner 11-03): the reminder after a hero save asks for one when cards and sharing
 	need it, and the Hero editor's Cover Image button adds one any time. --->
@@ -109,3 +117,12 @@ window, the cards and sharing all give the same answer). This template only draw
 	</div>
 	</cfif>
 </div>
+<!--- Layout (2026-11-08): this row is the one place that knows, so each time it's drawn it sets the Layout buttons, its label and the note
+above the text (postDetail.cfm). --->
+<script>
+	window.galaxiePostSceneOn = <cfoutput>#hcIsFullScene ? "true" : "false"#</cfoutput>;
+	window.galaxiePostHeroKind = "<cfoutput>#encodeForJavaScript(hcHero.kind)#</cfoutput>";
+	$("input[name=postLayout][value=" + (window.galaxiePostSceneOn ? "scene" : "standard") + "]").prop("checked", true);
+	$("#heroRowLabel").text(window.galaxiePostSceneOn ? "Scene:" : "Hero:");
+	$("#postLayoutNote").css("display", window.galaxiePostSceneOn ? "block" : "none");
+</script>

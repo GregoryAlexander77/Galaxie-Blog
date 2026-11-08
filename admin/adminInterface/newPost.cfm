@@ -134,9 +134,6 @@
 			so all three use the same "Next" label. --->
 			function updatePostTypeFieldVisibility() {
 				var postType = $("input[name='postType']:checked").val();
-				<!--- A scene asks whether it's a blog post or a page, and then shows the fields for that. --->
-				$('.field-sceneAs').toggle(postType === 'scene');
-				if (postType === 'scene') { postType = $("input[name='sceneAs']:checked").val() === 'page' ? 'page' : 'blogPost'; }
 				if (postType === 'pageCollection') {
 					$('.field-dateAuthor').hide();
 					$('.field-heroImage').show();
@@ -152,7 +149,7 @@
 				}
 				<!--- Keep the window title in sync with whichever Post Type is currently selected, same try/catch pattern used for the "Edit Page" title on postDetail.cfm. --->
 				try {
-					if ($("input[name='postType']:checked").val() === 'scene') {
+					if (newPostIsScene()) {
 						$("#newPostWindow").data("kendoWindow").title(postType === 'page' ? "Create Page with a Scene" : "Create Post with a Scene");
 					} else if (postType === 'pageCollection') {
 						$("#newPostWindow").data("kendoWindow").title("Create Page Collection");
@@ -171,7 +168,7 @@
 					<!--- Do nothing --->
 				}
 			}
-			$("input[name='postType'], input[name='sceneAs']").on('change', updatePostTypeFieldVisibility);
+			$("input[name='postType'], input[name='postLayout']").on('change', updatePostTypeFieldVisibility);
 			updatePostTypeFieldVisibility();
 
 			<!--- Invoked when the submit button is clicked. Instead of using '$("form").submit(function(event) {' and 'event.preventDefault();', we are using direct binding here to speed up the event. --->
@@ -194,10 +191,13 @@
 			});
 		});//...document.ready
 		
-		<!--- What is saved: a scene is saved as the blog post or page it was asked to be. --->
+		<!--- What is saved is the article or page itself; a scrolling scene is its layout (2026-11-08). --->
 		function newPostType() {
-			var postType = $("input[name='postType']:checked").val();
-			return postType === 'scene' ? ($("input[name='sceneAs']:checked").val() === 'page' ? 'page' : 'blogPost') : postType;
+			return $("input[name='postType']:checked").val();
+		}
+		function newPostIsScene() {
+			var postType = newPostType();
+			return (postType === 'blogPost' || postType === 'page') && $("input[name='postLayout']:checked").val() === 'scene';
 		}
 
 		<!--- Post method on the detail form called from the commentDetailFormValidator method on the detail page. The action variable will either be 'update' or 'insert'. --->
@@ -260,8 +260,8 @@
 				if ($("input[name='postType']:checked").val() === 'booking') { createAdminInterfaceWindow(104, response.postId); }
 				<!--- A shop page (2026-10-21): the shop page window opens on top, to choose what it shows. --->
 				if ($("input[name='postType']:checked").val() === 'shop') { createAdminInterfaceWindow(116, response.postId); }
-				<!--- A scene (11-02): the Scene editor opens on top, for a new scene that shows on this post or page when saved. --->
-				if ($("input[name='postType']:checked").val() === 'scene') { createAdminInterfaceWindow(121, 'new:' + response.postId); }
+				<!--- A scrolling scene: the Scene wizard opens on top, for a new scene that shows on this post or page when it's finished. --->
+				if (newPostIsScene()) { createAdminInterfaceWindow(121, 'new:' + response.postId); }
 				<!--- Close this window --->
 				jQuery('#newPostWindow').kendoWindow('destroy');
 			} else {
@@ -344,74 +344,10 @@
 			  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
 	  	  <!-- Form content --->
-		<!--- Labels are h4.adminBlockHeading (owner, 2026-10-17). Post type in rows (owner, 2026-10-17): Blog post, Page and Collection each on their own row, with a few words on what it is. --->
-		<cfif session.isMobile>
-		  <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Blog post:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking,newShop,newScene", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label> <div class="k-form-hint">Dated and listed newest first on your blog, in the RSS feed and in subscriber emails, and can have comments. An <b>event</b> is an article with a date, time and place that visitors can add to their calendar or sign up for.</div></td>
-		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Page:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="shop" value="shop" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newShop'>checked</cfif> /> Shop</label> <div class="k-form-hint">Stays up as it is: no date, no comments, not in the RSS feed, and linked from your menu. A <b>booking</b> page adds a booking form, so visitors can book a time with you, and a <b>shop</b> page lists products to buy.</div></td>
-		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Collection:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection</label> <div class="k-form-hint">Not a page of its own: an index that links to several of your pages, like a Portfolio or Services section. For a single link, make a page instead.</div></td>
-		  </tr>
-		  <!--- Scene (11-02, owner): a new post or page that shows a full-page scene, made in the Scene editor. --->
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Scene:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="scene" value="scene" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newScene'>checked</cfif> /> Scene</label> <div class="k-form-hint">A full-page story: a moving picture at the top, then text, pictures and forms that rise in as the reader scrolls. Next opens the Scene editor, where you pick a starting point.</div></td>
-		  </tr>
-		  <tr class="field-sceneAs">
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Show it as:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="sceneAs" id="sceneAsPost" value="blogPost" checked /> A blog post</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="sceneAs" id="sceneAsPage" value="page" /> A page</label> <div class="k-form-hint">A blog post is dated, in your RSS feed and can have comments; a page stays up as it is and is linked from your menu.</div></td>
-		  </tr>
-		<cfelse><!---<cfif session.isMobile>--->
-		  <tr valign="middle">
-			<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<!--- Trimmed (owner, 2026-10-17): each choice below now has a few words of its own. --->
-			Blog posts are dated, listed newest first in your blog and RSS feed, and can have comments. Pages stay put, are linked from your menu, and have no date or comments. After Next, an event, a booking page, a shop page or a scene opens its own window so you can set it up.
-			</td>
-		  </tr>
-		  <tr height="2px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Blog post:</h4></td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="blogPost" value="blogPost" <cfif not structKeyExists(URL, "optArgs") or not listFindNoCase("newPage,newPageCollection,newEvent,newBooking,newShop,newScene", URL.optArgs)>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="event" value="event" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newEvent'>checked</cfif> /> Event</label> <div class="k-form-hint">Dated and listed newest first on your blog, in the RSS feed and in subscriber emails, and can have comments. An <b>event</b> is an article with a date, time and place that visitors can add to their calendar or sign up for.</div></td>
-		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Page:</h4></td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="page" value="page" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPage'>checked</cfif> /> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="booking" value="booking" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newBooking'>checked</cfif> /> Booking</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="shop" value="shop" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newShop'>checked</cfif> /> Shop</label> <div class="k-form-hint">Stays up as it is: no date, no comments, not in the RSS feed, and linked from your menu. A <b>booking</b> page adds a booking form, so visitors can book a time with you, and a <b>shop</b> page lists products to buy.</div></td>
-		  </tr>
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Collection:</h4></td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="pageCollection" value="pageCollection" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newPageCollection'>checked</cfif> /> Page Collection</label> <div class="k-form-hint">Not a page of its own: an index that links to several of your pages, like a Portfolio or Services section. For a single link, make a page instead.</div></td>
-		  </tr>
-		  <!--- Scene (11-02, owner): a new post or page that shows a full-page scene, made in the Scene editor. --->
-		  <tr height="1px">
-			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-		  </tr>
-		  <tr valign="middle" height="35">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Scene:</h4></td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" id="scene" value="scene" <cfif structKeyExists(URL, "optArgs") and URL.optArgs eq 'newScene'>checked</cfif> /> Scene</label> <div class="k-form-hint">A full-page story: a moving picture at the top, then text, pictures and forms that rise in as the reader scrolls. Next opens the Scene editor, where you pick a starting point.</div></td>
-		  </tr>
-		  <tr valign="middle" height="35" class="field-sceneAs">
-			<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Show it as:</h4></td>
-			<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="sceneAs" id="sceneAsPost" value="blogPost" checked /> A blog post</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="sceneAs" id="sceneAsPage" value="page" /> A page</label> <div class="k-form-hint">A blog post is dated, in your RSS feed and can have comments; a page stays up as it is and is linked from your menu.</div></td>
-		  </tr>
-		</cfif>
+		<!--- Blog post, Page and Layout: the same rows as Edit Post (postKindRows.cfm, 2026-11-08). --->
+		<cfset pkMode = "create">
+		<cfset pkSmall = session.isMobile>
+		<cfinclude template="postKindRows.cfm">
 		  <!-- Border -->
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>

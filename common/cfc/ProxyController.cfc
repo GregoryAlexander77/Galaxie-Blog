@@ -5331,6 +5331,8 @@
 			<cfset arguments.post = RendererObj.renderMoreTagFromTinyMce(arguments.post)>
 					
 			<!--- When we are viewing a gallery in the tinymce editor, we are looking at a prepared gallery that has iFrames in order for tinymce to show the galleries correctly. However, we want to strip the iframes out and generate new gallery code from the database. The following function will take care of this and return the proper HTML code prior to inserting the post into the database. Note: the post may not be sent in when using a cfinclude or other directive. --->
+			<!--- A post can be empty when its header shows a scene (the scene is the whole post, 2026-11-08). --->
+			<cfset postContent = "">
 			<cfif len(arguments.post)>
 				<cfinvoke component="#application.jsoupComponentPath#" method="removeGalleryIframes" returnvariable="postContent">
 					<cfinvokeargument name="post" value="#arguments.post#">

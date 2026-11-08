@@ -495,7 +495,7 @@ optArgs (11-07, owner: scenes go into posts from the post's side, so the wizard 
 						data: { csrfToken: CSRF, postId: post.id, alias: alias },
 						success: function (r2) {
 							if (typeof r2 === "string") { try { r2 = JSON.parse(r2); } catch (e) {} }
-							if (r2 && r2.success) { done(sceneId, post); } else { done(sceneId, null); alert2("Saved, but not shown on the post", (r2 && r2.errorMessage) || "Show it from the post's Scene window."); }
+							if (r2 && r2.success) { if (typeof galaxieHeroSummaryRefresh === "function") { try { galaxieHeroSummaryRefresh(); } catch (e) {} } done(sceneId, post); } else { done(sceneId, null); alert2("Saved, but not shown on the post", (r2 && r2.errorMessage) || "Show it from the post's Scene window."); }
 						},
 						error: function () { done(sceneId, null); }
 					});

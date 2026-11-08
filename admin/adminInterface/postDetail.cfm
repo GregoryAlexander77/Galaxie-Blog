@@ -968,6 +968,42 @@
 	  <tr height="1px">
 		  <td align="left" valign="top" colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
+	<!--- At the top, as in Create (2026-11-08, owner: "keep both interfaces identical"). --->
+	<!--- The same choices, headings and words as Create (newPost.cfm), 11-03 (owner: Edit showed fewer). Booking and Shop are offered on a
+	blog post too: saving one makes it a page. A post can't become a Page Collection (a different thing), so that row says so. A scene is
+	shown on the post, which keeps its type: the row opens the scene, or makes one for this post (the Scene editor, new:postId). --->
+	<cfsilent>
+	<cfset postScenes = application.blog.getScenes()>
+	<cfset postSceneAlias = postScenes.getPostScene(getPost[1]['PostId'])>
+	<cfset postSceneId = len(postSceneAlias) ? postScenes.getSceneIdByAlias(postSceneAlias) : 0>
+	<cfset postSceneIsFull = postSceneId gt 0 and postSceneAlias neq "post-hero-" & getPost[1]['PostId']>
+	<cfset postSceneName = postSceneIsFull ? (postScenes.getScene(postSceneId).name ?: postSceneAlias) : "">
+	</cfsilent>
+	<!--- Blog post, Page and Layout: the same rows as Create (postKindRows.cfm, 2026-11-08). --->
+	<cfset pkMode = "edit">
+	<cfset pkSmall = smallScreen>
+	<cfinclude template="postKindRows.cfm">
+	<!--- Event preview (owner, 10-16): the event card exactly as visitors see it at the top of the post - the same
+	application.events.renderCard call blogContentHtml.cfm makes. Refreshed from the server after the event window saves. --->
+	  <tr class="postEventRow">
+		<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<div class="k-form-hint">How visitors see it, below the post's picture:</div>
+			<div id="postEventPreview" style="margin-top: 6px;"><cfif postIsEvent><cfoutput>#application.events.renderCard(postId = getPost[1]['PostId'], title = getPost[1]['Title'], postUrl = application.blog.makeLink(isPage = getPost[1]["IsPage"], postAlias = getPost[1]["PostAlias"], datePosted = getPost[1]["DatePosted"]), preview = true)#</cfoutput></cfif></div>
+		</td>
+	  </tr>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
 	<cfif not getPost[1]['IsPage']>
     <cfif smallScreen>
 	  <tr valign="middle">
@@ -1122,86 +1158,6 @@
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
 		<!-- Form content -->
-	<!--- The same choices, headings and words as Create (newPost.cfm), 11-03 (owner: Edit showed fewer). Booking and Shop are offered on a
-	blog post too: saving one makes it a page. A post can't become a Page Collection (a different thing), so that row says so. A scene is
-	shown on the post, which keeps its type: the row opens the scene, or makes one for this post (the Scene editor, new:postId). --->
-	<cfsilent>
-	<cfset postScenes = application.blog.getScenes()>
-	<cfset postSceneAlias = postScenes.getPostScene(getPost[1]['PostId'])>
-	<cfset postSceneId = len(postSceneAlias) ? postScenes.getSceneIdByAlias(postSceneAlias) : 0>
-	<cfset postSceneIsFull = postSceneId gt 0 and postSceneAlias neq "post-hero-" & getPost[1]['PostId']>
-	<cfset postSceneName = postSceneIsFull ? (postScenes.getScene(postSceneId).name ?: postSceneAlias) : "">
-	</cfsilent>
-	<cfif smallScreen>
-	  <tr>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Blog post:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event</label> <span class="postEventRow"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span> <div class="k-form-hint">Dated and listed newest first on your blog, in the RSS feed and in subscriber emails, and can have comments. An <b>event</b> is an article with a date, time and place that visitors can add to their calendar or sign up for.</div></td>
-	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <tr>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Page:</h4> <label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking and not postIsShop>checked</cfif>/> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="shop" <cfif postIsShop>checked</cfif>/> Shop</label> <span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span> <span class="postShopRow"><button type="button" class="k-button" id="postShopDetails">Shop details</button> <span class="k-form-hint" id="postShopSummary"><cfoutput>#encodeForHtml(postShopLabel)#</cfoutput></span></span> <div class="k-form-hint">Stays up as it is: no date, no comments, not in the RSS feed, and linked from your menu. A <b>booking</b> page adds a booking form, so visitors can book a time with you, and a <b>shop</b> page lists products to buy.</div></td>
-	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <tr>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Collection:</h4> <label class="postTypeChoice k-disabled"><input class="k-radio" type="radio" name="postTypeCollection" disabled /> Page Collection</label> <div class="k-form-hint">An index that links to several of your pages, like a Portfolio or Services section. It isn't a post or a page, so this one can't become one: make a collection with Create.</div></td>
-	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <tr>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2"><h4 class="adminBlockHeading">Scene:</h4> <cfif postSceneIsFull>This shows the scene <b><cfoutput>#encodeForHtml(postSceneName)#</cfoutput></b>. <button type="button" class="k-button normalFontWeight" onclick="createAdminInterfaceWindow(107, <cfoutput>#postSceneId#</cfoutput>);"><i class="fontAwesomeIcon fas fa-layer-group" style="margin-right: 4px;"></i> Open the scene</button><cfelse><button type="button" class="k-button normalFontWeight" onclick="createAdminInterfaceWindow(107, 'new:<cfoutput>#getPost[1]['PostId']#</cfoutput>');"><i class="fontAwesomeIcon fas fa-layer-group" style="margin-right: 4px;"></i> Make it a scene...</button></cfif> <div class="k-form-hint">A full-page story: a moving picture at the top, then text, pictures and forms that rise in as the reader scrolls. It is shown on this <cfif getPost[1]['IsPage']>page<cfelse>post</cfif>, which stays a <cfif getPost[1]['IsPage']>page<cfelse>blog post</cfif>.</div></td>
-	  </tr>
-	<cfelse><!---<cfif smallScreen>--->
-	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Blog post:</h4></td>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="blogPost" <cfif !getPost[1]['IsPage'] and not postIsEvent>checked</cfif> /> Article</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="event" <cfif postIsEvent>checked</cfif>/> Event</label> <span class="postEventRow"><button type="button" class="k-button" id="postEventDetails">Event details</button> <span class="k-form-hint" id="postEventSummary"><cfoutput>#encodeForHtml(postEventWhen)#</cfoutput></span></span> <div class="k-form-hint">Dated and listed newest first on your blog, in the RSS feed and in subscriber emails, and can have comments. An <b>event</b> is an article with a date, time and place that visitors can add to their calendar or sign up for.</div></td>
-	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Page:</h4></td>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="page" <cfif getPost[1]['IsPage'] and not postIsEvent and not postIsBooking and not postIsShop>checked</cfif>/> Page</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="booking" <cfif postIsBooking>checked</cfif>/> Booking</label><label class="postTypeChoice"><input class="k-radio" type="radio" name="postType" value="shop" <cfif postIsShop>checked</cfif>/> Shop</label> <span class="postBookingRow"><button type="button" class="k-button" id="postBookingDetails">Booking details</button> <span class="k-form-hint" id="postBookingSummary"><cfoutput>#encodeForHtml(postBookingLabel)#</cfoutput></span></span> <span class="postShopRow"><button type="button" class="k-button" id="postShopDetails">Shop details</button> <span class="k-form-hint" id="postShopSummary"><cfoutput>#encodeForHtml(postShopLabel)#</cfoutput></span></span> <div class="k-form-hint">Stays up as it is: no date, no comments, not in the RSS feed, and linked from your menu. A <b>booking</b> page adds a booking form, so visitors can book a time with you, and a <b>shop</b> page lists products to buy.</div></td>
-	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Collection:</h4></td>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>"><label class="postTypeChoice k-disabled"><input class="k-radio" type="radio" name="postTypeCollection" disabled /> Page Collection</label> <div class="k-form-hint">An index that links to several of your pages, like a Portfolio or Services section. It isn't a post or a page, so this one can't become one: make a collection with Create.</div></td>
-	  </tr>
-	  <tr height="1px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%"><h4 class="adminBlockHeading">Scene:</h4></td>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>"><cfif postSceneIsFull>This shows the scene <b><cfoutput>#encodeForHtml(postSceneName)#</cfoutput></b>. <button type="button" class="k-button normalFontWeight" onclick="createAdminInterfaceWindow(107, <cfoutput>#postSceneId#</cfoutput>);"><i class="fontAwesomeIcon fas fa-layer-group" style="margin-right: 4px;"></i> Open the scene</button><cfelse><button type="button" class="k-button normalFontWeight" onclick="createAdminInterfaceWindow(107, 'new:<cfoutput>#getPost[1]['PostId']#</cfoutput>');"><i class="fontAwesomeIcon fas fa-layer-group" style="margin-right: 4px;"></i> Make it a scene...</button></cfif> <div class="k-form-hint">A full-page story: a moving picture at the top, then text, pictures and forms that rise in as the reader scrolls. It is shown on this <cfif getPost[1]['IsPage']>page<cfelse>post</cfif>, which stays a <cfif getPost[1]['IsPage']>page<cfelse>blog post</cfif>.</div></td>
-	  </tr>
-	</cfif>
-	<!--- Event preview (owner, 10-16): the event card exactly as visitors see it at the top of the post - the same
-	application.events.renderCard call blogContentHtml.cfm makes. Refreshed from the server after the event window saves. --->
-	  <tr class="postEventRow">
-		<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<div class="k-form-hint">How visitors see it, below the post's picture:</div>
-			<div id="postEventPreview" style="margin-top: 6px;"><cfif postIsEvent><cfoutput>#application.events.renderCard(postId = getPost[1]['PostId'], title = getPost[1]['Title'], postUrl = application.blog.makeLink(isPage = getPost[1]["IsPage"], postAlias = getPost[1]["PostAlias"], datePosted = getPost[1]["DatePosted"]), preview = true)#</cfoutput></cfif></div>
-		</td>
-	  </tr>
-	  <!-- Border -->
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <cfsilent>
-	  <!--- Set the class for alternating rows. --->
-	  <!---After the first row, the content class should be the current class. --->
-	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-	  </cfsilent>
-	  <tr height="2px">
-
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
 	  <!-- Hero and cover -->
 	  <!--- The hero and the cover side by side, each with its own button (11-02, owner) - see heroCoverBlock.cfm. --->
 	<cfif smallScreen>
@@ -1214,7 +1170,7 @@
 	  <tr valign="top">
 		<!--- Bold with a colon, like the Blog post, Collection and Scene labels above it (11-05, owner). --->
 		<td align="right" valign="top" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%; padding-top: 6px;">
-			<h4 class="adminBlockHeading">Hero:</h4>
+			<h4 class="adminBlockHeading" id="heroRowLabel"><cfif postSceneIsFull>Scene:<cfelse>Hero:</cfif></h4>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<div id="mediaPreview" name="mediaPreview"><cfinclude template="heroCoverBlock.cfm"></div>
@@ -1291,6 +1247,7 @@
 	  </tr>
 	  <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<div id="postLayoutNote" class="k-form-hint" style="<cfif postSceneIsFull>display: block;<cfelse>display: none;</cfif> margin-bottom: 6px;">This appears after the scene. Leave it empty if the scene is the whole <cfif getPost[1]['IsPage']>page<cfelse>post</cfif>.</div>
 			<input type="text" id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>" />
 		</td>
 	  </tr>
@@ -1304,6 +1261,7 @@
 		<label for="<cfoutput>#selectorName#</cfoutput>">Post</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>"> 
+		<div id="postLayoutNote" class="k-form-hint" style="<cfif postSceneIsFull>display: block;<cfelse>display: none;</cfif> margin-bottom: 6px;">This appears after the scene. Leave it empty if the scene is the whole <cfif getPost[1]['IsPage']>page<cfelse>post</cfif>.</div>
 		<input type="text" id="<cfoutput>#selectorName#</cfoutput>" name="<cfoutput>#selectorName#</cfoutput>" />   
 		</td>
 	  </tr>
@@ -1768,6 +1726,7 @@ opens it again. Leaving Event takes the event details off the post after asking 
 			$(".postBookingRow").toggle(chosenType() === "booking");
 			$(".postShopRow").toggle(chosenType() === "shop");
 			$("tr.postEventRow").toggle(chosenType() === "event" && isEvent);
+			if (window.galaxiePostLayoutRowSync) { window.galaxiePostLayoutRowSync(); }
 		}
 		<!--- The card as visitors see it, from the server (ProxyController getEventCardPreview). --->
 		function refreshEventPreview() {
@@ -1788,6 +1747,37 @@ opens it again. Leaving Event takes the event details off the post after asking 
 		<!--- The hero and cover block (heroCoverBlock.cfm) has its own summary line since 11-02; the windows that called this after saving
 		(the moving hero, Hero text, Scene) now reload the whole block. --->
 		window.galaxieHeroSummaryRefresh = function () { reloadEnclosureThumbnailPreview(postId); };
+
+		<!--- Layout (2026-11-08): the buttons always show what the post really is (heroCoverBlock.cfm sets them each time it draws), so a
+		choice goes back until it's done: a scene is on the post once it's picked and saved, and off once that's confirmed. --->
+		function showRealLayout() { $("input[name=postLayout][value=" + (window.galaxiePostSceneOn ? "scene" : "standard") + "]").prop("checked", true); }
+		window.galaxieTakeSceneOff = function () {
+			showRealLayout();
+			galaxieConfirm("Take the scene off this <cfoutput>#getPost[1]['IsPage'] ? "page" : "post"#</cfoutput>?", "The scene stays in your Scenes library, and any hero saved under it comes back.", function () {
+				jQuery.ajax({
+					type: "post",
+					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=setPostScene",
+					data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: postId, alias: "" },
+					dataType: "json",
+					success: function (result) {
+						if (typeof result === "string") { try { result = JSON.parse(result); } catch (e) {} }
+						if (result && result.success) { window.galaxieHeroSummaryRefresh(); }
+					},
+					error: function (jqXHR) { if (jqXHR.status === 403) { createLoginWindow(); } }
+				});
+			});
+		};
+		function chooseScene() {
+			showRealLayout();
+			var kind = window.galaxiePostHeroKind || "none";
+			if (kind === "none") { createAdminInterfaceWindow(108, postId); return; }
+			var said = kind === "movingHero" ? "The scene takes the place of the moving hero. You can make a moving hero again later." : "The scene shows instead of the hero. The hero stays saved, so taking the scene off brings it back.";
+			galaxieConfirm("Use a scrolling scene?", said, function () { createAdminInterfaceWindow(108, postId); });
+		}
+		$("input[name=postLayout]").on("change", function () {
+			if ($(this).val() === "scene") { if (!window.galaxiePostSceneOn) { chooseScene(); } }
+			else if (window.galaxiePostSceneOn) { window.galaxieTakeSceneOff(); }
+		});
 
 		$("input[name=postType]").on("change", function() {
 			var chosen = $(this).val();
