@@ -596,9 +596,19 @@
 		img.authorPicture.authorPictureCard { width: 32px; height: 32px; margin: 0 8px 1px 0; }
 		a.authorPictureLink { text-decoration: none; }
 		a.authorPictureLink + .authorBy { display: none; }
+		/* A card's byline with the picture (2026-11-07, owner): the name and the date stacked beside it, two lines that fit the picture. */
+		p.cardBylineWithPicture { display: flex; align-items: center; }
+		p.cardBylineWithPicture a.authorPictureLink { flex: 0 0 auto; line-height: 0; }
+		p.cardBylineWithPicture img.authorPicture.authorPictureCard { margin: 0 8px 0 0; }
+		p.cardBylineWithPicture .cardBylineText { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+		p.cardBylineWithPicture .authorBy, p.cardBylineWithPicture .cardBylineDot { display: none; }
 		@media (max-width: 767px) {
 		  img.authorPicture, a.authorPictureLink { display: none; }
 		  img.authorPicture + .authorBy, a.authorPictureLink + .authorBy { display: inline; }
+		  /* Phones hide the picture: one line again, "by Name · date". */
+		  p.cardBylineWithPicture { display: block; }
+		  p.cardBylineWithPicture .cardBylineText { display: inline; }
+		  p.cardBylineWithPicture .authorBy, p.cardBylineWithPicture .cardBylineDot { display: inline; }
 		}
 
 		.blogPost p.postAuthor {

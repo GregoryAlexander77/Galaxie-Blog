@@ -1285,15 +1285,23 @@
 					</cftry>
 				</cfif>
 				<cfset local.pictureHref = len(request.galaxieBlogOwnerName) and fullName eq request.galaxieBlogOwnerName ? "javascript:createAboutWindow(2);" : application.blog.makeUserLink(fullName)>
-				<cfset local.pictureHtml = '<a href="' & encodeForHtmlAttribute(local.pictureHref) & '" class="authorPictureLink" title="' & encodeForHtmlAttribute("About " & shownName) & '"><img src="' & encodeForHtmlAttribute(picture) & '" alt="' & encodeForHtmlAttribute(shownName) & '" class="authorPicture authorPictureCard" width="32" height="32" loading="lazy"></a><span class="authorBy">by </span>'>
+				<cfset local.pictureHtml = '<a href="' & encodeForHtmlAttribute(local.pictureHref) & '" class="authorPictureLink" title="' & encodeForHtmlAttribute("About " & shownName) & '"><img src="' & encodeForHtmlAttribute(picture) & '" alt="' & encodeForHtmlAttribute(shownName) & '" class="authorPicture authorPictureCard" width="32" height="32" loading="lazy"></a>'>
 			</cfif>
-			<cfset arrayAppend(parts, (len(picture) ? local.pictureHtml : 'by ') & '<a href="' & encodeForHtmlAttribute(application.blog.makeUserLink(fullName)) & '" class="k-content">' & encodeForHtml(shownName) & '</a>')>
+			<cfset arrayAppend(parts, '<a href="' & encodeForHtmlAttribute(application.blog.makeUserLink(fullName)) & '" class="k-content">' & encodeForHtml(shownName) & '</a>')>
 		</cfif>
 		<cfif not isPage and isDate(posted)>
 			<cfset arrayAppend(parts, '<time datetime="' & dateFormat(posted, "yyyy-mm-dd") & '">' & dateFormat(posted, "mmm d, yyyy") & '</time>')>
 		</cfif>
 		<cfif not arrayLen(parts)><cfreturn ""></cfif>
-		<cfreturn '<p class="cardByline" style="margin: 0 0 8px; font-size: 13px; opacity: .8;">' & arrayToList(parts, " &middot; ") & '</p>'>
+		<!--- With the picture (11-07, owner: "I would rather control the wrap"): the name and the date stacked beside it, two lines that
+		fit the 32px picture, instead of one line that wrapped wherever the card ran out of room. Phones hide the picture, so there it is
+		one line again: "by Name · date" (blogContentCss.cfm .cardBylineWithPicture). --->
+		<cfif len(fullName) and len(picture)>
+			<cfreturn '<p class="cardByline cardBylineWithPicture" style="margin: 0 0 8px; font-size: 13px; opacity: .8;">' & local.pictureHtml
+				& '<span class="cardBylineText"><span class="cardBylineName"><span class="authorBy">by </span>' & parts[1] & '</span>'
+				& (arrayLen(parts) gt 1 ? '<span class="cardBylineDot"> &middot; </span>' & parts[2] : '') & '</span></p>'>
+		</cfif>
+		<cfreturn '<p class="cardByline" style="margin: 0 0 8px; font-size: 13px; opacity: .8;">' & (len(fullName) ? 'by ' : '') & arrayToList(parts, " &middot; ") & '</p>'>
 	</cffunction>
 
 	<cffunction name="renderCardMedia" access="public" output="false" returntype="struct"
