@@ -88,6 +88,8 @@ window, the cards and sharing all give the same answer). This template only draw
 	.hcGrid .fontAwesomeIcon { width: 1.25em; text-align: center; }
 	.hcGrid .k-button .fontAwesomeIcon { margin-right: 4px; }
 	.hcGrid .k-button { margin-top: 8px; }
+	<!--- A scene post's buttons are all one size (owner, 2026-11-08). --->
+	.hcGrid .k-button.hcSceneButton { box-sizing: border-box; width: 190px; max-width: 100%; margin-right: 6px; }
 </style>
 <!--- What the hero is and the cover, at the top beside the row's Hero label (11-05, owner: it was at the bottom, and a second bold
 "Hero" heading repeated the label). On a phone there is no label beside it, so the line says Hero itself. --->
@@ -97,13 +99,14 @@ window, the cards and sharing all give the same answer). This template only draw
 	<div>
 		<div class="k-form-hint" style="display: block;"><cfif hcIsFullScene>Readers start here<cfelse>At the top of the post</cfif></div>
 		<div class="hcArt" title="<cfoutput>#hcIsFullScene ? 'Open the scene' : 'Change hero'#</cfoutput>"><cfoutput>#hcHeroHtml#</cfoutput><span class="hcClick" onclick="<cfoutput>#hcHeroAction#</cfoutput>"></span></div>
-		<button type="button" id="enclosure" class="k-button k-primary normalFontWeight" onclick="<cfoutput>#hcHeroAction#</cfoutput>"><cfif hcIsFullScene><i class="fontAwesomeIcon fas fa-layer-group"></i> Open the scene<cfelse><i class="fontAwesomeIcon fas fa-panorama"></i> Change hero</cfif></button>
+		<!--- A scene post's four buttons sit together, two by two (owner, 2026-11-08). --->
+		<cfif hcIsFullScene><div></cfif>
+		<button type="button" id="enclosure" class="k-button k-primary normalFontWeight<cfif hcIsFullScene> hcSceneButton</cfif>" onclick="<cfoutput>#hcHeroAction#</cfoutput>"><cfif hcIsFullScene><i class="fontAwesomeIcon fas fa-layer-group"></i> Open the scene<cfelse><i class="fontAwesomeIcon fas fa-panorama"></i> Change hero</cfif></button>
 		<!--- A scene post (2026-11-08): another scene, or none. With no Hero window to reach it from, its cover is added here too. --->
 		<cfif hcIsFullScene>
-		<div>
-			<button type="button" class="k-button normalFontWeight" onclick="createAdminInterfaceWindow(108, <cfoutput>#hcPostId#</cfoutput>)">Choose another</button>
-			<button type="button" class="k-button normalFontWeight" onclick="galaxieTakeSceneOff()">Take it off</button>
-			<cfif not len(hcCoverUrl)><button type="button" class="k-button normalFontWeight" onclick="<cfoutput>#hcCoverAction#</cfoutput>"><i class="fontAwesomeIcon fas fa-camera-retro"></i> <cfoutput>#hcCoverButton#</cfoutput></button></cfif>
+			<button type="button" class="k-button normalFontWeight hcSceneButton" onclick="createAdminInterfaceWindow(108, <cfoutput>#hcPostId#</cfoutput>)">Choose another</button>
+			<button type="button" class="k-button normalFontWeight hcSceneButton" onclick="galaxieTakeSceneOff()">Take it off</button>
+			<cfif not len(hcCoverUrl)><button type="button" class="k-button normalFontWeight hcSceneButton" onclick="<cfoutput>#hcCoverAction#</cfoutput>"><i class="fontAwesomeIcon fas fa-camera-retro"></i> Add a cover</button></cfif>
 		</div>
 		</cfif>
 	</div>
