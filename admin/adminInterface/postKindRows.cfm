@@ -31,7 +31,8 @@ postIsShop, postEventWhen, postBookingLabel, postShopLabel, postSceneIsFull, get
 	<label class="postTypeChoice" style="display: block;"><input class="k-radio" type="radio" name="postLayout" value="scene" <cfif pkLayout eq "scene">checked</cfif> /> <b>Scrolling scene:</b> a full-page story that rises in as readers scroll</label>
 </cfoutput></cfsavecontent>
 <cfif pkPart eq "layout">
-	<cfset pkRows = [ { label: "Layout:", html: pkLayoutHtml, rowClass: "postLayoutRow" } ]>
+	<!--- Plain, like the Title above it in each window: only the main choices at the top are bold (owner, 2026-11-08). --->
+	<cfset pkRows = [ { label: pkCreate ? "<label>Layout:</label>" : "<label>Layout</label>", html: pkLayoutHtml, rowClass: "postLayoutRow" } ]>
 <cfelse>
 	<cfset pkRows = [ { label: "Blog post:", html: pkBlogPost, rowClass: "" }, { label: "Page:", html: pkPage, rowClass: "" } ]>
 </cfif>
