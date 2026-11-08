@@ -1228,6 +1228,8 @@
 		<!--- Disabled fields look disabled in every theme (owner, 10-16): dimmed, with a not-allowed pointer, and so does the hint beside them. --->
 		.k-window-content input.k-textbox:disabled, .k-window-content textarea.k-textbox:disabled, .k-window-content .k-textbox.k-state-disabled { opacity: 0.55; cursor: not-allowed; }
 		.k-window-content .k-textbox:disabled + .k-form-hint { opacity: 0.55; }
+		<!--- The Yes/No and message dialogs set a width 10px wider than their window, which drew a scrollbar along the bottom (2026-11-08). --->
+		.k-window-content .k-ext-dialog-content { box-sizing: border-box; max-width: 100%; }
 		h4.adminBlockHeading { margin: 4px 0; }
 		table.adminBlocks .k-form-hint, table.k-content .k-form-hint { display: block; font-size: inherit; margin-top: 4px; }
 		<!--- A short hint beside a small field stays on its line; anything longer gets its own row above the field. --->

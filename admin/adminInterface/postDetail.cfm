@@ -1755,9 +1755,20 @@ opens it again. Leaving Event takes the event details off the post after asking 
 		<!--- Layout (2026-11-08): the buttons always show what the post really is (heroCoverBlock.cfm sets them each time it draws), so a
 		choice goes back until it's done: a scene is on the post once it's picked and saved, and off once that's confirmed. --->
 		function showRealLayout() { $("input[name=postLayout][value=" + (window.galaxiePostSceneOn ? "scene" : "standard") + "]").prop("checked", true); }
+		<!--- What taking the scene off leaves: the saved hero, or, with no hero and nothing in the editor (saved or not), an empty post. --->
+		function sceneOffNote() {
+			var noun = "<cfoutput>#getPost[1]['IsPage'] ? "page" : "post"#</cfoutput>";
+			if (window.galaxiePostHeroUnder && window.galaxiePostHeroUnder !== "none") { return " The hero saved on this " + noun + " will show again."; }
+			var editor = tinymce.get("<cfoutput>#selectorName#</cfoutput>");
+			if (!editor) { return ""; }
+			var html = editor.getContent();
+			var hasMedia = /<(img|iframe|video|audio|object|embed)\b/i.test(html);
+			var hasText = $.trim(html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")).length > 0;
+			return hasMedia || hasText ? "" : " This " + noun + " has no text and no hero, so it will be empty.";
+		}
 		window.galaxieTakeSceneOff = function () {
 			showRealLayout();
-			galaxieConfirm("Take the scene off this <cfoutput>#getPost[1]['IsPage'] ? "page" : "post"#</cfoutput>?", "The scene stays in your Scenes library, so you can use it again." + (window.galaxiePostHeroUnder && window.galaxiePostHeroUnder !== "none" ? " The hero saved on this <cfoutput>#getPost[1]['IsPage'] ? "page" : "post"#</cfoutput> will show again." : ""), function () {
+			galaxieConfirm("Take the scene off this <cfoutput>#getPost[1]['IsPage'] ? "page" : "post"#</cfoutput>?", "The scene stays in your Scenes library, so you can use it again." + sceneOffNote(), function () {
 				jQuery.ajax({
 					type: "post",
 					url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=setPostScene",
