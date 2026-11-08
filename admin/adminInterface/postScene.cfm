@@ -44,9 +44,9 @@ $(document).ready(function () {
 			cards.append(card);
 		});
 		$("#postSceneEdit").toggle(!!sceneByAlias(picked));
-		<!--- Save waits for a pick; Remove shows only when the post has a scene now. --->
+		<!--- Save waits for a pick; Remove shows only when the post has a scene now. A moving hero uses the same header line, but it isn't a scene to remove here (2026-11-08). --->
 		$("#postSceneSave").prop("disabled", !sceneByAlias(picked)).toggleClass("k-state-disabled", !sceneByAlias(picked));
-		$("#postSceneRemove").toggle(!!current);
+		$("#postSceneRemove").toggle(!!current && !/^post-hero-[0-9]+$/i.test(current));
 	}
 
 	function reloadWithPick(alias) {
