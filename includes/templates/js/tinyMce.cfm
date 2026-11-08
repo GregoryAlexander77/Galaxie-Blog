@@ -161,7 +161,8 @@
 		
 	<style>
 		.fontAwesomeIcon {
-			font-family: FontAwesome !important; 
+			<!--- By name, not plain FontAwesome (2026-11-08): the jsGrid windows load Font Awesome 4.7, which also calls itself FontAwesome and has no newer icons, so after opening a grid these drew blank (the trash can in the Scene wizard). --->
+			font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", FontAwesome !important;
 			font-weight: 900 !important; 
 			font-size: 19px !important;
 		}		
