@@ -17,8 +17,8 @@
 	//******************************************************************************************--->
 		
 	<!--- Current blog version (This is hardcoded, for now...) --->
-	<cfset version = "5.02" />
-	<cfset versionName = "5.02 (Howl at the Moon)" />
+	<cfset version = "5.07" />
+	<cfset versionName = "5.07 (Howl at the Moon)" />
 	<cfset versionDate =  "November 1st 2026">
 
 	<!--- Require version 9 or higher as we are using ORM --->

@@ -65,6 +65,22 @@ Be sure to write down your chosen user name and password. You will need to retai
 7. Once installed, you should see your new blog with a 'No Entries' message on the front page. You will not see any blog posts until you make them using the administrative site; see below.
 8. Check the blog's email address. The Site Wizard's first screen fills it in with your own email; if you skipped it, open Blog Settings and fill in the Blog Email Address. The blog sends no email until it is filled in (member sign-in links, comment notices, subscriber email and error summaries). If you leave the Mail Server empty, the blog uses the mail server set in the ColdFusion or Lucee administrator.
     
+## What's new in 5.07
+
+A big update, with several planned updates combined into one. There are no 5.03 to 5.06. Update as usual (see [UPGRADING.md](UPGRADING.md)).
+
+- **Galaxie in Docker.** Try Galaxie on your own computer with one command: Lucee, MariaDB and a mail catcher, so nothing the blog sends leaves your computer. See [DOCKER.md](DOCKER.md).
+- **Comments.** Bold, italics, code blocks and links for everyone, while comments stay plain text underneath. New comments appear on their own while people read, and a setting in Blog Options turns this off or changes how often it checks. You can reply from the administrative site in its own window, and **Trusted Commenters** lets members you choose post without waiting for approval while they are signed in.
+- **Scenes.** A Scene wizard, and a **Layout** choice in Create and Edit Post, so an article or page can be a full scrolling scene. Insert, Scene puts a scene in the text.
+- **Heroes.** A Moving hero (a picture or layers that move as you scroll) with its own wizard, gradients that move, one Hero text window for every kind of hero, a new Parallax hero style, and a post's hero and cover image side by side in Edit Post.
+- **A Forms wizard** for building a form step by step.
+- **The post editor.** TinyMCE 5.10.9, and a code editor for Source code. Create and Edit Post now share the same layout at the top.
+- **Author.** The author's photo in a small circle next to "by ..." on the post cards, and who wrote each post in the Recent Posts pod. Pages no longer show a byline.
+- **Safer by default.** A confirmation before every delete or remove in the administrative site, and error reports to the project only if you choose to send them.
+- **Faster on SQL Server and PostgreSQL:** indexes on the tables that link posts to their categories, tags, pictures and comments, added by the update.
+- **Say hello and cfblogs.org in Blog Options,** for blogs that were updated rather than installed.
+- **Fixes:** robots.txt points to your own blog's sitemap, and admin icons no longer go blank after opening a grid.
+
 ## What's new in 5.02
 
 A small update to 5.01. Update as usual (see [UPGRADING.md](UPGRADING.md)).
