@@ -59,6 +59,12 @@ The blog runs from a volume, so rebuilding the image doesn't replace its files b
 
 Don't copy this folder into the container yourself: it holds your `.env` with the database passwords, and Lucee would serve it to anyone who asks for `/.env`.
 
+## If the blog says "This site is not available right now"
+
+Look at the log with `docker compose logs lucee`. If it says `Failed to install the following extensions`, or `PKIX path building failed`, Lucee couldn't download its database driver, ORM or mail modules.
+
+The usual cause is antivirus software that scans HTTPS traffic, such as Norton's Web Shield. Your browser trusts the antivirus, but Lucee inside the container doesn't. Turn off the antivirus's HTTPS scanning for a few minutes and run `docker compose restart lucee`. Lucee downloads these modules each time the container is created, so you may need to do this again after `docker compose up -d --build`.
+
 ## Notes
 
 - **The Lucee version** is set by `LUCEE_IMAGE` in `.env` (default `lucee/lucee:7.1`).
