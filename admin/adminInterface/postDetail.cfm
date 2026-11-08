@@ -1009,7 +1009,7 @@
     <cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-		<label for="datePosted">Date Posted</label>
+		<label for="datePosted">Date Posted:</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1022,7 +1022,7 @@
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr>
 		<td align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%"> 
-			<label for="datePosted">Date Posted</label>
+			<label for="datePosted">Date Posted:</label>
 		</td>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- Using a table to constrain the time picker after it changes --->
@@ -1059,7 +1059,7 @@
 	  <cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-		<label for="post">Author</label>
+		<label for="post">Author:</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1079,7 +1079,7 @@
 	  <!-- Form content -->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-		<label for="post">Author</label>
+		<label for="post">Author:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<select id="author" style="width: 50%"></select>
@@ -1112,7 +1112,7 @@
   	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-		<label for="post">Title</label>
+		<label for="post">Title:</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1123,7 +1123,7 @@
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-		<label for="post">Title</label>
+		<label for="post">Title:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<input type="text" id="title" name="title" value="<cfoutput>#getPost[1]['Title']#</cfoutput>" class="k-textbox" style="width: 66%" onChange="javascript:checkTitle();" />
@@ -1172,9 +1172,9 @@
 	  </tr>
 	<cfelse>
 	  <tr valign="top">
-		<!--- Bold with a colon, like the Blog post, Collection and Scene labels above it (11-05, owner). --->
+		<!--- Plain with a colon, like the labels around it; in both Create and Edit Post only Blog post and Page are bold (owner, 2026-11-08). --->
 		<td align="right" valign="top" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%; padding-top: 6px;">
-			<h4 class="adminBlockHeading" id="heroRowLabel"><cfif postSceneIsFull>Scene:<cfelse>Hero:</cfif></h4>
+			<h4 class="adminBlockHeading"><label id="heroRowLabel"><cfif postSceneIsFull>Scene:<cfelse>Hero:</cfif></label></h4>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<div id="mediaPreview" name="mediaPreview"><cfinclude template="heroCoverBlock.cfm"></div>
@@ -1198,7 +1198,7 @@
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<i class="far fa-edit"></i> 
-			<label for="post">CSS and Scripts</label>
+			<label for="post">CSS and Scripts:</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1212,7 +1212,7 @@
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 			<i class="far fa-edit"></i> 
-			<label for="post">CSS and Scripts</label>
+			<label for="post">CSS and Scripts:</label>
 		</td>
 		<td align="center" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- Inner table --->
@@ -1246,7 +1246,7 @@
 	   </tr>
 	   <tr>
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="<cfoutput>#selectorName#</cfoutput>">Post</label>   
+			<label for="<cfoutput>#selectorName#</cfoutput>">Post:</label>   
 		</td>
 	  </tr>
 	  <tr>
@@ -1262,7 +1262,7 @@
 	  </tr>
 	  <tr valign="middle">
 		<td align="right" valign="middle" height="35" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-		<label for="<cfoutput>#selectorName#</cfoutput>">Post</label>
+		<label for="<cfoutput>#selectorName#</cfoutput>">Post:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>"> 
 		<div id="postLayoutNote" class="k-form-hint" style="<cfif postSceneIsFull>display: block;<cfelse>display: none;</cfif> margin-bottom: 6px;">This appears after the scene. Leave it empty if the scene is the whole <cfif getPost[1]['IsPage']>page<cfelse>post</cfif>.</div>
@@ -1287,7 +1287,7 @@
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
 			<i class="far fa-edit"></i>
-			<label for="post">Misc.</label>
+			<label for="post">Misc.:</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1300,7 +1300,7 @@
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
 			<i class="far fa-edit"></i> 
-			<label for="post">Misc.</label>
+			<label for="post">Misc.:</label>
 		</td>
 		<td align="center" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- Inner table --->
@@ -1448,7 +1448,7 @@
 	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="description">Description</label>
+			<label for="description">Description:</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1466,7 +1466,7 @@
 	  </tr>
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-			<label for="description">Description</label>
+			<label for="description">Description:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: 66%"><cfoutput>#getPost[1]['Description']#</cfoutput></textarea>			
@@ -1491,7 +1491,7 @@
 	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="postCategories">Categories</label>
+			<label for="postCategories">Categories:</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1513,7 +1513,7 @@
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-			<label for="postCategories">Categories</label>
+			<label for="postCategories">Categories:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- Inline template to add a new category. --->
@@ -1551,7 +1551,7 @@
 	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="postTags">Tags</label>
+			<label for="postTags">Tags:</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1573,7 +1573,7 @@
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-			<label for="postTags">Tags</label>
+			<label for="postTags">Tags:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<!--- Inline template to add a new tag. --->
@@ -1612,7 +1612,7 @@
 	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="relatedPosts">Related Posts</label>
+			<label for="relatedPosts">Related Posts:</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1623,7 +1623,7 @@
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-			<label for="relatedPosts">Related Posts</label>
+			<label for="relatedPosts">Related Posts:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<select id="relatedPosts" style="width: 100%; font-weight: 300;"></select> 
@@ -1648,7 +1648,7 @@
 	<cfif smallScreen>
 	  <tr valign="middle">
 		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="postPageCollections">Page Collections</label>
+			<label for="postPageCollections">Page Collections:</label>
 		</td>
 	   </tr>
 	   <tr>
@@ -1670,7 +1670,7 @@
 	<cfelse><!---<cfif smallScreen>--->
 	  <tr valign="middle" height="35">
 		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-			<label for="postPageCollections">Page Collections</label>
+			<label for="postPageCollections">Page Collections:</label>
 		</td>
 		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 			<select id="postPageCollections" multiple="multiple" style="width: 95%">
