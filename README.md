@@ -65,7 +65,7 @@ Be sure to write down your chosen user name and password. You will need to retai
 7. Once installed, you should see your new blog with a 'No Entries' message on the front page. You will not see any blog posts until you make them using the administrative site; see below.
 8. Check the blog's email address. The Site Wizard's first screen fills it in with your own email; if you skipped it, open Blog Settings and fill in the Blog Email Address. The blog sends no email until it is filled in (member sign-in links, comment notices, subscriber email and error summaries). If you leave the Mail Server empty, the blog uses the mail server set in the ColdFusion or Lucee administrator.
     
-## What's new in 5.07, the Sea Dog Edition
+## What's new in 5.07, the Sea Dog Edition: now with Docker
 
 A big update, with several planned updates combined into one. There are no 5.03 to 5.06. Update as usual (see [UPGRADING.md](UPGRADING.md)).
 
