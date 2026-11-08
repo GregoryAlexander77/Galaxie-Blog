@@ -10603,6 +10603,8 @@
 		<!--- Local to this function. These were in the component's variables scope, which every request shares, and two visitors at the same time overwrote each other's values. --->
 		<cfset var Data = "">
 		
+		<!--- The author too (2026-11-07, owner: the Recent Posts pod shows who wrote each post and when). coalesce: a column that is
+		NULL on every row is left out of the map on one engine and not the other (DisplayName is often never set). --->
 		<cfquery name="Data" dbtype="hql" ormoptions="#{maxresults=5}#">		
 			SELECT new Map (
 				Post.PostId as PostId,
@@ -10610,8 +10612,11 @@
 				Post.PostUuid as PostUuid,
 				Post.PostAlias as PostAlias,
 				Post.Title as Title,
-				Post.DatePosted as DatePosted)
+				Post.DatePosted as DatePosted,
+				coalesce(User.FullName, '') as FullName,
+				coalesce(User.DisplayName, '') as DisplayName)
 			FROM Post as Post
+			LEFT JOIN Post.UserRef as User
 			WHERE Post.Released = <cfqueryparam value="1" cfsqltype="cf_sql_bit">
 			AND Post.Remove = <cfqueryparam value="0" cfsqltype="cf_sql_bit">
 			AND (Post.IsPage = <cfqueryparam value="0" cfsqltype="cf_sql_bit"> OR Post.IsPage IS NULL)

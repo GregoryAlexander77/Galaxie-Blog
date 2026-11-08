@@ -80,6 +80,10 @@ Other than setting the thisTemplate var, this logic is identical for most of the
 							<td align="left" class="border" height="20px">
 						</cfif>
 						<a href="#entryLink#" aria-label="#recentPostTitle#" <cfif darkTheme>style="color:whitesmoke"</cfif>>#recentPostTitle#</a>
+						<!--- Who and when (2026-11-07, owner), as in Recent Comments: text only, no picture. --->
+						<cfset recentPostAuthor = len(recentPosts[i]["DisplayName"] ?: "") ? recentPosts[i]["DisplayName"] : (recentPosts[i]["FullName"] ?: "")>
+						<cfset recentPostDate = recentPosts[i]["DatePosted"]>
+						<span class="recentPostByline k-card-subtitle" style="display: block;"><cfif len(recentPostAuthor)>#encodeForHtml(recentPostAuthor)#</cfif><cfif isDate(recentPostDate)><cfif len(recentPostAuthor)> &middot; </cfif><time datetime="#dateFormat(recentPostDate, 'yyyy-mm-dd')#">#dateFormat(recentPostDate, year(recentPostDate) eq year(now()) ? 'mmm d' : 'mmm d, yyyy')#</time></cfif></span>
 						</td>
 					</tr>
 					</cfoutput>
