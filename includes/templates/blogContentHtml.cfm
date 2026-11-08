@@ -209,6 +209,8 @@
 				<cfset postId = getPost[i]["PostId"]>
 				<!--- Read here, not where it is used: the Related Posts/Tags/etc. loops further down reuse i as their own index, so getPost[i] is no longer this post by then. --->
 				<cfset postIsPage = getPost[i]["IsPage"]>
+				<!--- No author line on a page (2026-11-07, owner): pages are the site's own content (About, Docs, Privacy, a booking page),
+				not articles someone wrote on a date - only posts have a byline. --->
 				<!--- A booking page (2026-10-17, owner): reads like a service page - no byline, author box, reactions, comments,
 				Subscribe or "posted on" line, as a booking isn't dated or discussed (common/cfc/Bookings.cfc, Booking pages). --->
 				<cfset postIsBookingPage = postIsPage and getPageMode() eq 'post' and structKeyExists(application, "bookings") and len(application.bookings.getPageOffer(postId)) gt 0>
@@ -411,7 +413,7 @@
 							</cfif><!---<cfif isPageMode()>--->
 							<p class="postAuthor">
 								<span class="info">
-									<cfif len(fullName) and not postIsBookingPage>by <a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
+									<cfif len(fullName) and not (isBoolean(postIsPage) and postIsPage)>by <a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
 									<!--- Loop through the categories array. --->
 									<cfloop from="1" to="#arrayLen(getCategories)#" index="i">
 										<cfsilent>
@@ -480,7 +482,7 @@
 							</table>
 							<p class="postAuthor">
 								<span class="info">
-									<cfif len(fullName) and not postIsBookingPage><cfif len(authorPicture)><a href="#encodeForHtmlAttribute(authorPictureHref)#" class="authorPictureLink" title="About <cfif len(displayName)>#encodeForHtmlAttribute(displayName)#<cfelse>#encodeForHtmlAttribute(fullName)#</cfif>"><img src="#encodeForHtmlAttribute(authorPicture)#" alt="" class="authorPicture authorPictureCard" width="32" height="32" loading="lazy"></a><span class="authorBy">by </span><cfelse>by </cfif><a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
+									<cfif len(fullName) and not (isBoolean(postIsPage) and postIsPage)><cfif len(authorPicture)><a href="#encodeForHtmlAttribute(authorPictureHref)#" class="authorPictureLink" title="About <cfif len(displayName)>#encodeForHtmlAttribute(displayName)#<cfelse>#encodeForHtmlAttribute(fullName)#</cfif>"><img src="#encodeForHtmlAttribute(authorPicture)#" alt="" class="authorPicture authorPictureCard" width="32" height="32" loading="lazy"></a><span class="authorBy">by </span><cfelse>by </cfif><a href="#userLink#" aria-label="#userLink#" class="k-content galaxiePersonLink" data-person="user:#userId#"><cfif len(displayName)>#displayName#<cfelse>#fullName#</cfif></a></cfif>
 								</span>
 							</p>							
 						</cfif><!---<cfif session.isMobile>--->

@@ -1271,6 +1271,8 @@
 		<cfset var parts = []>
 		<!--- The author's picture in a small circle before "by" (2026-11-04, owner): only when the author has one; computers only (blogContentCss.cfm .authorPicture). --->
 		<cfset var picture = trim(arguments.post["ProfilePicture"] ?: "")>
+		<!--- A page has no byline at all (2026-11-07, owner): no author and no date, as on the page itself (blogContentHtml.cfm). --->
+		<cfif isPage><cfreturn ""></cfif>
 		<cfif len(fullName)>
 			<!--- With the author's picture, no "by" on computers (11-06, owner): the picture says who it is. Phones hide the picture, so
 			they keep "by" (blogContentCss.cfm .authorBy). --->
