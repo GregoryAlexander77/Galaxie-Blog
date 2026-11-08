@@ -97,6 +97,11 @@ $(document).ready(function () {
 });
 </script>
 
+<!--- The same width, wide enough for the longest, so Save stands out (owner, 2026-11-08). --->
+<style>
+	#postSceneButtons .k-button { box-sizing: border-box; width: 190px; max-width: 100%; margin: 0 6px 6px 0; }
+</style>
+
 <cfset blockClass = HtmlUtilsObj.getKendoClass('')>
 <cfoutput>
 <table align="center" class="k-content adminBlocks" width="100%" cellpadding="5" cellspacing="0" border="0" style="table-layout: fixed">
@@ -117,10 +122,12 @@ $(document).ready(function () {
 	<tr class="blockSpacer"><td class="border #blockClass#"></td></tr>
 	<tr>
 		<td class="#blockClass#">
+			<div id="postSceneButtons">
 			<button id="postSceneSave" type="button" class="k-button k-primary">Save</button>
 			<button id="postSceneNew" type="button" class="k-button">New scene</button>
 			<button id="postSceneEdit" type="button" class="k-button" style="display: none;">Edit this scene</button>
 			<button id="postSceneRemove" type="button" class="k-button" style="display: none;">Remove the scene</button>
+			</div>
 		</td>
 	</tr>
 </table>
