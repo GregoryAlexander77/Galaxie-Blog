@@ -77,7 +77,7 @@ A big update, with several planned updates combined into one. There are no 5.03 
 - **The post editor.** TinyMCE 5.10.9, and a code editor for Source code. Create and Edit Post now share the same layout at the top.
 - **Author.** The author's photo in a small circle next to "by ..." on the post cards, and who wrote each post in the Recent Posts pod. Pages no longer show a byline.
 - **Safer by default.** A confirmation before every delete or remove in the administrative site, and error reports to the project only if you choose to send them.
-- **Faster on SQL Server and PostgreSQL:** indexes on the tables that link posts to their categories, tags, pictures and comments, added by the update.
+- **Faster on SQL Server and PostgreSQL:** indexes on the tables that link posts to their categories, tags, pictures and comments, added automatically when the blog starts.
 - **Say hello and cfblogs.org in Blog Options,** for blogs that were updated rather than installed.
 - **Fixes:** robots.txt points to your own blog's sitemap, and admin icons no longer go blank after opening a grid.
 
