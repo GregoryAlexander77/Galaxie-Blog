@@ -62,6 +62,28 @@ upload already has. The slider itself moved to the top of the Upload Image windo
 			jQuery('#heroCoverImageWindow').kendoWindow('destroy');
 		}, 500);
 	}
+	<!--- Remove cover (2026-11-08, owner): deleting the picture in the preview was the only way, and nobody would guess that. Asks first; on
+	success, onHeroCoverImageSubmit refreshes what shows the cover and closes this window. --->
+	function onHeroCoverImageRemove(){
+		galaxieConfirm("Remove the cover?", "Cards and sharing will use the hero picture if the post has one, or your theme's logo.", function () {
+			jQuery.ajax({ type: "post", url: "<cfoutput>#application.baseUrl#</cfoutput>/common/cfc/ProxyController.cfc?method=removeHeroCoverImage", dataType: "json",
+				data: { csrfToken: "<cfoutput>#csrfToken#</cfoutput>", postId: <cfoutput>#val(URL.optArgs)#</cfoutput> } })
+				.done(function (response) {
+					if (typeof response === "string") { try { response = JSON.parse(response); } catch (e) {} }
+					if (!(response && response.success)) {
+						kendo.ui.ExtAlertDialog.show({ title: "The cover stays", message: (response && response.errorMessage) || "It could not be removed. Please try again.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+						return;
+					}
+					onHeroCoverImageSubmit.removing = true;
+					onHeroCoverImageSubmit();
+					onHeroCoverImageSubmit.removing = false;
+				})
+				.fail(function (jqXHR) {
+					if (jqXHR.status === 403) { createLoginWindow(); return; }
+					kendo.ui.ExtAlertDialog.show({ title: "The cover stays", message: "It could not be removed. Please try again.", icon: "k-ext-warning", width: "<cfoutput>#application.kendoExtendedUiWindowWidth#</cfoutput>" });
+				});
+		});
+	}
 </script>
 
 <!--- ********************************** Hero Cover Image Editor ******************************** --->
@@ -142,6 +164,7 @@ are off, and Edit picture on the ribbon opens the real picture in the Upload Ima
 	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
 		<button id="heroCoverImageSubmit" name="heroCoverImageSubmit" class="k-button k-primary" type="button" onClick="onHeroCoverImageSubmit();">Submit</button>
+		<cfif len(mediaUrl)><button id="heroCoverImageRemove" name="heroCoverImageRemove" class="k-button normalFontWeight" type="button" onClick="onHeroCoverImageRemove();"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove cover</button></cfif>
 	</td>
   </tr>
 </table>
