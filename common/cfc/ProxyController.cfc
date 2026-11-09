@@ -2616,7 +2616,7 @@
 		<cfset contentTemplates = "navigationMenu,aboutWindow,bioWindow,downloadWindow,downloadPod,subscribePod,cfblogsFeedPod,recentPostsPod,recentCommentsPod,categoriesPod,monthlyArchivesPod,blogPostCalendarPod,upcomingEventsPod,compositeFooter">
 			
 		<cfloop list="#trim(contentTemplates)#" index="i">
-			<cfset thisContentTemplateEnable = postedValue(i & "Enable", arguments)>
+			<cfset thisContentTemplateEnable = evaluate(i & 'Enable')>
 				
 			<!--- The enable and revert variables will come thru as either on or off. Chage this to true or false --->
 			<cfif thisContentTemplateEnable eq 'on'>
@@ -4434,16 +4434,6 @@
 		]>
 		<cfset exporter = createObject("component", "ExcelExport")>
 		<cfset exporter.send(exporter.build(rows, columns, "Error Log"), "error-log-" & dateFormat(now(), "yyyy-mm-dd") & ".xlsx")>
-	</cffunction>
-
-	<cffunction name="postedValue" access="private" returntype="any" output="false"
-			hint="A value posted to a remote method by a name built at run time, such as mediaItemTitle3 (2026-11-01). Looks in the method's arguments, then the form, then the URL, where the old unscoped evaluate() found it. evaluate() isn't in BoxLang without an extra module, and it runs any string as code.">
-		<cfargument name="name" type="string" required="true">
-		<cfargument name="args" type="struct" required="true" hint="The calling method's arguments scope.">
-		<cfif structKeyExists(arguments.args, arguments.name)><cfreturn arguments.args[arguments.name]></cfif>
-		<cfif structKeyExists(form, arguments.name)><cfreturn form[arguments.name]></cfif>
-		<cfif structKeyExists(url, arguments.name)><cfreturn url[arguments.name]></cfif>
-		<cfthrow message="Variable #arguments.name# is undefined.">
 	</cffunction>
 
 	<cffunction name="getEmailLogForGrid" access="remote" returnformat="json" output="false"
@@ -7310,8 +7300,8 @@
 				<!--- Loop through the mediaId list and validate the data --->
 				<cfloop from="1" to="#listLen(arguments.mediaIdList, '_')#" index="i">
 					<!--- The title and the url are coming in as a form like so: mediaItemTitle1, 2, 3, etc --->
-					<cfset title = postedValue("mediaItemTitle#i#", arguments)>
-					<cfset url = postedValue("mediaItemUrl#i#", arguments)>
+					<cfset title = evaluate("mediaItemTitle#i#")>
+					<cfset url = evaluate("mediaItemUrl#i#")>
 				
 					<!--- Validate the data --->
 					<cfif not len(title)>
@@ -7327,10 +7317,10 @@
 						<!--- Extract the values. The mediaIdList uses underscores as separaters. --->
 						<cfset thisMediaId = listGetAt(mediaIdList, i, '_')>
 						<!--- The title and the url are coming in as a form like so: mediaItemTitle1, 2, 3, etc --->
-						<cfset title = postedValue("mediaItemTitle#i#", arguments)>
-						<cfset link = postedValue("mediaItemUrl#i#", arguments)>
+						<cfset title = evaluate("mediaItemTitle#i#")>
+						<cfset link = evaluate("mediaItemUrl#i#")>
 						<!--- And get the media URL to construct our new HTML --->
-						<cfset mediaUrl = postedValue("mediaUrl#i#", arguments)>
+						<cfset mediaUrl = evaluate("mediaUrl#i#")>
 						<!--- Note: the mediaUrl is the full image that was uploaded. We also want to use the thumbnail that was created when the image was uploaded on the client side (when the user clicked on the upload button) instead. The only difference between the paths is that the image is saved into the thumbnail folder.  --->
 						<cfset mediaThumbnailUrl = replaceNoCase(mediaUrl, 'enclosures', 'enclosures/thumbnails')>
 						<!---<cfoutput>i: #i# mediaId: #mediaId# title: #title# link: #link#<br/></cfoutput>--->
@@ -7569,13 +7559,13 @@
 						<!--- Extract the values. The mediaIdList uses underscores as separaters. --->
 						<cfset thisMediaId = listGetAt(mediaIdList, i, '_')>
 						<!--- The title, body, and the url are coming in as a form like so: mediaItemTitle1, 2, 3, etc --->
-						<cfset title = postedValue("carouselTitle#i#", arguments)>
-						<cfset body = postedValue("carouselBody#i#", arguments)>
-						<cfset link = postedValue("mediaItemUrl#i#", arguments)>
+						<cfset title = evaluate("carouselTitle#i#")>
+						<cfset body = evaluate("carouselBody#i#")>
+						<cfset link = evaluate("mediaItemUrl#i#")>
 						<!--- Font --->
-						<cfset fontColor = postedValue("carouselFontColor#i#", arguments)>
+						<cfset fontColor = evaluate("carouselFontColor#i#")>
 						<!--- And get the media URL to construct our new HTML --->
-						<cfset mediaUrl = postedValue("mediaUrl#i#", arguments)>
+						<cfset mediaUrl = evaluate("mediaUrl#i#")>
 						<!--- Note: the mediaUrl is the full image that was uploaded. We also want to use the thumbnail that was created when the image was uploaded on the client side (when the user clicked on the upload button) instead. The only difference between the paths is that the image is saved into the thumbnail folder.  --->
 						<cfset mediaThumbnailUrl = replaceNoCase(mediaUrl, 'enclosures', 'enclosures/thumbnails')>
 						<!---<cfoutput>i: #i# mediaId: #mediaId# title: #title# link: #link#<br/></cfoutput>--->
@@ -9655,18 +9645,18 @@
 				<!--- Get the values of the form --->
 				<cfset fontId = listGetAt(sanitizedFontIdList, i, '_')>
 				<!--- The font and other fields are coming in as a form like so: font1, 2, 3, etc --->
-				<cfset font = postedValue("font#i#", arguments)>
-				<cfset fileName = postedValue("fileName#i#", arguments)>
-				<cfset fontWeight = postedValue("fontWeight#i#", arguments)>
-				<cfset fontType = postedValue("fontType#i#", arguments)>
+				<cfset font = evaluate("font#i#")>
+				<cfset fileName = evaluate("fileName#i#")>
+				<cfset fontWeight = evaluate("fontWeight#i#")>
+				<cfset fontType = evaluate("fontType#i#")>
 				<!---Note: these checkboxes are not sent along if they were not checked. --->
 				<cfif isDefined("italic#i#")>
-					<cfset italic = postedValue("italic#i#", arguments)>
+					<cfset italic = evaluate("italic#i#")>
 				<cfelse>
 					<cfset italic = false>
 				</cfif>
 				<cfif isDefined("googleFont#i#")>
-					<cfset googleFont = postedValue("googleFont#i#", arguments)>
+					<cfset googleFont = evaluate("googleFont#i#")>
 				<cfelse>
 					<cfset googleFont = false>
 				</cfif>

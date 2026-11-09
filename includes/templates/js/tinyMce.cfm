@@ -140,16 +140,16 @@
 		
 	</cfsilent>
 	<!--- If the cookie name exists, the cookie name is equal to the Remove any unused editors from our editor array in memory --->
-	<cfif isDefined("cookie.#selectorId#") and cookie[selectorId] neq selectorName>
+	<cfif isDefined("cookie.#selectorId#") and evaluate("cookie.#selectorId#") neq selectorName>
 		<!--- Include the get-video-id script. This will be used to determine the video provider and the video id --->
 		<script src="<cfoutput>#application.baseUrl#</cfoutput>/common/libs/get-video-id/dist/get-video-id.umd.min.js"></script>
 		<!--- Remove the unused editor --->
 		<script>
 			<cfoutput>
-			tinymce.EditorManager.execCommand('mceRemoveControl', true, '#cookie[selectorId]#');
+			tinymce.EditorManager.execCommand('mceRemoveControl', true, '#evaluate("cookie.#selectorId#")#');
 			try {
 				<!--- In order to make sure that *all* references are removed, use the destroy command. We are putting this in a try block in case the editor is removed. Notes: while testing the efficacy of the mceRemoveControl (above), I noticed that the editor is still referenced using the displayEditorNames() function. It is my educated guess that get method below determines that the editor is no longer active and automatically removes it rather than the destroy statement. That said, if I don't use this line the editor is still in memory and this line will remove it. --->
-				tinymce.get("#cookie[selectorId]#").destroy();
+				tinymce.get("#evaluate("cookie.#selectorId#")#").destroy();
 			} catch {
 				<!--- Do nothing --->
 			}
