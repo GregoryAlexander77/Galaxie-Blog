@@ -163,8 +163,8 @@ are off, and Edit picture on the ribbon opens the real picture in the Upload Ima
   <tr valign="middle" height="30px">
 	<td valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
 	<td valign="bottom" align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-		<button id="heroCoverImageSubmit" name="heroCoverImageSubmit" class="k-button k-primary" type="button" onClick="onHeroCoverImageSubmit();">Submit</button>
-		<cfif len(mediaUrl)><button id="heroCoverImageRemove" name="heroCoverImageRemove" class="k-button normalFontWeight" type="button" onClick="onHeroCoverImageRemove();"><i class="fontAwesomeIcon fas fa-trash-can"></i> Remove cover</button></cfif>
+		<button id="heroCoverImageSubmit" name="heroCoverImageSubmit" class="k-button k-primary" type="button" style="box-sizing: border-box; width: 190px; max-width: 100%; margin: 0 6px 6px 0;" onClick="onHeroCoverImageSubmit();">Submit</button>
+		<cfif len(mediaUrl)><button id="heroCoverImageRemove" name="heroCoverImageRemove" class="k-button normalFontWeight" type="button" style="box-sizing: border-box; width: 190px; max-width: 100%; margin: 0 6px 6px 0;" onClick="onHeroCoverImageRemove();"><i class="fontAwesomeIcon fas fa-trash-can" style="margin-right: 6px;"></i>Remove cover</button></cfif>
 	</td>
   </tr>
 </table>
