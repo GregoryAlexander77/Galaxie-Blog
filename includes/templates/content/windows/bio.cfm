@@ -31,7 +31,8 @@ Note: the following logic should not be cached as each theme may return a differ
 	<table align="center" class="k-content" width="100%" cellpadding="5" cellspacing="5" border="0">
 		<tr>
 			<td width="150">
-				<img src="<cfoutput>#authorData[1]['ProfilePicture']#</cfoutput>" title="<cfoutput>#authorData[1]['FullName']#</cfoutput>'s' Profile" alt="<cfoutput>#authorData[1]['FullName']#</cfoutput>'s' Profile" border="0" class="avatar avatar-64 photo" height="135" width="135" align="left" style="padding: 10px">
+				<!--- Only when there is a picture (2026-11-08, owner): with none, this drew a broken image with its alt text cut off by the round frame. --->
+				<cfif len(authorData[1]['ProfilePicture'] ?: '')><img src="<cfoutput>#authorData[1]['ProfilePicture']#</cfoutput>" title="<cfoutput>#authorData[1]['FullName']#</cfoutput>'s' Profile" alt="<cfoutput>#authorData[1]['FullName']#</cfoutput>'s' Profile" border="0" class="avatar avatar-64 photo" height="135" width="135" align="left" style="padding: 10px"></cfif>
 			</td>
 			<td>
 				<div class="author-bio k-content flexItem">

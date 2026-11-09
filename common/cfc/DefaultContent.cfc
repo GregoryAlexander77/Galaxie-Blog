@@ -262,7 +262,8 @@
 				<table align="center" class="k-content" width="100%" cellpadding="5" cellspacing="5" border="0">
 					<tr>
 						<td width="150">
-							<img src="<cfoutput>#authorData[1]['ProfilePicture']#</cfoutput>" title="<cfoutput>#authorData[1]['FullName']#</cfoutput> Profile" alt="<cfoutput>#authorData[1]['FullName']#</cfoutput> Profile" border="0" class="avatar avatar-64 photo" height="135" width="135" align="left" style="padding: 10px">
+							<!--- Only when there is a picture (2026-11-08, owner): with none, this drew a broken image with its alt text cut off by the round frame. --->
+							<cfif len(authorData[1]['ProfilePicture'] ?: '')><img src="<cfoutput>#authorData[1]['ProfilePicture']#</cfoutput>" title="<cfoutput>#authorData[1]['FullName']#</cfoutput> Profile" alt="<cfoutput>#authorData[1]['FullName']#</cfoutput> Profile" border="0" class="avatar avatar-64 photo" height="135" width="135" align="left" style="padding: 10px"></cfif>
 						</td>
 						<td>
 							<div class="author-bio k-content flexItem">
@@ -295,6 +296,10 @@
 					</tr>
 					<tr>
 						<td colspan="2">
+							<!--- The same text as the Bio window (bio.cfm, 2026-11-08): the owner's own biography, or for a blog updated from an older version the text below. --->
+							<cfif application.blog.getSetup().usesOwnText()>
+								<cfoutput>#authorData[1]["Biography"] ?: ""#</cfoutput>
+							<cfelse>
 							<p>I have over 23 years of web development experience. After serving in the Navy- I went to college in the mid-90s and obtained several degrees in computer graphics and multimedia authoring. My timing was terrific; as soon as I had graduated, the web exploded onto the scene.</p>
 
 							<p>I started developing with ColdFusion 2.5, which was the original ‘middle-ware’ tool to drive database-driven websites. Later, I also learned classic ASP. Soon, I became the lead web developer at Boeing’s Everett site and helped to build the largest intranet site in the world at the time.</p>
@@ -306,6 +311,7 @@
 							<p>Currently, I am working at the University of Washington Medical developing web applications used at various hospitals. I am working on developing this application for the open-source community in my off time.</p>
 
 							<p>My passions include photography, cooking, building and engineering mountain trail systems (I started building trail systems as a kid), long road trips, and hiking!</p>
+							</cfif>
 							
 						</td>
 					</tr>
