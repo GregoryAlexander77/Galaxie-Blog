@@ -1020,7 +1020,7 @@ Populate the User table using the form values sent in
 			<cfset UserDbObj.setSecurityAnswer3(securityAnswer3)>
 		</cfif>
 		<cfset UserDbObj.setChangePasswordOnLogin(false)>
-		<cfset UserDbObj.setLastLogin(javaCast("null", ""))><!--- No date yet: null. BoxLang's ORM can't store "" in a date column (2026-11-01). --->
+		<cfset UserDbObj.setLastLogin("")>
 		<cfset UserDbObj.setActive(true)>
 		<cfset UserDbObj.setDate(now())>
 			
