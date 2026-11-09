@@ -61,9 +61,15 @@ Don't copy this folder into the container yourself: it holds your `.env` with th
 
 ## If the blog says "This site is not available right now"
 
-Look at the log with `docker compose logs lucee`. If it says `Failed to install the following extensions`, or `PKIX path building failed`, Lucee couldn't download its database driver, ORM or mail modules.
+Look at the log with `docker compose logs lucee`. If it says `Failed to install the following extensions`, `Read timed out` or `PKIX path building failed`, Lucee couldn't download its database driver, ORM or mail modules.
 
-The usual cause is antivirus software that scans HTTPS traffic, such as Norton's Web Shield. Your browser trusts the antivirus, but Lucee inside the container doesn't. Turn off the antivirus's HTTPS scanning for a few minutes and run `docker compose restart lucee`. Lucee downloads these modules each time the container is created, so you may need to do this again after `docker compose up -d --build`.
+To download them again, recreate the container. Your blog's files and database are kept:
+
+```
+docker compose up -d --force-recreate lucee
+```
+
+If the log said `Read timed out`, the download just failed that time, so this usually fixes it. If it said `PKIX path building failed`, the usual cause is antivirus software that scans HTTPS traffic, such as Norton's Web Shield: your browser trusts the antivirus, but Lucee inside the container doesn't. Turn off the antivirus's HTTPS scanning first. Some antivirus products keep scanning even with their protection switched off, so if it still fails, turn your protection back on and try on another computer or network. Lucee downloads these modules each time the container is created, so this can come up again after `docker compose up -d --build`.
 
 ## Notes
 
