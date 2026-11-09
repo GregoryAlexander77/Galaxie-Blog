@@ -624,7 +624,21 @@
 			});
 		};
 
+		<!--- And as soon as any window is destroyed (2026-11-08, owner): an editor closed with the cursor in a table left its floating table
+		toolbar on the page until the next window opened. Only editors whose window is gone are removed, so an editor still on the page is safe. --->
+		window.galaxieWatchWindowDestroy = function () {
+			if (!window.kendo || !kendo.ui || !kendo.ui.Window || kendo.ui.Window.fn.galaxieWatchesDestroy) { return; }
+			var originalDestroy = kendo.ui.Window.fn.destroy;
+			kendo.ui.Window.fn.destroy = function () {
+				var result = originalDestroy.apply(this, arguments);
+				setTimeout(function () { try { window.galaxieRemoveDeadEditors(); } catch (e) {} }, 0);
+				return result;
+			};
+			kendo.ui.Window.fn.galaxieWatchesDestroy = true;
+		};
+
 		function createAdminInterfaceWindow(Id, optArgs, otherArgs, otherArgs1) {
+			try { window.galaxieWatchWindowDestroy(); } catch (e) {}
 			try { window.galaxieRemoveDeadEditors(); } catch (e) {}
 			/* Note: the Id is the window, optArgs generally is the post or comment id, otherArgs typically is the name of the tinymce widget, and otherArgs 1 is generally the id of the widget in the database (ie. the mapId). The arguments were meant to be generic. */
 			
