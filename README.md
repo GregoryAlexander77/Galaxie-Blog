@@ -6,6 +6,8 @@ Galaxie Blog is intended to be the most beautiful and functional free, open-sour
 
 The Galaxie Blog documentation is at https://www.galaxieblog.org. Gregory's Blog (https://www.gregoryalexander.com/blog) runs on the same codebase found here, and many of its how-to articles discuss how we have implemented some of the logic.
 
+Want to help? See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Installation
 
 You must have a ColdFusion installed on a server.
