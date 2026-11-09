@@ -9569,7 +9569,7 @@
 		<cfargument name="email" type="string" required="true">
 		<cfargument name="token" type="uuid" required="false">
 
-		<cfif not application.Udf.isLoggedIn() and not structKeyExists(arguments,"token")>
+		<cfif not isUserInRole("admin") and not structKeyExists(arguments,"token")>
 			<cfset variables.utils.throw("Unauthorized removal.")>
 		</cfif>
 			
@@ -9604,7 +9604,7 @@
 	<cffunction name="removeUnverifiedSubscribers" access="public" returnType="void" output="false" 
 			hint="Removes all subscribers who are not verified.">
 		
-		<cfif not application.Udf.isLoggedIn()>
+		<cfif not isUserInRole("admin")>
 			<cfset variables.utils.throw("Unauthorized removal.")>
 		</cfif>
 		
@@ -14967,7 +14967,7 @@
 		<cfset var salt = application.blog.generateSalt()>
 			
 		<cfif arguments.userName eq ''>
-			<cfset userName = session.userName ?: "">
+			<cfset userName = getAuthUser()>
 		</cfif>
 			
 		<cfquery name="Data" dbtype="hql">
