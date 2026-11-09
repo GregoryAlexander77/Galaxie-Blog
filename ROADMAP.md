@@ -13,7 +13,7 @@ Each release comes with a small update download of only the files that changed (
 ## The plan, in order
 
 1. **Settle 5.0** and ship the smaller items as fix releases (5.01 to 5.09).
-2. **Lay the foundation:** BoxLang support (started: the installer completes on BoxLang), a Docker setup (Lucee first, comes with 5.07), a [`CONTRIBUTING.md`](CONTRIBUTING.md) with the house style, and TestBox tests for the flows that matter most.
+2. **Lay the foundation:** BoxLang support (work has started), a Docker setup (Lucee first, comes with 5.07), a [`CONTRIBUTING.md`](CONTRIBUTING.md) with the house style, and TestBox tests for the flows that matter most.
 3. **Rewrite `Application.cfc`** in script, split by job.
 4. **Theme tokens:** one set of named design values that every theme fills in.
 5. **Two tracks at once:** split `blog.cfc` into script services with events, plus traffic charts, built-in backups and restore, and redesigned and new themes.
