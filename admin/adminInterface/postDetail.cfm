@@ -1158,7 +1158,108 @@
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 	  </tr>
-	<!--- Layout, right under Title (owner, 2026-11-08). --->
+	<!--- Description, and a page's Page Collections, right under Title (owner, 2026-11-09: at the bottom, where an article has
+	its related posts, they were easy to miss). --->
+	  <!-- Form content -->
+	<cfif smallScreen>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="description">Description:</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width:95%"><cfoutput>#getPost[1]['Description']#</cfoutput></textarea>
+			<div class="k-form-hint">A short summary for search engines and social media.</div>
+		</td>
+	  </tr>
+	<cfelse><!---<cfif smallScreen>--->
+	  <tr>
+	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">A short summary for search engines and social media.</td>
+	  </tr>
+	  <tr height="2px">
+	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <tr valign="middle" height="35">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
+			<label for="description">Description:</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: 66%"><cfoutput>#getPost[1]['Description']#</cfoutput></textarea>			
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	<cfif getPost[1]['IsPage']>
+	  <!--- Which Page Collection(s) this Page belongs to - a Page's counterpart to a Post's Categories, the only place this membership is set (never curated from inside the Collection itself). Same noData "not found, add it?" pattern as Category/Tag - here it fires whenever none exist yet at all, not just when a search finds nothing. --->
+	<cfif smallScreen>
+	  <tr valign="middle">
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<label for="postPageCollections">Page Collections:</label>
+		</td>
+	   </tr>
+	   <tr>
+		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
+			<select id="postPageCollections" multiple="multiple" style="width: 95%">
+				<cfloop array="#getAllPageCollectionsForDropdown#" index="pcOption">
+					<option value="<cfoutput>#pcOption.pageCollectionId#</cfoutput>"><cfoutput>#pcOption.title#</cfoutput></option>
+				</cfloop>
+			</select>
+			<script id="addPageCollectionNoData" type="text/x-kendo-tmpl">
+				<div>
+					No page collections exist yet.
+				</div>
+				<br />
+				 <button class="k-button" onclick="createAdminInterfaceWindow(24,'newPageCollection')" ontouchend="createAdminInterfaceWindow(24,'newPageCollection')">Create one</button>
+			</script>
+		</td>
+	  </tr>
+	<cfelse><!---<cfif smallScreen>--->
+	  <tr valign="middle" height="35">
+		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
+			<label for="postPageCollections">Page Collections:</label>
+		</td>
+		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
+			<select id="postPageCollections" multiple="multiple" style="width: 95%">
+				<cfloop array="#getAllPageCollectionsForDropdown#" index="pcOption">
+					<option value="<cfoutput>#pcOption.pageCollectionId#</cfoutput>"><cfoutput>#pcOption.title#</cfoutput></option>
+				</cfloop>
+			</select>
+			<script id="addPageCollectionNoData" type="text/x-kendo-tmpl">
+				<div>
+					No page collections exist yet.
+				</div>
+				<br />
+				 <button class="k-button" onclick="createAdminInterfaceWindow(24,'newPageCollection')" ontouchend="createAdminInterfaceWindow(24,'newPageCollection')">Create one</button>
+			</script>
+		</td>
+	  </tr>
+	</cfif>
+	  <!-- Border -->
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	  <cfsilent>
+	  <!--- Set the class for alternating rows. --->
+	  <!---After the first row, the content class should be the current class. --->
+	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
+	  </cfsilent>
+	  <tr height="2px">
+		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
+	  </tr>
+	</cfif>
+	<!--- Layout, under Title and Description (owner, 2026-11-08; Description moved above it 11-09). --->
 	<cfset pkPart = "layout">
 	<cfinclude template="postKindRows.cfm">
 		<!-- Form content -->
@@ -1432,47 +1533,6 @@
 			</table>
 		</td>
 	  </tr>			
-	  <!-- Border -->
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <cfsilent>
-	  <!--- Set the class for alternating rows. --->
-	  <!---After the first row, the content class should be the current class. --->
-	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-	  </cfsilent>
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <!-- Form content -->
-	<cfif smallScreen>
-	  <tr valign="middle">
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="description">Description:</label>
-		</td>
-	   </tr>
-	   <tr>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width:95%"><cfoutput>#getPost[1]['Description']#</cfoutput></textarea>
-			<div class="k-form-hint">A short summary for search engines and social media.</div>
-		</td>
-	  </tr>
-	<cfelse><!---<cfif smallScreen>--->
-	  <tr>
-	  	<td colspan="2" class="<cfoutput>#thisContentClass#</cfoutput>">A short summary for search engines and social media.</td>
-	  </tr>
-	  <tr height="2px">
-	  	<td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-			<label for="description">Description:</label>
-		</td>
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<textarea id="description" name="description" maxlength="1250" class="k-textbox" style="width: 66%"><cfoutput>#getPost[1]['Description']#</cfoutput></textarea>			
-		</td>
-	  </tr>
-	</cfif>
 	<!--- Border + Categories together (Post only) - a Page uses Page Collections exclusively, not both, to avoid reintroducing the tangled category-based membership the redesign replaced. --->
 	<cfif not getPost[1]['IsPage']>
 	  <!-- Border -->
@@ -1632,63 +1692,6 @@
 	</cfif>
 	<!--- Pages have no related-posts concept. --->
 	</cfif><!---<cfif not getPost[1]['IsPage']>--->
-	<!--- Border + Page Collections together (Pages only), same reasoning as the two blocks above - a Post gets neither the border nor the (empty) content here. --->
-	<cfif getPost[1]['IsPage']>
-	  <!-- Border -->
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <cfsilent>
-	  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
-	  </cfsilent>
-	  <tr height="2px">
-		  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
-	  </tr>
-	  <!--- Which Page Collection(s) this Page belongs to - a Page's counterpart to a Post's Categories, the only place this membership is set (never curated from inside the Collection itself). Same noData "not found, add it?" pattern as Category/Tag - here it fires whenever none exist yet at all, not just when a search finds nothing. --->
-	<cfif smallScreen>
-	  <tr valign="middle">
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<label for="postPageCollections">Page Collections:</label>
-		</td>
-	   </tr>
-	   <tr>
-		<td class="<cfoutput>#thisContentClass#</cfoutput>" colspan="2">
-			<select id="postPageCollections" multiple="multiple" style="width: 95%">
-				<cfloop array="#getAllPageCollectionsForDropdown#" index="pcOption">
-					<option value="<cfoutput>#pcOption.pageCollectionId#</cfoutput>"><cfoutput>#pcOption.title#</cfoutput></option>
-				</cfloop>
-			</select>
-			<script id="addPageCollectionNoData" type="text/x-kendo-tmpl">
-				<div>
-					No page collections exist yet.
-				</div>
-				<br />
-				 <button class="k-button" onclick="createAdminInterfaceWindow(24,'newPageCollection')" ontouchend="createAdminInterfaceWindow(24,'newPageCollection')">Create one</button>
-			</script>
-		</td>
-	  </tr>
-	<cfelse><!---<cfif smallScreen>--->
-	  <tr valign="middle" height="35">
-		<td align="right" valign="middle" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 10%">
-			<label for="postPageCollections">Page Collections:</label>
-		</td>
-		<td align="left" class="<cfoutput>#thisContentClass#</cfoutput>">
-			<select id="postPageCollections" multiple="multiple" style="width: 95%">
-				<cfloop array="#getAllPageCollectionsForDropdown#" index="pcOption">
-					<option value="<cfoutput>#pcOption.pageCollectionId#</cfoutput>"><cfoutput>#pcOption.title#</cfoutput></option>
-				</cfloop>
-			</select>
-			<script id="addPageCollectionNoData" type="text/x-kendo-tmpl">
-				<div>
-					No page collections exist yet.
-				</div>
-				<br />
-				 <button class="k-button" onclick="createAdminInterfaceWindow(24,'newPageCollection')" ontouchend="createAdminInterfaceWindow(24,'newPageCollection')">Create one</button>
-			</script>
-		</td>
-	  </tr>
-	</cfif>
-	</cfif><!---<cfif getPost[1]['IsPage']>--->
 	  <!-- Border -->
 	  <tr height="2px">
 		  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>

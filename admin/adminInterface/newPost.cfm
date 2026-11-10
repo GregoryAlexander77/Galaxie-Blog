@@ -486,9 +486,7 @@
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-	<!--- Layout, right under Title (owner, 2026-11-08). --->
-	<cfset pkPart = "layout">
-	<cfinclude template="postKindRows.cfm">
+	<!--- Description right under Title, as in Edit Post (owner, 2026-11-09). --->
 	  	  <!-- Form content -->
 		<cfif session.isMobile>
 		  <tr valign="middle">
@@ -554,18 +552,20 @@
 			</td>
 		  </tr>
 		</cfif>
-		  <!-- Border -->
-		  <tr height="2px" class="field-heroImage">
+	 	  <!-- Border -->
+		  <tr height="2px">
 			  <td align="left" valign="top" colspan="<cfoutput>#thisColSpan#</cfoutput>" class="<cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
-		<cfsilent>
-		  <!--- Set the class for alternating rows. --->
-		  <!---After the first row, the content class should be the current class. --->
+		  <cfsilent>
 		  <cfset thisContentClass = HtmlUtilsObj.getKendoClass(thisContentClass)>
 		  </cfsilent>
 		  <tr height="2px">
 			  <td align="left" valign="top" colspan="2" class="border <cfoutput>#thisContentClass#</cfoutput>"></td>
 		  </tr>
+	<!--- Layout, under Title and Description (owner, 2026-11-08; Description moved above it 11-09). --->
+	<cfset pkPart = "layout">
+	<cfinclude template="postKindRows.cfm">
+		  <!--- Layout ends with its own border, so Next follows it directly (2026-11-09). --->
 	  	  <!-- Form content -->
 		  <tr valign="middle">
 			<td height="25" valign="bottom" align="right" class="<cfoutput>#thisContentClass#</cfoutput>" style="width: 20%">&nbsp;</td>
