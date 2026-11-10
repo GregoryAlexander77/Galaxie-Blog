@@ -120,10 +120,15 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 	once (CLOUDS only), then the specific effect's own small file - same addCss/getScript/whenReady private-closure
 	pattern already used for grapickPickr() (see gradientEditor.cfm's identical comment on why callers must go
 	through the named method instead of calling addCss/getScript directly). --->
+	<!--- 2026-11-09 (owner: "the vanta waves only has a grey color- I can't change it"): the editor starts on the next tick,
+	never right here. The second time this window opens, the libraries are already loaded and this callback ran at once,
+	before the script further down had run: its "var animationSwatchPickrs = [null, ...]" then threw the new color pickers
+	away, so the swatch couldn't be changed and its color never reached the preview or the save. RANDOM had the same
+	problem every time. --->
 	var animationLibsLoaded = false;
-	if ("<cfoutput>#existingEffect#</cfoutput>" === "RANDOM") { animationLibsLoaded = true; initHeroAnimationEditor(); } else galaxieLoader.heroAnimationEngine("<cfoutput>#existingEffect#</cfoutput>", function() {
+	if ("<cfoutput>#existingEffect#</cfoutput>" === "RANDOM") { animationLibsLoaded = true; setTimeout(initHeroAnimationEditor, 0); } else galaxieLoader.heroAnimationEngine("<cfoutput>#existingEffect#</cfoutput>", function() {
 		animationLibsLoaded = true;
-		initHeroAnimationEditor();
+		setTimeout(initHeroAnimationEditor, 0);
 	});
 	setTimeout(function() {
 		if (!animationLibsLoaded) {
@@ -548,6 +553,16 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 		table.children("tbody").append('<tr class="blockSpacer"><td colspan="4" class="border ' + (alt ? "k-alt" : "k-content") + '"></td></tr>');
 	}
 
+	<!--- The color a swatch starts with for the chosen effect: the saved one, else the effect's own default, else the theme's
+	accent color. --->
+	function animationSwatchSeed(i) {
+		var effect = $("#animationEffect").val();
+		var colorParams = ANIMATION_EFFECT_PARAMS[effect] || [];
+		if (i >= colorParams.length) { return null; }
+		var effectDefaults = ANIMATION_EFFECT_COLOR_DEFAULTS[effect] || {};
+		return existingOptions[colorParams[i].key] || effectDefaults[colorParams[i].key] || themeAccentColor;
+	}
+
 	function applyEffectParams() {
 		var effect = $("#animationEffect").val();
 		var colorParams = ANIMATION_EFFECT_PARAMS[effect] || [];
@@ -558,9 +573,7 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 			if (i < colorParams.length) {
 				row.show();
 				$("#animationSwatchLabel" + (i + 1)).text(colorParams[i].label + ":");
-				var effectDefaults = ANIMATION_EFFECT_COLOR_DEFAULTS[effect] || {};
-				var seedColor = existingOptions[colorParams[i].key] || effectDefaults[colorParams[i].key] || themeAccentColor;
-				if (animationSwatchPickrs[i]) { animationSwatchPickrs[i].setColor(seedColor); }
+				if (animationSwatchPickrs[i]) { animationSwatchPickrs[i].setColor(animationSwatchSeed(i)); }
 			} else {
 				row.hide();
 			}
@@ -613,6 +626,13 @@ cfdefaultcase for an unrecognized theme name, so this never comes back empty. --
 						hue: true,
 						interaction: { hex: true, rgba: false, input: true, clear: false, save: true }
 					}
+				});
+				<!--- 2026-11-09: Pickr ignores setColor() until it has finished starting, and then shows its "default", so
+				applyEffectParams' seed (the saved color) was lost and the swatch showed the theme's accent color instead
+				(gray on some themes). Seed it again once this picker is ready. --->
+				animationSwatchPickrs[index].on("init", function(instance) {
+					var seed = animationSwatchSeed(index);
+					if (seed) { instance.setColor(seed, true); refreshAnimationPreview(); }
 				});
 				animationSwatchPickrs[index].on("change", refreshAnimationPreview).on("save", function(color, instance) {
 					instance.hide();
