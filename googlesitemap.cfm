@@ -29,12 +29,25 @@ Original code: <cfset getPosts = application.blog.getPost(params, false, false, 
 	<cfset utcPrefix = "+">
 </cfif>
 
-<!--- If there are posts, get the most recent post and set the date --->
+<!--- lastmod (2026-11-09, owner: "how does google know when to search the docs after an update"): the day a post or page was
+last saved (Post.Date, which every save sets, and which the JSON-LD's dateModified already uses), or the day it was posted when
+that is later (a post scheduled for the future). It used to be the date posted only, so an edited page never looked changed to
+Google. A date without a time is valid in a sitemap and avoids getting the time zone wrong. The home page gets the newest of them. --->
+<cffunction name="sitemapLastMod" returntype="string" output="false">
+	<cfargument name="post" type="struct" required="true">
+	<cfset var lastDate = arguments.post["DatePosted"]>
+	<cfif isDate(arguments.post["Date"] ?: "") and (not isDate(lastDate) or dateCompare(arguments.post["Date"], lastDate, "d") gt 0)>
+		<cfset lastDate = arguments.post["Date"]>
+	</cfif>
+	<cfreturn isDate(lastDate) ? dateFormat(lastDate, "yyyy-mm-dd") : dateFormat(now(), "yyyy-mm-dd")>
+</cffunction>
+<cfset dateStr = dateFormat(now(), "yyyy-mm-dd")>
 <cfif arrayLen(getPosts)>
-	<cfset dateStr = dateFormat(getPosts[1]["DatePosted"],"yyyy-mm-dd")>
-	<cfset dateStr = dateStr & "T" & timeFormat(getPosts[1]["DatePosted"],"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & ":00">
-<cfelse>
-	<cfset dateStr = dateFormat(now(),"yyyy-mm-dd") & "T" & timeFormat(now(),"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & ":00">
+	<cfset dateStr = "">
+	<cfloop from="1" to="#arrayLen(getPosts)#" index="i">
+		<cfset thisLastMod = sitemapLastMod(getPosts[i])>
+		<cfif thisLastMod gt dateStr><cfset dateStr = thisLastMod></cfif>
+	</cfloop>
 </cfif>
 		
 <!--- If the application.serverRewriteRuleInPlace variable has been set to true, we need to eliminate 'index.cfm' from the URL --->
@@ -45,10 +58,7 @@ Original code: <cfset getPosts = application.blog.getPost(params, false, false, 
 </cfif>
 
 <cfcontent type="text/xml" reset="true"><cfoutput><?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.google.com/schemas/sitemap/0.84"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.google.com/schemas/sitemap/0.84
-	http://www.google.com/schemas/sitemap/0.84/sitemap.xsd">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 	<url>
 		<loc>#blogUrl#/</loc>
     	<lastmod>#dateStr#</lastmod>
@@ -73,8 +83,7 @@ Original code: <cfset getPosts = application.blog.getPost(params, false, false, 
 		<cfelse>
 			<cfset postLink = postLink>
 		</cfif>
-		<cfset dateStr = dateFormat(getPosts[i]["DatePosted"],"yyyy-mm-dd")>
-		<cfset dateStr = dateStr & "T" & timeFormat(getPosts[i]["DatePosted"],"HH:mm:ss") & utcPrefix & numberFormat(z.utcHourOffset,"00") & ":00">
+		<cfset dateStr = sitemapLastMod(getPosts[i])>
 		<cfoutput>
 		<url>
 		<loc>#xmlFormat(postLink)#</loc>
